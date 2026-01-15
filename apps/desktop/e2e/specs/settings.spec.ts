@@ -7,8 +7,8 @@ test.describe('Settings Dialog', () => {
   test('should open settings dialog when clicking settings button', async ({ window }) => {
     const settingsPage = new SettingsPage(window);
 
+    // Fixture already handles hydration, just ensure DOM is ready
     await window.waitForLoadState('domcontentloaded');
-    await window.waitForTimeout(TEST_TIMEOUTS.HYDRATION);
 
     // Click the settings button in sidebar
     await settingsPage.navigateToSettings();
@@ -32,8 +32,8 @@ test.describe('Settings Dialog', () => {
   test('should display model selection dropdown', async ({ window }) => {
     const settingsPage = new SettingsPage(window);
 
+    // Fixture already handles hydration, just ensure DOM is ready
     await window.waitForLoadState('domcontentloaded');
-    await window.waitForTimeout(TEST_TIMEOUTS.HYDRATION);
 
     // Open settings dialog
     await settingsPage.navigateToSettings();
@@ -57,8 +57,8 @@ test.describe('Settings Dialog', () => {
   test('should display API key input', async ({ window }) => {
     const settingsPage = new SettingsPage(window);
 
+    // Fixture already handles hydration, just ensure DOM is ready
     await window.waitForLoadState('domcontentloaded');
-    await window.waitForTimeout(TEST_TIMEOUTS.HYDRATION);
 
     // Open settings dialog
     await settingsPage.navigateToSettings();
@@ -85,8 +85,8 @@ test.describe('Settings Dialog', () => {
   test('should allow typing in API key input', async ({ window }) => {
     const settingsPage = new SettingsPage(window);
 
+    // Fixture already handles hydration, just ensure DOM is ready
     await window.waitForLoadState('domcontentloaded');
-    await window.waitForTimeout(TEST_TIMEOUTS.HYDRATION);
 
     // Open settings dialog
     await settingsPage.navigateToSettings();
@@ -117,8 +117,8 @@ test.describe('Settings Dialog', () => {
   test('should display debug mode toggle', async ({ window }) => {
     const settingsPage = new SettingsPage(window);
 
+    // Fixture already handles hydration, just ensure DOM is ready
     await window.waitForLoadState('domcontentloaded');
-    await window.waitForTimeout(TEST_TIMEOUTS.HYDRATION);
 
     // Open settings dialog
     await settingsPage.navigateToSettings();
@@ -145,8 +145,8 @@ test.describe('Settings Dialog', () => {
   test('should allow toggling debug mode', async ({ window }) => {
     const settingsPage = new SettingsPage(window);
 
+    // Fixture already handles hydration, just ensure DOM is ready
     await window.waitForLoadState('domcontentloaded');
-    await window.waitForTimeout(TEST_TIMEOUTS.HYDRATION);
 
     // Open settings dialog
     await settingsPage.navigateToSettings();
@@ -165,9 +165,8 @@ test.describe('Settings Dialog', () => {
       ]
     );
 
-    // Click toggle
+    // Click toggle - state change is immediate in React
     await settingsPage.toggleDebugMode();
-    await window.waitForTimeout(TEST_TIMEOUTS.STATE_UPDATE);
 
     // Capture toggled state
     await captureForAI(
@@ -184,8 +183,8 @@ test.describe('Settings Dialog', () => {
   test('should close dialog when pressing Escape', async ({ window }) => {
     const settingsPage = new SettingsPage(window);
 
+    // Fixture already handles hydration, just ensure DOM is ready
     await window.waitForLoadState('domcontentloaded');
-    await window.waitForTimeout(TEST_TIMEOUTS.HYDRATION);
 
     // Open settings dialog
     await settingsPage.navigateToSettings();
@@ -193,9 +192,8 @@ test.describe('Settings Dialog', () => {
     // Verify dialog is open
     await expect(settingsPage.modelSelect).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
-    // Press Escape to close dialog
+    // Press Escape to close dialog - expect handles the wait
     await window.keyboard.press('Escape');
-    await window.waitForTimeout(TEST_TIMEOUTS.STATE_UPDATE);
 
     // Verify dialog closed (model select should not be visible)
     await expect(settingsPage.modelSelect).not.toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });

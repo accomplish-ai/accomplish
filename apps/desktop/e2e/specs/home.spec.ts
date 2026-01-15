@@ -103,8 +103,14 @@ test.describe('Home Page', () => {
     const exampleCard0 = homePage.getExampleCard(0);
     await exampleCard0.click();
 
-    // Wait for input to be filled
-    await window.waitForTimeout(TEST_TIMEOUTS.STATE_UPDATE);
+    // Wait for input to be filled with example text
+    await window.waitForFunction(
+      () => {
+        const input = document.querySelector('[data-testid="task-input-textarea"]') as HTMLTextAreaElement;
+        return input && input.value.length > 0;
+      },
+      { timeout: TEST_TIMEOUTS.NAVIGATION }
+    );
 
     // Capture state after clicking example
     await captureForAI(
@@ -147,7 +153,7 @@ test.describe('Home Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.PERMISSION_MODAL });
+    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Capture after navigation
     await captureForAI(

@@ -47,7 +47,8 @@ export class SettingsPage {
   async navigateToSettings() {
     // Click the settings button in sidebar to navigate
     await this.sidebarSettingsButton.click();
-    await this.page.waitForTimeout(TEST_TIMEOUTS.STATE_UPDATE);
+    // Wait for settings dialog to be visible
+    await this.modelSelect.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
   }
 
   async toggleDebugMode() {

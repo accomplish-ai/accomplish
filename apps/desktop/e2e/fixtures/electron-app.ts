@@ -48,8 +48,11 @@ export const test = base.extend<ElectronFixtures>({
     // Wait for page to be fully loaded
     await window.waitForLoadState('load');
 
-    // Wait for React hydration
-    await window.waitForTimeout(TEST_TIMEOUTS.HYDRATION);
+    // Wait for React hydration by checking for a core UI element
+    await window.waitForSelector('[data-testid="task-input-textarea"]', {
+      state: 'visible',
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     await use(window);
   },
