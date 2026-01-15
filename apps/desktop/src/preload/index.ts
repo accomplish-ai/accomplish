@@ -97,6 +97,19 @@ const accomplishAPI = {
   hasAnyApiKey: (): Promise<boolean> =>
     ipcRenderer.invoke('api-keys:has-any'),
 
+  // Ollama configuration
+  testOllamaConnection: (url: string): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; displayName: string; size: number }>;
+    error?: string;
+  }> => ipcRenderer.invoke('ollama:test-connection', url),
+
+  getOllamaConfig: (): Promise<{ baseUrl: string; enabled: boolean; lastValidated?: number } | null> =>
+    ipcRenderer.invoke('ollama:get-config'),
+
+  setOllamaConfig: (config: { baseUrl: string; enabled: boolean; lastValidated?: number } | null): Promise<void> =>
+    ipcRenderer.invoke('ollama:set-config', config),
+
   // Event subscriptions
   onTaskUpdate: (callback: (event: unknown) => void) => {
     const listener = (_: unknown, event: unknown) => callback(event);
