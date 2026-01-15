@@ -13,6 +13,8 @@ import ExecutionPage from './pages/Execution';
 
 // Components
 import Sidebar from './components/layout/Sidebar';
+import { TaskLauncher } from './components/TaskLauncher';
+import { useTaskStore } from './stores/taskStore';
 import { Loader2, AlertTriangle } from 'lucide-react';
 
 type AppStatus = 'loading' | 'ready' | 'error';
@@ -22,10 +24,26 @@ export default function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const location = useLocation();
 
+  // Get launcher actions
+  const { openLauncher } = useTaskStore();
+
   // Track page views on route changes
   useEffect(() => {
     analytics.trackPageView(location.pathname);
   }, [location.pathname]);
+
+  // Cmd+K keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        openLauncher();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [openLauncher]);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -120,6 +138,7 @@ export default function App() {
           </Routes>
         </AnimatePresence>
       </main>
+      <TaskLauncher />
     </div>
   );
 }
