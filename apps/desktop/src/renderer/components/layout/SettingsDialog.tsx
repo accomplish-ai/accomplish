@@ -202,6 +202,50 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
         </DialogHeader>
 
         <div className="space-y-8 mt-4">
+          {/* Model Selection Section */}
+          <section>
+            <h2 className="mb-4 text-base font-medium text-foreground">Model</h2>
+            <div className="rounded-lg border border-border bg-card p-5">
+              <p className="mb-4 text-sm text-muted-foreground leading-relaxed">
+                Select the AI model to use for task execution.
+              </p>
+              {loadingModel ? (
+                <div className="h-10 animate-pulse rounded-md bg-muted" />
+              ) : (
+                <select
+                  value={selectedModel?.model || ''}
+                  onChange={(e) => handleModelChange(e.target.value)}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {DEFAULT_PROVIDERS.filter((p) => p.requiresApiKey).map((provider) => {
+                    const hasApiKey = savedKeys.some((k) => k.provider === provider.id);
+                    return (
+                      <optgroup key={provider.id} label={provider.name}>
+                        {provider.models.map((model) => (
+                          <option
+                            key={model.fullId}
+                            value={model.fullId}
+                            disabled={!hasApiKey}
+                          >
+                            {model.displayName}{!hasApiKey ? ' (No API key)' : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                </select>
+              )}
+              {modelStatusMessage && (
+                <p className="mt-3 text-sm text-success">{modelStatusMessage}</p>
+              )}
+              {selectedModel && !savedKeys.some((k) => k.provider === selectedModel.provider) && (
+                <p className="mt-3 text-sm text-warning">
+                  No API key configured for {DEFAULT_PROVIDERS.find((p) => p.id === selectedModel.provider)?.name}. Add one below to use this model.
+                </p>
+              )}
+            </div>
+          </section>
+
           {/* API Key Section */}
           <section>
             <h2 className="mb-4 text-base font-medium text-foreground">Bring Your Own Model/API Key</h2>
@@ -315,50 +359,6 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                     })}
                   </div>
                 </div>
-              )}
-            </div>
-          </section>
-
-          {/* Model Selection Section */}
-          <section>
-            <h2 className="mb-4 text-base font-medium text-foreground">Model</h2>
-            <div className="rounded-lg border border-border bg-card p-5">
-              <p className="mb-4 text-sm text-muted-foreground leading-relaxed">
-                Select the AI model to use for task execution.
-              </p>
-              {loadingModel ? (
-                <div className="h-10 animate-pulse rounded-md bg-muted" />
-              ) : (
-                <select
-                  value={selectedModel?.model || ''}
-                  onChange={(e) => handleModelChange(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  {DEFAULT_PROVIDERS.filter((p) => p.requiresApiKey).map((provider) => {
-                    const hasApiKey = savedKeys.some((k) => k.provider === provider.id);
-                    return (
-                      <optgroup key={provider.id} label={provider.name}>
-                        {provider.models.map((model) => (
-                          <option
-                            key={model.fullId}
-                            value={model.fullId}
-                            disabled={!hasApiKey}
-                          >
-                            {model.displayName}{!hasApiKey ? ' (No API key)' : ''}
-                          </option>
-                        ))}
-                      </optgroup>
-                    );
-                  })}
-                </select>
-              )}
-              {modelStatusMessage && (
-                <p className="mt-3 text-sm text-success">{modelStatusMessage}</p>
-              )}
-              {selectedModel && !savedKeys.some((k) => k.provider === selectedModel.provider) && (
-                <p className="mt-3 text-sm text-warning">
-                  No API key configured for {DEFAULT_PROVIDERS.find((p) => p.id === selectedModel.provider)?.name}. Add one above to use this model.
-                </p>
               )}
             </div>
           </section>
