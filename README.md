@@ -117,7 +117,7 @@
 
 <div align="center">
 
-[**Download for Mac (Apply Silicon)**](https://downloads.accomplish.ai/downloads/0.1.0/macos/Openwork-0.1.0-mac-arm64.dmg)
+[**Download for Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.1.0/macos/Openwork-0.1.0-mac-arm64.dmg)
 
 </div>
 
