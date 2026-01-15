@@ -39,7 +39,7 @@ import {
 } from '../store/appSettings';
 import { getDesktopConfig } from '../config';
 import { logEvent, type LogEntry } from '../utils/logger';
-import { validateApiKey, AnthropicValidator } from '../utils/api-key-validators';
+import { validateApiKey } from '../utils/api-key-validators';
 import {
   startPermissionApiServer,
   initPermissionApi,

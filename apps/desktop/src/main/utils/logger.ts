@@ -331,10 +331,29 @@ export interface LogEntry {
 }
 
 /**
+ * Cache of loggers by module name for performance
+ * Avoids creating new Logger instances on every logEvent call
+ */
+const moduleLoggerCache: Map<string, Logger> = new Map();
+
+/**
+ * Get or create a cached logger for a module
+ */
+function getCachedLogger(moduleName: string): Logger {
+  let logger = moduleLoggerCache.get(moduleName);
+  if (!logger) {
+    logger = new Logger(moduleName, { fileLogging: true });
+    moduleLoggerCache.set(moduleName, logger);
+  }
+  return logger;
+}
+
+/**
  * Log an entry from IPC (used by handlers.ts)
+ * Uses cached loggers per module for better performance
  */
 export function logEvent(entry: LogEntry): void {
-  const logger = createLogger(entry.module || 'renderer', { fileLogging: true });
+  const logger = getCachedLogger(entry.module || 'renderer');
 
   switch (entry.level) {
     case 'debug':

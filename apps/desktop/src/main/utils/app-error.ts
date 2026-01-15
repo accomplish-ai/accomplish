@@ -254,7 +254,7 @@ export function fromError(error: Error): AppError {
   }
 
   // Process errors
-  if (message.includes('spawn') || message.includes('enoent')) {
+  if (message.includes('spawn')) {
     return new AppError(ErrorCode.PROCESS_SPAWN_FAILED, error.message, error);
   }
 
