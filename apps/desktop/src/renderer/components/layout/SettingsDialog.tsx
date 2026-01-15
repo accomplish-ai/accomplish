@@ -136,11 +136,12 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
 
   const handleApiKeySuccess = async () => {
     // Refresh keys and proceed to model selection
+    // NOTE: Do NOT call onApiKeySaved here - that closes the dialog in Home.tsx
+    // We only want to close after the user completes model selection
     try {
       const accomplish = getAccomplish();
       const keys = await accomplish.getApiKeys();
       setSavedKeys(keys);
-      onApiKeySaved?.();
     } catch (err) {
       console.error('Failed to refresh keys after adding:', err);
     }
