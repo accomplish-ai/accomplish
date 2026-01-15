@@ -6,7 +6,14 @@ import path from 'path';
 // Desktop app with local React UI
 // No longer uses remote UI from Vercel
 
+// Multi-agent support: calculate port offset from AGENT_ID env var
+const agentId = parseInt(process.env.AGENT_ID || '1', 10);
+const portOffset = (agentId - 1) * 10;
+
 export default defineConfig(() => ({
+  server: {
+    port: 5173 + portOffset,
+  },
   plugins: [
     react(),
     electron([
