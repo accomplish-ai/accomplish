@@ -15,12 +15,12 @@ import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { StreamingText } from '../components/ui/streaming-text';
 import { isWaitingForUser } from '../lib/waiting-detection';
-import openworkIcon from '/assets/openwork-icon.png';
+import loadingSymbol from '/assets/loading-symbol.svg';
 
 // Spinning Openwork icon component
 const SpinningIcon = ({ className }: { className?: string }) => (
   <img
-    src={openworkIcon}
+    src={loadingSymbol}
     alt=""
     className={cn('animate-spin-ccw', className)}
   />

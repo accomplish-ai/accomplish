@@ -81,7 +81,7 @@ const USE_CASE_EXAMPLES = [
 
 export default function HomePage() {
   const [prompt, setPrompt] = useState('');
-  const [showExamples, setShowExamples] = useState(true);
+  const [showExamples, setShowExamples] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const { startTask, isLoading, addTaskUpdate, setPermissionRequest } = useTaskStore();
   const navigate = useNavigate();
@@ -150,7 +150,7 @@ export default function HomePage() {
         onApiKeySaved={handleApiKeySaved}
       />
       <div
-        className="h-full flex items-center justify-center p-6 overflow-y-auto bg-foreground"
+        className="h-full flex items-center justify-center p-6 overflow-y-auto bg-accent"
       >
       <div className="w-full max-w-2xl flex flex-col items-center gap-8">
         {/* Main Title */}
@@ -159,7 +159,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={springs.gentle}
-          className="text-4xl font-light tracking-tight text-white"
+          className="text-4xl font-light tracking-tight text-foreground"
         >
           What will you accomplish today?
         </motion.h1>
@@ -170,7 +170,7 @@ export default function HomePage() {
           transition={{ ...springs.gentle, delay: 0.1 }}
           className="w-full"
         >
-          <Card className="w-full bg-card/95 backdrop-blur-md shadow-lg gap-0 py-0 flex flex-col max-h-[calc(100vh-3rem)]">
+          <Card className="w-full bg-card/95 backdrop-blur-md shadow-xl gap-0 py-0 flex flex-col max-h-[calc(100vh-3rem)]">
             <CardContent className="p-6 pb-4 flex-shrink-0">
               {/* Input Section */}
               <TaskInputBar
