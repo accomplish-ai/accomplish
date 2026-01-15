@@ -28,7 +28,7 @@ export interface AuthTokens {
 
 export interface ApiKeyConfig {
   id: string;
-  provider: 'anthropic' | 'openai' | 'google' | 'groq' | 'local' | 'custom' | 'aws_bedrock';
+  provider: 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'litellm' | 'local' | 'custom' | 'aws_bedrock';
   label?: string;
   keyPrefix?: string;
   isActive: boolean;

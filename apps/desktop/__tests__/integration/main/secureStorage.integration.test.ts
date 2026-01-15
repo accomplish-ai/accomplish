@@ -242,6 +242,8 @@ describe('secureStorage Integration', () => {
         openai: null,
         google: null,
         groq: null,
+        openrouter: null,
+        litellm: null,
         local: null,
         custom: null,
       });
@@ -350,6 +352,8 @@ describe('secureStorage Integration', () => {
         openai: null,
         google: null,
         groq: null,
+        openrouter: null,
+        litellm: null,
         local: null,
         custom: null,
       });

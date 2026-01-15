@@ -38,6 +38,10 @@ import {
   setSelectedModel,
   getLocalLlmConfig,
   setLocalLlmConfig,
+  getOpenRouterConfig,
+  setOpenRouterConfig,
+  getLiteLlmConfig,
+  setLiteLlmConfig,
 } from '../store/appSettings';
 import { getDesktopConfig } from '../config';
 import {
@@ -65,7 +69,16 @@ import {
 } from './validation';
 
 const MAX_TEXT_LENGTH = 8000;
-const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'google', 'groq', 'local', 'custom']);
+const ALLOWED_API_KEY_PROVIDERS = new Set([
+  'anthropic',
+  'openai',
+  'google',
+  'groq',
+  'openrouter',
+  'litellm',
+  'local',
+  'custom',
+]);
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
 
 /**
@@ -800,6 +813,35 @@ export function registerIPCHandlers(): void {
             API_KEY_VALIDATION_TIMEOUT_MS
           );
           break;
+        case 'openrouter':
+          response = await fetchWithTimeout(
+            'https://openrouter.ai/api/v1/models',
+            {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${sanitizedKey}`,
+              },
+            },
+            API_KEY_VALIDATION_TIMEOUT_MS
+          );
+          break;
+        case 'litellm': {
+          const config = getLiteLlmConfig();
+          if (!config?.baseUrl) {
+            return { valid: false, error: 'LiteLLM base URL is not configured.' };
+          }
+          response = await fetchWithTimeout(
+            `${config.baseUrl.replace(/\/+$/, '')}/models`,
+            {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${sanitizedKey}`,
+              },
+            },
+            API_KEY_VALIDATION_TIMEOUT_MS
+          );
+          break;
+        }
 
         case 'local':
           // For local provider, skip validation (use local-llm:test instead)
@@ -899,7 +941,15 @@ export function registerIPCHandlers(): void {
       return true;
     }
     const localConfig = getLocalLlmConfig();
-    return Boolean(localConfig?.baseUrl && localConfig?.model);
+    if (localConfig?.baseUrl && localConfig?.model) {
+      return true;
+    }
+    const openrouterConfig = getOpenRouterConfig();
+    if (openrouterConfig?.model) {
+      return true;
+    }
+    const litellmConfig = getLiteLlmConfig();
+    return Boolean(litellmConfig?.baseUrl && litellmConfig?.model);
   });
 
   // Local LLM: Get config (no secret key)
@@ -994,6 +1044,133 @@ export function registerIPCHandlers(): void {
           return { ok: false, error: 'Request timed out. Please check the endpoint and try again.' };
         }
         return { ok: false, error: 'Failed to reach local endpoint.' };
+      }
+    }
+  );
+
+  // OpenRouter: Get config
+  handle('openrouter:get', async (_event: IpcMainInvokeEvent) => {
+    return getOpenRouterConfig();
+  });
+
+  // OpenRouter: Set config
+  handle('openrouter:set', async (_event: IpcMainInvokeEvent, config: { model: string }) => {
+    const sanitizedModel = sanitizeString(config?.model, 'model', 128);
+    setOpenRouterConfig({ model: sanitizedModel });
+    return getOpenRouterConfig();
+  });
+
+  // OpenRouter: Clear config
+  handle('openrouter:clear', async (_event: IpcMainInvokeEvent) => {
+    setOpenRouterConfig(null);
+    await deleteApiKey('openrouter');
+  });
+
+  // OpenRouter: Test connection
+  handle(
+    'openrouter:test',
+    async (_event: IpcMainInvokeEvent, input?: { apiKey?: string }) => {
+      const apiKey = input?.apiKey ?? (await getApiKey('openrouter'));
+      const headers: Record<string, string> = {};
+      if (apiKey) {
+        headers.Authorization = `Bearer ${apiKey}`;
+      }
+
+      try {
+        const response = await fetchWithTimeout(
+          'https://openrouter.ai/api/v1/models',
+          { method: 'GET', headers },
+          API_KEY_VALIDATION_TIMEOUT_MS
+        );
+
+        if (response.ok) {
+          return { ok: true };
+        }
+
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = (errorData as { error?: { message?: string } })?.error?.message || `API returned status ${response.status}`;
+        return { ok: false, error: errorMessage };
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return { ok: false, error: 'Request timed out. Please check the endpoint and try again.' };
+        }
+        return { ok: false, error: 'Failed to reach OpenRouter.' };
+      }
+    }
+  );
+
+  // LiteLLM: Get config
+  handle('litellm:get', async (_event: IpcMainInvokeEvent) => {
+    return getLiteLlmConfig();
+  });
+
+  // LiteLLM: Set config
+  handle(
+    'litellm:set',
+    async (_event: IpcMainInvokeEvent, config: { baseUrl: string; model: string }) => {
+      const sanitizedBaseUrl = sanitizeString(config?.baseUrl, 'baseUrl', 2048);
+      const sanitizedModel = sanitizeString(config?.model, 'model', 128);
+
+      let normalizedBaseUrl: string;
+      try {
+        normalizedBaseUrl = normalizeBaseUrl(sanitizedBaseUrl);
+      } catch {
+        throw new Error('Invalid base URL');
+      }
+
+      setLiteLlmConfig({ baseUrl: normalizedBaseUrl, model: sanitizedModel });
+      return getLiteLlmConfig();
+    }
+  );
+
+  // LiteLLM: Clear config
+  handle('litellm:clear', async (_event: IpcMainInvokeEvent) => {
+    setLiteLlmConfig(null);
+    await deleteApiKey('litellm');
+  });
+
+  // LiteLLM: Test connection
+  handle(
+    'litellm:test',
+    async (_event: IpcMainInvokeEvent, input?: { baseUrl?: string; apiKey?: string }) => {
+      const configured = getLiteLlmConfig();
+      const baseUrlRaw = input?.baseUrl ?? configured?.baseUrl;
+      if (!baseUrlRaw) {
+        return { ok: false, error: 'Missing base URL' };
+      }
+
+      let baseUrl: string;
+      try {
+        baseUrl = normalizeBaseUrl(baseUrlRaw);
+      } catch {
+        return { ok: false, error: 'Invalid base URL' };
+      }
+
+      const apiKey = input?.apiKey ?? (await getApiKey('litellm'));
+      const headers: Record<string, string> = {};
+      if (apiKey) {
+        headers.Authorization = `Bearer ${apiKey}`;
+      }
+
+      try {
+        const response = await fetchWithTimeout(
+          `${baseUrl}/models`,
+          { method: 'GET', headers },
+          API_KEY_VALIDATION_TIMEOUT_MS
+        );
+
+        if (response.ok) {
+          return { ok: true };
+        }
+
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = (errorData as { error?: { message?: string } })?.error?.message || `API returned status ${response.status}`;
+        return { ok: false, error: errorMessage };
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return { ok: false, error: 'Request timed out. Please check the endpoint and try again.' };
+        }
+        return { ok: false, error: 'Failed to reach LiteLLM.' };
       }
     }
   );

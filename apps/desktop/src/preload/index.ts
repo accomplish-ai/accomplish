@@ -42,7 +42,7 @@ const accomplishAPI = {
   // Settings
   getApiKeys: (): Promise<unknown[]> => ipcRenderer.invoke('settings:api-keys'),
   addApiKey: (
-    provider: 'anthropic' | 'openai' | 'google' | 'groq' | 'custom',
+    provider: 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'litellm' | 'custom',
     key: string,
     label?: string
   ): Promise<unknown> =>
@@ -112,6 +112,26 @@ const accomplishAPI = {
     ipcRenderer.invoke('local-llm:clear-key'),
   testLocalLlm: (input: { baseUrl?: string; apiKey?: string }): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke('local-llm:test', input),
+
+  // OpenRouter config
+  getOpenRouterConfig: (): Promise<{ model: string } | null> =>
+    ipcRenderer.invoke('openrouter:get'),
+  setOpenRouterConfig: (config: { model: string }): Promise<unknown> =>
+    ipcRenderer.invoke('openrouter:set', config),
+  clearOpenRouterConfig: (): Promise<void> =>
+    ipcRenderer.invoke('openrouter:clear'),
+  testOpenRouter: (input: { apiKey?: string }): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('openrouter:test', input),
+
+  // LiteLLM config
+  getLiteLlmConfig: (): Promise<{ baseUrl: string; model: string } | null> =>
+    ipcRenderer.invoke('litellm:get'),
+  setLiteLlmConfig: (config: { baseUrl: string; model: string }): Promise<unknown> =>
+    ipcRenderer.invoke('litellm:set', config),
+  clearLiteLlmConfig: (): Promise<void> =>
+    ipcRenderer.invoke('litellm:clear'),
+  testLiteLlm: (input: { baseUrl?: string; apiKey?: string }): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('litellm:test', input),
 
   // Event subscriptions
   onTaskUpdate: (callback: (event: unknown) => void) => {

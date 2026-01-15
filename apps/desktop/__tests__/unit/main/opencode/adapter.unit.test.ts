@@ -112,6 +112,8 @@ vi.mock('@main/store/secureStorage', () => ({
     openai: 'test-openai-key',
     google: null,
     groq: null,
+    openrouter: null,
+    litellm: null,
     local: null,
     custom: null,
   })),
@@ -121,6 +123,7 @@ vi.mock('@main/store/secureStorage', () => ({
 vi.mock('@main/store/appSettings', () => ({
   getSelectedModel: vi.fn(() => ({ provider: 'anthropic', model: 'claude-3-opus-20240229' })),
   getLocalLlmConfig: vi.fn(() => null),
+  getLiteLlmConfig: vi.fn(() => null),
 }));
 
 // Mock config generator

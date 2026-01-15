@@ -26,6 +26,8 @@ const API_KEY_PROVIDERS = [
   { id: 'openai', name: 'OpenAI', prefix: 'sk-', placeholder: 'sk-...' },
   { id: 'google', name: 'Google AI', prefix: 'AIza', placeholder: 'AIza...' },
   { id: 'groq', name: 'Groq', prefix: 'gsk_', placeholder: 'gsk_...' },
+  { id: 'openrouter', name: 'OpenRouter', prefix: 'sk-or-', placeholder: 'sk-or-...' },
+  { id: 'litellm', name: 'LiteLLM', prefix: '', placeholder: 'LiteLLM key (optional)' },
 ] as const;
 
 // Coming soon providers (displayed but not selectable)
@@ -63,6 +65,17 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   const [localError, setLocalError] = useState<string | null>(null);
   const [localTesting, setLocalTesting] = useState(false);
   const [localSaving, setLocalSaving] = useState(false);
+  const [openrouterModel, setOpenrouterModel] = useState('');
+  const [openrouterStatus, setOpenrouterStatus] = useState<string | null>(null);
+  const [openrouterError, setOpenrouterError] = useState<string | null>(null);
+  const [openrouterTesting, setOpenrouterTesting] = useState(false);
+  const [openrouterSaving, setOpenrouterSaving] = useState(false);
+  const [litellmBaseUrl, setLitellmBaseUrl] = useState('');
+  const [litellmModel, setLitellmModel] = useState('');
+  const [litellmStatus, setLitellmStatus] = useState<string | null>(null);
+  const [litellmError, setLitellmError] = useState<string | null>(null);
+  const [litellmTesting, setLitellmTesting] = useState(false);
+  const [litellmSaving, setLitellmSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -125,11 +138,36 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
       }
     };
 
+    const fetchOpenRouterConfig = async () => {
+      try {
+        const config = await accomplish.getOpenRouterConfig();
+        if (config?.model) {
+          setOpenrouterModel(config.model);
+        }
+      } catch (err) {
+        console.error('Failed to fetch OpenRouter config:', err);
+      }
+    };
+
+    const fetchLiteLlmConfig = async () => {
+      try {
+        const config = await accomplish.getLiteLlmConfig();
+        if (config) {
+          setLitellmBaseUrl(config.baseUrl);
+          setLitellmModel(config.model);
+        }
+      } catch (err) {
+        console.error('Failed to fetch LiteLLM config:', err);
+      }
+    };
+
     fetchKeys();
     fetchDebugSetting();
     fetchVersion();
     fetchSelectedModel();
     fetchLocalConfig();
+    fetchOpenRouterConfig();
+    fetchLiteLlmConfig();
   }, [open]);
 
   const handleDebugToggle = async () => {
@@ -148,7 +186,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   const handleModelChange = async (fullId: string) => {
     const accomplish = getAccomplish();
     const baseModels = DEFAULT_PROVIDERS
-      .filter((p) => p.id !== 'local')
+      .filter((p) => p.id !== 'local' && p.id !== 'openrouter' && p.id !== 'litellm')
       .flatMap((p) => p.models);
     const localModelOption: ModelConfig[] = localConfig?.baseUrl && localConfig?.model
       ? [{
@@ -159,7 +197,25 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
         supportsVision: false,
       }]
       : [];
-    const allModels = [...baseModels, ...localModelOption];
+    const openrouterOption: ModelConfig[] = openrouterModel.trim()
+      ? [{
+        id: openrouterModel.trim(),
+        displayName: `OpenRouter (${openrouterModel.trim()})`,
+        provider: 'openrouter',
+        fullId: `openrouter/${openrouterModel.trim()}`,
+        supportsVision: true,
+      }]
+      : [];
+    const litellmOption: ModelConfig[] = litellmBaseUrl.trim() && litellmModel.trim()
+      ? [{
+        id: litellmModel.trim(),
+        displayName: `LiteLLM (${litellmModel.trim()})`,
+        provider: 'litellm',
+        fullId: `litellm/${litellmModel.trim()}`,
+        supportsVision: false,
+      }]
+      : [];
+    const allModels = [...baseModels, ...localModelOption, ...openrouterOption, ...litellmOption];
     const model = allModels.find((m) => m.fullId === fullId);
     if (model) {
       analytics.trackSelectModel(model.displayName);
@@ -262,6 +318,94 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
     }
   };
 
+  const handleSaveOpenRouter = async () => {
+    const accomplish = getAccomplish();
+    const trimmedModel = openrouterModel.trim();
+    if (!trimmedModel) {
+      setOpenrouterError('Please enter a model name.');
+      return;
+    }
+    setOpenrouterSaving(true);
+    setOpenrouterError(null);
+    setOpenrouterStatus(null);
+    try {
+      await accomplish.setOpenRouterConfig({ model: trimmedModel });
+      setOpenrouterStatus('OpenRouter config saved.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save OpenRouter config.';
+      setOpenrouterError(message);
+    } finally {
+      setOpenrouterSaving(false);
+    }
+  };
+
+  const handleTestOpenRouter = async () => {
+    const accomplish = getAccomplish();
+    setOpenrouterTesting(true);
+    setOpenrouterError(null);
+    setOpenrouterStatus(null);
+    try {
+      const result = await accomplish.testOpenRouter({});
+      if (result.ok) {
+        setOpenrouterStatus('Connection successful.');
+      } else {
+        setOpenrouterError(result.error || 'Connection failed.');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Connection failed.';
+      setOpenrouterError(message);
+    } finally {
+      setOpenrouterTesting(false);
+    }
+  };
+
+  const handleSaveLiteLlm = async () => {
+    const accomplish = getAccomplish();
+    const trimmedBaseUrl = litellmBaseUrl.trim();
+    const trimmedModel = litellmModel.trim();
+    if (!trimmedBaseUrl || !trimmedModel) {
+      setLitellmError('Please enter a base URL and model name.');
+      return;
+    }
+    setLitellmSaving(true);
+    setLitellmError(null);
+    setLitellmStatus(null);
+    try {
+      await accomplish.setLiteLlmConfig({ baseUrl: trimmedBaseUrl, model: trimmedModel });
+      setLitellmStatus('LiteLLM config saved.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save LiteLLM config.';
+      setLitellmError(message);
+    } finally {
+      setLitellmSaving(false);
+    }
+  };
+
+  const handleTestLiteLlm = async () => {
+    const accomplish = getAccomplish();
+    const trimmedBaseUrl = litellmBaseUrl.trim();
+    if (!trimmedBaseUrl) {
+      setLitellmError('Please enter a base URL to test.');
+      return;
+    }
+    setLitellmTesting(true);
+    setLitellmError(null);
+    setLitellmStatus(null);
+    try {
+      const result = await accomplish.testLiteLlm({ baseUrl: trimmedBaseUrl });
+      if (result.ok) {
+        setLitellmStatus('Connection successful.');
+      } else {
+        setLitellmError(result.error || 'Connection failed.');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Connection failed.';
+      setLitellmError(message);
+    } finally {
+      setLitellmTesting(false);
+    }
+  };
+
   const handleSaveApiKey = async () => {
     const accomplish = getAccomplish();
     const trimmedKey = apiKey.trim();
@@ -272,7 +416,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
       return;
     }
 
-    if (!trimmedKey.startsWith(currentProvider.prefix)) {
+    if (currentProvider.prefix && !trimmedKey.startsWith(currentProvider.prefix)) {
       setError(`Invalid API key format. Key should start with ${currentProvider.prefix}`);
       return;
     }
@@ -346,7 +490,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                   onChange={(e) => handleModelChange(e.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  {DEFAULT_PROVIDERS.filter((p) => p.requiresApiKey && p.id !== 'local').map((provider) => {
+                  {DEFAULT_PROVIDERS.filter((p) => p.requiresApiKey && p.id !== 'local' && p.id !== 'openrouter' && p.id !== 'litellm').map((provider) => {
                     const hasApiKey = visibleKeys.some((k) => k.provider === provider.id);
                     return (
                       <optgroup key={provider.id} label={provider.name}>
@@ -373,6 +517,28 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                       </option>
                     )}
                   </optgroup>
+                  <optgroup label="OpenRouter">
+                    {openrouterModel.trim() ? (
+                      <option value={`openrouter/${openrouterModel.trim()}`}>
+                        OpenRouter ({openrouterModel.trim()})
+                      </option>
+                    ) : (
+                      <option value="" disabled>
+                        Configure OpenRouter to enable
+                      </option>
+                    )}
+                  </optgroup>
+                  <optgroup label="LiteLLM">
+                    {litellmBaseUrl.trim() && litellmModel.trim() ? (
+                      <option value={`litellm/${litellmModel.trim()}`}>
+                        LiteLLM ({litellmModel.trim()})
+                      </option>
+                    ) : (
+                      <option value="" disabled>
+                        Configure LiteLLM to enable
+                      </option>
+                    )}
+                  </optgroup>
                 </select>
               )}
               {modelStatusMessage && (
@@ -387,6 +553,16 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
               {selectedModel?.provider === 'local' && !localConfigured && (
                 <p className="mt-3 text-sm text-warning">
                   Local endpoint is not configured. Add it below to use the local model.
+                </p>
+              )}
+              {selectedModel?.provider === 'openrouter' && !openrouterModel.trim() && (
+                <p className="mt-3 text-sm text-warning">
+                  OpenRouter is not configured. Add a model below to use it.
+                </p>
+              )}
+              {selectedModel?.provider === 'litellm' && !(litellmBaseUrl.trim() && litellmModel.trim()) && (
+                <p className="mt-3 text-sm text-warning">
+                  LiteLLM is not configured. Add a base URL and model below to use it.
                 </p>
               )}
             </div>
@@ -598,6 +774,102 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                   onClick={handleClearLocalKey}
                 >
                   Clear Local API Key
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* OpenRouter Section */}
+          <section>
+            <h2 className="mb-4 text-base font-medium text-foreground">OpenRouter</h2>
+            <div className="rounded-lg border border-border bg-card p-5">
+              <p className="mb-5 text-sm text-muted-foreground leading-relaxed">
+                Configure an OpenRouter model to route across providers using a single API.
+              </p>
+              <div className="mb-5">
+                <label className="mb-2.5 block text-sm font-medium text-foreground">
+                  Model name
+                </label>
+                <input
+                  type="text"
+                  value={openrouterModel}
+                  onChange={(e) => setOpenrouterModel(e.target.value)}
+                  placeholder="openai/gpt-4o-mini"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              {openrouterError && <p className="mb-4 text-sm text-destructive">{openrouterError}</p>}
+              {openrouterStatus && (
+                <p className="mb-4 text-sm text-success">{openrouterStatus}</p>
+              )}
+              <div className="flex flex-col gap-2">
+                <button
+                  className="w-full rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/90"
+                  onClick={handleTestOpenRouter}
+                  disabled={openrouterTesting}
+                >
+                  {openrouterTesting ? 'Testing...' : 'Test Connection'}
+                </button>
+                <button
+                  className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  onClick={handleSaveOpenRouter}
+                  disabled={openrouterSaving}
+                >
+                  {openrouterSaving ? 'Saving...' : 'Save OpenRouter Config'}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* LiteLLM Section */}
+          <section>
+            <h2 className="mb-4 text-base font-medium text-foreground">LiteLLM</h2>
+            <div className="rounded-lg border border-border bg-card p-5">
+              <p className="mb-5 text-sm text-muted-foreground leading-relaxed">
+                Configure a LiteLLM proxy endpoint and model for routing, fallbacks, or load balancing.
+              </p>
+              <div className="mb-5">
+                <label className="mb-2.5 block text-sm font-medium text-foreground">
+                  Base URL
+                </label>
+                <input
+                  type="text"
+                  value={litellmBaseUrl}
+                  onChange={(e) => setLitellmBaseUrl(e.target.value)}
+                  placeholder="http://localhost:4000/v1"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="mb-5">
+                <label className="mb-2.5 block text-sm font-medium text-foreground">
+                  Model name
+                </label>
+                <input
+                  type="text"
+                  value={litellmModel}
+                  onChange={(e) => setLitellmModel(e.target.value)}
+                  placeholder="gpt-4o-mini"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              {litellmError && <p className="mb-4 text-sm text-destructive">{litellmError}</p>}
+              {litellmStatus && (
+                <p className="mb-4 text-sm text-success">{litellmStatus}</p>
+              )}
+              <div className="flex flex-col gap-2">
+                <button
+                  className="w-full rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/90"
+                  onClick={handleTestLiteLlm}
+                  disabled={litellmTesting}
+                >
+                  {litellmTesting ? 'Testing...' : 'Test Connection'}
+                </button>
+                <button
+                  className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  onClick={handleSaveLiteLlm}
+                  disabled={litellmSaving}
+                >
+                  {litellmSaving ? 'Saving...' : 'Save LiteLLM Config'}
                 </button>
               </div>
             </div>

@@ -13,6 +13,10 @@ interface AppSettingsSchema {
   selectedModel: SelectedModel | null;
   /** Local OpenAI-compatible endpoint configuration */
   localLlm: LocalLlmConfig | null;
+  /** OpenRouter configuration */
+  openrouter: { model: string } | null;
+  /** LiteLLM configuration */
+  litellm: { baseUrl: string; model: string } | null;
 }
 
 const appSettingsStore = new Store<AppSettingsSchema>({
@@ -25,6 +29,8 @@ const appSettingsStore = new Store<AppSettingsSchema>({
       model: 'anthropic/claude-opus-4-5',
     },
     localLlm: null,
+    openrouter: null,
+    litellm: null,
   },
 });
 
@@ -85,6 +91,34 @@ export function setLocalLlmConfig(config: LocalLlmConfig | null): void {
 }
 
 /**
+ * Get OpenRouter configuration
+ */
+export function getOpenRouterConfig(): { model: string } | null {
+  return appSettingsStore.get('openrouter');
+}
+
+/**
+ * Set OpenRouter configuration
+ */
+export function setOpenRouterConfig(config: { model: string } | null): void {
+  appSettingsStore.set('openrouter', config);
+}
+
+/**
+ * Get LiteLLM configuration
+ */
+export function getLiteLlmConfig(): { baseUrl: string; model: string } | null {
+  return appSettingsStore.get('litellm');
+}
+
+/**
+ * Set LiteLLM configuration
+ */
+export function setLiteLlmConfig(config: { baseUrl: string; model: string } | null): void {
+  appSettingsStore.set('litellm', config);
+}
+
+/**
  * Get all app settings
  */
 export function getAppSettings(): AppSettingsSchema {
@@ -93,6 +127,8 @@ export function getAppSettings(): AppSettingsSchema {
     onboardingComplete: appSettingsStore.get('onboardingComplete'),
     selectedModel: appSettingsStore.get('selectedModel'),
     localLlm: appSettingsStore.get('localLlm'),
+    openrouter: appSettingsStore.get('openrouter'),
+    litellm: appSettingsStore.get('litellm'),
   };
 }
 

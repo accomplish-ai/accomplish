@@ -184,22 +184,24 @@ export function deleteApiKey(provider: string): boolean {
 /**
  * Supported API key providers
  */
-export type ApiKeyProvider = 'anthropic' | 'openai' | 'google' | 'groq' | 'local' | 'custom';
+export type ApiKeyProvider = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'litellm' | 'local' | 'custom';
 
 /**
  * Get all API keys for all providers
  */
 export async function getAllApiKeys(): Promise<Record<ApiKeyProvider, string | null>> {
-  const [anthropic, openai, google, groq, local, custom] = await Promise.all([
+  const [anthropic, openai, google, groq, openrouter, litellm, local, custom] = await Promise.all([
     getApiKey('anthropic'),
     getApiKey('openai'),
     getApiKey('google'),
     getApiKey('groq'),
+    getApiKey('openrouter'),
+    getApiKey('litellm'),
     getApiKey('local'),
     getApiKey('custom'),
   ]);
 
-  return { anthropic, openai, google, groq, local, custom };
+  return { anthropic, openai, google, groq, openrouter, litellm, local, custom };
 }
 
 /**

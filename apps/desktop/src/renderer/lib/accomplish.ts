@@ -45,7 +45,7 @@ interface AccomplishAPI {
 
   // Settings
   getApiKeys(): Promise<ApiKeyConfig[]>;
-  addApiKey(provider: 'anthropic' | 'openai' | 'google' | 'groq' | 'custom', key: string, label?: string): Promise<ApiKeyConfig>;
+  addApiKey(provider: 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'litellm' | 'custom', key: string, label?: string): Promise<ApiKeyConfig>;
   removeApiKey(id: string): Promise<void>;
   getDebugMode(): Promise<boolean>;
   setDebugMode(enabled: boolean): Promise<void>;
@@ -71,6 +71,18 @@ interface AccomplishAPI {
   setLocalLlmKey(key: string): Promise<void>;
   clearLocalLlmKey(): Promise<void>;
   testLocalLlm(input: { baseUrl?: string; apiKey?: string }): Promise<{ ok: boolean; error?: string }>;
+
+  // OpenRouter config
+  getOpenRouterConfig(): Promise<{ model: string } | null>;
+  setOpenRouterConfig(config: { model: string }): Promise<{ model: string } | null>;
+  clearOpenRouterConfig(): Promise<void>;
+  testOpenRouter(input: { apiKey?: string }): Promise<{ ok: boolean; error?: string }>;
+
+  // LiteLLM config
+  getLiteLlmConfig(): Promise<{ baseUrl: string; model: string } | null>;
+  setLiteLlmConfig(config: { baseUrl: string; model: string }): Promise<{ baseUrl: string; model: string } | null>;
+  clearLiteLlmConfig(): Promise<void>;
+  testLiteLlm(input: { baseUrl?: string; apiKey?: string }): Promise<{ ok: boolean; error?: string }>;
 
   // Onboarding
   getOnboardingComplete(): Promise<boolean>;

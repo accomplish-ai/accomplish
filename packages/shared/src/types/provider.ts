@@ -2,7 +2,7 @@
  * Provider and model configuration types for multi-provider support
  */
 
-export type ProviderType = 'anthropic' | 'openai' | 'google' | 'groq' | 'local' | 'custom';
+export type ProviderType = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'litellm' | 'local' | 'custom';
 
 export interface ProviderConfig {
   id: ProviderType;
@@ -107,6 +107,38 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
         fullId: 'google/gemini-3-flash-preview',
         contextWindow: 1000000,
         supportsVision: true,
+      },
+    ],
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'OPENROUTER_API_KEY',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    models: [
+      {
+        id: 'openrouter-auto',
+        displayName: 'OpenRouter Auto',
+        provider: 'openrouter',
+        fullId: 'openrouter/auto',
+        supportsVision: true,
+      },
+    ],
+  },
+  {
+    id: 'litellm',
+    name: 'LiteLLM',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'LITELLM_API_KEY',
+    baseUrl: 'http://localhost:4000/v1',
+    models: [
+      {
+        id: 'litellm-default',
+        displayName: 'LiteLLM (Configured)',
+        provider: 'litellm',
+        fullId: 'litellm/configured',
+        supportsVision: false,
       },
     ],
   },

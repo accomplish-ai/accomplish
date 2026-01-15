@@ -226,21 +226,27 @@ describe('appSettings Integration', () => {
           model: 'anthropic/claude-opus-4-5',
         },
         localLlm: null,
+        openrouter: null,
+        litellm: null,
       });
     });
 
     it('should return all settings after modifications', async () => {
       // Arrange
-      const { getAppSettings, setDebugMode, setOnboardingComplete, setSelectedModel, setLocalLlmConfig, clearAppSettings } = await import('@main/store/appSettings');
+      const { getAppSettings, setDebugMode, setOnboardingComplete, setSelectedModel, setLocalLlmConfig, setOpenRouterConfig, setLiteLlmConfig, clearAppSettings } = await import('@main/store/appSettings');
       clearAppSettings(); // Start fresh
       const customModel = { provider: 'openai', model: 'gpt-4-turbo' };
       const localConfig = { baseUrl: 'http://localhost:11434/v1', model: 'llama3', preset: 'ollama' };
+      const openrouterConfig = { model: 'openai/gpt-4o-mini' };
+      const litellmConfig = { baseUrl: 'http://localhost:4000/v1', model: 'gpt-4o-mini' };
 
       // Act
       setDebugMode(true);
       setOnboardingComplete(true);
       setSelectedModel(customModel);
       setLocalLlmConfig(localConfig);
+      setOpenRouterConfig(openrouterConfig);
+      setLiteLlmConfig(litellmConfig);
       const result = getAppSettings();
 
       // Assert
@@ -249,6 +255,8 @@ describe('appSettings Integration', () => {
         onboardingComplete: true,
         selectedModel: customModel,
         localLlm: localConfig,
+        openrouter: openrouterConfig,
+        litellm: litellmConfig,
       });
     });
 
@@ -300,6 +308,8 @@ describe('appSettings Integration', () => {
           model: 'anthropic/claude-opus-4-5',
         },
         localLlm: null,
+        openrouter: null,
+        litellm: null,
       });
     });
 

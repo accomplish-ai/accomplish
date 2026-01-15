@@ -244,6 +244,54 @@ describe('Preload Script Integration', () => {
       });
     });
 
+    describe('OpenRouter Operations', () => {
+      it('getOpenRouterConfig should invoke openrouter:get', async () => {
+        await (capturedAccomplishAPI.getOpenRouterConfig as () => Promise<unknown>)();
+        expect(mockInvoke).toHaveBeenCalledWith('openrouter:get');
+      });
+
+      it('setOpenRouterConfig should invoke openrouter:set', async () => {
+        const config = { model: 'openai/gpt-4o-mini' };
+        await (capturedAccomplishAPI.setOpenRouterConfig as (c: unknown) => Promise<unknown>)(config);
+        expect(mockInvoke).toHaveBeenCalledWith('openrouter:set', config);
+      });
+
+      it('clearOpenRouterConfig should invoke openrouter:clear', async () => {
+        await (capturedAccomplishAPI.clearOpenRouterConfig as () => Promise<void>)();
+        expect(mockInvoke).toHaveBeenCalledWith('openrouter:clear');
+      });
+
+      it('testOpenRouter should invoke openrouter:test', async () => {
+        const input = { apiKey: 'sk-or-test' };
+        await (capturedAccomplishAPI.testOpenRouter as (i: unknown) => Promise<unknown>)(input);
+        expect(mockInvoke).toHaveBeenCalledWith('openrouter:test', input);
+      });
+    });
+
+    describe('LiteLLM Operations', () => {
+      it('getLiteLlmConfig should invoke litellm:get', async () => {
+        await (capturedAccomplishAPI.getLiteLlmConfig as () => Promise<unknown>)();
+        expect(mockInvoke).toHaveBeenCalledWith('litellm:get');
+      });
+
+      it('setLiteLlmConfig should invoke litellm:set', async () => {
+        const config = { baseUrl: 'http://localhost:4000/v1', model: 'gpt-4o-mini' };
+        await (capturedAccomplishAPI.setLiteLlmConfig as (c: unknown) => Promise<unknown>)(config);
+        expect(mockInvoke).toHaveBeenCalledWith('litellm:set', config);
+      });
+
+      it('clearLiteLlmConfig should invoke litellm:clear', async () => {
+        await (capturedAccomplishAPI.clearLiteLlmConfig as () => Promise<void>)();
+        expect(mockInvoke).toHaveBeenCalledWith('litellm:clear');
+      });
+
+      it('testLiteLlm should invoke litellm:test', async () => {
+        const input = { baseUrl: 'http://localhost:4000/v1' };
+        await (capturedAccomplishAPI.testLiteLlm as (i: unknown) => Promise<unknown>)(input);
+        expect(mockInvoke).toHaveBeenCalledWith('litellm:test', input);
+      });
+    });
+
     describe('Onboarding Operations', () => {
       it('getOnboardingComplete should invoke onboarding:complete', async () => {
         await (capturedAccomplishAPI.getOnboardingComplete as () => Promise<boolean>)();

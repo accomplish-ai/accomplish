@@ -9,7 +9,11 @@ import {
   getBundledOpenCodeVersion,
 } from './cli-path';
 import { getAllApiKeys } from '../store/secureStorage';
-import { getSelectedModel, getLocalLlmConfig } from '../store/appSettings';
+import {
+  getSelectedModel,
+  getLocalLlmConfig,
+  getLiteLlmConfig,
+} from '../store/appSettings';
 import { generateOpenCodeConfig, ACCOMPLISH_AGENT_NAME } from './config-generator';
 import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo } from '../utils/bundled-node';
@@ -377,6 +381,14 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       env.GROQ_API_KEY = apiKeys.groq;
       console.log('[OpenCode CLI] Using Groq API key from settings');
     }
+    if (apiKeys.openrouter) {
+      env.OPENROUTER_API_KEY = apiKeys.openrouter;
+      console.log('[OpenCode CLI] Using OpenRouter API key from settings');
+    }
+    if (apiKeys.litellm) {
+      env.LITELLM_API_KEY = apiKeys.litellm;
+      console.log('[OpenCode CLI] Using LiteLLM API key from settings');
+    }
 
     // If local provider is selected, point OpenAI provider at the local endpoint
     const selectedModel = getSelectedModel();
@@ -393,6 +405,26 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       // Avoid leaking cloud keys to local endpoints
       const localKey = apiKeys.local || 'local-key';
       env.OPENAI_API_KEY = localKey;
+    }
+
+    if (selectedModel?.provider === 'openrouter') {
+      env.OPENAI_BASE_URL = 'https://openrouter.ai/api/v1';
+      env.OPENAI_API_BASE = 'https://openrouter.ai/api/v1';
+      const openrouterKey = apiKeys.openrouter || 'openrouter-key';
+      env.OPENAI_API_KEY = openrouterKey;
+    }
+
+    if (selectedModel?.provider === 'litellm') {
+      const litellmConfig = getLiteLlmConfig();
+      if (litellmConfig?.baseUrl) {
+        env.OPENAI_BASE_URL = litellmConfig.baseUrl;
+        env.OPENAI_API_BASE = litellmConfig.baseUrl;
+        console.log('[OpenCode CLI] Using LiteLLM endpoint:', litellmConfig.baseUrl);
+      } else {
+        console.warn('[OpenCode CLI] LiteLLM provider selected but no base URL configured');
+      }
+      const litellmKey = apiKeys.litellm || 'litellm-key';
+      env.OPENAI_API_KEY = litellmKey;
     }
 
     // Log config environment variable

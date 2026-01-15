@@ -160,6 +160,8 @@ vi.mock('@main/store/secureStorage', () => ({
       openai: mockApiKeys['openai'] || null,
       google: mockApiKeys['google'] || null,
       groq: mockApiKeys['groq'] || null,
+      openrouter: mockApiKeys['openrouter'] || null,
+      litellm: mockApiKeys['litellm'] || null,
       local: mockApiKeys['local'] || null,
       custom: mockApiKeys['custom'] || null,
     })
@@ -175,6 +177,8 @@ let mockDebugMode = false;
 let mockOnboardingComplete = false;
 let mockSelectedModel: { provider: string; model: string } | null = null;
 let mockLocalLlm: { baseUrl: string; model: string; preset?: string } | null = null;
+let mockOpenRouter: { model: string } | null = null;
+let mockLiteLlm: { baseUrl: string; model: string } | null = null;
 
 vi.mock('@main/store/appSettings', () => ({
   getDebugMode: vi.fn(() => mockDebugMode),
@@ -186,6 +190,8 @@ vi.mock('@main/store/appSettings', () => ({
     onboardingComplete: mockOnboardingComplete,
     selectedModel: mockSelectedModel,
     localLlm: mockLocalLlm,
+    openrouter: mockOpenRouter,
+    litellm: mockLiteLlm,
   })),
   getOnboardingComplete: vi.fn(() => mockOnboardingComplete),
   setOnboardingComplete: vi.fn((complete: boolean) => {
@@ -198,6 +204,14 @@ vi.mock('@main/store/appSettings', () => ({
   getLocalLlmConfig: vi.fn(() => mockLocalLlm),
   setLocalLlmConfig: vi.fn((config: { baseUrl: string; model: string; preset?: string } | null) => {
     mockLocalLlm = config;
+  }),
+  getOpenRouterConfig: vi.fn(() => mockOpenRouter),
+  setOpenRouterConfig: vi.fn((config: { model: string } | null) => {
+    mockOpenRouter = config;
+  }),
+  getLiteLlmConfig: vi.fn(() => mockLiteLlm),
+  setLiteLlmConfig: vi.fn((config: { baseUrl: string; model: string } | null) => {
+    mockLiteLlm = config;
   }),
 }));
 
@@ -268,6 +282,8 @@ describe('IPC Handlers Integration', () => {
     mockDebugMode = false;
     mockOnboardingComplete = false;
     mockLocalLlm = null;
+    mockOpenRouter = null;
+    mockLiteLlm = null;
     mockSelectedModel = null;
     mockPendingPermissions.clear();
 
@@ -338,6 +354,14 @@ describe('IPC Handlers Integration', () => {
       expect(handlers.has('local-llm:set-key')).toBe(true);
       expect(handlers.has('local-llm:clear-key')).toBe(true);
       expect(handlers.has('local-llm:test')).toBe(true);
+      expect(handlers.has('openrouter:get')).toBe(true);
+      expect(handlers.has('openrouter:set')).toBe(true);
+      expect(handlers.has('openrouter:clear')).toBe(true);
+      expect(handlers.has('openrouter:test')).toBe(true);
+      expect(handlers.has('litellm:get')).toBe(true);
+      expect(handlers.has('litellm:set')).toBe(true);
+      expect(handlers.has('litellm:clear')).toBe(true);
+      expect(handlers.has('litellm:test')).toBe(true);
 
       // OpenCode handlers
       expect(handlers.has('opencode:check')).toBe(true);
@@ -1093,6 +1117,30 @@ describe('IPC Handlers Integration', () => {
       // Arrange
       mockApiKeys = {};
       mockLocalLlm = { baseUrl: 'http://localhost:11434/v1', model: 'llama3', preset: 'ollama' };
+
+      // Act
+      const result = await invokeHandler('llm:has-any-config');
+
+      // Assert
+      expect(result).toBe(true);
+    });
+
+    it('llm:has-any-config should return true when OpenRouter config exists', async () => {
+      // Arrange
+      mockApiKeys = {};
+      mockOpenRouter = { model: 'openai/gpt-4o-mini' };
+
+      // Act
+      const result = await invokeHandler('llm:has-any-config');
+
+      // Assert
+      expect(result).toBe(true);
+    });
+
+    it('llm:has-any-config should return true when LiteLLM config exists', async () => {
+      // Arrange
+      mockApiKeys = {};
+      mockLiteLlm = { baseUrl: 'http://localhost:4000/v1', model: 'gpt-4o-mini' };
 
       // Act
       const result = await invokeHandler('llm:has-any-config');
