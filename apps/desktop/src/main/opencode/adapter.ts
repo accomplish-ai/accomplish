@@ -377,6 +377,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       env.GROQ_API_KEY = apiKeys.groq;
       console.log('[OpenCode CLI] Using Groq API key from settings');
     }
+    if (apiKeys.minimax) {
+      env.MINIMAX_API_KEY = apiKeys.minimax;
+      console.log('[OpenCode CLI] Using Minimax API key from settings');
+    }
 
     // Log config environment variable
     console.log('[OpenCode CLI] OPENCODE_CONFIG in env:', process.env.OPENCODE_CONFIG);

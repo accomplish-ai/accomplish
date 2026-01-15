@@ -20,7 +20,7 @@ Task: `;
  */
 export async function generateTaskSummary(prompt: string): Promise<string> {
   // Try providers in order of preference
-  const providers: ApiKeyProvider[] = ['anthropic', 'openai', 'google', 'groq'];
+  const providers: ApiKeyProvider[] = ['anthropic', 'openai', 'google', 'minimax', 'groq'];
 
   for (const provider of providers) {
     const apiKey = getApiKey(provider);
@@ -55,6 +55,8 @@ async function callProvider(
       return callOpenAI(apiKey, prompt);
     case 'google':
       return callGoogle(apiKey, prompt);
+    case 'minimax':
+      return callMinimax(apiKey, prompt);
     case 'groq':
       return callGroq(apiKey, prompt);
     default:
@@ -176,6 +178,36 @@ async function callGroq(apiKey: string, prompt: string): Promise<string> {
 
   if (!response.ok) {
     throw new Error(`Groq API error: ${response.status}`);
+  }
+
+  const data = (await response.json()) as {
+    choices: Array<{ message: { content: string } }>;
+  };
+  const text = data.choices?.[0]?.message?.content;
+  return cleanSummary(text || '');
+}
+
+async function callMinimax(apiKey: string, prompt: string): Promise<string> {
+  const response = await fetch('https://api.minimax.io/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'MiniMax-M2.1',
+      max_tokens: 50,
+      messages: [
+        {
+          role: 'user',
+          content: SUMMARY_PROMPT + prompt,
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Minimax API error: ${response.status}`);
   }
 
   const data = (await response.json()) as {

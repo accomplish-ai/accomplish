@@ -41,7 +41,7 @@
 
 <div align="left">
 
-- Use your own API key (OpenAI, Anthropic, etc.)
+- Use your own API key (OpenAI, Anthropic, Minimax, etc.)
 - No subscription, no upsell
 - It's a tool—not a service
 
@@ -109,7 +109,7 @@
 | Step | Action | Details |
 |:----:|--------|---------|
 | **1** | **Install the App** |  the DMG and drag it into Applications |
-| **2** | **Connect Your AI** | Use your own OpenAI or Anthropic API key. No subscriptions. |
+| **2** | **Connect Your AI** | Use your own OpenAI, Anthropic, or Minimax API key. No subscriptions. |
 | **3** | **Give It Access** | Choose which folders it can see. You stay in control. |
 | **4** | **Start Working** | Ask it to summarize a doc, clean a folder, or create a report. You approve everything. |
 

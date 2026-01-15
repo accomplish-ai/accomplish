@@ -25,6 +25,7 @@ const API_KEY_PROVIDERS = [
   { id: 'anthropic', name: 'Anthropic', prefix: 'sk-ant-', placeholder: 'sk-ant-...' },
   { id: 'openai', name: 'OpenAI', prefix: 'sk-', placeholder: 'sk-...' },
   { id: 'google', name: 'Google AI', prefix: 'AIza', placeholder: 'AIza...' },
+  { id: 'minimax', name: 'Minimax', prefix: '', placeholder: 'Enter your Minimax API key' },
 ] as const;
 
 // Coming soon providers (displayed but not selectable)

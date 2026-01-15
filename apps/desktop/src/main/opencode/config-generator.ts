@@ -367,7 +367,7 @@ export async function generateOpenCodeConfig(): Promise<string> {
     $schema: 'https://opencode.ai/config.json',
     default_agent: ACCOMPLISH_AGENT_NAME,
     // Enable all supported providers - providers auto-configure when API keys are set via env vars
-    enabled_providers: ['anthropic', 'openai', 'google', 'groq'],
+    enabled_providers: ['anthropic', 'openai', 'google', 'minimax', 'groq'],
     // Auto-allow all tool permissions - the system prompt instructs the agent to use
     // AskUserQuestion for user confirmations, which shows in the UI as an interactive modal.
     // CLI-level permission prompts don't show in the UI and would block task execution.

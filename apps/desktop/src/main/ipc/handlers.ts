@@ -71,7 +71,7 @@ import {
 } from '../test-utils/mock-task-flow';
 
 const MAX_TEXT_LENGTH = 8000;
-const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'google', 'groq', 'custom']);
+const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'google', 'minimax', 'groq', 'custom']);
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
 
 /**
@@ -826,6 +826,25 @@ export function registerIPCHandlers(): void {
               headers: {
                 'Authorization': `Bearer ${sanitizedKey}`,
               },
+            },
+            API_KEY_VALIDATION_TIMEOUT_MS
+          );
+          break;
+
+        case 'minimax':
+          response = await fetchWithTimeout(
+            'https://api.minimax.io/v1/chat/completions',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sanitizedKey}`,
+              },
+              body: JSON.stringify({
+                model: 'MiniMax-M2.1',
+                max_tokens: 1,
+                messages: [{ role: 'user', content: 'test' }],
+              }),
             },
             API_KEY_VALIDATION_TIMEOUT_MS
           );

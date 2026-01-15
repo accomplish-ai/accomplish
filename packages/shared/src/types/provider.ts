@@ -2,7 +2,7 @@
  * Provider and model configuration types for multi-provider support
  */
 
-export type ProviderType = 'anthropic' | 'openai' | 'google' | 'local' | 'custom';
+export type ProviderType = 'anthropic' | 'openai' | 'google' | 'minimax' | 'local' | 'custom';
 
 export interface ProviderConfig {
   id: ProviderType;
@@ -101,6 +101,22 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
         fullId: 'google/gemini-3-flash-preview',
         contextWindow: 1000000,
         supportsVision: true,
+      },
+    ],
+  },
+  {
+    id: 'minimax',
+    name: 'Minimax',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'MINIMAX_API_KEY',
+    models: [
+      {
+        id: 'minimax-m2.1',
+        displayName: 'Minimax M2.1',
+        provider: 'minimax',
+        fullId: 'minimax/MiniMax-M2.1',
+        contextWindow: 196608,
+        supportsVision: false,
       },
     ],
   },
