@@ -1,4 +1,6 @@
 import express, { type Express, type Request, type Response } from "express";
+// Using rebrowser-playwright (via npm alias) for better anti-detection
+// Rebrowser patches fix CDP-level detection leaks (Runtime.Enable) that stealth plugins can't fix
 import { chromium, type BrowserContext, type Page } from "playwright";
 import { mkdirSync } from "fs";
 import { join } from "path";
@@ -87,7 +89,11 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
       context = await chromium.launchPersistentContext(chromeUserDataDir, {
         headless,
         channel: 'chrome', // Use system Chrome instead of Playwright's Chromium
-        args: [`--remote-debugging-port=${cdpPort}`],
+        ignoreDefaultArgs: ['--enable-automation'], // Remove automation flag
+        args: [
+          `--remote-debugging-port=${cdpPort}`,
+          '--disable-blink-features=AutomationControlled', // Hide navigator.webdriver
+        ],
       });
       usedSystemChrome = true;
       console.log("Using system Chrome (fast startup!)");
@@ -106,7 +112,11 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     console.log("Launching browser with Playwright Chromium...");
     context = await chromium.launchPersistentContext(playwrightUserDataDir, {
       headless,
-      args: [`--remote-debugging-port=${cdpPort}`],
+      ignoreDefaultArgs: ['--enable-automation'], // Remove automation flag
+      args: [
+        `--remote-debugging-port=${cdpPort}`,
+        '--disable-blink-features=AutomationControlled', // Hide navigator.webdriver
+      ],
     });
     console.log("Browser launched with Playwright Chromium");
   }
