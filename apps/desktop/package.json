@@ -7,8 +7,8 @@
   "main": "dist-electron/main/index.js",
   "scripts": {
     "postinstall": "electron-rebuild && npm --prefix skills/dev-browser install && npm --prefix skills/file-permission install",
-    "dev": "node scripts/patch-electron-name.cjs && rm -rf dist-electron && vite",
-    "dev:clean": "CLEAN_START=1 vite",
+    "dev": "node scripts/patch-electron-name.cjs && node -e \"require('fs').rmSync('dist-electron', {recursive:true, force:true})\" && vite",
+    "dev:clean": "set CLEAN_START=1 && vite",
     "build": "tsc && vite build && npm --prefix skills/dev-browser install --omit=dev && npm --prefix skills/file-permission install --omit=dev",
     "build:electron": "tsc && vite build && node scripts/package.cjs",
     "build:unpack": "tsc && vite build && node scripts/package.cjs --dir",
@@ -19,7 +19,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "clean": "rm -rf dist dist-electron release",
+    "clean": "node -e \"const fs = require('fs'); ['dist', 'dist-electron', 'release'].forEach(d => fs.rmSync(d, {recursive:true, force:true}))\"",
     "download:nodejs": "node scripts/download-nodejs.cjs",
     "test": "vitest run",
     "test:unit": "vitest run --config vitest.unit.config.ts",
@@ -106,8 +106,7 @@
       "node_modules/debounce-fn/**",
       "!node_modules/@accomplish/**",
       "!node_modules/opencode-darwin-*/**",
-      "!node_modules/opencode-linux-*/**",
-      "!node_modules/opencode-win32-*/**"
+      "!node_modules/opencode-linux-*/**"
     ],
     "asar": true,
     "asarUnpack": [
@@ -168,6 +167,10 @@
           "path": "/Applications"
         }
       ]
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "resources/icon.png"
     }
   }
 }

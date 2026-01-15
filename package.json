@@ -15,7 +15,7 @@
     "build:desktop": "pnpm -F @accomplish/desktop build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "clean": "pnpm -r clean && rm -rf node_modules"
+    "clean": "pnpm -r clean && node -e \"require('fs').rmSync('node_modules', {recursive:true, force:true})\""
   },
   "engines": {
     "node": ">=20.0.0",
