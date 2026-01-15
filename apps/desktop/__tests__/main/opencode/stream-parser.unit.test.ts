@@ -487,6 +487,59 @@ describe('StreamParser', () => {
       // Assert - Parser should still work after reset
       expect(messageHandler).toHaveBeenCalledWith(message);
     });
+
+    it('should truncate buffer at newline boundary to prevent data corruption', () => {
+      // Arrange - Create data with multiple lines that exceeds buffer
+      const maxBufferSize = 10 * 1024 * 1024;
+      const lineSize = 1000;
+      const numLines = Math.ceil(maxBufferSize / lineSize) + 10;
+
+      // Build lines with markers to verify truncation point
+      const lines: string[] = [];
+      for (let i = 0; i < numLines; i++) {
+        lines.push(`${'x'.repeat(lineSize - 10)}line_${i}`);
+      }
+      const largeData = lines.join('\n') + '\n';
+
+      // Act
+      parser.feed(largeData);
+
+      // Assert - error should be emitted but no parse errors from corrupted JSON
+      expect(errorHandler).toHaveBeenCalledTimes(1);
+      expect(errorHandler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Stream buffer size exceeded maximum limit',
+        })
+      );
+    });
+
+    it('should continue parsing valid JSON after safe truncation', () => {
+      // Arrange - Create overflow data followed by valid message
+      const maxBufferSize = 10 * 1024 * 1024;
+      const largeChunk = 'x'.repeat(maxBufferSize + 100);
+
+      // Act - First trigger overflow
+      parser.feed(largeChunk + '\n');
+
+      // Clear previous error
+      errorHandler.mockClear();
+
+      // Feed valid message immediately (without reset)
+      const message: OpenCodeMessage = {
+        type: 'text',
+        part: {
+          id: 'msg_1',
+          sessionID: 'session_1',
+          messageID: 'msg_1',
+          type: 'text',
+          text: 'After safe truncation',
+        },
+      };
+      parser.feed(JSON.stringify(message) + '\n');
+
+      // Assert - Parser should still parse the valid message
+      expect(messageHandler).toHaveBeenCalledWith(message);
+    });
   });
 
   describe('NDJSON format parsing', () => {

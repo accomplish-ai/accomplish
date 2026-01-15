@@ -24,11 +24,38 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
     // Prevent memory exhaustion from unbounded buffer growth
     if (this.buffer.length > MAX_BUFFER_SIZE) {
       this.emit('error', new Error('Stream buffer size exceeded maximum limit'));
-      // Keep the last portion of the buffer to maintain parsing continuity
-      this.buffer = this.buffer.slice(-MAX_BUFFER_SIZE / 2);
+      // Safely truncate buffer at newline boundary to prevent data corruption
+      // Find the last newline in the buffer to preserve complete lines
+      this.buffer = this.safeBufferTruncate();
     }
 
     this.parseBuffer();
+  }
+
+  /**
+   * Safely truncate the buffer at a newline boundary
+   * This prevents cutting JSON objects in the middle which would cause parse errors
+   */
+  private safeBufferTruncate(): string {
+    const targetSize = MAX_BUFFER_SIZE / 2;
+    const startIndex = this.buffer.length - targetSize;
+
+    if (startIndex <= 0) {
+      return this.buffer;
+    }
+
+    // Find the first newline after the start index
+    // This ensures we don't cut in the middle of a line
+    const newlineIndex = this.buffer.indexOf('\n', startIndex);
+
+    if (newlineIndex === -1) {
+      // No newline found after start index, keep from start index
+      // This is a fallback for extremely long lines
+      return this.buffer.slice(startIndex);
+    }
+
+    // Keep everything after the newline (start of next complete line)
+    return this.buffer.slice(newlineIndex + 1);
   }
 
   /**
