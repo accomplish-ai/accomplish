@@ -16,10 +16,12 @@ import {
   saveTask,
   updateTaskStatus,
   updateTaskSessionId,
+  updateTaskSummary,
   addTaskMessage,
   deleteTask,
   clearHistory,
 } from '../store/taskHistory';
+import { generateTaskSummary } from '../services/summarizer';
 import {
   storeApiKey,
   getApiKey,
@@ -367,6 +369,16 @@ export function registerIPCHandlers(): void {
 
     // Save task to history (includes the initial user message)
     saveTask(task);
+
+    // Generate AI summary asynchronously (don't block task execution)
+    generateTaskSummary(validatedConfig.prompt)
+      .then((summary) => {
+        updateTaskSummary(taskId, summary);
+        forwardToRenderer('task:summary', { taskId, summary });
+      })
+      .catch((err) => {
+        console.warn('[IPC] Failed to generate task summary:', err);
+      });
 
     return task;
   });

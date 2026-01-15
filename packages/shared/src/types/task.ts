@@ -32,6 +32,8 @@ export interface TaskConfig {
 export interface Task {
   id: string;
   prompt: string;
+  /** AI-generated short summary of the task (displayed in history) */
+  summary?: string;
   status: TaskStatus;
   sessionId?: string;
   messages: TaskMessage[];

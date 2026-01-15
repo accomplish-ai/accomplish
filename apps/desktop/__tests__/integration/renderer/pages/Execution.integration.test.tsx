@@ -191,7 +191,7 @@ describe('Execution Page Integration', () => {
       renderWithRouter('task-123');
 
       // Assert
-      const spinner = document.querySelector('.animate-spin');
+      const spinner = document.querySelector('.animate-spin-ccw');
       expect(spinner).toBeInTheDocument();
     });
 
@@ -285,25 +285,14 @@ describe('Execution Page Integration', () => {
       expect(backButton).toBeInTheDocument();
     });
 
-    it('should render cancel button for running task', () => {
-      // Arrange
+    it('should not render cancel button (removed from UI)', () => {
+      // Arrange - Cancel button was removed, only Stop button remains
       mockStoreState.currentTask = createMockTask('task-123', 'Running', 'running');
 
       // Act
       renderWithRouter('task-123');
 
-      // Assert
-      expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
-    });
-
-    it('should not render cancel button for completed task', () => {
-      // Arrange
-      mockStoreState.currentTask = createMockTask('task-123', 'Done', 'completed');
-
-      // Act
-      renderWithRouter('task-123');
-
-      // Assert
+      // Assert - Cancel button should not exist
       expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument();
     });
   });
@@ -567,22 +556,6 @@ describe('Execution Page Integration', () => {
   });
 
   describe('task controls', () => {
-    it('should call cancelTask when Cancel button is clicked', async () => {
-      // Arrange
-      mockStoreState.currentTask = createMockTask('task-123', 'Running', 'running');
-
-      renderWithRouter('task-123');
-
-      // Act
-      const cancelButton = screen.getByRole('button', { name: /cancel/i });
-      fireEvent.click(cancelButton);
-
-      // Assert
-      await waitFor(() => {
-        expect(mockCancelTask).toHaveBeenCalled();
-      });
-    });
-
     it('should call interruptTask when Stop button is clicked', async () => {
       // Arrange
       mockStoreState.currentTask = createMockTask('task-123', 'Running', 'running');
@@ -1308,18 +1281,6 @@ describe('Execution Page Integration', () => {
     });
   });
 
-  describe('cancel button for queued task', () => {
-    it('should show cancel button for queued task', () => {
-      // Arrange
-      mockStoreState.currentTask = createMockTask('task-123', 'Queued', 'queued');
-
-      // Act
-      renderWithRouter('task-123');
-
-      // Assert
-      expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
-    });
-  });
 
   describe('follow-up placeholder text variations', () => {
     it('should show follow-up input for interrupted task even without session', () => {

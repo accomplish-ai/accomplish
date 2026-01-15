@@ -92,6 +92,9 @@ function createWindow() {
     return { action: 'deny' };
   });
 
+  // Maximize window by default
+  mainWindow.maximize();
+
   // Open DevTools in dev mode (non-packaged)
   if (!app.isPackaged) {
     mainWindow.webContents.openDevTools({ mode: 'right' });

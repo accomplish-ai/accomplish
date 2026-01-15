@@ -7,6 +7,8 @@ import type { Task, TaskMessage, TaskStatus } from '@accomplish/shared';
 export interface StoredTask {
   id: string;
   prompt: string;
+  /** AI-generated short summary of the task (displayed in history) */
+  summary?: string;
   status: TaskStatus;
   messages: TaskMessage[];
   sessionId?: string;
@@ -90,6 +92,7 @@ export function saveTask(task: Task): void {
   const storedTask: StoredTask = {
     id: task.id,
     prompt: task.prompt,
+    summary: task.summary,
     status: task.status,
     messages: task.messages || [],
     sessionId: task.sessionId,
@@ -157,6 +160,19 @@ export function updateTaskSessionId(taskId: string, sessionId: string): void {
 
   if (taskIndex >= 0) {
     tasks[taskIndex].sessionId = sessionId;
+    schedulePersist([...tasks]);
+  }
+}
+
+/**
+ * Update task's AI-generated summary
+ */
+export function updateTaskSummary(taskId: string, summary: string): void {
+  const tasks = getCurrentTasks();
+  const taskIndex = tasks.findIndex((t) => t.id === taskId);
+
+  if (taskIndex >= 0) {
+    tasks[taskIndex].summary = summary;
     schedulePersist([...tasks]);
   }
 }

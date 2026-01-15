@@ -51,6 +51,7 @@ interface TaskState {
   addTaskUpdate: (event: TaskUpdateEvent) => void;
   addTaskUpdateBatch: (event: TaskUpdateBatchEvent) => void;
   updateTaskStatus: (taskId: string, status: TaskStatus) => void;
+  setTaskSummary: (taskId: string, summary: string) => void;
   loadTasks: () => Promise<void>;
   loadTaskById: (taskId: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
@@ -398,6 +399,27 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     });
   },
 
+  // Update task summary (AI-generated)
+  setTaskSummary: (taskId: string, summary: string) => {
+    set((state) => {
+      // Update in tasks list
+      const updatedTasks = state.tasks.map((task) =>
+        task.id === taskId ? { ...task, summary } : task
+      );
+
+      // Update currentTask if it matches
+      const updatedCurrentTask =
+        state.currentTask?.id === taskId
+          ? { ...state.currentTask, summary }
+          : state.currentTask;
+
+      return {
+        tasks: updatedTasks,
+        currentTask: updatedCurrentTask,
+      };
+    });
+  },
+
   loadTasks: async () => {
     const accomplish = getAccomplish();
     const tasks = await accomplish.listTasks();
@@ -461,5 +483,10 @@ if (typeof window !== 'undefined' && window.accomplish) {
         state.setSetupProgress(null, null);
       }
     }
+  });
+
+  // Subscribe to task summary updates
+  window.accomplish.onTaskSummary?.(( data: { taskId: string; summary: string }) => {
+    useTaskStore.getState().setTaskSummary(data.taskId, data.summary);
   });
 }

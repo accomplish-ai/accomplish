@@ -410,7 +410,7 @@ describe('SettingsDialog Integration', () => {
       });
     });
 
-    it('should delete API key when delete button is clicked', async () => {
+    it('should delete API key when delete button is clicked and confirmed', async () => {
       // Arrange
       const savedKeys: ApiKeyConfig[] = [
         { id: 'key-1', provider: 'anthropic', keyPrefix: 'sk-ant-abc...' },
@@ -418,15 +418,48 @@ describe('SettingsDialog Integration', () => {
       mockGetApiKeys.mockResolvedValue(savedKeys);
       render(<SettingsDialog {...defaultProps} />);
 
-      // Act
+      // Act - Click delete button to show confirmation
       await waitFor(() => {
         expect(screen.getByTitle('Remove API key')).toBeInTheDocument();
       });
       fireEvent.click(screen.getByTitle('Remove API key'));
 
+      // Act - Confirm deletion by clicking Yes
+      await waitFor(() => {
+        expect(screen.getByText('Are you sure?')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /yes/i }));
+
       // Assert
       await waitFor(() => {
         expect(mockRemoveApiKey).toHaveBeenCalledWith('key-1');
+      });
+    });
+
+    it('should not delete API key when confirmation is cancelled', async () => {
+      // Arrange
+      const savedKeys: ApiKeyConfig[] = [
+        { id: 'key-1', provider: 'anthropic', keyPrefix: 'sk-ant-abc...' },
+      ];
+      mockGetApiKeys.mockResolvedValue(savedKeys);
+      render(<SettingsDialog {...defaultProps} />);
+
+      // Act - Click delete button to show confirmation
+      await waitFor(() => {
+        expect(screen.getByTitle('Remove API key')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTitle('Remove API key'));
+
+      // Act - Cancel by clicking No
+      await waitFor(() => {
+        expect(screen.getByText('Are you sure?')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /no/i }));
+
+      // Assert - Should not delete, confirmation should be hidden
+      expect(mockRemoveApiKey).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(screen.queryByText('Are you sure?')).not.toBeInTheDocument();
       });
     });
 

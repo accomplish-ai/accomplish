@@ -22,7 +22,7 @@ const SpinningIcon = ({ className }: { className?: string }) => (
   <img
     src={openworkIcon}
     alt=""
-    className={cn('animate-spin', className)}
+    className={cn('animate-spin-ccw', className)}
   />
 );
 
@@ -87,7 +87,6 @@ export default function ExecutionPage() {
     permissionRequest,
     respondToPermission,
     sendFollowUp,
-    cancelTask,
     interruptTask,
     setupProgress,
     setupProgressTaskId,
@@ -236,9 +235,12 @@ export default function ExecutionPage() {
         );
       case 'running':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary shrink-0">
-            <SpinningIcon className="h-3 w-3" />
-            Running
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 shrink-0">
+            <span
+              className="animate-shimmer bg-gradient-to-r from-primary via-primary/50 to-primary bg-[length:200%_100%] bg-clip-text text-transparent"
+            >
+              Running
+            </span>
           </span>
         );
       case 'completed':
@@ -288,7 +290,7 @@ export default function ExecutionPage() {
               variant="ghost"
               size="icon"
               onClick={() => navigate('/')}
-              className="shrink-0"
+              className="shrink-0 no-drag"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -299,17 +301,6 @@ export default function ExecutionPage() {
               {getStatusBadge()}
             </div>
           </div>
-          {(currentTask.status === 'running' || currentTask.status === 'queued') && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={cancelTask}
-              className="shrink-0"
-            >
-              <XCircle className="h-4 w-4 mr-1.5" />
-              Cancel
-            </Button>
-          )}
         </div>
       </div>
 

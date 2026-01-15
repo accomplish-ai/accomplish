@@ -93,7 +93,9 @@ function TaskHistoryItem({
     >
       <div className={`w-2 h-2 rounded-full ${config.color}`} />
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-text truncate">{task.prompt}</p>
+        <p className="text-sm text-text truncate" title={task.summary || task.prompt}>
+          {task.summary || task.prompt}
+        </p>
         <p className="text-xs text-text-muted mt-1">
           {config.label} · {timeAgo} · {task.messages.length} messages
         </p>

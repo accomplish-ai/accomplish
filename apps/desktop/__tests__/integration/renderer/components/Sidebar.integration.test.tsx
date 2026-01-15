@@ -257,7 +257,7 @@ describe('Sidebar Integration', () => {
 
       // Assert - Check for spinning loader icon
       const taskItem = screen.getByText('Running task').closest('button');
-      const spinner = taskItem?.querySelector('.animate-spin');
+      const spinner = taskItem?.querySelector('.animate-spin-ccw');
       expect(spinner).toBeInTheDocument();
     });
 

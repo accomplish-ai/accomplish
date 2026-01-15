@@ -179,6 +179,7 @@ export default function HomePage() {
                 isLoading={isLoading}
                 placeholder="Describe a task and let AI handle the rest"
                 large={true}
+                autoFocus={true}
               />
             </CardContent>
 
@@ -207,7 +208,7 @@ export default function HomePage() {
                     className="overflow-hidden"
                   >
                     <div
-                      className="px-6 pb-4 overflow-y-auto max-h-[360px]"
+                      className="px-6 pt-1 pb-4 overflow-y-auto max-h-[360px]"
                       style={{
                         background: 'linear-gradient(to bottom, hsl(var(--muted)) 0%, hsl(var(--background)) 100%)',
                         backgroundAttachment: 'fixed',

@@ -130,6 +130,12 @@ const accomplishAPI = {
     ipcRenderer.on('task:status-change', listener);
     return () => ipcRenderer.removeListener('task:status-change', listener);
   },
+  // Task summary updates (AI-generated summary)
+  onTaskSummary: (callback: (data: { taskId: string; summary: string }) => void) => {
+    const listener = (_: unknown, data: { taskId: string; summary: string }) => callback(data);
+    ipcRenderer.on('task:summary', listener);
+    return () => ipcRenderer.removeListener('task:summary', listener);
+  },
 
   logEvent: (payload: { level?: string; message: string; context?: Record<string, unknown> }) =>
     ipcRenderer.invoke('log:event', payload),

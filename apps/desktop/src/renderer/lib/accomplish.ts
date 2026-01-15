@@ -80,6 +80,7 @@ interface AccomplishAPI {
   onTaskProgress(callback: (progress: TaskProgress) => void): () => void;
   onDebugLog(callback: (log: unknown) => void): () => void;
   onTaskStatusChange?(callback: (data: { taskId: string; status: TaskStatus }) => void): () => void;
+  onTaskSummary?(callback: (data: { taskId: string; summary: string }) => void): () => void;
 
   // Logging
   logEvent(payload: { level?: string; message: string; context?: Record<string, unknown> }): Promise<unknown>;
