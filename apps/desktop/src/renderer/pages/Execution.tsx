@@ -235,9 +235,12 @@ export default function ExecutionPage() {
         );
       case 'running':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary shrink-0">
-            <SpinningIcon className="h-3 w-3" />
-            Running
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 shrink-0">
+            <span
+              className="animate-shimmer bg-gradient-to-r from-primary via-primary/50 to-primary bg-[length:200%_100%] bg-clip-text text-transparent"
+            >
+              Running
+            </span>
           </span>
         );
       case 'completed':
