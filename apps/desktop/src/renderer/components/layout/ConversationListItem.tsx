@@ -20,7 +20,7 @@ export default function ConversationListItem({ task }: ConversationListItemProps
 
   const getStatusIcon = () => {
     if (task.status === 'running') {
-      return <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />;
+      return <Loader2 className="h-3 w-3 animate-spin-ccw text-primary shrink-0" />;
     }
     if (task.status === 'completed') {
       return <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />;

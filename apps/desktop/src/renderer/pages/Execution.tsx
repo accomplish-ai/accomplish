@@ -22,7 +22,7 @@ const SpinningIcon = ({ className }: { className?: string }) => (
   <img
     src={openworkIcon}
     alt=""
-    className={cn('animate-spin', className)}
+    className={cn('animate-spin-ccw', className)}
   />
 );
 
