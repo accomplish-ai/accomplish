@@ -11,13 +11,11 @@
   },
   "scripts": {
     "dev": "pnpm -F @accomplish/desktop dev",
-    "dev:clean": "pnpm clean-app-from-scratch && pnpm -F @accomplish/desktop dev",
     "build": "pnpm -r build",
     "build:desktop": "pnpm -F @accomplish/desktop build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "clean": "pnpm -r clean && rm -rf node_modules",
-    "clean-app-from-scratch": "./scripts/clean-app-from-scratch.sh"
+    "clean": "pnpm -r clean && rm -rf node_modules"
   },
   "engines": {
     "node": ">=20.0.0",
