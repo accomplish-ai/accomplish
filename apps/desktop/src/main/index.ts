@@ -61,10 +61,26 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist');
 export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
 let mainWindow: BrowserWindow | null = null;
+let pendingAuthCallbackUrl: string | null = null;
 
 // Get the preload script path
 function getPreloadPath(): string {
   return path.join(__dirname, '../preload/index.cjs');
+}
+
+function sendAuthCallback(url: string): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    pendingAuthCallbackUrl = url;
+    return;
+  }
+
+  const contents = mainWindow.webContents;
+  if (contents.isDestroyed()) {
+    pendingAuthCallbackUrl = url;
+    return;
+  }
+
+  contents.send('auth:callback', url);
 }
 
 function createWindow() {
@@ -117,6 +133,14 @@ function createWindow() {
     console.log('[Main] Loading from file:', indexPath);
     mainWindow.loadFile(indexPath);
   }
+
+  mainWindow.webContents.once('did-finish-load', () => {
+    if (pendingAuthCallbackUrl) {
+      const url = pendingAuthCallbackUrl;
+      pendingAuthCallbackUrl = null;
+      sendAuthCallback(url);
+    }
+  });
 }
 
 // Single instance lock
@@ -197,7 +221,7 @@ app.on('open-url', (event, url) => {
   console.log('[Main] Received protocol URL:', url);
   // Handle protocol URL
   if (url.startsWith('accomplish://callback')) {
-    mainWindow?.webContents?.send('auth:callback', url);
+    sendAuthCallback(url);
   }
 });
 

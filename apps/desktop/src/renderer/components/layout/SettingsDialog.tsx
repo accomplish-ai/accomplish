@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Trash2 } from 'lucide-react';
-import type { ApiKeyConfig, SelectedModel } from '@accomplish/shared';
+import type { ApiKeyConfig, SelectedModel, LocalLlmConfig, ModelConfig } from '@accomplish/shared';
 import { DEFAULT_PROVIDERS } from '@accomplish/shared';
 import logoImage from '/assets/logo.png';
 
@@ -25,11 +25,17 @@ const API_KEY_PROVIDERS = [
   { id: 'anthropic', name: 'Anthropic', prefix: 'sk-ant-', placeholder: 'sk-ant-...' },
   { id: 'openai', name: 'OpenAI', prefix: 'sk-', placeholder: 'sk-...' },
   { id: 'google', name: 'Google AI', prefix: 'AIza', placeholder: 'AIza...' },
+  { id: 'groq', name: 'Groq', prefix: 'gsk_', placeholder: 'gsk_...' },
 ] as const;
 
 // Coming soon providers (displayed but not selectable)
-const COMING_SOON_PROVIDERS = [
-  { id: 'groq', name: 'Groq' },
+const COMING_SOON_PROVIDERS: Array<{ id: string; name: string }> = [];
+
+const LOCAL_LLM_PRESETS = [
+  { id: 'ollama', name: 'Ollama', baseUrl: 'http://localhost:11434/v1' },
+  { id: 'lm-studio', name: 'LM Studio', baseUrl: 'http://localhost:1234/v1' },
+  { id: 'localai', name: 'LocalAI', baseUrl: 'http://localhost:8080/v1' },
+  { id: 'custom', name: 'Custom', baseUrl: '' },
 ] as const;
 
 type ProviderId = typeof API_KEY_PROVIDERS[number]['id'];
@@ -48,6 +54,15 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   const [selectedModel, setSelectedModel] = useState<SelectedModel | null>(null);
   const [loadingModel, setLoadingModel] = useState(true);
   const [modelStatusMessage, setModelStatusMessage] = useState<string | null>(null);
+  const [localConfig, setLocalConfig] = useState<LocalLlmConfig | null>(null);
+  const [localPreset, setLocalPreset] = useState<string>('ollama');
+  const [localBaseUrl, setLocalBaseUrl] = useState('');
+  const [localModel, setLocalModel] = useState('');
+  const [localApiKey, setLocalApiKey] = useState('');
+  const [localStatusMessage, setLocalStatusMessage] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [localTesting, setLocalTesting] = useState(false);
+  const [localSaving, setLocalSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -96,10 +111,25 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
       }
     };
 
+    const fetchLocalConfig = async () => {
+      try {
+        const config = await accomplish.getLocalLlmConfig();
+        setLocalConfig(config as LocalLlmConfig | null);
+        if (config) {
+          setLocalPreset(config.preset || 'custom');
+          setLocalBaseUrl(config.baseUrl);
+          setLocalModel(config.model);
+        }
+      } catch (err) {
+        console.error('Failed to fetch local LLM config:', err);
+      }
+    };
+
     fetchKeys();
     fetchDebugSetting();
     fetchVersion();
     fetchSelectedModel();
+    fetchLocalConfig();
   }, [open]);
 
   const handleDebugToggle = async () => {
@@ -117,7 +147,19 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
 
   const handleModelChange = async (fullId: string) => {
     const accomplish = getAccomplish();
-    const allModels = DEFAULT_PROVIDERS.flatMap((p) => p.models);
+    const baseModels = DEFAULT_PROVIDERS
+      .filter((p) => p.id !== 'local')
+      .flatMap((p) => p.models);
+    const localModelOption: ModelConfig[] = localConfig?.baseUrl && localConfig?.model
+      ? [{
+        id: localConfig.model,
+        displayName: `Local (${localConfig.model})`,
+        provider: 'local',
+        fullId: `openai/${localConfig.model}`,
+        supportsVision: false,
+      }]
+      : [];
+    const allModels = [...baseModels, ...localModelOption];
     const model = allModels.find((m) => m.fullId === fullId);
     if (model) {
       analytics.trackSelectModel(model.displayName);
@@ -133,6 +175,90 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
       } catch (err) {
         console.error('Failed to save model selection:', err);
       }
+    }
+  };
+
+  const handleLocalPresetChange = (presetId: string) => {
+    setLocalPreset(presetId);
+    const preset = LOCAL_LLM_PRESETS.find((p) => p.id === presetId);
+    if (preset && preset.baseUrl) {
+      setLocalBaseUrl(preset.baseUrl);
+    }
+  };
+
+  const handleSaveLocalConfig = async () => {
+    const accomplish = getAccomplish();
+    const trimmedBaseUrl = localBaseUrl.trim();
+    const trimmedModel = localModel.trim();
+
+    if (!trimmedBaseUrl || !trimmedModel) {
+      setLocalError('Please enter a base URL and model name.');
+      return;
+    }
+
+    setLocalSaving(true);
+    setLocalError(null);
+    setLocalStatusMessage(null);
+
+    try {
+      const preset = localPreset === 'custom' ? undefined : localPreset;
+      const saved = await accomplish.setLocalLlmConfig({
+        baseUrl: trimmedBaseUrl,
+        model: trimmedModel,
+        preset,
+      });
+      setLocalConfig(saved as LocalLlmConfig);
+      if (localApiKey.trim()) {
+        await accomplish.setLocalLlmKey(localApiKey.trim());
+      }
+      setLocalStatusMessage('Local endpoint saved.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save local endpoint.';
+      setLocalError(message);
+    } finally {
+      setLocalSaving(false);
+    }
+  };
+
+  const handleTestLocalConfig = async () => {
+    const accomplish = getAccomplish();
+    const trimmedBaseUrl = localBaseUrl.trim();
+    if (!trimmedBaseUrl) {
+      setLocalError('Please enter a base URL to test.');
+      return;
+    }
+
+    setLocalTesting(true);
+    setLocalError(null);
+    setLocalStatusMessage(null);
+
+    try {
+      const result = await accomplish.testLocalLlm({
+        baseUrl: trimmedBaseUrl,
+        apiKey: localApiKey.trim() || undefined,
+      });
+      if (result.ok) {
+        setLocalStatusMessage('Connection successful.');
+      } else {
+        setLocalError(result.error || 'Connection failed.');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Connection failed.';
+      setLocalError(message);
+    } finally {
+      setLocalTesting(false);
+    }
+  };
+
+  const handleClearLocalKey = async () => {
+    const accomplish = getAccomplish();
+    try {
+      await accomplish.clearLocalLlmKey();
+      setLocalApiKey('');
+      setLocalStatusMessage('Local API key cleared.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to clear local API key.';
+      setLocalError(message);
     }
   };
 
@@ -194,6 +320,9 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
     }
   };
 
+  const visibleKeys = savedKeys.filter((key) => key.provider !== 'local');
+  const localConfigured = Boolean(localConfig?.baseUrl && localConfig?.model);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -217,8 +346,8 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                   onChange={(e) => handleModelChange(e.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  {DEFAULT_PROVIDERS.filter((p) => p.requiresApiKey).map((provider) => {
-                    const hasApiKey = savedKeys.some((k) => k.provider === provider.id);
+                  {DEFAULT_PROVIDERS.filter((p) => p.requiresApiKey && p.id !== 'local').map((provider) => {
+                    const hasApiKey = visibleKeys.some((k) => k.provider === provider.id);
                     return (
                       <optgroup key={provider.id} label={provider.name}>
                         {provider.models.map((model) => (
@@ -233,14 +362,31 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                       </optgroup>
                     );
                   })}
+                  <optgroup label="Local (OpenAI-compatible)">
+                    {localConfigured && localConfig ? (
+                      <option value={`openai/${localConfig.model}`}>
+                        Local ({localConfig.model})
+                      </option>
+                    ) : (
+                      <option value="" disabled>
+                        Configure local endpoint to enable
+                      </option>
+                    )}
+                  </optgroup>
                 </select>
               )}
               {modelStatusMessage && (
                 <p className="mt-3 text-sm text-success">{modelStatusMessage}</p>
               )}
-              {selectedModel && !savedKeys.some((k) => k.provider === selectedModel.provider) && (
+              {selectedModel && DEFAULT_PROVIDERS.find((p) => p.id === selectedModel.provider)?.requiresApiKey &&
+                !visibleKeys.some((k) => k.provider === selectedModel.provider) && (
+                  <p className="mt-3 text-sm text-warning">
+                    No API key configured for {DEFAULT_PROVIDERS.find((p) => p.id === selectedModel.provider)?.name}. Add one below to use this model.
+                  </p>
+                )}
+              {selectedModel?.provider === 'local' && !localConfigured && (
                 <p className="mt-3 text-sm text-warning">
-                  No API key configured for {DEFAULT_PROVIDERS.find((p) => p.id === selectedModel.provider)?.name}. Add one below to use this model.
+                  Local endpoint is not configured. Add it below to use the local model.
                 </p>
               )}
             </div>
@@ -321,11 +467,11 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                   <div className="h-4 w-24 rounded bg-muted mb-3" />
                   <div className="h-14 rounded-xl bg-muted" />
                 </div>
-              ) : savedKeys.length > 0 && (
+              ) : visibleKeys.length > 0 && (
                 <div className="mt-6">
                   <h3 className="mb-3 text-sm font-medium text-foreground">Saved Keys</h3>
                   <div className="space-y-2">
-                    {savedKeys.map((key) => {
+                    {visibleKeys.map((key) => {
                       const providerConfig = API_KEY_PROVIDERS.find((p) => p.id === key.provider);
                       return (
                         <div
@@ -360,6 +506,100 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                   </div>
                 </div>
               )}
+            </div>
+          </section>
+
+          {/* Local LLM Section */}
+          <section>
+            <h2 className="mb-4 text-base font-medium text-foreground">Local (OpenAI-compatible)</h2>
+            <div className="rounded-lg border border-border bg-card p-5">
+              <p className="mb-5 text-sm text-muted-foreground leading-relaxed">
+                Configure a local OpenAI-compatible endpoint (Ollama, LM Studio, LocalAI, etc.) to run fully offline.
+              </p>
+
+              <div className="mb-5">
+                <label className="mb-2.5 block text-sm font-medium text-foreground">
+                  Preset
+                </label>
+                <select
+                  value={localPreset}
+                  onChange={(e) => handleLocalPresetChange(e.target.value)}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {LOCAL_LLM_PRESETS.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mb-5">
+                <label className="mb-2.5 block text-sm font-medium text-foreground">
+                  Base URL
+                </label>
+                <input
+                  type="text"
+                  value={localBaseUrl}
+                  onChange={(e) => setLocalBaseUrl(e.target.value)}
+                  placeholder="http://localhost:11434/v1"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div className="mb-5">
+                <label className="mb-2.5 block text-sm font-medium text-foreground">
+                  Model name
+                </label>
+                <input
+                  type="text"
+                  value={localModel}
+                  onChange={(e) => setLocalModel(e.target.value)}
+                  placeholder="llama3.1"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div className="mb-5">
+                <label className="mb-2.5 block text-sm font-medium text-foreground">
+                  Optional API key
+                </label>
+                <input
+                  type="password"
+                  value={localApiKey}
+                  onChange={(e) => setLocalApiKey(e.target.value)}
+                  placeholder="(optional)"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+
+              {localError && <p className="mb-4 text-sm text-destructive">{localError}</p>}
+              {localStatusMessage && (
+                <p className="mb-4 text-sm text-success">{localStatusMessage}</p>
+              )}
+
+              <div className="flex flex-col gap-2">
+                <button
+                  className="w-full rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/90"
+                  onClick={handleTestLocalConfig}
+                  disabled={localTesting}
+                >
+                  {localTesting ? 'Testing...' : 'Test Connection'}
+                </button>
+                <button
+                  className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  onClick={handleSaveLocalConfig}
+                  disabled={localSaving}
+                >
+                  {localSaving ? 'Saving...' : 'Save Local Endpoint'}
+                </button>
+                <button
+                  className="w-full rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                  onClick={handleClearLocalKey}
+                >
+                  Clear Local API Key
+                </button>
+              </div>
             </div>
           </section>
 

@@ -96,6 +96,22 @@ const accomplishAPI = {
     ipcRenderer.invoke('api-keys:all'),
   hasAnyApiKey: (): Promise<boolean> =>
     ipcRenderer.invoke('api-keys:has-any'),
+  hasAnyLlmConfig: (): Promise<boolean> =>
+    ipcRenderer.invoke('llm:has-any-config'),
+
+  // Local LLM config
+  getLocalLlmConfig: (): Promise<{ baseUrl: string; model: string; preset?: string } | null> =>
+    ipcRenderer.invoke('local-llm:get'),
+  setLocalLlmConfig: (config: { baseUrl: string; model: string; preset?: string }): Promise<unknown> =>
+    ipcRenderer.invoke('local-llm:set', config),
+  clearLocalLlmConfig: (): Promise<void> =>
+    ipcRenderer.invoke('local-llm:clear'),
+  setLocalLlmKey: (key: string): Promise<void> =>
+    ipcRenderer.invoke('local-llm:set-key', key),
+  clearLocalLlmKey: (): Promise<void> =>
+    ipcRenderer.invoke('local-llm:clear-key'),
+  testLocalLlm: (input: { baseUrl?: string; apiKey?: string }): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('local-llm:test', input),
 
   // Event subscriptions
   onTaskUpdate: (callback: (event: unknown) => void) => {

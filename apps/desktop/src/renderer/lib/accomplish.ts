@@ -15,6 +15,8 @@ import type {
   TaskProgress,
   ApiKeyConfig,
   TaskMessage,
+  LocalLlmConfig,
+  SelectedModel,
 } from '@accomplish/shared';
 
 // Define the API interface
@@ -60,6 +62,15 @@ interface AccomplishAPI {
   // Multi-provider API keys
   getAllApiKeys(): Promise<Record<string, { exists: boolean; prefix?: string }>>;
   hasAnyApiKey(): Promise<boolean>;
+  hasAnyLlmConfig(): Promise<boolean>;
+
+  // Local LLM config
+  getLocalLlmConfig(): Promise<LocalLlmConfig | null>;
+  setLocalLlmConfig(config: LocalLlmConfig): Promise<LocalLlmConfig | null>;
+  clearLocalLlmConfig(): Promise<void>;
+  setLocalLlmKey(key: string): Promise<void>;
+  clearLocalLlmKey(): Promise<void>;
+  testLocalLlm(input: { baseUrl?: string; apiKey?: string }): Promise<{ ok: boolean; error?: string }>;
 
   // Onboarding
   getOnboardingComplete(): Promise<boolean>;
@@ -70,8 +81,8 @@ interface AccomplishAPI {
   getClaudeVersion(): Promise<string | null>;
 
   // Model selection
-  getSelectedModel(): Promise<{ provider: string; model: string } | null>;
-  setSelectedModel(model: { provider: string; model: string }): Promise<void>;
+  getSelectedModel(): Promise<SelectedModel | null>;
+  setSelectedModel(model: SelectedModel): Promise<void>;
 
   // Event subscriptions
   onTaskUpdate(callback: (event: TaskUpdateEvent) => void): () => void;

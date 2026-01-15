@@ -36,6 +36,8 @@ import {
   setOnboardingComplete,
   getSelectedModel,
   setSelectedModel,
+  getLocalLlmConfig,
+  setLocalLlmConfig,
 } from '../store/appSettings';
 import { getDesktopConfig } from '../config';
 import {
@@ -63,7 +65,7 @@ import {
 } from './validation';
 
 const MAX_TEXT_LENGTH = 8000;
-const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'google', 'groq', 'custom']);
+const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'google', 'groq', 'local', 'custom']);
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
 
 /**
@@ -189,6 +191,11 @@ function sanitizeString(input: unknown, field: string, maxLength = MAX_TEXT_LENG
     throw new Error(`${field} exceeds maximum length`);
   }
   return trimmed;
+}
+
+function normalizeBaseUrl(rawUrl: string): string {
+  const url = new URL(rawUrl);
+  return url.toString().replace(/\/+$/, '');
 }
 
 function validateTaskConfig(config: TaskConfig): TaskConfig {
@@ -794,6 +801,10 @@ export function registerIPCHandlers(): void {
           );
           break;
 
+        case 'local':
+          // For local provider, skip validation (use local-llm:test instead)
+          console.log('[API Key] Skipping validation for local provider');
+          return { valid: true };
         default:
           // For 'custom' provider, skip validation
           console.log('[API Key] Skipping validation for custom provider');
@@ -881,6 +892,111 @@ export function registerIPCHandlers(): void {
   handle('api-keys:has-any', async (_event: IpcMainInvokeEvent) => {
     return hasAnyApiKey();
   });
+
+  // LLM: Check if any config exists (cloud key or local config)
+  handle('llm:has-any-config', async (_event: IpcMainInvokeEvent) => {
+    if (await hasAnyApiKey()) {
+      return true;
+    }
+    const localConfig = getLocalLlmConfig();
+    return Boolean(localConfig?.baseUrl && localConfig?.model);
+  });
+
+  // Local LLM: Get config (no secret key)
+  handle('local-llm:get', async (_event: IpcMainInvokeEvent) => {
+    return getLocalLlmConfig();
+  });
+
+  // Local LLM: Set config
+  handle(
+    'local-llm:set',
+    async (_event: IpcMainInvokeEvent, config: { baseUrl: string; model: string; preset?: string }) => {
+      const sanitizedBaseUrl = sanitizeString(config?.baseUrl, 'baseUrl', 2048);
+      const sanitizedModel = sanitizeString(config?.model, 'model', 128);
+      const sanitizedPreset = config?.preset ? sanitizeString(config.preset, 'preset', 64) : undefined;
+
+      let normalizedBaseUrl: string;
+      try {
+        normalizedBaseUrl = normalizeBaseUrl(sanitizedBaseUrl);
+      } catch {
+        throw new Error('Invalid base URL');
+      }
+
+      setLocalLlmConfig({
+        baseUrl: normalizedBaseUrl,
+        model: sanitizedModel,
+        preset: sanitizedPreset,
+      });
+
+      return getLocalLlmConfig();
+    }
+  );
+
+  // Local LLM: Clear config (and optional key)
+  handle('local-llm:clear', async (_event: IpcMainInvokeEvent) => {
+    setLocalLlmConfig(null);
+    await deleteApiKey('local');
+  });
+
+  // Local LLM: Store optional key
+  handle('local-llm:set-key', async (_event: IpcMainInvokeEvent, key: string) => {
+    const sanitizedKey = sanitizeString(key, 'apiKey', 256);
+    await storeApiKey('local', sanitizedKey);
+  });
+
+  // Local LLM: Clear optional key
+  handle('local-llm:clear-key', async (_event: IpcMainInvokeEvent) => {
+    await deleteApiKey('local');
+  });
+
+  // Local LLM: Test connection (OpenAI-compatible /models)
+  handle(
+    'local-llm:test',
+    async (_event: IpcMainInvokeEvent, input?: { baseUrl?: string; apiKey?: string }) => {
+      const configured = getLocalLlmConfig();
+      const baseUrlRaw = input?.baseUrl ?? configured?.baseUrl;
+      if (!baseUrlRaw) {
+        return { ok: false, error: 'Missing base URL' };
+      }
+
+      let baseUrl: string;
+      try {
+        baseUrl = normalizeBaseUrl(baseUrlRaw);
+      } catch {
+        return { ok: false, error: 'Invalid base URL' };
+      }
+
+      const apiKey = input?.apiKey ?? (await getApiKey('local'));
+      const headers: Record<string, string> = {};
+      if (apiKey) {
+        headers.Authorization = `Bearer ${apiKey}`;
+      }
+
+      try {
+        const response = await fetchWithTimeout(
+          `${baseUrl}/models`,
+          {
+            method: 'GET',
+            headers,
+          },
+          API_KEY_VALIDATION_TIMEOUT_MS
+        );
+
+        if (response.ok) {
+          return { ok: true };
+        }
+
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = (errorData as { error?: { message?: string } })?.error?.message || `API returned status ${response.status}`;
+        return { ok: false, error: errorMessage };
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return { ok: false, error: 'Request timed out. Please check the endpoint and try again.' };
+        }
+        return { ok: false, error: 'Failed to reach local endpoint.' };
+      }
+    }
+  );
 
   // Settings: Get debug mode setting
   handle('settings:debug-mode', async (_event: IpcMainInvokeEvent) => {

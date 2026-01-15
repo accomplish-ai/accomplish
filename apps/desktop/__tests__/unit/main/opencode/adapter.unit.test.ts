@@ -110,12 +110,17 @@ vi.mock('@main/store/secureStorage', () => ({
   getAllApiKeys: vi.fn(() => Promise.resolve({
     anthropic: 'test-anthropic-key',
     openai: 'test-openai-key',
+    google: null,
+    groq: null,
+    local: null,
+    custom: null,
   })),
 }));
 
 // Mock app settings
 vi.mock('@main/store/appSettings', () => ({
-  getSelectedModel: vi.fn(() => ({ model: 'claude-3-opus-20240229' })),
+  getSelectedModel: vi.fn(() => ({ provider: 'anthropic', model: 'claude-3-opus-20240229' })),
+  getLocalLlmConfig: vi.fn(() => null),
 }));
 
 // Mock config generator

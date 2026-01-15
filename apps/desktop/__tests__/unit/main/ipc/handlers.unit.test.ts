@@ -160,6 +160,7 @@ vi.mock('@main/store/secureStorage', () => ({
       openai: mockApiKeys['openai'] || null,
       google: mockApiKeys['google'] || null,
       groq: mockApiKeys['groq'] || null,
+      local: mockApiKeys['local'] || null,
       custom: mockApiKeys['custom'] || null,
     })
   ),
@@ -173,6 +174,7 @@ vi.mock('@main/store/secureStorage', () => ({
 let mockDebugMode = false;
 let mockOnboardingComplete = false;
 let mockSelectedModel: { provider: string; model: string } | null = null;
+let mockLocalLlm: { baseUrl: string; model: string; preset?: string } | null = null;
 
 vi.mock('@main/store/appSettings', () => ({
   getDebugMode: vi.fn(() => mockDebugMode),
@@ -183,6 +185,7 @@ vi.mock('@main/store/appSettings', () => ({
     debugMode: mockDebugMode,
     onboardingComplete: mockOnboardingComplete,
     selectedModel: mockSelectedModel,
+    localLlm: mockLocalLlm,
   })),
   getOnboardingComplete: vi.fn(() => mockOnboardingComplete),
   setOnboardingComplete: vi.fn((complete: boolean) => {
@@ -191,6 +194,10 @@ vi.mock('@main/store/appSettings', () => ({
   getSelectedModel: vi.fn(() => mockSelectedModel),
   setSelectedModel: vi.fn((model: { provider: string; model: string }) => {
     mockSelectedModel = model;
+  }),
+  getLocalLlmConfig: vi.fn(() => mockLocalLlm),
+  setLocalLlmConfig: vi.fn((config: { baseUrl: string; model: string; preset?: string } | null) => {
+    mockLocalLlm = config;
   }),
 }));
 
@@ -218,7 +225,7 @@ vi.mock('@main/permission-api', () => ({
 }));
 
 // Import after mocks are set up
-import { registerIPCHandlers } from '@main/ipc/handlers';
+import { registerIPCHandlers } from '../../../../src/main/ipc/handlers';
 import { ipcMain, BrowserWindow, shell } from 'electron';
 
 // Type the mocked ipcMain with helpers
@@ -260,6 +267,7 @@ describe('IPC Handlers Integration', () => {
     mockStoredCredentials = [];
     mockDebugMode = false;
     mockOnboardingComplete = false;
+    mockLocalLlm = null;
     mockSelectedModel = null;
     mockPendingPermissions.clear();
 
@@ -321,6 +329,15 @@ describe('IPC Handlers Integration', () => {
       // Multi-provider API key handlers
       expect(handlers.has('api-keys:all')).toBe(true);
       expect(handlers.has('api-keys:has-any')).toBe(true);
+      expect(handlers.has('llm:has-any-config')).toBe(true);
+
+      // Local LLM handlers
+      expect(handlers.has('local-llm:get')).toBe(true);
+      expect(handlers.has('local-llm:set')).toBe(true);
+      expect(handlers.has('local-llm:clear')).toBe(true);
+      expect(handlers.has('local-llm:set-key')).toBe(true);
+      expect(handlers.has('local-llm:clear-key')).toBe(true);
+      expect(handlers.has('local-llm:test')).toBe(true);
 
       // OpenCode handlers
       expect(handlers.has('opencode:check')).toBe(true);
@@ -1056,6 +1073,41 @@ describe('IPC Handlers Integration', () => {
 
       // Act
       const result = await invokeHandler('api-keys:has-any');
+
+      // Assert
+      expect(result).toBe(false);
+    });
+
+    it('llm:has-any-config should return true when any cloud key exists', async () => {
+      // Arrange
+      mockApiKeys['openai'] = 'sk-openai-test';
+
+      // Act
+      const result = await invokeHandler('llm:has-any-config');
+
+      // Assert
+      expect(result).toBe(true);
+    });
+
+    it('llm:has-any-config should return true when local config exists', async () => {
+      // Arrange
+      mockApiKeys = {};
+      mockLocalLlm = { baseUrl: 'http://localhost:11434/v1', model: 'llama3', preset: 'ollama' };
+
+      // Act
+      const result = await invokeHandler('llm:has-any-config');
+
+      // Assert
+      expect(result).toBe(true);
+    });
+
+    it('llm:has-any-config should return false when no keys or local config exist', async () => {
+      // Arrange
+      mockApiKeys = {};
+      mockLocalLlm = null;
+
+      // Act
+      const result = await invokeHandler('llm:has-any-config');
 
       // Assert
       expect(result).toBe(false);

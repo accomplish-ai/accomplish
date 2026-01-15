@@ -192,6 +192,22 @@ describe('appSettings Integration', () => {
     });
   });
 
+  describe('localLlm', () => {
+    it('should persist local LLM config after setting new value', async () => {
+      // Arrange
+      const { getLocalLlmConfig, setLocalLlmConfig, clearAppSettings } = await import('@main/store/appSettings');
+      clearAppSettings();
+      const localConfig = { baseUrl: 'http://localhost:11434/v1', model: 'llama3', preset: 'ollama' };
+
+      // Act
+      setLocalLlmConfig(localConfig);
+      const result = getLocalLlmConfig();
+
+      // Assert
+      expect(result).toEqual(localConfig);
+    });
+  });
+
   describe('getAppSettings', () => {
     it('should return all default settings on fresh store', async () => {
       // Arrange
@@ -209,19 +225,22 @@ describe('appSettings Integration', () => {
           provider: 'anthropic',
           model: 'anthropic/claude-opus-4-5',
         },
+        localLlm: null,
       });
     });
 
     it('should return all settings after modifications', async () => {
       // Arrange
-      const { getAppSettings, setDebugMode, setOnboardingComplete, setSelectedModel, clearAppSettings } = await import('@main/store/appSettings');
+      const { getAppSettings, setDebugMode, setOnboardingComplete, setSelectedModel, setLocalLlmConfig, clearAppSettings } = await import('@main/store/appSettings');
       clearAppSettings(); // Start fresh
       const customModel = { provider: 'openai', model: 'gpt-4-turbo' };
+      const localConfig = { baseUrl: 'http://localhost:11434/v1', model: 'llama3', preset: 'ollama' };
 
       // Act
       setDebugMode(true);
       setOnboardingComplete(true);
       setSelectedModel(customModel);
+      setLocalLlmConfig(localConfig);
       const result = getAppSettings();
 
       // Assert
@@ -229,6 +248,7 @@ describe('appSettings Integration', () => {
         debugMode: true,
         onboardingComplete: true,
         selectedModel: customModel,
+        localLlm: localConfig,
       });
     });
 
@@ -279,6 +299,7 @@ describe('appSettings Integration', () => {
           provider: 'anthropic',
           model: 'anthropic/claude-opus-4-5',
         },
+        localLlm: null,
       });
     });
 

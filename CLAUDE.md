@@ -1,10 +1,10 @@
-# CLAUDE.md
+# [CLAUDE.md](http://CLAUDE.md)
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-Openwork is a standalone desktop automation assistant built with Electron. The app hosts a local React UI (bundled via Vite), communicating with the main process through `contextBridge` IPC. The main process spawns the OpenCode CLI (via `node-pty`) to execute user tasks. Users provide their own API key (Anthropic, OpenAI, Google, or Groq) on first launch, stored securely in the OS keychain.
+Openwork is a standalone desktop automation assistant built with Electron. The app hosts a local React UI (bundled via Vite), communicating with the main process through `contextBridge` IPC. The main process spawns the OpenCode CLI (via `node-pty`) to execute user tasks. Users provide their own API key (Anthropic, OpenAI, Google, Groq) or configure a local OpenAI-compatible endpoint; keys are stored in local secure storage.
 
 ## Common Commands
 
@@ -24,6 +24,7 @@ pnpm -F @accomplish/desktop test:e2e:debug # E2E in debug mode
 ## Architecture
 
 ### Monorepo Layout
+
 ```
 apps/desktop/     # Electron app (main/preload/renderer)
 packages/shared/  # Shared TypeScript types
@@ -32,18 +33,21 @@ packages/shared/  # Shared TypeScript types
 ### Desktop App Structure (`apps/desktop/src/`)
 
 **Main Process** (`main/`):
+
 - `index.ts` - Electron bootstrap, single-instance enforcement, `accomplish://` protocol handler
 - `ipc/handlers.ts` - IPC handlers for task lifecycle, settings, onboarding, API keys
 - `opencode/adapter.ts` - OpenCode CLI wrapper using `node-pty`, streams output and handles permissions
-- `store/secureStorage.ts` - API key storage via `keytar` (OS keychain)
-- `store/appSettings.ts` - App settings via `electron-store` (debug mode, onboarding state)
+- `store/secureStorage.ts` - API key storage via `electron-store` with AES-256-GCM encryption
+- `store/appSettings.ts` - App settings via `electron-store` (debug mode, onboarding state, local LLM config)
 - `store/taskHistory.ts` - Task history persistence
 
 **Preload** (`preload/index.ts`):
+
 - Exposes `window.accomplish` API via `contextBridge`
 - Provides typed IPC methods for task operations, settings, events
 
 **Renderer** (`renderer/`):
+
 - `main.tsx` - React entry with HashRouter
 - `App.tsx` - Main routing + onboarding gate
 - `pages/` - Home, Execution, History, Settings pages
@@ -51,6 +55,7 @@ packages/shared/  # Shared TypeScript types
 - `lib/accomplish.ts` - Typed wrapper for the IPC API
 
 ### IPC Communication Flow
+
 ```
 Renderer (React)
     ↓ window.accomplish.* calls
@@ -65,10 +70,11 @@ Renderer
 ```
 
 ### Key Dependencies
+
 - `node-pty` - PTY for OpenCode CLI spawning
 - `keytar` - Secure API key storage (OS keychain)
 - `electron-store` - Local settings/preferences
-- `opencode-ai` - Bundled OpenCode CLI (multi-provider: Anthropic, OpenAI, Google, Groq)
+- `opencode-ai` - Bundled OpenCode CLI (multi-provider: Anthropic, OpenAI, Google, Groq, local OpenAI-compatible)
 
 ## Code Conventions
 
@@ -111,6 +117,7 @@ Static assets go in `apps/desktop/public/assets/`.
 The packaged app bundles standalone Node.js v20.18.1 binaries to ensure MCP servers work on machines without Node.js installed.
 
 ### Key Files
+
 - `src/main/utils/bundled-node.ts` - Utility to get bundled node/npm/npx paths
 - `scripts/download-nodejs.cjs` - Downloads Node.js binaries for all platforms
 - `scripts/after-pack.cjs` - Copies correct binary into app bundle during build
@@ -156,7 +163,8 @@ environment: {
 ## Key Behaviors
 
 - Single-instance enforcement - second instance focuses existing window
-- API keys stored in OS keychain (macOS Keychain, Windows Credential Vault, Linux Secret Service)
-- API key validation via test request to respective provider API
+- API keys stored locally (encrypted at rest)
+- API key validation via test request to respective provider API (local endpoints use a /models probe)
+- Local OpenAI-compatible endpoints supported via base URL + model name configuration
 - OpenCode CLI permissions are bridged to UI via IPC `permission:request` / `permission:respond`
-- Task output streams through `task:update` and `task:progress` IPC events
+- Task output streams through `task:update` and `task:progress` IPC eventsto

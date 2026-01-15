@@ -9,7 +9,7 @@ import {
   getBundledOpenCodeVersion,
 } from './cli-path';
 import { getAllApiKeys } from '../store/secureStorage';
-import { getSelectedModel } from '../store/appSettings';
+import { getSelectedModel, getLocalLlmConfig } from '../store/appSettings';
 import { generateOpenCodeConfig, ACCOMPLISH_AGENT_NAME } from './config-generator';
 import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo } from '../utils/bundled-node';
@@ -376,6 +376,23 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     if (apiKeys.groq) {
       env.GROQ_API_KEY = apiKeys.groq;
       console.log('[OpenCode CLI] Using Groq API key from settings');
+    }
+
+    // If local provider is selected, point OpenAI provider at the local endpoint
+    const selectedModel = getSelectedModel();
+    if (selectedModel?.provider === 'local') {
+      const localConfig = getLocalLlmConfig();
+      if (localConfig?.baseUrl) {
+        env.OPENAI_BASE_URL = localConfig.baseUrl;
+        env.OPENAI_API_BASE = localConfig.baseUrl;
+        console.log('[OpenCode CLI] Using local OpenAI-compatible endpoint:', localConfig.baseUrl);
+      } else {
+        console.warn('[OpenCode CLI] Local provider selected but no base URL configured');
+      }
+
+      // Avoid leaking cloud keys to local endpoints
+      const localKey = apiKeys.local || 'local-key';
+      env.OPENAI_API_KEY = localKey;
     }
 
     // Log config environment variable

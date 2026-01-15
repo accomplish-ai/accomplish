@@ -1,5 +1,5 @@
 import Store from 'electron-store';
-import type { SelectedModel, DEFAULT_MODEL } from '@accomplish/shared';
+import type { SelectedModel, LocalLlmConfig, DEFAULT_MODEL } from '@accomplish/shared';
 
 /**
  * App settings schema
@@ -11,6 +11,8 @@ interface AppSettingsSchema {
   onboardingComplete: boolean;
   /** Selected AI model (provider/model format) */
   selectedModel: SelectedModel | null;
+  /** Local OpenAI-compatible endpoint configuration */
+  localLlm: LocalLlmConfig | null;
 }
 
 const appSettingsStore = new Store<AppSettingsSchema>({
@@ -22,6 +24,7 @@ const appSettingsStore = new Store<AppSettingsSchema>({
       provider: 'anthropic',
       model: 'anthropic/claude-opus-4-5',
     },
+    localLlm: null,
   },
 });
 
@@ -68,6 +71,20 @@ export function setSelectedModel(model: SelectedModel): void {
 }
 
 /**
+ * Get local LLM configuration
+ */
+export function getLocalLlmConfig(): LocalLlmConfig | null {
+  return appSettingsStore.get('localLlm');
+}
+
+/**
+ * Set local LLM configuration
+ */
+export function setLocalLlmConfig(config: LocalLlmConfig | null): void {
+  appSettingsStore.set('localLlm', config);
+}
+
+/**
  * Get all app settings
  */
 export function getAppSettings(): AppSettingsSchema {
@@ -75,6 +92,7 @@ export function getAppSettings(): AppSettingsSchema {
     debugMode: appSettingsStore.get('debugMode'),
     onboardingComplete: appSettingsStore.get('onboardingComplete'),
     selectedModel: appSettingsStore.get('selectedModel'),
+    localLlm: appSettingsStore.get('localLlm'),
   };
 }
 

@@ -203,6 +203,45 @@ describe('Preload Script Integration', () => {
         await (capturedAccomplishAPI.hasAnyApiKey as () => Promise<boolean>)();
         expect(mockInvoke).toHaveBeenCalledWith('api-keys:has-any');
       });
+
+      it('hasAnyLlmConfig should invoke llm:has-any-config', async () => {
+        await (capturedAccomplishAPI.hasAnyLlmConfig as () => Promise<boolean>)();
+        expect(mockInvoke).toHaveBeenCalledWith('llm:has-any-config');
+      });
+    });
+
+    describe('Local LLM Operations', () => {
+      it('getLocalLlmConfig should invoke local-llm:get', async () => {
+        await (capturedAccomplishAPI.getLocalLlmConfig as () => Promise<unknown>)();
+        expect(mockInvoke).toHaveBeenCalledWith('local-llm:get');
+      });
+
+      it('setLocalLlmConfig should invoke local-llm:set', async () => {
+        const config = { baseUrl: 'http://localhost:11434/v1', model: 'llama3' };
+        await (capturedAccomplishAPI.setLocalLlmConfig as (c: unknown) => Promise<unknown>)(config);
+        expect(mockInvoke).toHaveBeenCalledWith('local-llm:set', config);
+      });
+
+      it('clearLocalLlmConfig should invoke local-llm:clear', async () => {
+        await (capturedAccomplishAPI.clearLocalLlmConfig as () => Promise<void>)();
+        expect(mockInvoke).toHaveBeenCalledWith('local-llm:clear');
+      });
+
+      it('setLocalLlmKey should invoke local-llm:set-key', async () => {
+        await (capturedAccomplishAPI.setLocalLlmKey as (k: string) => Promise<void>)('local-key');
+        expect(mockInvoke).toHaveBeenCalledWith('local-llm:set-key', 'local-key');
+      });
+
+      it('clearLocalLlmKey should invoke local-llm:clear-key', async () => {
+        await (capturedAccomplishAPI.clearLocalLlmKey as () => Promise<void>)();
+        expect(mockInvoke).toHaveBeenCalledWith('local-llm:clear-key');
+      });
+
+      it('testLocalLlm should invoke local-llm:test', async () => {
+        const input = { baseUrl: 'http://localhost:11434/v1' };
+        await (capturedAccomplishAPI.testLocalLlm as (i: unknown) => Promise<unknown>)(input);
+        expect(mockInvoke).toHaveBeenCalledWith('local-llm:test', input);
+      });
     });
 
     describe('Onboarding Operations', () => {

@@ -116,9 +116,9 @@ export default function HomePage() {
   const handleSubmit = async () => {
     if (!prompt.trim() || isLoading) return;
 
-    // Check if user has any API key (Anthropic, OpenAI, Google, etc.) before sending
-    const hasKey = await accomplish.hasAnyApiKey();
-    if (!hasKey) {
+    // Check if user has any LLM configuration before sending
+    const hasConfig = await accomplish.hasAnyLlmConfig();
+    if (!hasConfig) {
       setShowSettingsDialog(true);
       return;
     }
