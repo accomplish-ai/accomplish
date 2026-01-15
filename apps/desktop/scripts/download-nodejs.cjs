@@ -4,6 +4,9 @@
  * Downloads Node.js v20.18.1 for:
  * - macOS x64
  * - macOS arm64
+ * - Windows x64
+ * - Linux x64
+ * - Linux arm64
  *
  * Usage: node scripts/download-nodejs.cjs
  */
@@ -29,6 +32,24 @@ const PLATFORMS = [
     file: `node-v${NODE_VERSION}-darwin-arm64.tar.gz`,
     extract: 'tar',
     sha256: '9e92ce1032455a9cc419fe71e908b27ae477799371b45a0844eedb02279922a4',
+  },
+  {
+    name: 'win32-x64',
+    file: `node-v${NODE_VERSION}-win-x64.zip`,
+    extract: 'zip',
+    sha256: '7161646a592c0d09be29e5e2fc3e623890419e14e46c75d4f8cf84548e0e7e08',
+  },
+  {
+    name: 'linux-x64',
+    file: `node-v${NODE_VERSION}-linux-x64.tar.gz`,
+    extract: 'tar',
+    sha256: 'de2c694e7909c6f42fb85bde69d899f0ae9d51550ffcee7d02d0909c1ce7fd93',
+  },
+  {
+    name: 'linux-arm64',
+    file: `node-v${NODE_VERSION}-linux-arm64.tar.gz`,
+    extract: 'tar',
+    sha256: '16088845dbe734bdc1b7b6a3bae5a49b4376d3c7c78e9db7f25fb02fd0c00f3f',
   },
 ];
 

@@ -32,13 +32,22 @@ function isSystemChromeInstalled(): boolean {
     // Check common Windows Chrome locations
     const programFiles = process.env['PROGRAMFILES'] || 'C:\\Program Files';
     const programFilesX86 = process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)';
+    const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+
     return (
       fs.existsSync(path.join(programFiles, 'Google', 'Chrome', 'Application', 'chrome.exe')) ||
-      fs.existsSync(path.join(programFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'))
+      fs.existsSync(path.join(programFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe')) ||
+      fs.existsSync(path.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe'))
     );
   }
   // Linux - check common paths
-  return fs.existsSync('/usr/bin/google-chrome') || fs.existsSync('/usr/bin/chromium-browser');
+  return (
+    fs.existsSync('/usr/bin/google-chrome') ||
+    fs.existsSync('/usr/bin/google-chrome-stable') ||
+    fs.existsSync('/usr/bin/chromium-browser') ||
+    fs.existsSync('/usr/bin/chromium') ||
+    fs.existsSync('/snap/bin/chromium')
+  );
 }
 
 /**
@@ -176,7 +185,7 @@ async function ensureDevBrowserServer(
   // Now start the server
   try {
     const skillsPath = getSkillsPath();
-    const serverScript = path.join(skillsPath, 'dev-browser', 'server.sh');
+    const devBrowserDir = path.join(skillsPath, 'dev-browser');
 
     // Build environment with bundled Node.js in PATH
     const bundledPaths = getBundledNodePaths();
@@ -187,13 +196,28 @@ async function ensureDevBrowserServer(
       spawnEnv.NODE_BIN_PATH = bundledPaths.binDir;
     }
 
-    // Spawn server in background (detached, unref to not block)
-    const child = spawn('bash', [serverScript], {
-      detached: true,
-      stdio: 'ignore',
-      cwd: path.join(skillsPath, 'dev-browser'),
-      env: spawnEnv,
-    });
+    // Platform-specific server startup
+    let child;
+    if (process.platform === 'win32') {
+      // Windows: Use npx to run the server directly
+      const npxPath = getNpxPath();
+      child = spawn(npxPath, ['tsx', 'src/index.ts'], {
+        detached: true,
+        stdio: 'ignore',
+        cwd: devBrowserDir,
+        env: spawnEnv,
+        shell: true,
+      });
+    } else {
+      // Unix: Use bash script
+      const serverScript = path.join(devBrowserDir, 'server.sh');
+      child = spawn('bash', [serverScript], {
+        detached: true,
+        stdio: 'ignore',
+        cwd: devBrowserDir,
+        env: spawnEnv,
+      });
+    }
     child.unref();
 
     console.log('[TaskManager] Dev-browser server spawn initiated');

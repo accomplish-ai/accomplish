@@ -49,7 +49,9 @@ function getMarkerPath(): string {
 
 /**
  * Get the app bundle's modification time
- * For packaged apps, this is the .app bundle directory
+ * - macOS: Uses the .app bundle directory
+ * - Windows: Uses the .exe file
+ * - Linux: Uses the executable or AppImage
  * For dev mode, returns null (skip cleanup logic)
  */
 function getAppBundleMtime(): Date | null {
@@ -57,26 +59,45 @@ function getAppBundleMtime(): Date | null {
     return null;
   }
 
-  // For macOS .app bundles, the executable is at:
-  // /Applications/Accomplish.app/Contents/MacOS/Accomplish
-  // We want the .app bundle directory
   const execPath = app.getPath('exe');
 
-  // Find the .app bundle path
-  const appBundleMatch = execPath.match(/^(.+\.app)/);
-  if (!appBundleMatch) {
-    console.log('[FreshInstall] Could not determine app bundle path from:', execPath);
-    return null;
-  }
+  if (process.platform === 'darwin') {
+    // For macOS .app bundles, the executable is at:
+    // /Applications/Accomplish.app/Contents/MacOS/Accomplish
+    // We want the .app bundle directory
+    const appBundleMatch = execPath.match(/^(.+\.app)/);
+    if (!appBundleMatch) {
+      console.log('[FreshInstall] Could not determine app bundle path from:', execPath);
+      return null;
+    }
 
-  const appBundlePath = appBundleMatch[1];
+    const appBundlePath = appBundleMatch[1];
 
-  try {
-    const stats = fs.statSync(appBundlePath);
-    return stats.mtime;
-  } catch (err) {
-    console.error('[FreshInstall] Could not stat app bundle:', err);
-    return null;
+    try {
+      const stats = fs.statSync(appBundlePath);
+      return stats.mtime;
+    } catch (err) {
+      console.error('[FreshInstall] Could not stat app bundle:', err);
+      return null;
+    }
+  } else if (process.platform === 'win32') {
+    // Windows: Use the .exe file directly
+    try {
+      const stats = fs.statSync(execPath);
+      return stats.mtime;
+    } catch (err) {
+      console.error('[FreshInstall] Could not stat exe:', err);
+      return null;
+    }
+  } else {
+    // Linux: Use the executable file (could be AppImage or regular binary)
+    try {
+      const stats = fs.statSync(execPath);
+      return stats.mtime;
+    } catch (err) {
+      console.error('[FreshInstall] Could not stat executable:', err);
+      return null;
+    }
   }
 }
 

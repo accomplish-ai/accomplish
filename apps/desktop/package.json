@@ -7,19 +7,23 @@
   "main": "dist-electron/main/index.js",
   "scripts": {
     "postinstall": "electron-rebuild && npm --prefix skills/dev-browser install && npm --prefix skills/file-permission install",
-    "dev": "node scripts/patch-electron-name.cjs && rm -rf dist-electron && vite",
+    "dev": "node scripts/patch-electron-name.cjs && node -e \"require('fs').rmSync('dist-electron', {recursive: true, force: true})\" && vite",
     "dev:clean": "CLEAN_START=1 vite",
     "build": "tsc && vite build && npm --prefix skills/dev-browser install --omit=dev && npm --prefix skills/file-permission install --omit=dev",
     "build:electron": "tsc && vite build && node scripts/package.cjs",
     "build:unpack": "tsc && vite build && node scripts/package.cjs --dir",
-    "package": "pnpm build && node scripts/package.cjs --mac --publish never",
+    "package": "pnpm build && node scripts/package.cjs --publish never",
     "package:mac": "pnpm build && node scripts/package.cjs --mac --publish never",
-    "release": "pnpm build && node scripts/package.cjs --mac --publish always",
+    "package:win": "pnpm build && node scripts/package.cjs --win --publish never",
+    "package:linux": "pnpm build && node scripts/package.cjs --linux --publish never",
+    "release": "pnpm build && node scripts/package.cjs --publish always",
     "release:mac": "pnpm build && node scripts/package.cjs --mac --publish always",
+    "release:win": "pnpm build && node scripts/package.cjs --win --publish always",
+    "release:linux": "pnpm build && node scripts/package.cjs --linux --publish always",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "clean": "rm -rf dist dist-electron release",
+    "clean": "node -e \"['dist','dist-electron','release'].forEach(d=>require('fs').rmSync(d,{recursive:true,force:true}))\"",
     "download:nodejs": "node scripts/download-nodejs.cjs",
     "test": "vitest run",
     "test:unit": "vitest run --config vitest.unit.config.ts",
@@ -158,6 +162,39 @@
           "path": "/Applications"
         }
       ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "resources/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "category": "Utility",
+      "icon": "resources/icon.png"
     }
   }
 }

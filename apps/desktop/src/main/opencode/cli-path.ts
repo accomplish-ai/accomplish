@@ -1,15 +1,18 @@
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { execSync } from 'child_process';
 
 /**
- * Get all possible nvm OpenCode CLI paths by scanning the nvm versions directory
+ * Get all possible nvm OpenCode CLI paths by scanning version manager directories
  */
 function getNvmOpenCodePaths(): string[] {
-  const homeDir = process.env.HOME || '';
-  const nvmVersionsDir = path.join(homeDir, '.nvm/versions/node');
+  const homeDir = os.homedir();
   const paths: string[] = [];
+
+  // Unix NVM paths
+  const nvmVersionsDir = path.join(homeDir, '.nvm', 'versions', 'node');
 
   try {
     if (fs.existsSync(nvmVersionsDir)) {
@@ -23,6 +26,25 @@ function getNvmOpenCodePaths(): string[] {
     }
   } catch {
     // Ignore errors scanning nvm directory
+  }
+
+  // Windows nvm-windows paths
+  if (process.platform === 'win32') {
+    const appData = process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming');
+    const nvmWindowsDir = path.join(appData, 'nvm');
+    try {
+      if (fs.existsSync(nvmWindowsDir)) {
+        const versions = fs.readdirSync(nvmWindowsDir).filter(v => v.startsWith('v'));
+        for (const version of versions) {
+          const opencodePath = path.join(nvmWindowsDir, version, 'opencode.cmd');
+          if (fs.existsSync(opencodePath)) {
+            paths.push(opencodePath);
+          }
+        }
+      }
+    } catch {
+      // Ignore errors
+    }
   }
 
   return paths;
@@ -67,13 +89,31 @@ export function getOpenCodeCliPath(): { command: string; args: string[] } {
       return { command: opencodePath, args: [] };
     }
 
-    // Check other global installations
-    const globalOpenCodePaths = [
-      // Global npm
-      '/usr/local/bin/opencode',
-      // Homebrew
-      '/opt/homebrew/bin/opencode',
-    ];
+    // Check other global installations based on platform
+    const globalOpenCodePaths: string[] = [];
+    const homeDir = os.homedir();
+
+    if (process.platform === 'darwin') {
+      globalOpenCodePaths.push(
+        '/usr/local/bin/opencode',           // Global npm
+        '/opt/homebrew/bin/opencode',        // Homebrew (Apple Silicon)
+      );
+    } else if (process.platform === 'win32') {
+      const appData = process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming');
+      const programFiles = process.env['PROGRAMFILES'] || 'C:\\Program Files';
+      globalOpenCodePaths.push(
+        path.join(appData, 'npm', 'opencode.cmd'),              // npm global
+        path.join(programFiles, 'nodejs', 'opencode.cmd'),      // Node.js install dir
+        path.join(homeDir, 'scoop', 'shims', 'opencode.cmd'),   // Scoop
+      );
+    } else {
+      // Linux
+      globalOpenCodePaths.push(
+        '/usr/local/bin/opencode',           // Global npm
+        '/usr/bin/opencode',                 // System package
+        path.join(homeDir, '.local', 'bin', 'opencode'),  // User local
+      );
+    }
 
     for (const opencodePath of globalOpenCodePaths) {
       if (fs.existsSync(opencodePath)) {
@@ -136,13 +176,31 @@ export function isOpenCodeBundled(): boolean {
         return true;
       }
 
-      // Check other global installations
-      const globalOpenCodePaths = [
-        // Global npm
-        '/usr/local/bin/opencode',
-        // Homebrew
-        '/opt/homebrew/bin/opencode',
-      ];
+      // Check other global installations based on platform
+      const globalOpenCodePaths: string[] = [];
+      const homeDir = os.homedir();
+
+      if (process.platform === 'darwin') {
+        globalOpenCodePaths.push(
+          '/usr/local/bin/opencode',           // Global npm
+          '/opt/homebrew/bin/opencode',        // Homebrew (Apple Silicon)
+        );
+      } else if (process.platform === 'win32') {
+        const appData = process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming');
+        const programFiles = process.env['PROGRAMFILES'] || 'C:\\Program Files';
+        globalOpenCodePaths.push(
+          path.join(appData, 'npm', 'opencode.cmd'),              // npm global
+          path.join(programFiles, 'nodejs', 'opencode.cmd'),      // Node.js install dir
+          path.join(homeDir, 'scoop', 'shims', 'opencode.cmd'),   // Scoop
+        );
+      } else {
+        // Linux
+        globalOpenCodePaths.push(
+          '/usr/local/bin/opencode',           // Global npm
+          '/usr/bin/opencode',                 // System package
+          path.join(homeDir, '.local', 'bin', 'opencode'),  // User local
+        );
+      }
 
       for (const opencodePath of globalOpenCodePaths) {
         if (fs.existsSync(opencodePath)) {

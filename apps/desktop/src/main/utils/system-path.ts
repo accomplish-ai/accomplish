@@ -1,111 +1,176 @@
 /**
- * System PATH utilities for macOS packaged apps
+ * System PATH utilities for packaged apps
  *
- * macOS GUI apps launched from /Applications don't inherit the user's terminal PATH.
- * This module provides utilities to build a proper PATH without loading shell profiles,
- * which avoids triggering macOS folder access permissions (TCC).
+ * GUI apps on all platforms may not inherit the user's terminal PATH.
+ * This module provides utilities to build a proper PATH without loading shell profiles.
  *
- * We use two approaches:
- * 1. /usr/libexec/path_helper - macOS official utility that reads /etc/paths and /etc/paths.d
- * 2. Common Node.js installation paths - covers NVM, Volta, asdf, Homebrew, etc.
+ * Platform-specific approaches:
+ * - macOS: /usr/libexec/path_helper + common Node.js paths
+ * - Windows: Common Node.js installation paths (nvm-windows, AppData, etc.)
+ * - Linux: Common Node.js paths (/usr/local/bin, nvm, fnm, etc.)
  */
 
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 
 /**
  * Get NVM Node.js version paths.
- * NVM stores versions in ~/.nvm/versions/node/vX.X.X/bin/
+ * Unix: ~/.nvm/versions/node/vX.X.X/bin/
+ * Windows (nvm-windows): %APPDATA%\nvm\vX.X.X\
  * Returns paths sorted by version (newest first).
  */
 function getNvmNodePaths(): string[] {
-  const home = process.env.HOME || '';
+  const home = os.homedir();
+  const paths: string[] = [];
+
+  // Unix NVM
   const nvmVersionsDir = path.join(home, '.nvm', 'versions', 'node');
+  if (fs.existsSync(nvmVersionsDir)) {
+    try {
+      const versions = fs.readdirSync(nvmVersionsDir)
+        .filter(name => name.startsWith('v'))
+        .sort((a, b) => {
+          const parseVersion = (v: string) => {
+            const parts = v.replace('v', '').split('.').map(Number);
+            return parts[0] * 10000 + (parts[1] || 0) * 100 + (parts[2] || 0);
+          };
+          return parseVersion(b) - parseVersion(a);
+        });
 
-  if (!fs.existsSync(nvmVersionsDir)) {
-    return [];
+      paths.push(...versions.map(v => path.join(nvmVersionsDir, v, 'bin')));
+    } catch {
+      // Ignore errors
+    }
   }
 
-  try {
-    const versions = fs.readdirSync(nvmVersionsDir)
-      .filter(name => name.startsWith('v'))
-      .sort((a, b) => {
-        // Sort by version number (descending - newest first)
-        const parseVersion = (v: string) => {
-          const parts = v.replace('v', '').split('.').map(Number);
-          return parts[0] * 10000 + (parts[1] || 0) * 100 + (parts[2] || 0);
-        };
-        return parseVersion(b) - parseVersion(a);
-      });
+  // Windows nvm-windows
+  if (process.platform === 'win32') {
+    const appData = process.env.APPDATA || path.join(home, 'AppData', 'Roaming');
+    const nvmWindowsDir = path.join(appData, 'nvm');
+    if (fs.existsSync(nvmWindowsDir)) {
+      try {
+        const versions = fs.readdirSync(nvmWindowsDir)
+          .filter(name => name.startsWith('v'))
+          .sort((a, b) => {
+            const parseVersion = (v: string) => {
+              const parts = v.replace('v', '').split('.').map(Number);
+              return parts[0] * 10000 + (parts[1] || 0) * 100 + (parts[2] || 0);
+            };
+            return parseVersion(b) - parseVersion(a);
+          });
 
-    return versions.map(v => path.join(nvmVersionsDir, v, 'bin'));
-  } catch {
-    return [];
+        paths.push(...versions.map(v => path.join(nvmWindowsDir, v)));
+      } catch {
+        // Ignore errors
+      }
+    }
   }
+
+  return paths;
 }
 
 /**
  * Get fnm Node.js version paths.
- * fnm stores versions in ~/.fnm/node-versions/vX.X.X/installation/bin/
+ * Unix: ~/.fnm/node-versions/vX.X.X/installation/bin/
+ * Windows: %LOCALAPPDATA%\fnm_multishells\... or %USERPROFILE%\.fnm\node-versions\
  */
 function getFnmNodePaths(): string[] {
-  const home = process.env.HOME || '';
+  const home = os.homedir();
+  const paths: string[] = [];
+
+  // Unix fnm
   const fnmVersionsDir = path.join(home, '.fnm', 'node-versions');
+  if (fs.existsSync(fnmVersionsDir)) {
+    try {
+      const versions = fs.readdirSync(fnmVersionsDir)
+        .filter(name => name.startsWith('v'))
+        .sort((a, b) => {
+          const parseVersion = (v: string) => {
+            const parts = v.replace('v', '').split('.').map(Number);
+            return parts[0] * 10000 + (parts[1] || 0) * 100 + (parts[2] || 0);
+          };
+          return parseVersion(b) - parseVersion(a);
+        });
 
-  if (!fs.existsSync(fnmVersionsDir)) {
-    return [];
+      // fnm on Windows uses 'installation' subdirectory without 'bin'
+      if (process.platform === 'win32') {
+        paths.push(...versions.map(v => path.join(fnmVersionsDir, v, 'installation')));
+      } else {
+        paths.push(...versions.map(v => path.join(fnmVersionsDir, v, 'installation', 'bin')));
+      }
+    } catch {
+      // Ignore errors
+    }
   }
 
-  try {
-    const versions = fs.readdirSync(fnmVersionsDir)
-      .filter(name => name.startsWith('v'))
-      .sort((a, b) => {
-        const parseVersion = (v: string) => {
-          const parts = v.replace('v', '').split('.').map(Number);
-          return parts[0] * 10000 + (parts[1] || 0) * 100 + (parts[2] || 0);
-        };
-        return parseVersion(b) - parseVersion(a);
-      });
-
-    return versions.map(v => path.join(fnmVersionsDir, v, 'installation', 'bin'));
-  } catch {
-    return [];
-  }
+  return paths;
 }
 
 /**
- * Common Node.js installation paths on macOS.
- * These are checked in order of preference.
+ * Common Node.js installation paths.
+ * These are checked in order of preference per platform.
  */
 function getCommonNodePaths(): string[] {
-  const home = process.env.HOME || '';
+  const home = os.homedir();
 
   // Get dynamic paths from version managers
   const nvmPaths = getNvmNodePaths();
   const fnmPaths = getFnmNodePaths();
 
-  return [
+  const paths: string[] = [
     // Version managers (dynamic - most specific, checked first)
     ...nvmPaths,
     ...fnmPaths,
+  ];
 
-    // Homebrew (very common)
-    '/opt/homebrew/bin',              // Apple Silicon
-    '/usr/local/bin',                 // Intel Mac
+  if (process.platform === 'darwin') {
+    // macOS paths
+    paths.push(
+      '/opt/homebrew/bin',              // Apple Silicon Homebrew
+      '/usr/local/bin',                 // Intel Mac / Homebrew
+      path.join(home, '.nvm', 'current', 'bin'),       // NVM current symlink
+      path.join(home, '.volta', 'bin'),                // Volta
+      path.join(home, '.asdf', 'shims'),               // asdf
+      path.join(home, '.fnm', 'current', 'bin'),       // fnm current symlink
+      path.join(home, '.nodenv', 'shims'),             // nodenv
+      '/usr/local/opt/node/bin',        // Homebrew node formula
+      '/opt/local/bin',                 // MacPorts
+      path.join(home, '.local', 'bin'), // pip/pipx style installations
+    );
+  } else if (process.platform === 'win32') {
+    // Windows paths
+    const programFiles = process.env['PROGRAMFILES'] || 'C:\\Program Files';
+    const appData = process.env.APPDATA || path.join(home, 'AppData', 'Roaming');
+    const localAppData = process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local');
 
-    // Version managers (static fallbacks)
-    `${home}/.nvm/current/bin`,       // NVM with 'current' symlink (optional)
-    `${home}/.volta/bin`,             // Volta
-    `${home}/.asdf/shims`,            // asdf
-    `${home}/.fnm/current/bin`,       // fnm current symlink (optional)
-    `${home}/.nodenv/shims`,          // nodenv
+    paths.push(
+      path.join(programFiles, 'nodejs'),           // Official Node.js installer
+      path.join(appData, 'npm'),                   // npm global packages
+      path.join(localAppData, 'Volta', 'bin'),     // Volta on Windows
+      path.join(home, '.volta', 'bin'),            // Volta alternative
+      path.join(appData, 'nvm'),                   // nvm-windows
+      path.join(home, 'scoop', 'apps', 'nodejs', 'current'), // Scoop
+      path.join(home, 'scoop', 'shims'),           // Scoop shims
+    );
+  } else {
+    // Linux paths
+    paths.push(
+      '/usr/local/bin',                            // Common location
+      '/usr/bin',                                  // System location
+      path.join(home, '.nvm', 'current', 'bin'),  // NVM current symlink
+      path.join(home, '.volta', 'bin'),           // Volta
+      path.join(home, '.asdf', 'shims'),          // asdf
+      path.join(home, '.fnm', 'current', 'bin'), // fnm current symlink
+      path.join(home, '.nodenv', 'shims'),        // nodenv
+      path.join(home, '.local', 'bin'),           // User local bin
+      '/snap/bin',                                 // Snap packages
+      '/opt/node/bin',                            // Manual installations
+    );
+  }
 
-    // Less common but valid paths
-    '/usr/local/opt/node/bin',        // Homebrew node formula
-    '/opt/local/bin',                 // MacPorts
-    `${home}/.local/bin`,             // pip/pipx style installations
-  ].filter(p => p && !p.includes('undefined'));
+  return paths.filter(p => p && !p.includes('undefined'));
 }
 
 /**
@@ -143,9 +208,9 @@ function getSystemPathFromPathHelper(): string | null {
  * Build an extended PATH for finding Node.js tools (node, npm, npx) in packaged apps.
  *
  * This function:
- * 1. Gets the system PATH from path_helper (includes Homebrew if in /etc/paths.d)
- * 2. Prepends common Node.js installation paths
- * 3. Does NOT load user shell profiles (avoids TCC permission prompts)
+ * 1. On macOS: Gets the system PATH from path_helper (includes Homebrew if in /etc/paths.d)
+ * 2. On all platforms: Prepends common Node.js installation paths
+ * 3. Does NOT load user shell profiles (avoids permission prompts)
  *
  * @param basePath - The base PATH to extend (defaults to process.env.PATH)
  * @returns Extended PATH string
@@ -153,15 +218,10 @@ function getSystemPathFromPathHelper(): string | null {
 export function getExtendedNodePath(basePath?: string): string {
   const base = basePath || process.env.PATH || '';
 
-  if (process.platform !== 'darwin') {
-    // On non-macOS, just return the base PATH
-    return base;
-  }
-
-  // Start with common Node.js paths
+  // Start with common Node.js paths for the current platform
   const nodePaths = getCommonNodePaths();
 
-  // Try to get system PATH from path_helper
+  // Try to get system PATH from path_helper (macOS only)
   const systemPath = getSystemPathFromPathHelper();
 
   // Build the final PATH:
@@ -179,7 +239,7 @@ export function getExtendedNodePath(basePath?: string): string {
 
   // Add system PATH from path_helper
   if (systemPath) {
-    for (const p of systemPath.split(':')) {
+    for (const p of systemPath.split(path.delimiter)) {
       if (p && !pathParts.includes(p)) {
         pathParts.push(p);
       }
@@ -187,13 +247,13 @@ export function getExtendedNodePath(basePath?: string): string {
   }
 
   // Add base PATH entries
-  for (const p of base.split(':')) {
+  for (const p of base.split(path.delimiter)) {
     if (p && !pathParts.includes(p)) {
       pathParts.push(p);
     }
   }
 
-  return pathParts.join(':');
+  return pathParts.join(path.delimiter);
 }
 
 /**
@@ -204,15 +264,19 @@ export function getExtendedNodePath(basePath?: string): string {
  * @returns The full path to the command if found, null otherwise
  */
 export function findCommandInPath(command: string, searchPath: string): string | null {
-  for (const dir of searchPath.split(':')) {
+  for (const dir of searchPath.split(path.delimiter)) {
     if (!dir) continue;
 
-    const fullPath = `${dir}/${command}`;
+    const fullPath = path.join(dir, command);
     try {
       if (fs.existsSync(fullPath)) {
         const stats = fs.statSync(fullPath);
         if (stats.isFile()) {
-          // Check if executable
+          // On Windows, we don't check X_OK as it doesn't apply
+          if (process.platform === 'win32') {
+            return fullPath;
+          }
+          // Check if executable on Unix
           try {
             fs.accessSync(fullPath, fs.constants.X_OK);
             return fullPath;
