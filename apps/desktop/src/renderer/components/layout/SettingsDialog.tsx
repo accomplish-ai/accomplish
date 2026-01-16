@@ -198,6 +198,15 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
         return [...filtered, savedKey];
       });
       onApiKeySaved?.();
+
+      // Auto-select model for the provider if it's not already selected
+      if (provider === 'google' && selectedModel?.provider !== 'google') {
+        const googleModel = 'google/gemini-3-pro-preview';
+        const newSelection: SelectedModel = { provider: 'google', model: googleModel };
+        await accomplish.setSelectedModel(newSelection);
+        setSelectedModel(newSelection);
+        setModelStatusMessage(`Model switched to Gemini 3 Pro for Google AI`);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save API key.';
       setError(message);

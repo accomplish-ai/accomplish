@@ -19,6 +19,11 @@ if (process.argv.includes('--e2e-mock-tasks') || process.env.E2E_MOCK_TASK_EVENT
   (global as Record<string, unknown>).E2E_MOCK_TASK_EVENTS = true;
 }
 
+// Linux-specific: Fix for Chromium shared memory issues in containerized environments
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('disable-dev-shm-usage');
+}
+
 // Clean mode - wipe all stored data for a fresh start
 // Use CLEAN_START env var since CLI args don't pass through vite to Electron
 if (process.env.CLEAN_START === '1') {

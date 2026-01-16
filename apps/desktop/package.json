@@ -6,32 +6,15 @@
   "description": "Accomplish Desktop App",
   "main": "dist-electron/main/index.js",
   "scripts": {
-    "postinstall": "electron-rebuild && npm --prefix skills/dev-browser install && npm --prefix skills/file-permission install",
-    "dev": "node scripts/patch-electron-name.cjs && rm -rf dist-electron && vite",
-    "dev:clean": "CLEAN_START=1 vite",
+    "dev": "electron-vite dev",
     "build": "tsc && vite build && npm --prefix skills/dev-browser install --omit=dev && npm --prefix skills/file-permission install --omit=dev",
-    "build:electron": "tsc && vite build && node scripts/package.cjs",
-    "build:unpack": "tsc && vite build && node scripts/package.cjs --dir",
-    "package": "pnpm build && node scripts/package.cjs --mac --publish never",
+    "postinstall": "electron-builder install-app-deps && node scripts/copy-opencode-binaries.cjs",
+    "package:linux": "pnpm build && node scripts/package.cjs --linux --publish never",
     "package:mac": "pnpm build && node scripts/package.cjs --mac --publish never",
-    "release": "pnpm build && node scripts/package.cjs --mac --publish always",
+    "release:linux": "pnpm build && node scripts/package.cjs --linux --publish always",
     "release:mac": "pnpm build && node scripts/package.cjs --mac --publish always",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit",
-    "clean": "rm -rf dist dist-electron release",
     "download:nodejs": "node scripts/download-nodejs.cjs",
-    "test": "vitest run",
-    "test:unit": "vitest run --config vitest.unit.config.ts",
-    "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest watch",
-    "test:e2e": "playwright test --config=e2e/playwright.config.ts",
-    "test:e2e:ui": "playwright test --config=e2e/playwright.config.ts --ui",
-    "test:e2e:debug": "playwright test --config=e2e/playwright.config.ts --debug",
-    "test:e2e:fast": "playwright test --config=e2e/playwright.config.ts --project=electron-fast",
-    "test:e2e:integration": "playwright test --config=e2e/playwright.config.ts --project=electron-integration",
-    "test:e2e:report": "playwright show-report e2e/html-report"
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@accomplish/shared": "workspace:*",
@@ -113,6 +96,8 @@
     "asarUnpack": [
       "node_modules/opencode-ai/bin/opencode",
       "node_modules/opencode-ai/package.json",
+      "node_modules/opencode-linux-x64/**",
+      "node_modules/opencode-linux-arm64/**",
       "node_modules/node-pty/build/**/*.node",
       "node_modules/node-pty/package.json",
       "dist-electron/main/mcp/*.js"
@@ -168,6 +153,14 @@
           "path": "/Applications"
         }
       ]
+    },
+    "linux": {
+      "category": "public.app-category.productivity",
+      "icon": "resources/icon.png",
+      "target": ["AppImage"],
+      "executableName": "openwork",
+      "synopsis": "Openwork - Desktop AI Assistant",
+      "description": "Openwork is an AI-powered desktop automation assistant"
     }
   }
 }

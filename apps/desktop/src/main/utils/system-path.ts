@@ -228,3 +228,33 @@ export function findCommandInPath(command: string, searchPath: string): string |
 
   return null;
 }
+
+/**
+ * Linux-specific: Get XDG-compliant data directory path.
+ *
+ * According to XDG Base Directory Specification:
+ * - $XDG_DATA_HOME defines the base directory (defaults to $HOME/.local/share)
+ * - For config files, use $XDG_CONFIG_HOME (defaults to $HOME/.config)
+ *
+ * For settings and small data: Use ~/.config/openwork (app.getPath('userData'))
+ * For large data/files: Use ~/.local/share/openwork
+ *
+ * @param type - 'config' for settings, 'data' for large files
+ * @returns The appropriate directory path
+ */
+export function getLinuxDataPath(type: 'config' | 'data' = 'config'): string {
+  if (process.platform !== 'linux') {
+    return '';
+  }
+
+  if (type === 'data') {
+    // Use ~/.local/share for large data (XDG spec)
+    const xdgDataHome = process.env.XDG_DATA_HOME || path.join(process.env.HOME || '', '.local', 'share');
+    return path.join(xdgDataHome, 'openwork');
+  }
+
+  // For config/settings, electron-store uses app.getPath('userData')
+  // which on Linux follows XDG_CONFIG_HOME (~/.config)
+  // No additional handling needed, but return a helper message
+  return '';
+}

@@ -6,10 +6,17 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22c55e?style=flat-square" alt="MIT License" /></a>
   <a href="https://github.com/accomplish-ai/openwork/stargazers"><img src="https://img.shields.io/github/stars/accomplish-ai/openwork?style=flat-square&color=22c55e" alt="GitHub Stars" /></a>
   <a href="https://downloads.accomplish.ai/downloads/0.1.0/macos/Openwork-0.1.0-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-0ea5e9?style=flat-square" alt="Download" /></a>
+  <a href="#linux"><img src="https://img.shields.io/badge/Download-Linux-f05032?style=flat-square" alt="Linux Download" /></a>
 </p>
 
 <p align="center">
   <a href="https://downloads.accomplish.ai/downloads/0.1.0/macos/Openwork-0.1.0-mac-arm64.dmg"><strong>Download for Mac (Apple Silicon)</strong></a>
+</p>
+
+<p align="center" id="linux">
+  <a href="https://downloads.accomplish.ai/downloads/0.1.0/linux/Openwork-0.1.0-linux-x86_64.AppImage"><strong>Download for Linux (x86_64)</strong></a>
+  <br />
+  <small>AppImage format - works on all major Linux distributions</small>
 </p>
 
 <br />
@@ -106,18 +113,29 @@
 
 > **Takes 2 minutes to set up.**
 
+### macOS
+
 | Step | Action | Details |
 |:----:|--------|---------|
-| **1** | **Install the App** |  the DMG and drag it into Applications |
+| **1** | **Install the App** | Open the DMG and drag it into Applications |
 | **2** | **Connect Your AI** | Use your own OpenAI or Anthropic API key. No subscriptions. |
 | **3** | **Give It Access** | Choose which folders it can see. You stay in control. |
 | **4** | **Start Working** | Ask it to summarize a doc, clean a folder, or create a report. You approve everything. |
 
-<br />
+### Linux (AppImage)
+
+| Step | Action | Details |
+|:----:|--------|---------|
+| **1** | **Install Dependencies** | `sudo apt install libsecret-1-0` (Debian/Ubuntu) or `sudo pacman -S libsecret` (Arch) |
+| **2** | **Download AppImage** | Get Openwork-0.1.0-linux-x86_64.AppImage |
+| **3** | **Make Executable** | `chmod +x Openwork-*.AppImage` |
+| **4** | **Run** | `./Openwork-*.AppImage` |
 
 <div align="center">
 
 [**Download for Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.1.0/macos/Openwork-0.1.0-mac-arm64.dmg)
+
+[**Download for Linux (x86_64)**](https://downloads.accomplish.ai/downloads/0.1.0/linux/Openwork-0.1.0-linux-x86_64.AppImage)
 
 </div>
 

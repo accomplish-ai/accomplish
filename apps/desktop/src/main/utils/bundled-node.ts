@@ -142,7 +142,9 @@ export function logBundledNodeInfo(): void {
   console.log('[Bundled Node] Configuration:');
   console.log(`  Platform: ${process.platform}`);
   console.log(`  Architecture: ${process.arch}`);
+  console.log(`  App is packaged: ${app.isPackaged}`);
   console.log(`  Node directory: ${paths.nodeDir}`);
   console.log(`  Node path: ${paths.nodePath}`);
-  console.log(`  Available: ${fs.existsSync(paths.nodePath)}`);
+  console.log(`  Node exists: ${fs.existsSync(paths.nodePath)}`);
+  console.log(`  Resources path: ${process.resourcesPath}`);
 }

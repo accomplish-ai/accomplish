@@ -56,6 +56,7 @@ import type {
   TaskResult,
   TaskStatus,
   SelectedModel,
+  Task,
   OllamaConfig,
 } from '@accomplish/shared';
 import { DEFAULT_PROVIDERS } from '@accomplish/shared';
@@ -407,7 +408,17 @@ export function registerIPCHandlers(): void {
     };
 
     // Start the task via TaskManager (creates isolated adapter or queues if busy)
-    const task = await taskManager.startTask(taskId, validatedConfig, callbacks);
+    console.log('[IPC] Starting task via TaskManager...');
+    let task: Task;
+    try {
+      task = await taskManager.startTask(taskId, validatedConfig, callbacks);
+      console.log('[IPC] Task started successfully:', task.id);
+    } catch (error) {
+      console.error('[IPC] Failed to start task:', error);
+      // Update task status to failed
+      updateTaskStatus(taskId, 'failed', new Date().toISOString());
+      throw error;
+    }
 
     // Add initial user message with the prompt to the chat
     const initialUserMessage: TaskMessage = {
@@ -1017,7 +1028,9 @@ export function registerIPCHandlers(): void {
     if (isMockTaskEventsEnabled()) {
       return true;
     }
-    return hasAnyApiKey();
+    const result = hasAnyApiKey();
+    console.log('[IPC] hasAnyApiKey called, result:', result);
+    return result;
   });
 
   // Settings: Get debug mode setting
