@@ -170,7 +170,8 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
       this.ptyProcess = pty.spawn(shellCmd, shellArgs, {
         name: 'xterm-256color',
-        cols: 200,
+        // Increase cols to avoid line wrapping which breaks JSON parsing
+        cols: 8192,
         rows: 30,
         cwd: safeCwd,
         env: env as { [key: string]: string },

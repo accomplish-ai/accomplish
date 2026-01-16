@@ -21,8 +21,12 @@ Two modes available. Ask the user if unclear which to use.
 
 Launches a new Chromium browser for fresh automation sessions.
 
-```bash
 ./skills/dev-browser/server.sh &
+```
+
+**Windows (PowerShell):**
+```powershell
+./skills/dev-browser/server.ps1
 ```
 
 Add `--headless` flag if user requests it. **Wait for the `Ready` message before running scripts.**
@@ -56,9 +60,11 @@ If the extension hasn't connected yet, tell the user to launch and activate it. 
 
 Execute scripts inline using heredocs:
 
+All Platforms (Node.js script):
 ```bash
 cd skills/dev-browser && npx tsx <<'EOF'
 import { connect, waitForPageLoad } from "@/client.js";
+
 
 const client = await connect();
 // Create page with custom viewport size (optional)

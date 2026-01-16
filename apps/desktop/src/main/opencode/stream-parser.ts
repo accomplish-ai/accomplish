@@ -18,6 +18,9 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
   /**
    * Feed raw data from stdout
    */
+  /**
+ * Feed raw data from stdout
+ */
   feed(chunk: string): void {
     this.buffer += chunk;
 
@@ -28,21 +31,102 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
       this.buffer = this.buffer.slice(-MAX_BUFFER_SIZE / 2);
     }
 
-    this.parseBuffer();
+    this.processBuffer();
   }
 
   /**
-   * Parse complete lines from the buffer
+   * Process the buffer to extract text and JSON objects
    */
-  private parseBuffer(): void {
-    const lines = this.buffer.split('\n');
+  private processBuffer(): void {
+    let run = true;
+    while (run) {
+      run = false;
+      const openBrace = this.buffer.indexOf('{');
 
-    // Keep incomplete line in buffer
-    this.buffer = lines.pop() || '';
+      // Case 1: No JSON start found
+      if (openBrace === -1) {
+        // Treat all complete lines as text/logs
+        const lastNewline = this.buffer.lastIndexOf('\n');
+        if (lastNewline !== -1) {
+          const textChunk = this.buffer.substring(0, lastNewline + 1);
+          this.processTextChunk(textChunk);
+          this.buffer = this.buffer.substring(lastNewline + 1);
+        }
+        // Keep remaining partial text in buffer
+        return;
+      }
 
+      // Case 2: Content exists before the first '{'
+      if (openBrace > 0) {
+        const textPre = this.buffer.substring(0, openBrace);
+        this.processTextChunk(textPre);
+        this.buffer = this.buffer.substring(openBrace);
+        // buffer now starts with '{'
+      }
+
+      // Case 3: Try to find the matching closing brace
+      const closeIndex = this.findMatchingBrace(this.buffer);
+      if (closeIndex !== -1) {
+        const candidate = this.buffer.substring(0, closeIndex + 1);
+        try {
+          const message = JSON.parse(candidate) as OpenCodeMessage;
+          this.handleMessage(message);
+          this.buffer = this.buffer.substring(closeIndex + 1);
+          run = true; // Continue processing the rest of the buffer
+        } catch (err) {
+          // Failed to parse, likely the '{' was just text, not start of JSON
+          console.log('[StreamParser] Failed to parse conceptual JSON block, treating as text char');
+          this.processTextChunk('{');
+          this.buffer = this.buffer.substring(1);
+          run = true;
+        }
+      }
+      // Else: Incomplete JSON object, wait for more data
+    }
+  }
+
+  /**
+   * Find the index of the matching closing brace for the first '{'
+   * Returns -1 if not found
+   */
+  private findMatchingBrace(str: string): number {
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+
+      if (inString) {
+        if (escape) {
+          escape = false;
+        } else if (char === '\\') {
+          escape = true;
+        } else if (char === '"') {
+          inString = false;
+        }
+      } else {
+        if (char === '"') {
+          inString = true;
+        } else if (char === '{') {
+          depth++;
+        } else if (char === '}') {
+          depth--;
+          if (depth === 0) return i;
+        }
+      }
+    }
+    return -1;
+  }
+
+  /**
+   * Process a chunk of text as lines (for non-JSON logging)
+   */
+  private processTextChunk(chunk: string): void {
+    const lines = chunk.split('\n');
     for (const line of lines) {
       if (line.trim()) {
-        this.parseLine(line);
+        this.parseLine(line, false);
       }
     }
   }
@@ -67,9 +151,42 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
   }
 
   /**
-   * Parse a single JSON line
+   * Handle valid parsed message
    */
-  private parseLine(line: string): void {
+  private handleMessage(message: OpenCodeMessage): void {
+    // Log parsed message for debugging
+    console.log('[StreamParser] Parsed message type:', message.type);
+
+    // Enhanced logging for MCP/Playwriter-related messages
+    if (message.type === 'tool_call' || message.type === 'tool_result') {
+      const part = message.part as Record<string, unknown>;
+      console.log('[StreamParser] Tool message details:', {
+        type: message.type,
+        tool: part?.tool,
+        hasInput: !!part?.input,
+        hasOutput: !!part?.output,
+      });
+
+      // Check if it's a dev-browser tool
+      const toolName = String(part?.tool || '').toLowerCase();
+      const output = String(part?.output || '').toLowerCase();
+      if (toolName.includes('dev-browser') ||
+        toolName.includes('browser') ||
+        toolName.includes('mcp') ||
+        output.includes('dev-browser') ||
+        output.includes('browser')) {
+        console.log('[StreamParser] >>> DEV-BROWSER MESSAGE <<<');
+        console.log('[StreamParser] Full message:', JSON.stringify(message, null, 2));
+      }
+    }
+
+    this.emit('message', message);
+  }
+
+  /**
+   * Parse a single text line (fallback for non-JSON)
+   */
+  private parseLine(line: string, tryJson: boolean = true): void {
     const trimmed = line.trim();
 
     // Skip empty lines
@@ -80,50 +197,25 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
       return;
     }
 
-    // Only attempt to parse lines that look like JSON (start with {)
-    if (!trimmed.startsWith('{')) {
-      // Log non-JSON lines for debugging but don't emit errors
-      // These could be CLI status messages, etc.
-      console.log('[StreamParser] Skipping non-JSON line:', trimmed.substring(0, 50));
-      return;
-    }
+    // If we're strictly processing text chunks, just log it
+    // But sometimes small JSONs might slip into text chunks if heuristics fail?
+    // Our new logic is strict about braces, so 'tryJson' here is mostly legacy
+    // or for cases where we fallback.
 
-    try {
-      const message = JSON.parse(trimmed) as OpenCodeMessage;
-
-      // Log parsed message for debugging
-      console.log('[StreamParser] Parsed message type:', message.type);
-
-      // Enhanced logging for MCP/Playwriter-related messages
-      if (message.type === 'tool_call' || message.type === 'tool_result') {
-        const part = message.part as Record<string, unknown>;
-        console.log('[StreamParser] Tool message details:', {
-          type: message.type,
-          tool: part?.tool,
-          hasInput: !!part?.input,
-          hasOutput: !!part?.output,
-        });
-
-        // Check if it's a dev-browser tool
-        const toolName = String(part?.tool || '').toLowerCase();
-        const output = String(part?.output || '').toLowerCase();
-        if (toolName.includes('dev-browser') ||
-            toolName.includes('browser') ||
-            toolName.includes('mcp') ||
-            output.includes('dev-browser') ||
-            output.includes('browser')) {
-          console.log('[StreamParser] >>> DEV-BROWSER MESSAGE <<<');
-          console.log('[StreamParser] Full message:', JSON.stringify(message, null, 2));
-        }
+    if (tryJson && trimmed.startsWith('{')) {
+      // This path is now mostly handled by processBuffer, but kept for flushing/edge cases
+      try {
+        const message = JSON.parse(trimmed) as OpenCodeMessage;
+        this.handleMessage(message);
+        return;
+      } catch (e) {
+        // Ignore, treat as text
       }
-
-      this.emit('message', message);
-    } catch (err) {
-      // Log parse error but continue processing - this shouldn't happen often
-      // since we already check for { prefix
-      console.error('[StreamParser] Failed to parse JSON line:', trimmed.substring(0, 100), err);
-      this.emit('error', new Error(`Failed to parse JSON: ${trimmed.substring(0, 50)}...`));
     }
+
+    // Log non-JSON lines for debugging but don't emit errors
+    // These could be CLI status messages, etc.
+    console.log('[StreamParser] Skipping non-JSON line:', trimmed.substring(0, 50));
   }
 
   /**
@@ -131,7 +223,8 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
    */
   flush(): void {
     if (this.buffer.trim()) {
-      this.parseLine(this.buffer);
+      // Try to process whatever is left, though it's likely incomplete
+      this.processTextChunk(this.buffer);
       this.buffer = '';
     }
   }
