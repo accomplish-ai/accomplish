@@ -116,9 +116,12 @@ export default function HomePage() {
   const handleSubmit = async () => {
     if (!prompt.trim() || isLoading) return;
 
-    // Check if user has any API key (Anthropic, OpenAI, Google, etc.) before sending
+    // Check if user has any API key (Anthropic, OpenAI, Google, etc.) or Ollama configured before sending
     const hasKey = await accomplish.hasAnyApiKey();
-    if (!hasKey) {
+    const selectedModel = await accomplish.getSelectedModel();
+    const hasOllamaConfigured = selectedModel?.provider === 'ollama';
+
+    if (!hasKey && !hasOllamaConfigured) {
       setShowSettingsDialog(true);
       return;
     }
