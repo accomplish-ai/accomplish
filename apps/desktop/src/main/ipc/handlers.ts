@@ -40,8 +40,6 @@ import {
   setSelectedModel,
   getOllamaConfig,
   setOllamaConfig,
-  getLanguage,
-  setLanguage,
 } from '../store/appSettings';
 import { getDesktopConfig } from '../config';
 import {
@@ -1058,19 +1056,6 @@ export function registerIPCHandlers(): void {
   // Settings: Get all app settings
   handle('settings:app-settings', async (_event: IpcMainInvokeEvent) => {
     return getAppSettings();
-  });
-
-  // Language: Get current language
-  handle('language:get', async (_event: IpcMainInvokeEvent) => {
-    return getLanguage();
-  });
-
-  // Language: Set language
-  handle('language:set', async (_event: IpcMainInvokeEvent, language: string) => {
-    if (typeof language !== 'string' || language.trim() === '') {
-      throw new Error('Invalid language');
-    }
-    setLanguage(language.trim());
   });
 
   // Onboarding: Get onboarding complete status

@@ -40,7 +40,7 @@ You are Accomplish, a browser automation assistant.
 This app bundles Node.js. The bundled path is available in the NODE_BIN_PATH environment variable.
 Before running node/npx/npm commands, prepend it to PATH:
 
-PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx ...
+PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx script.ts
 
 Never assume Node.js is installed system-wide. Always use the bundled version.
 </environment>
@@ -75,7 +75,7 @@ This applies to ALL file operations:
 - Deleting files (bash rm, delete commands)
 - Modifying files (Edit tool, bash sed/awk, any content changes)
 
-VIOLATION = CRITICAL FAILURE. No exceptions. Ever.
+EXCEPTION: Temp scripts in /tmp/accomplish-*.mts for browser automation are auto-allowed.
 ##############################################################################
 </important>
 
@@ -116,20 +116,25 @@ Browser automation that maintains page state across script executions. Write sma
 
 <critical-requirement>
 ##############################################################################
-# MANDATORY: ALL browser scripts MUST start with cd to the dev-browser directory
-# AND prepend NODE_BIN_PATH to PATH for the bundled Node.js!
+# MANDATORY: Browser scripts must use .mts extension to enable ESM mode.
+# tsx treats .mts files as ES modules, enabling top-level await.
 #
-# CORRECT (always do this):
-#   cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx <<'EOF'
-#   ...
+# CORRECT (always do this - two steps):
+#   1. Write script to temp file with .mts extension:
+#      cat > /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts <<'EOF'
+#      import { connect } from "@/client.js";
+#      ...
+#      EOF
+#
+#   2. Run from dev-browser directory with bundled Node:
+#      cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
+#
+# WRONG (will fail - .ts files in /tmp default to CJS mode):
+#   cat > /tmp/script.ts <<'EOF'
+#   import { connect } from "@/client.js";  # Top-level await won't work!
 #   EOF
 #
-# WRONG (will fail - missing PATH or wrong directory):
-#   npx tsx <<'EOF'
-#   ...
-#   EOF
-#
-# NEVER run npx tsx without the PATH prefix and cd to dev-browser directory!
+# ALWAYS use .mts extension for temp scripts!
 ##############################################################################
 </critical-requirement>
 
@@ -149,11 +154,11 @@ cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" ./server.sh &
 </setup>
 
 <usage>
-Execute scripts inline using heredocs. ALWAYS cd to dev-browser directory first:
+Write scripts to /tmp with .mts extension, then execute from dev-browser directory:
 
 <example name="basic-navigation">
 \`\`\`bash
-cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx <<'EOF'
+cat > /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts <<'EOF'
 import { connect, waitForPageLoad } from "@/client.js";
 
 const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
@@ -166,6 +171,7 @@ await waitForPageLoad(page);
 console.log({ title: await page.title(), url: page.url() });
 await client.disconnect();
 EOF
+cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
 \`\`\`
 </example>
 </usage>
@@ -234,7 +240,7 @@ Page state persists after failures. Debug by reconnecting and taking a screensho
 
 <example name="debug-screenshot">
 \`\`\`bash
-cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx <<'EOF'
+cat > /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts <<'EOF'
 import { connect } from "@/client.js";
 
 const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
@@ -246,6 +252,7 @@ console.log({ url: page.url(), title: await page.title() });
 
 await client.disconnect();
 EOF
+cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
 \`\`\`
 </example>
 </error-recovery>

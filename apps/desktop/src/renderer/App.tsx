@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { isRunningInElectron, getAccomplish } from './lib/accomplish';
 import { springs, variants } from './lib/animations';
 import { analytics } from './lib/analytics';
-import i18n from './lib/i18n';
 
 // Pages
 import HomePage from './pages/Home';
@@ -59,17 +58,6 @@ export default function App() {
         const accomplish = getAccomplish();
         // Mark onboarding as complete (no welcome screen needed)
         await accomplish.setOnboardingComplete(true);
-
-        // Sync language from backend to i18n
-        try {
-          const savedLanguage = await accomplish.getLanguage();
-          if (savedLanguage && savedLanguage !== i18n.language) {
-            i18n.changeLanguage(savedLanguage);
-          }
-        } catch (langError) {
-          console.error('Failed to sync language:', langError);
-        }
-
         setStatus('ready');
       } catch (error) {
         console.error('Failed to initialize app:', error);

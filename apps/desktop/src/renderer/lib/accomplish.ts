@@ -47,11 +47,7 @@ interface AccomplishAPI {
   removeApiKey(id: string): Promise<void>;
   getDebugMode(): Promise<boolean>;
   setDebugMode(enabled: boolean): Promise<void>;
-  getAppSettings(): Promise<{ debugMode: boolean; onboardingComplete: boolean; language: string }>;
-
-  // Language management
-  getLanguage(): Promise<string>;
-  setLanguage(language: string): Promise<void>;
+  getAppSettings(): Promise<{ debugMode: boolean; onboardingComplete: boolean }>;
 
   // API Key management
   hasApiKey(): Promise<boolean>;
@@ -69,9 +65,9 @@ interface AccomplishAPI {
   getOnboardingComplete(): Promise<boolean>;
   setOnboardingComplete(complete: boolean): Promise<void>;
 
-  // OpenCode CLI
-  checkOpenCodeCli(): Promise<{ installed: boolean; version: string | null; installCommand: string }>;
-  getOpenCodeVersion(): Promise<string | null>;
+  // Claude CLI
+  checkClaudeCli(): Promise<{ installed: boolean; version: string | null; installCommand: string }>;
+  getClaudeVersion(): Promise<string | null>;
 
   // Model selection
   getSelectedModel(): Promise<{ provider: string; model: string; baseUrl?: string } | null>;

@@ -16,7 +16,8 @@
     "paths": {
       "@/*": ["src/renderer/*"],
       "@main/*": ["src/main/*"],
-      "@shared/*": ["../../packages/shared/src/*"]
+      "@shared/*": ["../../packages/shared/src/*"],
+      "@accomplish/shared": ["../../packages/shared/src/index.ts"]
     }
   },
   "include": [

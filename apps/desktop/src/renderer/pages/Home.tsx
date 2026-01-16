@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
 import TaskInputBar from '../components/landing/TaskInputBar';
 import SettingsDialog from '../components/layout/SettingsDialog';
 import { useTaskStore } from '../stores/taskStore';
@@ -81,9 +80,8 @@ const USE_CASE_EXAMPLES = [
 ];
 
 export default function HomePage() {
-  const { t } = useTranslation();
   const [prompt, setPrompt] = useState('');
-  const [showExamples, setShowExamples] = useState(false);
+  const [showExamples, setShowExamples] = useState(true);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [checkingApiKey, setCheckingApiKey] = useState(false);
   const { startTask, isLoading, addTaskUpdate, setPermissionRequest, error } = useTaskStore();
@@ -172,7 +170,7 @@ export default function HomePage() {
           transition={springs.gentle}
           className="text-4xl font-light tracking-tight text-foreground"
         >
-          {t('home.title')}
+          What will you accomplish today?
         </motion.h1>
 
         <motion.div
@@ -196,13 +194,8 @@ export default function HomePage() {
                 value={prompt}
                 onChange={setPrompt}
                 onSubmit={handleSubmit}
-<<<<<<< Updated upstream
-                isLoading={isLoading}
-                placeholder={t('home.placeholder')}
-=======
                 isLoading={isLoading || checkingApiKey}
                 placeholder="Describe a task and let AI handle the rest"
->>>>>>> Stashed changes
                 large={true}
                 autoFocus={true}
               />
@@ -212,9 +205,9 @@ export default function HomePage() {
             <div className="border-t border-border">
               <button
                 onClick={() => setShowExamples(!showExamples)}
-                 className="w-full px-6 py-3 flex items-center justify-between text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-200"
-               >
-                 <span>{t('home.examples.toggle')}</span>
+                className="w-full px-6 py-3 flex items-center justify-between text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-200"
+              >
+                <span>Example prompts</span>
                 <motion.div
                   animate={{ rotate: showExamples ? 180 : 0 }}
                   transition={{ duration: 0.2 }}

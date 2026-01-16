@@ -109,8 +109,6 @@
 
   body {
     @apply bg-background text-foreground;
-    /* Japanese font support */
-    font-family: 'DM Sans', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', 'Noto Sans CJK JP', sans-serif;
   }
 
   /* Prevent text selection in UI elements */
@@ -120,25 +118,25 @@
   }
 }
 
-/* Placeholder font family for textareas with Japanese support */
+/* Placeholder font family for textareas */
 textarea::-webkit-input-placeholder {
-  font-family: 'DM Sans', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', 'Noto Sans CJK JP', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
 }
 
 textarea:-ms-input-placeholder {
-  font-family: 'DM Sans', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', 'Noto Sans CJK JP', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
 }
 
 textarea:-moz-placeholder {
-  font-family: 'DM Sans', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', 'Noto Sans CJK JP', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
 }
 
 textarea::-moz-placeholder {
-  font-family: 'DM Sans', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', 'Noto Sans CJK JP', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
 }
 
 textarea::placeholder {
-  font-family: 'DM Sans', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', 'Noto Sans CJK JP', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
 }
 
 /* Component utilities - removed as we're using shadcn components now */

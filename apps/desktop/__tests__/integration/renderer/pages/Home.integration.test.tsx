@@ -188,11 +188,7 @@ describe('Home Page Integration', () => {
         </MemoryRouter>
       );
 
-      // Expand examples section (collapsed by default)
-      const toggleButton = screen.getByText(/example prompts/i).closest('button');
-      fireEvent.click(toggleButton!);
-
-      // Assert - Check for some example use cases
+      // Assert - Check for some example use cases (expanded by default)
       await waitFor(() => {
         expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
         expect(screen.getByText('Inbox Promo Cleanup')).toBeInTheDocument();
@@ -438,11 +434,7 @@ describe('Home Page Integration', () => {
         </MemoryRouter>
       );
 
-      // Expand examples section (collapsed by default)
-      const toggleButton = screen.getByText(/example prompts/i).closest('button');
-      fireEvent.click(toggleButton!);
-
-      // Act - Click on Calendar Prep Notes example
+      // Act - Click on Calendar Prep Notes example (expanded by default)
       await waitFor(() => {
         expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
       });
@@ -466,24 +458,26 @@ describe('Home Page Integration', () => {
         </MemoryRouter>
       );
 
-      // Assert - Examples should be hidden initially (collapsed by default)
-      expect(screen.queryByText('Calendar Prep Notes')).not.toBeInTheDocument();
-
-      // Act - Toggle examples on
-      const toggleButton = screen.getByText(/example prompts/i).closest('button');
-      fireEvent.click(toggleButton!);
-
-      // Assert - Examples should be visible now
+      // Assert - Examples should be visible initially (expanded by default)
       await waitFor(() => {
         expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
       });
 
-      // Act - Toggle examples off again
+      // Act - Toggle examples off
+      const toggleButton = screen.getByText(/example prompts/i).closest('button');
       fireEvent.click(toggleButton!);
 
-      // Assert - Examples should be hidden again
+      // Assert - Examples should be hidden now
       await waitFor(() => {
         expect(screen.queryByText('Calendar Prep Notes')).not.toBeInTheDocument();
+      });
+
+      // Act - Toggle examples on again
+      fireEvent.click(toggleButton!);
+
+      // Assert - Examples should be visible again
+      await waitFor(() => {
+        expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
       });
     });
 
@@ -495,11 +489,7 @@ describe('Home Page Integration', () => {
         </MemoryRouter>
       );
 
-      // Expand examples section (collapsed by default)
-      const toggleButton = screen.getByText(/example prompts/i).closest('button');
-      fireEvent.click(toggleButton!);
-
-      // Assert
+      // Assert - examples are expanded by default
       const expectedExamples = [
         'Calendar Prep Notes',
         'Inbox Promo Cleanup',
