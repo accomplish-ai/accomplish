@@ -352,16 +352,18 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       // Log bundled Node.js configuration
       logBundledNodeInfo();
 
-      // Add bundled Node.js to PATH (highest priority)
-      const bundledNode = getBundledNodePaths();
-      if (bundledNode) {
-        // Prepend bundled Node.js bin directory to PATH
-        const delimiter = process.platform === 'win32' ? ';' : ':';
-        env.PATH = `${bundledNode.binDir}${delimiter}${env.PATH || ''}`;
-        // Also expose as NODE_BIN_PATH so agent can use it in bash commands
-        env.NODE_BIN_PATH = bundledNode.binDir;
-        console.log('[OpenCode CLI] Added bundled Node.js to PATH:', bundledNode.binDir);
-      }
+       // Add bundled Node.js to PATH (highest priority)
+       const bundledNode = getBundledNodePaths();
+       if (bundledNode) {
+         // Prepend bundled Node.js bin directory to PATH
+         const delimiter = process.platform === 'win32' ? ';' : ':';
+         env.PATH = `${bundledNode.binDir}${delimiter}${env.PATH || ''}`;
+         // Also expose as NODE_BIN_PATH so agent can use it in bash commands
+         env.NODE_BIN_PATH = bundledNode.binDir;
+         // Set OPENCODE_BIN_PATH for opencode-ai wrapper script to find the right binary
+         env.OPENCODE_BIN_PATH = bundledNode.binDir;
+         console.log('[OpenCode CLI] Added bundled Node.js to PATH:', bundledNode.binDir);
+       }
 
       // For packaged apps on macOS, also extend PATH to include common Node.js locations as fallback.
       // This avoids using login shell which triggers folder access permissions.
@@ -398,10 +400,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     } else {
       console.log('[OpenCode CLI] No Google API key found');
     }
-<<<<<<< Updated upstream
-    if (apiKeys.xai) {
-      env.XAI_API_KEY = apiKeys.xai;
-      console.log('[OpenCode CLI] Using xAI API key from settings');
+    if (apiKeys.groq) {
+      env.GROQ_API_KEY = apiKeys.groq;
+      console.log('[OpenCode CLI] Using Groq API key from settings');
+    } else {
+      console.log('[OpenCode CLI] No Groq API key found');
     }
 
     // Set Ollama host if configured
@@ -409,13 +412,6 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     if (selectedModel?.provider === 'ollama' && selectedModel.baseUrl) {
       env.OLLAMA_HOST = selectedModel.baseUrl;
       console.log('[OpenCode CLI] Using Ollama host:', selectedModel.baseUrl);
-=======
-    if (apiKeys.groq) {
-      env.GROQ_API_KEY = apiKeys.groq;
-      console.log('[OpenCode CLI] Using Groq API key from settings');
-    } else {
-      console.log('[OpenCode CLI] No Groq API key found');
->>>>>>> Stashed changes
     }
 
     // Log config environment variable

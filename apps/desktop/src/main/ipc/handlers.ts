@@ -56,11 +56,8 @@ import type {
   TaskResult,
   TaskStatus,
   SelectedModel,
-<<<<<<< Updated upstream
-  OllamaConfig,
-=======
   Task,
->>>>>>> Stashed changes
+  OllamaConfig,
 } from '@accomplish/shared';
 import { DEFAULT_PROVIDERS } from '@accomplish/shared';
 import {
@@ -1027,17 +1024,13 @@ export function registerIPCHandlers(): void {
 
   // API Keys: Check if any key exists
   handle('api-keys:has-any', async (_event: IpcMainInvokeEvent) => {
-<<<<<<< Updated upstream
     // In E2E mock mode, pretend we have API keys
     if (isMockTaskEventsEnabled()) {
       return true;
     }
-    return hasAnyApiKey();
-=======
     const result = hasAnyApiKey();
     console.log('[IPC] hasAnyApiKey called, result:', result);
     return result;
->>>>>>> Stashed changes
   });
 
   // Settings: Get debug mode setting
