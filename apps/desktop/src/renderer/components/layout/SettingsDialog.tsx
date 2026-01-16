@@ -134,6 +134,8 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
     analytics.trackToggleDebugMode(newValue);
     try {
       await accomplish.setDebugMode(newValue);
+      // Notify other components (like Execution page) of the change
+      window.dispatchEvent(new CustomEvent('debugModeChanged', { detail: newValue }));
     } catch (err) {
       console.error('Failed to save debug setting:', err);
       setDebugMode(!newValue);

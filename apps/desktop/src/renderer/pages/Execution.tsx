@@ -91,9 +91,23 @@ export default function ExecutionPage() {
     []
   );
 
-  // Fetch debug mode setting (once on mount)
+  // Fetch debug mode setting and listen for changes
   useEffect(() => {
-    accomplish.getDebugMode().then(setDebugMode).catch(() => {});
+    const fetchDebugMode = () => {
+      accomplish.getDebugMode().then(setDebugMode).catch(() => {});
+    };
+
+    fetchDebugMode();
+
+    // Listen for debug mode changes from settings dialog
+    const handleDebugModeChange = (e: CustomEvent<boolean>) => {
+      setDebugMode(e.detail);
+    };
+    window.addEventListener('debugModeChanged', handleDebugModeChange as EventListener);
+
+    return () => {
+      window.removeEventListener('debugModeChanged', handleDebugModeChange as EventListener);
+    };
   }, []);
 
   // Subscribe to debug logs - separate from task ID to maintain stable subscription
