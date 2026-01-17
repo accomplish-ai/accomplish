@@ -17,24 +17,24 @@ export const ACCOMPLISH_AGENT_NAME = 'accomplish';
  * @see https://github.com/SawyerHood/dev-browser
  */
 /**
- * Get the skill directory path (contains MCP servers and SKILL.md files)
- * In dev: apps/desktop/skill
- * In packaged: resources/skill (unpacked from asar)
+ * Get the skills directory path (contains MCP servers and SKILL.md files)
+ * In dev: apps/desktop/skills
+ * In packaged: resources/skills (unpacked from asar)
  */
-export function getSkillPath(): string {
+export function getSkillsPath(): string {
   if (app.isPackaged) {
-    // In packaged app, skill should be in resources folder (unpacked from asar)
-    return path.join(process.resourcesPath, 'skill');
+    // In packaged app, skills should be in resources folder (unpacked from asar)
+    return path.join(process.resourcesPath, 'skills');
   } else {
     // In development, use app.getAppPath() which returns the desktop app directory
     // app.getAppPath() returns apps/desktop in dev mode
-    return path.join(app.getAppPath(), 'skill');
+    return path.join(app.getAppPath(), 'skills');
   }
 }
 
 /**
- * Get the OpenCode config directory path (parent of skill/ for OPENCODE_CONFIG_DIR)
- * OpenCode looks for skills at $OPENCODE_CONFIG_DIR/skill/<name>/SKILL.md
+ * Get the OpenCode config directory path (parent of skills/ for OPENCODE_CONFIG_DIR)
+ * OpenCode looks for skills at $OPENCODE_CONFIG_DIR/skills/<name>/SKILL.md
  */
 export function getOpenCodeConfigDir(): string {
   if (app.isPackaged) {
@@ -139,7 +139,7 @@ Browser automation that maintains page state across script executions. Write sma
 #      EOF
 #
 #   2. Run from dev-browser directory with bundled Node:
-#      cd {{SKILL_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
+#      cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
 #
 # WRONG (will fail - .ts files in /tmp default to CJS mode):
 #   cat > /tmp/script.ts <<'EOF'
@@ -161,7 +161,7 @@ If it returns JSON with a \`wsEndpoint\`, proceed with browser automation. If co
 
 **Fallback** (only if server isn't running after multiple checks):
 \`\`\`bash
-cd {{SKILL_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" ./server.sh &
+cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" ./server.sh &
 \`\`\`
 </setup>
 
@@ -183,7 +183,7 @@ await waitForPageLoad(page);
 console.log({ title: await page.title(), url: page.url() });
 await client.disconnect();
 EOF
-cd {{SKILL_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
+cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
 \`\`\`
 </example>
 </usage>
@@ -264,7 +264,7 @@ console.log({ url: page.url(), title: await page.title() });
 
 await client.disconnect();
 EOF
-cd {{SKILL_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
+cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
 \`\`\`
 </example>
 </error-recovery>
@@ -367,18 +367,18 @@ export async function generateOpenCodeConfig(): Promise<string> {
     fs.mkdirSync(configDir, { recursive: true });
   }
 
-  // Get skill directory path and inject into system prompt
-  const skillPath = getSkillPath();
-  const systemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE.replace(/\{\{SKILL_PATH\}\}/g, skillPath);
+  // Get skills directory path and inject into system prompt
+  const skillsPath = getSkillsPath();
+  const systemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE.replace(/\{\{SKILLS_PATH\}\}/g, skillsPath);
 
-  // Get OpenCode config directory (parent of skill/) for OPENCODE_CONFIG_DIR
+  // Get OpenCode config directory (parent of skills/) for OPENCODE_CONFIG_DIR
   const openCodeConfigDir = getOpenCodeConfigDir();
 
-  console.log('[OpenCode Config] Skill path:', skillPath);
+  console.log('[OpenCode Config] Skills path:', skillsPath);
   console.log('[OpenCode Config] OpenCode config dir:', openCodeConfigDir);
 
   // Build file-permission MCP server command
-  const filePermissionServerPath = path.join(skillPath, 'file-permission', 'src', 'index.ts');
+  const filePermissionServerPath = path.join(skillsPath, 'file-permission', 'src', 'index.ts');
 
   // Enable providers - add ollama if configured
   const ollamaConfig = getOllamaConfig();
@@ -442,7 +442,7 @@ export async function generateOpenCodeConfig(): Promise<string> {
       },
       'ask-user-question': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillPath, 'ask-user-question', 'src', 'index.ts')],
+        command: ['npx', 'tsx', path.join(skillsPath, 'ask-user-question', 'src', 'index.ts')],
         enabled: true,
         environment: {
           QUESTION_API_PORT: String(QUESTION_API_PORT),

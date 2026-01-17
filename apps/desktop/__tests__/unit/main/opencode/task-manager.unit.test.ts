@@ -152,7 +152,7 @@ vi.mock('@main/opencode/adapter', () => ({
 
 // Mock config generator
 vi.mock('@main/opencode/config-generator', () => ({
-  getSkillPath: vi.fn(() => '/mock/skill/path'),
+  getSkillsPath: vi.fn(() => '/mock/skills/path'),
   generateOpenCodeConfig: vi.fn(() => Promise.resolve('/mock/config')),
   ACCOMPLISH_AGENT_NAME: 'accomplish',
 }));

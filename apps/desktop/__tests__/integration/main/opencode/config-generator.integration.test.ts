@@ -41,9 +41,10 @@ vi.mock('electron', () => ({
   app: mockApp,
 }));
 
-// Mock permission-api module (internal but exports a constant we need)
+// Mock permission-api module (internal but exports constants we need)
 vi.mock('@main/permission-api', () => ({
   PERMISSION_API_PORT: 9999,
+  QUESTION_API_PORT: 9227,
 }));
 
 describe('OpenCode Config Generator Integration', () => {
@@ -59,11 +60,11 @@ describe('OpenCode Config Generator Integration', () => {
     tempUserDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opencode-config-test-userData-'));
     tempAppDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opencode-config-test-app-'));
 
-    // Create skill directory structure in temp app dir
-    const skillDir = path.join(tempAppDir, 'skill');
-    fs.mkdirSync(skillDir, { recursive: true });
-    fs.mkdirSync(path.join(skillDir, 'file-permission', 'src'), { recursive: true });
-    fs.writeFileSync(path.join(skillDir, 'file-permission', 'src', 'index.ts'), '// mock file');
+    // Create skills directory structure in temp app dir
+    const skillsDir = path.join(tempAppDir, 'skills');
+    fs.mkdirSync(skillsDir, { recursive: true });
+    fs.mkdirSync(path.join(skillsDir, 'file-permission', 'src'), { recursive: true });
+    fs.writeFileSync(path.join(skillsDir, 'file-permission', 'src', 'index.ts'), '// mock file');
 
     // Update mock to use temp directories
     mockApp.getAppPath.mockReturnValue(tempAppDir);
@@ -86,23 +87,23 @@ describe('OpenCode Config Generator Integration', () => {
     }
   });
 
-  describe('getSkillPath()', () => {
+  describe('getSkillsPath()', () => {
     describe('Development Mode', () => {
-      it('should return skill path relative to app path in dev mode', async () => {
+      it('should return skills path relative to app path in dev mode', async () => {
         // Arrange
         mockApp.isPackaged = false;
 
         // Act
-        const { getSkillPath } = await import('@main/opencode/config-generator');
-        const result = getSkillPath();
+        const { getSkillsPath } = await import('@main/opencode/config-generator');
+        const result = getSkillsPath();
 
         // Assert
-        expect(result).toBe(path.join(tempAppDir, 'skill'));
+        expect(result).toBe(path.join(tempAppDir, 'skills'));
       });
     });
 
     describe('Packaged Mode', () => {
-      it('should return skill path in resources folder when packaged', async () => {
+      it('should return skills path in resources folder when packaged', async () => {
         // Arrange
         mockApp.isPackaged = true;
         const resourcesPath = path.join(tempAppDir, 'Resources');
@@ -110,11 +111,11 @@ describe('OpenCode Config Generator Integration', () => {
         (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
 
         // Act
-        const { getSkillPath } = await import('@main/opencode/config-generator');
-        const result = getSkillPath();
+        const { getSkillsPath } = await import('@main/opencode/config-generator');
+        const result = getSkillsPath();
 
         // Assert
-        expect(result).toBe(path.join(resourcesPath, 'skill'));
+        expect(result).toBe(path.join(resourcesPath, 'skills'));
       });
     });
   });
@@ -197,7 +198,7 @@ describe('OpenCode Config Generator Integration', () => {
       expect(filePermission.environment.PERMISSION_API_PORT).toBe('9999');
     });
 
-    it('should inject skill path into system prompt', async () => {
+    it('should inject skills path into system prompt', async () => {
       // Act
       const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
@@ -205,11 +206,11 @@ describe('OpenCode Config Generator Integration', () => {
       // Assert
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       const prompt = config.agent['accomplish'].prompt;
-      const skillPath = path.join(tempAppDir, 'skill');
+      const skillsPath = path.join(tempAppDir, 'skills');
 
-      // Prompt should contain the actual skill path, not the template placeholder
-      expect(prompt).toContain(skillPath);
-      expect(prompt).not.toContain('{{SKILL_PATH}}');
+      // Prompt should contain the actual skills path, not the template placeholder
+      expect(prompt).toContain(skillsPath);
+      expect(prompt).not.toContain('{{SKILLS_PATH}}');
     });
 
     it('should set OPENCODE_CONFIG environment variable after generation', async () => {
@@ -271,7 +272,7 @@ describe('OpenCode Config Generator Integration', () => {
       expect(prompt).toContain('request_file_permission');
     });
 
-    it('should include user confirmation guidance', async () => {
+    it('should include user communication guidance', async () => {
       // Act
       const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
@@ -280,7 +281,7 @@ describe('OpenCode Config Generator Integration', () => {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       const prompt = config.agent['accomplish'].prompt;
 
-      expect(prompt).toContain('user-confirmations');
+      expect(prompt).toContain('user-communication');
       expect(prompt).toContain('AskUserQuestion');
     });
   });

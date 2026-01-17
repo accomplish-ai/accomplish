@@ -7,7 +7,7 @@
  */
 
 import { OpenCodeAdapter, isOpenCodeCliInstalled, OpenCodeCliNotFoundError } from './adapter';
-import { getSkillPath } from './config-generator';
+import { getSkillsPath } from './config-generator';
 import { getNpxPath, getBundledNodePaths } from '../utils/bundled-node';
 import { spawn } from 'child_process';
 import path from 'path';
@@ -79,8 +79,8 @@ async function installPlaywrightChromium(
   onProgress?: (message: string) => void
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const skillPath = getSkillPath();
-    const devBrowserDir = path.join(skillPath, 'dev-browser');
+    const skillsPath = getSkillsPath();
+    const devBrowserDir = path.join(skillsPath, 'dev-browser');
 
     // Use bundled npx for packaged app compatibility
     const npxPath = getNpxPath();
@@ -175,8 +175,8 @@ async function ensureDevBrowserServer(
 
   // Now start the server
   try {
-    const skillPath = getSkillPath();
-    const serverScript = path.join(skillPath, 'dev-browser', 'server.sh');
+    const skillsPath = getSkillsPath();
+    const serverScript = path.join(skillsPath, 'dev-browser', 'server.sh');
 
     // Build environment with bundled Node.js in PATH
     const bundledPaths = getBundledNodePaths();
@@ -191,7 +191,7 @@ async function ensureDevBrowserServer(
     const child = spawn('bash', [serverScript], {
       detached: true,
       stdio: 'ignore',
-      cwd: path.join(skillPath, 'dev-browser'),
+      cwd: path.join(skillsPath, 'dev-browser'),
       env: spawnEnv,
     });
     child.unref();

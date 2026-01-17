@@ -22,7 +22,7 @@ Two modes available. Ask the user if unclear which to use.
 Launches a new Chromium browser for fresh automation sessions.
 
 ```bash
-./skill/dev-browser/server.sh &
+./skills/dev-browser/server.sh &
 ```
 
 Add `--headless` flag if user requests it. **Wait for the `Ready` message before running scripts.**
@@ -39,7 +39,7 @@ Connects to user's existing Chrome browser. Use this when:
 **Start the relay server:**
 
 ```bash
-cd skill/dev-browser && npm i && npm run start-extension &
+cd skills/dev-browser && npm i && npm run start-extension &
 ```
 
 Wait for `Waiting for extension to connect...` followed by `Extension connected` in the console. To know that a client has connected and the browser is ready to be controlled.
@@ -52,12 +52,12 @@ If the extension hasn't connected yet, tell the user to launch and activate it. 
 
 ## Writing Scripts
 
-> **Run all scripts from `skill/dev-browser/` directory.** The `@/` import alias requires this directory's config.
+> **Run all scripts from `skills/dev-browser/` directory.** The `@/` import alias requires this directory's config.
 
 Execute scripts inline using heredocs:
 
 ```bash
-cd skill/dev-browser && npx tsx <<'EOF'
+cd skills/dev-browser && npx tsx <<'EOF'
 import { connect, waitForPageLoad } from "@/client.js";
 
 const client = await connect();
@@ -193,7 +193,7 @@ await element.click();
 Page state persists after failures. Debug with:
 
 ```bash
-cd skill/dev-browser && npx tsx <<'EOF'
+cd skills/dev-browser && npx tsx <<'EOF'
 import { connect } from "@/client.js";
 
 const client = await connect();
