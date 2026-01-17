@@ -68,6 +68,7 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       data-slot="dialog-content"
+      aria-describedby={undefined}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       {...props}
     >

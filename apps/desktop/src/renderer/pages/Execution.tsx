@@ -769,9 +769,17 @@ export default function ExecutionPage() {
       {debugModeEnabled && (
         <div className="flex-shrink-0 border-t border-border">
           {/* Toggle header */}
-          <button
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => setDebugPanelOpen(!debugPanelOpen)}
-            className="w-full flex items-center justify-between px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 transition-colors"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setDebugPanelOpen(!debugPanelOpen);
+              }
+            }}
+            className="w-full flex items-center justify-between px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2 text-sm text-zinc-400">
               <Bug className="h-4 w-4" />
@@ -821,7 +829,7 @@ export default function ExecutionPage() {
                 <ChevronUp className="h-4 w-4 text-zinc-500" />
               )}
             </div>
-          </button>
+          </div>
 
           {/* Collapsible panel content */}
           <AnimatePresence>

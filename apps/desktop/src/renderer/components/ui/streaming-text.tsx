@@ -30,6 +30,7 @@ export function StreamingText({
 }: StreamingTextProps) {
   const [displayedLength, setDisplayedLength] = useState(isComplete ? text.length : 0);
   const [isStreaming, setIsStreaming] = useState(!isComplete);
+  const [hasCalledComplete, setHasCalledComplete] = useState(false);
   const rafRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
   const textRef = useRef(text);
@@ -51,6 +52,14 @@ export function StreamingText({
     }
   }, [isComplete, text.length]);
 
+  // Call onComplete in an effect (not during render)
+  useEffect(() => {
+    if (!isStreaming && !hasCalledComplete && displayedLength >= text.length && displayedLength > 0) {
+      setHasCalledComplete(true);
+      onComplete?.();
+    }
+  }, [isStreaming, hasCalledComplete, displayedLength, text.length, onComplete]);
+
   // Animation loop
   useEffect(() => {
     if (!isStreaming || isComplete) return;
@@ -70,7 +79,6 @@ export function StreamingText({
           const next = Math.min(prev + charsToAdd, textRef.current.length);
           if (next >= textRef.current.length) {
             setIsStreaming(false);
-            onComplete?.();
           }
           return next;
         });
@@ -89,7 +97,7 @@ export function StreamingText({
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [isStreaming, isComplete, speed, onComplete, displayedLength]);
+  }, [isStreaming, isComplete, speed, displayedLength]);
 
   const displayedText = text.slice(0, displayedLength);
 
