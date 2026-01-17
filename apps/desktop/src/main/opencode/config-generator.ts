@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import { PERMISSION_API_PORT } from '../permission-api';
+import { PERMISSION_API_PORT, QUESTION_API_PORT } from '../permission-api';
 import { getOllamaConfig } from '../store/appSettings';
 
 /**
@@ -443,6 +443,15 @@ export async function generateOpenCodeConfig(): Promise<string> {
         enabled: true,
         environment: {
           PERMISSION_API_PORT: String(PERMISSION_API_PORT),
+        },
+        timeout: 10000,
+      },
+      'ask-user-question': {
+        type: 'local',
+        command: ['npx', 'tsx', path.join(skillsPath, 'ask-user-question', 'src', 'index.ts')],
+        enabled: true,
+        environment: {
+          QUESTION_API_PORT: String(QUESTION_API_PORT),
         },
         timeout: 10000,
       },
