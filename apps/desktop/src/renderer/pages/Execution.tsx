@@ -687,6 +687,12 @@ export default function ExecutionPage() {
                               <button
                                 key={idx}
                                 onClick={() => {
+                                  // If "Other" is selected, show custom input
+                                  if (option.label.toLowerCase() === 'other') {
+                                    setShowCustomInput(true);
+                                    setSelectedOptions([]);
+                                    return;
+                                  }
                                   if (permissionRequest.multiSelect) {
                                     setSelectedOptions((prev) =>
                                       prev.includes(option.label)
@@ -712,20 +718,6 @@ export default function ExecutionPage() {
                                 )}
                               </button>
                             ))}
-
-                            {/* Other option button */}
-                            <button
-                              onClick={() => {
-                                setShowCustomInput(true);
-                                setSelectedOptions([]);
-                              }}
-                              className="w-full text-left p-3 rounded-lg border border-border hover:border-primary/50 transition-colors"
-                            >
-                              <div className="font-medium text-sm">Other</div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                Type your own response
-                              </div>
-                            </button>
                           </div>
                         )}
 

@@ -39,9 +39,14 @@ You MUST call this tool to display a modal in the UI.
 ```
 
 - `question` (required): The question text to display
-- `header` (optional): Short category label (max 12 chars)
+- `header` (optional): Short category label, shown as modal title (max 12 chars)
 - `options` (optional): Array of selectable choices (2-4 recommended)
 - `multiSelect` (optional): Allow selecting multiple options (default: false)
+
+**Tip:** Add an "Other" option to allow custom text input:
+```json
+{ "label": "Other", "description": "Type your own response" }
+```
 
 ## Examples
 
