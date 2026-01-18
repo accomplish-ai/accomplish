@@ -123,29 +123,7 @@ test('should submit a task and navigate to execution', async ({ window }) => {
 
 ## Running Tests
 
-```bash
-# Run all E2E tests
-pnpm test:e2e
-
-# Run fast tests only (home, execution, settings)
-pnpm test:e2e:fast
-
-# Run integration tests only
-pnpm test:e2e:integration
-
-# Run with Playwright UI
-pnpm test:e2e:ui
-
-# Run in debug mode
-pnpm test:e2e:debug
-
-# View HTML report
-pnpm test:e2e:report
-```
-
-## Docker Testing (Headless)
-
-Run E2E tests in a Docker container with virtual display. This prevents test windows from blocking your desktop and enables concurrent test runs from multiple worktrees.
+Tests run in Docker by default (both locally and in CI). This ensures consistent behavior and enables concurrent test runs from multiple worktrees.
 
 ### Prerequisites
 
@@ -154,17 +132,41 @@ Run E2E tests in a Docker container with virtual display. This prevents test win
 ### Commands
 
 ```bash
-# Run E2E tests in Docker (builds image if needed)
-pnpm test:e2e:docker
+# Run all E2E tests (in Docker)
+pnpm test:e2e
 
-# Build Docker image only (useful for caching)
-pnpm test:e2e:docker:build
+# Pre-build Docker image (useful for caching)
+pnpm test:e2e:build
 
 # Clean up Docker resources
-pnpm test:e2e:docker:clean
+pnpm test:e2e:clean
+
+# View HTML report
+pnpm test:e2e:report
 ```
 
-### How It Works
+### Native Mode (for debugging)
+
+Run tests directly without Docker when you need Playwright UI or debugger:
+
+```bash
+# Run natively (Electron windows will pop up)
+pnpm test:e2e:native
+
+# Run with Playwright UI
+pnpm test:e2e:native:ui
+
+# Run in debug mode
+pnpm test:e2e:native:debug
+
+# Run fast tests only
+pnpm test:e2e:native:fast
+
+# Run integration tests only
+pnpm test:e2e:native:integration
+```
+
+## How Docker Testing Works
 
 1. Docker container runs Ubuntu with Xvfb (X Virtual Framebuffer)
 2. Xvfb provides a virtual display at `:99`
@@ -173,7 +175,7 @@ pnpm test:e2e:docker:clean
 
 ### Concurrent Worktree Testing
 
-Each worktree can run `pnpm test:e2e:docker` simultaneously because:
+Each worktree can run `pnpm test:e2e` simultaneously because:
 - Each container has its own isolated filesystem
 - Each container has its own virtual display
 - Electron's single-instance lock is per-container, not per-host

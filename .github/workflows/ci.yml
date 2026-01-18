@@ -108,11 +108,11 @@ jobs:
       - name: Run type check
         run: pnpm -F @accomplish/desktop typecheck
 
-  # E2E tests (runs on macOS for Electron support)
+  # E2E tests (runs in Docker with Xvfb)
   e2e-tests:
-    name: E2E Tests
-    runs-on: macos-latest
-    timeout-minutes: 20
+    name: E2E Tests (Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
@@ -127,21 +127,8 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Playwright browsers
-        run: pnpm -F @accomplish/desktop exec playwright install --with-deps
-
-      - name: Build desktop app
-        run: pnpm -F @accomplish/desktop build
-
-      - name: Run E2E tests
+      - name: Run E2E tests in Docker
         run: pnpm -F @accomplish/desktop test:e2e
-        env:
-          E2E_SKIP_AUTH: '1'
-          E2E_MOCK_TASK_EVENTS: '1'
-          CI: true
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -151,13 +138,4 @@ jobs:
           path: |
             apps/desktop/e2e/test-results/
             apps/desktop/e2e/html-report/
-            apps/desktop/e2e/test-results.json
-          retention-days: 7
-
-      - name: Upload screenshots
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: e2e-screenshots
-          path: apps/desktop/e2e/test-results/screenshots/
           retention-days: 7

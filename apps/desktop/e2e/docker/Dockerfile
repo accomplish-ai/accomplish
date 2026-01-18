@@ -48,5 +48,5 @@ RUN pnpm -F @accomplish/desktop build
 # Set display for Xvfb
 ENV DISPLAY=:99
 
-# Default command: start Xvfb and run tests
-CMD ["sh", "-c", "Xvfb :99 -screen 0 1920x1080x24 & sleep 1 && pnpm -F @accomplish/desktop test:e2e"]
+# Default command: start Xvfb and run tests (using native Playwright, not Docker)
+CMD ["sh", "-c", "Xvfb :99 -screen 0 1920x1080x24 & sleep 1 && pnpm -F @accomplish/desktop test:e2e:native"]
