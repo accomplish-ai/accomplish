@@ -459,12 +459,24 @@ export class TaskManager {
     // This allows the UI to navigate immediately while setup happens
     (async () => {
       try {
+        // Emit debug log at startup
+        callbacks.onDebug?.({ type: 'info', message: `Starting task ${taskId} with ${mode} adapter` });
+
         // Ensure browser is available (may download Playwright if needed)
+        callbacks.onDebug?.({ type: 'info', message: 'Checking browser availability...' });
         await ensureDevBrowserServer(callbacks.onProgress);
+        callbacks.onDebug?.({ type: 'info', message: 'Browser check complete' });
 
         // Now start the agent
+        callbacks.onDebug?.({ type: 'info', message: 'Starting adapter...' });
         await adapter.startTask({ ...config, taskId });
       } catch (error) {
+        // Log the error before forwarding
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        console.error(`[TaskManager] Task ${taskId} failed:`, error);
+        callbacks.onDebug?.({ type: 'error', message: `Task failed: ${errorMessage}`, data: errorStack });
+
         // Cleanup on failure and process queue
         callbacks.onError(error instanceof Error ? error : new Error(String(error)));
         this.cleanupTask(taskId);

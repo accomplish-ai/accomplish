@@ -51,6 +51,9 @@ export function StreamingText({
     }
   }, [isComplete, text.length]);
 
+  // Track if streaming should complete (to avoid setState during render)
+  const shouldCompleteRef = useRef(false);
+
   // Animation loop
   useEffect(() => {
     if (!isStreaming || isComplete) return;
@@ -68,16 +71,16 @@ export function StreamingText({
       if (charsToAdd > 0) {
         setDisplayedLength((prev) => {
           const next = Math.min(prev + charsToAdd, textRef.current.length);
+          // Mark for completion but don't call setState here to avoid React warning
           if (next >= textRef.current.length) {
-            setIsStreaming(false);
-            onComplete?.();
+            shouldCompleteRef.current = true;
           }
           return next;
         });
         lastTimeRef.current = timestamp;
       }
 
-      if (displayedLength < textRef.current.length) {
+      if (displayedLength < textRef.current.length && !shouldCompleteRef.current) {
         rafRef.current = requestAnimationFrame(animate);
       }
     };
@@ -89,7 +92,16 @@ export function StreamingText({
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [isStreaming, isComplete, speed, onComplete, displayedLength]);
+  }, [isStreaming, isComplete, speed, displayedLength]);
+
+  // Handle streaming completion in a separate effect to avoid setState during render
+  useEffect(() => {
+    if (shouldCompleteRef.current) {
+      shouldCompleteRef.current = false;
+      setIsStreaming(false);
+      onComplete?.();
+    }
+  }, [displayedLength, onComplete]);
 
   const displayedText = text.slice(0, displayedLength);
 

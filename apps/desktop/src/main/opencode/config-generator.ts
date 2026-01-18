@@ -2,7 +2,7 @@ import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { PERMISSION_API_PORT } from '../permission-api';
-import { getOllamaConfig } from '../store/appSettings';
+import { getOllamaConfig, getSelectedModel } from '../store/appSettings';
 import { getApiKey } from '../store/secureStorage';
 import type { BedrockCredentials } from '@accomplish/shared';
 
@@ -411,9 +411,12 @@ export async function generateOpenCodeConfig(): Promise<string> {
   if (ollamaConfig?.enabled && ollamaConfig.models && ollamaConfig.models.length > 0) {
     const ollamaModels: Record<string, OllamaProviderModelConfig> = {};
     for (const model of ollamaConfig.models) {
+      // Only enable tools for models that support it
+      // qwen2.5-coder doesn't support tools, but qwen2.5 and qwen3 do
+      const supportsTools = !model.id.includes('coder');
       ollamaModels[model.id] = {
         name: model.displayName,
-        tools: true,  // Enable tool calling for all models
+        tools: supportsTools,
       };
     }
 
@@ -454,8 +457,29 @@ export async function generateOpenCodeConfig(): Promise<string> {
     }
   }
 
+  // Get the currently selected model to set as default
+  const selectedModel = getSelectedModel();
+  let defaultModel: string | undefined;
+
+  if (selectedModel?.model) {
+    if (selectedModel.provider === 'ollama') {
+      const ollamaModelName = selectedModel.model.split('/').pop() || selectedModel.model;
+      defaultModel = `ollama/${ollamaModelName}`;
+    } else if (selectedModel.provider === 'zai') {
+      const id = selectedModel.model.split('/').pop();
+      defaultModel = `zai-coding-plan/${id}`;
+    } else if (selectedModel.provider === 'deepseek') {
+      const id = selectedModel.model.split('/').pop();
+      defaultModel = `deepseek/${id}`;
+    } else {
+      defaultModel = selectedModel.model;
+    }
+    console.log('[OpenCode Config] Setting default model:', defaultModel);
+  }
+
   const config: OpenCodeConfig = {
     $schema: 'https://opencode.ai/config.json',
+    model: defaultModel, // Set the default model for all sessions
     default_agent: ACCOMPLISH_AGENT_NAME,
     // Enable all supported providers - providers auto-configure when API keys are set via env vars
     enabled_providers: enabledProviders,
