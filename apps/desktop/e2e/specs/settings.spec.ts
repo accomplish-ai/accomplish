@@ -561,4 +561,100 @@ test.describe('Settings Dialog', () => {
       ]
     );
   });
+
+  test('should display LiteLLM as enabled option in Proxy Platforms tab', async ({ window }) => {
+    const settingsPage = new SettingsPage(window);
+
+    // Navigate to settings
+    await window.waitForLoadState('domcontentloaded');
+    await settingsPage.navigateToSettings();
+
+    // Click Proxy Platforms tab
+    await settingsPage.selectProxyPlatformsTab();
+
+    // Verify LiteLLM platform button is visible and enabled
+    await expect(settingsPage.litellmPlatformButton).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.litellmPlatformButton).toBeEnabled();
+
+    // Capture proxy platforms with LiteLLM enabled
+    await captureForAI(
+      window,
+      'settings-dialog',
+      'litellm-enabled',
+      [
+        'LiteLLM platform is visible and enabled',
+        'Button can be clicked',
+        'User can select LiteLLM as their proxy platform'
+      ]
+    );
+  });
+
+  test('should show URL and API key inputs when LiteLLM is selected', async ({ window }) => {
+    const settingsPage = new SettingsPage(window);
+
+    // Navigate to settings
+    await window.waitForLoadState('domcontentloaded');
+    await settingsPage.navigateToSettings();
+
+    // Click Proxy Platforms tab
+    await settingsPage.selectProxyPlatformsTab();
+
+    // Click LiteLLM platform button
+    await settingsPage.selectLiteLLMPlatform();
+
+    // Verify URL input is visible
+    await expect(settingsPage.litellmUrlInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+
+    // Verify API key input is visible (optional field)
+    await expect(settingsPage.litellmApiKeyInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+
+    // Verify Test Connection button is visible
+    await expect(settingsPage.litellmTestConnectionButton).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+
+    // Capture LiteLLM selection state
+    await captureForAI(
+      window,
+      'settings-dialog',
+      'litellm-selected',
+      [
+        'LiteLLM platform is selected',
+        'URL input is visible with default value',
+        'Optional API key input is visible',
+        'Test Connection button is visible'
+      ]
+    );
+  });
+
+  test('should allow editing LiteLLM URL', async ({ window }) => {
+    const settingsPage = new SettingsPage(window);
+
+    // Navigate to settings
+    await window.waitForLoadState('domcontentloaded');
+    await settingsPage.navigateToSettings();
+
+    // Click Proxy Platforms tab
+    await settingsPage.selectProxyPlatformsTab();
+
+    // Click LiteLLM platform button
+    await settingsPage.selectLiteLLMPlatform();
+
+    // Clear and enter a custom URL
+    await settingsPage.litellmUrlInput.clear();
+    await settingsPage.litellmUrlInput.fill('http://192.168.1.100:8000');
+
+    // Verify value was entered
+    await expect(settingsPage.litellmUrlInput).toHaveValue('http://192.168.1.100:8000');
+
+    // Capture edited URL state
+    await captureForAI(
+      window,
+      'settings-dialog',
+      'litellm-url-edited',
+      [
+        'LiteLLM URL input accepts custom values',
+        'User can connect to remote LiteLLM instances',
+        'URL field is editable'
+      ]
+    );
+  });
 });
