@@ -525,4 +525,94 @@ test.describe('Execution Page', () => {
       // Follow-up input may not appear in all mock scenarios - that's acceptable
     }
   });
+
+  test('should display question modal with selectable options', async ({ window }) => {
+    const homePage = new HomePage(window);
+    const executionPage = new ExecutionPage(window);
+
+    await window.waitForLoadState('domcontentloaded');
+
+    // Start a task with explicit question keyword
+    await homePage.enterTask(TEST_SCENARIOS.QUESTION.keyword);
+    await homePage.submitTask();
+
+    // Wait for navigation
+    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+
+    // Wait for question modal to appear
+    await executionPage.permissionModal.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.PERMISSION_MODAL });
+
+    // Capture question modal
+    await captureForAI(
+      window,
+      'execution-question',
+      'modal-visible',
+      [
+        'Question modal is displayed',
+        'Question text is shown',
+        'Option buttons are visible',
+        'Submit button is visible but disabled until option selected',
+      ]
+    );
+
+    // Assert modal is visible with options
+    await expect(executionPage.permissionModal).toBeVisible();
+    await expect(executionPage.questionOptions).toHaveCount(3); // Option A, Option B, Other
+
+    // Submit button should be disabled (no option selected yet)
+    await expect(executionPage.allowButton).toBeDisabled();
+    await expect(executionPage.denyButton).toBeVisible();
+  });
+
+  test('should handle question option selection and submit', async ({ window }) => {
+    const homePage = new HomePage(window);
+    const executionPage = new ExecutionPage(window);
+
+    await window.waitForLoadState('domcontentloaded');
+
+    // Start a task with explicit question keyword
+    await homePage.enterTask(TEST_SCENARIOS.QUESTION.keyword);
+    await homePage.submitTask();
+
+    // Wait for navigation
+    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+
+    // Wait for question modal to appear
+    await executionPage.permissionModal.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.PERMISSION_MODAL });
+
+    // Select first option (Option A)
+    await executionPage.selectQuestionOption(0);
+
+    // Capture after selection
+    await captureForAI(
+      window,
+      'execution-question',
+      'option-selected',
+      [
+        'Option A is selected',
+        'Submit button is now enabled',
+        'Selected option is highlighted',
+      ]
+    );
+
+    // Submit button should now be enabled
+    await expect(executionPage.allowButton).toBeEnabled();
+
+    // Click submit
+    await executionPage.allowButton.click();
+
+    // Modal should disappear
+    await expect(executionPage.permissionModal).not.toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+
+    // Capture after submission
+    await captureForAI(
+      window,
+      'execution-question',
+      'after-submit',
+      [
+        'Question modal is dismissed',
+        'Response was submitted successfully',
+      ]
+    );
+  });
 });

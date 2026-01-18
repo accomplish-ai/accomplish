@@ -28,13 +28,29 @@ export interface AuthTokens {
 
 export interface ApiKeyConfig {
   id: string;
-  provider: 'anthropic' | 'aws_bedrock';
+  provider: 'anthropic' | 'openai' | 'google' | 'xai' | 'custom' | 'bedrock';
   label?: string;
   keyPrefix?: string;
   isActive: boolean;
   lastUsedAt?: string;
   createdAt: string;
 }
+
+export interface BedrockAccessKeyCredentials {
+  authType: 'accessKeys';
+  accessKeyId: string;
+  secretAccessKey: string;
+  sessionToken?: string;  // Optional: for temporary credentials (STS)
+  region: string;
+}
+
+export interface BedrockProfileCredentials {
+  authType: 'profile';
+  profileName: string;
+  region: string;
+}
+
+export type BedrockCredentials = BedrockAccessKeyCredentials | BedrockProfileCredentials;
 
 export interface QuotaStatus {
   callsUsed: number;

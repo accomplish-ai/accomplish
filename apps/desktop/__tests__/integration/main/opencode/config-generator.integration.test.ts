@@ -41,9 +41,10 @@ vi.mock('electron', () => ({
   app: mockApp,
 }));
 
-// Mock permission-api module (internal but exports a constant we need)
+// Mock permission-api module (internal but exports constants we need)
 vi.mock('@main/permission-api', () => ({
   PERMISSION_API_PORT: 9999,
+  QUESTION_API_PORT: 9227,
 }));
 
 describe('OpenCode Config Generator Integration', () => {
@@ -271,7 +272,7 @@ describe('OpenCode Config Generator Integration', () => {
       expect(prompt).toContain('request_file_permission');
     });
 
-    it('should include user confirmation guidance', async () => {
+    it('should include user communication guidance', async () => {
       // Act
       const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
@@ -280,7 +281,7 @@ describe('OpenCode Config Generator Integration', () => {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       const prompt = config.agent['accomplish'].prompt;
 
-      expect(prompt).toContain('user-confirmations');
+      expect(prompt).toContain('user-communication');
       expect(prompt).toContain('AskUserQuestion');
     });
   });

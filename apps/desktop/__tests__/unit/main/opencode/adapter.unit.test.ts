@@ -111,6 +111,7 @@ vi.mock('@main/store/secureStorage', () => ({
     anthropic: 'test-anthropic-key',
     openai: 'test-openai-key',
   })),
+  getBedrockCredentials: vi.fn(() => null),
 }));
 
 // Mock app settings
@@ -121,6 +122,7 @@ vi.mock('@main/store/appSettings', () => ({
 // Mock config generator
 vi.mock('@main/opencode/config-generator', () => ({
   generateOpenCodeConfig: vi.fn(() => Promise.resolve('/mock/config/path')),
+  syncApiKeysToOpenCodeAuth: vi.fn(() => Promise.resolve()),
   ACCOMPLISH_AGENT_NAME: 'accomplish',
 }));
 

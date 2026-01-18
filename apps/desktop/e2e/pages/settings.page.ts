@@ -44,6 +44,38 @@ export class SettingsPage {
     return this.page.getByTestId('sidebar-settings-button');
   }
 
+  get bedrockProviderButton() {
+    return this.page.locator('button:has-text("Amazon Bedrock")');
+  }
+
+  get bedrockAccessKeysTab() {
+    return this.page.locator('button:has-text("Access Keys")');
+  }
+
+  get bedrockProfileTab() {
+    return this.page.locator('button:has-text("AWS Profile")');
+  }
+
+  get bedrockAccessKeyInput() {
+    return this.page.getByTestId('bedrock-access-key-input');
+  }
+
+  get bedrockSecretKeyInput() {
+    return this.page.getByTestId('bedrock-secret-key-input');
+  }
+
+  get bedrockProfileInput() {
+    return this.page.getByTestId('bedrock-profile-input');
+  }
+
+  get bedrockRegionInput() {
+    return this.page.getByTestId('bedrock-region-input');
+  }
+
+  get bedrockSaveButton() {
+    return this.page.getByTestId('bedrock-save-button');
+  }
+
   async navigateToSettings() {
     // Click the settings button in sidebar to navigate
     await this.sidebarSettingsButton.click();
@@ -63,5 +95,40 @@ export class SettingsPage {
   async addApiKey(provider: string, key: string) {
     await this.apiKeyInput.fill(key);
     await this.addApiKeyButton.click();
+  }
+
+  /**
+   * Get a provider button by its name
+   */
+  getProviderButton(providerName: string) {
+    return this.page.getByRole('button', { name: providerName, exact: true });
+  }
+
+  /**
+   * Select a provider by clicking its button
+   */
+  async selectProvider(providerName: string) {
+    const button = this.getProviderButton(providerName);
+    await button.click();
+  }
+
+  /**
+   * Check if a provider button is visible
+   */
+  async isProviderVisible(providerName: string) {
+    const button = this.getProviderButton(providerName);
+    return button.isVisible();
+  }
+
+  async selectBedrockProvider() {
+    await this.bedrockProviderButton.click();
+  }
+
+  async selectBedrockAccessKeysTab() {
+    await this.bedrockAccessKeysTab.click();
+  }
+
+  async selectBedrockProfileTab() {
+    await this.bedrockProfileTab.click();
   }
 }

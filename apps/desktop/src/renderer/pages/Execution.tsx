@@ -88,6 +88,9 @@ export default function ExecutionPage() {
   const [debugModeEnabled, setDebugModeEnabled] = useState(false);
   const [debugExported, setDebugExported] = useState(false);
   const debugPanelRef = useRef<HTMLDivElement>(null);
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [customResponse, setCustomResponse] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   const {
     currentTask,
@@ -128,7 +131,8 @@ export default function ExecutionPage() {
     return () => {
       unsubscribeDebugMode?.();
     };
-  }, [accomplish]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - accomplish is a stable singleton wrapper
 
   // Load task and subscribe to events
   useEffect(() => {
@@ -198,7 +202,8 @@ export default function ExecutionPage() {
       unsubscribeStatusChange?.();
       unsubscribeDebugLog();
     };
-  }, [id, loadTaskById, addTaskUpdate, addTaskUpdateBatch, updateTaskStatus, setPermissionRequest, accomplish]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, loadTaskById, addTaskUpdate, addTaskUpdateBatch, updateTaskStatus, setPermissionRequest]); // accomplish is stable singleton
 
   // Increment counter when task starts/resumes
   useEffect(() => {
@@ -267,11 +272,28 @@ export default function ExecutionPage() {
 
   const handlePermissionResponse = async (allowed: boolean) => {
     if (!permissionRequest || !currentTask) return;
+
+    // For questions, handle custom text response
+    const isQuestion = permissionRequest.type === 'question';
+    const hasCustomText = isQuestion && showCustomInput && customResponse.trim();
+
     await respondToPermission({
       requestId: permissionRequest.id,
       taskId: permissionRequest.taskId,
       decision: allowed ? 'allow' : 'deny',
+      selectedOptions: isQuestion ? (hasCustomText ? [] : selectedOptions) : undefined,
+      customText: hasCustomText ? customResponse.trim() : undefined,
     });
+
+    // Reset state for next question
+    setSelectedOptions([]);
+    setCustomResponse('');
+    setShowCustomInput(false);
+
+    // If denied on a question, also interrupt the task
+    if (!allowed && isQuestion) {
+      interruptTask();
+    }
   };
 
   if (error) {
@@ -599,17 +621,22 @@ export default function ExecutionPage() {
                 <div className="flex items-start gap-4">
                   <div className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full shrink-0",
-                    permissionRequest.type === 'file' ? "bg-amber-500/10" : "bg-warning/10"
+                    permissionRequest.type === 'file' ? "bg-amber-500/10" :
+                    permissionRequest.type === 'question' ? "bg-primary/10" : "bg-warning/10"
                   )}>
                     {permissionRequest.type === 'file' ? (
                       <File className="h-5 w-5 text-amber-600" />
+                    ) : permissionRequest.type === 'question' ? (
+                      <Brain className="h-5 w-5 text-primary" />
                     ) : (
                       <AlertCircle className="h-5 w-5 text-warning" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-semibold text-foreground mb-2">
-                      {permissionRequest.type === 'file' ? 'File Permission Required' : 'Permission Required'}
+                      {permissionRequest.type === 'file' ? 'File Permission Required' :
+                       permissionRequest.type === 'question' ? (permissionRequest.header || 'Question') :
+                       'Permission Required'}
                     </h3>
 
                     {/* File permission specific UI */}
@@ -648,11 +675,87 @@ export default function ExecutionPage() {
                       </>
                     )}
 
-                    {/* Standard question/tool UI */}
-                    {permissionRequest.type !== 'file' && (
+                    {/* Question type UI with options */}
+                    {permissionRequest.type === 'question' && (
+                      <>
+                        <p className="text-sm text-foreground mb-4">
+                          {permissionRequest.question}
+                        </p>
+
+                        {/* Options list */}
+                        {!showCustomInput && permissionRequest.options && permissionRequest.options.length > 0 && (
+                          <div className="mb-4 space-y-2">
+                            {permissionRequest.options.map((option, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  // If "Other" is selected, show custom input
+                                  if (option.label.toLowerCase() === 'other') {
+                                    setShowCustomInput(true);
+                                    setSelectedOptions([]);
+                                    return;
+                                  }
+                                  if (permissionRequest.multiSelect) {
+                                    setSelectedOptions((prev) =>
+                                      prev.includes(option.label)
+                                        ? prev.filter((o) => o !== option.label)
+                                        : [...prev, option.label]
+                                    );
+                                  } else {
+                                    setSelectedOptions([option.label]);
+                                  }
+                                }}
+                                className={cn(
+                                  "w-full text-left p-3 rounded-lg border transition-colors",
+                                  selectedOptions.includes(option.label)
+                                    ? "border-primary bg-primary/10"
+                                    : "border-border hover:border-primary/50"
+                                )}
+                              >
+                                <div className="font-medium text-sm">{option.label}</div>
+                                {option.description && (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    {option.description}
+                                  </div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Custom text input */}
+                        {showCustomInput && (
+                          <div className="mb-4 space-y-2">
+                            <Input
+                              autoFocus
+                              value={customResponse}
+                              onChange={(e) => setCustomResponse(e.target.value)}
+                              placeholder="Type your response..."
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && customResponse.trim()) {
+                                  handlePermissionResponse(true);
+                                }
+                              }}
+                            />
+                            <button
+                              onClick={() => {
+                                setShowCustomInput(false);
+                                setCustomResponse('');
+                              }}
+                              className="text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              ← Back to options
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Standard tool UI (non-file, non-question) */}
+                    {permissionRequest.type === 'tool' && (
                       <>
                         <p className="text-sm text-muted-foreground mb-4">
-                          {permissionRequest.question || `Allow ${permissionRequest.toolName}?`}
+                          Allow {permissionRequest.toolName}?
                         </p>
                         {permissionRequest.toolName && (
                           <div className="mb-4 p-3 rounded-lg bg-muted text-xs font-mono overflow-x-auto">
@@ -672,14 +775,20 @@ export default function ExecutionPage() {
                         className="flex-1"
                         data-testid="permission-deny-button"
                       >
-                        Deny
+                        {permissionRequest.type === 'question' ? 'Cancel' : 'Deny'}
                       </Button>
                       <Button
                         onClick={() => handlePermissionResponse(true)}
                         className="flex-1"
                         data-testid="permission-allow-button"
+                        disabled={
+                          permissionRequest.type === 'question' &&
+                          !showCustomInput &&
+                          permissionRequest.options &&
+                          selectedOptions.length === 0
+                        }
                       >
-                        Allow
+                        {permissionRequest.type === 'question' ? 'Submit' : 'Allow'}
                       </Button>
                     </div>
                   </div>

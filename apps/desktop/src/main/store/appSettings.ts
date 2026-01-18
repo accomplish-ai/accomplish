@@ -92,7 +92,7 @@ export function getAppSettings(): AppSettingsSchema {
     debugMode: appSettingsStore.get('debugMode'),
     onboardingComplete: appSettingsStore.get('onboardingComplete'),
     selectedModel: appSettingsStore.get('selectedModel'),
-    ollamaConfig: appSettingsStore.get('ollamaConfig'),
+    ollamaConfig: appSettingsStore.get('ollamaConfig') ?? null,
   };
 }
 

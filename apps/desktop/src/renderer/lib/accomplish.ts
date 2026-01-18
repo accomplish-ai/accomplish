@@ -15,6 +15,7 @@ import type {
   TaskProgress,
   ApiKeyConfig,
   TaskMessage,
+  BedrockCredentials,
 } from '@accomplish/shared';
 
 // Define the API interface
@@ -43,7 +44,7 @@ interface AccomplishAPI {
 
   // Settings
   getApiKeys(): Promise<ApiKeyConfig[]>;
-  addApiKey(provider: 'anthropic' | 'openai' | 'google' | 'xai' | 'custom', key: string, label?: string): Promise<ApiKeyConfig>;
+  addApiKey(provider: 'anthropic' | 'openai' | 'google' | 'xai' | 'deepseek' | 'zai' | 'custom' | 'bedrock', key: string, label?: string): Promise<ApiKeyConfig>;
   removeApiKey(id: string): Promise<void>;
   getDebugMode(): Promise<boolean>;
   setDebugMode(enabled: boolean): Promise<void>;
@@ -82,6 +83,11 @@ interface AccomplishAPI {
   getOllamaConfig(): Promise<{ baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; displayName: string; size: number }> } | null>;
   setOllamaConfig(config: { baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; displayName: string; size: number }> } | null): Promise<void>;
 
+  // Bedrock configuration
+  validateBedrockCredentials(credentials: string): Promise<{ valid: boolean; error?: string }>;
+  saveBedrockCredentials(credentials: string): Promise<ApiKeyConfig>;
+  getBedrockCredentials(): Promise<BedrockCredentials | null>;
+
   // Event subscriptions
   onTaskUpdate(callback: (event: TaskUpdateEvent) => void): () => void;
   onTaskUpdateBatch?(callback: (event: { taskId: string; messages: TaskMessage[] }) => void): () => void;
@@ -114,11 +120,25 @@ declare global {
  * Get the accomplish API
  * Throws if not running in Electron
  */
-export function getAccomplish(): AccomplishAPI {
+export function getAccomplish() {
   if (!window.accomplish) {
     throw new Error('Accomplish API not available - not running in Electron');
   }
-  return window.accomplish;
+  return {
+    ...window.accomplish,
+
+    validateBedrockCredentials: async (credentials: BedrockCredentials): Promise<{ valid: boolean; error?: string }> => {
+      return window.accomplish!.validateBedrockCredentials(JSON.stringify(credentials));
+    },
+
+    saveBedrockCredentials: async (credentials: BedrockCredentials): Promise<ApiKeyConfig> => {
+      return window.accomplish!.saveBedrockCredentials(JSON.stringify(credentials));
+    },
+
+    getBedrockCredentials: async (): Promise<BedrockCredentials | null> => {
+      return window.accomplish!.getBedrockCredentials();
+    },
+  };
 }
 
 /**

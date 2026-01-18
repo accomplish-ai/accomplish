@@ -8,9 +8,9 @@ import {
   isOpenCodeBundled,
   getBundledOpenCodeVersion,
 } from './cli-path';
-import { getAllApiKeys } from '../store/secureStorage';
+import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
 import { getSelectedModel } from '../store/appSettings';
-import { generateOpenCodeConfig, ACCOMPLISH_AGENT_NAME } from './config-generator';
+import { generateOpenCodeConfig, ACCOMPLISH_AGENT_NAME, syncApiKeysToOpenCodeAuth } from './config-generator';
 import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo } from '../utils/bundled-node';
 import path from 'path';
@@ -103,6 +103,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.streamParser.reset();
     this.hasCompleted = false;
     this.wasInterrupted = false;
+
+    // Sync API keys to OpenCode CLI's auth.json (for DeepSeek, Z.AI support)
+    await syncApiKeysToOpenCodeAuth();
 
     // Generate OpenCode config file with MCP settings and agent
     console.log('[OpenCode CLI] Generating OpenCode config with MCP settings and agent...');
@@ -377,6 +380,34 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       env.XAI_API_KEY = apiKeys.xai;
       console.log('[OpenCode CLI] Using xAI API key from settings');
     }
+    if (apiKeys.deepseek) {
+      env.DEEPSEEK_API_KEY = apiKeys.deepseek;
+      console.log('[OpenCode CLI] Using DeepSeek API key from settings');
+    }
+    if (apiKeys.zai) {
+      env.ZAI_API_KEY = apiKeys.zai;
+      console.log('[OpenCode CLI] Using Z.AI API key from settings');
+    }
+
+    // Set Bedrock credentials if configured
+    const bedrockCredentials = getBedrockCredentials();
+    if (bedrockCredentials) {
+      if (bedrockCredentials.authType === 'accessKeys') {
+        env.AWS_ACCESS_KEY_ID = bedrockCredentials.accessKeyId;
+        env.AWS_SECRET_ACCESS_KEY = bedrockCredentials.secretAccessKey;
+        if (bedrockCredentials.sessionToken) {
+          env.AWS_SESSION_TOKEN = bedrockCredentials.sessionToken;
+        }
+        console.log('[OpenCode CLI] Using Bedrock Access Key credentials');
+      } else if (bedrockCredentials.authType === 'profile') {
+        env.AWS_PROFILE = bedrockCredentials.profileName;
+        console.log('[OpenCode CLI] Using Bedrock AWS Profile:', bedrockCredentials.profileName);
+      }
+      if (bedrockCredentials.region) {
+        env.AWS_REGION = bedrockCredentials.region;
+        console.log('[OpenCode CLI] Using Bedrock region:', bedrockCredentials.region);
+      }
+    }
 
     // Set Ollama host if configured
     const selectedModel = getSelectedModel();
@@ -416,7 +447,17 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     // Add model selection if specified
     if (selectedModel?.model) {
-      args.push('--model', selectedModel.model);
+      if (selectedModel.provider === 'zai') {
+        // Z.AI Coding Plan uses 'zai-coding-plan' provider in OpenCode CLI
+        const modelId = selectedModel.model.split('/').pop();
+        args.push('--model', `zai-coding-plan/${modelId}`);
+      } else if (selectedModel.provider === 'deepseek') {
+        // DeepSeek uses 'deepseek' provider in OpenCode CLI
+        const modelId = selectedModel.model.split('/').pop();
+        args.push('--model', `deepseek/${modelId}`);
+      } else {
+        args.push('--model', selectedModel.model);
+      }
     }
 
     // Resume session if specified

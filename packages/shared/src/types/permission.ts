@@ -15,6 +15,8 @@ export interface PermissionRequest {
   toolInput?: unknown;
   /** Question text if type is 'question', or description for 'file' */
   question?: string;
+  /** Short header/title for the question */
+  header?: string;
   /** Available options for selection */
   options?: PermissionOption[];
   /** Allow multiple selections */
@@ -46,4 +48,6 @@ export interface PermissionResponse {
   message?: string;
   /** Selected options for questions */
   selectedOptions?: string[];
+  /** Custom text response for "Other" option */
+  customText?: string;
 }
