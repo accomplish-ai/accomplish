@@ -431,7 +431,9 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
 
     try {
       // Validate connection first (like other providers validate API keys)
-      const result = await accomplish.validateApiKeyForProvider('azure-foundry', azureFoundryApiKey, {
+      const apiKeyForValidation =
+        azureFoundryAuthType === 'api-key' ? azureFoundryApiKey : '';
+      const result = await accomplish.validateApiKeyForProvider('azure-foundry', apiKeyForValidation, {
         baseUrl: azureFoundryUrl,
         deploymentName: azureFoundryDeployment,
         authType: azureFoundryAuthType

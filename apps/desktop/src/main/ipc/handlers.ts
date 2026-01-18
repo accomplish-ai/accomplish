@@ -819,12 +819,12 @@ export function registerIPCHandlers(): void {
 
     // Special handling for Azure Foundry with Entra ID - skip strict key validation
     let sanitizedKey = '';
-    const isEntraId = provider === 'azure-foundry' && (
+    const isUsingEntraIdAuth = provider === 'azure-foundry' && (
       options?.authType === 'entra-id' || 
       (!options && getAzureFoundryConfig()?.authType === 'entra-id')
     );
 
-    if (!isEntraId) {
+    if (!isUsingEntraIdAuth) {
       try {
         sanitizedKey = sanitizeString(key, 'apiKey', 256);
       } catch (e) {
@@ -966,11 +966,15 @@ export function registerIPCHandlers(): void {
           };
 
           if (authType === 'entra-id') {
+             if (!entraToken) {
+               return { valid: false, error: 'Missing Entra ID access token for Azure Foundry validation request' };
+             }
              headers['Authorization'] = `Bearer ${entraToken}`;
           } else {
              headers['api-key'] = sanitizedKey;
           }
 
+          // Try max_completion_tokens first (newer models like GPT-4o, GPT-5)
           response = await fetchWithTimeout(
             testUrl,
             {
@@ -978,11 +982,38 @@ export function registerIPCHandlers(): void {
               headers,
               body: JSON.stringify({
                 messages: [{ role: 'user', content: 'test' }],
-                max_tokens: 1
+                max_completion_tokens: 5
               }),
             },
             API_KEY_VALIDATION_TIMEOUT_MS
           );
+
+          // If max_completion_tokens not supported, try max_tokens (older models)
+          if (!response.ok) {
+            const firstErrorData = await response.json().catch(() => ({}));
+            const firstErrorMessage = (firstErrorData as { error?: { message?: string } })?.error?.message || '';
+            console.log('[Azure Foundry] First attempt failed:', firstErrorMessage);
+            
+            if (firstErrorMessage.includes('max_completion_tokens')) {
+              console.log('[Azure Foundry] Retrying with max_tokens for older model');
+              response = await fetchWithTimeout(
+                testUrl,
+                {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify({
+                    messages: [{ role: 'user', content: 'test' }],
+                    max_tokens: 5
+                  }),
+                },
+                API_KEY_VALIDATION_TIMEOUT_MS
+              );
+            } else {
+              // Return the error from the first attempt
+              console.warn(`[API Key] Validation failed for ${provider}`, { status: response.status, error: firstErrorMessage });
+              return { valid: false, error: firstErrorMessage || `API returned status ${response.status}` };
+            }
+          }
           break;
 
         default:

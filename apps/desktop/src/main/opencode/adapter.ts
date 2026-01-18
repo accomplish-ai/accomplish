@@ -121,7 +121,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       } catch (error) {
         console.error('[OpenCode CLI] Failed to get Azure Entra ID token:', error);
         const baseMessage =
-          'Failed to get Azure Entra ID token. Possible causes include not being logged into Azure (e.g., via "az login"), missing Azure CLI, insufficient Azure permissions, or network issues.';
+          'Failed to get Azure Entra ID token. Possible causes include not being logged into Azure (e.g., run `az login`), missing Azure CLI, insufficient Azure permissions, or network issues.';
         if (error instanceof Error && error.message) {
           throw new Error(`${baseMessage} Underlying error: ${error.message}`);
         }
