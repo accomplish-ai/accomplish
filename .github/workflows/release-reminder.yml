@@ -1,0 +1,153 @@
+name: Release Reminder
+
+on:
+  schedule:
+    # 10am Israel time (covers DST)
+    - cron: '0 7 * * *'   # Summer (UTC+3)
+    - cron: '0 8 * * *'   # Winter (UTC+2)
+    # 7pm Israel time (covers DST)
+    - cron: '0 16 * * *'  # Summer (UTC+3)
+    - cron: '0 17 * * *'  # Winter (UTC+2)
+  workflow_dispatch: # Allow manual trigger for testing
+
+jobs:
+  notify:
+    name: Send Release Reminder
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for tags and commits
+
+      - name: Check for unreleased commits
+        id: check
+        run: |
+          # Get latest release tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No tags found, using first commit"
+            LATEST_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+
+          echo "Latest tag: $LATEST_TAG"
+
+          # Count commits since tag
+          COMMIT_COUNT=$(git rev-list --count $LATEST_TAG..HEAD)
+          echo "Commits since $LATEST_TAG: $COMMIT_COUNT"
+
+          if [ "$COMMIT_COUNT" -eq 0 ]; then
+            echo "No new commits, skipping notification"
+            echo "has_commits=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_commits=true" >> $GITHUB_OUTPUT
+            echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+            echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Calculate versions and format message
+        if: steps.check.outputs.has_commits == 'true'
+        id: format
+        run: |
+          LATEST_TAG="${{ steps.check.outputs.latest_tag }}"
+
+          # Extract version number (remove 'v' prefix if present)
+          VERSION="${LATEST_TAG#v}"
+
+          # Parse version components
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          # Handle case where version parsing fails (e.g., first commit SHA)
+          if ! [[ "$MAJOR" =~ ^[0-9]+$ ]]; then
+            MAJOR=0
+            MINOR=0
+            PATCH=0
+            VERSION="0.0.0"
+          fi
+
+          # Calculate next versions
+          PATCH_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+          MINOR_VERSION="${MAJOR}.$((MINOR + 1)).0"
+          MAJOR_VERSION="$((MAJOR + 1)).0.0"
+
+          echo "Current: $VERSION"
+          echo "Next patch: $PATCH_VERSION"
+          echo "Next minor: $MINOR_VERSION"
+          echo "Next major: $MAJOR_VERSION"
+
+          # Get commits (limit to 10, show short SHA and message)
+          COMMITS=$(git log $LATEST_TAG..HEAD --pretty=format:'• \`%h\` %s' | head -10)
+          COMMIT_COUNT="${{ steps.check.outputs.commit_count }}"
+
+          # Add "and N more" if there are more than 10
+          if [ "$COMMIT_COUNT" -gt 10 ]; then
+            EXTRA=$((COMMIT_COUNT - 10))
+            COMMITS="$COMMITS
+          _...and $EXTRA more commits_"
+          fi
+
+          # Store for next step
+          echo "patch_version=$PATCH_VERSION" >> $GITHUB_OUTPUT
+          echo "minor_version=$MINOR_VERSION" >> $GITHUB_OUTPUT
+          echo "major_version=$MAJOR_VERSION" >> $GITHUB_OUTPUT
+          echo "current_version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Store commits in a file (multiline handling)
+          echo "$COMMITS" > /tmp/commits.txt
+
+      - name: Send Slack notification
+        if: steps.check.outputs.has_commits == 'true'
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_RELEASE_WEBHOOK_URL }}
+        run: |
+          # Validate secret is configured
+          if [ -z "$SLACK_WEBHOOK" ]; then
+            echo "Error: SLACK_RELEASE_WEBHOOK_URL secret is not configured"
+            exit 1
+          fi
+
+          COMMITS=$(cat /tmp/commits.txt)
+          COMMIT_COUNT="${{ steps.check.outputs.commit_count }}"
+          CURRENT="${{ steps.format.outputs.current_version }}"
+          PATCH="${{ steps.format.outputs.patch_version }}"
+          MINOR="${{ steps.format.outputs.minor_version }}"
+          MAJOR="${{ steps.format.outputs.major_version }}"
+
+          WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/workflows/release.yml"
+
+          # Build payload safely using jq to handle special characters in commit messages
+          PAYLOAD=$(jq -n \
+            --arg commit_count "$COMMIT_COUNT" \
+            --arg current "$CURRENT" \
+            --arg commits "$COMMITS" \
+            --arg patch "$PATCH" \
+            --arg minor "$MINOR" \
+            --arg major "$MAJOR" \
+            --arg workflow_url "$WORKFLOW_URL" \
+            '{
+              blocks: [
+                {
+                  type: "header",
+                  text: { type: "plain_text", text: "📦 Release Reminder - Openwork", emoji: true }
+                },
+                {
+                  type: "section",
+                  text: { type: "mrkdwn", text: "*\($commit_count) commits since v\($current):*\n\n\($commits)" }
+                },
+                { type: "divider" },
+                {
+                  type: "actions",
+                  elements: [
+                    { type: "button", text: { type: "plain_text", text: "🔧 Patch → \($patch)", emoji: true }, url: $workflow_url },
+                    { type: "button", text: { type: "plain_text", text: "✨ Minor → \($minor)", emoji: true }, url: $workflow_url },
+                    { type: "button", text: { type: "plain_text", text: "🚀 Major → \($major)", emoji: true }, url: $workflow_url }
+                  ]
+                }
+              ]
+            }')
+
+          # Send to Slack with error handling
+          curl -f -X POST -H 'Content-type: application/json' \
+            --data "$PAYLOAD" \
+            "$SLACK_WEBHOOK" || { echo "Failed to send Slack notification"; exit 1; }
