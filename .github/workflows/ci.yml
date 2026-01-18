@@ -110,9 +110,13 @@ jobs:
 
   # E2E tests (runs on macOS for Electron support)
   e2e-tests:
-    name: E2E Tests
-    runs-on: macos-latest
-    timeout-minutes: 20
+    name: E2E Tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
@@ -147,7 +151,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e2e-test-results
+          name: e2e-test-results-${{ matrix.os }}
           path: |
             apps/desktop/e2e/test-results/
             apps/desktop/e2e/html-report/
@@ -158,6 +162,6 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e2e-screenshots
+          name: e2e-screenshots-${{ matrix.os }}
           path: apps/desktop/e2e/test-results/screenshots/
           retention-days: 7
