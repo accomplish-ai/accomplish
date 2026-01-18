@@ -24,6 +24,7 @@ interface SettingsDialogProps {
 const API_KEY_PROVIDERS = [
   { id: 'anthropic', name: 'Anthropic', prefix: 'sk-ant-', placeholder: 'sk-ant-...' },
   { id: 'openai', name: 'OpenAI', prefix: 'sk-', placeholder: 'sk-...' },
+  { id: 'openrouter', name: 'OpenRouter', prefix: 'sk-or-', placeholder: 'sk-or-...' },
   { id: 'google', name: 'Google AI', prefix: 'AIza', placeholder: 'AIza...' },
   { id: 'xai', name: 'xAI (Grok)', prefix: 'xai-', placeholder: 'xai-...' },
   { id: 'deepseek', name: 'DeepSeek', prefix: 'sk-', placeholder: 'sk-...' },
@@ -713,6 +714,11 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                       placeholder={API_KEY_PROVIDERS.find((p) => p.id === provider)?.placeholder}
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     />
+                    {provider === 'openrouter' && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Uses the OpenAI-compatible endpoint at <span className="font-mono">https://openrouter.ai/api/v1</span>. Select an OpenAI model below.
+                      </p>
+                    )}
                   </div>
                 )}
 

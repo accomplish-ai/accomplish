@@ -76,7 +76,7 @@ import {
 } from '../test-utils/mock-task-flow';
 
 const MAX_TEXT_LENGTH = 8000;
-const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'google', 'xai', 'deepseek', 'zai', 'custom', 'bedrock']);
+const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai', 'custom', 'bedrock']);
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
 
 interface OllamaModel {
@@ -825,6 +825,19 @@ export function registerIPCHandlers(): void {
         case 'openai':
           response = await fetchWithTimeout(
             'https://api.openai.com/v1/models',
+            {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${sanitizedKey}`,
+              },
+            },
+            API_KEY_VALIDATION_TIMEOUT_MS
+          );
+          break;
+
+        case 'openrouter':
+          response = await fetchWithTimeout(
+            'https://openrouter.ai/api/v1/models',
             {
               method: 'GET',
               headers: {

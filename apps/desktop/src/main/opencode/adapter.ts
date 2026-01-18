@@ -371,6 +371,13 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     if (apiKeys.openai) {
       env.OPENAI_API_KEY = apiKeys.openai;
       console.log('[OpenCode CLI] Using OpenAI API key from settings');
+    } else if (apiKeys.openrouter) {
+      // OpenRouter uses an OpenAI-compatible API.
+      // When no OpenAI key is configured, treat OpenRouter as the OpenAI provider with a different base URL.
+      env.OPENAI_API_KEY = apiKeys.openrouter;
+      env.OPENAI_BASE_URL = 'https://openrouter.ai/api/v1';
+      console.log('[OpenCode CLI] Using OpenRouter API key via OPENAI_API_KEY');
+      console.log('[OpenCode CLI] Using OpenRouter base URL via OPENAI_BASE_URL');
     }
     if (apiKeys.google) {
       env.GOOGLE_GENERATIVE_AI_API_KEY = apiKeys.google;
@@ -770,4 +777,3 @@ export function getOpenCodeAdapter(): OpenCodeAdapter {
   }
   return adapterInstance;
 }
-
