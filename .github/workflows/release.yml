@@ -3,26 +3,84 @@ name: Release Desktop App
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version to release (e.g., 1.0.0)'
+      bump_type:
+        description: 'Version bump type'
         required: true
-        type: string
-      sign_mac:
-        description: 'Sign and notarize macOS build'
-        required: false
-        type: boolean
-        default: false
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
 
 jobs:
-  build-mac-arm64:
-    name: Build macOS (Apple Silicon)
-    runs-on: macos-14  # Apple Silicon runner
+  version-bump:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.bump.outputs.new_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Calculate new version
+        id: bump
+        run: |
+          # Read current version from package.json
+          CURRENT_VERSION=$(node -p "require('./apps/desktop/package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+
+          # Parse version components
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          # Bump based on type
+          case "${{ inputs.bump_type }}" in
+            major)
+              NEW_VERSION="$((MAJOR + 1)).0.0"
+              ;;
+            minor)
+              NEW_VERSION="${MAJOR}.$((MINOR + 1)).0"
+              ;;
+            patch)
+              NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+              ;;
+          esac
+
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update package.json version
+        run: |
+          cd apps/desktop
+          npm version ${{ steps.bump.outputs.new_version }} --no-git-tag-version
+
+      - name: Commit and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add apps/desktop/package.json
+          git commit -m "chore(release): bump version to ${{ steps.bump.outputs.new_version }}"
+          git tag "v${{ steps.bump.outputs.new_version }}"
+          git push origin HEAD:main --tags
+
+  build-mac-arm64:
+    name: Build macOS (Apple Silicon)
+    needs: version-bump
+    runs-on: macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.version-bump.outputs.new_version }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -44,29 +102,10 @@ jobs:
       - name: Download Node.js binaries
         run: pnpm -F @accomplish/desktop download:nodejs
 
-      - name: Import macOS certificates
-        if: inputs.sign_mac == true
-        uses: apple-actions/import-codesign-certs@v2
-        with:
-          p12-file-base64: ${{ secrets.MAC_CERTIFICATES_P12 }}
-          p12-password: ${{ secrets.MAC_CERTIFICATES_PASSWORD }}
-
       - name: Build desktop app
         run: pnpm -F @accomplish/desktop build
 
-      - name: Package (signed)
-        if: inputs.sign_mac == true
-        run: node scripts/package.cjs --mac --arm64 --publish never
-        working-directory: apps/desktop
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          PYTHON: python
-
       - name: Package (unsigned)
-        if: inputs.sign_mac != true
         run: node scripts/package.cjs --mac --arm64 --publish never
         working-directory: apps/desktop
         env:
@@ -77,59 +116,94 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Accomplish-macOS-arm64
+          name: Openwork-macOS-arm64
           path: |
             apps/desktop/release/*-arm64.dmg
             apps/desktop/release/*-arm64.zip
           retention-days: 30
 
-  create-release:
-    name: Create GitHub Release
-    needs: [build-mac-arm64]
-    runs-on: ubuntu-latest
-
+  build-mac-x64:
+    name: Build macOS (Intel)
+    needs: version-bump
+    runs-on: macos-13
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.version-bump.outputs.new_version }}
 
-      - name: Download macOS arm64 artifacts
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download Node.js binaries
+        run: pnpm -F @accomplish/desktop download:nodejs
+
+      - name: Build desktop app
+        run: pnpm -F @accomplish/desktop build
+
+      - name: Package (unsigned)
+        run: node scripts/package.cjs --mac --x64 --publish never
+        working-directory: apps/desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHON: python
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Openwork-macOS-x64
+          path: |
+            apps/desktop/release/*-x64.dmg
+            apps/desktop/release/*-x64.zip
+          retention-days: 30
+
+  create-release:
+    name: Create GitHub Release
+    needs: [version-bump, build-mac-arm64, build-mac-x64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.version-bump.outputs.new_version }}
+
+      - name: Download macOS ARM64 artifacts
         uses: actions/download-artifact@v4
         with:
-          name: Accomplish-macOS-arm64
-          path: ./release/mac
-        continue-on-error: true
+          name: Openwork-macOS-arm64
+          path: ./release/arm64
 
-      - name: Get version from tag
-        id: version
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-          fi
+      - name: Download macOS x64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Openwork-macOS-x64
+          path: ./release/x64
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: Accomplish v${{ steps.version.outputs.version }}
+          tag_name: v${{ needs.version-bump.outputs.new_version }}
+          name: Openwork v${{ needs.version-bump.outputs.new_version }}
           draft: true
           prerelease: false
+          generate_release_notes: true
           files: |
-            ./release/mac/*
-          body: |
-            ## Accomplish v${{ steps.version.outputs.version }}
-
-            ### Downloads
-            - **macOS (Apple Silicon)**: `Accomplish-*-mac-arm64.dmg`
-
-            ### Installation
-            1. Download the appropriate installer for your Mac
-            2. Open the DMG and drag Accomplish to Applications
-            3. Launch Accomplish
-            4. Enter your API key to get started
-
-            ### What's Included
-            - Bundled Node.js v20.18.1 runtime (no system Node.js required)
+            ./release/arm64/*
+            ./release/x64/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
