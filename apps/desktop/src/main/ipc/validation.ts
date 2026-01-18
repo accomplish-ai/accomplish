@@ -17,6 +17,7 @@ export const permissionResponseSchema = z.object({
   decision: z.enum(['allow', 'deny']),
   message: z.string().optional(),
   selectedOptions: z.array(z.string()).optional(),
+  customText: z.string().optional(),
 });
 
 export const resumeSessionSchema = z.object({

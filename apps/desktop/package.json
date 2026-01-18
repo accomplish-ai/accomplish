@@ -6,10 +6,10 @@
   "description": "Accomplish Desktop App",
   "main": "dist-electron/main/index.js",
   "scripts": {
-    "postinstall": "electron-rebuild && npm --prefix skills/dev-browser install && npm --prefix skills/file-permission install",
+    "postinstall": "electron-rebuild && npm --prefix skills/dev-browser install && npm --prefix skills/file-permission install && npm --prefix skills/ask-user-question install",
     "dev": "node scripts/patch-electron-name.cjs && rm -rf dist-electron && vite",
     "dev:clean": "CLEAN_START=1 vite",
-    "build": "tsc && vite build && npm --prefix skills/dev-browser install --omit=dev && npm --prefix skills/file-permission install --omit=dev",
+    "build": "tsc && vite build && npm --prefix skills/dev-browser install --omit=dev && npm --prefix skills/file-permission install --omit=dev && npm --prefix skills/ask-user-question install --omit=dev",
     "build:electron": "tsc && vite build && node scripts/package.cjs",
     "build:unpack": "tsc && vite build && node scripts/package.cjs --dir",
     "package": "pnpm build && node scripts/package.cjs --mac --publish never",

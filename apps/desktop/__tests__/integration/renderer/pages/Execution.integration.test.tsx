@@ -995,7 +995,7 @@ describe('Execution Page Integration', () => {
       expect(screen.getByText('MOVE')).toBeInTheDocument();
     });
 
-    it('should show question in tool permission dialog when provided', () => {
+    it('should show tool name in tool permission dialog', () => {
       // Arrange
       mockStoreState.currentTask = createMockTask('task-123', 'Task', 'running');
       mockStoreState.permissionRequest = {
@@ -1003,15 +1003,14 @@ describe('Execution Page Integration', () => {
         taskId: 'task-123',
         type: 'tool',
         toolName: 'Bash',
-        question: 'Allow execution of rm command?',
         createdAt: new Date().toISOString(),
       };
 
       // Act
       renderWithRouter('task-123');
 
-      // Assert
-      expect(screen.getByText('Allow execution of rm command?')).toBeInTheDocument();
+      // Assert - Tool permission UI shows "Allow {toolName}?"
+      expect(screen.getByText('Allow Bash?')).toBeInTheDocument();
     });
   });
 

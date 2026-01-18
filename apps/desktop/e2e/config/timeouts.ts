@@ -50,6 +50,10 @@ export const TEST_SCENARIOS = {
     keyword: '__e2e_interrupt__',
     description: 'Task is interrupted by user',
   },
+  QUESTION: {
+    keyword: '__e2e_question__',
+    description: 'Task requires user question/choice',
+  },
 } as const;
 
 export type TestScenario = keyof typeof TEST_SCENARIOS;

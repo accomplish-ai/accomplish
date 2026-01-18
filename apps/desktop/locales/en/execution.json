@@ -39,9 +39,12 @@
   "permission": {
     "title": "Permission Required",
     "fileTitle": "File Permission Required",
-    "question": "Allow {{toolName}}?",
+    "questionTitle": "Question",
+    "toolQuestion": "Allow {{toolName}}?",
     "tool": "Tool",
     "previewContent": "Preview content",
+    "backToOptions": "← Back to options",
+    "typeResponse": "Type your response...",
     "operations": {
       "delete": "DELETE",
       "overwrite": "OVERWRITE",

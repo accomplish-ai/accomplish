@@ -39,9 +39,12 @@
   "permission": {
     "title": "需要权限",
     "fileTitle": "需要文件权限",
-    "question": "允许 {{toolName}}？",
+    "questionTitle": "问题",
+    "toolQuestion": "允许 {{toolName}}？",
     "tool": "工具",
     "previewContent": "预览内容",
+    "backToOptions": "← 返回选项",
+    "typeResponse": "输入您的回复...",
     "operations": {
       "delete": "删除",
       "overwrite": "覆盖",

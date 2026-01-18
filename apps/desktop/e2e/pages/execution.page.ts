@@ -36,6 +36,26 @@ export class ExecutionPage {
     return this.page.getByTestId('permission-deny-button');
   }
 
+  /** Get all question option buttons inside the permission modal */
+  get questionOptions() {
+    return this.permissionModal.locator('button').filter({ hasText: /Option|Other/ });
+  }
+
+  /** Get the custom response text input (visible when "Other" is selected) */
+  get customResponseInput() {
+    return this.page.getByPlaceholder('Type your response...');
+  }
+
+  /** Get the "Back to options" button (visible in custom input mode) */
+  get backToOptionsButton() {
+    return this.page.getByText('← Back to options');
+  }
+
+  /** Select a question option by index (0-based) */
+  async selectQuestionOption(index: number) {
+    await this.questionOptions.nth(index).click();
+  }
+
   async waitForComplete() {
     // Wait for status badge to show a completed state (not running)
     await this.page.waitForFunction(
