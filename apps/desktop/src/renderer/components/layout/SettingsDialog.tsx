@@ -720,19 +720,46 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                   {selectedProxyPlatform === 'openrouter' && (
                     <>
                       {!hasOpenRouterKey ? (
-                        <div className="rounded-lg bg-muted p-4">
-                          <p className="text-sm text-muted-foreground mb-3">
-                            Add an OpenRouter API key in the Cloud Providers section to use this feature.
+                        <div className="space-y-4">
+                          <p className="text-sm text-muted-foreground">
+                            Enter your OpenRouter API key to access 200+ models from multiple providers.
                           </p>
+                          <div>
+                            <label className="mb-2 block text-sm font-medium text-foreground">
+                              OpenRouter API Key
+                            </label>
+                            <input
+                              type="password"
+                              value={openrouterApiKey}
+                              onChange={(e) => {
+                                setOpenrouterApiKey(e.target.value);
+                                setOpenrouterApiKeyError(null);
+                              }}
+                              placeholder="sk-or-..."
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            />
+                          </div>
+                          {openrouterApiKeyError && (
+                            <p className="text-sm text-destructive">{openrouterApiKeyError}</p>
+                          )}
                           <button
-                            onClick={() => {
-                              setActiveTab('cloud');
-                              setProvider('openrouter');
-                            }}
-                            className="text-sm text-primary hover:underline"
+                            onClick={handleSaveOpenRouterApiKey}
+                            disabled={savingOpenrouterApiKey || !openrouterApiKey.trim()}
+                            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                           >
-                            Add OpenRouter API Key
+                            {savingOpenrouterApiKey ? 'Validating...' : 'Save API Key & Fetch Models'}
                           </button>
+                          <p className="text-xs text-muted-foreground">
+                            Get your API key at{' '}
+                            <a
+                              href="https://openrouter.ai/keys"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              openrouter.ai/keys
+                            </a>
+                          </p>
                         </div>
                       ) : (
                         <>
