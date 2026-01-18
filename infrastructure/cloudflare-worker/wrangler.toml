@@ -1,8 +1,10 @@
 name = "openwork-release-bot"
 main = "release-bot.js"
 compatibility_date = "2024-01-01"
-account_id = "ab43a89c284963fce47460305a945611"  # Accomplish account
+
+# Account ID is passed via environment variable:
+# CLOUDFLARE_ACCOUNT_ID=xxx wrangler deploy
 
 # Secrets are added via CLI:
-# wrangler secret put SLACK_SIGNING_SECRET
-# wrangler secret put GITHUB_TOKEN
+# CLOUDFLARE_ACCOUNT_ID=xxx wrangler secret put SLACK_SIGNING_SECRET
+# CLOUDFLARE_ACCOUNT_ID=xxx wrangler secret put GITHUB_TOKEN

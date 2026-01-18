@@ -30,9 +30,17 @@ Receives Slack button clicks and triggers GitHub release workflow.
    wrangler login
    ```
 
-3. **Add secrets:**
+3. **Get your Cloudflare Account ID:**
+   - Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - Select your account
+   - Copy the Account ID from the URL or sidebar
+
+4. **Add secrets:**
    ```bash
    cd infrastructure/cloudflare-worker
+
+   # Set your account ID (required for all wrangler commands)
+   export CLOUDFLARE_ACCOUNT_ID=your_account_id_here
 
    # Slack signing secret (from Slack App → Basic Information → Signing Secret)
    wrangler secret put SLACK_SIGNING_SECRET
@@ -41,17 +49,17 @@ Receives Slack button clicks and triggers GitHub release workflow.
    wrangler secret put GITHUB_TOKEN
    ```
 
-4. **Deploy:**
+5. **Deploy:**
    ```bash
-   wrangler deploy
+   CLOUDFLARE_ACCOUNT_ID=your_account_id wrangler deploy
    ```
 
-5. **Note the Worker URL** from the output, e.g.:
+6. **Note the Worker URL** from the output, e.g.:
    ```
    https://openwork-release-bot.<your-subdomain>.workers.dev
    ```
 
-6. **Configure Slack App:**
+7. **Configure Slack App:**
    - Go to your Slack App → Interactivity & Shortcuts
    - Toggle ON "Interactivity"
    - Set Request URL to your Worker URL
@@ -75,7 +83,7 @@ You should see:
 
 **Logs:**
 ```bash
-wrangler tail
+CLOUDFLARE_ACCOUNT_ID=your_account_id wrangler tail
 ```
 
 ## Security
