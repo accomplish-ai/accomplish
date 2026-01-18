@@ -7,7 +7,7 @@
  */
 
 import { OpenCodeAdapter, isOpenCodeCliInstalled, OpenCodeCliNotFoundError } from './adapter';
-import { OpenCodeServerAdapter, isOpenCodeServerAvailable, OpenCodeServerError } from './server-adapter';
+import { OpenCodeServerAdapter, isOpenCodeServerAvailable } from './server-adapter';
 import { getSkillsPath } from './config-generator';
 import { getNpxPath, getBundledNodePaths } from '../utils/bundled-node';
 import { getStreamingMode } from '../store/appSettings';

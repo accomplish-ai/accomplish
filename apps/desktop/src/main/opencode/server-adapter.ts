@@ -318,27 +318,25 @@ export class OpenCodeServerAdapter extends EventEmitter<OpenCodeServerAdapterEve
   }
 
   /**
-   * Find an available port
+   * Find an available port using Node's net module
    */
   private async findAvailablePort(): Promise<number> {
-    // Start with a random port in the range 40000-50000
-    const basePort = 40000 + Math.floor(Math.random() * 10000);
+    const net = await import('net');
 
-    // Try to find an available port
-    for (let port = basePort; port < basePort + 100; port++) {
-      try {
-        const response = await fetch(`http://localhost:${port}/health`, {
-          method: 'GET',
-          signal: AbortSignal.timeout(100),
+    return new Promise((resolve) => {
+      const server = net.createServer();
+      server.listen(0, '127.0.0.1', () => {
+        const address = server.address();
+        const port = typeof address === 'object' && address ? address.port : 40000;
+        server.close(() => {
+          resolve(port);
         });
-        // Port is in use
-      } catch {
-        // Port is likely available
-        return port;
-      }
-    }
-
-    return basePort; // Fallback
+      });
+      server.on('error', () => {
+        // Fallback to random port in range
+        resolve(40000 + Math.floor(Math.random() * 10000));
+      });
+    });
   }
 
   /**
@@ -424,10 +422,10 @@ export class OpenCodeServerAdapter extends EventEmitter<OpenCodeServerAdapterEve
         modelId = `ollama/${ollamaModelName}`;
         console.log('[OpenCode Server] Ollama model ID:', modelId);
       } else if (selectedModel.provider === 'zai') {
-        const id = selectedModel.model.split('/').pop();
+        const id = selectedModel.model.split('/').pop() || selectedModel.model;
         modelId = `zai-coding-plan/${id}`;
       } else if (selectedModel.provider === 'deepseek') {
-        const id = selectedModel.model.split('/').pop();
+        const id = selectedModel.model.split('/').pop() || selectedModel.model;
         modelId = `deepseek/${id}`;
       }
 
@@ -790,7 +788,8 @@ export class OpenCodeServerAdapter extends EventEmitter<OpenCodeServerAdapterEve
         currentEvent.type = line.slice(6).trim();
       } else if (line.startsWith('data:')) {
         const data = line.slice(5).trim();
-        currentEvent.data = currentEvent.data ? currentEvent.data + data : data;
+        // Per SSE spec, multiple data lines should be joined with newlines
+        currentEvent.data = currentEvent.data !== undefined ? currentEvent.data + '\n' + data : data;
       }
     }
 

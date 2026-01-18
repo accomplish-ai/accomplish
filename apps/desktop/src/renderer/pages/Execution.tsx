@@ -1027,4 +1027,25 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
       </div>
     </motion.div>
   );
-}, (prev, next) => prev.message.id === next.message.id && prev.message.content === next.message.content && prev.message.isStreaming === next.message.isStreaming && prev.shouldStream === next.shouldStream && prev.isLastMessage === next.isLastMessage && prev.isRunning === next.isRunning && prev.showContinueButton === next.showContinueButton && prev.isLoading === next.isLoading);
+}, (prev, next) => {
+  // While streaming is active, always re-render to ensure StreamingText can update
+  if (
+    prev.message.isStreaming ||
+    next.message.isStreaming ||
+    prev.shouldStream ||
+    next.shouldStream
+  ) {
+    return false;
+  }
+  // When not streaming, avoid unnecessary re-renders based on stable props
+  return (
+    prev.message.id === next.message.id &&
+    prev.message.content === next.message.content &&
+    prev.message.isStreaming === next.message.isStreaming &&
+    prev.shouldStream === next.shouldStream &&
+    prev.isLastMessage === next.isLastMessage &&
+    prev.isRunning === next.isRunning &&
+    prev.showContinueButton === next.showContinueButton &&
+    prev.isLoading === next.isLoading
+  );
+});

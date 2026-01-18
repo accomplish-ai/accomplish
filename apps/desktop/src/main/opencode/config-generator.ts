@@ -409,11 +409,22 @@ export async function generateOpenCodeConfig(): Promise<string> {
 
   // Add Ollama provider configuration if enabled
   if (ollamaConfig?.enabled && ollamaConfig.models && ollamaConfig.models.length > 0) {
+    // Known Ollama models that don't support tool/function calling
+    const modelsWithoutToolSupport = [
+      'qwen2.5-coder',
+      'deepseek-coder',
+      'codellama',
+      'starcoder',
+    ];
+
     const ollamaModels: Record<string, OllamaProviderModelConfig> = {};
     for (const model of ollamaConfig.models) {
       // Only enable tools for models that support it
-      // qwen2.5-coder doesn't support tools, but qwen2.5 and qwen3 do
-      const supportsTools = !model.id.includes('coder');
+      // Coding-focused models typically don't support function calling
+      const modelBaseName = model.id.split(':')[0].toLowerCase();
+      const supportsTools = !modelsWithoutToolSupport.some(
+        noToolModel => modelBaseName.includes(noToolModel)
+      );
       ollamaModels[model.id] = {
         name: model.displayName,
         tools: supportsTools,
@@ -466,10 +477,10 @@ export async function generateOpenCodeConfig(): Promise<string> {
       const ollamaModelName = selectedModel.model.split('/').pop() || selectedModel.model;
       defaultModel = `ollama/${ollamaModelName}`;
     } else if (selectedModel.provider === 'zai') {
-      const id = selectedModel.model.split('/').pop();
+      const id = selectedModel.model.split('/').pop() || selectedModel.model;
       defaultModel = `zai-coding-plan/${id}`;
     } else if (selectedModel.provider === 'deepseek') {
-      const id = selectedModel.model.split('/').pop();
+      const id = selectedModel.model.split('/').pop() || selectedModel.model;
       defaultModel = `deepseek/${id}`;
     } else {
       defaultModel = selectedModel.model;

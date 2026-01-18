@@ -33,6 +33,9 @@ export function StreamingText({
   const rafRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
   const textRef = useRef(text);
+  // Use ref for onComplete to avoid effect re-runs when callback identity changes
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   // Update ref when text changes
   useEffect(() => {
@@ -99,9 +102,9 @@ export function StreamingText({
     if (shouldCompleteRef.current) {
       shouldCompleteRef.current = false;
       setIsStreaming(false);
-      onComplete?.();
+      onCompleteRef.current?.();
     }
-  }, [displayedLength, onComplete]);
+  }, [displayedLength]);
 
   const displayedText = text.slice(0, displayedLength);
 
