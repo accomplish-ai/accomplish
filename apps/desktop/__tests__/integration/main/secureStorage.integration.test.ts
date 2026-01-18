@@ -240,6 +240,7 @@ describe('secureStorage Integration', () => {
       expect(result).toEqual({
         anthropic: null,
         openai: null,
+        openrouter: null,
         google: null,
         xai: null,
         deepseek: null,
@@ -350,6 +351,7 @@ describe('secureStorage Integration', () => {
       expect(result).toEqual({
         anthropic: null,
         openai: null,
+        openrouter: null,
         google: null,
         xai: null,
         deepseek: null,
