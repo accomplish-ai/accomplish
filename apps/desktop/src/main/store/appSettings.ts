@@ -1,6 +1,9 @@
 import Store from 'electron-store';
 import type { SelectedModel, OllamaConfig } from '@accomplish/shared';
 
+/** Supported UI languages */
+export type UILanguage = 'en' | 'zh-CN' | 'auto';
+
 /**
  * App settings schema
  */
@@ -13,6 +16,8 @@ interface AppSettingsSchema {
   selectedModel: SelectedModel | null;
   /** Ollama server configuration */
   ollamaConfig: OllamaConfig | null;
+  /** UI language preference ('auto' follows system) */
+  language: UILanguage;
 }
 
 const appSettingsStore = new Store<AppSettingsSchema>({
@@ -25,6 +30,7 @@ const appSettingsStore = new Store<AppSettingsSchema>({
       model: 'anthropic/claude-opus-4-5',
     },
     ollamaConfig: null,
+    language: 'auto',
   },
 });
 
@@ -85,6 +91,20 @@ export function setOllamaConfig(config: OllamaConfig | null): void {
 }
 
 /**
+ * Get UI language preference
+ */
+export function getLanguage(): UILanguage {
+  return appSettingsStore.get('language');
+}
+
+/**
+ * Set UI language preference
+ */
+export function setLanguage(language: UILanguage): void {
+  appSettingsStore.set('language', language);
+}
+
+/**
  * Get all app settings
  */
 export function getAppSettings(): AppSettingsSchema {
@@ -93,6 +113,7 @@ export function getAppSettings(): AppSettingsSchema {
     onboardingComplete: appSettingsStore.get('onboardingComplete'),
     selectedModel: appSettingsStore.get('selectedModel'),
     ollamaConfig: appSettingsStore.get('ollamaConfig') ?? null,
+    language: appSettingsStore.get('language'),
   };
 }
 
