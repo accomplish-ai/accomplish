@@ -918,7 +918,7 @@ describe('Execution Page Integration', () => {
       expect(screen.getByText('Preview content')).toBeInTheDocument();
     });
 
-    it('should show delete operation badge', () => {
+    it('should show delete operation warning UI', () => {
       // Arrange
       mockStoreState.currentTask = createMockTask('task-123', 'Task', 'running');
       mockStoreState.permissionRequest = {
@@ -933,8 +933,9 @@ describe('Execution Page Integration', () => {
       // Act
       renderWithRouter('task-123');
 
-      // Assert
-      expect(screen.getByText('DELETE')).toBeInTheDocument();
+      // Assert - delete operations show warning UI with title and button, not a badge
+      expect(screen.getByText('File Deletion Warning')).toBeInTheDocument();
+      expect(screen.getByText('Delete')).toBeInTheDocument();
     });
 
     it('should show overwrite operation badge', () => {
