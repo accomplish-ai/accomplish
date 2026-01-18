@@ -55,6 +55,14 @@ const accomplishAPI = {
     ipcRenderer.invoke('settings:set-debug-mode', enabled),
   getAppSettings: (): Promise<{ debugMode: boolean; onboardingComplete: boolean }> =>
     ipcRenderer.invoke('settings:app-settings'),
+  getOpenAiBaseUrl: (): Promise<string> =>
+    ipcRenderer.invoke('settings:openai-base-url:get'),
+  setOpenAiBaseUrl: (baseUrl: string): Promise<void> =>
+    ipcRenderer.invoke('settings:openai-base-url:set', baseUrl),
+  getOpenAiOauthStatus: (): Promise<{ connected: boolean; expires?: number }> =>
+    ipcRenderer.invoke('opencode:auth:openai:status'),
+  loginOpenAiWithChatGpt: (): Promise<{ ok: boolean; openedUrl?: string }> =>
+    ipcRenderer.invoke('opencode:auth:openai:login'),
 
   // API Key management (new simplified handlers)
   hasApiKey: (): Promise<boolean> =>

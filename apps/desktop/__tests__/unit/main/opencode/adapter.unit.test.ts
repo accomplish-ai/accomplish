@@ -118,6 +118,7 @@ vi.mock('@main/store/secureStorage', () => ({
 vi.mock('@main/store/appSettings', () => ({
   getSelectedModel: vi.fn(() => ({ model: 'claude-3-opus-20240229' })),
   getAzureFoundryConfig: vi.fn(() => null),
+  getOpenAiBaseUrl: vi.fn(() => ''),
 }));
 
 // Mock provider settings (uses SQLite which isn't available in tests)

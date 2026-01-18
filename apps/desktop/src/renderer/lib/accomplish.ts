@@ -53,6 +53,10 @@ interface AccomplishAPI {
   getDebugMode(): Promise<boolean>;
   setDebugMode(enabled: boolean): Promise<void>;
   getAppSettings(): Promise<{ debugMode: boolean; onboardingComplete: boolean }>;
+  getOpenAiBaseUrl(): Promise<string>;
+  setOpenAiBaseUrl(baseUrl: string): Promise<void>;
+  getOpenAiOauthStatus(): Promise<{ connected: boolean; expires?: number }>;
+  loginOpenAiWithChatGpt(): Promise<{ ok: boolean; openedUrl?: string }>;
 
   // API Key management
   hasApiKey(): Promise<boolean>;

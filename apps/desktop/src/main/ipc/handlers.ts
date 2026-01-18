@@ -41,6 +41,8 @@ import {
   setOnboardingComplete,
   getSelectedModel,
   setSelectedModel,
+  getOpenAiBaseUrl,
+  setOpenAiBaseUrl,
   getOllamaConfig,
   setOllamaConfig,
   getAzureFoundryConfig,
@@ -59,6 +61,7 @@ import {
   getProviderDebugMode,
   hasReadyProvider,
 } from '../store/providerSettings';
+import { getOpenAiOauthStatus, loginOpenAiWithChatGpt } from '../opencode/auth';
 import type { ProviderId, ConnectedProvider, BedrockCredentials } from '@accomplish/shared';
 import { getDesktopConfig } from '../config';
 import {
@@ -917,9 +920,11 @@ export function registerIPCHandlers(): void {
           );
           break;
 
-        case 'openai':
+        case 'openai': {
+          const configuredBaseUrl = getOpenAiBaseUrl().trim();
+          const baseUrl = (configuredBaseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '');
           response = await fetchWithTimeout(
-            'https://api.openai.com/v1/models',
+            `${baseUrl}/models`,
             {
               method: 'GET',
               headers: {
@@ -929,6 +934,7 @@ export function registerIPCHandlers(): void {
             API_KEY_VALIDATION_TIMEOUT_MS
           );
           break;
+        }
 
         case 'openrouter':
           response = await fetchWithTimeout(
@@ -1801,7 +1807,9 @@ export function registerIPCHandlers(): void {
     if (isMockTaskEventsEnabled()) {
       return true;
     }
-    return hasAnyApiKey();
+    const hasKey = await hasAnyApiKey();
+    if (hasKey) return true;
+    return getOpenAiOauthStatus().connected;
   });
 
   // Settings: Get debug mode setting
@@ -1824,6 +1832,49 @@ export function registerIPCHandlers(): void {
   // Settings: Get all app settings
   handle('settings:app-settings', async (_event: IpcMainInvokeEvent) => {
     return getAppSettings();
+  });
+
+  // Settings: Get OpenAI base URL override
+  handle('settings:openai-base-url:get', async (_event: IpcMainInvokeEvent) => {
+    return getOpenAiBaseUrl();
+  });
+
+  // Settings: Set OpenAI base URL override
+  handle('settings:openai-base-url:set', async (_event: IpcMainInvokeEvent, baseUrl: string) => {
+    if (typeof baseUrl !== 'string') {
+      throw new Error('Invalid base URL');
+    }
+
+    const trimmed = baseUrl.trim();
+    if (!trimmed) {
+      setOpenAiBaseUrl('');
+      return;
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(trimmed);
+    } catch {
+      throw new Error('Invalid URL');
+    }
+
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error('Only http and https URLs are allowed');
+    }
+
+    // Store without trailing slashes for consistent downstream URL joining.
+    setOpenAiBaseUrl(trimmed.replace(/\/+$/, ''));
+  });
+
+  // OpenAI OAuth (ChatGPT) status
+  handle('opencode:auth:openai:status', async (_event: IpcMainInvokeEvent) => {
+    return getOpenAiOauthStatus();
+  });
+
+  // OpenAI OAuth (ChatGPT) login
+  handle('opencode:auth:openai:login', async (_event: IpcMainInvokeEvent) => {
+    const result = await loginOpenAiWithChatGpt();
+    return { ok: true, ...result };
   });
 
   // Onboarding: Get onboarding complete status
