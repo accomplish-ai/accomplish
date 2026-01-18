@@ -94,6 +94,17 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   const [openrouterApiKeyError, setOpenrouterApiKeyError] = useState<string | null>(null);
   const [savingOpenrouterApiKey, setSavingOpenrouterApiKey] = useState(false);
 
+  // LiteLLM state
+  const [litellmUrl, setLitellmUrl] = useState('http://localhost:4000');
+  const [litellmApiKey, setLitellmApiKey] = useState('');
+  const [litellmModels, setLitellmModels] = useState<Array<{ id: string; name: string; provider: string; contextLength: number }>>([]);
+  const [litellmConnected, setLitellmConnected] = useState(false);
+  const [litellmError, setLitellmError] = useState<string | null>(null);
+  const [testingLitellm, setTestingLitellm] = useState(false);
+  const [selectedLitellmModel, setSelectedLitellmModel] = useState<string>('');
+  const [savingLitellm, setSavingLitellm] = useState(false);
+  const [litellmSearch, setLitellmSearch] = useState('');
+
   useEffect(() => {
     if (!open) return;
 
@@ -178,12 +189,33 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
       }
     };
 
+    const fetchLiteLLMConfig = async () => {
+      try {
+        const config = await accomplish.getLiteLLMConfig();
+        if (config) {
+          setLitellmUrl(config.baseUrl);
+          // Auto-test connection if previously configured
+          if (config.enabled) {
+            const apiKeys = await accomplish.getAllApiKeys();
+            const result = await accomplish.testLiteLLMConnection(config.baseUrl, apiKeys.litellm?.prefix);
+            if (result.success && result.models) {
+              setLitellmConnected(true);
+              setLitellmModels(result.models);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch LiteLLM config:', err);
+      }
+    };
+
     fetchKeys();
     fetchDebugSetting();
     fetchVersion();
     fetchSelectedModel();
     fetchOllamaConfig();
     fetchBedrockCredentials();
+    fetchLiteLLMConfig();
   }, [open]);
 
   const handleDebugToggle = async () => {
@@ -483,6 +515,86 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
     }
   };
 
+  const handleTestLiteLLM = async () => {
+    const accomplish = getAccomplish();
+    setTestingLitellm(true);
+    setLitellmError(null);
+    setLitellmConnected(false);
+    setLitellmModels([]);
+
+    try {
+      const apiKey = litellmApiKey.trim() || undefined;
+      const result = await accomplish.testLiteLLMConnection(litellmUrl, apiKey);
+      if (result.success && result.models) {
+        setLitellmConnected(true);
+        setLitellmModels(result.models);
+        if (result.models.length > 0) {
+          setSelectedLitellmModel(result.models[0].id);
+        }
+        // Save API key if provided
+        if (apiKey) {
+          await accomplish.addApiKey('litellm', apiKey);
+        }
+      } else {
+        setLitellmError(result.error || 'Connection failed');
+      }
+    } catch (err) {
+      setLitellmError(err instanceof Error ? err.message : 'Connection failed');
+    } finally {
+      setTestingLitellm(false);
+    }
+  };
+
+  const handleSaveLiteLLM = async () => {
+    const accomplish = getAccomplish();
+    setSavingLitellm(true);
+
+    try {
+      // Save the LiteLLM config
+      await accomplish.setLiteLLMConfig({
+        baseUrl: litellmUrl,
+        enabled: true,
+        lastValidated: Date.now(),
+        models: litellmModels,
+      });
+
+      // Set as selected model
+      await accomplish.setSelectedModel({
+        provider: 'litellm',
+        model: `litellm/${selectedLitellmModel}`,
+        baseUrl: litellmUrl,
+      });
+
+      setSelectedModel({
+        provider: 'litellm',
+        model: `litellm/${selectedLitellmModel}`,
+        baseUrl: litellmUrl,
+      });
+
+      const modelName = litellmModels.find(m => m.id === selectedLitellmModel)?.name || selectedLitellmModel;
+      setModelStatusMessage(`Model updated to ${modelName}`);
+    } catch (err) {
+      setLitellmError(err instanceof Error ? err.message : 'Failed to save');
+    } finally {
+      setSavingLitellm(false);
+    }
+  };
+
+  // Group LiteLLM models by provider (same pattern as OpenRouter)
+  const groupedLitellmModels = litellmModels
+    .filter(m =>
+      litellmSearch === '' ||
+      m.name.toLowerCase().includes(litellmSearch.toLowerCase()) ||
+      m.id.toLowerCase().includes(litellmSearch.toLowerCase())
+    )
+    .reduce((acc, model) => {
+      if (!acc[model.provider]) {
+        acc[model.provider] = [];
+      }
+      acc[model.provider].push(model);
+      return acc;
+    }, {} as Record<string, typeof litellmModels>);
+
   // Group OpenRouter models by provider
   const groupedOpenrouterModels = openrouterModels
     .filter(m =>
@@ -725,11 +837,15 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                       <div className="text-xs text-muted-foreground mt-1">200+ models</div>
                     </button>
                     <button
-                      disabled
-                      className="flex-1 rounded-xl border p-4 text-center border-border opacity-50 cursor-not-allowed"
+                      onClick={() => setSelectedProxyPlatform('litellm')}
+                      className={`flex-1 rounded-xl border p-4 text-center transition-all duration-200 ${
+                        selectedProxyPlatform === 'litellm'
+                          ? 'border-primary bg-muted'
+                          : 'border-border hover:border-ring'
+                      }`}
                     >
-                      <div className="font-medium text-muted-foreground">LiteLLM</div>
-                      <div className="text-xs text-muted-foreground mt-1">Coming soon</div>
+                      <div className="font-medium text-foreground">LiteLLM</div>
+                      <div className="text-xs text-muted-foreground mt-1">Self-hosted proxy</div>
                     </button>
                   </div>
 
@@ -883,6 +999,153 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                               <p className="text-sm text-foreground">
                                 <span className="font-medium">Currently using:</span>{' '}
                                 {selectedModel.model.replace('openrouter/', '')}
+                              </p>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {selectedProxyPlatform === 'litellm' && (
+                    <>
+                      {!litellmConnected ? (
+                        <div className="space-y-4">
+                          <p className="text-sm text-muted-foreground">
+                            Connect to your LiteLLM proxy to access multiple providers through a unified interface.
+                          </p>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">
+                              LiteLLM Proxy URL
+                            </label>
+                            <input
+                              type="url"
+                              value={litellmUrl}
+                              onChange={(e) => setLitellmUrl(e.target.value)}
+                              placeholder="http://localhost:4000"
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                              data-testid="litellm-url-input"
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">
+                              API Key (Optional)
+                            </label>
+                            <input
+                              type="password"
+                              value={litellmApiKey}
+                              onChange={(e) => setLitellmApiKey(e.target.value)}
+                              placeholder="sk-... (leave empty if not required)"
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                              data-testid="litellm-api-key-input"
+                            />
+                          </div>
+                          {litellmError && (
+                            <p className="text-sm text-destructive">{litellmError}</p>
+                          )}
+                          <button
+                            onClick={handleTestLiteLLM}
+                            disabled={testingLitellm || !litellmUrl.trim()}
+                            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                            data-testid="litellm-test-button"
+                          >
+                            {testingLitellm ? 'Connecting...' : 'Test Connection'}
+                          </button>
+                          <p className="text-xs text-muted-foreground">
+                            Learn more at{' '}
+                            <a
+                              href="https://docs.litellm.ai/docs/"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              docs.litellm.ai
+                            </a>
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Connected Status */}
+                          <div className="mb-4 flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-sm text-success">
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              Connected to {litellmUrl}
+                            </div>
+                            <button
+                              onClick={() => {
+                                setLitellmConnected(false);
+                                setLitellmModels([]);
+                                setLitellmError(null);
+                              }}
+                              className="text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              Disconnect
+                            </button>
+                          </div>
+
+                          {/* Search */}
+                          <div className="mb-4">
+                            <input
+                              type="text"
+                              value={litellmSearch}
+                              onChange={(e) => setLitellmSearch(e.target.value)}
+                              placeholder="Search models..."
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                              data-testid="litellm-search-input"
+                            />
+                          </div>
+
+                          {/* Model List */}
+                          <div className="max-h-[300px] overflow-y-auto space-y-4" data-testid="litellm-model-list">
+                            {Object.entries(groupedLitellmModels)
+                              .sort(([a], [b]) => a.localeCompare(b))
+                              .map(([provider, models]) => (
+                                <div key={provider}>
+                                  <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+                                    {provider}
+                                  </h4>
+                                  <div className="space-y-1">
+                                    {models.map((model) => (
+                                      <button
+                                        key={model.id}
+                                        onClick={() => setSelectedLitellmModel(model.id)}
+                                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                                          selectedLitellmModel === model.id
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'hover:bg-muted'
+                                        }`}
+                                        data-testid={`litellm-model-${model.id}`}
+                                      >
+                                        <div className="font-medium">{model.name}</div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+
+                          {/* Save button */}
+                          {selectedLitellmModel && (
+                            <>
+                              <button
+                                onClick={handleSaveLiteLLM}
+                                disabled={savingLitellm}
+                                className="mt-4 w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                                data-testid="litellm-save-button"
+                              >
+                                {savingLitellm ? 'Saving...' : 'Use This Model'}
+                              </button>
+                            </>
+                          )}
+
+                          {/* Current LiteLLM selection indicator */}
+                          {selectedModel?.provider === 'litellm' && (
+                            <div className="mt-4 rounded-lg bg-muted p-3">
+                              <p className="text-sm text-foreground">
+                                <span className="font-medium">Currently using:</span>{' '}
+                                {selectedModel.model.replace('litellm/', '')}
                               </p>
                             </div>
                           )}
