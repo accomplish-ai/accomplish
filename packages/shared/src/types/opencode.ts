@@ -37,6 +37,30 @@ export interface OpenCodeTextMessage extends OpenCodeMessageBase {
   };
 }
 
+/** Text delta event - streaming text chunk (CLI format) */
+export interface OpenCodeTextDeltaMessage extends OpenCodeMessageBase {
+  type: 'text_delta';
+  part: {
+    id: string;
+    sessionID: string;
+    messageID: string;
+    type: 'text-delta';
+    text: string; // The incremental text chunk
+  };
+}
+
+/** Message part updated event - SDK/SSE format for streaming */
+export interface OpenCodeMessagePartUpdatedMessage extends OpenCodeMessageBase {
+  type: 'message.part.updated';
+  part: {
+    id?: string;
+    sessionID?: string;
+    messageID?: string;
+    type: 'text-delta' | 'text-start' | 'text' | string;
+    text?: string;
+  };
+}
+
 /** Tool call event (legacy format) */
 export interface OpenCodeToolCallMessage extends OpenCodeMessageBase {
   type: 'tool_call';
@@ -128,6 +152,8 @@ export interface OpenCodeErrorMessage extends OpenCodeMessageBase {
 export type OpenCodeMessage =
   | OpenCodeStepStartMessage
   | OpenCodeTextMessage
+  | OpenCodeTextDeltaMessage
+  | OpenCodeMessagePartUpdatedMessage
   | OpenCodeToolCallMessage
   | OpenCodeToolUseMessage
   | OpenCodeToolResultMessage

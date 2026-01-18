@@ -92,7 +92,8 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
       const message = JSON.parse(trimmed) as OpenCodeMessage;
 
       // Log parsed message for debugging
-      console.log('[StreamParser] Parsed message type:', message.type);
+      const partType = (message as unknown as { part?: { type?: string } }).part?.type;
+      console.log('[StreamParser] Parsed message type:', message.type, partType ? `(part.type: ${partType})` : '');
 
       // Enhanced logging for MCP/Playwriter-related messages
       if (message.type === 'tool_call' || message.type === 'tool_result') {

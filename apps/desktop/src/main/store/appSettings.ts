@@ -13,6 +13,8 @@ interface AppSettingsSchema {
   selectedModel: SelectedModel | null;
   /** Ollama server configuration */
   ollamaConfig: OllamaConfig | null;
+  /** Enable streaming mode for real-time model responses (uses opencode serve) */
+  streamingMode: boolean;
 }
 
 const appSettingsStore = new Store<AppSettingsSchema>({
@@ -25,6 +27,7 @@ const appSettingsStore = new Store<AppSettingsSchema>({
       model: 'anthropic/claude-opus-4-5',
     },
     ollamaConfig: null,
+    streamingMode: true, // Default to enabled for real-time streaming
   },
 });
 
@@ -85,6 +88,22 @@ export function setOllamaConfig(config: OllamaConfig | null): void {
 }
 
 /**
+ * Get streaming mode setting
+ * When enabled, uses opencode serve with SSE for real-time streaming
+ * When disabled, uses opencode run --format json (buffered output)
+ */
+export function getStreamingMode(): boolean {
+  return appSettingsStore.get('streamingMode');
+}
+
+/**
+ * Set streaming mode setting
+ */
+export function setStreamingMode(enabled: boolean): void {
+  appSettingsStore.set('streamingMode', enabled);
+}
+
+/**
  * Get all app settings
  */
 export function getAppSettings(): AppSettingsSchema {
@@ -93,6 +112,7 @@ export function getAppSettings(): AppSettingsSchema {
     onboardingComplete: appSettingsStore.get('onboardingComplete'),
     selectedModel: appSettingsStore.get('selectedModel'),
     ollamaConfig: appSettingsStore.get('ollamaConfig') ?? null,
+    streamingMode: appSettingsStore.get('streamingMode'),
   };
 }
 

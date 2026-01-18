@@ -51,6 +51,7 @@ export async function getOpenCodeCliVersion(): Promise<string | null> {
 
 export interface OpenCodeAdapterEvents {
   message: [OpenCodeMessage];
+  'text-delta': [{ messageId: string; content: string; isComplete: boolean }];
   'tool-use': [string, unknown];
   'tool-result': [string];
   'permission-request': [PermissionRequest];
@@ -69,6 +70,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   private hasCompleted: boolean = false;
   private isDisposed: boolean = false;
   private wasInterrupted: boolean = false;
+  // Streaming state for text deltas
+  private streamingMessageId: string | null = null;
+  private streamingText: string = '';
 
   /**
    * Create a new OpenCodeAdapter instance
@@ -495,11 +499,25 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         this.emit('progress', { stage: 'init', message: 'Task started' });
         break;
 
-      // Text content event
+      // Text content event (complete text, may finalize a streaming message)
       case 'text':
         if (!this.currentSessionId && message.part.sessionID) {
           this.currentSessionId = message.part.sessionID;
         }
+
+        // If we were streaming, finalize the streaming message
+        if (this.streamingMessageId && message.part.messageID === this.streamingMessageId) {
+          // Emit final text-delta to mark streaming complete
+          this.emit('text-delta', {
+            messageId: this.streamingMessageId,
+            content: message.part.text,
+            isComplete: true,
+          });
+          // Clear streaming state
+          this.streamingMessageId = null;
+          this.streamingText = '';
+        }
+
         this.emit('message', message);
 
         if (message.part.text) {
@@ -511,6 +529,33 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           };
           this.messages.push(taskMessage);
         }
+        break;
+
+      // Text delta event (streaming text chunk)
+      case 'text_delta':
+        if (!this.currentSessionId && message.part.sessionID) {
+          this.currentSessionId = message.part.sessionID;
+        }
+
+        // Track the streaming message
+        const deltaMessageId = message.part.messageID;
+        if (this.streamingMessageId !== deltaMessageId) {
+          // New streaming message started
+          this.streamingMessageId = deltaMessageId;
+          this.streamingText = '';
+        }
+
+        // Accumulate the text
+        this.streamingText += message.part.text;
+
+        // Emit text-delta event with accumulated content
+        this.emit('text-delta', {
+          messageId: deltaMessageId,
+          content: this.streamingText,
+          isComplete: false,
+        });
+
+        console.log('[OpenCode Adapter] Text delta received, accumulated length:', this.streamingText.length);
         break;
 
       // Tool call event
@@ -592,6 +637,18 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
       // Step finish event
       case 'step_finish':
+        // Clear any active streaming state
+        if (this.streamingMessageId) {
+          // Emit final text-delta with whatever we have
+          this.emit('text-delta', {
+            messageId: this.streamingMessageId,
+            content: this.streamingText,
+            isComplete: true,
+          });
+          this.streamingMessageId = null;
+          this.streamingText = '';
+        }
+
         // Only complete if reason is 'stop' or 'end_turn' (final completion)
         // 'tool_use' means there are more steps coming
         if (message.part.reason === 'stop' || message.part.reason === 'end_turn') {
@@ -621,10 +678,40 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         });
         break;
 
+      // Handle message.part.updated event format (SDK-style events)
+      case 'message.part.updated':
+        const partUpdatedMessage = message as unknown as {
+          type: string;
+          part: { type: string; text?: string; messageID?: string; sessionID?: string };
+        };
+
+        if (partUpdatedMessage.part?.type === 'text-delta' && partUpdatedMessage.part.text) {
+          if (!this.currentSessionId && partUpdatedMessage.part.sessionID) {
+            this.currentSessionId = partUpdatedMessage.part.sessionID;
+          }
+
+          const partMessageId = partUpdatedMessage.part.messageID || 'unknown';
+          if (this.streamingMessageId !== partMessageId) {
+            this.streamingMessageId = partMessageId;
+            this.streamingText = '';
+          }
+
+          this.streamingText += partUpdatedMessage.part.text;
+
+          this.emit('text-delta', {
+            messageId: partMessageId,
+            content: this.streamingText,
+            isComplete: false,
+          });
+
+          console.log('[OpenCode Adapter] message.part.updated text-delta, accumulated length:', this.streamingText.length);
+        }
+        break;
+
       default:
         // Cast to unknown to safely access type property for logging
-        const unknownMessage = message as unknown as { type: string };
-        console.log('[OpenCode Adapter] Unknown message type:', unknownMessage.type);
+        const unknownMessage = message as unknown as { type: string; part?: { type?: string } };
+        console.log('[OpenCode Adapter] Unknown message type:', unknownMessage.type, 'part.type:', unknownMessage.part?.type);
     }
   }
 

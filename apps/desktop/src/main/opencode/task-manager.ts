@@ -7,8 +7,10 @@
  */
 
 import { OpenCodeAdapter, isOpenCodeCliInstalled, OpenCodeCliNotFoundError } from './adapter';
+import { OpenCodeServerAdapter, isOpenCodeServerAvailable, OpenCodeServerError } from './server-adapter';
 import { getSkillsPath } from './config-generator';
 import { getNpxPath, getBundledNodePaths } from '../utils/bundled-node';
+import { getStreamingMode } from '../store/appSettings';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
@@ -21,6 +23,29 @@ import type {
   OpenCodeMessage,
   PermissionRequest,
 } from '@accomplish/shared';
+
+/**
+ * Adapter mode for OpenCode execution
+ * - 'server': Uses `opencode serve` with HTTP/SSE for real-time streaming (default)
+ * - 'cli': Uses `opencode run --format json` with PTY (legacy, buffered output)
+ */
+export type AdapterMode = 'server' | 'cli';
+
+/**
+ * Get the current adapter mode from settings or environment
+ * Priority: environment variable > app settings > default (server)
+ */
+function getAdapterMode(): AdapterMode {
+  // Environment variable takes precedence (for testing/debugging)
+  const envMode = process.env.OPENCODE_ADAPTER_MODE as AdapterMode;
+  if (envMode === 'cli' || envMode === 'server') {
+    return envMode;
+  }
+
+  // Use app settings (streaming mode enabled = server, disabled = cli)
+  const streamingEnabled = getStreamingMode();
+  return streamingEnabled ? 'server' : 'cli';
+}
 
 /**
  * Check if system Chrome is installed
@@ -207,6 +232,7 @@ async function ensureDevBrowserServer(
  */
 export interface TaskCallbacks {
   onMessage: (message: OpenCodeMessage) => void;
+  onTextDelta?: (delta: { messageId: string; content: string; isComplete: boolean }) => void;
   onProgress: (progress: { stage: string; message?: string }) => void;
   onPermissionRequest: (request: PermissionRequest) => void;
   onComplete: (result: TaskResult) => void;
@@ -216,14 +242,20 @@ export interface TaskCallbacks {
 }
 
 /**
+ * Union type for adapter instances
+ */
+type Adapter = OpenCodeAdapter | OpenCodeServerAdapter;
+
+/**
  * Internal representation of a managed task
  */
 interface ManagedTask {
   taskId: string;
-  adapter: OpenCodeAdapter;
+  adapter: Adapter;
   callbacks: TaskCallbacks;
   cleanup: () => void;
   createdAt: Date;
+  mode: AdapterMode;
 }
 
 /**
@@ -266,9 +298,15 @@ export class TaskManager {
     config: TaskConfig,
     callbacks: TaskCallbacks
   ): Promise<Task> {
-    // Check if CLI is installed
-    const cliInstalled = await isOpenCodeCliInstalled();
-    if (!cliInstalled) {
+    const mode = getAdapterMode();
+    console.log(`[TaskManager] Using adapter mode: ${mode}`);
+
+    // Check if CLI is installed (required for both modes)
+    const cliAvailable = mode === 'server'
+      ? await isOpenCodeServerAvailable()
+      : await isOpenCodeCliInstalled();
+
+    if (!cliAvailable) {
       throw new OpenCodeCliNotFoundError();
     }
 
@@ -330,8 +368,14 @@ export class TaskManager {
     config: TaskConfig,
     callbacks: TaskCallbacks
   ): Promise<Task> {
-    // Create a new adapter instance for this task
-    const adapter = new OpenCodeAdapter(taskId);
+    const mode = getAdapterMode();
+
+    // Create the appropriate adapter based on mode
+    const adapter: Adapter = mode === 'server'
+      ? new OpenCodeServerAdapter(taskId)
+      : new OpenCodeAdapter(taskId);
+
+    console.log(`[TaskManager] Created ${mode} adapter for task ${taskId}`);
 
     // Wire up event listeners
     const onMessage = (message: OpenCodeMessage) => {
@@ -364,8 +408,13 @@ export class TaskManager {
       callbacks.onDebug?.(log);
     };
 
+    const onTextDelta = (delta: { messageId: string; content: string; isComplete: boolean }) => {
+      callbacks.onTextDelta?.(delta);
+    };
+
     // Attach listeners
     adapter.on('message', onMessage);
+    adapter.on('text-delta', onTextDelta);
     adapter.on('progress', onProgress);
     adapter.on('permission-request', onPermissionRequest);
     adapter.on('complete', onComplete);
@@ -375,6 +424,7 @@ export class TaskManager {
     // Create cleanup function
     const cleanup = () => {
       adapter.off('message', onMessage);
+      adapter.off('text-delta', onTextDelta);
       adapter.off('progress', onProgress);
       adapter.off('permission-request', onPermissionRequest);
       adapter.off('complete', onComplete);
@@ -390,6 +440,7 @@ export class TaskManager {
       callbacks,
       cleanup,
       createdAt: new Date(),
+      mode,
     };
     this.activeTasks.set(taskId, managedTask);
 

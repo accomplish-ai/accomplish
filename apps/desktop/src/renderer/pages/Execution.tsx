@@ -565,7 +565,9 @@ export default function ExecutionPage() {
                   <span className="text-sm">
                     {currentTool
                       ? ((currentToolInput as { description?: string })?.description || TOOL_PROGRESS_MAP[currentTool]?.label || currentTool)
-                      : 'Thinking...'}
+                      : currentTask.messages.some(m => m.isStreaming)
+                        ? 'Generating response...'
+                        : 'Thinking...'}
                   </span>
                   {currentTool && !(currentToolInput as { description?: string })?.description && (
                     <span className="text-xs text-muted-foreground/60">
@@ -899,6 +901,8 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
   const isTool = message.type === 'tool';
   const isSystem = message.type === 'system';
   const isAssistant = message.type === 'assistant';
+  // Check if this is an actively streaming message (real streaming from API)
+  const isActivelyStreaming = message.isStreaming === true;
 
   // Get tool icon from mapping
   const toolName = message.toolName || message.content?.match(/Using tool: (\w+)/)?.[1];
@@ -973,7 +977,14 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
               >
                 {message.content}
               </p>
+            ) : isActivelyStreaming ? (
+              // Real streaming from API - show content directly with cursor
+              <div className={proseClasses}>
+                <ReactMarkdown>{message.content}</ReactMarkdown>
+                <span className="inline-block w-2 h-4 bg-foreground/60 animate-pulse ml-0.5 align-text-bottom" />
+              </div>
             ) : isAssistant && shouldStream && !streamComplete ? (
+              // Simulated streaming animation for non-streaming messages
               <StreamingText
                 text={message.content}
                 speed={120}
@@ -1016,4 +1027,4 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
       </div>
     </motion.div>
   );
-}, (prev, next) => prev.message.id === next.message.id && prev.shouldStream === next.shouldStream && prev.isLastMessage === next.isLastMessage && prev.isRunning === next.isRunning && prev.showContinueButton === next.showContinueButton && prev.isLoading === next.isLoading);
+}, (prev, next) => prev.message.id === next.message.id && prev.message.content === next.message.content && prev.message.isStreaming === next.message.isStreaming && prev.shouldStream === next.shouldStream && prev.isLastMessage === next.isLastMessage && prev.isRunning === next.isRunning && prev.showContinueButton === next.showContinueButton && prev.isLoading === next.isLoading);

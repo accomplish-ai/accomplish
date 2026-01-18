@@ -16,6 +16,14 @@ interface TaskUpdateBatchEvent {
   messages: TaskMessage[];
 }
 
+// Text delta event for streaming text updates
+interface TextDeltaEvent {
+  taskId: string;
+  messageId: string;
+  content: string;
+  isComplete: boolean;
+}
+
 // Setup progress event type
 interface SetupProgressEvent {
   taskId: string;
@@ -55,6 +63,7 @@ interface TaskState {
   respondToPermission: (response: PermissionResponse) => Promise<void>;
   addTaskUpdate: (event: TaskUpdateEvent) => void;
   addTaskUpdateBatch: (event: TaskUpdateBatchEvent) => void;
+  updateStreamingMessage: (event: TextDeltaEvent) => void;
   updateTaskStatus: (taskId: string, status: TaskStatus) => void;
   setTaskSummary: (taskId: string, summary: string) => void;
   loadTasks: () => Promise<void>;
@@ -382,6 +391,48 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     });
   },
 
+  // Update streaming message content (for real-time text streaming)
+  updateStreamingMessage: (event: TextDeltaEvent) => {
+    set((state) => {
+      if (!state.currentTask || state.currentTask.id !== event.taskId) {
+        return state;
+      }
+
+      const messages = [...state.currentTask.messages];
+
+      // Find existing streaming message with this messageId, or find the last streaming assistant message
+      let existingIndex = messages.findIndex(
+        (m) => m.id === event.messageId || (m.type === 'assistant' && m.isStreaming)
+      );
+
+      if (existingIndex >= 0) {
+        // Update existing message content
+        messages[existingIndex] = {
+          ...messages[existingIndex],
+          content: event.content,
+          isStreaming: !event.isComplete,
+        };
+      } else {
+        // Create new streaming message
+        const newMessage: TaskMessage = {
+          id: event.messageId,
+          type: 'assistant',
+          content: event.content,
+          timestamp: new Date().toISOString(),
+          isStreaming: !event.isComplete,
+        };
+        messages.push(newMessage);
+      }
+
+      return {
+        currentTask: {
+          ...state.currentTask,
+          messages,
+        },
+      };
+    });
+  },
+
   // Update task status (e.g., queued -> running)
   updateTaskStatus: (taskId: string, status: TaskStatus) => {
     set((state) => {
@@ -498,5 +549,10 @@ if (typeof window !== 'undefined' && window.accomplish) {
   // Subscribe to task summary updates
   window.accomplish.onTaskSummary?.(( data: { taskId: string; summary: string }) => {
     useTaskStore.getState().setTaskSummary(data.taskId, data.summary);
+  });
+
+  // Subscribe to streaming text delta updates
+  window.accomplish.onTextDelta?.((event: { taskId: string; messageId: string; content: string; isComplete: boolean }) => {
+    useTaskStore.getState().updateStreamingMessage(event);
   });
 }

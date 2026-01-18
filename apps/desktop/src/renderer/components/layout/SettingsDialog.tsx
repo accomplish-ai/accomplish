@@ -43,6 +43,8 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   const [loadingKeys, setLoadingKeys] = useState(true);
   const [debugMode, setDebugMode] = useState(false);
   const [loadingDebug, setLoadingDebug] = useState(true);
+  const [streamingMode, setStreamingMode] = useState(true);
+  const [loadingStreaming, setLoadingStreaming] = useState(true);
   const [appVersion, setAppVersion] = useState('');
   const [selectedModel, setSelectedModel] = useState<SelectedModel | null>(null);
   const [loadingModel, setLoadingModel] = useState(true);
@@ -90,6 +92,17 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
         console.error('Failed to fetch debug setting:', err);
       } finally {
         setLoadingDebug(false);
+      }
+    };
+
+    const fetchStreamingSetting = async () => {
+      try {
+        const enabled = await accomplish.getStreamingMode();
+        setStreamingMode(enabled);
+      } catch (err) {
+        console.error('Failed to fetch streaming setting:', err);
+      } finally {
+        setLoadingStreaming(false);
       }
     };
 
@@ -152,6 +165,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
 
     fetchKeys();
     fetchDebugSetting();
+    fetchStreamingSetting();
     fetchVersion();
     fetchSelectedModel();
     fetchOllamaConfig();
@@ -168,6 +182,18 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
     } catch (err) {
       console.error('Failed to save debug setting:', err);
       setDebugMode(!newValue);
+    }
+  };
+
+  const handleStreamingToggle = async () => {
+    const accomplish = getAccomplish();
+    const newValue = !streamingMode;
+    setStreamingMode(newValue);
+    try {
+      await accomplish.setStreamingMode(newValue);
+    } catch (err) {
+      console.error('Failed to save streaming setting:', err);
+      setStreamingMode(!newValue);
     }
   };
 
@@ -836,6 +862,42 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                   <p className="text-sm text-warning">
                     Debug mode is enabled. Backend logs will appear in the task view
                     when running tasks.
+                  </p>
+                </div>
+              )}
+
+              {/* Streaming Mode Toggle */}
+              <div className="flex items-center justify-between mt-6 pt-6 border-t border-border">
+                <div className="flex-1">
+                  <div className="font-medium text-foreground">Streaming Mode</div>
+                  <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                    Show model responses in real-time as they are generated.
+                    When disabled, responses appear all at once after completion.
+                  </p>
+                </div>
+                <div className="ml-4">
+                  {loadingStreaming ? (
+                    <div className="h-6 w-11 animate-pulse rounded-full bg-muted" />
+                  ) : (
+                    <button
+                      data-testid="settings-streaming-toggle"
+                      onClick={handleStreamingToggle}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-accomplish ${streamingMode ? 'bg-primary' : 'bg-muted'
+                        }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-accomplish ${streamingMode ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                      />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {streamingMode && (
+                <div className="mt-4 rounded-xl bg-primary/10 p-3.5">
+                  <p className="text-sm text-primary">
+                    Streaming mode is enabled. Model responses will appear word-by-word
+                    as they are generated.
                   </p>
                 </div>
               )}

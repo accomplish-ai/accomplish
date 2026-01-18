@@ -53,7 +53,11 @@ const accomplishAPI = {
     ipcRenderer.invoke('settings:debug-mode'),
   setDebugMode: (enabled: boolean): Promise<void> =>
     ipcRenderer.invoke('settings:set-debug-mode', enabled),
-  getAppSettings: (): Promise<{ debugMode: boolean; onboardingComplete: boolean }> =>
+  getStreamingMode: (): Promise<boolean> =>
+    ipcRenderer.invoke('settings:streaming-mode'),
+  setStreamingMode: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('settings:set-streaming-mode', enabled),
+  getAppSettings: (): Promise<{ debugMode: boolean; onboardingComplete: boolean; streamingMode: boolean }> =>
     ipcRenderer.invoke('settings:app-settings'),
 
   // API Key management (new simplified handlers)
@@ -130,6 +134,12 @@ const accomplishAPI = {
     ipcRenderer.on('task:update:batch', listener);
     return () => ipcRenderer.removeListener('task:update:batch', listener);
   },
+  // Streaming text delta updates - low latency incremental text
+  onTextDelta: (callback: (event: { taskId: string; messageId: string; content: string; isComplete: boolean }) => void) => {
+    const listener = (_: unknown, event: { taskId: string; messageId: string; content: string; isComplete: boolean }) => callback(event);
+    ipcRenderer.on('task:text-delta', listener);
+    return () => ipcRenderer.removeListener('task:text-delta', listener);
+  },
   onPermissionRequest: (callback: (request: unknown) => void) => {
     const listener = (_: unknown, request: unknown) => callback(request);
     ipcRenderer.on('permission:request', listener);
@@ -150,6 +160,12 @@ const accomplishAPI = {
     const listener = (_: unknown, data: { enabled: boolean }) => callback(data);
     ipcRenderer.on('settings:debug-mode-changed', listener);
     return () => ipcRenderer.removeListener('settings:debug-mode-changed', listener);
+  },
+  // Streaming mode setting changes
+  onStreamingModeChange: (callback: (data: { enabled: boolean }) => void) => {
+    const listener = (_: unknown, data: { enabled: boolean }) => callback(data);
+    ipcRenderer.on('settings:streaming-mode-changed', listener);
+    return () => ipcRenderer.removeListener('settings:streaming-mode-changed', listener);
   },
   // Task status changes (e.g., queued -> running)
   onTaskStatusChange: (callback: (data: { taskId: string; status: string }) => void) => {

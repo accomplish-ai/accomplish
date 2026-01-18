@@ -48,7 +48,9 @@ interface AccomplishAPI {
   removeApiKey(id: string): Promise<void>;
   getDebugMode(): Promise<boolean>;
   setDebugMode(enabled: boolean): Promise<void>;
-  getAppSettings(): Promise<{ debugMode: boolean; onboardingComplete: boolean }>;
+  getStreamingMode(): Promise<boolean>;
+  setStreamingMode(enabled: boolean): Promise<void>;
+  getAppSettings(): Promise<{ debugMode: boolean; onboardingComplete: boolean; streamingMode: boolean }>;
 
   // API Key management
   hasApiKey(): Promise<boolean>;
@@ -91,10 +93,12 @@ interface AccomplishAPI {
   // Event subscriptions
   onTaskUpdate(callback: (event: TaskUpdateEvent) => void): () => void;
   onTaskUpdateBatch?(callback: (event: { taskId: string; messages: TaskMessage[] }) => void): () => void;
+  onTextDelta?(callback: (event: { taskId: string; messageId: string; content: string; isComplete: boolean }) => void): () => void;
   onPermissionRequest(callback: (request: PermissionRequest) => void): () => void;
   onTaskProgress(callback: (progress: TaskProgress) => void): () => void;
   onDebugLog(callback: (log: unknown) => void): () => void;
   onDebugModeChange?(callback: (data: { enabled: boolean }) => void): () => void;
+  onStreamingModeChange?(callback: (data: { enabled: boolean }) => void): () => void;
   onTaskStatusChange?(callback: (data: { taskId: string; status: TaskStatus }) => void): () => void;
   onTaskSummary?(callback: (data: { taskId: string; summary: string }) => void): () => void;
 

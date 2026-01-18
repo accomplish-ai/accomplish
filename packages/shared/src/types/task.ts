@@ -58,6 +58,8 @@ export interface TaskMessage {
   timestamp: string;
   /** Attachments like screenshots captured during browser automation */
   attachments?: TaskAttachment[];
+  /** Whether this message is currently streaming (receiving incremental updates) */
+  isStreaming?: boolean;
 }
 
 export interface TaskResult {

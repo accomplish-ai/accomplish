@@ -40,6 +40,8 @@ import {
   setSelectedModel,
   getOllamaConfig,
   setOllamaConfig,
+  getStreamingMode,
+  setStreamingMode,
 } from '../store/appSettings';
 import { getDesktopConfig } from '../config';
 import {
@@ -328,6 +330,14 @@ export function registerIPCHandlers(): void {
 
         // Queue message for batching instead of immediate send
         queueMessage(taskId, taskMessage, forwardToRenderer, addTaskMessage);
+      },
+
+      onTextDelta: (delta: { messageId: string; content: string; isComplete: boolean }) => {
+        // Forward streaming text updates directly to renderer (low latency)
+        forwardToRenderer('task:text-delta', {
+          taskId,
+          ...delta,
+        });
       },
 
       onProgress: (progress: { stage: string; message?: string }) => {
@@ -1176,6 +1186,23 @@ export function registerIPCHandlers(): void {
     // Broadcast the change to all renderer windows
     for (const win of BrowserWindow.getAllWindows()) {
       win.webContents.send('settings:debug-mode-changed', { enabled });
+    }
+  });
+
+  // Settings: Get streaming mode setting
+  handle('settings:streaming-mode', async (_event: IpcMainInvokeEvent) => {
+    return getStreamingMode();
+  });
+
+  // Settings: Set streaming mode setting
+  handle('settings:set-streaming-mode', async (_event: IpcMainInvokeEvent, enabled: boolean) => {
+    if (typeof enabled !== 'boolean') {
+      throw new Error('Invalid streaming mode flag');
+    }
+    setStreamingMode(enabled);
+    // Broadcast the change to all renderer windows
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.send('settings:streaming-mode-changed', { enabled });
     }
   });
 
