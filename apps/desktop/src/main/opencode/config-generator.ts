@@ -32,6 +32,27 @@ export function getSkillsPath(): string {
   }
 }
 
+/**
+ * Load a skill's content from its SKILL.md file
+ * Strips YAML frontmatter and wraps content in <skill> tags
+ */
+function loadSkillContent(skillsPath: string, skillName: string): string {
+  const skillPath = path.join(skillsPath, skillName, 'SKILL.md');
+
+  try {
+    const content = fs.readFileSync(skillPath, 'utf-8');
+
+    // Strip YAML frontmatter (content between --- markers)
+    const withoutFrontmatter = content.replace(/^---[\s\S]*?---\n*/, '');
+
+    // Wrap in skill tags
+    return `<skill name="${skillName}">\n${withoutFrontmatter.trim()}\n</skill>`;
+  } catch (error) {
+    console.error(`[OpenCode Config] Failed to load skill ${skillName}:`, error);
+    return `<skill name="${skillName}">\n<!-- Skill ${skillName} not found -->\n</skill>`;
+  }
+}
+
 const ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE = `<identity>
 You are Accomplish, a browser automation assistant.
 </identity>
@@ -111,178 +132,9 @@ request_file_permission({
 </example>
 </tool>
 
-<skill name="dev-browser">
-Browser automation that maintains page state across script executions. Write small, focused scripts to accomplish tasks incrementally.
+{{SKILL:dev-browser}}
 
-<critical-requirement>
-##############################################################################
-# MANDATORY: Browser scripts must use .mts extension to enable ESM mode.
-# tsx treats .mts files as ES modules, enabling top-level await.
-#
-# CORRECT (always do this - two steps):
-#   1. Write script to temp file with .mts extension:
-#      cat > /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts <<'EOF'
-#      import { connect } from "@/client.js";
-#      ...
-#      EOF
-#
-#   2. Run from dev-browser directory with bundled Node:
-#      cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
-#
-# WRONG (will fail - .ts files in /tmp default to CJS mode):
-#   cat > /tmp/script.ts <<'EOF'
-#   import { connect } from "@/client.js";  # Top-level await won't work!
-#   EOF
-#
-# ALWAYS use .mts extension for temp scripts!
-##############################################################################
-</critical-requirement>
-
-<setup>
-The dev-browser server is automatically started when you begin a task. Before your first browser script, verify it's ready:
-
-\`\`\`bash
-curl -s http://localhost:9224
-\`\`\`
-
-If it returns JSON with a \`wsEndpoint\`, proceed with browser automation. If connection is refused, the server is still starting - wait 2-3 seconds and check again.
-
-**Fallback** (only if server isn't running after multiple checks):
-\`\`\`bash
-cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" ./server.sh &
-\`\`\`
-</setup>
-
-<usage>
-Write scripts to /tmp with .mts extension, then execute from dev-browser directory:
-
-<example name="basic-navigation">
-\`\`\`bash
-cat > /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts <<'EOF'
-import { connect, waitForPageLoad } from "@/client.js";
-
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-const client = await connect();
-const page = await client.page(\`\${taskId}-main\`);
-
-await page.goto("https://example.com");
-await waitForPageLoad(page);
-
-console.log({ title: await page.title(), url: page.url() });
-await client.disconnect();
-EOF
-cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
-\`\`\`
-</example>
-</usage>
-
-<principles>
-1. **Small scripts**: Each script does ONE thing (navigate, click, fill, check)
-2. **Evaluate state**: Log/return state at the end to decide next steps
-3. **Task-scoped page names**: ALWAYS prefix page names with the task ID from environment:
-   \`\`\`typescript
-   const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-   const page = await client.page(\`\${taskId}-main\`);
-   \`\`\`
-   This ensures parallel tasks don't interfere with each other's browser pages.
-4. **Task-scoped screenshot filenames**: ALWAYS prefix screenshot filenames with taskId to prevent parallel tasks from overwriting each other's screenshots:
-   \`\`\`typescript
-   await page.screenshot({ path: \`tmp/\${taskId}-screenshot.png\` });
-   \`\`\`
-5. **Disconnect to exit**: \`await client.disconnect()\` - pages persist on server
-6. **Plain JS in evaluate**: \`page.evaluate()\` runs in browser - no TypeScript syntax
-</principles>
-
-<api-reference name="client">
-\`\`\`typescript
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-const client = await connect();
-
-const page = await client.page(\`\${taskId}-main\`); // Get or create named page
-const pages = await client.list(); // List all page names
-await client.close(\`\${taskId}-main\`); // Close a page
-await client.disconnect(); // Disconnect (pages persist)
-
-// ARIA Snapshot methods
-const snapshot = await client.getAISnapshot(\`\${taskId}-main\`); // Get accessibility tree
-const element = await client.selectSnapshotRef(\`\${taskId}-main\`, "e5"); // Get element by ref
-\`\`\`
-
-The \`page\` object is a standard Playwright Page.
-</api-reference>
-
-<api-reference name="screenshots">
-IMPORTANT: Always prefix screenshot filenames with taskId to avoid collisions with parallel tasks:
-\`\`\`typescript
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-await page.screenshot({ path: \`tmp/\${taskId}-screenshot.png\` });
-await page.screenshot({ path: \`tmp/\${taskId}-full.png\`, fullPage: true });
-\`\`\`
-</api-reference>
-
-<api-reference name="aria-snapshot">
-Use \`getAISnapshot()\` to discover page elements. Returns YAML-formatted accessibility tree with refs like \`[ref=e1]\`. Then use \`selectSnapshotRef()\` to interact:
-
-<example name="aria-snapshot-usage">
-\`\`\`typescript
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-const snapshot = await client.getAISnapshot(\`\${taskId}-main\`);
-console.log(snapshot); // Find the ref you need
-
-const element = await client.selectSnapshotRef(\`\${taskId}-main\`, "e2");
-await element.click();
-\`\`\`
-</example>
-</api-reference>
-
-<error-recovery>
-Page state persists after failures. Debug by reconnecting and taking a screenshot:
-
-<example name="debug-screenshot">
-\`\`\`bash
-cat > /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts <<'EOF'
-import { connect } from "@/client.js";
-
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-const client = await connect();
-const page = await client.page(\`\${taskId}-main\`);
-
-await page.screenshot({ path: \`tmp/\${taskId}-debug.png\` });
-console.log({ url: page.url(), title: await page.title() });
-
-await client.disconnect();
-EOF
-cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
-\`\`\`
-</example>
-</error-recovery>
-
-<login-pages>
-When you encounter a login page (e.g., Google Sign-In, OAuth screens, authentication prompts):
-- Do NOT say you cannot log in or suggest alternative approaches
-- Instead, ASK the user to log in manually in the browser window
-- Take a screenshot to show the user the login page
-- Say something like: "I've reached a login page. Please log in to your account in the browser window, then let me know when you're done."
-- WAIT for the user to confirm they've logged in before continuing
-- After the user confirms login, take another screenshot to verify you're past the login screen
-- Then continue with the original task
-
-This interactive login flow is essential because:
-- Users expect to authenticate themselves for security
-- Many services require human verification (CAPTCHAs, 2FA)
-- The agent should not give up on tasks that require authentication
-
-IMPORTANT: After login is complete, resume autonomous execution of the original task.
-Do NOT wait for confirmation for non-login navigation or page loads.
-</login-pages>
-
-<filesystem>
-For saving/downloading content:
-- Use browser's native download (click download buttons, Save As)
-- Chrome handles downloads with its own permissions
-- For text/data, copy to clipboard so users can paste where they want
-</filesystem>
-</skill>
+{{SKILL:bulk-operations}}
 
 <important name="user-confirmations">
 CRITICAL: Always use AskUserQuestion to get explicit approval before sensitive actions.
@@ -322,8 +174,7 @@ When you receive a request, work continuously until the ENTIRE task is complete:
 3. Only report back when the full task is finished (or blocked)
 
 For bulk operations ("download all", "process each", "check every", etc.):
-- Identify all items to process
-- Process ALL of them in sequence without pausing
+- Follow the bulk-operations skill's two-phase approach
 - Report a summary when complete
 
 WRONG behaviors (never do these):
@@ -344,63 +195,6 @@ ONLY pause and wait for user when:
 
 If none of the above apply, KEEP WORKING until the task is done.
 </task-completion>
-
-<bulk-operations>
-CRITICAL: For bulk operations, ALWAYS use a two-phase approach with SEPARATE scripts.
-
-##############################################################################
-# PHASE 1: TEST RUN (2-5 items) - MANDATORY BEFORE FULL EXECUTION
-##############################################################################
-
-Write and execute a SMALL test script that processes only 2-5 items:
-- This MUST be a separate script execution, not part of the full batch
-- Process 2-5 items (enough to catch issues, not just 1)
-- After script completes, VERIFY results before proceeding:
-  * Check files exist / data saved / operations completed
-  * Look for errors in output
-  * Confirm expected outcomes
-
-If test fails: Stop, diagnose, fix the approach, test again
-If test passes: Proceed to Phase 2
-
-##############################################################################
-# PHASE 2: FULL EXECUTION - Only after Phase 1 succeeds
-##############################################################################
-
-Write a NEW script for the remaining items (not the test items again).
-
-##############################################################################
-# EXAMPLES
-##############################################################################
-
-WRONG (monolithic - will waste 12+ minutes if it fails):
-  Script 1: Loop through all 24 months, download all statements
-  → Fails after 12 minutes, no files downloaded
-
-RIGHT (two-phase - catches issues in ~30 seconds):
-  Script 1: Download statements for January 2024 only (1 month, ~4 cards)
-  → Verify: "ls ~/Downloads/*.pdf" shows 4 new files
-  → Success!
-  Script 2: Download statements for remaining 23 months
-  → Report: "Downloaded 96 statements"
-
-WRONG:
-  Script 1: Rename all 50 files in one loop
-
-RIGHT:
-  Script 1: Rename first 3 files, verify they exist at new paths
-  Script 2: Rename remaining 47 files
-
-##############################################################################
-# WHY THIS MATTERS
-##############################################################################
-
-Browser automation is fragile. Selectors break, auth expires, timeouts occur.
-A 12-minute script that fails wastes user time and provides no feedback.
-A 30-second test catches the same issues immediately.
-
-NEVER write a script that processes ALL items on the first attempt.
-</bulk-operations>
 
 <behavior>
 - Ask clarifying questions BEFORE starting if the request is ambiguous
@@ -482,11 +276,22 @@ export async function generateOpenCodeConfig(): Promise<string> {
     fs.mkdirSync(configDir, { recursive: true });
   }
 
-  // Get skills directory path and inject into system prompt
+  // Get skills directory path
   const skillsPath = getSkillsPath();
-  const systemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE.replace(/\{\{SKILLS_PATH\}\}/g, skillsPath);
-
   console.log('[OpenCode Config] Skills path:', skillsPath);
+
+  // Load skills from SKILL.md files and build system prompt
+  let systemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE;
+
+  // Replace skill placeholders with loaded skill content
+  const skillPlaceholderRegex = /\{\{SKILL:([^}]+)\}\}/g;
+  systemPrompt = systemPrompt.replace(skillPlaceholderRegex, (_, skillName) => {
+    console.log(`[OpenCode Config] Loading skill: ${skillName}`);
+    return loadSkillContent(skillsPath, skillName);
+  });
+
+  // Replace {{SKILLS_PATH}} with actual path
+  systemPrompt = systemPrompt.replace(/\{\{SKILLS_PATH\}\}/g, skillsPath);
 
   // Build file-permission MCP server command
   const filePermissionServerPath = path.join(skillsPath, 'file-permission', 'src', 'index.ts');
