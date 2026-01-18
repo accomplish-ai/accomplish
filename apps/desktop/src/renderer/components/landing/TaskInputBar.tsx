@@ -4,6 +4,8 @@ import { useRef, useEffect } from 'react';
 import { getAccomplish } from '../../lib/accomplish';
 import { analytics } from '../../lib/analytics';
 import { CornerDownLeft, Loader2 } from 'lucide-react';
+import { MicrophoneButton } from '../ui/MicrophoneButton';
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 
 interface TaskInputBarProps {
   value: string;
@@ -30,6 +32,35 @@ export default function TaskInputBar({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const accomplish = getAccomplish();
 
+  // Speech recognition hook
+  const {
+    isListening,
+    isProcessing,
+    lastTranscription,
+    error: speechError,
+    wakeWordDetected,
+    startListening,
+    stopListening,
+  } = useSpeechRecognition({
+    autoStartAfterWakeWord: true,
+    onTranscription: (text) => {
+      // Append transcribed text to input or replace empty input
+      if (!value.trim()) {
+        onChange(text);
+      } else {
+        onChange(value + ' ' + text);
+      }
+    },
+    onError: (error) => {
+      console.error('Speech recognition error:', error);
+      accomplish.logEvent({
+        level: 'error',
+        message: 'Speech recognition error',
+        context: { error },
+      });
+    },
+  });
+
   // Auto-focus on mount
   useEffect(() => {
     if (autoFocus && textareaRef.current) {
@@ -55,6 +86,19 @@ export default function TaskInputBar({
 
   return (
     <div className="relative flex items-end gap-2 rounded-xl border border-border bg-background px-3 py-2.5 shadow-sm transition-all duration-200 ease-accomplish focus-within:border-ring focus-within:ring-1 focus-within:ring-ring">
+      {/* Microphone button */}
+      <MicrophoneButton
+        isListening={isListening}
+        isProcessing={isProcessing}
+        wakeWordDetected={wakeWordDetected}
+        error={speechError}
+        onStartListening={startListening}
+        onStopListening={stopListening}
+        disabled={isDisabled}
+        size="md"
+        data-testid="task-input-microphone"
+      />
+
       {/* Text input */}
       <textarea
         data-testid="task-input-textarea"
