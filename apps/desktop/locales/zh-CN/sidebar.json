@@ -1,0 +1,15 @@
+{
+  "newTask": "新建任务",
+  "searchTasks": "搜索任务 (Cmd+K)",
+  "noConversations": "暂无对话",
+  "settings": "设置",
+  "searchPlaceholder": "搜索任务...",
+  "results": "搜索结果",
+  "lastSevenDays": "最近 7 天",
+  "noTasksFound": "未找到任务",
+  "navigate": "导航",
+  "select": "选择",
+  "close": "关闭",
+  "confirmDelete": "确定要删除这个任务吗？",
+  "deleteTask": "删除任务"
+}

@@ -1,0 +1,75 @@
+{
+  "title": "设置",
+  "model": {
+    "title": "模型",
+    "cloudProviders": "云服务商",
+    "localModels": "本地模型",
+    "cloudDescription": "选择云端 AI 模型。需要对应服务商的 API 密钥。",
+    "selectModel": "选择模型...",
+    "noApiKey": "（无 API 密钥）",
+    "modelUpdated": "模型已更新为 {{model}}",
+    "noApiKeyWarning": "未配置 {{provider}} 的 API 密钥。请在下方添加。"
+  },
+  "apiKey": {
+    "title": "使用自己的模型/API 密钥",
+    "description": "设置您自己的 AI 助手的 API 密钥和模型。",
+    "provider": "服务商",
+    "apiKeyLabel": "{{provider}} API 密钥",
+    "saveButton": "保存 API 密钥",
+    "invalidFormat": "API 密钥格式无效。密钥应以 {{prefix}} 开头",
+    "savedMessage": "{{provider}} API 密钥已安全保存。",
+    "removedMessage": "{{provider}} API 密钥已移除。",
+    "savedKeys": "已保存的密钥",
+    "confirmDelete": "确定删除？"
+  },
+  "providers": {
+    "anthropic": "Anthropic",
+    "openai": "OpenAI",
+    "google": "Google AI",
+    "xai": "xAI (Grok)",
+    "deepseek": "DeepSeek",
+    "zai": "Z.AI 编程方案",
+    "bedrock": "Amazon Bedrock"
+  },
+  "ollama": {
+    "description": "连接到本地 Ollama 服务器，使用在本机运行的模型。",
+    "serverUrl": "Ollama 服务器地址",
+    "connected": "已连接 - {{count}} 个模型可用",
+    "selectModel": "选择模型",
+    "useThisModel": "使用此模型",
+    "helpText": "请确保已安装并运行 Ollama，然后点击测试连接。",
+    "currentlyUsing": "当前使用"
+  },
+  "bedrock": {
+    "accessKeys": "访问密钥",
+    "awsProfile": "AWS 配置文件",
+    "accessKeyId": "访问密钥 ID",
+    "secretAccessKey": "秘密访问密钥",
+    "sessionToken": "会话令牌",
+    "sessionTokenOptional": "可选",
+    "sessionTokenHint": "用于临时凭证 (STS)",
+    "profileName": "配置文件名称",
+    "region": "区域",
+    "saveButton": "保存 Bedrock 凭证",
+    "savedMessage": "Amazon Bedrock 凭证保存成功。"
+  },
+  "developer": {
+    "title": "开发者",
+    "debugMode": "调试模式",
+    "debugDescription": "在任务视图中显示详细的后端日志，包括 Claude CLI 命令、参数和标准输出/错误输出。",
+    "debugEnabled": "调试模式已启用。运行任务时将在任务视图中显示后端日志。"
+  },
+  "language": {
+    "title": "语言",
+    "description": "选择您偏好的显示语言。",
+    "auto": "自动（跟随系统）",
+    "en": "English",
+    "zhCN": "简体中文"
+  },
+  "about": {
+    "title": "关于",
+    "version": "版本 {{version}}",
+    "description": "Openwork 是一款本地计算机使用 AI 助手，适用于 Mac。它可以读取您的文件、创建文档并自动化重复性知识工作——完全开源，支持您选择的 AI 模型。",
+    "contact": "有问题或反馈？点击此处联系我们"
+  }
+}

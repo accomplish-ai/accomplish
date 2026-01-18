@@ -1,0 +1,52 @@
+{
+  "title": "今天想完成什么？",
+  "inputPlaceholder": "描述一个任务，让 AI 来处理",
+  "examplePrompts": "示例任务",
+  "useCases": {
+    "calendarPrepNotes": {
+      "title": "会议准备笔记",
+      "description": "查看明天的会议并起草准备笔记。",
+      "prompt": "检查我 Google 日历上明天的会议，并在新的 Google 文档中起草准备笔记。"
+    },
+    "inboxPromoCleanup": {
+      "title": "清理促销邮件",
+      "description": "清理过去 24 小时内的促销邮件。",
+      "prompt": "进入我的 Gmail 收件箱，删除过去 24 小时内的所有促销邮件。"
+    },
+    "competitorPricingDeck": {
+      "title": "竞品定价分析",
+      "description": "分析竞品定价并起草建议幻灯片。",
+      "prompt": "从这 5 个竞品网站 [URL列表] 获取定价和功能信息，保存到 CSV，分析我们的定价差距，并在 Google 幻灯片中为周一会议起草建议幻灯片。"
+    },
+    "notionApiAudit": {
+      "title": "Notion API 审计",
+      "description": "扫描 Notion Wiki 中的旧 API 引用并提供链接。",
+      "prompt": "阅读 [URL] 上的这个 Notion Wiki，找到所有旧 API 的引用，并列出页面链接。"
+    },
+    "stagingVsProdVisual": {
+      "title": "测试环境与生产环境对比",
+      "description": "对比测试和生产环境的视觉差异并截图。",
+      "prompt": "对比 [URL] 上的测试站点和 [URL] 上的生产站点，截取任何视觉差异。"
+    },
+    "prodBrokenLinks": {
+      "title": "检测失效链接",
+      "description": "检查网站中的失效链接。",
+      "prompt": "打开 [URL]，点击每个链接，并报告任何 404 错误。"
+    },
+    "portfolioMonitoring": {
+      "title": "投资组合监控",
+      "description": "监控股价，在下跌和上涨时发出警报。",
+      "prompt": "监控我在 [券商网站] 上的股票投资组合，在价格下跌和上涨时发出警报。"
+    },
+    "jobApplicationAutomation": {
+      "title": "求职申请自动化",
+      "description": "筛选职位并使用保存的资料提交申请。",
+      "prompt": "从 Indeed 查找 [关键词] 的职位列表，按薪资排序，并使用我的资料申请前 5 个。"
+    },
+    "eventCalendarBuilder": {
+      "title": "活动日程构建",
+      "description": "选择热门活动并添加到日历。",
+      "prompt": "从 Eventbrite 抓取活动列表，按地点筛选，并将前 5 个添加到我的日历。"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "status": {
+    "queued": "Queued",
+    "running": "Running",
+    "completed": "Completed",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "stopped": "Stopped"
+  },
+  "waiting": {
+    "title": "Waiting for another task",
+    "description": "Your task is queued and will start automatically when the current task completes.",
+    "followUpDescription": "Your follow-up will continue automatically"
+  },
+  "thinking": "Thinking...",
+  "agentWorking": "Agent is working...",
+  "stopAgent": "Stop agent (Ctrl+C)",
+  "followUp": {
+    "interruptedPlaceholder": "Give new instructions...",
+    "noSessionPlaceholder": "Send a new instruction to retry...",
+    "completedPlaceholder": "Give new instructions...",
+    "defaultPlaceholder": "Ask for something..."
+  },
+  "taskStatus": "Task {{status}}",
+  "tools": {
+    "Read": "Reading files",
+    "Glob": "Finding files",
+    "Grep": "Searching code",
+    "Bash": "Running command",
+    "Write": "Writing file",
+    "Edit": "Editing file",
+    "Task": "Running agent",
+    "WebFetch": "Fetching web page",
+    "WebSearch": "Searching web",
+    "dev_browser_execute": "Executing browser action"
+  },
+  "processing": "Processing",
+  "system": "System",
+  "permission": {
+    "title": "Permission Required",
+    "fileTitle": "File Permission Required",
+    "question": "Allow {{toolName}}?",
+    "tool": "Tool",
+    "previewContent": "Preview content",
+    "operations": {
+      "delete": "DELETE",
+      "overwrite": "OVERWRITE",
+      "modify": "MODIFY",
+      "create": "CREATE",
+      "rename": "RENAME",
+      "move": "MOVE"
+    }
+  },
+  "browserInstall": {
+    "title": "Chrome not installed",
+    "description": "Installing browser for automation...",
+    "downloading": "Downloading...",
+    "oneTimeSetup": "One-time setup (~250 MB total)"
+  },
+  "debug": {
+    "title": "Debug Logs",
+    "noLogs": "No debug logs yet. Run a task to see logs."
+  }
+}

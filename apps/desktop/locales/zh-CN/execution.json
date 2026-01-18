@@ -1,0 +1,64 @@
+{
+  "status": {
+    "queued": "排队中",
+    "running": "运行中",
+    "completed": "已完成",
+    "failed": "失败",
+    "cancelled": "已取消",
+    "stopped": "已停止"
+  },
+  "waiting": {
+    "title": "等待其他任务完成",
+    "description": "您的任务已排队，将在当前任务完成后自动开始。",
+    "followUpDescription": "您的后续操作将自动继续"
+  },
+  "thinking": "思考中...",
+  "agentWorking": "智能体工作中...",
+  "stopAgent": "停止智能体 (Ctrl+C)",
+  "followUp": {
+    "interruptedPlaceholder": "输入新指令...",
+    "noSessionPlaceholder": "发送新指令重试...",
+    "completedPlaceholder": "输入新指令...",
+    "defaultPlaceholder": "输入内容..."
+  },
+  "taskStatus": "任务{{status}}",
+  "tools": {
+    "Read": "读取文件",
+    "Glob": "查找文件",
+    "Grep": "搜索代码",
+    "Bash": "执行命令",
+    "Write": "写入文件",
+    "Edit": "编辑文件",
+    "Task": "运行智能体",
+    "WebFetch": "获取网页",
+    "WebSearch": "搜索网络",
+    "dev_browser_execute": "执行浏览器操作"
+  },
+  "processing": "处理中",
+  "system": "系统",
+  "permission": {
+    "title": "需要权限",
+    "fileTitle": "需要文件权限",
+    "question": "允许 {{toolName}}？",
+    "tool": "工具",
+    "previewContent": "预览内容",
+    "operations": {
+      "delete": "删除",
+      "overwrite": "覆盖",
+      "modify": "修改",
+      "create": "创建",
+      "rename": "重命名",
+      "move": "移动"
+    }
+  },
+  "browserInstall": {
+    "title": "Chrome 未安装",
+    "description": "正在安装自动化浏览器...",
+    "downloading": "下载中...",
+    "oneTimeSetup": "一次性安装（约 250 MB）"
+  },
+  "debug": {
+    "title": "调试日志",
+    "noLogs": "暂无调试日志。运行任务后将显示日志。"
+  }
+}

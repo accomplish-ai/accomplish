@@ -1,0 +1,75 @@
+{
+  "title": "Settings",
+  "model": {
+    "title": "Model",
+    "cloudProviders": "Cloud Providers",
+    "localModels": "Local Models",
+    "cloudDescription": "Select a cloud AI model. Requires an API key for the provider.",
+    "selectModel": "Select a model...",
+    "noApiKey": "(No API key)",
+    "modelUpdated": "Model updated to {{model}}",
+    "noApiKeyWarning": "No API key configured for {{provider}}. Add one below."
+  },
+  "apiKey": {
+    "title": "Bring Your Own Model/API Key",
+    "description": "Setup the API key and model for your own AI coworker.",
+    "provider": "Provider",
+    "apiKeyLabel": "{{provider}} API Key",
+    "saveButton": "Save API Key",
+    "invalidFormat": "Invalid API key format. Key should start with {{prefix}}",
+    "savedMessage": "{{provider}} API key saved securely.",
+    "removedMessage": "{{provider}} API key removed.",
+    "savedKeys": "Saved Keys",
+    "confirmDelete": "Are you sure?"
+  },
+  "providers": {
+    "anthropic": "Anthropic",
+    "openai": "OpenAI",
+    "google": "Google AI",
+    "xai": "xAI (Grok)",
+    "deepseek": "DeepSeek",
+    "zai": "Z.AI Coding Plan",
+    "bedrock": "Amazon Bedrock"
+  },
+  "ollama": {
+    "description": "Connect to a local Ollama server to use models running on your machine.",
+    "serverUrl": "Ollama Server URL",
+    "connected": "Connected - {{count}} model(s) available",
+    "selectModel": "Select Model",
+    "useThisModel": "Use This Model",
+    "helpText": "Make sure Ollama is installed and running, then click Test to connect.",
+    "currentlyUsing": "Currently using"
+  },
+  "bedrock": {
+    "accessKeys": "Access Keys",
+    "awsProfile": "AWS Profile",
+    "accessKeyId": "Access Key ID",
+    "secretAccessKey": "Secret Access Key",
+    "sessionToken": "Session Token",
+    "sessionTokenOptional": "Optional",
+    "sessionTokenHint": "For temporary credentials (STS)",
+    "profileName": "Profile Name",
+    "region": "Region",
+    "saveButton": "Save Bedrock Credentials",
+    "savedMessage": "Amazon Bedrock credentials saved successfully."
+  },
+  "developer": {
+    "title": "Developer",
+    "debugMode": "Debug Mode",
+    "debugDescription": "Show detailed backend logs including Claude CLI commands, flags, and stdout/stderr output in the task view.",
+    "debugEnabled": "Debug mode is enabled. Backend logs will appear in the task view when running tasks."
+  },
+  "language": {
+    "title": "Language",
+    "description": "Choose your preferred display language.",
+    "auto": "Auto (System)",
+    "en": "English",
+    "zhCN": "Simplified Chinese"
+  },
+  "about": {
+    "title": "About",
+    "version": "Version {{version}}",
+    "description": "Openwork is a local computer-use AI agent for your Mac that reads your files, creates documents, and automates repetitive knowledge work—all open-source with your AI models of choice.",
+    "contact": "Any questions or feedback? Click here to contact us"
+  }
+}

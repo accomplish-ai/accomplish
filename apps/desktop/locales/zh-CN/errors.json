@@ -1,0 +1,74 @@
+{
+  "api": {
+    "timeout": "请求超时。请检查您的网络连接。",
+    "timeoutRetry": "请求超时。请检查您的网络连接并重试。",
+    "invalidKey": "API 密钥无效",
+    "noKey": "请输入 API 密钥。",
+    "validationFailed": "API 密钥验证失败",
+    "networkError": "网络错误。请检查您的连接。",
+    "connectionFailed": "API 密钥验证失败。请检查您的网络连接。",
+    "unsupportedProvider": "不支持的提供商"
+  },
+  "task": {
+    "notFound": "任务未找到",
+    "startFailed": "启动任务失败",
+    "cancelFailed": "取消任务失败",
+    "taskFailed": "任务失败"
+  },
+  "adapter": {
+    "cliNotFound": "OpenCode CLI 不可用。捆绑的 CLI 可能丢失或损坏。请重新安装应用程序。",
+    "disposed": "适配器已释放，无法启动新任务",
+    "noActiveProcess": "没有活动的进程",
+    "exitWithCode": "OpenCode CLI 退出，代码为 {{code}}"
+  },
+  "validation": {
+    "mustBeString": "{{field}} 必须是字符串",
+    "required": "{{field}} 是必填项",
+    "exceedsLength": "{{field}} 超出最大长度",
+    "unsupportedProvider": "不支持的 API 密钥提供商",
+    "untrustedWindow": "不受信任的窗口",
+    "focusedWindowRequired": "IPC 请求必须来自焦点窗口"
+  },
+  "ollama": {
+    "connectionFailed": "连接失败",
+    "noModels": "未找到模型",
+    "saveFailed": "保存失败",
+    "invalidUrl": "URL 格式无效",
+    "protocolNotAllowed": "只允许使用 http 和 https 协议",
+    "invalidConfig": "Ollama 配置无效",
+    "modelsArray": "Ollama 配置无效：models 必须是数组",
+    "invalidModelFormat": "Ollama 配置无效：模型格式无效",
+    "connectionTimeout": "连接超时。请确保 Ollama 正在运行。",
+    "cannotConnect": "无法连接到 Ollama：{{message}}"
+  },
+  "bedrock": {
+    "invalidCredentials": "凭证无效",
+    "saveFailed": "保存凭证失败",
+    "invalidAuthType": "认证类型无效",
+    "invalidAwsCredentials": "AWS 凭证无效。请检查您的访问密钥 ID 和秘密访问密钥。",
+    "accessDenied": "访问被拒绝。请确保您的 AWS 凭证具有 Bedrock 权限。",
+    "profileNotFound": "未找到 AWS 配置文件。请检查您的 ~/.aws/credentials 文件。",
+    "accessKeyRequired": "访问密钥 ID 和秘密访问密钥是必填项",
+    "profileNameRequired": "配置文件名称是必填项"
+  },
+  "model": {
+    "invalidConfig": "模型配置无效"
+  },
+  "settings": {
+    "invalidDebugFlag": "调试模式标志无效"
+  },
+  "i18n": {
+    "unsupportedLanguage": "不支持的语言"
+  },
+  "url": {
+    "protocolNotAllowed": "只允许使用 http 和 https 协议"
+  },
+  "permission": {
+    "denied": "权限被拒绝",
+    "required": "需要权限"
+  },
+  "generic": {
+    "unknown": "发生未知错误",
+    "tryAgain": "请重试"
+  }
+}

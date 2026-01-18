@@ -1,0 +1,74 @@
+{
+  "api": {
+    "timeout": "Request timed out. Please check your internet connection.",
+    "timeoutRetry": "Request timed out. Please check your internet connection and try again.",
+    "invalidKey": "Invalid API key",
+    "noKey": "Please enter an API key.",
+    "validationFailed": "API key validation failed",
+    "networkError": "Network error. Please check your connection.",
+    "connectionFailed": "Failed to validate API key. Check your internet connection.",
+    "unsupportedProvider": "Unsupported provider"
+  },
+  "task": {
+    "notFound": "Task not found",
+    "startFailed": "Failed to start task",
+    "cancelFailed": "Failed to cancel task",
+    "taskFailed": "Task failed"
+  },
+  "adapter": {
+    "cliNotFound": "OpenCode CLI is not available. The bundled CLI may be missing or corrupted. Please reinstall the application.",
+    "disposed": "Adapter has been disposed and cannot start new tasks",
+    "noActiveProcess": "No active process",
+    "exitWithCode": "OpenCode CLI exited with code {{code}}"
+  },
+  "validation": {
+    "mustBeString": "{{field}} must be a string",
+    "required": "{{field}} is required",
+    "exceedsLength": "{{field}} exceeds maximum length",
+    "unsupportedProvider": "Unsupported API key provider",
+    "untrustedWindow": "Untrusted window",
+    "focusedWindowRequired": "IPC request must originate from the focused window"
+  },
+  "ollama": {
+    "connectionFailed": "Connection failed",
+    "noModels": "No models found",
+    "saveFailed": "Failed to save",
+    "invalidUrl": "Invalid URL format",
+    "protocolNotAllowed": "Only http and https URLs are allowed",
+    "invalidConfig": "Invalid Ollama configuration",
+    "modelsArray": "Invalid Ollama configuration: models must be an array",
+    "invalidModelFormat": "Invalid Ollama configuration: invalid model format",
+    "connectionTimeout": "Connection timed out. Make sure Ollama is running.",
+    "cannotConnect": "Cannot connect to Ollama: {{message}}"
+  },
+  "bedrock": {
+    "invalidCredentials": "Invalid credentials",
+    "saveFailed": "Failed to save credentials",
+    "invalidAuthType": "Invalid authentication type",
+    "invalidAwsCredentials": "Invalid AWS credentials. Please check your Access Key ID and Secret Access Key.",
+    "accessDenied": "Access denied. Ensure your AWS credentials have Bedrock permissions.",
+    "profileNotFound": "AWS profile not found. Check your ~/.aws/credentials file.",
+    "accessKeyRequired": "Access Key ID and Secret Access Key are required",
+    "profileNameRequired": "Profile name is required"
+  },
+  "model": {
+    "invalidConfig": "Invalid model configuration"
+  },
+  "settings": {
+    "invalidDebugFlag": "Invalid debug mode flag"
+  },
+  "i18n": {
+    "unsupportedLanguage": "Unsupported language"
+  },
+  "url": {
+    "protocolNotAllowed": "Only http and https URLs are allowed"
+  },
+  "permission": {
+    "denied": "Permission denied",
+    "required": "Permission required"
+  },
+  "generic": {
+    "unknown": "An unknown error occurred",
+    "tryAgain": "Please try again"
+  }
+}
