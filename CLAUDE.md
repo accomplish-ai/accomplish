@@ -34,9 +34,11 @@ packages/shared/  # Shared TypeScript types
 **Main Process** (`main/`):
 - `index.ts` - Electron bootstrap, single-instance enforcement, `accomplish://` protocol handler
 - `ipc/handlers.ts` - IPC handlers for task lifecycle, settings, onboarding, API keys
-- `opencode/adapter.ts` - OpenCode CLI wrapper using `node-pty`, streams output and handles permissions
+- `opencode/adapter.ts` - OpenCode CLI wrapper using `node-pty`, streams output and handles permissions (legacy mode)
+- `opencode/server-adapter.ts` - OpenCode HTTP/SSE adapter for real-time streaming (default mode)
+- `opencode/task-manager.ts` - Manages task execution, selects adapter mode based on settings
 - `store/secureStorage.ts` - API key storage via `keytar` (OS keychain)
-- `store/appSettings.ts` - App settings via `electron-store` (debug mode, onboarding state)
+- `store/appSettings.ts` - App settings via `electron-store` (debug mode, streaming mode, onboarding state)
 - `store/taskHistory.ts` - Task history persistence
 
 **Preload** (`preload/index.ts`):
@@ -65,10 +67,20 @@ Renderer
 ```
 
 ### Key Dependencies
-- `node-pty` - PTY for OpenCode CLI spawning
+- `node-pty` - PTY for OpenCode CLI spawning (legacy mode)
 - `keytar` - Secure API key storage (OS keychain)
 - `electron-store` - Local settings/preferences
-- `opencode-ai` - Bundled OpenCode CLI (multi-provider: Anthropic, OpenAI, Google, xAI)
+- `opencode-ai` - Bundled OpenCode CLI (multi-provider: Anthropic, OpenAI, Google, xAI, Ollama)
+
+### Adapter Modes
+
+The app supports two modes for communicating with OpenCode:
+
+1. **Server Mode (default)** - Uses `opencode serve` HTTP API with Server-Sent Events (SSE) for real-time streaming. Provides true token-by-token streaming for model responses.
+
+2. **CLI Mode (legacy)** - Uses `opencode run --format json` via PTY. Output is buffered and responses appear all at once.
+
+Mode is controlled by the "Streaming Mode" toggle in Settings. When enabled, Server Mode is used.
 
 ## Code Conventions
 
