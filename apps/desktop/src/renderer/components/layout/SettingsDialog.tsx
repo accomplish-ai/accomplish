@@ -854,7 +854,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                 />
                 <div>
                   <div className="font-medium text-foreground">Openwork</div>
-                  <div className="text-sm text-muted-foreground">Version {appVersion || '0.1.0'}</div>
+                  <div className="text-sm text-muted-foreground">Version {appVersion || 'Error: unavailable'}</div>
                 </div>
               </div>
               <p className="mt-4 text-sm text-muted-foreground leading-relaxed">

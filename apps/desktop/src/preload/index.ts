@@ -172,8 +172,12 @@ const accomplishAPI = {
 contextBridge.exposeInMainWorld('accomplish', accomplishAPI);
 
 // Also expose shell info for compatibility checks
+const packageVersion = process.env.npm_package_version;
+if (!packageVersion) {
+  throw new Error('Package version is not defined. Build is misconfigured.');
+}
 contextBridge.exposeInMainWorld('accomplishShell', {
-  version: process.env.npm_package_version || '1.0.0',
+  version: packageVersion,
   platform: process.platform,
   isElectron: true,
 });

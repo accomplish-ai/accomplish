@@ -746,9 +746,9 @@ describe('SettingsDialog Integration', () => {
       mockGetVersion.mockRejectedValue(new Error('Fetch failed'));
       render(<SettingsDialog {...defaultProps} />);
 
-      // Assert
+      // Assert - should show error instead of fallback version
       await waitFor(() => {
-        expect(screen.getByText('Version 0.1.0')).toBeInTheDocument();
+        expect(screen.getByText('Version Error: unavailable')).toBeInTheDocument();
       });
     });
   });
