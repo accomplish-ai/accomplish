@@ -108,14 +108,10 @@ jobs:
       - name: Run type check
         run: pnpm -F @accomplish/desktop typecheck
 
-  # E2E tests (runs on macOS and Windows)
+  # E2E tests (runs in Docker with Xvfb)
   e2e-tests:
-    name: E2E Tests (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    name: E2E Tests (Docker)
+    runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
@@ -131,24 +127,15 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Run E2E tests
-        run: pnpm -F @accomplish/desktop test:e2e:native
+      - name: Run E2E tests in Docker
+        run: pnpm -F @accomplish/desktop test:e2e
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e2e-test-results-${{ matrix.os }}
+          name: e2e-test-results
           path: |
             apps/desktop/e2e/test-results/
             apps/desktop/e2e/html-report/
-            apps/desktop/e2e/test-results.json
-          retention-days: 7
-
-      - name: Upload screenshots
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: e2e-screenshots-${{ matrix.os }}
-          path: apps/desktop/e2e/test-results/screenshots/
           retention-days: 7
