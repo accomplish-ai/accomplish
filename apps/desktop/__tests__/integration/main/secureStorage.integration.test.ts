@@ -241,7 +241,12 @@ describe('secureStorage Integration', () => {
         anthropic: null,
         openai: null,
         google: null,
-        groq: null,
+        xai: null,
+        deepseek: null,
+        zai: null,
+        openrouter: null,
+        bedrock: null,
+        litellm: null,
         custom: null,
       });
     });
@@ -348,7 +353,12 @@ describe('secureStorage Integration', () => {
         anthropic: null,
         openai: null,
         google: null,
-        groq: null,
+        xai: null,
+        deepseek: null,
+        zai: null,
+        openrouter: null,
+        bedrock: null,
+        litellm: null,
         custom: null,
       });
     });

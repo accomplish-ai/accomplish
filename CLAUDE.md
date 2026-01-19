@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Openwork is a standalone desktop automation assistant built with Electron. The app hosts a local React UI (bundled via Vite), communicating with the main process through `contextBridge` IPC. The main process spawns the OpenCode CLI (via `node-pty`) to execute user tasks. Users provide their own API key (Anthropic, OpenAI, Google, Groq, or Minimax) on first launch, stored securely in the OS keychain.
+Openwork is a standalone desktop automation assistant built with Electron. The app hosts a local React UI (bundled via Vite), communicating with the main process through `contextBridge` IPC. The main process spawns the OpenCode CLI (via `node-pty`) to execute user tasks. Users provide their own API key (Anthropic, OpenAI, Google, Groq, Minimax, or xAI) on first launch, stored securely in the OS keychain.
 
 ## Common Commands
 
@@ -68,7 +68,7 @@ Renderer
 - `node-pty` - PTY for OpenCode CLI spawning
 - `keytar` - Secure API key storage (OS keychain)
 - `electron-store` - Local settings/preferences
-- `opencode-ai` - Bundled OpenCode CLI (multi-provider: Anthropic, OpenAI, Google, Groq, Minimax)
+- `opencode-ai` - Bundled OpenCode CLI (multi-provider: Anthropic, OpenAI, Google, Groq, Minimax, xAI)
 
 ## Code Conventions
 

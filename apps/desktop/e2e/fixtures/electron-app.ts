@@ -25,7 +25,13 @@ export const test = base.extend<ElectronFixtures>({
     const mainPath = resolve(__dirname, '../../dist-electron/main/index.js');
 
     const app = await electron.launch({
-      args: [mainPath, '--e2e-skip-auth', '--e2e-mock-tasks'],
+      args: [
+        mainPath,
+        '--e2e-skip-auth',
+        '--e2e-mock-tasks',
+        // Disable sandbox in Docker (required for containerized Electron)
+        ...(process.env.DOCKER_ENV === '1' ? ['--no-sandbox', '--disable-gpu'] : []),
+      ],
       env: {
         ...process.env,
         E2E_SKIP_AUTH: '1',
@@ -48,8 +54,11 @@ export const test = base.extend<ElectronFixtures>({
     // Wait for page to be fully loaded
     await window.waitForLoadState('load');
 
-    // Wait for React hydration
-    await window.waitForTimeout(TEST_TIMEOUTS.HYDRATION);
+    // Wait for React hydration by checking for a core UI element
+    await window.waitForSelector('[data-testid="task-input-textarea"]', {
+      state: 'visible',
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     await use(window);
   },

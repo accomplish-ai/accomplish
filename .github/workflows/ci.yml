@@ -7,15 +7,17 @@ on:
       - 'apps/desktop/**'
       - 'packages/**'
       - 'pnpm-lock.yaml'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [main]
     paths:
       - 'apps/desktop/**'
       - 'packages/**'
       - 'pnpm-lock.yaml'
+      - '.github/workflows/ci.yml'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -82,47 +84,6 @@ jobs:
           path: apps/desktop/coverage/
           retention-days: 7
 
-  # Coverage report runs after both test jobs complete
-  coverage:
-    name: Coverage Report
-    runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run all tests with coverage
-        run: pnpm -F @accomplish/desktop test:coverage
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: apps/desktop/coverage/
-          retention-days: 30
-
-      - name: Coverage Summary
-        run: |
-          echo "## Coverage Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Coverage |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|----------|" >> $GITHUB_STEP_SUMMARY
-          # Extract coverage from the output
-          cd apps/desktop && pnpm test:coverage 2>&1 | grep -E "All files" | head -1 | awk '{print "| Statements | " $3 " |"}' >> $GITHUB_STEP_SUMMARY || true
-
   # Type checking
   typecheck:
     name: Type Check
@@ -146,3 +107,35 @@ jobs:
 
       - name: Run type check
         run: pnpm -F @accomplish/desktop typecheck
+
+  # E2E tests (runs in Docker with Xvfb)
+  e2e-tests:
+    name: E2E Tests (Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Run E2E tests in Docker
+        run: pnpm -F @accomplish/desktop test:e2e
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: |
+            apps/desktop/e2e/test-results/
+            apps/desktop/e2e/html-report/
+          retention-days: 7

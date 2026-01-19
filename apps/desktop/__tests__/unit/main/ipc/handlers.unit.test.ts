@@ -69,7 +69,7 @@ vi.mock('electron', () => {
         id: 1,
         isDestroyed: vi.fn(() => false),
       })),
-      getAllWindows: vi.fn(() => [{ id: 1 }]),
+      getAllWindows: vi.fn(() => [{ id: 1, webContents: { send: vi.fn() } }]),
     },
     shell: {
       openExternal: vi.fn(),
@@ -160,7 +160,7 @@ vi.mock('@main/store/secureStorage', () => ({
       anthropic: mockApiKeys['anthropic'] || null,
       openai: mockApiKeys['openai'] || null,
       google: mockApiKeys['google'] || null,
-      groq: mockApiKeys['groq'] || null,
+      xai: mockApiKeys['xai'] || null,
       custom: mockApiKeys['custom'] || null,
     })
   ),
@@ -205,6 +205,7 @@ let mockPendingPermissions = new Map<string, { resolve: Function }>();
 
 vi.mock('@main/permission-api', () => ({
   startPermissionApiServer: vi.fn(),
+  startQuestionApiServer: vi.fn(),
   initPermissionApi: vi.fn(),
   resolvePermission: vi.fn((requestId: string, allowed: boolean) => {
     const pending = mockPendingPermissions.get(requestId);
@@ -215,7 +216,10 @@ vi.mock('@main/permission-api', () => ({
     }
     return false;
   }),
+  resolveQuestion: vi.fn(() => true),
   isFilePermissionRequest: vi.fn((requestId: string) => requestId.startsWith('filereq_')),
+  isQuestionRequest: vi.fn((requestId: string) => requestId.startsWith('question_')),
+  QUESTION_API_PORT: 9227,
 }));
 
 // Import after mocks are set up
@@ -1019,7 +1023,7 @@ describe('IPC Handlers Integration', () => {
         anthropic: 'sk-ant-12345678',
         openai: null,
         google: 'AIza1234567890',
-        groq: null,
+        xai: null,
         custom: null,
       };
 

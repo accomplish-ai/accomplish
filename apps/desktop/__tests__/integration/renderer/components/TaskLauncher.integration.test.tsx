@@ -41,6 +41,8 @@ function createMockTask(
 // Mock accomplish API
 const mockAccomplish = {
   hasAnyApiKey: mockHasAnyApiKey,
+  getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
+  getOllamaConfig: vi.fn().mockResolvedValue(null),
 };
 
 // Mock the accomplish module

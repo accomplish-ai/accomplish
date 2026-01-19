@@ -15,8 +15,16 @@ export class HomePage {
     return this.page.getByTestId('task-input-submit');
   }
 
+  get examplesToggle() {
+    return this.page.getByText('Example prompts');
+  }
+
   getExampleCard(index: number) {
     return this.page.getByTestId(`home-example-${index}`);
+  }
+
+  async expandExamples() {
+    await this.examplesToggle.click();
   }
 
   async enterTask(text: string) {

@@ -15,6 +15,7 @@ import type {
   TaskProgress,
   ApiKeyConfig,
   TaskMessage,
+  BedrockCredentials,
 } from '@accomplish/shared';
 
 // Define the API interface
@@ -43,7 +44,7 @@ interface AccomplishAPI {
 
   // Settings
   getApiKeys(): Promise<ApiKeyConfig[]>;
-  addApiKey(provider: 'anthropic' | 'openai' | 'google' | 'minimax' | 'groq' | 'custom', key: string, label?: string): Promise<ApiKeyConfig>;
+  addApiKey(provider: 'anthropic' | 'openai' | 'openrouter' | 'google' | 'minimax' | 'groq' | 'xai' | 'deepseek' | 'zai' | 'custom' | 'bedrock' | 'litellm', key: string, label?: string): Promise<ApiKeyConfig>;
   removeApiKey(id: string): Promise<void>;
   getDebugMode(): Promise<boolean>;
   setDebugMode(enabled: boolean): Promise<void>;
@@ -70,8 +71,43 @@ interface AccomplishAPI {
   getClaudeVersion(): Promise<string | null>;
 
   // Model selection
-  getSelectedModel(): Promise<{ provider: string; model: string } | null>;
-  setSelectedModel(model: { provider: string; model: string }): Promise<void>;
+  getSelectedModel(): Promise<{ provider: string; model: string; baseUrl?: string } | null>;
+  setSelectedModel(model: { provider: string; model: string; baseUrl?: string }): Promise<void>;
+
+  // Ollama configuration
+  testOllamaConnection(url: string): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; displayName: string; size: number }>;
+    error?: string;
+  }>;
+  getOllamaConfig(): Promise<{ baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; displayName: string; size: number }> } | null>;
+  setOllamaConfig(config: { baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; displayName: string; size: number }> } | null): Promise<void>;
+
+  // OpenRouter configuration
+  fetchOpenRouterModels(): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }>;
+
+  // LiteLLM configuration
+  testLiteLLMConnection(url: string, apiKey?: string): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }>;
+  fetchLiteLLMModels(): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }>;
+  getLiteLLMConfig(): Promise<{ baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; name: string; provider: string; contextLength: number }> } | null>;
+  setLiteLLMConfig(config: { baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; name: string; provider: string; contextLength: number }> } | null): Promise<void>;
+
+  // Bedrock configuration
+  validateBedrockCredentials(credentials: string): Promise<{ valid: boolean; error?: string }>;
+  saveBedrockCredentials(credentials: string): Promise<ApiKeyConfig>;
+  getBedrockCredentials(): Promise<BedrockCredentials | null>;
 
   // Event subscriptions
   onTaskUpdate(callback: (event: TaskUpdateEvent) => void): () => void;
@@ -79,6 +115,7 @@ interface AccomplishAPI {
   onPermissionRequest(callback: (request: PermissionRequest) => void): () => void;
   onTaskProgress(callback: (progress: TaskProgress) => void): () => void;
   onDebugLog(callback: (log: unknown) => void): () => void;
+  onDebugModeChange?(callback: (data: { enabled: boolean }) => void): () => void;
   onTaskStatusChange?(callback: (data: { taskId: string; status: TaskStatus }) => void): () => void;
   onTaskSummary?(callback: (data: { taskId: string; summary: string }) => void): () => void;
 
@@ -104,11 +141,25 @@ declare global {
  * Get the accomplish API
  * Throws if not running in Electron
  */
-export function getAccomplish(): AccomplishAPI {
+export function getAccomplish() {
   if (!window.accomplish) {
     throw new Error('Accomplish API not available - not running in Electron');
   }
-  return window.accomplish;
+  return {
+    ...window.accomplish,
+
+    validateBedrockCredentials: async (credentials: BedrockCredentials): Promise<{ valid: boolean; error?: string }> => {
+      return window.accomplish!.validateBedrockCredentials(JSON.stringify(credentials));
+    },
+
+    saveBedrockCredentials: async (credentials: BedrockCredentials): Promise<ApiKeyConfig> => {
+      return window.accomplish!.saveBedrockCredentials(JSON.stringify(credentials));
+    },
+
+    getBedrockCredentials: async (): Promise<BedrockCredentials | null> => {
+      return window.accomplish!.getBedrockCredentials();
+    },
+  };
 }
 
 /**

@@ -178,7 +178,7 @@ describe('appSettings Integration', () => {
       const { getSelectedModel, setSelectedModel } = await import('@main/store/appSettings');
       const model1 = { provider: 'anthropic', model: 'claude-3-opus' };
       const model2 = { provider: 'google', model: 'gemini-pro' };
-      const model3 = { provider: 'groq', model: 'mixtral-8x7b' };
+      const model3 = { provider: 'xai', model: 'grok-4' };
 
       // Act & Assert
       setSelectedModel(model1);
@@ -205,6 +205,8 @@ describe('appSettings Integration', () => {
       expect(result).toEqual({
         debugMode: false,
         onboardingComplete: false,
+        ollamaConfig: null,
+        litellmConfig: null,
         selectedModel: {
           provider: 'anthropic',
           model: 'anthropic/claude-opus-4-5',
@@ -228,6 +230,8 @@ describe('appSettings Integration', () => {
       expect(result).toEqual({
         debugMode: true,
         onboardingComplete: true,
+        ollamaConfig: null,
+        litellmConfig: null,
         selectedModel: customModel,
       });
     });
@@ -275,6 +279,8 @@ describe('appSettings Integration', () => {
       expect(result).toEqual({
         debugMode: false,
         onboardingComplete: false,
+        ollamaConfig: null,
+        litellmConfig: null,
         selectedModel: {
           provider: 'anthropic',
           model: 'anthropic/claude-opus-4-5',

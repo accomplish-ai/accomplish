@@ -38,13 +38,20 @@ import {
   setOnboardingComplete,
   getSelectedModel,
   setSelectedModel,
+  getOllamaConfig,
+  setOllamaConfig,
+  getLiteLLMConfig,
+  setLiteLLMConfig,
 } from '../store/appSettings';
 import { getDesktopConfig } from '../config';
 import {
   startPermissionApiServer,
+  startQuestionApiServer,
   initPermissionApi,
   resolvePermission,
+  resolveQuestion,
   isFilePermissionRequest,
+  isQuestionRequest,
 } from '../permission-api';
 import type {
   TaskConfig,
@@ -54,6 +61,8 @@ import type {
   TaskResult,
   TaskStatus,
   SelectedModel,
+  OllamaConfig,
+  LiteLLMConfig,
 } from '@accomplish/shared';
 import { DEFAULT_PROVIDERS } from '@accomplish/shared';
 import {
@@ -63,6 +72,8 @@ import {
   taskConfigSchema,
   validate,
 } from './validation';
+import { BedrockClient, ListFoundationModelsCommand } from '@aws-sdk/client-bedrock';
+import { fromIni } from '@aws-sdk/credential-providers';
 import {
   isMockTaskEventsEnabled,
   createMockTask,
@@ -71,8 +82,14 @@ import {
 } from '../test-utils/mock-task-flow';
 
 const MAX_TEXT_LENGTH = 8000;
-const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'google', 'minimax', 'groq', 'custom']);
+const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'openrouter', 'google', 'minimax', 'groq', 'xai', 'deepseek', 'zai', 'custom', 'bedrock', 'litellm']);
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
+
+interface OllamaModel {
+  id: string;
+  displayName: string;
+  size: number;
+}
 
 /**
  * Fetch with timeout using AbortController
@@ -278,6 +295,7 @@ export function registerIPCHandlers(): void {
     if (!permissionApiInitialized) {
       initPermissionApi(window, () => taskManager.getActiveTaskId());
       startPermissionApiServer();
+      startQuestionApiServer();
       permissionApiInitialized = true;
     }
 
@@ -491,6 +509,22 @@ export function registerIPCHandlers(): void {
       console.warn(`[IPC] File permission request ${requestId} not found in pending requests`);
     }
 
+    // Check if this is a question request from the MCP server
+    if (requestId && isQuestionRequest(requestId)) {
+      const denied = decision === 'deny';
+      const resolved = resolveQuestion(requestId, {
+        selectedOptions: parsedResponse.selectedOptions,
+        customText: parsedResponse.customText,
+        denied,
+      });
+      if (resolved) {
+        console.log(`[IPC] Question request ${requestId} resolved: ${denied ? 'denied' : 'answered'}`);
+        return;
+      }
+      // If not found in pending, fall through to standard handling
+      console.warn(`[IPC] Question request ${requestId} not found in pending requests`);
+    }
+
     // Check if the task is still active
     if (!taskManager.hasActiveTask(taskId)) {
       console.warn(`[IPC] Permission response for inactive task ${taskId}`);
@@ -652,15 +686,31 @@ export function registerIPCHandlers(): void {
       .filter((credential) => credential.account.startsWith('apiKey:'))
       .map((credential) => {
         const provider = credential.account.replace('apiKey:', '');
-        const keyPrefix =
-          credential.password && credential.password.length > 0
-            ? `${credential.password.substring(0, 8)}...`
-            : '';
+
+        // Handle Bedrock specially - it stores JSON credentials
+        let keyPrefix = '';
+        if (provider === 'bedrock') {
+          try {
+            const parsed = JSON.parse(credential.password);
+            if (parsed.authType === 'accessKeys') {
+              keyPrefix = `${parsed.accessKeyId?.substring(0, 8) || 'AKIA'}...`;
+            } else if (parsed.authType === 'profile') {
+              keyPrefix = `Profile: ${parsed.profileName || 'default'}`;
+            }
+          } catch {
+            keyPrefix = 'AWS Credentials';
+          }
+        } else {
+          keyPrefix =
+            credential.password && credential.password.length > 0
+              ? `${credential.password.substring(0, 8)}...`
+              : '';
+        }
 
         return {
           id: `local-${provider}`,
           provider,
-          label: 'Local API Key',
+          label: provider === 'bedrock' ? 'AWS Credentials' : 'Local API Key',
           keyPrefix,
           isActive: true,
           createdAt: new Date().toISOString(),
@@ -808,6 +858,19 @@ export function registerIPCHandlers(): void {
           );
           break;
 
+        case 'openrouter':
+          response = await fetchWithTimeout(
+            'https://openrouter.ai/api/v1/models',
+            {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${sanitizedKey}`,
+              },
+            },
+            API_KEY_VALIDATION_TIMEOUT_MS
+          );
+          break;
+
         case 'google':
           response = await fetchWithTimeout(
             `https://generativelanguage.googleapis.com/v1beta/models?key=${sanitizedKey}`,
@@ -818,9 +881,36 @@ export function registerIPCHandlers(): void {
           );
           break;
 
-        case 'groq':
+        case 'xai':
           response = await fetchWithTimeout(
-            'https://api.groq.com/openai/v1/models',
+            'https://api.x.ai/v1/models',
+            {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${sanitizedKey}`,
+              },
+            },
+            API_KEY_VALIDATION_TIMEOUT_MS
+          );
+          break;
+
+        case 'deepseek':
+          response = await fetchWithTimeout(
+            'https://api.deepseek.com/models',
+            {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${sanitizedKey}`,
+              },
+            },
+            API_KEY_VALIDATION_TIMEOUT_MS
+          );
+          break;
+
+        // Z.AI Coding Plan uses the same validation as standard API
+        case 'zai':
+          response = await fetchWithTimeout(
+            'https://open.bigmodel.cn/api/paas/v4/models',
             {
               method: 'GET',
               headers: {
@@ -875,6 +965,103 @@ export function registerIPCHandlers(): void {
     }
   });
 
+  // Bedrock: Validate AWS credentials
+  handle('bedrock:validate', async (_event: IpcMainInvokeEvent, credentials: string) => {
+    console.log('[Bedrock] Validation requested');
+
+    try {
+      const parsed = JSON.parse(credentials);
+      let client: BedrockClient;
+
+      if (parsed.authType === 'accessKeys') {
+        // Access key authentication
+        const awsCredentials: { accessKeyId: string; secretAccessKey: string; sessionToken?: string } = {
+          accessKeyId: parsed.accessKeyId,
+          secretAccessKey: parsed.secretAccessKey,
+        };
+        if (parsed.sessionToken) {
+          awsCredentials.sessionToken = parsed.sessionToken;
+        }
+        client = new BedrockClient({
+          region: parsed.region || 'us-east-1',
+          credentials: awsCredentials,
+        });
+      } else if (parsed.authType === 'profile') {
+        // AWS Profile authentication
+        client = new BedrockClient({
+          region: parsed.region || 'us-east-1',
+          credentials: fromIni({ profile: parsed.profileName || 'default' }),
+        });
+      } else {
+        return { valid: false, error: 'Invalid authentication type' };
+      }
+
+      // Test by listing foundation models
+      const command = new ListFoundationModelsCommand({});
+      await client.send(command);
+
+      console.log('[Bedrock] Validation succeeded');
+      return { valid: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Validation failed';
+      console.warn('[Bedrock] Validation failed:', message);
+
+      // Provide user-friendly error messages
+      if (message.includes('UnrecognizedClientException') || message.includes('InvalidSignatureException')) {
+        return { valid: false, error: 'Invalid AWS credentials. Please check your Access Key ID and Secret Access Key.' };
+      }
+      if (message.includes('AccessDeniedException')) {
+        return { valid: false, error: 'Access denied. Ensure your AWS credentials have Bedrock permissions.' };
+      }
+      if (message.includes('could not be found')) {
+        return { valid: false, error: 'AWS profile not found. Check your ~/.aws/credentials file.' };
+      }
+
+      return { valid: false, error: message };
+    }
+  });
+
+  // Bedrock: Save credentials
+  handle('bedrock:save', async (_event: IpcMainInvokeEvent, credentials: string) => {
+    const parsed = JSON.parse(credentials);
+
+    // Validate structure
+    if (parsed.authType === 'accessKeys') {
+      if (!parsed.accessKeyId || !parsed.secretAccessKey) {
+        throw new Error('Access Key ID and Secret Access Key are required');
+      }
+    } else if (parsed.authType === 'profile') {
+      if (!parsed.profileName) {
+        throw new Error('Profile name is required');
+      }
+    } else {
+      throw new Error('Invalid authentication type');
+    }
+
+    // Store the credentials
+    storeApiKey('bedrock', credentials);
+
+    return {
+      id: 'local-bedrock',
+      provider: 'bedrock',
+      label: parsed.authType === 'accessKeys' ? 'AWS Access Keys' : `AWS Profile: ${parsed.profileName}`,
+      keyPrefix: parsed.authType === 'accessKeys' ? `${parsed.accessKeyId.substring(0, 8)}...` : parsed.profileName,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    };
+  });
+
+  // Bedrock: Get credentials
+  handle('bedrock:get-credentials', async (_event: IpcMainInvokeEvent) => {
+    const stored = getApiKey('bedrock');
+    if (!stored) return null;
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return null;
+    }
+  });
+
   // API Key: Clear API key
   handle('api-key:clear', async (_event: IpcMainInvokeEvent) => {
     await deleteApiKey('anthropic');
@@ -919,6 +1106,308 @@ export function registerIPCHandlers(): void {
     setSelectedModel(model);
   });
 
+  // Ollama: Test connection and get models
+  handle('ollama:test-connection', async (_event: IpcMainInvokeEvent, url: string) => {
+    const sanitizedUrl = sanitizeString(url, 'ollamaUrl', 256);
+
+    // Validate URL format and protocol
+    try {
+      const parsed = new URL(sanitizedUrl);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return { success: false, error: 'Only http and https URLs are allowed' };
+      }
+    } catch {
+      return { success: false, error: 'Invalid URL format' };
+    }
+
+    try {
+      const response = await fetchWithTimeout(
+        `${sanitizedUrl}/api/tags`,
+        { method: 'GET' },
+        API_KEY_VALIDATION_TIMEOUT_MS
+      );
+
+      if (!response.ok) {
+        throw new Error(`Ollama returned status ${response.status}`);
+      }
+
+      const data = await response.json() as { models?: Array<{ name: string; size: number }> };
+      const models: OllamaModel[] = (data.models || []).map((m) => ({
+        id: m.name,
+        displayName: m.name,
+        size: m.size,
+      }));
+
+      console.log(`[Ollama] Connection successful, found ${models.length} models`);
+      return { success: true, models };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Connection failed';
+      console.warn('[Ollama] Connection failed:', message);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        return { success: false, error: 'Connection timed out. Make sure Ollama is running.' };
+      }
+      return { success: false, error: `Cannot connect to Ollama: ${message}` };
+    }
+  });
+
+  // Ollama: Get stored config
+  handle('ollama:get-config', async (_event: IpcMainInvokeEvent) => {
+    return getOllamaConfig();
+  });
+
+  // Ollama: Set config
+  handle('ollama:set-config', async (_event: IpcMainInvokeEvent, config: OllamaConfig | null) => {
+    if (config !== null) {
+      if (typeof config.baseUrl !== 'string' || typeof config.enabled !== 'boolean') {
+        throw new Error('Invalid Ollama configuration');
+      }
+      // Validate URL format and protocol
+      try {
+        const parsed = new URL(config.baseUrl);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          throw new Error('Only http and https URLs are allowed');
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message.includes('http')) {
+          throw e; // Re-throw our protocol error
+        }
+        throw new Error('Invalid base URL format');
+      }
+      // Validate optional lastValidated if present
+      if (config.lastValidated !== undefined && typeof config.lastValidated !== 'number') {
+        throw new Error('Invalid Ollama configuration');
+      }
+      // Validate optional models array if present
+      if (config.models !== undefined) {
+        if (!Array.isArray(config.models)) {
+          throw new Error('Invalid Ollama configuration: models must be an array');
+        }
+        for (const model of config.models) {
+          if (typeof model.id !== 'string' || typeof model.displayName !== 'string' || typeof model.size !== 'number') {
+            throw new Error('Invalid Ollama configuration: invalid model format');
+          }
+        }
+      }
+    }
+    setOllamaConfig(config);
+    console.log('[Ollama] Config saved:', config);
+  });
+
+  // OpenRouter: Fetch available models
+  handle('openrouter:fetch-models', async (_event: IpcMainInvokeEvent) => {
+    const apiKey = getApiKey('openrouter');
+    if (!apiKey) {
+      return { success: false, error: 'No OpenRouter API key configured' };
+    }
+
+    try {
+      const response = await fetchWithTimeout(
+        'https://openrouter.ai/api/v1/models',
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+          },
+        },
+        API_KEY_VALIDATION_TIMEOUT_MS
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = (errorData as { error?: { message?: string } })?.error?.message || `API returned status ${response.status}`;
+        return { success: false, error: errorMessage };
+      }
+
+      const data = await response.json() as { data?: Array<{ id: string; name: string; context_length?: number }> };
+      const models = (data.data || []).map((m) => {
+        // Extract provider from model ID (e.g., "anthropic/claude-3.5-sonnet" -> "anthropic")
+        const provider = m.id.split('/')[0] || 'unknown';
+        return {
+          id: m.id,
+          name: m.name || m.id,
+          provider,
+          contextLength: m.context_length || 0,
+        };
+      });
+
+      console.log(`[OpenRouter] Fetched ${models.length} models`);
+      return { success: true, models };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch models';
+      console.warn('[OpenRouter] Fetch failed:', message);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        return { success: false, error: 'Request timed out. Check your internet connection.' };
+      }
+      return { success: false, error: `Failed to fetch models: ${message}` };
+    }
+  });
+
+  // LiteLLM: Test connection and fetch models
+  handle('litellm:test-connection', async (_event: IpcMainInvokeEvent, url: string, apiKey?: string) => {
+    const sanitizedUrl = sanitizeString(url, 'litellmUrl', 256);
+    const sanitizedApiKey = apiKey ? sanitizeString(apiKey, 'apiKey', 256) : undefined;
+
+    // Validate URL format and protocol
+    try {
+      const parsed = new URL(sanitizedUrl);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return { success: false, error: 'Only http and https URLs are allowed' };
+      }
+    } catch {
+      return { success: false, error: 'Invalid URL format' };
+    }
+
+    try {
+      const headers: Record<string, string> = {};
+      if (sanitizedApiKey) {
+        headers['Authorization'] = `Bearer ${sanitizedApiKey}`;
+      }
+
+      const response = await fetchWithTimeout(
+        `${sanitizedUrl}/v1/models`,
+        { method: 'GET', headers },
+        API_KEY_VALIDATION_TIMEOUT_MS
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = (errorData as { error?: { message?: string } })?.error?.message || `API returned status ${response.status}`;
+        return { success: false, error: errorMessage };
+      }
+
+      const data = await response.json() as { data?: Array<{ id: string; object: string; created?: number; owned_by?: string }> };
+      const models = (data.data || []).map((m) => {
+        // Extract provider from model ID (e.g., "openai/gpt-4" -> "openai")
+        const provider = m.id.split('/')[0] || m.owned_by || 'unknown';
+        return {
+          id: m.id,
+          name: m.id, // LiteLLM uses id as name
+          provider,
+          contextLength: 0, // LiteLLM doesn't provide this in /v1/models
+        };
+      });
+
+      console.log(`[LiteLLM] Connection successful, found ${models.length} models`);
+      return { success: true, models };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Connection failed';
+      console.warn('[LiteLLM] Connection failed:', message);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        return { success: false, error: 'Connection timed out. Make sure LiteLLM proxy is running.' };
+      }
+      return { success: false, error: `Cannot connect to LiteLLM: ${message}` };
+    }
+  });
+
+  // LiteLLM: Fetch models from configured proxy
+  handle('litellm:fetch-models', async (_event: IpcMainInvokeEvent) => {
+    const config = getLiteLLMConfig();
+    if (!config || !config.baseUrl) {
+      return { success: false, error: 'No LiteLLM proxy configured' };
+    }
+
+    const apiKey = getApiKey('litellm');
+
+    try {
+      const headers: Record<string, string> = {};
+      if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      }
+
+      const response = await fetchWithTimeout(
+        `${config.baseUrl}/v1/models`,
+        { method: 'GET', headers },
+        API_KEY_VALIDATION_TIMEOUT_MS
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = (errorData as { error?: { message?: string } })?.error?.message || `API returned status ${response.status}`;
+        return { success: false, error: errorMessage };
+      }
+
+      const data = await response.json() as { data?: Array<{ id: string; object: string; created?: number; owned_by?: string }> };
+      const models = (data.data || []).map((m) => {
+        // Extract provider from model ID (e.g., "anthropic/claude-sonnet" -> "anthropic")
+        const parts = m.id.split('/');
+        const provider = parts.length > 1 ? parts[0] : (m.owned_by !== 'openai' ? m.owned_by : 'unknown') || 'unknown';
+
+        // Generate display name (e.g., "anthropic/claude-sonnet" -> "Anthropic: Claude Sonnet")
+        const modelPart = parts.length > 1 ? parts.slice(1).join('/') : m.id;
+        const providerDisplay = provider.charAt(0).toUpperCase() + provider.slice(1);
+        const modelDisplay = modelPart
+          .split('-')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        const displayName = parts.length > 1 ? `${providerDisplay}: ${modelDisplay}` : modelDisplay;
+
+        return {
+          id: m.id,
+          name: displayName,
+          provider,
+          contextLength: 0,
+        };
+      });
+
+      console.log(`[LiteLLM] Fetched ${models.length} models`);
+      return { success: true, models };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch models';
+      console.warn('[LiteLLM] Fetch failed:', message);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        return { success: false, error: 'Request timed out. Check your LiteLLM proxy.' };
+      }
+      return { success: false, error: `Failed to fetch models: ${message}` };
+    }
+  });
+
+  // LiteLLM: Get stored config
+  handle('litellm:get-config', async (_event: IpcMainInvokeEvent) => {
+    return getLiteLLMConfig();
+  });
+
+  // LiteLLM: Set config
+  handle('litellm:set-config', async (_event: IpcMainInvokeEvent, config: LiteLLMConfig | null) => {
+    if (config !== null) {
+      if (typeof config.baseUrl !== 'string' || typeof config.enabled !== 'boolean') {
+        throw new Error('Invalid LiteLLM configuration');
+      }
+      // Validate URL format and protocol
+      try {
+        const parsed = new URL(config.baseUrl);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          throw new Error('Only http and https URLs are allowed');
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message.includes('http')) {
+          throw e; // Re-throw our protocol error
+        }
+        throw new Error('Invalid base URL format');
+      }
+      // Validate optional lastValidated if present
+      if (config.lastValidated !== undefined && typeof config.lastValidated !== 'number') {
+        throw new Error('Invalid LiteLLM configuration');
+      }
+      // Validate optional models array if present
+      if (config.models !== undefined) {
+        if (!Array.isArray(config.models)) {
+          throw new Error('Invalid LiteLLM configuration: models must be an array');
+        }
+        for (const model of config.models) {
+          if (typeof model.id !== 'string' || typeof model.name !== 'string' || typeof model.provider !== 'string') {
+            throw new Error('Invalid LiteLLM configuration: invalid model format');
+          }
+        }
+      }
+    }
+    setLiteLLMConfig(config);
+    console.log('[LiteLLM] Config saved:', config);
+  });
+
   // API Keys: Get all API keys (with masked values)
   handle('api-keys:all', async (_event: IpcMainInvokeEvent) => {
     const keys = await getAllApiKeys();
@@ -953,6 +1442,10 @@ export function registerIPCHandlers(): void {
       throw new Error('Invalid debug mode flag');
     }
     setDebugMode(enabled);
+    // Broadcast the change to all renderer windows
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.send('settings:debug-mode-changed', { enabled });
+    }
   });
 
   // Settings: Get all app settings

@@ -10,17 +10,26 @@ import type { TaskMessage } from '@accomplish/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File } from 'lucide-react';
+import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { StreamingText } from '../components/ui/streaming-text';
 import { isWaitingForUser } from '../lib/waiting-detection';
-import openworkIcon from '/assets/openwork-icon.png';
+import loadingSymbol from '/assets/loading-symbol.svg';
+
+// Debug log entry type
+interface DebugLogEntry {
+  taskId: string;
+  timestamp: string;
+  type: string;
+  message: string;
+  data?: unknown;
+}
 
 // Spinning Openwork icon component
 const SpinningIcon = ({ className }: { className?: string }) => (
   <img
-    src={openworkIcon}
+    src={loadingSymbol}
     alt=""
     className={cn('animate-spin-ccw', className)}
   />
@@ -64,6 +73,22 @@ function getOperationBadgeClasses(operation?: string): string {
   }
 }
 
+// Helper to check if this is a delete operation
+function isDeleteOperation(request: { type: string; fileOperation?: string }): boolean {
+  return request.type === 'file' && request.fileOperation === 'delete';
+}
+
+// Get file paths to display (handles both single and multiple)
+function getDisplayFilePaths(request: { filePath?: string; filePaths?: string[] }): string[] {
+  if (request.filePaths && request.filePaths.length > 0) {
+    return request.filePaths;
+  }
+  if (request.filePath) {
+    return [request.filePath];
+  }
+  return [];
+}
+
 export default function ExecutionPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -74,6 +99,14 @@ export default function ExecutionPage() {
   const [taskRunCount, setTaskRunCount] = useState(0);
   const [currentTool, setCurrentTool] = useState<string | null>(null);
   const [currentToolInput, setCurrentToolInput] = useState<unknown>(null);
+  const [debugLogs, setDebugLogs] = useState<DebugLogEntry[]>([]);
+  const [debugPanelOpen, setDebugPanelOpen] = useState(false);
+  const [debugModeEnabled, setDebugModeEnabled] = useState(false);
+  const [debugExported, setDebugExported] = useState(false);
+  const debugPanelRef = useRef<HTMLDivElement>(null);
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [customResponse, setCustomResponse] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   const {
     currentTask,
@@ -102,10 +135,27 @@ export default function ExecutionPage() {
     []
   );
 
+  // Load debug mode setting on mount and subscribe to changes
+  useEffect(() => {
+    accomplish.getDebugMode().then(setDebugModeEnabled);
+
+    // Subscribe to debug mode changes from settings
+    const unsubscribeDebugMode = accomplish.onDebugModeChange?.(({ enabled }) => {
+      setDebugModeEnabled(enabled);
+    });
+
+    return () => {
+      unsubscribeDebugMode?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - accomplish is a stable singleton wrapper
+
   // Load task and subscribe to events
   useEffect(() => {
     if (id) {
       loadTaskById(id);
+      // Clear debug logs when switching tasks
+      setDebugLogs([]);
     }
 
     // Handle individual task updates
@@ -153,13 +203,23 @@ export default function ExecutionPage() {
       }
     });
 
+    // Subscribe to debug logs
+    const unsubscribeDebugLog = accomplish.onDebugLog((log) => {
+      const entry = log as DebugLogEntry;
+      if (entry.taskId === id) {
+        setDebugLogs((prev) => [...prev, entry]);
+      }
+    });
+
     return () => {
       unsubscribeTask();
       unsubscribeTaskBatch?.();
       unsubscribePermission();
       unsubscribeStatusChange?.();
+      unsubscribeDebugLog();
     };
-  }, [id, loadTaskById, addTaskUpdate, addTaskUpdateBatch, updateTaskStatus, setPermissionRequest, accomplish]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, loadTaskById, addTaskUpdate, addTaskUpdateBatch, updateTaskStatus, setPermissionRequest]); // accomplish is stable singleton
 
   // Increment counter when task starts/resumes
   useEffect(() => {
@@ -172,6 +232,13 @@ export default function ExecutionPage() {
   useEffect(() => {
     scrollToBottom();
   }, [currentTask?.messages?.length, scrollToBottom]);
+
+  // Auto-scroll debug panel when new logs arrive
+  useEffect(() => {
+    if (debugPanelOpen && debugPanelRef.current) {
+      debugPanelRef.current.scrollTop = debugPanelRef.current.scrollHeight;
+    }
+  }, [debugLogs.length, debugPanelOpen]);
 
   // Auto-focus follow-up input when task completes
   const isComplete = ['completed', 'failed', 'cancelled', 'interrupted'].includes(currentTask?.status ?? '');
@@ -195,13 +262,54 @@ export default function ExecutionPage() {
     await sendFollowUp('continue');
   };
 
+  const handleExportDebugLogs = useCallback(() => {
+    const text = debugLogs
+      .map((log) => {
+        const dataStr = log.data !== undefined
+          ? ` ${typeof log.data === 'string' ? log.data : JSON.stringify(log.data)}`
+          : '';
+        return `${new Date(log.timestamp).toISOString()} [${log.type}] ${log.message}${dataStr}`;
+      })
+      .join('\n');
+
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `debug-logs-${id}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setDebugExported(true);
+    setTimeout(() => setDebugExported(false), 2000);
+  }, [debugLogs, id]);
+
   const handlePermissionResponse = async (allowed: boolean) => {
     if (!permissionRequest || !currentTask) return;
+
+    // For questions, handle custom text response
+    const isQuestion = permissionRequest.type === 'question';
+    const hasCustomText = isQuestion && showCustomInput && customResponse.trim();
+
     await respondToPermission({
       requestId: permissionRequest.id,
       taskId: permissionRequest.taskId,
       decision: allowed ? 'allow' : 'deny',
+      selectedOptions: isQuestion ? (hasCustomText ? [] : selectedOptions) : undefined,
+      customText: hasCustomText ? customResponse.trim() : undefined,
     });
+
+    // Reset state for next question
+    setSelectedOptions([]);
+    setCustomResponse('');
+    setShowCustomInput(false);
+
+    // If denied on a question, also interrupt the task
+    if (!allowed && isQuestion) {
+      interruptTask();
+    }
   };
 
   if (error) {
@@ -529,41 +637,108 @@ export default function ExecutionPage() {
                 <div className="flex items-start gap-4">
                   <div className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full shrink-0",
-                    permissionRequest.type === 'file' ? "bg-amber-500/10" : "bg-warning/10"
+                    isDeleteOperation(permissionRequest) ? "bg-red-500/10" :
+                    permissionRequest.type === 'file' ? "bg-amber-500/10" :
+                    permissionRequest.type === 'question' ? "bg-primary/10" : "bg-warning/10"
                   )}>
-                    {permissionRequest.type === 'file' ? (
+                    {isDeleteOperation(permissionRequest) ? (
+                      <AlertTriangle className="h-5 w-5 text-red-600" />
+                    ) : permissionRequest.type === 'file' ? (
                       <File className="h-5 w-5 text-amber-600" />
+                    ) : permissionRequest.type === 'question' ? (
+                      <Brain className="h-5 w-5 text-primary" />
                     ) : (
                       <AlertCircle className="h-5 w-5 text-warning" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
-                      {permissionRequest.type === 'file' ? 'File Permission Required' : 'Permission Required'}
+                    <h3 className={cn(
+                      "text-lg font-semibold mb-2",
+                      isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
+                    )}>
+                      {isDeleteOperation(permissionRequest)
+                        ? 'File Deletion Warning'
+                        : permissionRequest.type === 'file'
+                          ? 'File Permission Required'
+                          : permissionRequest.type === 'question'
+                            ? (permissionRequest.header || 'Question')
+                            : 'Permission Required'}
                     </h3>
 
                     {/* File permission specific UI */}
                     {permissionRequest.type === 'file' && (
                       <>
-                        <div className="mb-3">
-                          <span className={cn(
-                            "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                            getOperationBadgeClasses(permissionRequest.fileOperation)
-                          )}>
-                            {permissionRequest.fileOperation?.toUpperCase()}
-                          </span>
-                        </div>
+                        {/* Delete operation warning banner */}
+                        {isDeleteOperation(permissionRequest) && (
+                          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                            <p className="text-sm text-red-600">
+                              {(() => {
+                                const paths = getDisplayFilePaths(permissionRequest);
+                                return paths.length > 1
+                                  ? `${paths.length} files will be permanently deleted:`
+                                  : 'This file will be permanently deleted:';
+                              })()}
+                            </p>
+                          </div>
+                        )}
 
-                        <div className="mb-4 p-3 rounded-lg bg-muted">
-                          <p className="text-sm font-mono text-foreground break-all">
-                            {permissionRequest.filePath}
-                          </p>
+                        {/* Non-delete operation badge */}
+                        {!isDeleteOperation(permissionRequest) && (
+                          <div className="mb-3">
+                            <span className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                              getOperationBadgeClasses(permissionRequest.fileOperation)
+                            )}>
+                              {permissionRequest.fileOperation?.toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* File path(s) display */}
+                        <div className={cn(
+                          "mb-4 p-3 rounded-lg",
+                          isDeleteOperation(permissionRequest)
+                            ? "bg-red-500/5 border border-red-500/20"
+                            : "bg-muted"
+                        )}>
+                          {(() => {
+                            const paths = getDisplayFilePaths(permissionRequest);
+                            if (paths.length > 1) {
+                              return (
+                                <ul className="space-y-1">
+                                  {paths.map((path, idx) => (
+                                    <li key={idx} className={cn(
+                                      "text-sm font-mono break-all",
+                                      isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
+                                    )}>
+                                      • {path}
+                                    </li>
+                                  ))}
+                                </ul>
+                              );
+                            }
+                            return (
+                              <p className={cn(
+                                "text-sm font-mono break-all",
+                                isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
+                              )}>
+                                {paths[0]}
+                              </p>
+                            );
+                          })()}
                           {permissionRequest.targetPath && (
                             <p className="text-sm font-mono text-muted-foreground mt-1">
                               → {permissionRequest.targetPath}
                             </p>
                           )}
                         </div>
+
+                        {/* Delete warning text */}
+                        {isDeleteOperation(permissionRequest) && (
+                          <p className="text-sm text-red-600/80 mb-4">
+                            This action cannot be undone.
+                          </p>
+                        )}
 
                         {permissionRequest.contentPreview && (
                           <details className="mb-4">
@@ -578,11 +753,87 @@ export default function ExecutionPage() {
                       </>
                     )}
 
-                    {/* Standard question/tool UI */}
-                    {permissionRequest.type !== 'file' && (
+                    {/* Question type UI with options */}
+                    {permissionRequest.type === 'question' && (
+                      <>
+                        <p className="text-sm text-foreground mb-4">
+                          {permissionRequest.question}
+                        </p>
+
+                        {/* Options list */}
+                        {!showCustomInput && permissionRequest.options && permissionRequest.options.length > 0 && (
+                          <div className="mb-4 space-y-2">
+                            {permissionRequest.options.map((option, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  // If "Other" is selected, show custom input
+                                  if (option.label.toLowerCase() === 'other') {
+                                    setShowCustomInput(true);
+                                    setSelectedOptions([]);
+                                    return;
+                                  }
+                                  if (permissionRequest.multiSelect) {
+                                    setSelectedOptions((prev) =>
+                                      prev.includes(option.label)
+                                        ? prev.filter((o) => o !== option.label)
+                                        : [...prev, option.label]
+                                    );
+                                  } else {
+                                    setSelectedOptions([option.label]);
+                                  }
+                                }}
+                                className={cn(
+                                  "w-full text-left p-3 rounded-lg border transition-colors",
+                                  selectedOptions.includes(option.label)
+                                    ? "border-primary bg-primary/10"
+                                    : "border-border hover:border-primary/50"
+                                )}
+                              >
+                                <div className="font-medium text-sm">{option.label}</div>
+                                {option.description && (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    {option.description}
+                                  </div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Custom text input */}
+                        {showCustomInput && (
+                          <div className="mb-4 space-y-2">
+                            <Input
+                              autoFocus
+                              value={customResponse}
+                              onChange={(e) => setCustomResponse(e.target.value)}
+                              placeholder="Type your response..."
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && customResponse.trim()) {
+                                  handlePermissionResponse(true);
+                                }
+                              }}
+                            />
+                            <button
+                              onClick={() => {
+                                setShowCustomInput(false);
+                                setCustomResponse('');
+                              }}
+                              className="text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              ← Back to options
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Standard tool UI (non-file, non-question) */}
+                    {permissionRequest.type === 'tool' && (
                       <>
                         <p className="text-sm text-muted-foreground mb-4">
-                          {permissionRequest.question || `Allow ${permissionRequest.toolName}?`}
+                          Allow {permissionRequest.toolName}?
                         </p>
                         {permissionRequest.toolName && (
                           <div className="mb-4 p-3 rounded-lg bg-muted text-xs font-mono overflow-x-auto">
@@ -602,14 +853,29 @@ export default function ExecutionPage() {
                         className="flex-1"
                         data-testid="permission-deny-button"
                       >
-                        Deny
+                        {permissionRequest.type === 'question' ? 'Cancel' : 'Deny'}
                       </Button>
                       <Button
                         onClick={() => handlePermissionResponse(true)}
-                        className="flex-1"
+                        className={cn(
+                          "flex-1",
+                          isDeleteOperation(permissionRequest) && "bg-red-600 hover:bg-red-700 text-white"
+                        )}
                         data-testid="permission-allow-button"
+                        disabled={
+                          permissionRequest.type === 'question' &&
+                          !showCustomInput &&
+                          permissionRequest.options &&
+                          selectedOptions.length === 0
+                        }
                       >
-                        Allow
+                        {isDeleteOperation(permissionRequest)
+                          ? getDisplayFilePaths(permissionRequest).length > 1
+                            ? 'Delete All'
+                            : 'Delete'
+                          : permissionRequest.type === 'question'
+                            ? 'Submit'
+                            : 'Allow'}
                       </Button>
                     </div>
                   </div>
@@ -692,6 +958,117 @@ export default function ExecutionPage() {
           <Button onClick={() => navigate('/')}>
             Start New Task
           </Button>
+        </div>
+      )}
+
+      {/* Debug Panel - Only visible when debug mode is enabled */}
+      {debugModeEnabled && (
+        <div className="flex-shrink-0 border-t border-border">
+          {/* Toggle header */}
+          <button
+            onClick={() => setDebugPanelOpen(!debugPanelOpen)}
+            className="w-full flex items-center justify-between px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 transition-colors"
+          >
+            <div className="flex items-center gap-2 text-sm text-zinc-400">
+              <Bug className="h-4 w-4" />
+              <span className="font-medium">Debug Logs</span>
+              {debugLogs.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-zinc-700 text-zinc-300 text-xs">
+                  {debugLogs.length}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {debugLogs.length > 0 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleExportDebugLogs();
+                    }}
+                  >
+                    {debugExported ? (
+                      <Check className="h-3 w-3 mr-1 text-green-400" />
+                    ) : (
+                      <Download className="h-3 w-3 mr-1" />
+                    )}
+                    {debugExported ? 'Exported' : 'Export'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDebugLogs([]);
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Clear
+                  </Button>
+                </>
+              )}
+              {debugPanelOpen ? (
+                <ChevronDown className="h-4 w-4 text-zinc-500" />
+              ) : (
+                <ChevronUp className="h-4 w-4 text-zinc-500" />
+              )}
+            </div>
+          </button>
+
+          {/* Collapsible panel content */}
+          <AnimatePresence>
+            {debugPanelOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 200, opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div
+                  ref={debugPanelRef}
+                  className="h-[200px] overflow-y-auto bg-zinc-950 text-zinc-300 font-mono text-xs p-4"
+                >
+                  {debugLogs.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-zinc-500">
+                      No debug logs yet. Run a task to see logs.
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {debugLogs.map((log, index) => (
+                        <div key={index} className="flex gap-2">
+                          <span className="text-zinc-500 shrink-0">
+                            {new Date(log.timestamp).toLocaleTimeString()}
+                          </span>
+                          <span className={cn(
+                            'shrink-0 px-1 rounded',
+                            log.type === 'error' ? 'bg-red-500/20 text-red-400' :
+                            log.type === 'warn' ? 'bg-yellow-500/20 text-yellow-400' :
+                            log.type === 'info' ? 'bg-blue-500/20 text-blue-400' :
+                            'bg-zinc-700 text-zinc-400'
+                          )}>
+                            [{log.type}]
+                          </span>
+                          <span className="text-zinc-300 break-all">
+                            {log.message}
+                            {log.data !== undefined && (
+                              <span className="text-zinc-500 ml-2">
+                                {typeof log.data === 'string' ? log.data : JSON.stringify(log.data, null, 0)}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </div>

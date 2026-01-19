@@ -1,0 +1,38 @@
+# Dependencies (will be installed in container)
+node_modules
+**/node_modules
+
+# Build outputs (will be built in container)
+dist
+dist-electron
+release
+.next
+out
+
+# Test artifacts
+e2e/test-results
+e2e/html-report
+e2e/*.json
+coverage
+
+# Development files
+.git
+.github
+*.log
+*.md
+!README.md
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+!.env.example

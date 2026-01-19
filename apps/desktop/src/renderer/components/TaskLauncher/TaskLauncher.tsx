@@ -60,7 +60,11 @@ export default function TaskLauncher() {
       if (searchQuery.trim()) {
         // Start task with search query as prompt
         const hasKey = await accomplish.hasAnyApiKey();
-        if (!hasKey) {
+        const selectedModel = await accomplish.getSelectedModel();
+        const hasOllamaConfigured = selectedModel?.provider === 'ollama';
+        const hasLiteLLMConfigured = selectedModel?.provider === 'litellm';
+
+        if (!hasKey && !hasOllamaConfigured && !hasLiteLLMConfigured) {
           closeLauncher();
           navigate('/');
           return;

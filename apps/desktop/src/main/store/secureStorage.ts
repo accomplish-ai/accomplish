@@ -159,6 +159,9 @@ export function storeApiKey(provider: string, apiKey: string): void {
 export function getApiKey(provider: string): string | null {
   const store = getSecureStore();
   const values = store.get('values');
+  if (!values) {
+    return null;
+  }
   const encrypted = values[`apiKey:${provider}`];
   if (!encrypted) {
     return null;
@@ -184,22 +187,49 @@ export function deleteApiKey(provider: string): boolean {
 /**
  * Supported API key providers
  */
-export type ApiKeyProvider = 'anthropic' | 'openai' | 'google' | 'minimax' | 'groq' | 'custom';
+export type ApiKeyProvider = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'minimax' | 'groq' | 'xai' | 'deepseek' | 'zai' | 'custom' | 'bedrock' | 'litellm';
 
 /**
  * Get all API keys for all providers
  */
 export async function getAllApiKeys(): Promise<Record<ApiKeyProvider, string | null>> {
-  const [anthropic, openai, google, minimax, groq, custom] = await Promise.all([
+  const [anthropic, openai, openrouter, google, minimax, groq, xai, deepseek, zai, custom, bedrock, litellm] = await Promise.all([
     getApiKey('anthropic'),
     getApiKey('openai'),
+    getApiKey('openrouter'),
     getApiKey('google'),
     getApiKey('minimax'),
     getApiKey('groq'),
+    getApiKey('xai'),
+    getApiKey('deepseek'),
+    getApiKey('zai'),
     getApiKey('custom'),
+    getApiKey('bedrock'),
+    getApiKey('litellm'),
   ]);
 
-  return { anthropic, openai, google, minimax, groq, custom };
+  return { anthropic, openai, openrouter, google, minimax, groq, xai, deepseek, zai, custom, bedrock, litellm };
+}
+
+/**
+ * Store Bedrock credentials (JSON stringified)
+ */
+export function storeBedrockCredentials(credentials: string): void {
+  storeApiKey('bedrock', credentials);
+}
+
+/**
+ * Get Bedrock credentials (returns parsed object or null)
+ */
+export function getBedrockCredentials(): Record<string, string> | null {
+  const stored = getApiKey('bedrock');
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return null;
+  }
+}
 }
 
 /**

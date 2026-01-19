@@ -143,13 +143,25 @@ describe('Accomplish API', () => {
 
   describe('getAccomplish', () => {
     it('should return accomplish API when available', async () => {
-      const mockApi = { getVersion: vi.fn(), startTask: vi.fn() };
+      const mockApi = {
+        getVersion: vi.fn(),
+        startTask: vi.fn(),
+        validateBedrockCredentials: vi.fn(),
+        saveBedrockCredentials: vi.fn(),
+        getBedrockCredentials: vi.fn(),
+      };
       (globalThis as unknown as { window: { accomplish: typeof mockApi } }).window = {
         accomplish: mockApi,
       };
 
       const { getAccomplish } = await import('@renderer/lib/accomplish');
-      expect(getAccomplish()).toBe(mockApi);
+      const result = getAccomplish();
+      // getAccomplish returns a wrapper object with spread methods + Bedrock wrappers
+      expect(result.getVersion).toBeDefined();
+      expect(result.startTask).toBeDefined();
+      expect(result.validateBedrockCredentials).toBeDefined();
+      expect(result.saveBedrockCredentials).toBeDefined();
+      expect(result.getBedrockCredentials).toBeDefined();
     });
 
     it('should throw when accomplish API is not available', async () => {

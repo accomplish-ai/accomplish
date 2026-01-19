@@ -44,6 +44,8 @@ function createMockTask(
 // Mock accomplish API
 const mockAccomplish = {
   hasAnyApiKey: mockHasAnyApiKey,
+  getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
+  getOllamaConfig: vi.fn().mockResolvedValue(null),
   onTaskUpdate: mockOnTaskUpdate.mockReturnValue(() => {}),
   onPermissionRequest: mockOnPermissionRequest.mockReturnValue(() => {}),
   logEvent: mockLogEvent.mockResolvedValue(undefined),
@@ -180,7 +182,7 @@ describe('Home Page Integration', () => {
       expect(screen.getByText(/example prompts/i)).toBeInTheDocument();
     });
 
-    it('should render use case example cards', () => {
+    it('should render use case example cards', async () => {
       // Arrange & Act
       render(
         <MemoryRouter initialEntries={['/']}>
@@ -188,9 +190,11 @@ describe('Home Page Integration', () => {
         </MemoryRouter>
       );
 
-      // Assert - Check for some example use cases
-      expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
-      expect(screen.getByText('Inbox Promo Cleanup')).toBeInTheDocument();
+      // Assert - Check for some example use cases (expanded by default)
+      await waitFor(() => {
+        expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
+        expect(screen.getByText('Inbox Promo Cleanup')).toBeInTheDocument();
+      });
     });
 
     it('should subscribe to task events on mount', () => {
@@ -432,7 +436,10 @@ describe('Home Page Integration', () => {
         </MemoryRouter>
       );
 
-      // Act - Click on Calendar Prep Notes example
+      // Act - Click on Calendar Prep Notes example (expanded by default)
+      await waitFor(() => {
+        expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
+      });
       const exampleButton = screen.getByText('Calendar Prep Notes').closest('button');
       expect(exampleButton).toBeInTheDocument();
       fireEvent.click(exampleButton!);
@@ -453,22 +460,30 @@ describe('Home Page Integration', () => {
         </MemoryRouter>
       );
 
-      // Assert - Examples should be visible initially
-      expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
+      // Assert - Examples should be visible initially (expanded by default)
+      await waitFor(() => {
+        expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
+      });
 
       // Act - Toggle examples off
       const toggleButton = screen.getByText(/example prompts/i).closest('button');
-      if (toggleButton) {
-        fireEvent.click(toggleButton);
-      }
+      fireEvent.click(toggleButton!);
 
-      // Assert - Examples should be hidden (AnimatePresence will handle animation)
+      // Assert - Examples should be hidden now
       await waitFor(() => {
         expect(screen.queryByText('Calendar Prep Notes')).not.toBeInTheDocument();
       });
+
+      // Act - Toggle examples on again
+      fireEvent.click(toggleButton!);
+
+      // Assert - Examples should be visible again
+      await waitFor(() => {
+        expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
+      });
     });
 
-    it('should render all nine example use cases', () => {
+    it('should render all nine example use cases', async () => {
       // Arrange & Act
       render(
         <MemoryRouter initialEntries={['/']}>
@@ -476,7 +491,7 @@ describe('Home Page Integration', () => {
         </MemoryRouter>
       );
 
-      // Assert
+      // Assert - examples are expanded by default
       const expectedExamples = [
         'Calendar Prep Notes',
         'Inbox Promo Cleanup',
@@ -489,8 +504,10 @@ describe('Home Page Integration', () => {
         'Event Calendar Builder',
       ];
 
-      expectedExamples.forEach(example => {
-        expect(screen.getByText(example)).toBeInTheDocument();
+      await waitFor(() => {
+        expectedExamples.forEach(example => {
+          expect(screen.getByText(example)).toBeInTheDocument();
+        });
       });
     });
   });

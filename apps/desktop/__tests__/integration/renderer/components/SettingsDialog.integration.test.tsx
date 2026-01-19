@@ -36,6 +36,7 @@ const mockAccomplish = {
   getDebugMode: mockGetDebugMode,
   getVersion: mockGetVersion,
   getSelectedModel: mockGetSelectedModel,
+  getOllamaConfig: vi.fn().mockResolvedValue(null),
   setDebugMode: mockSetDebugMode,
   setSelectedModel: mockSetSelectedModel,
   addApiKey: mockAddApiKey,
@@ -176,7 +177,7 @@ describe('SettingsDialog Integration', () => {
         expect(screen.getByText('Anthropic')).toBeInTheDocument();
         expect(screen.getByText('OpenAI')).toBeInTheDocument();
         expect(screen.getByText('Google AI')).toBeInTheDocument();
-        expect(screen.getByText('Groq')).toBeInTheDocument();
+        expect(screen.getByText('xAI (Grok)')).toBeInTheDocument();
       });
     });
 
@@ -745,9 +746,9 @@ describe('SettingsDialog Integration', () => {
       mockGetVersion.mockRejectedValue(new Error('Fetch failed'));
       render(<SettingsDialog {...defaultProps} />);
 
-      // Assert
+      // Assert - should show error instead of fallback version
       await waitFor(() => {
-        expect(screen.getByText('Version 0.1.0')).toBeInTheDocument();
+        expect(screen.getByText('Version Error: unavailable')).toBeInTheDocument();
       });
     });
   });

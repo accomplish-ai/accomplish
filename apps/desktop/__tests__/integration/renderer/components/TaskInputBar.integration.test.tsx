@@ -19,6 +19,8 @@ vi.mock('@/lib/analytics', () => ({
 // Mock accomplish API
 const mockAccomplish = {
   logEvent: vi.fn().mockResolvedValue(undefined),
+  getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
+  getOllamaConfig: vi.fn().mockResolvedValue(null),
 };
 
 // Mock the accomplish module
