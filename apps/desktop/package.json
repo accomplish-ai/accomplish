@@ -1,6 +1,6 @@
 {
   "name": "@accomplish/desktop",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "type": "module",
   "description": "Accomplish Desktop App",
