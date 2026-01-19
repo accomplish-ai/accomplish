@@ -126,150 +126,52 @@ request_file_permission({
 </tool>
 
 <skill name="dev-browser">
-Browser automation that maintains page state across script executions. Write small, focused scripts to accomplish tasks incrementally.
+Browser automation using MCP tools. Use these tools directly for web automation tasks.
 
-<critical-requirement>
-##############################################################################
-# MANDATORY: Browser scripts must use .mts extension to enable ESM mode.
-# tsx treats .mts files as ES modules, enabling top-level await.
-#
-# CORRECT (always do this - two steps):
-#   1. Write script to temp file with .mts extension:
-#      cat > /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts <<'EOF'
-#      import { connect } from "@/client.js";
-#      ...
-#      EOF
-#
-#   2. Run from dev-browser directory with bundled Node:
-#      cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
-#
-# WRONG (will fail - .ts files in /tmp default to CJS mode):
-#   cat > /tmp/script.ts <<'EOF'
-#   import { connect } from "@/client.js";  # Top-level await won't work!
-#   EOF
-#
-# ALWAYS use .mts extension for temp scripts!
-##############################################################################
-</critical-requirement>
+<tools>
+**browser_navigate(url, page_name?)** - Navigate to a URL
+- url: The URL to visit (e.g., "google.com" or "https://example.com")
+- page_name: Optional name for the page (default: "main")
 
-<setup>
-The dev-browser server is automatically started when you begin a task. Before your first browser script, verify it's ready:
+**browser_snapshot(page_name?)** - Get the page's accessibility tree
+- Returns YAML with element refs like [ref=e5]
+- Use these refs with browser_click and browser_type
 
-\`\`\`bash
-curl -s http://localhost:9224
-\`\`\`
+**browser_click(x?, y?, ref?, selector?, page_name?)** - Click on the page
+- x, y: Pixel coordinates (default method)
+- ref: Element ref from browser_snapshot (alternative)
+- selector: CSS selector (alternative)
 
-If it returns JSON with a \`wsEndpoint\`, proceed with browser automation. If connection is refused, the server is still starting - wait 2-3 seconds and check again.
+**browser_type(ref?, selector?, text, press_enter?, page_name?)** - Type into an input
+- ref: Element ref from browser_snapshot (preferred)
+- selector: CSS selector as fallback
+- text: The text to type
+- press_enter: Set to true to press Enter after typing
 
-**Fallback** (only if server isn't running after multiple checks):
-\`\`\`bash
-cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" ./server.sh &
-\`\`\`
-</setup>
+**browser_screenshot(page_name?, full_page?)** - Take a screenshot
+- Returns the image for visual inspection
+- full_page: Set to true for full scrollable page
 
-<usage>
-Write scripts to /tmp with .mts extension, then execute from dev-browser directory:
+**browser_evaluate(script, page_name?)** - Run custom JavaScript
+- script: Plain JavaScript code (no TypeScript)
 
-<example name="basic-navigation">
-\`\`\`bash
-cat > /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts <<'EOF'
-import { connect, waitForPageLoad } from "@/client.js";
+**browser_pages(action, page_name?)** - Manage pages
+- action: "list" to see all pages, "close" to close a page
+</tools>
 
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-const client = await connect();
-const page = await client.page(\`\${taskId}-main\`);
+<workflow>
+1. **Navigate**: \`browser_navigate("google.com")\`
+2. **Discover elements**: \`browser_snapshot()\` - find refs like [ref=e5]
+3. **Interact**: \`browser_click(ref="e5")\` or \`browser_type(ref="e3", text="search query", press_enter=true)\`
+4. **Verify**: \`browser_screenshot()\` to see the result
+</workflow>
 
-await page.goto("https://example.com");
-await waitForPageLoad(page);
-
-console.log({ title: await page.title(), url: page.url() });
-await client.disconnect();
-EOF
-cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
-\`\`\`
+<example name="google-search">
+1. browser_navigate(url="google.com")
+2. browser_snapshot() -> find search box [ref=e12]
+3. browser_type(ref="e12", text="cute animals", press_enter=true)
+4. browser_screenshot() -> see search results
 </example>
-</usage>
-
-<principles>
-1. **Small scripts**: Each script does ONE thing (navigate, click, fill, check)
-2. **Evaluate state**: Log/return state at the end to decide next steps
-3. **Task-scoped page names**: ALWAYS prefix page names with the task ID from environment:
-   \`\`\`typescript
-   const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-   const page = await client.page(\`\${taskId}-main\`);
-   \`\`\`
-   This ensures parallel tasks don't interfere with each other's browser pages.
-4. **Task-scoped screenshot filenames**: ALWAYS prefix screenshot filenames with taskId to prevent parallel tasks from overwriting each other's screenshots:
-   \`\`\`typescript
-   await page.screenshot({ path: \`tmp/\${taskId}-screenshot.png\` });
-   \`\`\`
-5. **Disconnect to exit**: \`await client.disconnect()\` - pages persist on server
-6. **Plain JS in evaluate**: \`page.evaluate()\` runs in browser - no TypeScript syntax
-</principles>
-
-<api-reference name="client">
-\`\`\`typescript
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-const client = await connect();
-
-const page = await client.page(\`\${taskId}-main\`); // Get or create named page
-const pages = await client.list(); // List all page names
-await client.close(\`\${taskId}-main\`); // Close a page
-await client.disconnect(); // Disconnect (pages persist)
-
-// ARIA Snapshot methods
-const snapshot = await client.getAISnapshot(\`\${taskId}-main\`); // Get accessibility tree
-const element = await client.selectSnapshotRef(\`\${taskId}-main\`, "e5"); // Get element by ref
-\`\`\`
-
-The \`page\` object is a standard Playwright Page.
-</api-reference>
-
-<api-reference name="screenshots">
-IMPORTANT: Always prefix screenshot filenames with taskId to avoid collisions with parallel tasks:
-\`\`\`typescript
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-await page.screenshot({ path: \`tmp/\${taskId}-screenshot.png\` });
-await page.screenshot({ path: \`tmp/\${taskId}-full.png\`, fullPage: true });
-\`\`\`
-</api-reference>
-
-<api-reference name="aria-snapshot">
-Use \`getAISnapshot()\` to discover page elements. Returns YAML-formatted accessibility tree with refs like \`[ref=e1]\`. Then use \`selectSnapshotRef()\` to interact:
-
-<example name="aria-snapshot-usage">
-\`\`\`typescript
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-const snapshot = await client.getAISnapshot(\`\${taskId}-main\`);
-console.log(snapshot); // Find the ref you need
-
-const element = await client.selectSnapshotRef(\`\${taskId}-main\`, "e2");
-await element.click();
-\`\`\`
-</example>
-</api-reference>
-
-<error-recovery>
-Page state persists after failures. Debug by reconnecting and taking a screenshot:
-
-<example name="debug-screenshot">
-\`\`\`bash
-cat > /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts <<'EOF'
-import { connect } from "@/client.js";
-
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-const client = await connect();
-const page = await client.page(\`\${taskId}-main\`);
-
-await page.screenshot({ path: \`tmp/\${taskId}-debug.png\` });
-console.log({ url: page.url(), title: await page.title() });
-
-await client.disconnect();
-EOF
-cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
-\`\`\`
-</example>
-</error-recovery>
 
 <login-pages>
 When you encounter a login page (e.g., Google Sign-In, OAuth screens, authentication prompts):
@@ -304,12 +206,11 @@ See the ask-user-question skill for full documentation and examples.
 
 <behavior>
 - Use AskUserQuestion tool for clarifying questions before starting ambiguous tasks
-- Write small, focused scripts - each does ONE thing
-- After each script, evaluate the output before deciding next steps
+- Use MCP tools directly - browser_navigate, browser_snapshot, browser_click, browser_type, browser_screenshot
+- After each action, evaluate the result before deciding next steps
 - Be concise - don't narrate every internal action
 - Hide implementation details - describe actions in user terms
 - For multi-step tasks, summarize at the end rather than narrating each step
-- Don't explain what bash commands you're running - just run them silently
 - Don't announce server checks or startup - proceed directly to the task
 - Only speak to the user when you have meaningful results or need input
 </behavior>
@@ -407,9 +308,9 @@ export async function generateOpenCodeConfig(): Promise<string> {
     fs.mkdirSync(configDir, { recursive: true });
   }
 
-  // Get skills directory path and inject into system prompt
+  // Get skills directory path
   const skillsPath = getSkillsPath();
-  const systemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE.replace(/\{\{SKILLS_PATH\}\}/g, skillsPath);
+  const systemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE;
 
   // Get OpenCode config directory (parent of skills/) for OPENCODE_CONFIG_DIR
   const openCodeConfigDir = getOpenCodeConfigDir();
@@ -594,6 +495,12 @@ export async function generateOpenCodeConfig(): Promise<string> {
           QUESTION_API_PORT: String(QUESTION_API_PORT),
         },
         timeout: 10000,
+      },
+      'dev-browser-mcp': {
+        type: 'local',
+        command: ['npx', 'tsx', path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts')],
+        enabled: true,
+        timeout: 30000,  // Longer timeout for browser operations
       },
     },
   };
