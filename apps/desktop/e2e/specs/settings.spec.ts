@@ -51,7 +51,7 @@ test.describe('Settings Dialog', () => {
     );
   });
 
-  test('should have horizontal scroll only on provider row, not settings dialog', async ({ window }) => {
+  test('should use 4-column grid layout without horizontal scroll', async ({ window }) => {
     const settingsPage = new SettingsPage(window);
 
     await window.waitForLoadState('domcontentloaded');
@@ -75,45 +75,28 @@ test.describe('Settings Dialog', () => {
     // Dialog should have auto or hidden overflow-x, not scroll
     expect(['auto', 'hidden', 'visible']).toContain(dialogOverflowX);
 
-    // Check that provider grid has overflow-hidden (clips the scroll to inside)
-    const gridOverflow = await providerGrid.evaluate((el) => {
-      const style = window.getComputedStyle(el);
-      return style.overflow;
-    });
-    expect(gridOverflow).toBe('hidden');
+    // Verify the grid uses 4-column layout (grid-cols-4)
+    const gridContainer = providerGrid.locator('.grid.grid-cols-4').first();
+    await expect(gridContainer).toBeVisible();
 
-    // Find the scrollable providers container inside the grid
-    const providersScrollContainer = providerGrid.locator('div.flex.overflow-x-auto').first();
+    // In collapsed view, first 4 providers should be visible
+    await expect(settingsPage.getProviderCard('anthropic')).toBeVisible();
+    await expect(settingsPage.getProviderCard('openai')).toBeVisible();
+    await expect(settingsPage.getProviderCard('google')).toBeVisible();
+    await expect(settingsPage.getProviderCard('xai')).toBeVisible();
 
-    // If not expanded, there should be a scrollable container
-    const isScrollContainerVisible = await providersScrollContainer.isVisible().catch(() => false);
-
-    if (isScrollContainerVisible) {
-      // Check that this inner container has overflow-x: auto (scrollable)
-      const scrollContainerOverflowX = await providersScrollContainer.evaluate((el) => {
-        const style = window.getComputedStyle(el);
-        return style.overflowX;
-      });
-      expect(scrollContainerOverflowX).toBe('auto');
-
-      // Verify the scroll container has scrollable content (scrollWidth > clientWidth)
-      const hasHorizontalScroll = await providersScrollContainer.evaluate((el) => {
-        return el.scrollWidth > el.clientWidth;
-      });
-
-      // Log for debugging
-      console.log('Provider row has horizontal scroll:', hasHorizontalScroll);
-    }
+    // 5th provider should NOT be visible in collapsed view
+    await expect(settingsPage.getProviderCard('deepseek')).not.toBeVisible();
 
     // Capture for verification
     await captureForAI(
       window,
       'settings-dialog',
-      'scroll-behavior',
+      'grid-layout',
       [
-        'Settings dialog does not have horizontal scroll',
-        'Provider grid container has overflow-hidden',
-        'Provider cards row has horizontal scroll when collapsed'
+        'Settings dialog uses 4-column grid layout',
+        'First 4 providers visible in collapsed view',
+        'No horizontal scroll needed'
       ]
     );
   });
@@ -606,7 +589,7 @@ test.describe('Settings Dialog', () => {
     await expect(settingsPage.providerGrid).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Additional verification: can interact with the dialog
-    const dialogTitle = window.getByRole('heading', { name: 'Settings' });
+    const dialogTitle = window.getByRole('heading', { name: 'Set up Openwork' });
     await expect(dialogTitle).toBeVisible();
 
     // Capture successful state

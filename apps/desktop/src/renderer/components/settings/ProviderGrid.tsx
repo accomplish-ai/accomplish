@@ -5,16 +5,16 @@ import type { ProviderId, ProviderSettings } from '@accomplish/shared';
 import { PROVIDER_META } from '@accomplish/shared';
 import { ProviderCard } from './ProviderCard';
 
-// Provider order matching Figma design (3 columns per row)
+// Provider order matching Figma design (4 columns per row)
 const PROVIDER_ORDER: ProviderId[] = [
   'anthropic',
   'openai',
   'google',
+  'xai',
   'deepseek',
   'zai',
   'ollama',
   'bedrock',
-  'xai',
   'openrouter',
   'litellm',
 ];
@@ -78,7 +78,7 @@ export function ProviderGrid({
       {/* Providers */}
       {expanded ? (
         /* Expanded: show all in grid */
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           {filteredProviders.map(providerId => (
             <ProviderCard
               key={providerId}
@@ -91,9 +91,9 @@ export function ProviderGrid({
           ))}
         </div>
       ) : (
-        /* Collapsed: single row, 3 providers */
-        <div className="grid grid-cols-3 gap-3">
-          {filteredProviders.slice(0, 3).map(providerId => (
+        /* Collapsed: single row, 4 providers */
+        <div className="grid grid-cols-4 gap-3">
+          {filteredProviders.slice(0, 4).map(providerId => (
             <ProviderCard
               key={providerId}
               providerId={providerId}

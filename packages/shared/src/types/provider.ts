@@ -220,10 +220,26 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     baseUrl: 'https://open.bigmodel.cn',
     models: [
       {
+        id: 'glm-4.7-flashx',
+        displayName: 'GLM-4.7 FlashX (Latest)',
+        provider: 'zai',
+        fullId: 'zai/glm-4.7-flashx',
+        contextWindow: 200000,
+        supportsVision: false,
+      },
+      {
         id: 'glm-4.7',
-        displayName: 'GLM-4.7 (Latest)',
+        displayName: 'GLM-4.7',
         provider: 'zai',
         fullId: 'zai/glm-4.7',
+        contextWindow: 200000,
+        supportsVision: false,
+      },
+      {
+        id: 'glm-4.7-flash',
+        displayName: 'GLM-4.7 Flash',
+        provider: 'zai',
+        fullId: 'zai/glm-4.7-flash',
         contextWindow: 200000,
         supportsVision: false,
       },

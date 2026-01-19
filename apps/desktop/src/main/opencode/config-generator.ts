@@ -366,7 +366,36 @@ interface OpenRouterProviderConfig {
   models: Record<string, OpenRouterProviderModelConfig>;
 }
 
-type ProviderConfig = OllamaProviderConfig | BedrockProviderConfig | OpenRouterProviderConfig;
+interface LiteLLMProviderModelConfig {
+  name: string;
+  tools?: boolean;
+}
+
+interface LiteLLMProviderConfig {
+  npm: string;
+  name: string;
+  options: {
+    baseURL: string;
+    apiKey?: string;
+  };
+  models: Record<string, LiteLLMProviderModelConfig>;
+}
+
+interface ZaiProviderModelConfig {
+  name: string;
+  tools?: boolean;
+}
+
+interface ZaiProviderConfig {
+  npm: string;
+  name: string;
+  options: {
+    baseURL: string;
+  };
+  models: Record<string, ZaiProviderModelConfig>;
+}
+
+type ProviderConfig = OllamaProviderConfig | BedrockProviderConfig | OpenRouterProviderConfig | LiteLLMProviderConfig | ZaiProviderConfig;
 
 interface OpenCodeConfig {
   $schema?: string;
@@ -601,6 +630,29 @@ export async function generateOpenCodeConfig(): Promise<string> {
       };
       console.log('[OpenCode Config] LiteLLM configured:', litellmProvider.selectedModelId);
     }
+  }
+
+  // Add Z.AI Coding Plan provider configuration with all supported models
+  // This is needed because OpenCode's built-in zai-coding-plan provider may not have all models
+  const zaiKey = getApiKey('zai');
+  if (zaiKey) {
+    const zaiModels: Record<string, ZaiProviderModelConfig> = {
+      'glm-4.7-flashx': { name: 'GLM-4.7 FlashX (Latest)', tools: true },
+      'glm-4.7': { name: 'GLM-4.7', tools: true },
+      'glm-4.7-flash': { name: 'GLM-4.7 Flash', tools: true },
+      'glm-4.6': { name: 'GLM-4.6', tools: true },
+      'glm-4.5-flash': { name: 'GLM-4.5 Flash', tools: true },
+    };
+
+    providerConfig['zai-coding-plan'] = {
+      npm: '@ai-sdk/openai-compatible',
+      name: 'Z.AI Coding Plan',
+      options: {
+        baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+      },
+      models: zaiModels,
+    };
+    console.log('[OpenCode Config] Z.AI Coding Plan provider configured with models:', Object.keys(zaiModels));
   }
 
   const config: OpenCodeConfig = {
