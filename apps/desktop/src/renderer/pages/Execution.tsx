@@ -10,7 +10,7 @@ import type { TaskMessage } from '@accomplish/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check } from 'lucide-react';
+import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { StreamingText } from '../components/ui/streaming-text';
@@ -71,6 +71,22 @@ function getOperationBadgeClasses(operation?: string): string {
     case 'move': return 'bg-blue-500/10 text-blue-600';
     default: return 'bg-gray-500/10 text-gray-600';
   }
+}
+
+// Helper to check if this is a delete operation
+function isDeleteOperation(request: { type: string; fileOperation?: string }): boolean {
+  return request.type === 'file' && request.fileOperation === 'delete';
+}
+
+// Get file paths to display (handles both single and multiple)
+function getDisplayFilePaths(request: { filePath?: string; filePaths?: string[] }): string[] {
+  if (request.filePaths && request.filePaths.length > 0) {
+    return request.filePaths;
+  }
+  if (request.filePath) {
+    return [request.filePath];
+  }
+  return [];
 }
 
 export default function ExecutionPage() {
@@ -621,10 +637,13 @@ export default function ExecutionPage() {
                 <div className="flex items-start gap-4">
                   <div className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full shrink-0",
+                    isDeleteOperation(permissionRequest) ? "bg-red-500/10" :
                     permissionRequest.type === 'file' ? "bg-amber-500/10" :
                     permissionRequest.type === 'question' ? "bg-primary/10" : "bg-warning/10"
                   )}>
-                    {permissionRequest.type === 'file' ? (
+                    {isDeleteOperation(permissionRequest) ? (
+                      <AlertTriangle className="h-5 w-5 text-red-600" />
+                    ) : permissionRequest.type === 'file' ? (
                       <File className="h-5 w-5 text-amber-600" />
                     ) : permissionRequest.type === 'question' ? (
                       <Brain className="h-5 w-5 text-primary" />
@@ -633,34 +652,93 @@ export default function ExecutionPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
-                      {permissionRequest.type === 'file' ? 'File Permission Required' :
-                       permissionRequest.type === 'question' ? (permissionRequest.header || 'Question') :
-                       'Permission Required'}
+                    <h3 className={cn(
+                      "text-lg font-semibold mb-2",
+                      isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
+                    )}>
+                      {isDeleteOperation(permissionRequest)
+                        ? 'File Deletion Warning'
+                        : permissionRequest.type === 'file'
+                          ? 'File Permission Required'
+                          : permissionRequest.type === 'question'
+                            ? (permissionRequest.header || 'Question')
+                            : 'Permission Required'}
                     </h3>
 
                     {/* File permission specific UI */}
                     {permissionRequest.type === 'file' && (
                       <>
-                        <div className="mb-3">
-                          <span className={cn(
-                            "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                            getOperationBadgeClasses(permissionRequest.fileOperation)
-                          )}>
-                            {permissionRequest.fileOperation?.toUpperCase()}
-                          </span>
-                        </div>
+                        {/* Delete operation warning banner */}
+                        {isDeleteOperation(permissionRequest) && (
+                          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                            <p className="text-sm text-red-600">
+                              {(() => {
+                                const paths = getDisplayFilePaths(permissionRequest);
+                                return paths.length > 1
+                                  ? `${paths.length} files will be permanently deleted:`
+                                  : 'This file will be permanently deleted:';
+                              })()}
+                            </p>
+                          </div>
+                        )}
 
-                        <div className="mb-4 p-3 rounded-lg bg-muted">
-                          <p className="text-sm font-mono text-foreground break-all">
-                            {permissionRequest.filePath}
-                          </p>
+                        {/* Non-delete operation badge */}
+                        {!isDeleteOperation(permissionRequest) && (
+                          <div className="mb-3">
+                            <span className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                              getOperationBadgeClasses(permissionRequest.fileOperation)
+                            )}>
+                              {permissionRequest.fileOperation?.toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* File path(s) display */}
+                        <div className={cn(
+                          "mb-4 p-3 rounded-lg",
+                          isDeleteOperation(permissionRequest)
+                            ? "bg-red-500/5 border border-red-500/20"
+                            : "bg-muted"
+                        )}>
+                          {(() => {
+                            const paths = getDisplayFilePaths(permissionRequest);
+                            if (paths.length > 1) {
+                              return (
+                                <ul className="space-y-1">
+                                  {paths.map((path, idx) => (
+                                    <li key={idx} className={cn(
+                                      "text-sm font-mono break-all",
+                                      isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
+                                    )}>
+                                      • {path}
+                                    </li>
+                                  ))}
+                                </ul>
+                              );
+                            }
+                            return (
+                              <p className={cn(
+                                "text-sm font-mono break-all",
+                                isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
+                              )}>
+                                {paths[0]}
+                              </p>
+                            );
+                          })()}
                           {permissionRequest.targetPath && (
                             <p className="text-sm font-mono text-muted-foreground mt-1">
                               → {permissionRequest.targetPath}
                             </p>
                           )}
                         </div>
+
+                        {/* Delete warning text */}
+                        {isDeleteOperation(permissionRequest) && (
+                          <p className="text-sm text-red-600/80 mb-4">
+                            This action cannot be undone.
+                          </p>
+                        )}
 
                         {permissionRequest.contentPreview && (
                           <details className="mb-4">
@@ -779,7 +857,10 @@ export default function ExecutionPage() {
                       </Button>
                       <Button
                         onClick={() => handlePermissionResponse(true)}
-                        className="flex-1"
+                        className={cn(
+                          "flex-1",
+                          isDeleteOperation(permissionRequest) && "bg-red-600 hover:bg-red-700 text-white"
+                        )}
                         data-testid="permission-allow-button"
                         disabled={
                           permissionRequest.type === 'question' &&
@@ -788,7 +869,13 @@ export default function ExecutionPage() {
                           selectedOptions.length === 0
                         }
                       >
-                        {permissionRequest.type === 'question' ? 'Submit' : 'Allow'}
+                        {isDeleteOperation(permissionRequest)
+                          ? getDisplayFilePaths(permissionRequest).length > 1
+                            ? 'Delete All'
+                            : 'Delete'
+                          : permissionRequest.type === 'question'
+                            ? 'Submit'
+                            : 'Allow'}
                       </Button>
                     </div>
                   </div>

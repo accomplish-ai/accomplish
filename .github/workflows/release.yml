@@ -1,6 +1,8 @@
 name: Release Desktop App
 
 on:
+  repository_dispatch:
+    types: [release]
   workflow_dispatch:
     inputs:
       bump_type:
@@ -20,6 +22,11 @@ on:
 permissions:
   contents: write
 
+# Prevent concurrent releases - only one release at a time
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   version-bump:
     name: Bump Version
@@ -37,6 +44,22 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Determine bump type
+        id: inputs
+        run: |
+          # Support both repository_dispatch and workflow_dispatch
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            BUMP_TYPE="${{ github.event.client_payload.bump_type }}"
+            DRY_RUN="false"
+          else
+            BUMP_TYPE="${{ inputs.bump_type }}"
+            DRY_RUN="${{ inputs.dry_run }}"
+          fi
+
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+          echo "dry_run=$DRY_RUN" >> $GITHUB_OUTPUT
+          echo "Bump type: $BUMP_TYPE, Dry run: $DRY_RUN"
+
       - name: Calculate new version
         id: bump
         run: |
@@ -48,7 +71,7 @@ jobs:
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
 
           # Bump based on type
-          case "${{ inputs.bump_type }}" in
+          case "${{ steps.inputs.outputs.bump_type }}" in
             major)
               NEW_VERSION="$((MAJOR + 1)).0.0"
               ;;
@@ -57,6 +80,10 @@ jobs:
               ;;
             patch)
               NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+              ;;
+            *)
+              echo "Error: Invalid bump_type: ${{ steps.inputs.outputs.bump_type }}"
+              exit 1
               ;;
           esac
 
@@ -68,18 +95,29 @@ jobs:
           cd apps/desktop
           npm version ${{ steps.bump.outputs.new_version }} --no-git-tag-version
 
-      - name: Commit and tag
+      - name: Commit version bump and create tag
         run: |
+          VERSION="${{ steps.bump.outputs.new_version }}"
+          DRY_RUN="${{ steps.inputs.outputs.dry_run }}"
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Commit version bump
           git add apps/desktop/package.json
-          git commit -m "chore(release): bump version to ${{ steps.bump.outputs.new_version }}"
-          git tag "v${{ steps.bump.outputs.new_version }}"
-          if [ "${{ inputs.dry_run }}" == "true" ]; then
-            echo "DRY RUN: Skipping push to main"
-            git push origin "v${{ steps.bump.outputs.new_version }}" --force
+          git commit -m "chore(release): bump version to ${VERSION}"
+
+          if [ "$DRY_RUN" == "true" ]; then
+            echo "DRY RUN: Creating test tag without pushing to main"
+            git tag "v${VERSION}"
+            git push origin "v${VERSION}" --force
           else
-            git push origin HEAD:main --tags
+            # Push version bump to main
+            git push origin main
+
+            # Create and push tag
+            git tag "v${VERSION}"
+            git push origin "v${VERSION}"
           fi
 
   build-mac-arm64:
@@ -192,6 +230,15 @@ jobs:
         with:
           ref: v${{ needs.version-bump.outputs.new_version }}
 
+      - name: Determine if dry run
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            echo "dry_run=false" >> $GITHUB_OUTPUT
+          else
+            echo "dry_run=${{ inputs.dry_run }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Download macOS ARM64 artifacts
         uses: actions/download-artifact@v4
         with:
@@ -208,12 +255,51 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.version-bump.outputs.new_version }}
-          name: ${{ inputs.dry_run == true && '[TEST] ' || '' }}Openwork v${{ needs.version-bump.outputs.new_version }}
-          draft: true
-          prerelease: ${{ inputs.dry_run }}
+          name: ${{ steps.check.outputs.dry_run == 'true' && '[TEST] ' || '' }}Openwork v${{ needs.version-bump.outputs.new_version }}
+          draft: false
+          prerelease: ${{ steps.check.outputs.dry_run == 'true' }}
           generate_release_notes: true
           files: |
             ./release/arm64/*
             ./release/x64/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Slack of release
+        if: success() && steps.check.outputs.dry_run != 'true'
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_RELEASE_WEBHOOK_URL }}
+        run: |
+          VERSION="${{ needs.version-bump.outputs.new_version }}"
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/v${VERSION}"
+
+          # Build Slack message payload
+          PAYLOAD=$(jq -n \
+            --arg version "$VERSION" \
+            --arg url "$RELEASE_URL" \
+            '{
+              blocks: [
+                {
+                  type: "section",
+                  text: {
+                    type: "mrkdwn",
+                    text: "✅ *Openwork v\($version) Released!*\n\nDownload the latest version from GitHub."
+                  },
+                  accessory: {
+                    type: "button",
+                    text: { type: "plain_text", text: "View Release", emoji: true },
+                    url: $url,
+                    style: "primary"
+                  }
+                }
+              ]
+            }')
+
+          # Send to Slack (skip if webhook not configured)
+          if [ -n "$SLACK_WEBHOOK" ]; then
+            curl -f -X POST -H 'Content-type: application/json' \
+              --data "$PAYLOAD" \
+              "$SLACK_WEBHOOK" || echo "Warning: Failed to send Slack notification"
+          else
+            echo "SLACK_RELEASE_WEBHOOK_URL not configured, skipping notification"
+          fi
