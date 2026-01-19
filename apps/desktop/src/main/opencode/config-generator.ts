@@ -182,10 +182,11 @@ Browser automation using MCP tools. Use these tools directly for web automation 
 - Returns YAML with element refs like [ref=e5]
 - Use these refs with browser_click and browser_type
 
-**browser_click(x?, y?, ref?, selector?, page_name?)** - Click on the page
-- x, y: Pixel coordinates (default method)
-- ref: Element ref from browser_snapshot (alternative)
-- selector: CSS selector (alternative)
+**browser_click(position?, x?, y?, ref?, selector?, page_name?)** - Click on the page
+- position: "center" to click viewport center (use for canvas apps)
+- x, y: Pixel coordinates
+- ref: Element ref from browser_snapshot
+- selector: CSS selector
 
 **browser_type(ref?, selector?, text, press_enter?, page_name?)** - Type into an input
 - ref: Element ref from browser_snapshot (preferred)
@@ -256,6 +257,26 @@ Browser automation using MCP tools. Use these tools directly for web automation 
 3. browser_type(ref="e12", text="cute animals", press_enter=true)
 4. browser_screenshot() -> see search results
 </example>
+
+<canvas-apps>
+**IMPORTANT: Canvas-based apps require special handling**
+
+Apps like Google Docs, Google Sheets, Figma, Canva, and Miro render content as canvas elements.
+The accessibility tree won't expose editable areas, and element refs often fail with timeout errors.
+
+**How to handle canvas apps:**
+1. browser_snapshot() will show: "⚠️ CANVAS APP DETECTED" with viewport center coordinates
+2. Use \`browser_click(position="center")\` to click the content area
+3. Use \`browser_keyboard(action="type", text="your content")\` to type (NOT browser_type)
+
+<example name="google-docs">
+1. browser_navigate(url="docs.google.com/document/d/...")
+2. browser_snapshot() -> see "CANVAS APP DETECTED: Google Docs" and viewport center
+3. browser_click(position="center") -> click in document body
+4. browser_keyboard(action="type", text="Hello, this is my document content")
+5. browser_screenshot() -> verify text appeared
+</example>
+</canvas-apps>
 
 <login-pages>
 When you encounter a login page (e.g., Google Sign-In, OAuth screens, authentication prompts):

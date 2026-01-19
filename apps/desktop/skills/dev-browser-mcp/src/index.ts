@@ -1096,6 +1096,7 @@ interface BrowserClickInput {
   selector?: string;
   x?: number;
   y?: number;
+  position?: 'center';
   page_name?: string;
 }
 
@@ -1240,25 +1241,30 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'browser_click',
-      description: 'Click on the page. Default: use x/y coordinates. Alternatively use ref from browser_snapshot or CSS selector.',
+      description: 'Click on the page. Use position="center" for canvas apps (Google Docs, Sheets). Alternatively use x/y coordinates, ref from browser_snapshot, or CSS selector.',
       inputSchema: {
         type: 'object',
         properties: {
+          position: {
+            type: 'string',
+            enum: ['center'],
+            description: 'Click viewport center. Use for canvas apps like Google Docs where element refs may not work.',
+          },
           x: {
             type: 'number',
-            description: 'X coordinate in pixels from left (default method).',
+            description: 'X coordinate in pixels from left.',
           },
           y: {
             type: 'number',
-            description: 'Y coordinate in pixels from top (default method).',
+            description: 'Y coordinate in pixels from top.',
           },
           ref: {
             type: 'string',
-            description: 'Element ref from browser_snapshot (e.g., "e5"). Alternative to coordinates.',
+            description: 'Element ref from browser_snapshot (e.g., "e5").',
           },
           selector: {
             type: 'string',
-            description: 'CSS selector (e.g., "button.submit"). Alternative to coordinates.',
+            description: 'CSS selector (e.g., "button.submit").',
           },
           page_name: {
             type: 'string',
@@ -1649,20 +1655,57 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
         const { page_name } = args as BrowserSnapshotInput;
         const page = await getPage(page_name);
         const snapshot = await getAISnapshot(page);
+        const viewport = page.viewportSize();
+        const url = page.url();
+
+        // Detect canvas-based apps that need special handling
+        const canvasApps = [
+          { pattern: /docs\.google\.com/, name: 'Google Docs' },
+          { pattern: /sheets\.google\.com/, name: 'Google Sheets' },
+          { pattern: /slides\.google\.com/, name: 'Google Slides' },
+          { pattern: /figma\.com/, name: 'Figma' },
+          { pattern: /canva\.com/, name: 'Canva' },
+          { pattern: /miro\.com/, name: 'Miro' },
+        ];
+        const detectedApp = canvasApps.find(app => app.pattern.test(url));
+
+        // Build output with metadata header
+        let output = `# Page Info\n`;
+        output += `Viewport: ${viewport?.width || 1280}x${viewport?.height || 720} (center: ${Math.round((viewport?.width || 1280) / 2)}, ${Math.round((viewport?.height || 720) / 2)})\n`;
+
+        if (detectedApp) {
+          output += `\n⚠️ CANVAS APP DETECTED: ${detectedApp.name}\n`;
+          output += `This app uses canvas rendering. Element refs may not work for the main content area.\n`;
+          output += `Use: browser_click(position="center") then browser_keyboard(action="type", text="...")\n`;
+        }
+
+        output += `\n# Accessibility Tree\n${snapshot}`;
 
         return {
           content: [{
             type: 'text',
-            text: snapshot,
+            text: output,
           }],
         };
       }
 
       case 'browser_click': {
-        const { ref, selector, x, y, page_name } = args as BrowserClickInput;
+        const { ref, selector, x, y, position, page_name } = args as BrowserClickInput;
         const page = await getPage(page_name);
 
-        // Default: x/y coordinates
+        // Position-based click (e.g., center for canvas apps)
+        if (position === 'center') {
+          const viewport = page.viewportSize();
+          const centerX = (viewport?.width || 1280) / 2;
+          const centerY = (viewport?.height || 720) / 2;
+          await page.mouse.click(centerX, centerY);
+          await waitForPageLoad(page);
+          return {
+            content: [{ type: 'text', text: `Clicked viewport center (${Math.round(centerX)}, ${Math.round(centerY)})` }],
+          };
+        }
+
+        // Explicit x/y coordinates
         if (x !== undefined && y !== undefined) {
           await page.mouse.click(x, y);
           await waitForPageLoad(page);
