@@ -16,9 +16,8 @@ import ollamaLogo from '/assets/ai-logos/ollama.svg';
 import openrouterLogo from '/assets/ai-logos/openrouter.svg';
 import litellmLogo from '/assets/ai-logos/litellm.svg';
 
-// Import connected badge icons
+// Import connected badge icon
 import connectedKeyIcon from '/assets/icons/connected-key.svg';
-import pendingKeyIcon from '/assets/icons/pending-key.svg';
 
 const PROVIDER_LOGOS: Record<ProviderId, string> = {
   anthropic: anthropicLogo,
@@ -76,14 +75,15 @@ export const ProviderCard = memo(function ProviderCard({
             : 'border-border bg-[#f9f8f6] hover:border-ring'
       }`}
     >
-      {/* Connection status badge */}
+      {/* Connection status badge - always green when connected */}
       {isConnected && (
         <div className="absolute top-2 right-2" data-testid={`provider-connected-badge-${providerId}`}>
-          {providerReady ? (
-            <img src={connectedKeyIcon} alt="Ready" className="h-5 w-5" />
-          ) : (
-            <img src={pendingKeyIcon} alt="Select model" className="h-5 w-5" title="Select a model to complete setup" />
-          )}
+          <img
+            src={connectedKeyIcon}
+            alt={providerReady ? "Ready" : "Connected"}
+            className="h-5 w-5"
+            title={providerReady ? undefined : "Select a model to complete setup"}
+          />
         </div>
       )}
 
