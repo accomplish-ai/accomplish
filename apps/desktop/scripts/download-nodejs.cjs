@@ -4,6 +4,8 @@
  * Downloads Node.js v20.18.1 for:
  * - macOS x64
  * - macOS arm64
+ * - Windows x64
+ * - Windows ia32
  *
  * Usage: node scripts/download-nodejs.cjs
  */
@@ -125,29 +127,23 @@ function extractArchive(archivePath, destDir, type) {
     fs.mkdirSync(destDir, { recursive: true });
   }
 
-  const { execSync } = require('child_process');
+  const { execFileSync, execSync } = require('child_process');
 
-  // On Windows, use PowerShell for all archive types for consistency
-  if (process.platform === 'win32') {
-    console.log('  Using Windows native tools for extraction...');
-    
-    if (type === 'tar') {
-      // Use native Windows BSD tar (available in Windows 10+ at C:\Windows\System32\tar.exe)
-      // This handles Windows paths correctly
-      const winTar = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe');
-      const extractCmd = `"${winTar}" -xzf "${archivePath}" -C "${destDir}"`;
-      execSync(extractCmd, { stdio: 'inherit', shell: true });
-    } else if (type === 'zip') {
-      // Use PowerShell Expand-Archive for zip files
-      const expandCmd = `powershell -NoProfile -Command "Expand-Archive -Path '${archivePath}' -DestinationPath '${destDir}' -Force"`;
-      execSync(expandCmd, { stdio: 'inherit' });
-    }
-  } else {
-    // Unix: Use native tar/unzip commands
-    if (type === 'tar') {
-      execSync(`tar -xzf "${archivePath}" -C "${destDir}"`, { stdio: 'inherit' });
-    } else if (type === 'zip') {
-      execSync(`unzip -o "${archivePath}" -d "${destDir}"`, { stdio: 'inherit' });
+  if (type === 'tar') {
+    // Use execFileSync with array args to avoid shell injection
+    execFileSync('tar', ['-xzf', archivePath, '-C', destDir], { stdio: 'inherit' });
+  } else if (type === 'zip') {
+    if (process.platform === 'win32') {
+      // Use tar.exe which is available on Windows 10+ and handles zip files
+      try {
+        execFileSync('tar', ['-xf', archivePath, '-C', destDir], { stdio: 'inherit' });
+      } catch (e) {
+        // Fallback to PowerShell if tar.exe fails
+        const psCommand = `Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory('${archivePath.replace(/\\/g, '\\\\')}', '${destDir.replace(/\\/g, '\\\\')}')`;
+        execSync(`powershell -NoProfile -Command "${psCommand}"`, { stdio: 'inherit' });
+      }
+    } else {
+      execFileSync('unzip', ['-o', archivePath, '-d', destDir], { stdio: 'inherit' });
     }
   }
 
@@ -172,13 +168,22 @@ async function main() {
     fs.mkdirSync(tempDir, { recursive: true });
   }
 
-  // On Windows, only download Windows binaries (skip macOS/Linux to avoid symlink issues)
-  // On Unix, download all platforms
-  const platformsToDownload = process.platform === 'win32'
-    ? PLATFORMS.filter(p => p.name.startsWith('win32-'))
-    : PLATFORMS;
+  // Filter platforms based on current OS for extraction capability
+  const platformsToDownload = PLATFORMS.filter(platform => {
+    if (process.platform === 'win32') {
+      // On Windows, download all Windows platforms and skip tar archives (macOS/Linux)
+      return platform.extract !== 'tar';
+    } else if (process.platform === 'darwin') {
+      // On macOS, download all tar archives (macOS/Linux) and skip Windows
+      return platform.extract !== 'zip';
+    } else {
+      // On Linux, download all tar archives
+      return platform.extract !== 'zip';
+    }
+  });
 
-  console.log(`\nPlatforms to download: ${platformsToDownload.map(p => p.name).join(', ')}`);
+  console.log(`Detected OS: ${process.platform}`);
+  console.log(`Will download: ${platformsToDownload.map(p => p.name).join(', ')}`);
 
   for (const platform of platformsToDownload) {
     console.log(`\nProcessing ${platform.name}...`);
