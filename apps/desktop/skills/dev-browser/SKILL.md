@@ -7,6 +7,19 @@ description: Browser automation via MCP tools. ALWAYS use these tools for ANY we
 
 Browser automation using MCP tools. Use these tools directly for all web automation tasks.
 
+## CRITICAL: No Shell Commands for Browser
+
+**NEVER use bash/shell commands to open browsers or URLs.** This includes:
+- `open` (macOS)
+- `xdg-open` (Linux)
+- `start` (Windows)
+- Python `subprocess`, `webbrowser`, or similar
+- Any script that launches a browser process
+
+Shell commands open the user's **default browser** (Safari, Arc, Firefox, etc.), not the automation-controlled Chrome instance. This breaks the workflow because you cannot interact with pages opened via shell commands.
+
+**ALL browser automation MUST use the browser_* MCP tools below.**
+
 ## Tools
 
 **browser_navigate(url, page_name?)** - Navigate to a URL
