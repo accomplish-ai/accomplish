@@ -9,8 +9,9 @@ import {
   getBundledOpenCodeVersion,
 } from './cli-path';
 import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
-import { getSelectedModel } from '../store/appSettings';
-import { getActiveProviderModel } from '../store/providerSettings';
+import { getSelectedModel, getAzureFoundryConfig } from '../store/appSettings';
+import { getActiveProviderModel, getConnectedProvider } from '../store/providerSettings';
+import type { AzureFoundryCredentials } from '@accomplish/shared';
 import { generateOpenCodeConfig, ACCOMPLISH_AGENT_NAME, syncApiKeysToOpenCodeAuth } from './config-generator';
 import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo } from '../utils/bundled-node';
@@ -110,9 +111,20 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     // For Azure Foundry with Entra ID auth, get the token first so we can include it in config
     let azureFoundryToken: string | undefined;
-    const selectedModel = getSelectedModel();
+    const activeModel = getActiveProviderModel();
+    const selectedModel = activeModel || getSelectedModel();
     const azureFoundryConfig = getAzureFoundryConfig();
-    if (selectedModel?.provider === 'azure-foundry' && azureFoundryConfig?.authType === 'entra-id') {
+
+    // Check if Azure Foundry is configured via new provider settings
+    const azureFoundryProvider = getConnectedProvider('azure-foundry');
+    const azureFoundryCredentials = azureFoundryProvider?.credentials as AzureFoundryCredentials | undefined;
+
+    // Determine auth type from new settings or legacy config
+    const isAzureFoundryEntraId =
+      (selectedModel?.provider === 'azure-foundry' && azureFoundryCredentials?.authMethod === 'entra-id') ||
+      (selectedModel?.provider === 'azure-foundry' && azureFoundryConfig?.authType === 'entra-id');
+
+    if (isAzureFoundryEntraId) {
       try {
         const { DefaultAzureCredential } = await import('@azure/identity');
         const credential = new DefaultAzureCredential();

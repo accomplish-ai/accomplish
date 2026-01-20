@@ -5,7 +5,7 @@ import { PERMISSION_API_PORT, QUESTION_API_PORT } from '../permission-api';
 import { getOllamaConfig } from '../store/appSettings';
 import { getApiKey } from '../store/secureStorage';
 import { getProviderSettings, getActiveProviderModel, getConnectedProviderIds } from '../store/providerSettings';
-import type { BedrockCredentials, ProviderId } from '@accomplish/shared';
+import type { BedrockCredentials, ProviderId, AzureFoundryCredentials } from '@accomplish/shared';
 
 /**
  * Agent name used by Accomplish
@@ -411,7 +411,7 @@ interface ZaiProviderConfig {
   models: Record<string, ZaiProviderModelConfig>;
 }
 
-type ProviderConfig = OllamaProviderConfig | BedrockProviderConfig | OpenRouterProviderConfig | LiteLLMProviderConfig | ZaiProviderConfig;
+type ProviderConfig = OllamaProviderConfig | BedrockProviderConfig | AzureFoundryProviderConfig | OpenRouterProviderConfig | LiteLLMProviderConfig | ZaiProviderConfig;
 
 interface OpenCodeConfig {
   $schema?: string;
@@ -466,6 +466,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     deepseek: 'deepseek',
     zai: 'zai-coding-plan',
     bedrock: 'amazon-bedrock',
+    'azure-foundry': 'azure-foundry',
     ollama: 'ollama',
     openrouter: 'openrouter',
     litellm: 'litellm',
@@ -516,7 +517,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     // Legacy fallback: use old Ollama config
     const ollamaConfig = getOllamaConfig();
     if (ollamaConfig?.enabled && ollamaConfig.models && ollamaConfig.models.length > 0) {
-      const ollamaModels: Record<string, OllamaProviderModelConfig> = {};
+      const ollamaModels: Record<string, ProviderModelConfig> = {};
       for (const model of ollamaConfig.models) {
         ollamaModels[model.id] = {
           name: model.displayName,
@@ -646,6 +647,117 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
         },
       };
       console.log('[OpenCode Config] LiteLLM configured:', litellmProvider.selectedModelId);
+    }
+  }
+
+  // Configure Azure Foundry if connected (check new settings first, then legacy)
+  const azureFoundryProvider = providerSettings.connectedProviders['azure-foundry'];
+  if (azureFoundryProvider?.connectionStatus === 'connected' && azureFoundryProvider.credentials.type === 'azure-foundry') {
+    const creds = azureFoundryProvider.credentials;
+    const baseUrl = creds.endpoint.replace(/\/$/, '');
+    const deploymentName = creds.deploymentName;
+
+    // Extract resource name from URL if standard Azure OpenAI format
+    const resourceMatch = baseUrl.match(/https?:\/\/([^.]+)\.openai\.azure\.com/i);
+    const resourceName = resourceMatch ? resourceMatch[1] : undefined;
+
+    // Build options for @ai-sdk/azure provider
+    const azureOptions: AzureFoundryProviderConfig['options'] = {};
+    if (resourceName) {
+      azureOptions.resourceName = resourceName;
+    } else {
+      azureOptions.baseURL = baseUrl;
+    }
+
+    // Set API key or Entra ID token
+    if (creds.authMethod === 'api-key') {
+      const azureApiKey = getApiKey('azure-foundry');
+      if (azureApiKey) {
+        azureOptions.apiKey = azureApiKey;
+      }
+    } else if (creds.authMethod === 'entra-id' && azureFoundryToken) {
+      // Use placeholder - actual token is passed via env or headers
+      azureOptions.apiKey = '';
+      azureOptions.headers = {
+        'Authorization': `Bearer ${azureFoundryToken}`,
+      };
+    }
+
+    // Build model ID (Azure uses deployment name)
+    const modelId = `azure-foundry/${deploymentName}`;
+
+    providerConfig['azure-foundry'] = {
+      npm: '@ai-sdk/azure',
+      name: 'Azure AI Foundry',
+      options: azureOptions,
+      models: {
+        [deploymentName]: {
+          name: `Azure Foundry (${deploymentName})`,
+          tools: true,
+        },
+      },
+    };
+
+    // Add to enabled providers if not already
+    if (!enabledProviders.includes('azure-foundry')) {
+      enabledProviders.push('azure-foundry');
+    }
+
+    console.log('[OpenCode Config] Azure Foundry configured from new settings:', {
+      resourceName,
+      deployment: deploymentName,
+      authMethod: creds.authMethod,
+    });
+  } else {
+    // Legacy fallback: use old Azure Foundry config
+    const { getAzureFoundryConfig } = await import('../store/appSettings');
+    const azureFoundryConfig = getAzureFoundryConfig();
+    if (azureFoundryConfig?.enabled && activeModel?.provider === 'azure-foundry') {
+      const baseUrl = azureFoundryConfig.baseUrl.replace(/\/$/, '');
+      const resourceMatch = baseUrl.match(/https?:\/\/([^.]+)\.openai\.azure\.com/i);
+      const resourceName = resourceMatch ? resourceMatch[1] : undefined;
+      const deploymentName = azureFoundryConfig.deploymentName || 'default';
+
+      const azureOptions: AzureFoundryProviderConfig['options'] = {};
+      if (resourceName) {
+        azureOptions.resourceName = resourceName;
+      } else {
+        azureOptions.baseURL = baseUrl;
+      }
+
+      if (azureFoundryConfig.authType === 'api-key') {
+        const azureApiKey = getApiKey('azure-foundry');
+        if (azureApiKey) {
+          azureOptions.apiKey = azureApiKey;
+        }
+      } else if (azureFoundryConfig.authType === 'entra-id' && azureFoundryToken) {
+        azureOptions.apiKey = '';
+        azureOptions.headers = {
+          'Authorization': `Bearer ${azureFoundryToken}`,
+        };
+      }
+
+      providerConfig['azure-foundry'] = {
+        npm: '@ai-sdk/azure',
+        name: 'Azure AI Foundry',
+        options: azureOptions,
+        models: {
+          [deploymentName]: {
+            name: `Azure Foundry (${deploymentName})`,
+            tools: true,
+          },
+        },
+      };
+
+      if (!enabledProviders.includes('azure-foundry')) {
+        enabledProviders.push('azure-foundry');
+      }
+
+      console.log('[OpenCode Config] Azure Foundry configured from legacy settings:', {
+        resourceName,
+        deployment: deploymentName,
+        authType: azureFoundryConfig.authType,
+      });
     }
   }
 

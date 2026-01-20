@@ -117,6 +117,14 @@ const accomplishAPI = {
   setAzureFoundryConfig: (config: { baseUrl: string; deploymentName: string; authType: 'api-key' | 'entra-id'; enabled: boolean; lastValidated?: number } | null): Promise<void> =>
     ipcRenderer.invoke('azure-foundry:set-config', config),
 
+  testAzureFoundryConnection: (config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }): Promise<{
+    success: boolean;
+    error?: string;
+  }> => ipcRenderer.invoke('azure-foundry:test-connection', config),
+
+  saveAzureFoundryConfig: (config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }): Promise<void> =>
+    ipcRenderer.invoke('azure-foundry:save-config', config),
+
   // OpenRouter configuration
   fetchOpenRouterModels: (): Promise<{
     success: boolean;

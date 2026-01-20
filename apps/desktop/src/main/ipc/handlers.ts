@@ -1410,6 +1410,133 @@ export function registerIPCHandlers(): void {
     console.log('[Azure Foundry] Config saved:', config);
   });
 
+  // Azure Foundry: Test connection (for new provider settings architecture)
+  handle('azure-foundry:test-connection', async (
+    _event: IpcMainInvokeEvent,
+    config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }
+  ) => {
+    const { endpoint, deploymentName, authType, apiKey } = config;
+
+    // Validate URL format
+    let baseUrl: string;
+    try {
+      const parsed = new URL(endpoint);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return { success: false, error: 'Only http and https URLs are allowed' };
+      }
+      baseUrl = endpoint.replace(/\/$/, '');
+    } catch {
+      return { success: false, error: 'Invalid endpoint URL format' };
+    }
+
+    try {
+      let authHeader: string;
+
+      if (authType === 'api-key') {
+        if (!apiKey) {
+          return { success: false, error: 'API key is required for API key authentication' };
+        }
+        authHeader = `api-key ${apiKey}`;
+      } else {
+        // Entra ID authentication
+        try {
+          const { DefaultAzureCredential } = await import('@azure/identity');
+          const credential = new DefaultAzureCredential();
+          const tokenResponse = await credential.getToken('https://cognitiveservices.azure.com/.default');
+          authHeader = `Bearer ${tokenResponse.token}`;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to get Entra ID token';
+          return { success: false, error: `Entra ID authentication failed: ${message}. Make sure you've run 'az login' first.` };
+        }
+      }
+
+      // Test connection with a minimal chat completion request
+      const testUrl = `${baseUrl}/openai/deployments/${deploymentName}/chat/completions?api-version=2024-02-15-preview`;
+
+      const response = await fetchWithTimeout(
+        testUrl,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+          },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: 'Hi' }],
+            max_completion_tokens: 5,
+          }),
+        },
+        API_KEY_VALIDATION_TIMEOUT_MS
+      );
+
+      if (!response.ok) {
+        // Try with max_tokens for older models
+        const retryResponse = await fetchWithTimeout(
+          testUrl,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': authHeader,
+            },
+            body: JSON.stringify({
+              messages: [{ role: 'user', content: 'Hi' }],
+              max_tokens: 5,
+            }),
+          },
+          API_KEY_VALIDATION_TIMEOUT_MS
+        );
+
+        if (!retryResponse.ok) {
+          const errorData = await retryResponse.json().catch(() => ({}));
+          const errorMessage = (errorData as { error?: { message?: string } })?.error?.message || `API returned status ${retryResponse.status}`;
+          return { success: false, error: errorMessage };
+        }
+      }
+
+      console.log('[Azure Foundry] Connection test successful for deployment:', deploymentName);
+      return { success: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Connection failed';
+      console.warn('[Azure Foundry] Connection test failed:', message);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        return { success: false, error: 'Request timed out. Check your endpoint URL and network connection.' };
+      }
+      return { success: false, error: message };
+    }
+  });
+
+  // Azure Foundry: Save config (for new provider settings architecture)
+  handle('azure-foundry:save-config', async (
+    _event: IpcMainInvokeEvent,
+    config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }
+  ) => {
+    const { endpoint, deploymentName, authType, apiKey } = config;
+
+    // Store API key in secure storage if provided
+    if (authType === 'api-key' && apiKey) {
+      storeApiKey('azure-foundry', apiKey);
+    }
+
+    // Save config to app settings (for legacy support and config generation)
+    const azureConfig: AzureFoundryConfig = {
+      baseUrl: endpoint,
+      deploymentName,
+      authType,
+      enabled: true,
+      lastValidated: Date.now(),
+    };
+    setAzureFoundryConfig(azureConfig);
+
+    console.log('[Azure Foundry] Config saved for new provider settings:', {
+      endpoint,
+      deploymentName,
+      authType,
+      hasApiKey: !!apiKey,
+    });
+  });
+
   // OpenRouter: Fetch available models
   handle('openrouter:fetch-models', async (_event: IpcMainInvokeEvent) => {
     const apiKey = getApiKey('openrouter');
