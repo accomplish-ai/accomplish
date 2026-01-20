@@ -52,6 +52,22 @@ try {
       fs.mkdirSync(accomplishPath, { recursive: true });
     }
 
-    fs.symlinkSync(symlinkTarget, sharedPath);
+    try {
+      // On Windows, symlink creation requires admin privileges or developer mode
+      // Try symlink first, fall back to junction which doesn't need elevated privileges
+      try {
+        fs.symlinkSync(symlinkTarget, sharedPath, 'dir');
+      } catch (err) {
+        if (err.code === 'EPERM' && process.platform === 'win32') {
+          // Fall back to junction (Windows only, doesn't require admin)
+          fs.symlinkSync(symlinkTarget, sharedPath, 'junction');
+        } else {
+          throw err;
+        }
+      }
+    } catch (err) {
+      console.warn('Warning: Failed to restore symlink:', err.message);
+      console.warn('You may need to run: pnpm install');
+    }
   }
 }

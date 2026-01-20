@@ -76,6 +76,16 @@ const accomplishAPI = {
   setOnboardingComplete: (complete: boolean): Promise<void> =>
     ipcRenderer.invoke('onboarding:set-complete', complete),
 
+  // Locale management
+  getInitialLocale: (): Promise<string> =>
+    ipcRenderer.invoke('locale:get-initial'),
+  setLocale: (locale: string): Promise<string> =>
+    ipcRenderer.invoke('locale:set', locale),
+  getSupportedLocales: (): Promise<string[]> =>
+    ipcRenderer.invoke('locale:get-supported'),
+  getResourcesPath: (): Promise<string> =>
+    ipcRenderer.invoke('app:resources-path'),
+
   // OpenCode CLI status
   checkOpenCodeCli: (): Promise<{
     installed: boolean;

@@ -141,6 +141,35 @@ Openwork runs locally on your machine. Your files stay on your device, and you c
 
 <br />
 
+
+## 📥 下载
+
+### Windows版本（含国际化支持）🌍
+
+**特别版本**：包含完整的6种语言支持（简体中文、英语、日语、韩语、法语、西班牙语）
+
+<p align="center">
+  <a href="https://github.com/AndersHsueh/openwork/releases/tag/win-i18n-v0.2.3"><img src="https://img.shields.io/badge/Download-Windows+i18n-0078d4?style=for-the-badge&logo=windows" alt="Download Windows+i18n" /></a>
+</p>
+
+👉 [**点击这里直接下载 Windows + i18n 版本**](https://github.com/AndersHsueh/openwork/releases/tag/win-i18n-v0.2.3)
+
+**包含内容：**
+- ✅ NSIS安装程序（推荐）
+- ✅ 便携版（无需安装）
+- ✅ 完整的6种语言UI
+- ✅ Windows 10/11 原生支持
+
+---
+
+### macOS版本
+
+<p align="center">
+  <a href="https://downloads.openwork.me/downloads/0.2.1/macos/Openwork-0.2.1-mac-arm64.dmg"><strong>Download for Mac (Apple Silicon)</strong></a>
+</p>
+
+<br />
+
 ## System requirements
 
 - macOS (Apple Silicon)

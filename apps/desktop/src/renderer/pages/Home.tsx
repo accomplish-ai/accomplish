@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import TaskInputBar from '../components/landing/TaskInputBar';
 import SettingsDialog from '../components/layout/SettingsDialog';
@@ -80,12 +81,29 @@ const USE_CASE_EXAMPLES = [
 ];
 
 export default function HomePage() {
+  const { t } = useTranslation();
   const [prompt, setPrompt] = useState('');
   const [showExamples, setShowExamples] = useState(true);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const { startTask, isLoading, addTaskUpdate, setPermissionRequest } = useTaskStore();
   const navigate = useNavigate();
   const accomplish = getAccomplish();
+
+  // Helper function to get translation key for examples
+  const getExampleKey = (index: number): string => {
+    const keys = [
+      'calendarPrep',
+      'inboxCleanup',
+      'competitorPricing',
+      'notionAudit',
+      'stagingProdCheck',
+      'brokenLinks',
+      'portfolioMonitoring',
+      'jobApplication',
+      'eventCalendar',
+    ];
+    return keys[index] || 'calendarPrep';
+  };
 
   // Subscribe to task events
   useEffect(() => {
@@ -165,7 +183,7 @@ export default function HomePage() {
           transition={springs.gentle}
           className="text-4xl font-light tracking-tight text-foreground"
         >
-          What will you accomplish today?
+          {t('home.title')}
         </motion.h1>
 
         <motion.div
@@ -182,7 +200,7 @@ export default function HomePage() {
                 onChange={setPrompt}
                 onSubmit={handleSubmit}
                 isLoading={isLoading}
-                placeholder="Describe a task and let AI handle the rest"
+                placeholder={t('home.inputPlaceholder')}
                 large={true}
                 autoFocus={true}
               />
@@ -194,7 +212,7 @@ export default function HomePage() {
                 onClick={() => setShowExamples(!showExamples)}
                 className="w-full px-6 py-3 flex items-center justify-between text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-200"
               >
-                <span>Example prompts</span>
+                <span>{t('home.examplePrompts')}</span>
                 <motion.div
                   animate={{ rotate: showExamples ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
@@ -243,10 +261,10 @@ export default function HomePage() {
                             />
                             <div className="flex flex-col items-center gap-1 w-full">
                               <div className="font-medium text-xs text-foreground text-center">
-                                {example.title}
+                                {t(`home.examples.${getExampleKey(index)}.title`)}
                               </div>
                               <div className="text-xs text-muted-foreground text-center line-clamp-2">
-                                {example.description}
+                                {t(`home.examples.${getExampleKey(index)}.description`)}
                               </div>
                             </div>
                           </motion.button>

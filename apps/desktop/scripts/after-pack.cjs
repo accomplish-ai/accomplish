@@ -125,8 +125,11 @@ async function copyNodeBinary(context, platform, arch) {
     // macOS app bundle structure: <AppName>.app/Contents/Resources/
     const appName = packager.appInfo.productFilename;
     destDir = path.join(appOutDir, `${appName}.app`, 'Contents', 'Resources', 'nodejs', arch);
+  } else if (platformName === 'windows') {
+    // Windows: <app>/resources/nodejs/<arch>
+    destDir = path.join(appOutDir, 'resources', 'nodejs', arch);
   } else {
-    // Windows/Linux: <app>/resources/
+    // Linux: <app>/resources/nodejs/<arch>
     destDir = path.join(appOutDir, 'resources', 'nodejs', arch);
   }
 

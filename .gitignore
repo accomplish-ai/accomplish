@@ -28,6 +28,7 @@ out/
 # OS
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # Logs
 *.log
@@ -59,3 +60,7 @@ prisma/*.db-journal
 
 # Bundled Node.js binaries (downloaded via `pnpm -F @accomplish/desktop download:nodejs`)
 apps/desktop/resources/nodejs/
+
+# Temporary build files
+apps/desktop/resources/nodejs/.temp/
+

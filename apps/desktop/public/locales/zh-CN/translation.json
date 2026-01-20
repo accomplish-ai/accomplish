@@ -1,0 +1,231 @@
+{
+  "common": {
+    "buttons": {
+      "save": "保存",
+      "cancel": "取消",
+      "close": "关闭",
+      "continue": "继续",
+      "back": "返回",
+      "next": "下一步",
+      "submit": "提交",
+      "delete": "删除",
+      "edit": "编辑",
+      "copy": "复制",
+      "apply": "应用",
+      "retry": "重试",
+      "confirm": "确认",
+      "settings": "设置"
+    },
+    "navigation": {
+      "home": "首页",
+      "history": "历史",
+      "settings": "设置",
+      "newTask": "新任务",
+      "searchTasks": "搜索任务"
+    },
+    "status": {
+      "queued": "队列中",
+      "running": "运行中",
+      "completed": "已完成",
+      "failed": "失败",
+      "cancelled": "已取消",
+      "interrupted": "已中断"
+    },
+    "time": {
+      "today": "今天",
+      "yesterday": "昨天",
+      "thisWeek": "本周",
+      "lastWeek": "上周",
+      "older": "更早"
+    },
+    "messages": {
+      "loading": "加载中...",
+      "error": "发生错误",
+      "success": "成功",
+      "noData": "无数据",
+      "confirm": "确定要继续吗？"
+    }
+  },
+  "home": {
+    "title": "今天你要完成什么？",
+    "inputPlaceholder": "描述一个任务，让 AI 来处理",
+    "examplePrompts": "示例提示",
+    "noConversations": "还没有对话",
+    "examples": {
+      "calendarPrep": {
+        "title": "日程准备笔记",
+        "description": "查看明天的会议并起草准备笔记文档"
+      },
+      "inboxCleanup": {
+        "title": "收件箱促销清理",
+        "description": "清除过去24小时的促销邮件"
+      },
+      "competitorPricing": {
+        "title": "竞品定价幻灯片",
+        "description": "分析竞品定价并起草建议幻灯片"
+      },
+      "notionAudit": {
+        "title": "Notion API 审计",
+        "description": "扫描 Notion wiki 中旧 API 的提及并附上直接链接"
+      },
+      "stagingProdCheck": {
+        "title": "预发布与生产环境对比",
+        "description": "比较预发布和生产环境的视觉差异并截图"
+      },
+      "brokenLinks": {
+        "title": "生产环境断链检查",
+        "description": "检查我的网站是否有断链"
+      },
+      "portfolioMonitoring": {
+        "title": "投资组合监控",
+        "description": "监控股票价格，在价格下跌和飙升时发出警报"
+      },
+      "jobApplication": {
+        "title": "求职申请自动化",
+        "description": "筛选工作并使用保存的个人资料提交申请"
+      },
+      "eventCalendar": {
+        "title": "活动日历构建器",
+        "description": "选择热门活动并添加到日历"
+      }
+    }
+  },
+  "execution": {
+    "title": "任务执行",
+    "cancel": "取消",
+    "interrupt": "中断",
+    "resume": "恢复",
+    "newMessage": "新消息",
+    "sendMessage": "发送消息",
+    "thinking": "思考中...",
+    "executing": "执行中...",
+    "waitingForResponse": "等待响应...",
+    "taskCompleted": "任务已完成",
+    "taskFailed": "任务失败",
+    "taskCancelled": "任务已取消",
+    "taskInterrupted": "任务已中断",
+    "continueConversation": "继续对话",
+    "enterFollowUp": "输入后续消息"
+  },
+  "history": {
+    "title": "任务历史",
+    "noTasks": "还没有任务",
+    "clearHistory": "清除历史",
+    "confirmClear": "确定要清除所有任务历史吗？此操作无法撤销。",
+    "searchPlaceholder": "搜索任务...",
+    "filterAll": "全部",
+    "filterCompleted": "已完成",
+    "filterFailed": "失败",
+    "filterRunning": "运行中"
+  },
+  "settings": {
+    "title": "设置",
+    "apiKeys": {
+      "title": "使用您自己的模型/API 密钥",
+      "description": "为您的 AI 助手设置 API 密钥和模型。",
+      "addKey": "添加 API 密钥",
+      "removeKey": "移除密钥",
+      "provider": "提供商",
+      "key": "API 密钥",
+      "validated": "已验证",
+      "invalid": "无效",
+      "anthropic": "Anthropic (Claude)",
+      "openai": "OpenAI (GPT)",
+      "google": "Google (Gemini)",
+      "xai": "xAI (Grok)",
+      "deepseek": "DeepSeek",
+      "zai": "Z.AI",
+      "custom": "自定义",
+      "bedrock": "AWS Bedrock",
+      "litellm": "LiteLLM",
+      "openrouter": "OpenRouter"
+    },
+    "model": {
+      "title": "模型选择",
+      "description": "选择要使用的 AI 模型",
+      "selected": "已选模型",
+      "change": "更换模型"
+    },
+    "ollama": {
+      "title": "Ollama（本地模型）",
+      "description": "在您的机器上本地运行 AI 模型",
+      "enabled": "启用 Ollama",
+      "baseUrl": "基础 URL",
+      "testConnection": "测试连接",
+      "connectionSuccess": "连接成功",
+      "connectionFailed": "连接失败",
+      "noModels": "没有可用的模型"
+    },
+    "litellm": {
+      "title": "LiteLLM 代理",
+      "description": "连接到 LiteLLM 代理服务器",
+      "enabled": "启用 LiteLLM",
+      "baseUrl": "代理 URL",
+      "apiKey": "API 密钥（可选）",
+      "testConnection": "测试连接"
+    },
+    "general": {
+      "title": "通用",
+      "debugMode": "调试模式",
+      "debugModeDescription": "显示详细的调试信息",
+      "language": "语言",
+      "theme": "主题",
+      "light": "浅色",
+      "dark": "深色",
+      "system": "系统"
+    },
+    "about": {
+      "title": "关于",
+      "version": "版本",
+      "license": "许可证",
+      "openSource": "开源",
+      "website": "网站",
+      "documentation": "文档",
+      "reportIssue": "报告问题"
+    }
+  },
+  "onboarding": {
+    "welcome": "欢迎使用 Openwork",
+    "getStarted": "开始使用",
+    "setupApiKey": "设置 API 密钥",
+    "setupComplete": "设置完成",
+    "step1": {
+      "title": "选择您的 AI 提供商",
+      "description": "选择您要使用的 AI 服务。您可以稍后在设置中更改。"
+    },
+    "step2": {
+      "title": "添加您的 API 密钥",
+      "description": "输入您的 API 密钥以开始使用。您的密钥将安全地存储在您的设备上。"
+    },
+    "step3": {
+      "title": "一切就绪！",
+      "description": "您已准备好使用 AI 自动化任务。"
+    }
+  },
+  "permissions": {
+    "title": "需要权限",
+    "description": "AI 代理需要权限来执行此操作",
+    "allow": "允许",
+    "deny": "拒绝",
+    "alwaysAllow": "始终允许",
+    "fileAccess": "文件访问",
+    "networkAccess": "网络访问",
+    "browserAccess": "浏览器访问"
+  },
+  "errors": {
+    "generic": "发生错误",
+    "networkError": "网络错误。请检查您的互联网连接。",
+    "apiKeyInvalid": "无效的 API 密钥。请检查您的设置。",
+    "taskFailed": "任务执行失败",
+    "permissionDenied": "权限被拒绝",
+    "timeout": "请求超时",
+    "notFound": "未找到"
+  },
+  "validation": {
+    "required": "此字段为必填项",
+    "invalidUrl": "请输入有效的 URL",
+    "invalidEmail": "请输入有效的电子邮件",
+    "tooShort": "太短",
+    "tooLong": "太长"
+  }
+}

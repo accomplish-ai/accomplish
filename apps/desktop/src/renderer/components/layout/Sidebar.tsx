@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '@/stores/taskStore';
 import { getAccomplish } from '@/lib/accomplish';
@@ -15,6 +16,7 @@ import { Settings, MessageSquarePlus, Search } from 'lucide-react';
 import logoImage from '/assets/logo-1.png';
 
 export default function Sidebar() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [showSettings, setShowSettings] = useState(false);
   const { tasks, loadTasks, updateTaskStatus, addTaskUpdate, openLauncher } = useTaskStore();
@@ -57,17 +59,17 @@ export default function Sidebar() {
             variant="default"
             size="sm"
             className="flex-1 justify-center gap-2"
-            title="New Task"
+            title={t('common.navigation.newTask')}
           >
             <MessageSquarePlus className="h-4 w-4" />
-            New Task
+            {t('common.navigation.newTask')}
           </Button>
           <Button
             onClick={openLauncher}
             variant="outline"
             size="sm"
             className="px-2"
-            title="Search Tasks (⌘K)"
+            title={t('common.navigation.searchTasks')}
           >
             <Search className="h-4 w-4" />
           </Button>
@@ -85,7 +87,7 @@ export default function Sidebar() {
                   exit={{ opacity: 0 }}
                   className="px-3 py-8 text-center text-sm text-muted-foreground"
                 >
-                  No conversations yet
+                  {t('home.noConversations')}
                 </motion.div>
               ) : (
                 <motion.div
@@ -124,7 +126,7 @@ export default function Sidebar() {
               analytics.trackOpenSettings();
               setShowSettings(true);
             }}
-            title="Settings"
+            title={t('common.navigation.settings')}
           >
             <Settings className="h-4 w-4" />
           </Button>

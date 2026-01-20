@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function Header() {
+  const { t } = useTranslation();
   const location = useLocation();
   const pathname = location.pathname;
 
@@ -20,13 +22,13 @@ export default function Header() {
         {/* Navigation */}
         <nav className="no-drag flex items-center gap-1">
           <NavLink to="/" active={pathname === '/'}>
-            Home
+            {t('common.navigation.home')}
           </NavLink>
           <NavLink to="/history" active={pathname === '/history'}>
-            History
+            {t('common.navigation.history')}
           </NavLink>
           <NavLink to="/settings" active={pathname === '/settings'}>
-            Settings
+            {t('common.navigation.settings')}
           </NavLink>
         </nav>
 

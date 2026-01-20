@@ -1,0 +1,231 @@
+{
+  "common": {
+    "buttons": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "close": "Close",
+      "continue": "Continue",
+      "back": "Back",
+      "next": "Next",
+      "submit": "Submit",
+      "delete": "Delete",
+      "edit": "Edit",
+      "copy": "Copy",
+      "apply": "Apply",
+      "retry": "Retry",
+      "confirm": "Confirm",
+      "settings": "Settings"
+    },
+    "navigation": {
+      "home": "Home",
+      "history": "History",
+      "settings": "Settings",
+      "newTask": "New Task",
+      "searchTasks": "Search Tasks"
+    },
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "interrupted": "Interrupted"
+    },
+    "time": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "thisWeek": "This Week",
+      "lastWeek": "Last Week",
+      "older": "Older"
+    },
+    "messages": {
+      "loading": "Loading...",
+      "error": "An error occurred",
+      "success": "Success",
+      "noData": "No data available",
+      "confirm": "Are you sure?"
+    }
+  },
+  "home": {
+    "title": "What will you accomplish today?",
+    "inputPlaceholder": "Describe a task and let AI handle the rest",
+    "examplePrompts": "Example prompts",
+    "noConversations": "No conversations yet",
+    "examples": {
+      "calendarPrep": {
+        "title": "Calendar Prep Notes",
+        "description": "Review tomorrow's meetings and draft a prep notes doc."
+      },
+      "inboxCleanup": {
+        "title": "Inbox Promo Cleanup",
+        "description": "Clear promotional emails from the last 24 hours."
+      },
+      "competitorPricing": {
+        "title": "Competitor Pricing Deck",
+        "description": "Analyze competitor pricing and draft a slide with recommendations."
+      },
+      "notionAudit": {
+        "title": "Notion API Audit",
+        "description": "Scan a Notion wiki for old API mentions with direct links."
+      },
+      "stagingProdCheck": {
+        "title": "Staging vs Prod Visual Check",
+        "description": "Compare staging and production visuals with screenshots."
+      },
+      "brokenLinks": {
+        "title": "Production Broken Links",
+        "description": "Check my website for broken links."
+      },
+      "portfolioMonitoring": {
+        "title": "Portfolio Monitoring",
+        "description": "Watch stock prices, and alert on drops and spikes."
+      },
+      "jobApplication": {
+        "title": "Job Application Automation",
+        "description": "Filter jobs and submit applications with saved profiles."
+      },
+      "eventCalendar": {
+        "title": "Event Calendar Builder",
+        "description": "Select top events and add them to the calendar."
+      }
+    }
+  },
+  "execution": {
+    "title": "Task Execution",
+    "cancel": "Cancel",
+    "interrupt": "Interrupt",
+    "resume": "Resume",
+    "newMessage": "New message",
+    "sendMessage": "Send message",
+    "thinking": "Thinking...",
+    "executing": "Executing...",
+    "waitingForResponse": "Waiting for response...",
+    "taskCompleted": "Task completed",
+    "taskFailed": "Task failed",
+    "taskCancelled": "Task cancelled",
+    "taskInterrupted": "Task interrupted",
+    "continueConversation": "Continue the conversation",
+    "enterFollowUp": "Enter a follow-up message"
+  },
+  "history": {
+    "title": "Task History",
+    "noTasks": "No tasks yet",
+    "clearHistory": "Clear History",
+    "confirmClear": "Are you sure you want to clear all task history? This cannot be undone.",
+    "searchPlaceholder": "Search tasks...",
+    "filterAll": "All",
+    "filterCompleted": "Completed",
+    "filterFailed": "Failed",
+    "filterRunning": "Running"
+  },
+  "settings": {
+    "title": "Settings",
+    "apiKeys": {
+      "title": "Bring Your Own Model/API Key",
+      "description": "Setup the API key and model for your own AI coworker.",
+      "addKey": "Add API Key",
+      "removeKey": "Remove Key",
+      "provider": "Provider",
+      "key": "API Key",
+      "validated": "Validated",
+      "invalid": "Invalid",
+      "anthropic": "Anthropic (Claude)",
+      "openai": "OpenAI (GPT)",
+      "google": "Google (Gemini)",
+      "xai": "xAI (Grok)",
+      "deepseek": "DeepSeek",
+      "zai": "Z.AI",
+      "custom": "Custom",
+      "bedrock": "AWS Bedrock",
+      "litellm": "LiteLLM",
+      "openrouter": "OpenRouter"
+    },
+    "model": {
+      "title": "Model Selection",
+      "description": "Choose which AI model to use",
+      "selected": "Selected Model",
+      "change": "Change Model"
+    },
+    "ollama": {
+      "title": "Ollama (Local Models)",
+      "description": "Run AI models locally on your machine",
+      "enabled": "Enable Ollama",
+      "baseUrl": "Base URL",
+      "testConnection": "Test Connection",
+      "connectionSuccess": "Connection successful",
+      "connectionFailed": "Connection failed",
+      "noModels": "No models available"
+    },
+    "litellm": {
+      "title": "LiteLLM Proxy",
+      "description": "Connect to a LiteLLM proxy server",
+      "enabled": "Enable LiteLLM",
+      "baseUrl": "Proxy URL",
+      "apiKey": "API Key (Optional)",
+      "testConnection": "Test Connection"
+    },
+    "general": {
+      "title": "General",
+      "debugMode": "Debug Mode",
+      "debugModeDescription": "Show detailed debug information",
+      "language": "Language",
+      "theme": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "about": {
+      "title": "About",
+      "version": "Version",
+      "license": "License",
+      "openSource": "Open Source",
+      "website": "Website",
+      "documentation": "Documentation",
+      "reportIssue": "Report an Issue"
+    }
+  },
+  "onboarding": {
+    "welcome": "Welcome to Openwork",
+    "getStarted": "Get Started",
+    "setupApiKey": "Setup API Key",
+    "setupComplete": "Setup Complete",
+    "step1": {
+      "title": "Choose Your AI Provider",
+      "description": "Select which AI service you want to use. You can change this later in settings."
+    },
+    "step2": {
+      "title": "Add Your API Key",
+      "description": "Enter your API key to get started. Your key is stored securely on your device."
+    },
+    "step3": {
+      "title": "All Set!",
+      "description": "You're ready to start automating tasks with AI."
+    }
+  },
+  "permissions": {
+    "title": "Permission Required",
+    "description": "The AI agent needs permission to perform this action",
+    "allow": "Allow",
+    "deny": "Deny",
+    "alwaysAllow": "Always Allow",
+    "fileAccess": "File Access",
+    "networkAccess": "Network Access",
+    "browserAccess": "Browser Access"
+  },
+  "errors": {
+    "generic": "An error occurred",
+    "networkError": "Network error. Please check your internet connection.",
+    "apiKeyInvalid": "Invalid API key. Please check your settings.",
+    "taskFailed": "Task failed to execute",
+    "permissionDenied": "Permission denied",
+    "timeout": "Request timed out",
+    "notFound": "Not found"
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalidUrl": "Please enter a valid URL",
+    "invalidEmail": "Please enter a valid email",
+    "tooShort": "Too short",
+    "tooLong": "Too long"
+  }
+}

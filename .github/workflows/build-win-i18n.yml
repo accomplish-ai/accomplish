@@ -1,0 +1,103 @@
+name: Build Windows + i18n
+
+on:
+  push:
+    branches:
+      - release/win+i18n
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows with i18n
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download Node.js binaries
+        run: pnpm -F @accomplish/desktop download:nodejs
+
+      - name: Build desktop app
+        run: pnpm -F @accomplish/desktop build
+
+      - name: Package Windows installer
+        run: node scripts/package.cjs --win --x64 --publish never
+        working-directory: apps/desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHON: python
+
+      - name: Get version from package.json
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./apps/desktop/package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Openwork-Windows-i18n-x64
+          path: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.msi
+          retention-days: 90
+
+      - name: Create or Update Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: win-i18n-v${{ steps.version.outputs.version }}
+          name: Windows + i18n v${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          body: |
+            ## Windows版本 + 国际化支持 🌍
+            
+            这是Openwork的Windows特别版，包含完整的国际化支持：
+            
+            ### ✨ 特性
+            - ✅ Windows 原生支持
+            - ✅ 6种语言支持（简体中文、英语、日语、韩语、法语、西班牙语）
+            - ✅ NSIS安装程序
+            - ✅ 所有核心功能
+            
+            ### 📥 安装文件
+            - **Setup.exe** - 完整安装程序（推荐）
+            - **Portable.exe** - 便携版，无需安装
+            
+            ### 🔧 系统要求
+            - Windows 10/11 (64位)
+            - 至少 4GB RAM
+            
+            ### 🌐 支持的语言
+            - 🇨🇳 简体中文
+            - 🇺🇸 English
+            - 🇯🇵 日本語
+            - 🇰🇷 한국어
+            - 🇫🇷 Français
+            - 🇪🇸 Español
+          files: |
+            apps/desktop/release/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

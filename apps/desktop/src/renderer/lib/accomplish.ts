@@ -66,6 +66,12 @@ interface AccomplishAPI {
   getOnboardingComplete(): Promise<boolean>;
   setOnboardingComplete(complete: boolean): Promise<void>;
 
+  // Locale management
+  getInitialLocale(): Promise<string>;
+  setLocale(locale: string): Promise<string>;
+  getSupportedLocales(): Promise<string[]>;
+  getResourcesPath(): Promise<string>;
+
   // Claude CLI
   checkClaudeCli(): Promise<{ installed: boolean; version: string | null; installCommand: string }>;
   getClaudeVersion(): Promise<string | null>;

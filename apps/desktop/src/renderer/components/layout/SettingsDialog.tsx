@@ -13,6 +13,8 @@ import { Trash2 } from 'lucide-react';
 import type { ApiKeyConfig, SelectedModel } from '@accomplish/shared';
 import { DEFAULT_PROVIDERS } from '@accomplish/shared';
 import logoImage from '/assets/logo.png';
+import { useTranslation } from 'react-i18next';
+import { changeLanguage } from '@/i18n/config';
 
 interface SettingsDialogProps {
   open: boolean;
@@ -63,6 +65,7 @@ const LITELLM_PROVIDER_PRIORITY = [
 ];
 
 export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: SettingsDialogProps) {
+  const { t, i18n } = useTranslation();
   const [apiKey, setApiKey] = useState('');
   const [provider, setProvider] = useState<ProviderId>('anthropic');
   const [isSaving, setIsSaving] = useState(false);
@@ -118,6 +121,10 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   const [selectedLitellmModel, setSelectedLitellmModel] = useState<string>('');
   const [savingLitellm, setSavingLitellm] = useState(false);
   const [litellmSearch, setLitellmSearch] = useState('');
+
+  // Language state
+  const [currentLanguage, setCurrentLanguage] = useState(i18n.language);
+  const [supportedLocales, setSupportedLocales] = useState<string[]>([]);
 
   // Sync selectedProxyPlatform and selected model radio button with the actual selected model
   useEffect(() => {
@@ -241,6 +248,15 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
       }
     };
 
+    const fetchSupportedLocales = async () => {
+      try {
+        const locales = await accomplish.getSupportedLocales();
+        setSupportedLocales(locales);
+      } catch (err) {
+        console.error('Failed to fetch supported locales:', err);
+      }
+    };
+
     fetchKeys();
     fetchDebugSetting();
     fetchVersion();
@@ -248,6 +264,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
     fetchOllamaConfig();
     fetchBedrockCredentials();
     fetchLiteLLMConfig();
+    fetchSupportedLocales();
   }, [open]);
 
   const handleDebugToggle = async () => {
@@ -260,6 +277,17 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
     } catch (err) {
       console.error('Failed to save debug setting:', err);
       setDebugMode(!newValue);
+    }
+  };
+
+  const handleLanguageChange = async (locale: string) => {
+    const accomplish = getAccomplish();
+    try {
+      await changeLanguage(locale);
+      await accomplish.setLocale(locale);
+      setCurrentLanguage(locale);
+    } catch (err) {
+      console.error('Failed to change language:', err);
     }
   };
 
@@ -656,13 +684,13 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
+          <DialogTitle>{t('settings.title')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-8 mt-4">
           {/* Model Selection Section */}
           <section>
-            <h2 className="mb-4 text-base font-medium text-foreground">Model</h2>
+            <h2 className="mb-4 text-base font-medium text-foreground">{t('settings.model.title')}</h2>
             <div className="rounded-lg border border-border bg-card p-5">
               {/* Tabs */}
               <div className="flex gap-2 mb-5">
@@ -1216,10 +1244,10 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
           {/* API Key Section - Only show for cloud providers */}
           {activeTab === 'cloud' && (
             <section>
-              <h2 className="mb-4 text-base font-medium text-foreground">Bring Your Own Model/API Key</h2>
+              <h2 className="mb-4 text-base font-medium text-foreground">{t('settings.apiKeys.title')}</h2>
               <div className="rounded-lg border border-border bg-card p-5">
                 <p className="mb-5 text-sm text-muted-foreground leading-relaxed">
-                  Setup the API key and model for your own AI coworker.
+                  {t('settings.apiKeys.description')}
                 </p>
 
                 {/* Provider Selection */}
@@ -1464,6 +1492,35 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
             </section>
           )}
 
+          {/* General Section */}
+          <section>
+            <h2 className="mb-4 text-base font-medium text-foreground">{t('settings.general.title')}</h2>
+            <div className="rounded-lg border border-border bg-card p-5 space-y-5">
+              {/* Language Selection */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-foreground">
+                  {t('settings.general.language')}
+                </label>
+                <select
+                  value={currentLanguage}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {supportedLocales.map((locale) => (
+                    <option key={locale} value={locale}>
+                      {locale === 'en' && 'English'}
+                      {locale === 'zh-CN' && '简体中文'}
+                      {locale === 'ja' && '日本語'}
+                      {locale === 'ko' && '한국어'}
+                      {locale === 'fr' && 'Français'}
+                      {locale === 'es' && 'Español'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </section>
+
           {/* Developer Section */}
           <section>
             <h2 className="mb-4 text-base font-medium text-foreground">Developer</h2>
@@ -1507,7 +1564,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
 
           {/* About Section */}
           <section>
-            <h2 className="mb-4 text-base font-medium text-foreground">About</h2>
+            <h2 className="mb-4 text-base font-medium text-foreground">{t('settings.about.title')}</h2>
             <div className="rounded-lg border border-border bg-card p-5">
               <div className="flex items-center gap-4">
                 <img

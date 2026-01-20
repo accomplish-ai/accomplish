@@ -43,6 +43,12 @@ import {
   getLiteLLMConfig,
   setLiteLLMConfig,
 } from '../store/appSettings';
+import {
+  getInitialLocale,
+  saveLocale,
+  SUPPORTED_LOCALES,
+  type SupportedLocale,
+} from '../utils/locale';
 import { getDesktopConfig } from '../config';
 import {
   startPermissionApiServer,
@@ -1461,6 +1467,27 @@ export function registerIPCHandlers(): void {
   // Onboarding: Set onboarding complete status
   handle('onboarding:set-complete', async (_event: IpcMainInvokeEvent, complete: boolean) => {
     setOnboardingComplete(complete);
+  });
+
+  // Locale: Get initial locale (system or saved preference)
+  handle('locale:get-initial', async (_event: IpcMainInvokeEvent) => {
+    return getInitialLocale();
+  });
+
+  // Locale: Set locale preference
+  handle('locale:set', async (_event: IpcMainInvokeEvent, locale: SupportedLocale) => {
+    saveLocale(locale);
+    return locale;
+  });
+
+  // Locale: Get supported locales
+  handle('locale:get-supported', async (_event: IpcMainInvokeEvent) => {
+    return SUPPORTED_LOCALES;
+  });
+
+  // App: Get resources path (for loading translations in production)
+  handle('app:resources-path', async (_event: IpcMainInvokeEvent) => {
+    return process.resourcesPath || app.getAppPath();
   });
 
   // Shell: Open URL in external browser

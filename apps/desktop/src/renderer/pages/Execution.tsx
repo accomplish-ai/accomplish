@@ -16,6 +16,7 @@ import ReactMarkdown from 'react-markdown';
 import { StreamingText } from '../components/ui/streaming-text';
 import { isWaitingForUser } from '../lib/waiting-detection';
 import loadingSymbol from '/assets/loading-symbol.svg';
+import { useTranslation } from 'react-i18next';
 
 // Debug log entry type
 interface DebugLogEntry {
@@ -90,6 +91,7 @@ function getDisplayFilePaths(request: { filePath?: string; filePaths?: string[] 
 }
 
 export default function ExecutionPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const accomplish = getAccomplish();
@@ -601,7 +603,7 @@ export default function ExecutionPage() {
                   <span className="text-sm">
                     {currentTool
                       ? ((currentToolInput as { description?: string })?.description || TOOL_PROGRESS_MAP[currentTool]?.label || currentTool)
-                      : 'Thinking...'}
+                      : t('execution.thinking')}
                   </span>
                   {currentTool && !(currentToolInput as { description?: string })?.description && (
                     <span className="text-xs text-muted-foreground/60">

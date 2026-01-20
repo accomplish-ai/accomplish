@@ -4,6 +4,7 @@ import { useRef, useEffect } from 'react';
 import { getAccomplish } from '../../lib/accomplish';
 import { analytics } from '../../lib/analytics';
 import { CornerDownLeft, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface TaskInputBarProps {
   value: string;
@@ -20,15 +21,18 @@ export default function TaskInputBar({
   value,
   onChange,
   onSubmit,
-  placeholder = 'Assign a task or ask anything',
+  placeholder,
   isLoading = false,
   disabled = false,
   large = false,
   autoFocus = false,
 }: TaskInputBarProps) {
+  const { t } = useTranslation();
   const isDisabled = disabled || isLoading;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const accomplish = getAccomplish();
+  
+  const defaultPlaceholder = placeholder || t('home.inputPlaceholder');
 
   // Auto-focus on mount
   useEffect(() => {
@@ -62,7 +66,7 @@ export default function TaskInputBar({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
+        placeholder={defaultPlaceholder}
         disabled={isDisabled}
         rows={1}
         className={`max-h-[200px] min-h-[36px] flex-1 resize-none bg-transparent text-foreground placeholder:text-gray-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${large ? 'text-[20px]' : 'text-sm'}`}

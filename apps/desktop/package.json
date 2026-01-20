@@ -1,12 +1,12 @@
 {
   "name": "@accomplish/desktop",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": true,
   "type": "module",
   "description": "Accomplish Desktop App",
   "main": "dist-electron/main/index.js",
   "scripts": {
-    "postinstall": "electron-rebuild && npm --prefix skills/dev-browser install && npm --prefix skills/file-permission install && npm --prefix skills/ask-user-question install",
+    "postinstall": "(electron-rebuild || echo 'electron-rebuild skipped') && npm --prefix skills/dev-browser install && npm --prefix skills/file-permission install && npm --prefix skills/ask-user-question install",
     "dev": "node scripts/patch-electron-name.cjs && rm -rf dist-electron && vite",
     "dev:clean": "CLEAN_START=1 vite",
     "build": "tsc && vite build && npm --prefix skills/dev-browser install --omit=dev && npm --prefix skills/file-permission install --omit=dev && npm --prefix skills/ask-user-question install --omit=dev",
@@ -14,8 +14,10 @@
     "build:unpack": "tsc && vite build && node scripts/package.cjs --dir",
     "package": "pnpm build && node scripts/package.cjs --mac --publish never",
     "package:mac": "pnpm build && node scripts/package.cjs --mac --publish never",
+    "package:win": "pnpm build && node scripts/package.cjs --win --publish never",
     "release": "pnpm build && node scripts/package.cjs --mac --publish always",
     "release:mac": "pnpm build && node scripts/package.cjs --mac --publish always",
+    "release:win": "pnpm build && node scripts/package.cjs --win --publish always",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
@@ -54,11 +56,13 @@
     "dotenv": "^17.2.3",
     "electron-store": "^8.2.0",
     "framer-motion": "^12.26.2",
+    "i18next": "^25.7.4",
     "lucide-react": "^0.454.0",
     "node-pty": "^1.1.0",
     "opencode-ai": "1.1.16",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-i18next": "^16.5.3",
     "react-markdown": "^9.0.1",
     "react-router-dom": "^7.1.1",
     "tailwind-merge": "^3.3.1",
@@ -98,6 +102,7 @@
       "output": "release",
       "buildResources": "resources"
     },
+    "npmRebuild": false,
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
@@ -111,8 +116,7 @@
       "node_modules/debounce-fn/**",
       "!node_modules/@accomplish/**",
       "!node_modules/opencode-darwin-*/**",
-      "!node_modules/opencode-linux-*/**",
-      "!node_modules/opencode-win32-*/**"
+      "!node_modules/opencode-linux-*/**"
     ],
     "asar": true,
     "asarUnpack": [
@@ -141,6 +145,10 @@
           "!**/*.test.ts",
           "!**/vitest.config.ts"
         ]
+      },
+      {
+        "from": "dist/locales",
+        "to": "locales"
       }
     ],
     "publish": {
@@ -173,6 +181,33 @@
           "path": "/Applications"
         }
       ]
-    }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.ico",
+      "artifactName": "${productName}-${version}-win-${arch}.${ext}",
+      "signingHashAlgorithms": []
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": true,
+      "differentialPackage": false
+    },
+    "buildDependenciesFromSource": false
   }
 }
