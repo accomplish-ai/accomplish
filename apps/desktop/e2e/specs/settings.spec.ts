@@ -83,7 +83,7 @@ test.describe('Settings Dialog', () => {
     await expect(settingsPage.getProviderCard('anthropic')).toBeVisible();
     await expect(settingsPage.getProviderCard('openai')).toBeVisible();
     await expect(settingsPage.getProviderCard('google')).toBeVisible();
-    await expect(settingsPage.getProviderCard('xai')).toBeVisible();
+    await expect(settingsPage.getProviderCard('bedrock')).toBeVisible();
 
     // 5th provider should NOT be visible in collapsed view
     await expect(settingsPage.getProviderCard('deepseek')).not.toBeVisible();
@@ -167,6 +167,9 @@ test.describe('Settings Dialog', () => {
     await window.waitForLoadState('domcontentloaded');
     await settingsPage.navigateToSettings();
 
+    // Debug toggle only shows when a provider is selected - select one first
+    await settingsPage.getProviderCard('anthropic').click();
+
     // Scroll to debug toggle
     await settingsPage.debugModeToggle.scrollIntoViewIfNeeded();
 
@@ -191,6 +194,9 @@ test.describe('Settings Dialog', () => {
 
     await window.waitForLoadState('domcontentloaded');
     await settingsPage.navigateToSettings();
+
+    // Debug toggle only shows when a provider is selected - select one first
+    await settingsPage.getProviderCard('anthropic').click();
 
     // Scroll to debug toggle
     await settingsPage.debugModeToggle.scrollIntoViewIfNeeded();
@@ -685,6 +691,9 @@ test.describe('Settings Dialog', () => {
 
     // Step 1: Open settings and toggle debug mode
     await settingsPage.navigateToSettings();
+
+    // Debug toggle only shows when a provider is selected - select one first
+    await settingsPage.getProviderCard('anthropic').click();
     await expect(settingsPage.debugModeToggle).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
     const toggleButton = settingsPage.debugModeToggle;
