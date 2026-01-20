@@ -338,6 +338,12 @@ function buildAzureFoundryProviderConfig(
       [deploymentName]: {
         name: `Azure Foundry (${deploymentName})`,
         tools: true,
+        // Set conservative output token limit - can be overridden per-deployment
+        // This prevents errors from models with lower limits (e.g., 16384 for some GPT-5 deployments)
+        limit: {
+          context: 128000,
+          output: 16384,
+        },
       },
     },
   };

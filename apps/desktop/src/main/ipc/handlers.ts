@@ -1436,7 +1436,7 @@ export function registerIPCHandlers(): void {
         if (!apiKey) {
           return { success: false, error: 'API key is required for API key authentication' };
         }
-        authHeader = `api-key ${apiKey}`;
+        authHeader = apiKey;
       } else {
         // Entra ID authentication
         try {
@@ -1453,14 +1453,21 @@ export function registerIPCHandlers(): void {
       // Test connection with a minimal chat completion request
       const testUrl = `${baseUrl}/openai/deployments/${deploymentName}/chat/completions?api-version=2024-02-15-preview`;
 
+      // Build headers based on auth type
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (authType === 'api-key') {
+        headers['api-key'] = authHeader;
+      } else {
+        headers['Authorization'] = authHeader;
+      }
+
       const response = await fetchWithTimeout(
         testUrl,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authHeader,
-          },
+          headers,
           body: JSON.stringify({
             messages: [{ role: 'user', content: 'Hi' }],
             max_completion_tokens: 5,
@@ -1475,10 +1482,7 @@ export function registerIPCHandlers(): void {
           testUrl,
           {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': authHeader,
-            },
+            headers,
             body: JSON.stringify({
               messages: [{ role: 'user', content: 'Hi' }],
               max_tokens: 5,
