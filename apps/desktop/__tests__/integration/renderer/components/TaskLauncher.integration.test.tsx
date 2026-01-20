@@ -43,6 +43,27 @@ const mockAccomplish = {
   hasAnyApiKey: mockHasAnyApiKey,
   getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
   getOllamaConfig: vi.fn().mockResolvedValue(null),
+  isE2EMode: vi.fn().mockResolvedValue(false),
+  getProviderSettings: vi.fn().mockResolvedValue({
+    activeProviderId: 'anthropic',
+    connectedProviders: {
+      anthropic: {
+        providerId: 'anthropic',
+        connectionStatus: 'connected',
+        selectedModelId: 'claude-3-5-sonnet-20241022',
+        credentials: { type: 'api-key', apiKey: 'test-key' },
+      },
+    },
+    debugMode: false,
+  }),
+  // Provider settings methods
+  setActiveProvider: vi.fn().mockResolvedValue(undefined),
+  setConnectedProvider: vi.fn().mockResolvedValue(undefined),
+  removeConnectedProvider: vi.fn().mockResolvedValue(undefined),
+  setProviderDebugMode: vi.fn().mockResolvedValue(undefined),
+  validateApiKeyForProvider: vi.fn().mockResolvedValue({ valid: true }),
+  validateBedrockCredentials: vi.fn().mockResolvedValue({ valid: true }),
+  saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
 };
 
 // Mock the accomplish module
@@ -319,7 +340,19 @@ describe('TaskLauncher', () => {
       tasks: [],
       startTask: mockStartTask,
     };
-    mockHasAnyApiKey.mockResolvedValue(true);
+    // Set up default provider settings with a ready provider
+    mockAccomplish.getProviderSettings.mockResolvedValue({
+      activeProviderId: 'anthropic',
+      connectedProviders: {
+        anthropic: {
+          providerId: 'anthropic',
+          connectionStatus: 'connected',
+          selectedModelId: 'claude-3-5-sonnet-20241022',
+          credentials: { type: 'api-key', apiKey: 'test-key' },
+        },
+      },
+      debugMode: false,
+    });
   });
 
   describe('opening and closing', () => {
@@ -859,7 +892,7 @@ describe('TaskLauncher', () => {
 
       // Assert
       await waitFor(() => {
-        expect(mockHasAnyApiKey).toHaveBeenCalled();
+        expect(mockAccomplish.getProviderSettings).toHaveBeenCalled();
         expect(mockCloseLauncher).toHaveBeenCalled();
         expect(mockStartTask).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -869,10 +902,14 @@ describe('TaskLauncher', () => {
       });
     });
 
-    it('should navigate to home if no API key when starting new task', async () => {
-      // Arrange
+    it('should navigate to home if no provider is ready when starting new task', async () => {
+      // Arrange - No ready provider
       mockStoreState.isLauncherOpen = true;
-      mockHasAnyApiKey.mockResolvedValue(false);
+      mockAccomplish.getProviderSettings.mockResolvedValue({
+        activeProviderId: null,
+        connectedProviders: {},
+        debugMode: false,
+      });
 
       // Act
       render(
@@ -891,7 +928,7 @@ describe('TaskLauncher', () => {
 
       // Assert
       await waitFor(() => {
-        expect(mockHasAnyApiKey).toHaveBeenCalled();
+        expect(mockAccomplish.getProviderSettings).toHaveBeenCalled();
         expect(mockCloseLauncher).toHaveBeenCalled();
         expect(mockStartTask).not.toHaveBeenCalled();
       });

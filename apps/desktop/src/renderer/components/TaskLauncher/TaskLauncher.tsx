@@ -10,6 +10,7 @@ import { getAccomplish } from '@/lib/accomplish';
 import { cn } from '@/lib/utils';
 import { springs } from '@/lib/animations';
 import TaskLauncherItem from './TaskLauncherItem';
+import { hasAnyReadyProvider } from '@accomplish/shared';
 
 export default function TaskLauncher() {
   const navigate = useNavigate();
@@ -58,13 +59,10 @@ export default function TaskLauncher() {
     if (index === 0) {
       // "New task" selected
       if (searchQuery.trim()) {
-        // Start task with search query as prompt
-        const hasKey = await accomplish.hasAnyApiKey();
-        const selectedModel = await accomplish.getSelectedModel();
-        const hasOllamaConfigured = selectedModel?.provider === 'ollama';
-        const hasLiteLLMConfigured = selectedModel?.provider === 'litellm';
-
-        if (!hasKey && !hasOllamaConfigured && !hasLiteLLMConfigured) {
+        // Check if any provider is ready before starting task
+        const settings = await accomplish.getProviderSettings();
+        if (!hasAnyReadyProvider(settings)) {
+          // No ready provider - navigate to home which will show settings
           closeLauncher();
           navigate('/');
           return;

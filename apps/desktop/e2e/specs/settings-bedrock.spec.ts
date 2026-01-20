@@ -4,18 +4,22 @@ import { captureForAI } from '../utils';
 import { TEST_TIMEOUTS } from '../config';
 
 test.describe('Settings - Amazon Bedrock', () => {
-  test('should display Bedrock provider button', async ({ window }) => {
+  test('should display Bedrock provider card', async ({ window }) => {
     const settingsPage = new SettingsPage(window);
     await window.waitForLoadState('domcontentloaded');
     await settingsPage.navigateToSettings();
 
-    await expect(settingsPage.bedrockProviderButton).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    // Click Show All to see all providers
+    await settingsPage.toggleShowAll();
+
+    const bedrockCard = settingsPage.getProviderCard('bedrock');
+    await expect(bedrockCard).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
     await captureForAI(
       window,
       'settings-bedrock',
-      'provider-button-visible',
-      ['Bedrock provider button is visible', 'User can select Bedrock']
+      'provider-card-visible',
+      ['Bedrock provider card is visible', 'User can select Bedrock']
     );
   });
 
@@ -24,11 +28,15 @@ test.describe('Settings - Amazon Bedrock', () => {
     await window.waitForLoadState('domcontentloaded');
     await settingsPage.navigateToSettings();
 
-    await settingsPage.selectBedrockProvider();
+    // Click Show All to see all providers
+    await settingsPage.toggleShowAll();
 
-    // Verify Access Keys tab is visible (default)
-    await expect(settingsPage.bedrockAccessKeysTab).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
-    await expect(settingsPage.bedrockProfileTab).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    // Click Bedrock provider card
+    await settingsPage.selectProvider('bedrock');
+
+    // Verify Access Key tab is visible (default)
+    await expect(settingsPage.bedrockAccessKeyTab).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.bedrockAwsProfileTab).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
     await captureForAI(
       window,
@@ -38,25 +46,29 @@ test.describe('Settings - Amazon Bedrock', () => {
     );
   });
 
-  test('should switch between Access Keys and Profile tabs', async ({ window }) => {
+  test('should switch between Access Key and AWS Profile tabs', async ({ window }) => {
     const settingsPage = new SettingsPage(window);
     await window.waitForLoadState('domcontentloaded');
     await settingsPage.navigateToSettings();
 
-    await settingsPage.selectBedrockProvider();
+    // Click Show All to see all providers
+    await settingsPage.toggleShowAll();
 
-    // Default is Access Keys - verify inputs
-    await expect(settingsPage.bedrockAccessKeyInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    // Click Bedrock provider card
+    await settingsPage.selectProvider('bedrock');
+
+    // Default is Access Key - verify inputs
+    await expect(settingsPage.bedrockAccessKeyIdInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
     await expect(settingsPage.bedrockSecretKeyInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
-    // Switch to Profile tab
-    await settingsPage.selectBedrockProfileTab();
-    await expect(settingsPage.bedrockProfileInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
-    await expect(settingsPage.bedrockAccessKeyInput).not.toBeVisible();
+    // Switch to AWS Profile tab
+    await settingsPage.selectBedrockAwsProfileTab();
+    await expect(settingsPage.bedrockProfileNameInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.bedrockAccessKeyIdInput).not.toBeVisible();
 
-    // Switch back to Access Keys
-    await settingsPage.selectBedrockAccessKeysTab();
-    await expect(settingsPage.bedrockAccessKeyInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    // Switch back to Access Key
+    await settingsPage.selectBedrockAccessKeyTab();
+    await expect(settingsPage.bedrockAccessKeyIdInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
     await captureForAI(
       window,
@@ -71,26 +83,29 @@ test.describe('Settings - Amazon Bedrock', () => {
     await window.waitForLoadState('domcontentloaded');
     await settingsPage.navigateToSettings();
 
-    await settingsPage.selectBedrockProvider();
+    // Click Show All to see all providers
+    await settingsPage.toggleShowAll();
+
+    // Click Bedrock provider card
+    await settingsPage.selectProvider('bedrock');
 
     const testAccessKey = 'AKIAIOSFODNN7EXAMPLE';
     const testSecretKey = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY';
-    const testRegion = 'us-west-2';
 
-    await settingsPage.bedrockAccessKeyInput.fill(testAccessKey);
+    await settingsPage.bedrockAccessKeyIdInput.fill(testAccessKey);
     await settingsPage.bedrockSecretKeyInput.fill(testSecretKey);
-    await settingsPage.bedrockRegionInput.clear();
-    await settingsPage.bedrockRegionInput.fill(testRegion);
 
-    await expect(settingsPage.bedrockAccessKeyInput).toHaveValue(testAccessKey);
+    await expect(settingsPage.bedrockAccessKeyIdInput).toHaveValue(testAccessKey);
     await expect(settingsPage.bedrockSecretKeyInput).toHaveValue(testSecretKey);
-    await expect(settingsPage.bedrockRegionInput).toHaveValue(testRegion);
+
+    // Verify region selector is visible
+    await expect(settingsPage.bedrockRegionSelect).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
     await captureForAI(
       window,
       'settings-bedrock',
       'access-key-fields-filled',
-      ['Access key fields accept input', 'Region field works']
+      ['Access key fields accept input', 'Region selector is available']
     );
   });
 
@@ -99,43 +114,74 @@ test.describe('Settings - Amazon Bedrock', () => {
     await window.waitForLoadState('domcontentloaded');
     await settingsPage.navigateToSettings();
 
-    await settingsPage.selectBedrockProvider();
-    await settingsPage.selectBedrockProfileTab();
+    // Click Show All to see all providers
+    await settingsPage.toggleShowAll();
+
+    // Click Bedrock provider card
+    await settingsPage.selectProvider('bedrock');
+
+    // Switch to AWS Profile tab
+    await settingsPage.selectBedrockAwsProfileTab();
 
     const testProfile = 'my-aws-profile';
-    const testRegion = 'eu-west-1';
 
-    await settingsPage.bedrockProfileInput.clear();
-    await settingsPage.bedrockProfileInput.fill(testProfile);
-    await settingsPage.bedrockRegionInput.clear();
-    await settingsPage.bedrockRegionInput.fill(testRegion);
+    await settingsPage.bedrockProfileNameInput.clear();
+    await settingsPage.bedrockProfileNameInput.fill(testProfile);
 
-    await expect(settingsPage.bedrockProfileInput).toHaveValue(testProfile);
-    await expect(settingsPage.bedrockRegionInput).toHaveValue(testRegion);
+    await expect(settingsPage.bedrockProfileNameInput).toHaveValue(testProfile);
+
+    // Verify region selector is visible
+    await expect(settingsPage.bedrockRegionSelect).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
     await captureForAI(
       window,
       'settings-bedrock',
       'profile-fields-filled',
-      ['Profile field accepts input', 'Region field works']
+      ['Profile field accepts input', 'Region selector is available']
     );
   });
 
-  test('should have save button for Bedrock credentials', async ({ window }) => {
+  test('should have Connect button for Bedrock credentials', async ({ window }) => {
     const settingsPage = new SettingsPage(window);
     await window.waitForLoadState('domcontentloaded');
     await settingsPage.navigateToSettings();
 
-    await settingsPage.selectBedrockProvider();
+    // Click Show All to see all providers
+    await settingsPage.toggleShowAll();
 
-    await expect(settingsPage.bedrockSaveButton).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
-    await expect(settingsPage.bedrockSaveButton).toHaveText('Save Bedrock Credentials');
+    // Click Bedrock provider card
+    await settingsPage.selectProvider('bedrock');
+
+    // Verify Connect button is visible
+    await expect(settingsPage.connectButton).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
     await captureForAI(
       window,
       'settings-bedrock',
-      'save-button-visible',
-      ['Save button is visible', 'Button text is correct']
+      'connect-button-visible',
+      ['Connect button is visible', 'User can connect to Bedrock']
+    );
+  });
+
+  test('should display region selector for Bedrock', async ({ window }) => {
+    const settingsPage = new SettingsPage(window);
+    await window.waitForLoadState('domcontentloaded');
+    await settingsPage.navigateToSettings();
+
+    // Click Show All to see all providers
+    await settingsPage.toggleShowAll();
+
+    // Click Bedrock provider card
+    await settingsPage.selectProvider('bedrock');
+
+    // Verify region selector is visible
+    await expect(settingsPage.bedrockRegionSelect).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+
+    await captureForAI(
+      window,
+      'settings-bedrock',
+      'region-selector-visible',
+      ['Region selector is visible', 'User can select AWS region']
     );
   });
 });
