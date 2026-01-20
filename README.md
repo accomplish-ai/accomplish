@@ -125,6 +125,12 @@ Openwork is an open source AI desktop agent that automates file management, docu
 
 <br />
 
+## Memory (MemOS)
+
+Openwork can connect to MemOS to provide long-term memory. When a MemOS API key is set, relevant memories are injected into the system prompt and new memories are saved after tasks finish. Learn more in the MemOS docs: https://memos-docs.openmem.net/
+
+<br />
+
 ## Supported models and providers
 
 - OpenAI

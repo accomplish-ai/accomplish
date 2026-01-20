@@ -2,10 +2,9 @@ import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { PERMISSION_API_PORT, QUESTION_API_PORT } from '../permission-api';
-import { getOllamaConfig } from '../store/appSettings';
+import { getOllamaConfig, getLiteLLMConfig } from '../store/appSettings';
 import { getApiKey } from '../store/secureStorage';
-import { getProviderSettings, getActiveProviderModel, getConnectedProviderIds } from '../store/providerSettings';
-import type { BedrockCredentials, ProviderId } from '@accomplish/shared';
+import type { BedrockCredentials } from '@accomplish/shared';
 
 /**
  * Agent name used by Accomplish
@@ -413,7 +412,7 @@ interface OpenCodeConfig {
  * OpenCode reads config from .opencode.json in the working directory or
  * from ~/.config/opencode/opencode.json
  */
-export async function generateOpenCodeConfig(): Promise<string> {
+export async function generateOpenCodeConfig(systemPromptAppend?: string): Promise<string> {
   const configDir = path.join(app.getPath('userData'), 'opencode');
   const configPath = path.join(configDir, 'opencode.json');
 
@@ -424,7 +423,10 @@ export async function generateOpenCodeConfig(): Promise<string> {
 
   // Get skills directory path and inject into system prompt
   const skillsPath = getSkillsPath();
-  const systemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE.replace(/\{\{SKILLS_PATH\}\}/g, skillsPath);
+  const baseSystemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE.replace(/\{\{SKILLS_PATH\}\}/g, skillsPath);
+  const systemPrompt = systemPromptAppend
+    ? `${baseSystemPrompt}\n\n${systemPromptAppend}`
+    : baseSystemPrompt;
 
   // Get OpenCode config directory (parent of skills/) for OPENCODE_CONFIG_DIR
   const openCodeConfigDir = getOpenCodeConfigDir();
@@ -435,200 +437,141 @@ export async function generateOpenCodeConfig(): Promise<string> {
   // Build file-permission MCP server command
   const filePermissionServerPath = path.join(skillsPath, 'file-permission', 'src', 'index.ts');
 
-  // Get connected providers from new settings (with legacy fallback)
-  const providerSettings = getProviderSettings();
-  const connectedIds = getConnectedProviderIds();
-  const activeModel = getActiveProviderModel();
-
-  // Map our provider IDs to OpenCode CLI provider names
-  const providerIdToOpenCode: Record<ProviderId, string> = {
-    anthropic: 'anthropic',
-    openai: 'openai',
-    google: 'google',
-    xai: 'xai',
-    deepseek: 'deepseek',
-    zai: 'zai-coding-plan',
-    bedrock: 'amazon-bedrock',
-    ollama: 'ollama',
-    openrouter: 'openrouter',
-    litellm: 'litellm',
-  };
-
-  // Build enabled providers list from new settings or fall back to base providers
+  // Enable providers - add ollama and litellm if configured
+  const ollamaConfig = getOllamaConfig();
+  const litellmConfig = getLiteLLMConfig();
   const baseProviders = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai-coding-plan', 'amazon-bedrock'];
-  let enabledProviders = baseProviders;
-
-  // If we have connected providers in the new settings, use those
-  if (connectedIds.length > 0) {
-    const mappedProviders = connectedIds.map(id => providerIdToOpenCode[id]);
-    // Always include base providers to allow switching
-    enabledProviders = [...new Set([...baseProviders, ...mappedProviders])];
-    console.log('[OpenCode Config] Using connected providers from new settings:', mappedProviders);
-  } else {
-    // Legacy fallback: add ollama if configured in old settings
-    const ollamaConfig = getOllamaConfig();
-    if (ollamaConfig?.enabled) {
-      enabledProviders = [...baseProviders, 'ollama'];
-    }
+  let enabledProviders = [...baseProviders];
+  if (ollamaConfig?.enabled) {
+    enabledProviders.push('ollama');
+  }
+  if (litellmConfig?.enabled) {
+    enabledProviders.push('litellm');
   }
 
   // Build provider configurations
   const providerConfig: Record<string, ProviderConfig> = {};
 
-  // Configure Ollama if connected (check new settings first, then legacy)
-  const ollamaProvider = providerSettings.connectedProviders.ollama;
-  if (ollamaProvider?.connectionStatus === 'connected' && ollamaProvider.credentials.type === 'ollama') {
-    // New provider settings: Ollama is connected
-    if (ollamaProvider.selectedModelId) {
-      providerConfig.ollama = {
-        npm: '@ai-sdk/openai-compatible',
-        name: 'Ollama (local)',
-        options: {
-          baseURL: `${ollamaProvider.credentials.serverUrl}/v1`,
-        },
-        models: {
-          [ollamaProvider.selectedModelId]: {
-            name: ollamaProvider.selectedModelId,
-            tools: true,
-          },
-        },
+  // Add Ollama provider configuration if enabled
+  if (ollamaConfig?.enabled && ollamaConfig.models && ollamaConfig.models.length > 0) {
+    const ollamaModels: Record<string, OllamaProviderModelConfig> = {};
+    for (const model of ollamaConfig.models) {
+      ollamaModels[model.id] = {
+        name: model.displayName,
+        tools: true,  // Enable tool calling for all models
       };
-      console.log('[OpenCode Config] Ollama configured from new settings:', ollamaProvider.selectedModelId);
     }
-  } else {
-    // Legacy fallback: use old Ollama config
-    const ollamaConfig = getOllamaConfig();
-    if (ollamaConfig?.enabled && ollamaConfig.models && ollamaConfig.models.length > 0) {
-      const ollamaModels: Record<string, OllamaProviderModelConfig> = {};
-      for (const model of ollamaConfig.models) {
-        ollamaModels[model.id] = {
-          name: model.displayName,
-          tools: true,
-        };
-      }
 
-      providerConfig.ollama = {
-        npm: '@ai-sdk/openai-compatible',
-        name: 'Ollama (local)',
-        options: {
-          baseURL: `${ollamaConfig.baseUrl}/v1`,
-        },
-        models: ollamaModels,
-      };
-
-      console.log('[OpenCode Config] Ollama configured from legacy settings:', Object.keys(ollamaModels));
-    }
-  }
-
-  // Configure OpenRouter if connected (check new settings first, then legacy)
-  const openrouterProvider = providerSettings.connectedProviders.openrouter;
-  if (openrouterProvider?.connectionStatus === 'connected' && activeModel?.provider === 'openrouter') {
-    // New provider settings: OpenRouter is connected and active
-    const modelId = activeModel.model.replace('openrouter/', '');
-    providerConfig.openrouter = {
+    providerConfig.ollama = {
       npm: '@ai-sdk/openai-compatible',
-      name: 'OpenRouter',
+      name: 'Ollama (local)',
       options: {
-        baseURL: 'https://openrouter.ai/api/v1',
+        baseURL: `${ollamaConfig.baseUrl}/v1`,  // OpenAI-compatible endpoint
       },
-      models: {
-        [modelId]: {
-          name: modelId,
-          tools: true,
+      models: ollamaModels,
+    };
+
+    console.log('[OpenCode Config] Ollama provider configured with models:', Object.keys(ollamaModels));
+  }
+
+  // Add OpenRouter provider configuration if API key is set
+  const openrouterKey = getApiKey('openrouter');
+  if (openrouterKey) {
+    // Get the selected model to configure OpenRouter
+    const { getSelectedModel } = await import('../store/appSettings');
+    const selectedModel = getSelectedModel();
+
+    const openrouterModels: Record<string, OpenRouterProviderModelConfig> = {};
+
+    // If a model is selected via OpenRouter, add it to the config
+    if (selectedModel?.provider === 'openrouter' && selectedModel.model) {
+      // Extract model ID from full ID (e.g., "openrouter/anthropic/claude-3.5-sonnet" -> "anthropic/claude-3.5-sonnet")
+      const modelId = selectedModel.model.replace('openrouter/', '');
+      openrouterModels[modelId] = {
+        name: modelId,
+        tools: true,
+      };
+    }
+
+    // Only configure OpenRouter if we have at least one model
+    if (Object.keys(openrouterModels).length > 0) {
+      providerConfig.openrouter = {
+        npm: '@ai-sdk/openai-compatible',
+        name: 'OpenRouter',
+        options: {
+          baseURL: 'https://openrouter.ai/api/v1',
         },
-      },
-    };
-    console.log('[OpenCode Config] OpenRouter configured from new settings:', modelId);
-  } else {
-    // Legacy fallback: use old OpenRouter config
-    const openrouterKey = getApiKey('openrouter');
-    if (openrouterKey) {
-      const { getSelectedModel } = await import('../store/appSettings');
-      const selectedModel = getSelectedModel();
-
-      const openrouterModels: Record<string, OpenRouterProviderModelConfig> = {};
-
-      if (selectedModel?.provider === 'openrouter' && selectedModel.model) {
-        const modelId = selectedModel.model.replace('openrouter/', '');
-        openrouterModels[modelId] = {
-          name: modelId,
-          tools: true,
-        };
-      }
-
-      if (Object.keys(openrouterModels).length > 0) {
-        providerConfig.openrouter = {
-          npm: '@ai-sdk/openai-compatible',
-          name: 'OpenRouter',
-          options: {
-            baseURL: 'https://openrouter.ai/api/v1',
-          },
-          models: openrouterModels,
-        };
-        console.log('[OpenCode Config] OpenRouter configured from legacy settings:', Object.keys(openrouterModels));
-      }
+        models: openrouterModels,
+      };
+      console.log('[OpenCode Config] OpenRouter provider configured with model:', Object.keys(openrouterModels));
     }
   }
 
-  // Configure Bedrock if connected (check new settings first, then legacy)
-  const bedrockProvider = providerSettings.connectedProviders.bedrock;
-  if (bedrockProvider?.connectionStatus === 'connected' && bedrockProvider.credentials.type === 'bedrock') {
-    // New provider settings: Bedrock is connected
-    const creds = bedrockProvider.credentials;
-    const bedrockOptions: BedrockProviderConfig['options'] = {
-      region: creds.region || 'us-east-1',
-    };
-    if (creds.authMethod === 'profile' && creds.profileName) {
-      bedrockOptions.profile = creds.profileName;
-    }
-    providerConfig['amazon-bedrock'] = {
-      options: bedrockOptions,
-    };
-    console.log('[OpenCode Config] Bedrock configured from new settings:', bedrockOptions);
-  } else {
-    // Legacy fallback: use old Bedrock config
-    const bedrockCredsJson = getApiKey('bedrock');
-    if (bedrockCredsJson) {
-      try {
-        const creds = JSON.parse(bedrockCredsJson) as BedrockCredentials;
+  // Add Bedrock provider configuration if credentials are stored
+  const bedrockCredsJson = getApiKey('bedrock');
+  if (bedrockCredsJson) {
+    try {
+      const creds = JSON.parse(bedrockCredsJson) as BedrockCredentials;
 
-        const bedrockOptions: BedrockProviderConfig['options'] = {
-          region: creds.region || 'us-east-1',
-        };
+      const bedrockOptions: BedrockProviderConfig['options'] = {
+        region: creds.region || 'us-east-1',
+      };
 
-        if (creds.authType === 'profile' && creds.profileName) {
-          bedrockOptions.profile = creds.profileName;
-        }
-
-        providerConfig['amazon-bedrock'] = {
-          options: bedrockOptions,
-        };
-
-        console.log('[OpenCode Config] Bedrock configured from legacy settings:', bedrockOptions);
-      } catch (e) {
-        console.warn('[OpenCode Config] Failed to parse Bedrock credentials:', e);
+      // Only add profile if using profile mode
+      if (creds.authType === 'profile' && creds.profileName) {
+        bedrockOptions.profile = creds.profileName;
       }
+
+      providerConfig['amazon-bedrock'] = {
+        options: bedrockOptions,
+      };
+
+      console.log('[OpenCode Config] Bedrock provider configured:', bedrockOptions);
+    } catch (e) {
+      console.warn('[OpenCode Config] Failed to parse Bedrock credentials:', e);
     }
   }
 
-  // Configure LiteLLM if connected
-  const litellmProvider = providerSettings.connectedProviders.litellm;
-  if (litellmProvider?.connectionStatus === 'connected' && litellmProvider.credentials.type === 'litellm') {
-    if (litellmProvider.selectedModelId) {
+  // Add LiteLLM provider configuration if enabled
+  if (litellmConfig?.enabled && litellmConfig.baseUrl) {
+    // Get the selected model to configure LiteLLM
+    const { getSelectedModel } = await import('../store/appSettings');
+    const selectedModel = getSelectedModel();
+
+    const litellmModels: Record<string, LiteLLMProviderModelConfig> = {};
+
+    // If a model is selected via LiteLLM, add it to the config
+    if (selectedModel?.provider === 'litellm' && selectedModel.model) {
+      // Extract model ID from full ID (e.g., "litellm/openai/gpt-4" -> "openai/gpt-4")
+      const modelId = selectedModel.model.replace('litellm/', '');
+      litellmModels[modelId] = {
+        name: modelId,
+        tools: true,
+      };
+    }
+
+    // Only configure LiteLLM if we have at least one model
+    if (Object.keys(litellmModels).length > 0) {
+      // Get LiteLLM API key if configured
+      const litellmApiKey = getApiKey('litellm');
+      
+      const litellmOptions: LiteLLMProviderConfig['options'] = {
+        baseURL: `${litellmConfig.baseUrl}/v1`,
+      };
+      
+      // Add API key to options if available
+      if (litellmApiKey) {
+        litellmOptions.apiKey = litellmApiKey;
+        console.log('[OpenCode Config] LiteLLM API key configured');
+      }
+      
       providerConfig.litellm = {
         npm: '@ai-sdk/openai-compatible',
         name: 'LiteLLM',
-        options: {
-          baseURL: `${litellmProvider.credentials.serverUrl}/v1`,
-        },
-        models: {
-          [litellmProvider.selectedModelId]: {
-            name: litellmProvider.selectedModelId,
-            tools: true,
-          },
-        },
+        options: litellmOptions,
+        models: litellmModels,
       };
-      console.log('[OpenCode Config] LiteLLM configured:', litellmProvider.selectedModelId);
+      console.log('[OpenCode Config] LiteLLM provider configured with model:', Object.keys(litellmModels));
     }
   }
 

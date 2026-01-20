@@ -22,6 +22,7 @@ import {
   clearHistory,
 } from '../store/taskHistory';
 import { generateTaskSummary } from '../services/summarizer';
+import { getMemoryContextForPrompt, rememberTask } from '../services/memory';
 import {
   storeApiKey,
   getApiKey,
@@ -43,18 +44,6 @@ import {
   getLiteLLMConfig,
   setLiteLLMConfig,
 } from '../store/appSettings';
-import {
-  getProviderSettings,
-  setActiveProvider,
-  getConnectedProvider,
-  setConnectedProvider,
-  removeConnectedProvider,
-  updateProviderModel,
-  setProviderDebugMode,
-  getProviderDebugMode,
-  hasReadyProvider,
-} from '../store/providerSettings';
-import type { ProviderId, ConnectedProvider, BedrockCredentials } from '@accomplish/shared';
 import { getDesktopConfig } from '../config';
 import {
   startPermissionApiServer,
@@ -228,6 +217,24 @@ function sanitizeString(input: unknown, field: string, maxLength = MAX_TEXT_LENG
   return trimmed;
 }
 
+function applyMemoryContext(config: TaskConfig, memoryContext: string | null): TaskConfig {
+  if (!memoryContext) return config;
+
+  const combined = [config.systemPromptAppend, memoryContext]
+    .filter(Boolean)
+    .join('\n\n');
+
+  const trimmed = combined.length > MAX_TEXT_LENGTH
+    ? combined.slice(0, Math.max(0, MAX_TEXT_LENGTH - 3)) + '...'
+    : combined;
+
+  if (trimmed.length !== combined.length) {
+    console.warn('[Memory] systemPromptAppend truncated to MAX_TEXT_LENGTH');
+  }
+
+  return { ...config, systemPromptAppend: trimmed };
+}
+
 function validateTaskConfig(config: TaskConfig): TaskConfig {
   const prompt = sanitizeString(config.prompt, 'prompt');
   const validated: TaskConfig = { prompt };
@@ -303,12 +310,6 @@ export function registerIPCHandlers(): void {
     const sender = event.sender;
     const validatedConfig = validateTaskConfig(config);
 
-    // Check for ready provider before starting task (skip in E2E mock mode)
-    // This is a backend safety check - the UI should also check before calling
-    if (!isMockTaskEventsEnabled() && !hasReadyProvider()) {
-      throw new Error('No provider is ready. Please connect a provider and select a model in Settings.');
-    }
-
     // Initialize permission API server (once, when we have a window)
     if (!permissionApiInitialized) {
       initPermissionApi(window, () => taskManager.getActiveTaskId());
@@ -318,6 +319,8 @@ export function registerIPCHandlers(): void {
     }
 
     const taskId = createTaskId();
+    const memoryContext = await getMemoryContextForPrompt(validatedConfig.prompt, taskId);
+    const configWithMemory = applyMemoryContext(validatedConfig, memoryContext);
 
     // E2E Mock Mode: Return mock task and emit simulated events
     if (isMockTaskEventsEnabled()) {
@@ -396,6 +399,13 @@ export function registerIPCHandlers(): void {
         if (sessionId) {
           updateTaskSessionId(taskId, sessionId);
         }
+
+        if (result.status !== 'error') {
+          const storedTask = getTask(taskId);
+          if (storedTask) {
+            void rememberTask(storedTask);
+          }
+        }
       },
 
       onError: (error: Error) => {
@@ -434,7 +444,7 @@ export function registerIPCHandlers(): void {
     };
 
     // Start the task via TaskManager (creates isolated adapter or queues if busy)
-    const task = await taskManager.startTask(taskId, validatedConfig, callbacks);
+    const task = await taskManager.startTask(taskId, configWithMemory, callbacks);
 
     // Add initial user message with the prompt to the chat
     const initialUserMessage: TaskMessage = {
@@ -570,12 +580,6 @@ export function registerIPCHandlers(): void {
       ? sanitizeString(existingTaskId, 'taskId', 128)
       : undefined;
 
-    // Check for ready provider before resuming session (skip in E2E mock mode)
-    // This is a backend safety check - the UI should also check before calling
-    if (!isMockTaskEventsEnabled() && !hasReadyProvider()) {
-      throw new Error('No provider is ready. Please connect a provider and select a model in Settings.');
-    }
-
     // Use existing task ID or create a new one
     const taskId = validatedExistingTaskId || createTaskId();
 
@@ -648,6 +652,13 @@ export function registerIPCHandlers(): void {
         if (newSessionId) {
           updateTaskSessionId(taskId, newSessionId);
         }
+
+        if (result.status !== 'error') {
+          const storedTask = getTask(taskId);
+          if (storedTask) {
+            void rememberTask(storedTask);
+          }
+        }
       },
 
       onError: (error: Error) => {
@@ -685,12 +696,18 @@ export function registerIPCHandlers(): void {
       },
     };
 
+    const memoryContext = await getMemoryContextForPrompt(validatedPrompt, taskId);
+    const taskConfigWithMemory = applyMemoryContext(
+      {
+        prompt: validatedPrompt,
+        sessionId: validatedSessionId,
+        taskId,
+      },
+      memoryContext
+    );
+
     // Start the task via TaskManager with sessionId for resume (creates isolated adapter or queues if busy)
-    const task = await taskManager.startTask(taskId, {
-      prompt: validatedPrompt,
-      sessionId: validatedSessionId,
-      taskId,
-    }, callbacks);
+    const task = await taskManager.startTask(taskId, taskConfigWithMemory, callbacks);
 
     // Update task status in history (whether running or queued)
     if (validatedExistingTaskId) {
@@ -1023,51 +1040,6 @@ export function registerIPCHandlers(): void {
       }
 
       return { valid: false, error: message };
-    }
-  });
-
-  // Fetch available Bedrock models
-  handle('bedrock:fetch-models', async (_event: IpcMainInvokeEvent, credentialsJson: string) => {
-    try {
-      const credentials = JSON.parse(credentialsJson) as BedrockCredentials;
-
-      // Create Bedrock client (same pattern as validate)
-      let bedrockClient: BedrockClient;
-      if (credentials.authType === 'accessKeys') {
-        bedrockClient = new BedrockClient({
-          region: credentials.region || 'us-east-1',
-          credentials: {
-            accessKeyId: credentials.accessKeyId,
-            secretAccessKey: credentials.secretAccessKey,
-            sessionToken: credentials.sessionToken,
-          },
-        });
-      } else {
-        bedrockClient = new BedrockClient({
-          region: credentials.region || 'us-east-1',
-          credentials: fromIni({ profile: credentials.profileName }),
-        });
-      }
-
-      // Fetch all foundation models
-      const command = new ListFoundationModelsCommand({});
-      const response = await bedrockClient.send(command);
-
-      // Transform to standard format, filtering for text output models
-      // Use modelId for display name to avoid duplicates (multiple versions share the same modelName)
-      const models = (response.modelSummaries || [])
-        .filter(m => m.outputModalities?.includes('TEXT'))
-        .map(m => ({
-          id: `amazon-bedrock/${m.modelId}`,
-          name: m.modelId || 'Unknown',
-          provider: m.providerName || 'Unknown',
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name));
-
-      return { success: true, models };
-    } catch (error) {
-      console.error('[Bedrock] Failed to fetch models:', error);
-      return { success: false, error: normalizeIpcError(error), models: [] };
     }
   });
 
@@ -1503,6 +1475,26 @@ export function registerIPCHandlers(): void {
     return getAppSettings();
   });
 
+  // Memory: Get MemOS status
+  handle('memory:get-config', async (_event: IpcMainInvokeEvent) => {
+    const apiKey = getApiKey('memos');
+    return {
+      hasApiKey: Boolean(apiKey),
+      apiKeyPrefix: apiKey ? `${apiKey.substring(0, 8)}...` : undefined,
+    };
+  });
+
+  // Memory: Set MemOS API key
+  handle('memory:set-api-key', async (_event: IpcMainInvokeEvent, key: string) => {
+    const sanitizedKey = sanitizeString(key, 'memosApiKey', 512);
+    storeApiKey('memos', sanitizedKey);
+  });
+
+  // Memory: Clear MemOS API key
+  handle('memory:clear-api-key', async (_event: IpcMainInvokeEvent) => {
+    deleteApiKey('memos');
+  });
+
   // Onboarding: Get onboarding complete status
   // Also checks for existing task history to handle upgrades from pre-onboarding versions
   handle('onboarding:complete', async (_event: IpcMainInvokeEvent) => {
@@ -1555,39 +1547,6 @@ export function registerIPCHandlers(): void {
       return { ok: true };
     }
   );
-
-  // Provider Settings
-  handle('provider-settings:get', async () => {
-    return getProviderSettings();
-  });
-
-  handle('provider-settings:set-active', async (_event: IpcMainInvokeEvent, providerId: ProviderId | null) => {
-    setActiveProvider(providerId);
-  });
-
-  handle('provider-settings:get-connected', async (_event: IpcMainInvokeEvent, providerId: ProviderId) => {
-    return getConnectedProvider(providerId);
-  });
-
-  handle('provider-settings:set-connected', async (_event: IpcMainInvokeEvent, providerId: ProviderId, provider: ConnectedProvider) => {
-    setConnectedProvider(providerId, provider);
-  });
-
-  handle('provider-settings:remove-connected', async (_event: IpcMainInvokeEvent, providerId: ProviderId) => {
-    removeConnectedProvider(providerId);
-  });
-
-  handle('provider-settings:update-model', async (_event: IpcMainInvokeEvent, providerId: ProviderId, modelId: string | null) => {
-    updateProviderModel(providerId, modelId);
-  });
-
-  handle('provider-settings:set-debug', async (_event: IpcMainInvokeEvent, enabled: boolean) => {
-    setProviderDebugMode(enabled);
-  });
-
-  handle('provider-settings:get-debug', async () => {
-    return getProviderDebugMode();
-  });
 }
 
 function createTaskId(): string {

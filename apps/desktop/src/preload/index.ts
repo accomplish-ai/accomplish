@@ -56,6 +56,14 @@ const accomplishAPI = {
   getAppSettings: (): Promise<{ debugMode: boolean; onboardingComplete: boolean }> =>
     ipcRenderer.invoke('settings:app-settings'),
 
+  // Memory (MemOS) configuration
+  getMemoryConfig: (): Promise<{ hasApiKey: boolean; apiKeyPrefix?: string }> =>
+    ipcRenderer.invoke('memory:get-config'),
+  setMemoryApiKey: (key: string): Promise<void> =>
+    ipcRenderer.invoke('memory:set-api-key', key),
+  clearMemoryApiKey: (): Promise<void> =>
+    ipcRenderer.invoke('memory:clear-api-key'),
+
   // API Key management (new simplified handlers)
   hasApiKey: (): Promise<boolean> =>
     ipcRenderer.invoke('api-key:exists'),
@@ -143,30 +151,6 @@ const accomplishAPI = {
     ipcRenderer.invoke('bedrock:save', credentials),
   getBedrockCredentials: () =>
     ipcRenderer.invoke('bedrock:get-credentials'),
-  fetchBedrockModels: (credentials: string): Promise<{ success: boolean; models: Array<{ id: string; name: string; provider: string }>; error?: string }> =>
-    ipcRenderer.invoke('bedrock:fetch-models', credentials),
-
-  // E2E Testing
-  isE2EMode: (): Promise<boolean> =>
-    ipcRenderer.invoke('app:is-e2e-mode'),
-
-  // New Provider Settings API
-  getProviderSettings: (): Promise<unknown> =>
-    ipcRenderer.invoke('provider-settings:get'),
-  setActiveProvider: (providerId: string | null): Promise<void> =>
-    ipcRenderer.invoke('provider-settings:set-active', providerId),
-  getConnectedProvider: (providerId: string): Promise<unknown> =>
-    ipcRenderer.invoke('provider-settings:get-connected', providerId),
-  setConnectedProvider: (providerId: string, provider: unknown): Promise<void> =>
-    ipcRenderer.invoke('provider-settings:set-connected', providerId, provider),
-  removeConnectedProvider: (providerId: string): Promise<void> =>
-    ipcRenderer.invoke('provider-settings:remove-connected', providerId),
-  updateProviderModel: (providerId: string, modelId: string | null): Promise<void> =>
-    ipcRenderer.invoke('provider-settings:update-model', providerId, modelId),
-  setProviderDebugMode: (enabled: boolean): Promise<void> =>
-    ipcRenderer.invoke('provider-settings:set-debug', enabled),
-  getProviderDebugMode: (): Promise<boolean> =>
-    ipcRenderer.invoke('provider-settings:get-debug'),
 
   // Event subscriptions
   onTaskUpdate: (callback: (event: unknown) => void) => {

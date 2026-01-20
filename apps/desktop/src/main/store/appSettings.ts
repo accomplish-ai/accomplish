@@ -1,4 +1,5 @@
 import Store from 'electron-store';
+import { randomUUID } from 'crypto';
 import type { SelectedModel, OllamaConfig, LiteLLMConfig } from '@accomplish/shared';
 
 /**
@@ -15,6 +16,8 @@ interface AppSettingsSchema {
   ollamaConfig: OllamaConfig | null;
   /** LiteLLM proxy configuration */
   litellmConfig: LiteLLMConfig | null;
+  /** Stable user ID for memory services */
+  memoryUserId: string;
 }
 
 const appSettingsStore = new Store<AppSettingsSchema>({
@@ -28,6 +31,7 @@ const appSettingsStore = new Store<AppSettingsSchema>({
     },
     ollamaConfig: null,
     litellmConfig: null,
+    memoryUserId: '',
   },
 });
 
@@ -102,6 +106,18 @@ export function setLiteLLMConfig(config: LiteLLMConfig | null): void {
 }
 
 /**
+ * Get or create stable memory user ID
+ */
+export function getMemoryUserId(): string {
+  let userId = appSettingsStore.get('memoryUserId');
+  if (!userId) {
+    userId = randomUUID();
+    appSettingsStore.set('memoryUserId', userId);
+  }
+  return userId;
+}
+
+/**
  * Get all app settings
  */
 export function getAppSettings(): AppSettingsSchema {
@@ -111,6 +127,7 @@ export function getAppSettings(): AppSettingsSchema {
     selectedModel: appSettingsStore.get('selectedModel'),
     ollamaConfig: appSettingsStore.get('ollamaConfig') ?? null,
     litellmConfig: appSettingsStore.get('litellmConfig') ?? null,
+    memoryUserId: appSettingsStore.get('memoryUserId'),
   };
 }
 

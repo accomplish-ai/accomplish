@@ -10,7 +10,6 @@ import {
 } from './cli-path';
 import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
 import { getSelectedModel } from '../store/appSettings';
-import { getActiveProviderModel } from '../store/providerSettings';
 import { generateOpenCodeConfig, ACCOMPLISH_AGENT_NAME, syncApiKeysToOpenCodeAuth } from './config-generator';
 import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo } from '../utils/bundled-node';
@@ -110,7 +109,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     // Generate OpenCode config file with MCP settings and agent
     console.log('[OpenCode CLI] Generating OpenCode config with MCP settings and agent...');
-    const configPath = await generateOpenCodeConfig();
+    const configPath = await generateOpenCodeConfig(config.systemPromptAppend);
     console.log('[OpenCode CLI] Config generated at:', configPath);
 
     const cliArgs = await this.buildCliArgs(config);
@@ -418,21 +417,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       }
     }
 
-    // Set Ollama host if configured (check new settings first, then legacy)
-    const activeModel = getActiveProviderModel();
+    // Set Ollama host if configured
     const selectedModel = getSelectedModel();
-    if (activeModel?.provider === 'ollama' && activeModel.baseUrl) {
-      env.OLLAMA_HOST = activeModel.baseUrl;
-      console.log('[OpenCode CLI] Using Ollama host from provider settings:', activeModel.baseUrl);
-    } else if (selectedModel?.provider === 'ollama' && selectedModel.baseUrl) {
+    if (selectedModel?.provider === 'ollama' && selectedModel.baseUrl) {
       env.OLLAMA_HOST = selectedModel.baseUrl;
-      console.log('[OpenCode CLI] Using Ollama host from legacy settings:', selectedModel.baseUrl);
-    }
-
-    // Set LiteLLM base URL if configured
-    if (activeModel?.provider === 'litellm' && activeModel.baseUrl) {
-      env.LITELLM_BASE_URL = activeModel.baseUrl;
-      console.log('[OpenCode CLI] Using LiteLLM base URL:', activeModel.baseUrl);
+      console.log('[OpenCode CLI] Using Ollama host:', selectedModel.baseUrl);
     }
 
     // Log config environment variable
@@ -454,9 +443,8 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   }
 
   private async buildCliArgs(config: TaskConfig): Promise<string[]> {
-    // Try new provider settings first, fall back to legacy settings
-    const activeModel = getActiveProviderModel();
-    const selectedModel = activeModel || getSelectedModel();
+    // Get selected model from settings
+    const selectedModel = getSelectedModel();
 
     // OpenCode CLI uses: opencode run "message" --format json
     const args = [
@@ -478,12 +466,6 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       } else if (selectedModel.provider === 'openrouter') {
         // OpenRouter models use format: openrouter/provider/model
         // The fullId is already in the correct format (e.g., openrouter/anthropic/claude-opus-4-5)
-        args.push('--model', selectedModel.model);
-      } else if (selectedModel.provider === 'ollama') {
-        // Ollama models use format: ollama/model-name
-        args.push('--model', selectedModel.model);
-      } else if (selectedModel.provider === 'litellm') {
-        // LiteLLM models pass through directly
         args.push('--model', selectedModel.model);
       } else {
         args.push('--model', selectedModel.model);
