@@ -1054,11 +1054,12 @@ export function registerIPCHandlers(): void {
       const response = await bedrockClient.send(command);
 
       // Transform to standard format, filtering for text output models
+      // Use modelId for display name to avoid duplicates (multiple versions share the same modelName)
       const models = (response.modelSummaries || [])
         .filter(m => m.outputModalities?.includes('TEXT'))
         .map(m => ({
           id: `amazon-bedrock/${m.modelId}`,
-          name: m.modelName || m.modelId || 'Unknown',
+          name: m.modelId || 'Unknown',
           provider: m.providerName || 'Unknown',
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
