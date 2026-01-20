@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { app } from 'electron';
 import fs from 'fs';
 import { StreamParser } from './stream-parser';
+import { OpenCodeLogWatcher, createLogWatcher, OpenCodeLogError } from './log-watcher';
 import {
   getOpenCodeCliPath,
   isOpenCodeBundled,
@@ -64,6 +65,7 @@ export interface OpenCodeAdapterEvents {
 export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   private ptyProcess: pty.IPty | null = null;
   private streamParser: StreamParser;
+  private logWatcher: OpenCodeLogWatcher | null = null;
   private currentSessionId: string | null = null;
   private currentTaskId: string | null = null;
   private messages: TaskMessage[] = [];
@@ -80,6 +82,55 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.currentTaskId = taskId || null;
     this.streamParser = new StreamParser();
     this.setupStreamParsing();
+    this.setupLogWatcher();
+  }
+
+  /**
+   * Set up the log watcher to detect errors from OpenCode CLI logs.
+   * The CLI doesn't always output errors as JSON to stdout (e.g., throttling errors),
+   * so we monitor the log files directly.
+   */
+  private setupLogWatcher(): void {
+    this.logWatcher = createLogWatcher();
+
+    this.logWatcher.on('error', (error: OpenCodeLogError) => {
+      // Only handle errors if we have an active task that hasn't completed
+      if (!this.hasCompleted && this.ptyProcess) {
+        console.log('[OpenCode Adapter] Log watcher detected error:', error.errorName);
+
+        const errorMessage = OpenCodeLogWatcher.getErrorMessage(error);
+
+        // Emit debug event so the error appears in the app's debug panel
+        this.emit('debug', {
+          type: 'error',
+          message: `[${error.errorName}] ${errorMessage}`,
+          data: {
+            errorName: error.errorName,
+            statusCode: error.statusCode,
+            providerID: error.providerID,
+            modelID: error.modelID,
+            message: error.message,
+          },
+        });
+
+        this.hasCompleted = true;
+        this.emit('complete', {
+          status: 'error',
+          sessionId: this.currentSessionId || undefined,
+          error: errorMessage,
+        });
+
+        // Kill the PTY process since we've detected an error
+        if (this.ptyProcess) {
+          try {
+            this.ptyProcess.kill();
+          } catch (err) {
+            console.warn('[OpenCode Adapter] Error killing PTY after log error:', err);
+          }
+          this.ptyProcess = null;
+        }
+      }
+    });
   }
 
   /**
@@ -104,6 +155,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.streamParser.reset();
     this.hasCompleted = false;
     this.wasInterrupted = false;
+
+    // Start the log watcher to detect errors that aren't output as JSON
+    if (this.logWatcher) {
+      await this.logWatcher.start();
+    }
 
     // Sync API keys to OpenCode CLI's auth.json (for DeepSeek, Z.AI support)
     await syncApiKeysToOpenCodeAuth();
@@ -302,6 +358,13 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     console.log(`[OpenCode Adapter] Disposing adapter for task ${this.currentTaskId}`);
     this.isDisposed = true;
+
+    // Stop the log watcher
+    if (this.logWatcher) {
+      this.logWatcher.stop().catch((err) => {
+        console.warn('[OpenCode Adapter] Error stopping log watcher:', err);
+      });
+    }
 
     // Kill PTY process if running
     if (this.ptyProcess) {
