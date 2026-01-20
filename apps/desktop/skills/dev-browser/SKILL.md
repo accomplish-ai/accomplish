@@ -8,6 +8,37 @@ description: Browser automation via MCP tools. ALWAYS use these tools for ANY we
 Browser automation using MCP tools. Use these tools directly for all web automation tasks.
 
 ##############################################################################
+# CRITICAL: PERFORMING AN ACTION ≠ VERIFICATION
+##############################################################################
+
+**THIS IS THE MOST IMPORTANT RULE. READ IT CAREFULLY.**
+
+❌ "I typed the text" is NOT verification - you don't know if it worked
+❌ "I clicked the button" is NOT verification - you don't know if it worked
+❌ "I ran the command" is NOT verification - you don't know if it worked
+❌ "I used browser_keyboard" is NOT verification - you don't know if it worked
+
+✅ "I SEE 'Hello World' in the screenshot" IS verification
+✅ "I SEE the title changed to 'MyDoc' in the screenshot" IS verification
+✅ "The screenshot shows the text I typed" IS verification
+
+**THE RULE:** If you cannot LITERALLY SEE the expected result in a SCREENSHOT,
+the action FAILED. Period. No exceptions.
+
+**Example of WRONG thinking:**
+```
+browser_keyboard(text="Hello World")
+"✓ Typed 'Hello World'"  ← WRONG! You typed, but did it appear? TAKE A SCREENSHOT!
+```
+
+**Example of RIGHT thinking:**
+```
+browser_keyboard(text="Hello World")
+browser_screenshot()
+"Looking at screenshot... I can see 'Hello World' in the document body. VERIFIED."
+```
+
+##############################################################################
 # THE OBSERVE-ACT-VERIFY LOOP (MANDATORY)
 ##############################################################################
 
@@ -236,27 +267,50 @@ Canvas apps DON'T have DOM elements for content. Use keyboard, not type.
 # TASK COMPLETION CHECKLIST
 ##############################################################################
 
-Before saying "Task complete", verify EVERY requirement:
+Before saying "Task complete", you MUST:
+1. Take a FINAL screenshot
+2. Look at the screenshot and check EACH requirement is VISIBLE
+3. Only mark ✓ if you can LITERALLY SEE it in the screenshot
 
+**WRONG - Marking done based on actions performed:**
+```
+browser_keyboard(text="Hello World")
+browser_click(ref="title")
+browser_type(text="MyReport")
+"Task complete!
+ ✓ Added text 'Hello World'     ← DID YOU SEE IT IN A SCREENSHOT?
+ ✓ Renamed to 'MyReport'"       ← DID YOU SEE IT IN A SCREENSHOT?
+```
+
+**RIGHT - Marking done based on what you SEE:**
+```
+browser_screenshot()
+"FINAL VERIFICATION - Looking at screenshot:
+ - Title bar shows: 'MyReport' ← I can see this text in the screenshot
+ - Document body shows: 'Hello World' ← I can see this text in the screenshot
+
+ALL REQUIREMENTS VISIBLE IN SCREENSHOT. Task complete."
+```
+
+**TASK COMPLETION TEMPLATE:**
 ```
 TASK: "Create a Google Doc named 'MyReport' with 'Hello World' text"
 
-CHECKLIST:
-[ ] Document created? → Check URL shows docs.google.com/document/d/...
-[ ] Named correctly? → Check title bar shows "MyReport"
-[ ] Text added? → Check document body shows "Hello World"
+FINAL SCREENSHOT: [take screenshot]
 
-VERIFICATION:
-browser_screenshot()
-"Checking:
- ✓ URL: docs.google.com/document/d/abc123... - Document exists
- ✓ Title bar: 'MyReport' - Correct name
- ✓ Body: 'Hello World' visible - Text added
+CHECKING WHAT I SEE IN THE SCREENSHOT:
+[ ] Title bar text? → I see "________" (fill in what you literally see)
+[ ] Document body text? → I see "________" (fill in what you literally see)
 
-ALL REQUIREMENTS VERIFIED. Task complete."
+COMPARISON:
+- Expected title: "MyReport" | Actual (from screenshot): "________"
+- Expected text: "Hello World" | Actual (from screenshot): "________"
+
+If any mismatch → ACTION FAILED, retry
+If all match → Task complete
 ```
 
-**NEVER say "task complete" if ANY requirement is unchecked!**
+**NEVER say "task complete" without a final screenshot showing all requirements!**
 
 ##############################################################################
 # LOGIN PAGES
