@@ -13,13 +13,14 @@ import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
-import type {
-  TaskConfig,
-  Task,
-  TaskResult,
-  TaskStatus,
-  OpenCodeMessage,
-  PermissionRequest,
+import {
+  DEV_BROWSER_PORT,
+  type TaskConfig,
+  type Task,
+  type TaskResult,
+  type TaskStatus,
+  type OpenCodeMessage,
+  type PermissionRequest,
 } from '@accomplish/shared';
 
 /**
@@ -100,6 +101,7 @@ async function installPlaywrightChromium(
       cwd: devBrowserDir,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: spawnEnv,
+      shell: process.platform === 'win32',
     });
 
     child.stdout?.on('data', (data: Buffer) => {
@@ -136,15 +138,46 @@ async function installPlaywrightChromium(
   });
 }
 
+// DEV_BROWSER_PORT imported from @accomplish/shared
+
+/**
+ * Check if the dev-browser server is running and ready
+ */
+async function isDevBrowserServerReady(): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1000);
+    const res = await fetch(`http://localhost:${DEV_BROWSER_PORT}`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Wait for the dev-browser server to be ready with polling
+ */
+async function waitForDevBrowserServer(maxWaitMs = 15000, pollIntervalMs = 500): Promise<boolean> {
+  const startTime = Date.now();
+  while (Date.now() - startTime < maxWaitMs) {
+    if (await isDevBrowserServerReady()) {
+      console.log('[TaskManager] Dev-browser server is ready');
+      return true;
+    }
+    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+  }
+  console.log('[TaskManager] Dev-browser server not ready after waiting');
+  return false;
+}
+
 /**
  * Ensure the dev-browser server is running.
  * Called before starting tasks to pre-warm the browser.
  *
  * If neither system Chrome nor Playwright is installed, downloads Playwright first.
- *
- * Note: We don't check if server is already running via fetch() because
- * that triggers macOS "Local Network" permission dialog. Instead, we just
- * spawn server.sh which handles the "already running" case internally.
  */
 async function ensureDevBrowserServer(
   onProgress?: (progress: { stage: string; message?: string }) => void
@@ -173,10 +206,18 @@ async function ensureDevBrowserServer(
     }
   }
 
+  // Check if server is already running (skip on macOS to avoid Local Network permission dialog)
+  if (process.platform !== 'darwin') {
+    if (await isDevBrowserServerReady()) {
+      console.log('[TaskManager] Dev-browser server already running');
+      return;
+    }
+  }
+
   // Now start the server
   try {
     const skillsPath = getSkillsPath();
-    const serverScript = path.join(skillsPath, 'dev-browser', 'server.sh');
+    const serverScript = path.join(skillsPath, 'dev-browser', 'server.cjs');
 
     // Build environment with bundled Node.js in PATH
     const bundledPaths = getBundledNodePaths();
@@ -187,16 +228,28 @@ async function ensureDevBrowserServer(
       spawnEnv.NODE_BIN_PATH = bundledPaths.binDir;
     }
 
+    // Get node executable path
+    const nodeExe = bundledPaths?.nodePath || 'node';
+
     // Spawn server in background (detached, unref to not block)
-    const child = spawn('bash', [serverScript], {
+    // windowsHide: true prevents a console window from appearing on Windows
+    const child = spawn(nodeExe, [serverScript], {
       detached: true,
       stdio: 'ignore',
       cwd: path.join(skillsPath, 'dev-browser'),
       env: spawnEnv,
+      windowsHide: true,
     });
     child.unref();
 
     console.log('[TaskManager] Dev-browser server spawn initiated');
+
+    // On Windows, wait for the server to be ready before proceeding
+    // (On macOS, the server starts faster and the MCP has its own retry logic)
+    if (process.platform === 'win32') {
+      console.log('[TaskManager] Waiting for dev-browser server to be ready (Windows)...');
+      await waitForDevBrowserServer();
+    }
   } catch (error) {
     console.error('[TaskManager] Failed to start dev-browser server:', error);
   }

@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { app } from 'electron';
 import fs from 'fs';
 import { StreamParser } from './stream-parser';
+import { OpenCodeLogWatcher, createLogWatcher, OpenCodeLogError } from './log-watcher';
 import {
   getOpenCodeCliPath,
   isOpenCodeBundled,
@@ -10,6 +11,7 @@ import {
 } from './cli-path';
 import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
 import { getSelectedModel } from '../store/appSettings';
+import { getActiveProviderModel } from '../store/providerSettings';
 import { generateOpenCodeConfig, ACCOMPLISH_AGENT_NAME, syncApiKeysToOpenCodeAuth } from './config-generator';
 import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo } from '../utils/bundled-node';
@@ -63,6 +65,7 @@ export interface OpenCodeAdapterEvents {
 export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   private ptyProcess: pty.IPty | null = null;
   private streamParser: StreamParser;
+  private logWatcher: OpenCodeLogWatcher | null = null;
   private currentSessionId: string | null = null;
   private currentTaskId: string | null = null;
   private messages: TaskMessage[] = [];
@@ -79,6 +82,55 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.currentTaskId = taskId || null;
     this.streamParser = new StreamParser();
     this.setupStreamParsing();
+    this.setupLogWatcher();
+  }
+
+  /**
+   * Set up the log watcher to detect errors from OpenCode CLI logs.
+   * The CLI doesn't always output errors as JSON to stdout (e.g., throttling errors),
+   * so we monitor the log files directly.
+   */
+  private setupLogWatcher(): void {
+    this.logWatcher = createLogWatcher();
+
+    this.logWatcher.on('error', (error: OpenCodeLogError) => {
+      // Only handle errors if we have an active task that hasn't completed
+      if (!this.hasCompleted && this.ptyProcess) {
+        console.log('[OpenCode Adapter] Log watcher detected error:', error.errorName);
+
+        const errorMessage = OpenCodeLogWatcher.getErrorMessage(error);
+
+        // Emit debug event so the error appears in the app's debug panel
+        this.emit('debug', {
+          type: 'error',
+          message: `[${error.errorName}] ${errorMessage}`,
+          data: {
+            errorName: error.errorName,
+            statusCode: error.statusCode,
+            providerID: error.providerID,
+            modelID: error.modelID,
+            message: error.message,
+          },
+        });
+
+        this.hasCompleted = true;
+        this.emit('complete', {
+          status: 'error',
+          sessionId: this.currentSessionId || undefined,
+          error: errorMessage,
+        });
+
+        // Kill the PTY process since we've detected an error
+        if (this.ptyProcess) {
+          try {
+            this.ptyProcess.kill();
+          } catch (err) {
+            console.warn('[OpenCode Adapter] Error killing PTY after log error:', err);
+          }
+          this.ptyProcess = null;
+        }
+      }
+    });
   }
 
   /**
@@ -103,6 +155,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.streamParser.reset();
     this.hasCompleted = false;
     this.wasInterrupted = false;
+
+    // Start the log watcher to detect errors that aren't output as JSON
+    if (this.logWatcher) {
+      await this.logWatcher.start();
+    }
 
     // Sync API keys to OpenCode CLI's auth.json (for DeepSeek, Z.AI support)
     await syncApiKeysToOpenCodeAuth();
@@ -146,9 +203,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       const fullCommand = [command, ...allArgs].map(arg => {
         // Escape single quotes in arguments for shell (Unix) or handle Windows quoting
         if (process.platform === 'win32') {
-          // Windows: use double quotes for arguments with spaces
+          // Windows/PowerShell: use double quotes for arguments with spaces
+          // PowerShell uses doubled quotes ("") to escape quotes inside double-quoted strings
+          // (backslash escaping does NOT work in PowerShell)
           if (arg.includes(' ') || arg.includes('"')) {
-            return `"${arg.replace(/"/g, '\\"')}"`;
+            return `"${arg.replace(/"/g, '""')}"`;
           }
           return arg;
         } else {
@@ -185,7 +244,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       // Handle PTY data (combines stdout/stderr)
       this.ptyProcess.onData((data: string) => {
         // Filter out ANSI escape codes and control characters for cleaner parsing
-        const cleanData = data.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+        // Enhanced to handle Windows PowerShell sequences (cursor visibility, window titles)
+        const cleanData = data
+          .replace(/\x1B\[[0-9;?]*[a-zA-Z]/g, '')  // CSI sequences (added ? for DEC modes like cursor hide)
+          .replace(/\x1B\][^\x07]*\x07/g, '')       // OSC sequences with BEL terminator (window titles)
+          .replace(/\x1B\][^\x1B]*\x1B\\/g, '');    // OSC sequences with ST terminator
         if (cleanData.trim()) {
           // Truncate for console.log to avoid flooding terminal
           const truncated = cleanData.substring(0, 500) + (cleanData.length > 500 ? '...' : '');
@@ -267,6 +330,17 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     // Send Ctrl+C (ASCII 0x03) to the PTY to interrupt current operation
     this.ptyProcess.write('\x03');
     console.log('[OpenCode CLI] Sent Ctrl+C interrupt signal');
+
+    // On Windows, batch files (.cmd) prompt "Terminate batch job (Y/N)?" after Ctrl+C.
+    // We need to send "Y" to confirm termination, otherwise the process hangs.
+    if (process.platform === 'win32') {
+      setTimeout(() => {
+        if (this.ptyProcess) {
+          this.ptyProcess.write('Y\n');
+          console.log('[OpenCode CLI] Sent Y to confirm batch termination');
+        }
+      }, 100);
+    }
   }
 
   /**
@@ -301,6 +375,13 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     console.log(`[OpenCode Adapter] Disposing adapter for task ${this.currentTaskId}`);
     this.isDisposed = true;
+
+    // Stop the log watcher
+    if (this.logWatcher) {
+      this.logWatcher.stop().catch((err) => {
+        console.warn('[OpenCode Adapter] Error stopping log watcher:', err);
+      });
+    }
 
     // Kill PTY process if running
     if (this.ptyProcess) {
@@ -417,11 +498,21 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       }
     }
 
-    // Set Ollama host if configured
+    // Set Ollama host if configured (check new settings first, then legacy)
+    const activeModel = getActiveProviderModel();
     const selectedModel = getSelectedModel();
-    if (selectedModel?.provider === 'ollama' && selectedModel.baseUrl) {
+    if (activeModel?.provider === 'ollama' && activeModel.baseUrl) {
+      env.OLLAMA_HOST = activeModel.baseUrl;
+      console.log('[OpenCode CLI] Using Ollama host from provider settings:', activeModel.baseUrl);
+    } else if (selectedModel?.provider === 'ollama' && selectedModel.baseUrl) {
       env.OLLAMA_HOST = selectedModel.baseUrl;
-      console.log('[OpenCode CLI] Using Ollama host:', selectedModel.baseUrl);
+      console.log('[OpenCode CLI] Using Ollama host from legacy settings:', selectedModel.baseUrl);
+    }
+
+    // Set LiteLLM base URL if configured
+    if (activeModel?.provider === 'litellm' && activeModel.baseUrl) {
+      env.LITELLM_BASE_URL = activeModel.baseUrl;
+      console.log('[OpenCode CLI] Using LiteLLM base URL:', activeModel.baseUrl);
     }
 
     // Log config environment variable
@@ -443,8 +534,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   }
 
   private async buildCliArgs(config: TaskConfig): Promise<string[]> {
-    // Get selected model from settings
-    const selectedModel = getSelectedModel();
+    // Try new provider settings first, fall back to legacy settings
+    const activeModel = getActiveProviderModel();
+    const selectedModel = activeModel || getSelectedModel();
 
     // OpenCode CLI uses: opencode run "message" --format json
     const args = [
@@ -466,6 +558,12 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       } else if (selectedModel.provider === 'openrouter') {
         // OpenRouter models use format: openrouter/provider/model
         // The fullId is already in the correct format (e.g., openrouter/anthropic/claude-opus-4-5)
+        args.push('--model', selectedModel.model);
+      } else if (selectedModel.provider === 'ollama') {
+        // Ollama models use format: ollama/model-name
+        args.push('--model', selectedModel.model);
+      } else if (selectedModel.provider === 'litellm') {
+        // LiteLLM models pass through directly
         args.push('--model', selectedModel.model);
       } else {
         args.push('--model', selectedModel.model);
@@ -740,8 +838,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
    */
   private getShellArgs(command: string): string[] {
     if (process.platform === 'win32') {
-      // PowerShell: -NoProfile for faster startup, -Command to run the command
-      return ['-NoProfile', '-Command', command];
+      // PowerShell: Use -EncodedCommand with Base64-encoded UTF-16LE to avoid
+      // all escaping/parsing issues. This is the most reliable way to pass
+      // complex commands with quotes, special characters, etc. to PowerShell.
+      const encodedCommand = Buffer.from(command, 'utf16le').toString('base64');
+      return ['-NoProfile', '-EncodedCommand', encodedCommand];
     } else {
       // Unix shells: -c to run command (no -l to avoid profile loading)
       return ['-c', command];

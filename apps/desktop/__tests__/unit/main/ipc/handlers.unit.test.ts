@@ -195,6 +195,43 @@ vi.mock('@main/store/appSettings', () => ({
   }),
 }));
 
+// Mock provider settings
+vi.mock('@main/store/providerSettings', () => ({
+  getProviderSettings: vi.fn(() => ({
+    activeProviderId: 'anthropic',
+    connectedProviders: {
+      anthropic: {
+        providerId: 'anthropic',
+        connectionStatus: 'connected',
+        selectedModelId: 'claude-3-5-sonnet-20241022',
+        credentials: { type: 'api-key', apiKey: 'test-key' },
+      },
+    },
+    debugMode: false,
+  })),
+  saveProviderSettings: vi.fn(),
+  getActiveProvider: vi.fn(() => ({
+    providerId: 'anthropic',
+    connectionStatus: 'connected',
+    selectedModelId: 'claude-3-5-sonnet-20241022',
+    credentials: { type: 'api-key', apiKey: 'test-key' },
+  })),
+  setActiveProvider: vi.fn(),
+  getConnectedProvider: vi.fn(() => ({
+    providerId: 'anthropic',
+    connectionStatus: 'connected',
+    selectedModelId: 'claude-3-5-sonnet-20241022',
+    credentials: { type: 'api-key', apiKey: 'test-key' },
+  })),
+  saveConnectedProvider: vi.fn(),
+  removeConnectedProvider: vi.fn(),
+  getActiveProviderModel: vi.fn(() => ({ provider: 'anthropic', model: 'anthropic/claude-3-5-sonnet-20241022' })),
+  getConnectedProviderIds: vi.fn(() => ['anthropic']),
+  setProviderDebugMode: vi.fn(),
+  getProviderDebugMode: vi.fn(() => false),
+  hasReadyProvider: vi.fn(() => true),
+}));
+
 // Mock config
 vi.mock('@main/config', () => ({
   getDesktopConfig: vi.fn(() => ({})),

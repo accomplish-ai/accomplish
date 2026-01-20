@@ -2,9 +2,10 @@ import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { PERMISSION_API_PORT, QUESTION_API_PORT } from '../permission-api';
-import { getOllamaConfig, getLiteLLMConfig } from '../store/appSettings';
+import { getOllamaConfig } from '../store/appSettings';
 import { getApiKey } from '../store/secureStorage';
-import type { BedrockCredentials } from '@accomplish/shared';
+import { getProviderSettings, getActiveProviderModel, getConnectedProviderIds } from '../store/providerSettings';
+import type { BedrockCredentials, ProviderId } from '@accomplish/shared';
 
 /**
  * Agent name used by Accomplish
@@ -46,18 +47,31 @@ export function getOpenCodeConfigDir(): string {
   }
 }
 
+/**
+ * Build platform-specific environment setup instructions
+ */
+function getPlatformEnvironmentInstructions(): string {
+  if (process.platform === 'win32') {
+    return `<environment>
+**You are running on Windows.** Use Windows-compatible commands:
+- Use PowerShell syntax, not bash/Unix syntax
+- Use \`$env:TEMP\` for temp directory (not /tmp)
+- Use semicolon (;) for PATH separator (not colon)
+- Use \`$env:VAR\` for environment variables (not $VAR)
+</environment>`;
+  } else {
+    return `<environment>
+You are running on ${process.platform === 'darwin' ? 'macOS' : 'Linux'}.
+</environment>`;
+  }
+}
+
+
 const ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE = `<identity>
 You are Accomplish, a browser automation assistant.
 </identity>
 
-<environment>
-This app bundles Node.js. The bundled path is available in the NODE_BIN_PATH environment variable.
-Before running node/npx/npm commands, prepend it to PATH:
-
-PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx script.ts
-
-Never assume Node.js is installed system-wide. Always use the bundled version.
-</environment>
+{{ENVIRONMENT_INSTRUCTIONS}}
 
 <capabilities>
 When users ask about your capabilities, mention:
@@ -88,8 +102,6 @@ This applies to ALL file operations:
 - Renaming files (bash mv, rename commands)
 - Deleting files (bash rm, delete commands)
 - Modifying files (Edit tool, bash sed/awk, any content changes)
-
-EXCEPTION: Temp scripts in /tmp/accomplish-*.mts for browser automation are auto-allowed.
 ##############################################################################
 </important>
 
@@ -125,176 +137,6 @@ request_file_permission({
 </example>
 </tool>
 
-<skill name="dev-browser">
-Browser automation that maintains page state across script executions. Write small, focused scripts to accomplish tasks incrementally.
-
-<critical-requirement>
-##############################################################################
-# MANDATORY: Browser scripts must use .mts extension to enable ESM mode.
-# tsx treats .mts files as ES modules, enabling top-level await.
-#
-# CORRECT (always do this - two steps):
-#   1. Write script to temp file with .mts extension:
-#      cat > /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts <<'EOF'
-#      import { connect } from "@/client.js";
-#      ...
-#      EOF
-#
-#   2. Run from dev-browser directory with bundled Node:
-#      cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
-#
-# WRONG (will fail - .ts files in /tmp default to CJS mode):
-#   cat > /tmp/script.ts <<'EOF'
-#   import { connect } from "@/client.js";  # Top-level await won't work!
-#   EOF
-#
-# ALWAYS use .mts extension for temp scripts!
-##############################################################################
-</critical-requirement>
-
-<setup>
-The dev-browser server is automatically started when you begin a task. Before your first browser script, verify it's ready:
-
-\`\`\`bash
-curl -s http://localhost:9224
-\`\`\`
-
-If it returns JSON with a \`wsEndpoint\`, proceed with browser automation. If connection is refused, the server is still starting - wait 2-3 seconds and check again.
-
-**Fallback** (only if server isn't running after multiple checks):
-\`\`\`bash
-cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" ./server.sh &
-\`\`\`
-</setup>
-
-<usage>
-Write scripts to /tmp with .mts extension, then execute from dev-browser directory:
-
-<example name="basic-navigation">
-\`\`\`bash
-cat > /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts <<'EOF'
-import { connect, waitForPageLoad } from "@/client.js";
-
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-const client = await connect();
-const page = await client.page(\`\${taskId}-main\`);
-
-await page.goto("https://example.com");
-await waitForPageLoad(page);
-
-console.log({ title: await page.title(), url: page.url() });
-await client.disconnect();
-EOF
-cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
-\`\`\`
-</example>
-</usage>
-
-<principles>
-1. **Small scripts**: Each script does ONE thing (navigate, click, fill, check)
-2. **Evaluate state**: Log/return state at the end to decide next steps
-3. **Task-scoped page names**: ALWAYS prefix page names with the task ID from environment:
-   \`\`\`typescript
-   const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-   const page = await client.page(\`\${taskId}-main\`);
-   \`\`\`
-   This ensures parallel tasks don't interfere with each other's browser pages.
-4. **Task-scoped screenshot filenames**: ALWAYS prefix screenshot filenames with taskId to prevent parallel tasks from overwriting each other's screenshots:
-   \`\`\`typescript
-   await page.screenshot({ path: \`tmp/\${taskId}-screenshot.png\` });
-   \`\`\`
-5. **Disconnect to exit**: \`await client.disconnect()\` - pages persist on server
-6. **Plain JS in evaluate**: \`page.evaluate()\` runs in browser - no TypeScript syntax
-</principles>
-
-<api-reference name="client">
-\`\`\`typescript
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-const client = await connect();
-
-const page = await client.page(\`\${taskId}-main\`); // Get or create named page
-const pages = await client.list(); // List all page names
-await client.close(\`\${taskId}-main\`); // Close a page
-await client.disconnect(); // Disconnect (pages persist)
-
-// ARIA Snapshot methods
-const snapshot = await client.getAISnapshot(\`\${taskId}-main\`); // Get accessibility tree
-const element = await client.selectSnapshotRef(\`\${taskId}-main\`, "e5"); // Get element by ref
-\`\`\`
-
-The \`page\` object is a standard Playwright Page.
-</api-reference>
-
-<api-reference name="screenshots">
-IMPORTANT: Always prefix screenshot filenames with taskId to avoid collisions with parallel tasks:
-\`\`\`typescript
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-await page.screenshot({ path: \`tmp/\${taskId}-screenshot.png\` });
-await page.screenshot({ path: \`tmp/\${taskId}-full.png\`, fullPage: true });
-\`\`\`
-</api-reference>
-
-<api-reference name="aria-snapshot">
-Use \`getAISnapshot()\` to discover page elements. Returns YAML-formatted accessibility tree with refs like \`[ref=e1]\`. Then use \`selectSnapshotRef()\` to interact:
-
-<example name="aria-snapshot-usage">
-\`\`\`typescript
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-const snapshot = await client.getAISnapshot(\`\${taskId}-main\`);
-console.log(snapshot); // Find the ref you need
-
-const element = await client.selectSnapshotRef(\`\${taskId}-main\`, "e2");
-await element.click();
-\`\`\`
-</example>
-</api-reference>
-
-<error-recovery>
-Page state persists after failures. Debug by reconnecting and taking a screenshot:
-
-<example name="debug-screenshot">
-\`\`\`bash
-cat > /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts <<'EOF'
-import { connect } from "@/client.js";
-
-const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
-const client = await connect();
-const page = await client.page(\`\${taskId}-main\`);
-
-await page.screenshot({ path: \`tmp/\${taskId}-debug.png\` });
-console.log({ url: page.url(), title: await page.title() });
-
-await client.disconnect();
-EOF
-cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx /tmp/accomplish-\${ACCOMPLISH_TASK_ID:-default}.mts
-\`\`\`
-</example>
-</error-recovery>
-
-<login-pages>
-When you encounter a login page (e.g., Google Sign-In, OAuth screens, authentication prompts):
-- Do NOT say you cannot log in or suggest alternative approaches
-- Instead, ASK the user to log in manually in the browser window
-- Take a screenshot to show the user the login page
-- Say something like: "I've reached a login page. Please log in to your account in the browser window, then let me know when you're done."
-- WAIT for the user to confirm they've logged in before continuing
-- After the user confirms login, take another screenshot to verify you're past the login screen
-- Then continue with the original task
-
-This interactive login flow is essential because:
-- Users expect to authenticate themselves for security
-- Many services require human verification (CAPTCHAs, 2FA)
-- The agent should not give up on tasks that require authentication
-</login-pages>
-
-<filesystem>
-For saving/downloading content:
-- Use browser's native download (click download buttons, Save As)
-- Chrome handles downloads with its own permissions
-- For text/data, copy to clipboard so users can paste where they want
-</filesystem>
-</skill>
-
 <important name="user-communication">
 CRITICAL: The user CANNOT see your text output or CLI prompts!
 To ask ANY question or get user input, you MUST use the AskUserQuestion MCP tool.
@@ -304,14 +146,42 @@ See the ask-user-question skill for full documentation and examples.
 
 <behavior>
 - Use AskUserQuestion tool for clarifying questions before starting ambiguous tasks
-- Write small, focused scripts - each does ONE thing
-- After each script, evaluate the output before deciding next steps
-- Be concise - don't narrate every internal action
-- Hide implementation details - describe actions in user terms
-- For multi-step tasks, summarize at the end rather than narrating each step
-- Don't explain what bash commands you're running - just run them silently
+- Use MCP tools directly - browser_navigate, browser_snapshot, browser_click, browser_type, browser_screenshot, browser_sequence
+
+**BROWSER ACTION VERBOSITY - Be descriptive about web interactions:**
+- Before each browser action, briefly explain what you're about to do in user terms
+- After navigation: mention the page title and what you see
+- After clicking: describe what you clicked and what happened (new page loaded, form appeared, etc.)
+- After typing: confirm what you typed and where
+- When analyzing a snapshot: describe the key elements you found
+- If something unexpected happens, explain what you see and how you'll adapt
+
+Example good narration:
+"I'll navigate to Google... The search page is loaded. I can see the search box. Let me search for 'cute animals'... Typing in the search field and pressing Enter... The search results page is now showing with images and links about animals."
+
+Example bad narration (too terse):
+"Done." or "Navigated." or "Clicked."
+
+- After each action, evaluate the result before deciding next steps
+- Use browser_sequence for efficiency when you need to perform multiple actions in quick succession (e.g., filling a form with multiple fields)
 - Don't announce server checks or startup - proceed directly to the task
-- Only speak to the user when you have meaningful results or need input
+- Only use AskUserQuestion when you genuinely need user input or decisions
+
+**TASK COMPLETION - CRITICAL:**
+You may ONLY finish a task when ONE of these conditions is met:
+
+1. **SUCCESS**: You have verified that EVERY part of the user's request is complete
+   - Review the original request and check off each requirement
+   - Provide a summary: "Task completed. Here's what I did: [list each step and result]"
+   - If the task had multiple parts, confirm each part explicitly
+
+2. **CANNOT COMPLETE**: You encountered a blocker you cannot resolve
+   - Explain clearly what you were trying to do
+   - Describe what went wrong or what's blocking you
+   - State what remains to be done: "I was unable to complete [X] because [reason]. Remaining: [list]"
+
+**NEVER** stop without either a completion summary or an explanation of why you couldn't finish.
+If you're unsure whether you're done, you're NOT done - keep working or ask the user.
 </behavior>
 `;
 
@@ -421,9 +291,12 @@ export async function generateOpenCodeConfig(): Promise<string> {
     fs.mkdirSync(configDir, { recursive: true });
   }
 
-  // Get skills directory path and inject into system prompt
+  // Get skills directory path
   const skillsPath = getSkillsPath();
-  const systemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE.replace(/\{\{SKILLS_PATH\}\}/g, skillsPath);
+
+  // Build platform-specific system prompt by replacing placeholders
+  const systemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE
+    .replace(/\{\{ENVIRONMENT_INSTRUCTIONS\}\}/g, getPlatformEnvironmentInstructions());
 
   // Get OpenCode config directory (parent of skills/) for OPENCODE_CONFIG_DIR
   const openCodeConfigDir = getOpenCodeConfigDir();
@@ -434,141 +307,200 @@ export async function generateOpenCodeConfig(): Promise<string> {
   // Build file-permission MCP server command
   const filePermissionServerPath = path.join(skillsPath, 'file-permission', 'src', 'index.ts');
 
-  // Enable providers - add ollama and litellm if configured
-  const ollamaConfig = getOllamaConfig();
-  const litellmConfig = getLiteLLMConfig();
+  // Get connected providers from new settings (with legacy fallback)
+  const providerSettings = getProviderSettings();
+  const connectedIds = getConnectedProviderIds();
+  const activeModel = getActiveProviderModel();
+
+  // Map our provider IDs to OpenCode CLI provider names
+  const providerIdToOpenCode: Record<ProviderId, string> = {
+    anthropic: 'anthropic',
+    openai: 'openai',
+    google: 'google',
+    xai: 'xai',
+    deepseek: 'deepseek',
+    zai: 'zai-coding-plan',
+    bedrock: 'amazon-bedrock',
+    ollama: 'ollama',
+    openrouter: 'openrouter',
+    litellm: 'litellm',
+  };
+
+  // Build enabled providers list from new settings or fall back to base providers
   const baseProviders = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai-coding-plan', 'amazon-bedrock'];
-  let enabledProviders = [...baseProviders];
-  if (ollamaConfig?.enabled) {
-    enabledProviders.push('ollama');
-  }
-  if (litellmConfig?.enabled) {
-    enabledProviders.push('litellm');
+  let enabledProviders = baseProviders;
+
+  // If we have connected providers in the new settings, use those
+  if (connectedIds.length > 0) {
+    const mappedProviders = connectedIds.map(id => providerIdToOpenCode[id]);
+    // Always include base providers to allow switching
+    enabledProviders = [...new Set([...baseProviders, ...mappedProviders])];
+    console.log('[OpenCode Config] Using connected providers from new settings:', mappedProviders);
+  } else {
+    // Legacy fallback: add ollama if configured in old settings
+    const ollamaConfig = getOllamaConfig();
+    if (ollamaConfig?.enabled) {
+      enabledProviders = [...baseProviders, 'ollama'];
+    }
   }
 
   // Build provider configurations
   const providerConfig: Record<string, ProviderConfig> = {};
 
-  // Add Ollama provider configuration if enabled
-  if (ollamaConfig?.enabled && ollamaConfig.models && ollamaConfig.models.length > 0) {
-    const ollamaModels: Record<string, OllamaProviderModelConfig> = {};
-    for (const model of ollamaConfig.models) {
-      ollamaModels[model.id] = {
-        name: model.displayName,
-        tools: true,  // Enable tool calling for all models
-      };
-    }
-
-    providerConfig.ollama = {
-      npm: '@ai-sdk/openai-compatible',
-      name: 'Ollama (local)',
-      options: {
-        baseURL: `${ollamaConfig.baseUrl}/v1`,  // OpenAI-compatible endpoint
-      },
-      models: ollamaModels,
-    };
-
-    console.log('[OpenCode Config] Ollama provider configured with models:', Object.keys(ollamaModels));
-  }
-
-  // Add OpenRouter provider configuration if API key is set
-  const openrouterKey = getApiKey('openrouter');
-  if (openrouterKey) {
-    // Get the selected model to configure OpenRouter
-    const { getSelectedModel } = await import('../store/appSettings');
-    const selectedModel = getSelectedModel();
-
-    const openrouterModels: Record<string, OpenRouterProviderModelConfig> = {};
-
-    // If a model is selected via OpenRouter, add it to the config
-    if (selectedModel?.provider === 'openrouter' && selectedModel.model) {
-      // Extract model ID from full ID (e.g., "openrouter/anthropic/claude-3.5-sonnet" -> "anthropic/claude-3.5-sonnet")
-      const modelId = selectedModel.model.replace('openrouter/', '');
-      openrouterModels[modelId] = {
-        name: modelId,
-        tools: true,
-      };
-    }
-
-    // Only configure OpenRouter if we have at least one model
-    if (Object.keys(openrouterModels).length > 0) {
-      providerConfig.openrouter = {
+  // Configure Ollama if connected (check new settings first, then legacy)
+  const ollamaProvider = providerSettings.connectedProviders.ollama;
+  if (ollamaProvider?.connectionStatus === 'connected' && ollamaProvider.credentials.type === 'ollama') {
+    // New provider settings: Ollama is connected
+    if (ollamaProvider.selectedModelId) {
+      providerConfig.ollama = {
         npm: '@ai-sdk/openai-compatible',
-        name: 'OpenRouter',
+        name: 'Ollama (local)',
         options: {
-          baseURL: 'https://openrouter.ai/api/v1',
+          baseURL: `${ollamaProvider.credentials.serverUrl}/v1`,
         },
-        models: openrouterModels,
+        models: {
+          [ollamaProvider.selectedModelId]: {
+            name: ollamaProvider.selectedModelId,
+            tools: true,
+          },
+        },
       };
-      console.log('[OpenCode Config] OpenRouter provider configured with model:', Object.keys(openrouterModels));
+      console.log('[OpenCode Config] Ollama configured from new settings:', ollamaProvider.selectedModelId);
+    }
+  } else {
+    // Legacy fallback: use old Ollama config
+    const ollamaConfig = getOllamaConfig();
+    if (ollamaConfig?.enabled && ollamaConfig.models && ollamaConfig.models.length > 0) {
+      const ollamaModels: Record<string, OllamaProviderModelConfig> = {};
+      for (const model of ollamaConfig.models) {
+        ollamaModels[model.id] = {
+          name: model.displayName,
+          tools: true,
+        };
+      }
+
+      providerConfig.ollama = {
+        npm: '@ai-sdk/openai-compatible',
+        name: 'Ollama (local)',
+        options: {
+          baseURL: `${ollamaConfig.baseUrl}/v1`,
+        },
+        models: ollamaModels,
+      };
+
+      console.log('[OpenCode Config] Ollama configured from legacy settings:', Object.keys(ollamaModels));
     }
   }
 
-  // Add Bedrock provider configuration if credentials are stored
-  const bedrockCredsJson = getApiKey('bedrock');
-  if (bedrockCredsJson) {
-    try {
-      const creds = JSON.parse(bedrockCredsJson) as BedrockCredentials;
+  // Configure OpenRouter if connected (check new settings first, then legacy)
+  const openrouterProvider = providerSettings.connectedProviders.openrouter;
+  if (openrouterProvider?.connectionStatus === 'connected' && activeModel?.provider === 'openrouter') {
+    // New provider settings: OpenRouter is connected and active
+    const modelId = activeModel.model.replace('openrouter/', '');
+    providerConfig.openrouter = {
+      npm: '@ai-sdk/openai-compatible',
+      name: 'OpenRouter',
+      options: {
+        baseURL: 'https://openrouter.ai/api/v1',
+      },
+      models: {
+        [modelId]: {
+          name: modelId,
+          tools: true,
+        },
+      },
+    };
+    console.log('[OpenCode Config] OpenRouter configured from new settings:', modelId);
+  } else {
+    // Legacy fallback: use old OpenRouter config
+    const openrouterKey = getApiKey('openrouter');
+    if (openrouterKey) {
+      const { getSelectedModel } = await import('../store/appSettings');
+      const selectedModel = getSelectedModel();
 
-      const bedrockOptions: BedrockProviderConfig['options'] = {
-        region: creds.region || 'us-east-1',
-      };
+      const openrouterModels: Record<string, OpenRouterProviderModelConfig> = {};
 
-      // Only add profile if using profile mode
-      if (creds.authType === 'profile' && creds.profileName) {
-        bedrockOptions.profile = creds.profileName;
+      if (selectedModel?.provider === 'openrouter' && selectedModel.model) {
+        const modelId = selectedModel.model.replace('openrouter/', '');
+        openrouterModels[modelId] = {
+          name: modelId,
+          tools: true,
+        };
       }
 
-      providerConfig['amazon-bedrock'] = {
-        options: bedrockOptions,
-      };
-
-      console.log('[OpenCode Config] Bedrock provider configured:', bedrockOptions);
-    } catch (e) {
-      console.warn('[OpenCode Config] Failed to parse Bedrock credentials:', e);
+      if (Object.keys(openrouterModels).length > 0) {
+        providerConfig.openrouter = {
+          npm: '@ai-sdk/openai-compatible',
+          name: 'OpenRouter',
+          options: {
+            baseURL: 'https://openrouter.ai/api/v1',
+          },
+          models: openrouterModels,
+        };
+        console.log('[OpenCode Config] OpenRouter configured from legacy settings:', Object.keys(openrouterModels));
+      }
     }
   }
 
-  // Add LiteLLM provider configuration if enabled
-  if (litellmConfig?.enabled && litellmConfig.baseUrl) {
-    // Get the selected model to configure LiteLLM
-    const { getSelectedModel } = await import('../store/appSettings');
-    const selectedModel = getSelectedModel();
-
-    const litellmModels: Record<string, LiteLLMProviderModelConfig> = {};
-
-    // If a model is selected via LiteLLM, add it to the config
-    if (selectedModel?.provider === 'litellm' && selectedModel.model) {
-      // Extract model ID from full ID (e.g., "litellm/openai/gpt-4" -> "openai/gpt-4")
-      const modelId = selectedModel.model.replace('litellm/', '');
-      litellmModels[modelId] = {
-        name: modelId,
-        tools: true,
-      };
+  // Configure Bedrock if connected (check new settings first, then legacy)
+  const bedrockProvider = providerSettings.connectedProviders.bedrock;
+  if (bedrockProvider?.connectionStatus === 'connected' && bedrockProvider.credentials.type === 'bedrock') {
+    // New provider settings: Bedrock is connected
+    const creds = bedrockProvider.credentials;
+    const bedrockOptions: BedrockProviderConfig['options'] = {
+      region: creds.region || 'us-east-1',
+    };
+    if (creds.authMethod === 'profile' && creds.profileName) {
+      bedrockOptions.profile = creds.profileName;
     }
+    providerConfig['amazon-bedrock'] = {
+      options: bedrockOptions,
+    };
+    console.log('[OpenCode Config] Bedrock configured from new settings:', bedrockOptions);
+  } else {
+    // Legacy fallback: use old Bedrock config
+    const bedrockCredsJson = getApiKey('bedrock');
+    if (bedrockCredsJson) {
+      try {
+        const creds = JSON.parse(bedrockCredsJson) as BedrockCredentials;
 
-    // Only configure LiteLLM if we have at least one model
-    if (Object.keys(litellmModels).length > 0) {
-      // Get LiteLLM API key if configured
-      const litellmApiKey = getApiKey('litellm');
-      
-      const litellmOptions: LiteLLMProviderConfig['options'] = {
-        baseURL: `${litellmConfig.baseUrl}/v1`,
-      };
-      
-      // Add API key to options if available
-      if (litellmApiKey) {
-        litellmOptions.apiKey = litellmApiKey;
-        console.log('[OpenCode Config] LiteLLM API key configured');
+        const bedrockOptions: BedrockProviderConfig['options'] = {
+          region: creds.region || 'us-east-1',
+        };
+
+        if (creds.authType === 'profile' && creds.profileName) {
+          bedrockOptions.profile = creds.profileName;
+        }
+
+        providerConfig['amazon-bedrock'] = {
+          options: bedrockOptions,
+        };
+
+        console.log('[OpenCode Config] Bedrock configured from legacy settings:', bedrockOptions);
+      } catch (e) {
+        console.warn('[OpenCode Config] Failed to parse Bedrock credentials:', e);
       }
-      
+    }
+  }
+
+  // Configure LiteLLM if connected
+  const litellmProvider = providerSettings.connectedProviders.litellm;
+  if (litellmProvider?.connectionStatus === 'connected' && litellmProvider.credentials.type === 'litellm') {
+    if (litellmProvider.selectedModelId) {
       providerConfig.litellm = {
         npm: '@ai-sdk/openai-compatible',
         name: 'LiteLLM',
-        options: litellmOptions,
-        models: litellmModels,
+        options: {
+          baseURL: `${litellmProvider.credentials.serverUrl}/v1`,
+        },
+        models: {
+          [litellmProvider.selectedModelId]: {
+            name: litellmProvider.selectedModelId,
+            tools: true,
+          },
+        },
       };
-      console.log('[OpenCode Config] LiteLLM provider configured with model:', Object.keys(litellmModels));
+      console.log('[OpenCode Config] LiteLLM configured:', litellmProvider.selectedModelId);
     }
   }
 
@@ -631,6 +563,12 @@ export async function generateOpenCodeConfig(): Promise<string> {
           QUESTION_API_PORT: String(QUESTION_API_PORT),
         },
         timeout: 10000,
+      },
+      'dev-browser-mcp': {
+        type: 'local',
+        command: ['npx', 'tsx', path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts')],
+        enabled: true,
+        timeout: 30000,  // Longer timeout for browser operations
       },
     },
   };

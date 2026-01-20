@@ -49,6 +49,27 @@ const mockAccomplish = {
   onTaskUpdate: mockOnTaskUpdate.mockReturnValue(() => {}),
   onPermissionRequest: mockOnPermissionRequest.mockReturnValue(() => {}),
   logEvent: mockLogEvent.mockResolvedValue(undefined),
+  isE2EMode: vi.fn().mockResolvedValue(false),
+  getProviderSettings: vi.fn().mockResolvedValue({
+    activeProviderId: 'anthropic',
+    connectedProviders: {
+      anthropic: {
+        providerId: 'anthropic',
+        connectionStatus: 'connected',
+        selectedModelId: 'claude-3-5-sonnet-20241022',
+        credentials: { type: 'api-key', apiKey: 'test-key' },
+      },
+    },
+    debugMode: false,
+  }),
+  // Provider settings methods
+  setActiveProvider: vi.fn().mockResolvedValue(undefined),
+  setConnectedProvider: vi.fn().mockResolvedValue(undefined),
+  removeConnectedProvider: vi.fn().mockResolvedValue(undefined),
+  setProviderDebugMode: vi.fn().mockResolvedValue(undefined),
+  validateApiKeyForProvider: vi.fn().mockResolvedValue({ valid: true }),
+  validateBedrockCredentials: vi.fn().mockResolvedValue({ valid: true }),
+  saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
 };
 
 // Mock the accomplish module
@@ -127,8 +148,21 @@ describe('Home Page Integration', () => {
       addTaskUpdate: mockAddTaskUpdate,
       setPermissionRequest: mockSetPermissionRequest,
     };
-    // Default to having API key
+    // Default to having API key (legacy)
     mockHasAnyApiKey.mockResolvedValue(true);
+    // Default to having a ready provider (new provider settings)
+    mockAccomplish.getProviderSettings.mockResolvedValue({
+      activeProviderId: 'anthropic',
+      connectedProviders: {
+        anthropic: {
+          providerId: 'anthropic',
+          connectionStatus: 'connected',
+          selectedModelId: 'claude-3-5-sonnet-20241022',
+          credentials: { type: 'api-key', apiKey: 'test-key' },
+        },
+      },
+      debugMode: false,
+    });
   });
 
   describe('initial render', () => {
@@ -228,7 +262,7 @@ describe('Home Page Integration', () => {
       expect(textarea).toHaveValue('Check my calendar');
     });
 
-    it('should check for API key before submitting task', async () => {
+    it('should check for provider settings before submitting task', async () => {
       // Arrange
       render(
         <MemoryRouter initialEntries={['/']}>
@@ -243,15 +277,19 @@ describe('Home Page Integration', () => {
       const submitButton = screen.getByTitle('Submit');
       fireEvent.click(submitButton);
 
-      // Assert
+      // Assert - should check provider settings (via isE2EMode and getProviderSettings)
       await waitFor(() => {
-        expect(mockHasAnyApiKey).toHaveBeenCalled();
+        expect(mockAccomplish.isE2EMode).toHaveBeenCalled();
       });
     });
 
-    it('should open settings dialog when no API key exists', async () => {
-      // Arrange
-      mockHasAnyApiKey.mockResolvedValue(false);
+    it('should open settings dialog when no provider is ready', async () => {
+      // Arrange - Set up mock to return no ready providers
+      mockAccomplish.getProviderSettings.mockResolvedValue({
+        activeProviderId: null,
+        connectedProviders: {},
+        debugMode: false,
+      });
 
       render(
         <MemoryRouter initialEntries={['/']}>
@@ -261,7 +299,7 @@ describe('Home Page Integration', () => {
 
       // Act
       const textarea = screen.getByPlaceholderText(/describe a task/i);
-      fireEvent.change(textarea, { target: { value: 'Submit without key' } });
+      fireEvent.change(textarea, { target: { value: 'Submit without provider' } });
 
       const submitButton = screen.getByTitle('Submit');
       fireEvent.click(submitButton);
@@ -309,9 +347,9 @@ describe('Home Page Integration', () => {
       const submitButton = screen.getByTitle('Submit');
       fireEvent.click(submitButton);
 
-      // Assert
+      // Assert - empty tasks return early, no provider check or task start
       await waitFor(() => {
-        expect(mockHasAnyApiKey).not.toHaveBeenCalled();
+        expect(mockAccomplish.isE2EMode).not.toHaveBeenCalled();
         expect(mockStartTask).not.toHaveBeenCalled();
       });
     });
@@ -331,16 +369,20 @@ describe('Home Page Integration', () => {
       const submitButton = screen.getByTitle('Submit');
       fireEvent.click(submitButton);
 
-      // Assert
+      // Assert - whitespace-only input should not trigger any API calls
       await waitFor(() => {
-        expect(mockHasAnyApiKey).not.toHaveBeenCalled();
+        expect(mockAccomplish.isE2EMode).not.toHaveBeenCalled();
         expect(mockStartTask).not.toHaveBeenCalled();
       });
     });
 
-    it('should execute task after saving API key in settings', async () => {
-      // Arrange
-      mockHasAnyApiKey.mockResolvedValue(false);
+    it('should execute task after configuring provider in settings', async () => {
+      // Arrange - No ready provider initially
+      mockAccomplish.getProviderSettings.mockResolvedValue({
+        activeProviderId: null,
+        connectedProviders: {},
+        debugMode: false,
+      });
       const mockTask = createMockTask('task-123', 'My task', 'running');
       mockStartTask.mockResolvedValue(mockTask);
 
@@ -362,11 +404,11 @@ describe('Home Page Integration', () => {
         expect(screen.getByTestId('settings-dialog')).toBeInTheDocument();
       });
 
-      // Simulate saving API key
+      // Simulate saving API key (which triggers onApiKeySaved callback)
       const saveButton = screen.getByRole('button', { name: /save api key/i });
       fireEvent.click(saveButton);
 
-      // Assert - Task should be started after key is saved
+      // Assert - Task should be started after provider is configured
       await waitFor(() => {
         expect(mockStartTask).toHaveBeenCalled();
       });
@@ -514,8 +556,12 @@ describe('Home Page Integration', () => {
 
   describe('settings dialog interaction', () => {
     it('should close settings dialog without executing when cancelled', async () => {
-      // Arrange
-      mockHasAnyApiKey.mockResolvedValue(false);
+      // Arrange - No ready provider
+      mockAccomplish.getProviderSettings.mockResolvedValue({
+        activeProviderId: null,
+        connectedProviders: {},
+        debugMode: false,
+      });
 
       render(
         <MemoryRouter initialEntries={['/']}>

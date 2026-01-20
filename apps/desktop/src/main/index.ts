@@ -216,3 +216,8 @@ ipcMain.handle('app:version', () => {
 ipcMain.handle('app:platform', () => {
   return process.platform;
 });
+
+ipcMain.handle('app:is-e2e-mode', () => {
+  return (global as Record<string, unknown>).E2E_MOCK_TASK_EVENTS === true ||
+    process.env.E2E_MOCK_TASK_EVENTS === '1';
+});

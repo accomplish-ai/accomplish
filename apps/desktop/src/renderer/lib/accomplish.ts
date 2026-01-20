@@ -16,6 +16,9 @@ import type {
   ApiKeyConfig,
   TaskMessage,
   BedrockCredentials,
+  ProviderSettings,
+  ProviderId,
+  ConnectedProvider,
 } from '@accomplish/shared';
 
 // Define the API interface
@@ -108,6 +111,20 @@ interface AccomplishAPI {
   validateBedrockCredentials(credentials: string): Promise<{ valid: boolean; error?: string }>;
   saveBedrockCredentials(credentials: string): Promise<ApiKeyConfig>;
   getBedrockCredentials(): Promise<BedrockCredentials | null>;
+  fetchBedrockModels(credentials: string): Promise<{ success: boolean; models: Array<{ id: string; name: string; provider: string }>; error?: string }>;
+
+  // E2E Testing
+  isE2EMode(): Promise<boolean>;
+
+  // Provider Settings API
+  getProviderSettings(): Promise<ProviderSettings>;
+  setActiveProvider(providerId: ProviderId | null): Promise<void>;
+  getConnectedProvider(providerId: ProviderId): Promise<ConnectedProvider | null>;
+  setConnectedProvider(providerId: ProviderId, provider: ConnectedProvider): Promise<void>;
+  removeConnectedProvider(providerId: ProviderId): Promise<void>;
+  updateProviderModel(providerId: ProviderId, modelId: string | null): Promise<void>;
+  setProviderDebugMode(enabled: boolean): Promise<void>;
+  getProviderDebugMode(): Promise<boolean>;
 
   // Event subscriptions
   onTaskUpdate(callback: (event: TaskUpdateEvent) => void): () => void;
@@ -159,6 +176,8 @@ export function getAccomplish() {
     getBedrockCredentials: async (): Promise<BedrockCredentials | null> => {
       return window.accomplish!.getBedrockCredentials();
     },
+
+    fetchBedrockModels: (credentials: string) => window.accomplish!.fetchBedrockModels(credentials),
   };
 }
 

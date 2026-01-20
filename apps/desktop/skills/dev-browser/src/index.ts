@@ -123,6 +123,13 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
 
   console.log("Browser launched with persistent profile...");
 
+  // Listen for browser context close (e.g., user closes Chrome window)
+  // When this happens, exit the server so it can be restarted with a fresh browser
+  context.on('close', () => {
+    console.log('Browser context closed (user may have closed Chrome). Exiting server...');
+    process.exit(0);
+  });
+
   // Get the CDP WebSocket endpoint from Chrome's JSON API (with retry for slow startup)
   const cdpResponse = await fetchWithRetry(`http://127.0.0.1:${cdpPort}/json/version`);
   const cdpInfo = (await cdpResponse.json()) as { webSocketDebuggerUrl: string };

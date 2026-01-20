@@ -543,36 +543,36 @@ describe('StreamParser', () => {
     });
   });
 
-  describe('error events for malformed JSON', () => {
-    it('should emit error for invalid JSON starting with {', () => {
+  describe('handling malformed JSON (Windows PTY compatibility)', () => {
+    // Note: The parser buffers incomplete JSON for Windows PTY compatibility
+    // instead of emitting errors immediately. This allows fragmented JSON
+    // lines to be reassembled across multiple chunks.
+
+    it('should buffer invalid JSON starting with { for potential continuation', () => {
       // Arrange
       const malformedJson = '{invalid json here}\n';
 
       // Act
       parser.feed(malformedJson);
 
-      // Assert
+      // Assert - parser buffers this as incomplete JSON, no message or error
       expect(messageHandler).not.toHaveBeenCalled();
-      expect(errorHandler).toHaveBeenCalledTimes(1);
-      expect(errorHandler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: expect.stringContaining('Failed to parse JSON'),
-        })
-      );
+      expect(errorHandler).not.toHaveBeenCalled();
     });
 
-    it('should emit error for truncated JSON', () => {
+    it('should buffer truncated JSON for continuation', () => {
       // Arrange
       const truncatedJson = '{"type":"text","part":{"text":"incomplete\n';
 
       // Act
       parser.feed(truncatedJson);
 
-      // Assert
-      expect(errorHandler).toHaveBeenCalledTimes(1);
+      // Assert - buffered, waiting for continuation
+      expect(messageHandler).not.toHaveBeenCalled();
+      expect(errorHandler).not.toHaveBeenCalled();
     });
 
-    it('should continue parsing after error', () => {
+    it('should discard incomplete JSON when new JSON starts and continue parsing', () => {
       // Arrange
       const malformed = '{bad}\n';
       const validMessage: OpenCodeMessage = {
@@ -590,13 +590,13 @@ describe('StreamParser', () => {
       parser.feed(malformed);
       parser.feed(JSON.stringify(validMessage) + '\n');
 
-      // Assert
-      expect(errorHandler).toHaveBeenCalledTimes(1);
+      // Assert - malformed is discarded when valid JSON starts, valid message parsed
+      expect(errorHandler).not.toHaveBeenCalled();
       expect(messageHandler).toHaveBeenCalledTimes(1);
       expect(messageHandler).toHaveBeenCalledWith(validMessage);
     });
 
-    it('should not emit error for non-JSON lines not starting with {', () => {
+    it('should skip non-JSON lines not starting with {', () => {
       // Arrange
       const nonJsonLines = 'Status: OK\nProgress: 50%\n';
 
@@ -604,6 +604,7 @@ describe('StreamParser', () => {
       parser.feed(nonJsonLines);
 
       // Assert
+      expect(messageHandler).not.toHaveBeenCalled();
       expect(errorHandler).not.toHaveBeenCalled();
     });
   });

@@ -198,7 +198,7 @@ describe('OpenCode Config Generator Integration', () => {
       expect(filePermission.environment.PERMISSION_API_PORT).toBe('9999');
     });
 
-    it('should inject skills path into system prompt', async () => {
+    it('should include platform-specific environment instructions', async () => {
       // Act
       const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
@@ -206,11 +206,11 @@ describe('OpenCode Config Generator Integration', () => {
       // Assert
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       const prompt = config.agent['accomplish'].prompt;
-      const skillsPath = path.join(tempAppDir, 'skills');
 
-      // Prompt should contain the actual skills path, not the template placeholder
-      expect(prompt).toContain(skillsPath);
-      expect(prompt).not.toContain('{{SKILLS_PATH}}');
+      // Prompt should include environment instructions (varies by platform)
+      expect(prompt).toContain('<environment>');
+      // Should NOT have unresolved template placeholders
+      expect(prompt).not.toContain('{{ENVIRONMENT_INSTRUCTIONS}}');
     });
 
     it('should set OPENCODE_CONFIG environment variable after generation', async () => {
@@ -246,7 +246,7 @@ describe('OpenCode Config Generator Integration', () => {
   });
 
   describe('System Prompt Content', () => {
-    it('should include browser automation guidance', async () => {
+    it('should include browser automation MCP tools guidance', async () => {
       // Act
       const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
@@ -255,8 +255,11 @@ describe('OpenCode Config Generator Integration', () => {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       const prompt = config.agent['accomplish'].prompt;
 
-      expect(prompt).toContain('browser');
-      expect(prompt.toLowerCase()).toContain('playwright');
+      // Should contain browser MCP tool names
+      expect(prompt).toContain('browser_navigate');
+      expect(prompt).toContain('browser_snapshot');
+      expect(prompt).toContain('browser_click');
+      expect(prompt).toContain('browser_type');
     });
 
     it('should include file permission rules', async () => {
