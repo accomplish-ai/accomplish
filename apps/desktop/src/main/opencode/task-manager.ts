@@ -253,8 +253,8 @@ async function ensureDevBrowserServer(
 
     // Set CDP endpoint for agent-browser CLI commands
     // The agent runs commands via Bash which inherits this environment
-    // DEV_BROWSER_PORT is HTTP (9224), CDP is on port 9225
-    process.env.AGENT_BROWSER_CDP_ENDPOINT = `ws://localhost:${DEV_BROWSER_PORT + 1}`;
+    // DEV_BROWSER_PORT is HTTP (9224), the relay WebSocket is at /cdp on the HTTP port
+    process.env.AGENT_BROWSER_CDP_ENDPOINT = `ws://localhost:${DEV_BROWSER_PORT}/cdp`;
     console.log('[TaskManager] Set AGENT_BROWSER_CDP_ENDPOINT for agent-browser CLI');
   } catch (error) {
     console.error('[TaskManager] Failed to start dev-browser server:', error);
