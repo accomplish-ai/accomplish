@@ -5,22 +5,42 @@
 
 ## Overview
 
-Replace the existing `dev-browser` and `dev-browser-mcp` implementation with Vercel's `agent-browser` CLI tool, exposed via a thin MCP wrapper for cross-platform compatibility.
+Replace `dev-browser-mcp` with a new `agent-browser-mcp` that exposes agent-browser's 36-tool API while keeping the existing anti-detection infrastructure (rebrowser-playwright, system Chrome preference).
 
 ## Decisions Made
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Integration approach | MCP wrapper around CLI | Cross-platform Windows support, avoid shell dependency |
-| Tool naming | Adopt agent-browser's structure | Follow their documentation, remove redundant code |
-| Chromium handling | Keep existing approach | Don't touch this area |
-| Coverage | All 36 commands | Full feature parity with agent-browser |
+| Anti-detection | Keep rebrowser-playwright | Required - cannot lose bot detection protection |
+| System Chrome | Keep preference | Required - faster startup, less detectable |
+| Browser server | Keep dev-browser | Unchanged - provides CDP endpoint |
+| MCP API | Adopt agent-browser's 36 tools | Better API surface, comprehensive docs |
+| SKILL.md | Use agent-browser's + tab awareness | Follow their recommended patterns |
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    UNCHANGED                            │
+│  dev-browser server (rebrowser-playwright + Chrome)    │
+│  - Anti-detection patches                               │
+│  - System Chrome preference                             │
+│  - CDP endpoint on port 9224                            │
+└─────────────────────────────────────────────────────────┘
+                          ↑ CDP Connection
+┌─────────────────────────────────────────────────────────┐
+│                    NEW                                  │
+│  agent-browser-mcp (replaces dev-browser-mcp)          │
+│  - 36 tools matching agent-browser API                  │
+│  - Uses rebrowser-playwright to connect via CDP        │
+│  - Same SKILL.md as agent-browser + tab awareness      │
+└─────────────────────────────────────────────────────────┘
+```
 
 ## Files to Delete
 
 ```
-apps/desktop/skills/dev-browser/           # ~11 files - Playwright server, relay, snapshot
-apps/desktop/skills/dev-browser-mcp/       # MCP server wrapping dev-browser
+apps/desktop/skills/dev-browser-mcp/       # Replaced by agent-browser-mcp
 ```
 
 ## Files to Create
@@ -29,51 +49,89 @@ apps/desktop/skills/dev-browser-mcp/       # MCP server wrapping dev-browser
 apps/desktop/skills/agent-browser-mcp/
 ├── package.json
 ├── src/
-│   └── index.ts          # MCP server (36 tools → child_process.spawn)
-└── SKILL.md              # Agent documentation
+│   └── index.ts
+└── SKILL.md
 ```
 
 ## Files to Modify
 
-### `apps/desktop/package.json`
+| File | Changes |
+|------|---------|
+| `apps/desktop/package.json` | Replace dev-browser-mcp with agent-browser-mcp in postinstall/build |
+| `apps/desktop/src/main/opencode/config-generator.ts` | Replace MCP config, update system prompt |
 
-**Dependencies - Add:**
-```json
-{
-  "dependencies": {
-    "agent-browser": "^0.6.0"
-  }
-}
+## Files Unchanged
+
+```
+apps/desktop/skills/dev-browser/           # Keeps rebrowser-playwright, anti-detection
+apps/desktop/src/main/opencode/task-manager.ts  # Keeps browser management logic
+packages/shared/src/constants.ts           # Keeps DEV_BROWSER_PORT
 ```
 
-**Scripts - Update:**
+## Implementation Details
+
+### package.json (agent-browser-mcp)
+
 ```json
 {
+  "name": "agent-browser-mcp",
+  "version": "1.0.0",
+  "type": "module",
   "scripts": {
-    "postinstall": "electron-rebuild && npm --prefix skills/agent-browser-mcp install && npm --prefix skills/file-permission install && npm --prefix skills/ask-user-question install",
-    "build": "tsc && vite build && npm --prefix skills/agent-browser-mcp install --omit=dev && npm --prefix skills/file-permission install --omit=dev && npm --prefix skills/ask-user-question install --omit=dev"
+    "start": "npx tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "playwright": "npm:rebrowser-playwright@^1.52.0"
   }
 }
 ```
 
-**electron-builder config - Update:**
-```json
-{
-  "asarUnpack": [
-    "node_modules/agent-browser/**"
-  ],
-  "files": [
-    "node_modules/agent-browser/**"
-  ]
+### MCP Server Structure (index.ts)
+
+```typescript
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { chromium, type Browser, type Page } from 'playwright';
+
+const DEV_BROWSER_PORT = 9224;
+const TASK_ID = process.env.ACCOMPLISH_TASK_ID || 'default';
+
+// Browser connection (same pattern as current dev-browser-mcp)
+let browser: Browser | null = null;
+
+async function ensureConnected(): Promise<Browser> {
+  if (browser?.isConnected()) return browser;
+
+  const res = await fetch(`http://localhost:${DEV_BROWSER_PORT}`);
+  const { wsEndpoint } = await res.json();
+  browser = await chromium.connectOverCDP(wsEndpoint);
+  return browser;
 }
+
+// Ref map for snapshot → interaction workflow
+let refMap: Map<string, { role: string; name?: string; nth?: number }> = new Map();
+
+// 36 tool handlers...
 ```
 
-### `apps/desktop/src/main/opencode/config-generator.ts`
+### Desktop package.json Script Updates
 
-**MCP config - Replace dev-browser-mcp:**
+**postinstall:**
+```json
+"postinstall": "electron-rebuild && npm --prefix skills/dev-browser install && npm --prefix skills/agent-browser-mcp install && npm --prefix skills/file-permission install && npm --prefix skills/ask-user-question install"
+```
+
+**build:**
+```json
+"build": "tsc && vite build && npm --prefix skills/dev-browser install --omit=dev && npm --prefix skills/agent-browser-mcp install --omit=dev && npm --prefix skills/file-permission install --omit=dev && npm --prefix skills/ask-user-question install --omit=dev"
+```
+
+### config-generator.ts MCP Config
+
 ```typescript
 mcp: {
-  // ... other servers unchanged ...
+  'file-permission': { /* unchanged */ },
+  'ask-user-question': { /* unchanged */ },
   'agent-browser-mcp': {
     type: 'local',
     command: ['npx', 'tsx', path.join(skillsPath, 'agent-browser-mcp', 'src', 'index.ts')],
@@ -83,31 +141,21 @@ mcp: {
     },
     timeout: 30000,
   },
-}
+},
 ```
 
-**System prompt - Update tool references:**
-- Remove: `browser_navigate`, `browser_type`, `browser_sequence`, `browser_keyboard`
-- Add complete list of 36 browser_* tools
-
-### `packages/shared/src/constants.ts`
-
-- Remove `DEV_BROWSER_PORT` if present
-
-## MCP Tool Specifications
+## MCP Tool Specifications (36 Tools)
 
 ### Navigation (2 tools)
 
 **browser_open**
 ```typescript
 { url: string, headed?: boolean, cdp?: number }
-// → agent-browser open <url> [--headed] [--cdp <port>]
 ```
 
 **browser_navigate**
 ```typescript
 { action: "back" | "forward" | "reload" | "close" }
-// → agent-browser back|forward|reload|close
 ```
 
 ### Snapshot (1 tool)
@@ -115,7 +163,6 @@ mcp: {
 **browser_snapshot**
 ```typescript
 { interactive_only?: boolean, compact?: boolean, depth?: number, selector?: string, json?: boolean }
-// → agent-browser snapshot [-i] [-c] [-d N] [-s "sel"] [--json]
 ```
 
 ### Interactions (10 tools)
@@ -123,61 +170,51 @@ mcp: {
 **browser_click**
 ```typescript
 { ref?: string, selector?: string, double?: boolean }
-// → agent-browser click|dblclick @ref|<selector>
 ```
 
 **browser_fill**
 ```typescript
 { ref?: string, selector?: string, text: string, clear?: boolean }
-// → agent-browser fill|type @ref "text"
 ```
 
 **browser_press**
 ```typescript
 { key: string, action?: "press" | "keydown" | "keyup" }
-// → agent-browser press|keydown|keyup <key>
 ```
 
 **browser_hover**
 ```typescript
 { ref?: string, selector?: string }
-// → agent-browser hover @ref
 ```
 
 **browser_focus**
 ```typescript
 { ref?: string, selector?: string }
-// → agent-browser focus @ref
 ```
 
 **browser_check**
 ```typescript
 { ref?: string, selector?: string, uncheck?: boolean }
-// → agent-browser check|uncheck @ref
 ```
 
 **browser_select**
 ```typescript
 { ref?: string, selector?: string, value: string }
-// → agent-browser select @ref "value"
 ```
 
 **browser_scroll**
 ```typescript
 { direction?: "up" | "down" | "left" | "right", amount?: number, ref?: string, selector?: string }
-// → agent-browser scroll <dir> <amount> | scrollintoview @ref
 ```
 
 **browser_drag**
 ```typescript
 { from_ref: string, to_ref: string }
-// → agent-browser drag @e1 @e2
 ```
 
 **browser_upload**
 ```typescript
 { ref?: string, selector?: string, files: string[] }
-// → agent-browser upload @ref file1 file2
 ```
 
 ### Information (2 tools)
@@ -185,13 +222,11 @@ mcp: {
 **browser_get**
 ```typescript
 { what: "text" | "html" | "value" | "attr" | "title" | "url" | "count" | "box", ref?: string, selector?: string, attr_name?: string, json?: boolean }
-// → agent-browser get text|html|value|attr|title|url|count|box @ref
 ```
 
 **browser_is**
 ```typescript
 { check: "visible" | "enabled" | "checked", ref?: string, selector?: string }
-// → agent-browser is visible|enabled|checked @ref
 ```
 
 ### Capture (3 tools)
@@ -199,19 +234,16 @@ mcp: {
 **browser_screenshot**
 ```typescript
 { path?: string, full_page?: boolean }
-// → agent-browser screenshot [path] [--full]
 ```
 
 **browser_pdf**
 ```typescript
 { path: string }
-// → agent-browser pdf <path>
 ```
 
 **browser_record**
 ```typescript
 { action: "start" | "stop" | "restart", path?: string }
-// → agent-browser record start|stop|restart <path>
 ```
 
 ### Timing (1 tool)
@@ -219,7 +251,6 @@ mcp: {
 **browser_wait**
 ```typescript
 { ref?: string, ms?: number, text?: string, url?: string, load?: "load" | "domcontentloaded" | "networkidle", fn?: string }
-// → agent-browser wait @ref|<ms>|--text|--url|--load|--fn
 ```
 
 ### Mouse (1 tool)
@@ -227,7 +258,6 @@ mcp: {
 **browser_mouse**
 ```typescript
 { action: "move" | "down" | "up" | "wheel", x?: number, y?: number, button?: "left" | "right" | "middle", delta?: number }
-// → agent-browser mouse move|down|up|wheel <args>
 ```
 
 ### Semantic Locators (1 tool)
@@ -235,7 +265,6 @@ mcp: {
 **browser_find**
 ```typescript
 { by: "role" | "text" | "label" | "placeholder" | "alt" | "title" | "testid" | "first" | "last" | "nth", value: string, action: "click" | "fill" | "text" | "hover", action_value?: string, name?: string, nth?: number }
-// → agent-browser find <by> <value> <action> [--name] [nth]
 ```
 
 ### Settings (1 tool)
@@ -243,7 +272,6 @@ mcp: {
 **browser_set**
 ```typescript
 { setting: "viewport" | "device" | "geo" | "offline" | "headers" | "credentials" | "media", width?: number, height?: number, device_name?: string, lat?: number, lon?: number, enabled?: boolean, headers?: Record<string, string>, user?: string, pass?: string, scheme?: "dark" | "light" }
-// → agent-browser set <setting> <args>
 ```
 
 ### Storage (2 tools)
@@ -251,13 +279,11 @@ mcp: {
 **browser_cookies**
 ```typescript
 { action: "get" | "set" | "clear", name?: string, value?: string }
-// → agent-browser cookies [set <name> <value>] [clear]
 ```
 
 **browser_storage**
 ```typescript
 { type: "local" | "session", action: "get" | "get_key" | "set" | "clear", key?: string, value?: string }
-// → agent-browser storage local|session [key] [set k v] [clear]
 ```
 
 ### Network (1 tool)
@@ -265,7 +291,6 @@ mcp: {
 **browser_network**
 ```typescript
 { action: "route" | "unroute" | "requests", url?: string, abort?: boolean, body?: string, filter?: string }
-// → agent-browser network route|unroute|requests <args>
 ```
 
 ### Tabs/Windows (2 tools)
@@ -273,13 +298,11 @@ mcp: {
 **browser_tab**
 ```typescript
 { action: "list" | "new" | "switch" | "close", url?: string, index?: number }
-// → agent-browser tab [new [url]] [<index>] [close]
 ```
 
 **browser_window**
 ```typescript
 { action: "new" }
-// → agent-browser window new
 ```
 
 ### Frames (1 tool)
@@ -287,7 +310,6 @@ mcp: {
 **browser_frame**
 ```typescript
 { selector: string }
-// → agent-browser frame <selector>|main
 ```
 
 ### Dialogs (1 tool)
@@ -295,7 +317,6 @@ mcp: {
 **browser_dialog**
 ```typescript
 { action: "accept" | "dismiss", text?: string }
-// → agent-browser dialog accept|dismiss [text]
 ```
 
 ### JavaScript (1 tool)
@@ -303,7 +324,6 @@ mcp: {
 **browser_eval**
 ```typescript
 { script: string }
-// → agent-browser eval "code"
 ```
 
 ### Sessions/State (2 tools)
@@ -311,13 +331,11 @@ mcp: {
 **browser_session**
 ```typescript
 { action: "list" }
-// → agent-browser session list
 ```
 
 **browser_state**
 ```typescript
 { action: "save" | "load", path: string }
-// → agent-browser state save|load <path>
 ```
 
 ### Debugging (4 tools)
@@ -325,109 +343,107 @@ mcp: {
 **browser_console**
 ```typescript
 { clear?: boolean }
-// → agent-browser console [--clear]
 ```
 
 **browser_errors**
 ```typescript
 { clear?: boolean }
-// → agent-browser errors [--clear]
 ```
 
 **browser_highlight**
 ```typescript
 { ref?: string, selector?: string }
-// → agent-browser highlight @ref
 ```
 
 **browser_trace**
 ```typescript
 { action: "start" | "stop", path?: string }
-// → agent-browser trace start|stop [path]
 ```
 
-## Implementation Details
+## SKILL.md Content
 
-### MCP Server Architecture
+The SKILL.md will include:
+1. agent-browser's official documentation (36 tools)
+2. MCP tool syntax (not CLI)
+3. **Tab Awareness section** (critical addition)
+
+### Tab Awareness Section
+
+```markdown
+## CRITICAL: Tab Awareness After Clicks
+
+**ALWAYS check for new tabs after clicking links or buttons.**
+
+Many websites open content in new tabs. If you click something and the page seems unchanged or you can't find expected content, a new tab likely opened.
+
+**Workflow after clicking:**
+1. `browser_click(ref="e5")` - Click the element
+2. `browser_tab(action="list")` - Check if new tabs opened
+3. If new tab exists: `browser_tab(action="switch", index=N)` - Switch to it
+4. `browser_snapshot(interactive_only=true)` - Get content from correct tab
+
+**Example:**
+
+# Click a link that might open new tab
+browser_click(ref="e3")
+
+# Check tabs
+browser_tab(action="list")
+# Output: [{ index: 0, url: "original.com", active: true },
+#          { index: 1, url: "newpage.com", active: false }]
+
+# New tab opened! Switch to it
+browser_tab(action="switch", index=1)
+
+# Now snapshot the new tab
+browser_snapshot(interactive_only=true)
+
+**Signs you might be on the wrong tab:**
+- Page content hasn't changed after clicking a link
+- Expected elements not found in snapshot
+- URL is still the old URL after navigation
+
+**When to check tabs:**
+- After clicking any link
+- After clicking "Open", "View", "Details" buttons
+- After clicking external links
+- When page content doesn't match expectations
+```
+
+## System Prompt Updates
+
+Update `config-generator.ts` system prompt to reference new tools:
 
 ```typescript
-// agent-browser-mcp/src/index.ts
+- Use browser_* MCP tools for all web automation:
 
-import { spawn } from 'child_process';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-
-const TASK_ID = process.env.ACCOMPLISH_TASK_ID || 'default';
-
-function runAgentBrowser(args: string[]): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const agentBrowserPath = getAgentBrowserPath();
-    const proc = spawn(agentBrowserPath, ['--session', TASK_ID, ...args]);
-
-    let stdout = '';
-    let stderr = '';
-
-    proc.stdout.on('data', (data) => stdout += data);
-    proc.stderr.on('data', (data) => stderr += data);
-
-    proc.on('close', (code) => {
-      if (code === 0) resolve(stdout);
-      else reject(new Error(stderr || `Exit code ${code}`));
-    });
-  });
-}
-
-// Example tool handler
-async function handleBrowserOpen(params: { url: string, headed?: boolean, cdp?: number }) {
-  const args = ['open', params.url];
-  if (params.headed) args.push('--headed');
-  if (params.cdp) args.push('--cdp', String(params.cdp));
-  return runAgentBrowser(args);
-}
+  Navigation: browser_open, browser_navigate
+  Page Analysis: browser_snapshot
+  Interactions: browser_click, browser_fill, browser_press, browser_hover,
+                browser_focus, browser_check, browser_select, browser_scroll,
+                browser_drag, browser_upload
+  Information: browser_get, browser_is
+  Capture: browser_screenshot, browser_pdf, browser_record
+  Timing: browser_wait
+  Mouse: browser_mouse
+  Semantic Locators: browser_find
+  Settings: browser_set
+  Storage: browser_cookies, browser_storage
+  Network: browser_network
+  Tabs/Windows: browser_tab, browser_window
+  Frames: browser_frame
+  Dialogs: browser_dialog
+  JavaScript: browser_eval
+  Sessions: browser_session, browser_state
+  Debugging: browser_console, browser_errors, browser_highlight, browser_trace
 ```
-
-### Binary Location
-
-```typescript
-function getAgentBrowserPath(): string {
-  if (app.isPackaged) {
-    return path.join(
-      process.resourcesPath,
-      'app.asar.unpacked',
-      'node_modules',
-      'agent-browser',
-      'bin',
-      'agent-browser'
-    );
-  } else {
-    return path.join(
-      app.getAppPath(),
-      'node_modules',
-      'agent-browser',
-      'bin',
-      'agent-browser'
-    );
-  }
-}
-```
-
-### Session Isolation
-
-All commands include `--session ${ACCOMPLISH_TASK_ID}` to isolate parallel tasks:
-- Each task gets its own browser session
-- Sessions have separate cookies, storage, state
-- Multiple tasks can run browser automation concurrently
-
-## Not Changed
-
-- Chromium download/installation handling
-- Other MCP servers (file-permission, ask-user-question)
-- Core Electron architecture
-- Bundled Node.js approach
 
 ## Testing Plan
 
-1. **Unit tests**: MCP tool → CLI argument mapping
-2. **Integration tests**: Full workflow (open → snapshot → click → screenshot)
-3. **E2E tests**: Form filling, navigation, state persistence
-4. **Platform tests**: Verify on macOS, Windows, Linux
-5. **Packaging tests**: Verify in packaged DMG/exe
+1. **Unit tests**: Tool parameter validation, ref parsing
+2. **Integration tests**: CDP connection to dev-browser, tool execution
+3. **E2E tests**: Full workflows (open → snapshot → click → verify)
+4. **Anti-detection verification**: Confirm rebrowser-playwright still active
+5. **Tab awareness tests**: Verify new tab detection workflow
+6. **Platform tests**: macOS, Windows, Linux
+7. **Packaging tests**: Verify in packaged DMG/exe
