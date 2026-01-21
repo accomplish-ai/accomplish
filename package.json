@@ -11,6 +11,7 @@
   },
   "scripts": {
     "dev": "pnpm -F @accomplish/desktop dev",
+    "dev:clean": "pnpm -F @accomplish/desktop dev:clean",
     "build": "pnpm -r build",
     "build:desktop": "pnpm -F @accomplish/desktop build",
     "lint": "pnpm -r lint",

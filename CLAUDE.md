@@ -9,16 +9,16 @@ Openwork is a standalone desktop automation assistant built with Electron. The a
 ## Common Commands
 
 ```bash
-pnpm dev                              # Run desktop app in dev mode (Vite + Electron)
-pnpm dev:clean                        # Dev mode with CLEAN_START=1 (clears stored data)
-pnpm build                            # Build all workspaces
-pnpm build:desktop                    # Build desktop app only
-pnpm lint                             # TypeScript checks
-pnpm typecheck                        # Type validation
-pnpm clean                            # Clean build outputs and node_modules
-pnpm -F @accomplish/desktop test:e2e  # Playwright E2E tests
-pnpm -F @accomplish/desktop test:e2e:ui    # E2E with Playwright UI
-pnpm -F @accomplish/desktop test:e2e:debug # E2E in debug mode
+pnpm dev                                        # Run desktop app in dev mode (Vite + Electron)
+pnpm dev:clean                                  # Dev mode with CLEAN_START=1 (clears stored data)
+pnpm build                                      # Build all workspaces
+pnpm build:desktop                              # Build desktop app only
+pnpm lint                                       # TypeScript checks
+pnpm typecheck                                  # Type validation
+pnpm clean                                      # Clean build outputs and node_modules
+pnpm -F @accomplish/desktop test:e2e            # Docker-based E2E tests
+pnpm -F @accomplish/desktop test:e2e:native     # Native Playwright E2E tests
+pnpm -F @accomplish/desktop test:e2e:native:ui  # E2E with Playwright UI
 ```
 
 ## Architecture
