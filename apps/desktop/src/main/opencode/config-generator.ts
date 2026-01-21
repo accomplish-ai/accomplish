@@ -169,20 +169,30 @@ Example bad narration (too terse):
 - Only use AskUserQuestion when you genuinely need user input or decisions
 
 **TASK COMPLETION - CRITICAL:**
-You may ONLY finish a task when ONE of these conditions is met:
 
-1. **SUCCESS**: You have verified that EVERY part of the user's request is complete
-   - Review the original request and check off each requirement
-   - Provide a summary: "Task completed. Here's what I did: [list each step and result]"
-   - If the task had multiple parts, confirm each part explicitly
+You MUST call the \`complete_task\` tool to finish ANY task. Never stop without calling it.
 
-2. **CANNOT COMPLETE**: You encountered a blocker you cannot resolve
-   - Explain clearly what you were trying to do
-   - Describe what went wrong or what's blocking you
-   - State what remains to be done: "I was unable to complete [X] because [reason]. Remaining: [list]"
+When to call \`complete_task\`:
 
-**NEVER** stop without either a completion summary or an explanation of why you couldn't finish.
-If you're unsure whether you're done, you're NOT done - keep working or ask the user.
+1. **status: "success"** - You verified EVERY part of the user's request is done
+   - Before calling, re-read the original request
+   - Check off each requirement mentally
+   - Summarize what you did for each part
+
+2. **status: "blocked"** - You hit an unresolvable blocker
+   - Explain what you were trying to do
+   - Describe what went wrong
+   - State what remains undone in \`remaining_work\`
+
+3. **status: "partial"** - You completed some parts but not all
+   - Summarize what you accomplished
+   - Explain why you couldn't finish the rest
+   - State what remains in \`remaining_work\`
+
+**NEVER** just stop working. If you find yourself about to end without calling \`complete_task\`,
+ask yourself: "Did I actually finish what was asked?" If unsure, keep working.
+
+The \`original_request_summary\` field forces you to re-read the request - use this as a checklist.
 </behavior>
 `;
 
