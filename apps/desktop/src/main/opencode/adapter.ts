@@ -469,6 +469,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       env.ZAI_API_KEY = apiKeys.zai;
       console.log('[OpenCode CLI] Using Z.AI API key from settings');
     }
+    if (apiKeys['zai-coding-plan']) {
+      env.ZHIPU_API_KEY = apiKeys['zai-coding-plan'];
+      console.log('[OpenCode CLI] Using Z.AI Coding Plan API key from settings');
+    }
     if (apiKeys.openrouter) {
       env.OPENROUTER_API_KEY = apiKeys.openrouter;
       console.log('[OpenCode CLI] Using OpenRouter API key from settings');

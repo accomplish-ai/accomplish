@@ -321,6 +321,7 @@ export async function generateOpenCodeConfig(): Promise<string> {
     xai: 'xai',
     deepseek: 'deepseek',
     zai: 'zai-coding-plan',
+    'zai-coding-plan': 'zai-coding-plan',
     bedrock: 'amazon-bedrock',
     ollama: 'ollama',
     openrouter: 'openrouter',
@@ -656,6 +657,16 @@ export async function syncApiKeysToOpenCodeAuth(): Promise<void> {
       auth['zai-coding-plan'] = { type: 'api', key: apiKeys.zai };
       updated = true;
       console.log('[OpenCode Auth] Synced Z.AI Coding Plan API key');
+    }
+  }
+
+  // Sync Z.AI Coding Plan (Global) API key (maps to 'zai-coding-plan' provider in OpenCode CLI)
+  // Takes priority over the Chinese zai key if both are present
+  if (apiKeys['zai-coding-plan']) {
+    if (!auth['zai-coding-plan'] || auth['zai-coding-plan'].key !== apiKeys['zai-coding-plan']) {
+      auth['zai-coding-plan'] = { type: 'api', key: apiKeys['zai-coding-plan'] };
+      updated = true;
+      console.log('[OpenCode Auth] Synced Z.AI Coding Plan (Global) API key');
     }
   }
 

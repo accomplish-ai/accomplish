@@ -94,7 +94,7 @@ import {
 } from '../test-utils/mock-task-flow';
 
 const MAX_TEXT_LENGTH = 8000;
-const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai', 'custom', 'bedrock', 'litellm']);
+const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai', 'zai-coding-plan', 'custom', 'bedrock', 'litellm']);
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
 
 interface OllamaModel {
@@ -935,6 +935,20 @@ export function registerIPCHandlers(): void {
         case 'zai':
           response = await fetchWithTimeout(
             'https://open.bigmodel.cn/api/paas/v4/models',
+            {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${sanitizedKey}`,
+              },
+            },
+            API_KEY_VALIDATION_TIMEOUT_MS
+          );
+          break;
+
+        // Z.AI Coding Plan (Global) uses the global API endpoint
+        case 'zai-coding-plan':
+          response = await fetchWithTimeout(
+            'https://api.z.ai/api/coding/paas/v4/models',
             {
               method: 'GET',
               headers: {

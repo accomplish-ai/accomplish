@@ -29,6 +29,7 @@ const PROVIDER_LOGOS: Record<string, string> = {
   xai: xaiLogo,
   deepseek: deepseekLogo,
   zai: zaiLogo,
+  'zai-coding-plan': zaiLogo,
 };
 
 interface ClassicProviderFormProps {

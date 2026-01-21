@@ -15,6 +15,7 @@ const PROVIDER_ORDER: ProviderId[] = [
   'bedrock',
   'deepseek',
   'zai',
+  'zai-coding-plan',
   'ollama',
   'xai',
   'openrouter',

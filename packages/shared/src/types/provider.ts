@@ -2,7 +2,7 @@
  * Provider and model configuration types for multi-provider support
  */
 
-export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'zai' | 'custom' | 'bedrock' | 'litellm';
+export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'zai' | 'zai-coding-plan' | 'custom' | 'bedrock' | 'litellm';
 
 export interface ProviderConfig {
   id: ProviderType;
@@ -258,6 +258,71 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
         fullId: 'zai/glm-4.5-flash',
         contextWindow: 128000,
         supportsVision: false,
+      },
+    ],
+  },
+  {
+    id: 'zai-coding-plan',
+    name: 'Z.AI Coding Plan',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'ZHIPU_API_KEY',
+    baseUrl: 'https://api.z.ai',
+    models: [
+      {
+        id: 'glm-4.7',
+        displayName: 'GLM-4.7',
+        provider: 'zai-coding-plan',
+        fullId: 'zai-coding-plan/glm-4.7',
+        contextWindow: 204800,
+        supportsVision: false,
+      },
+      {
+        id: 'glm-4.6',
+        displayName: 'GLM-4.6',
+        provider: 'zai-coding-plan',
+        fullId: 'zai-coding-plan/glm-4.6',
+        contextWindow: 204800,
+        supportsVision: false,
+      },
+      {
+        id: 'glm-4.6v',
+        displayName: 'GLM-4.6V',
+        provider: 'zai-coding-plan',
+        fullId: 'zai-coding-plan/glm-4.6v',
+        contextWindow: 128000,
+        supportsVision: true,
+      },
+      {
+        id: 'glm-4.5',
+        displayName: 'GLM-4.5',
+        provider: 'zai-coding-plan',
+        fullId: 'zai-coding-plan/glm-4.5',
+        contextWindow: 131072,
+        supportsVision: false,
+      },
+      {
+        id: 'glm-4.5-flash',
+        displayName: 'GLM-4.5 Flash',
+        provider: 'zai-coding-plan',
+        fullId: 'zai-coding-plan/glm-4.5-flash',
+        contextWindow: 131072,
+        supportsVision: false,
+      },
+      {
+        id: 'glm-4.5-air',
+        displayName: 'GLM-4.5 Air',
+        provider: 'zai-coding-plan',
+        fullId: 'zai-coding-plan/glm-4.5-air',
+        contextWindow: 131072,
+        supportsVision: false,
+      },
+      {
+        id: 'glm-4.5v',
+        displayName: 'GLM-4.5V',
+        provider: 'zai-coding-plan',
+        fullId: 'zai-coding-plan/glm-4.5v',
+        contextWindow: 64000,
+        supportsVision: true,
       },
     ],
   },

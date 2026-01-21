@@ -28,6 +28,7 @@ const PROVIDER_LOGOS: Record<ProviderId, string> = {
   xai: xaiLogo,
   deepseek: deepseekLogo,
   zai: zaiLogo,
+  'zai-coding-plan': zaiLogo,
   bedrock: bedrockLogo,
   ollama: ollamaLogo,
   openrouter: openrouterLogo,
