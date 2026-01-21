@@ -1,7 +1,9 @@
 // apps/desktop/src/renderer/components/settings/providers/BedrockProviderForm.tsx
 
 import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
+import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import type { ConnectedProvider, BedrockProviderCredentials } from '@accomplish/shared';
 import { getDefaultModelForProvider } from '@accomplish/shared';
 import {
@@ -119,136 +121,154 @@ export function BedrockProviderForm({
       <ProviderFormHeader logoSrc={bedrockLogo} providerName="Bedrock" />
 
       <div className="space-y-3">
-        {!isConnected ? (
-          <>
-            {/* Auth tabs */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setAuthTab('accessKey')}
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  authTab === 'accessKey'
-                    ? 'bg-[#4A7C59] text-white'
-                    : 'bg-muted text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Access Key
-              </button>
-              <button
-                onClick={() => setAuthTab('profile')}
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  authTab === 'profile'
-                    ? 'bg-[#4A7C59] text-white'
-                    : 'bg-muted text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                AWS Profile
-              </button>
-            </div>
-
-            {authTab === 'accessKey' ? (
-              <>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">Access Key ID</label>
-                  <input
-                    type="text"
-                    value={accessKeyId}
-                    onChange={(e) => setAccessKeyId(e.target.value)}
-                    placeholder="AKIA..."
-                    data-testid="bedrock-access-key-id"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">Secret Access Key</label>
-                  <input
-                    type="password"
-                    value={secretKey}
-                    onChange={(e) => setSecretKey(e.target.value)}
-                    placeholder="Enter secret access key"
-                    data-testid="bedrock-secret-key"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">
-                    Session Token <span className="text-muted-foreground">(Optional)</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={sessionToken}
-                    onChange={(e) => setSessionToken(e.target.value)}
-                    placeholder="For temporary credentials"
-                    data-testid="bedrock-session-token"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
-                  />
-                </div>
-              </>
-            ) : (
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Profile Name</label>
-                <input
-                  type="text"
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  placeholder="default"
-                  data-testid="bedrock-profile-name"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
-                />
+        <AnimatePresence mode="wait">
+          {!isConnected ? (
+            <motion.div
+              key="disconnected"
+              variants={settingsVariants.fadeSlide}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={settingsTransitions.enter}
+              className="space-y-3"
+            >
+              {/* Auth tabs */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setAuthTab('accessKey')}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    authTab === 'accessKey'
+                      ? 'bg-[#4A7C59] text-white'
+                      : 'bg-muted text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Access Key
+                </button>
+                <button
+                  onClick={() => setAuthTab('profile')}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    authTab === 'profile'
+                      ? 'bg-[#4A7C59] text-white'
+                      : 'bg-muted text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  AWS Profile
+                </button>
               </div>
-            )}
 
-            <RegionSelector value={region} onChange={setRegion} />
-
-            <FormError error={error} />
-            <ConnectButton onClick={handleConnect} connecting={connecting} />
-          </>
-        ) : (
-          <>
-            {/* Display saved credentials info */}
-            <div className="space-y-3">
-              {(connectedProvider?.credentials as BedrockProviderCredentials)?.authMethod === 'accessKey' ? (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">Access Key ID</label>
-                  <input
-                    type="text"
-                    value={(connectedProvider?.credentials as BedrockProviderCredentials)?.accessKeyIdPrefix || 'AKIA...'}
-                    disabled
-                    className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
-                  />
-                </div>
+              {authTab === 'accessKey' ? (
+                <>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground">Access Key ID</label>
+                    <input
+                      type="text"
+                      value={accessKeyId}
+                      onChange={(e) => setAccessKeyId(e.target.value)}
+                      placeholder="AKIA..."
+                      data-testid="bedrock-access-key-id"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground">Secret Access Key</label>
+                    <input
+                      type="password"
+                      value={secretKey}
+                      onChange={(e) => setSecretKey(e.target.value)}
+                      placeholder="Enter secret access key"
+                      data-testid="bedrock-secret-key"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground">
+                      Session Token <span className="text-muted-foreground">(Optional)</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={sessionToken}
+                      onChange={(e) => setSessionToken(e.target.value)}
+                      placeholder="For temporary credentials"
+                      data-testid="bedrock-session-token"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
+                    />
+                  </div>
+                </>
               ) : (
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">AWS Profile</label>
+                  <label className="mb-2 block text-sm font-medium text-foreground">Profile Name</label>
                   <input
                     type="text"
-                    value={(connectedProvider?.credentials as BedrockProviderCredentials)?.profileName || 'default'}
-                    disabled
-                    className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    placeholder="default"
+                    data-testid="bedrock-profile-name"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                   />
                 </div>
               )}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Region</label>
-                <input
-                  type="text"
-                  value={(connectedProvider?.credentials as BedrockProviderCredentials)?.region || 'us-east-1'}
-                  disabled
-                  className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
-                />
+
+              <RegionSelector value={region} onChange={setRegion} />
+
+              <FormError error={error} />
+              <ConnectButton onClick={handleConnect} connecting={connecting} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="connected"
+              variants={settingsVariants.fadeSlide}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={settingsTransitions.enter}
+              className="space-y-3"
+            >
+              {/* Display saved credentials info */}
+              <div className="space-y-3">
+                {(connectedProvider?.credentials as BedrockProviderCredentials)?.authMethod === 'accessKey' ? (
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground">Access Key ID</label>
+                    <input
+                      type="text"
+                      value={(connectedProvider?.credentials as BedrockProviderCredentials)?.accessKeyIdPrefix || 'AKIA...'}
+                      disabled
+                      className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground">AWS Profile</label>
+                    <input
+                      type="text"
+                      value={(connectedProvider?.credentials as BedrockProviderCredentials)?.profileName || 'default'}
+                      disabled
+                      className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-foreground">Region</label>
+                  <input
+                    type="text"
+                    value={(connectedProvider?.credentials as BedrockProviderCredentials)?.region || 'us-east-1'}
+                    disabled
+                    className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+                  />
+                </div>
               </div>
-            </div>
 
-            <ConnectedControls onDisconnect={onDisconnect} />
+              <ConnectedControls onDisconnect={onDisconnect} />
 
-            {/* Model Selector */}
-            <ModelSelector
-              models={models}
-              value={connectedProvider?.selectedModelId || null}
-              onChange={onModelChange}
-              error={showModelError && !connectedProvider?.selectedModelId}
-            />
-          </>
-        )}
+              {/* Model Selector */}
+              <ModelSelector
+                models={models}
+                value={connectedProvider?.selectedModelId || null}
+                onChange={onModelChange}
+                error={showModelError && !connectedProvider?.selectedModelId}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

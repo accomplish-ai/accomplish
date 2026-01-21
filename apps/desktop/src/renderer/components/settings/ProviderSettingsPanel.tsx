@@ -1,5 +1,6 @@
 // apps/desktop/src/renderer/components/settings/ProviderSettingsPanel.tsx
 
+import { AnimatePresence, motion } from 'framer-motion';
 import type { ProviderId, ConnectedProvider } from '@accomplish/shared';
 import { PROVIDER_META } from '@accomplish/shared';
 import {
@@ -10,6 +11,7 @@ import {
   OpenRouterProviderForm,
   LiteLLMProviderForm,
 } from './providers';
+import { settingsVariants, settingsTransitions } from '@/lib/animations';
 
 interface ProviderSettingsPanelProps {
   providerId: ProviderId;
@@ -109,7 +111,18 @@ export function ProviderSettingsPanel({
   // Different forms have different heights; this ensures consistent layout
   return (
     <div className="min-h-[260px]">
-      {renderForm()}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={providerId}
+          variants={settingsVariants.slideDown}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={settingsTransitions.enter}
+        >
+          {renderForm()}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

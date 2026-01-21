@@ -1,7 +1,9 @@
 // apps/desktop/src/renderer/components/settings/providers/OllamaProviderForm.tsx
 
 import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
+import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import type { ConnectedProvider, OllamaCredentials } from '@accomplish/shared';
 import {
   ModelSelector,
@@ -83,47 +85,65 @@ export function OllamaProviderForm({
       <ProviderFormHeader logoSrc={ollamaLogo} providerName="Ollama" />
 
       <div className="space-y-3">
-        {!isConnected ? (
-          <>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">Ollama Server URL</label>
-              <input
-                type="text"
-                value={serverUrl}
-                onChange={(e) => setServerUrl(e.target.value)}
-                placeholder="http://localhost:11434"
-                data-testid="ollama-server-url"
-                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
+        <AnimatePresence mode="wait">
+          {!isConnected ? (
+            <motion.div
+              key="disconnected"
+              variants={settingsVariants.fadeSlide}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={settingsTransitions.enter}
+              className="space-y-3"
+            >
+              <div>
+                <label className="mb-2 block text-sm font-medium text-foreground">Ollama Server URL</label>
+                <input
+                  type="text"
+                  value={serverUrl}
+                  onChange={(e) => setServerUrl(e.target.value)}
+                  placeholder="http://localhost:11434"
+                  data-testid="ollama-server-url"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
+                />
+              </div>
+
+              <FormError error={error} />
+              <ConnectButton onClick={handleConnect} connecting={connecting} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="connected"
+              variants={settingsVariants.fadeSlide}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={settingsTransitions.enter}
+              className="space-y-3"
+            >
+              {/* Display saved server URL */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-foreground">Ollama Server URL</label>
+                <input
+                  type="text"
+                  value={(connectedProvider?.credentials as OllamaCredentials)?.serverUrl || 'http://localhost:11434'}
+                  disabled
+                  className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+                />
+              </div>
+
+              <ConnectedControls onDisconnect={onDisconnect} />
+
+              {/* Model Selector */}
+              <ModelSelector
+                models={models}
+                value={connectedProvider?.selectedModelId || null}
+                onChange={onModelChange}
+                error={showModelError && !connectedProvider?.selectedModelId}
               />
-            </div>
-
-            <FormError error={error} />
-            <ConnectButton onClick={handleConnect} connecting={connecting} />
-          </>
-        ) : (
-          <>
-            {/* Display saved server URL */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">Ollama Server URL</label>
-              <input
-                type="text"
-                value={(connectedProvider?.credentials as OllamaCredentials)?.serverUrl || 'http://localhost:11434'}
-                disabled
-                className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
-              />
-            </div>
-
-            <ConnectedControls onDisconnect={onDisconnect} />
-
-            {/* Model Selector */}
-            <ModelSelector
-              models={models}
-              value={connectedProvider?.selectedModelId || null}
-              onChange={onModelChange}
-              error={showModelError && !connectedProvider?.selectedModelId}
-            />
-          </>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

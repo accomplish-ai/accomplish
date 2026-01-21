@@ -1,6 +1,8 @@
 // apps/desktop/src/renderer/components/settings/shared/ModelSelector.tsx
 
 import { useState, useRef, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { settingsVariants, settingsTransitions } from '@/lib/animations';
 
 interface Model {
   id: string;
@@ -124,45 +126,55 @@ export function ModelSelector({
           </svg>
         </button>
 
-        {isOpen && (
-          <div className="absolute z-50 w-full mt-1 rounded-md border border-input bg-background shadow-lg">
-            {/* Search input */}
-            <div className="p-2 border-b border-input">
-              <input
-                ref={inputRef}
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search models..."
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              className="absolute z-50 w-full mt-1 rounded-md border border-input bg-background shadow-lg"
+              variants={settingsVariants.scaleDropdown}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={settingsTransitions.fast}
+              style={{ transformOrigin: 'top' }}
+            >
+              {/* Search input */}
+              <div className="p-2 border-b border-input">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search models..."
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
 
-            {/* Model list */}
-            <div className="max-h-60 overflow-y-auto">
-              {filteredModels.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-muted-foreground">No models found</div>
-              ) : (
-                filteredModels.map((model) => (
-                  <button
-                    key={model.id}
-                    type="button"
-                    onClick={() => {
-                      onChange(model.id);
-                      setIsOpen(false);
-                      setSearch('');
-                    }}
-                    className={`w-full px-3 py-2 text-sm text-left hover:bg-muted ${
-                      model.id === value ? 'bg-muted font-medium' : ''
-                    }`}
-                  >
-                    {model.name}
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        )}
+              {/* Model list */}
+              <div className="max-h-60 overflow-y-auto">
+                {filteredModels.length === 0 ? (
+                  <div className="px-3 py-2 text-sm text-muted-foreground">No models found</div>
+                ) : (
+                  filteredModels.map((model) => (
+                    <button
+                      key={model.id}
+                      type="button"
+                      onClick={() => {
+                        onChange(model.id);
+                        setIsOpen(false);
+                        setSearch('');
+                      }}
+                      className={`w-full px-3 py-2 text-sm text-left hover:bg-muted ${
+                        model.id === value ? 'bg-muted font-medium' : ''
+                      }`}
+                    >
+                      {model.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
       {error && !value && (
         <p className="mt-2 text-sm text-destructive" data-testid="model-selector-error">{errorMessage}</p>

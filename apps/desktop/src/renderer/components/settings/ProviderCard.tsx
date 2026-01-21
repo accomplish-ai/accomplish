@@ -3,6 +3,8 @@
 import { memo, useCallback } from 'react';
 import type { ProviderId, ConnectedProvider } from '@accomplish/shared';
 import { PROVIDER_META, isProviderReady } from '@accomplish/shared';
+import { AnimatePresence, motion } from 'framer-motion';
+import { settingsVariants, settingsTransitions } from '@/lib/animations';
 
 // Import provider logos
 import anthropicLogo from '/assets/ai-logos/anthropic.svg';
@@ -78,16 +80,26 @@ export const ProviderCard = memo(function ProviderCard({
       }`}
     >
       {/* Connection status badge - always green when connected */}
-      {isConnected && (
-        <div className="absolute top-2 right-2" data-testid={`provider-connected-badge-${providerId}`}>
-          <img
-            src={connectedKeyIcon}
-            alt={providerReady ? "Ready" : "Connected"}
-            className="h-5 w-5"
-            title={providerReady ? undefined : "Select a model to complete setup"}
-          />
-        </div>
-      )}
+      <AnimatePresence>
+        {isConnected && (
+          <motion.div
+            className="absolute top-2 right-2"
+            data-testid={`provider-connected-badge-${providerId}`}
+            variants={settingsVariants.fadeSlide}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={settingsTransitions.enter}
+          >
+            <img
+              src={connectedKeyIcon}
+              alt={providerReady ? "Ready" : "Connected"}
+              className="h-5 w-5"
+              title={providerReady ? undefined : "Select a model to complete setup"}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Provider Logo */}
       <div className="mb-2 h-10 w-10 flex items-center justify-center">

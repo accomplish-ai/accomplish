@@ -79,16 +79,28 @@ vi.mock('@/lib/accomplish', () => ({
 }));
 
 // Mock framer-motion to simplify testing animations
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => {
+vi.mock('framer-motion', () => {
+  // Helper to create a motion component mock that filters out motion-specific props
+  const createMotionMock = (Element: string) => {
+    return ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown }) => {
       // Filter out motion-specific props
-      const { initial, animate, exit, transition, variants, whileHover, ...domProps } = props;
-      return <div {...domProps}>{children}</div>;
+      const { initial, animate, exit, transition, variants, whileHover, whileTap, layout, layoutId, ...domProps } = props;
+      const Component = Element as keyof JSX.IntrinsicElements;
+      return <Component {...domProps}>{children}</Component>;
+    };
+  };
+
+  return {
+    motion: {
+      div: createMotionMock('div'),
+      section: createMotionMock('section'),
+      p: createMotionMock('p'),
+      span: createMotionMock('span'),
+      button: createMotionMock('button'),
     },
-  },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+    AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  };
+});
 
 // Mock Radix Dialog to simplify testing
 vi.mock('@radix-ui/react-dialog', () => ({

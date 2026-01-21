@@ -722,6 +722,9 @@ test.describe('Settings Dialog', () => {
       await closeAnyway.click();
     }
 
+    // Wait for dialog to fully close (including animation)
+    await expect(settingsPage.settingsDialog).not.toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+
     // Step 3: Start a task
     await homePage.enterTask(TEST_SCENARIOS.SUCCESS.keyword);
     await homePage.submitTask();

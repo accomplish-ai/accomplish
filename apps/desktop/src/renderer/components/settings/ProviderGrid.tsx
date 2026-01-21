@@ -1,9 +1,11 @@
 // apps/desktop/src/renderer/components/settings/ProviderGrid.tsx
 
 import { useState, useMemo, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { ProviderId, ProviderSettings } from '@accomplish/shared';
 import { PROVIDER_META } from '@accomplish/shared';
 import { ProviderCard } from './ProviderCard';
+import { settingsVariants, settingsTransitions } from '@/lib/animations';
 
 // Provider order matching Figma design (4 columns per row)
 const PROVIDER_ORDER: ProviderId[] = [
@@ -76,36 +78,49 @@ export function ProviderGrid({
         </div>
       </div>
 
-      {/* Providers - min-h prevents layout shift when switching between providers */}
-      {expanded ? (
-        /* Expanded: show all in grid with min-height to prevent flickering */
-        <div className="grid grid-cols-4 gap-3 min-h-[280px] justify-items-center">
-          {filteredProviders.map(providerId => (
-            <ProviderCard
-              key={providerId}
-              providerId={providerId}
-              connectedProvider={settings?.connectedProviders?.[providerId]}
-              isActive={settings?.activeProviderId === providerId}
-              isSelected={selectedProvider === providerId}
-              onSelect={onSelectProvider}
-            />
-          ))}
-        </div>
-      ) : (
-        /* Collapsed: single row, 4 providers */
-        <div className="grid grid-cols-4 gap-3 justify-items-center">
-          {filteredProviders.slice(0, 4).map(providerId => (
-            <ProviderCard
-              key={providerId}
-              providerId={providerId}
-              connectedProvider={settings?.connectedProviders?.[providerId]}
-              isActive={settings?.activeProviderId === providerId}
-              isSelected={selectedProvider === providerId}
-              onSelect={onSelectProvider}
-            />
-          ))}
-        </div>
-      )}
+      {/* Providers - first 4 always visible */}
+      <div className="grid grid-cols-4 gap-3 min-h-[110px] justify-items-center">
+        {filteredProviders.slice(0, 4).map(providerId => (
+          <ProviderCard
+            key={providerId}
+            providerId={providerId}
+            connectedProvider={settings?.connectedProviders?.[providerId]}
+            isActive={settings?.activeProviderId === providerId}
+            isSelected={selectedProvider === providerId}
+            onSelect={onSelectProvider}
+          />
+        ))}
+      </div>
+
+      {/* Expanded providers (5-10) with staggered animation */}
+      <AnimatePresence mode="sync">
+        {expanded && filteredProviders.length > 4 && (
+          <motion.div
+            className="grid grid-cols-4 gap-3 mt-3 justify-items-center overflow-hidden"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+          >
+            {filteredProviders.slice(4).map((providerId, index) => (
+              <motion.div
+                key={providerId}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.15, delay: index * 0.03 }}
+              >
+                <ProviderCard
+                  providerId={providerId}
+                  connectedProvider={settings?.connectedProviders?.[providerId]}
+                  isActive={settings?.activeProviderId === providerId}
+                  isSelected={selectedProvider === providerId}
+                  onSelect={onSelectProvider}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Show All / Hide toggle */}
       <div className="mt-4 text-center border-t border-border pt-3">
