@@ -2,7 +2,7 @@ diff --git a/dist/browser.js b/dist/browser.js
 index 1111111..2222222 100644
 --- a/dist/browser.js
 +++ b/dist/browser.js
-@@ -481,6 +481,51 @@ class Browser {
+@@ -481,6 +481,39 @@ class Browser {
          return tabs;
      }
      /**
@@ -14,40 +14,29 @@ index 1111111..2222222 100644
 +            return;
 +        }
 +        try {
-+            // Connect to existing browser via CDP
 +            this.browser = await chromium.connectOverCDP(wsEndpoint);
 +        }
 +        catch (error) {
 +            throw new Error(`Failed to connect to CDP endpoint ${wsEndpoint}. ` +
 +                `Ensure dev-browser server is running. Original error: ${error}`);
 +        }
-+        // Get existing contexts and pages
++        // Get existing context (preserves cookies/login) or create new one
 +        const contexts = this.browser.contexts();
++        let context;
 +        if (contexts.length > 0) {
-+            this.contexts.push(contexts[0]);
-+            const pages = contexts[0].pages();
-+            if (pages.length > 0) {
-+                this.pages.push(pages[0]);
-+                this.setupPageTracking(pages[0]);
-+            }
-+            else {
-+                // No existing page, create one
-+                const page = await contexts[0].newPage();
-+                this.pages.push(page);
-+                this.setupPageTracking(page);
-+            }
++            context = contexts[0];
 +        }
 +        else {
-+            // No existing context, create one
-+            const context = await this.browser.newContext({
++            context = await this.browser.newContext({
 +                viewport: { width: 1280, height: 720 },
 +            });
 +            context.setDefaultTimeout(10000);
-+            this.contexts.push(context);
-+            const page = await context.newPage();
-+            this.pages.push(page);
-+            this.setupPageTracking(page);
 +        }
++        this.contexts.push(context);
++        // ALWAYS create a new page for this session (task isolation)
++        const page = await context.newPage();
++        this.pages.push(page);
++        this.setupPageTracking(page);
 +        this.activePageIndex = 0;
 +    }
 +    /**
@@ -78,7 +67,7 @@ diff --git a/src/browser.ts b/src/browser.ts
 index 5555555..6666666 100644
 --- a/src/browser.ts
 +++ b/src/browser.ts
-@@ -590,6 +590,54 @@ export class Browser {
+@@ -590,6 +590,42 @@ export class Browser {
        }))
      );
      return tabs;
@@ -94,7 +83,6 @@ index 5555555..6666666 100644
 +    }
 +
 +    try {
-+      // Connect to existing browser via CDP
 +      this.browser = await chromium.connectOverCDP(wsEndpoint);
 +    } catch (error) {
 +      throw new Error(
@@ -103,32 +91,24 @@ index 5555555..6666666 100644
 +      );
 +    }
 +
-+    // Get existing contexts and pages
++    // Get existing context (preserves cookies/login) or create new one
 +    const contexts = this.browser.contexts();
++    let context: BrowserContext;
++
 +    if (contexts.length > 0) {
-+      this.contexts.push(contexts[0]);
-+      const pages = contexts[0].pages();
-+      if (pages.length > 0) {
-+        this.pages.push(pages[0]);
-+        this.setupPageTracking(pages[0]);
-+      } else {
-+        // No existing page, create one
-+        const page = await contexts[0].newPage();
-+        this.pages.push(page);
-+        this.setupPageTracking(page);
-+      }
++      context = contexts[0];
 +    } else {
-+      // No existing context, create one
-+      const context = await this.browser.newContext({
++      context = await this.browser.newContext({
 +        viewport: { width: 1280, height: 720 },
 +      });
 +      context.setDefaultTimeout(10000);
-+      this.contexts.push(context);
-+      const page = await context.newPage();
-+      this.pages.push(page);
-+      this.setupPageTracking(page);
 +    }
++    this.contexts.push(context);
 +
++    // ALWAYS create a new page for this session (task isolation)
++    const page = await context.newPage();
++    this.pages.push(page);
++    this.setupPageTracking(page);
 +    this.activePageIndex = 0;
    }
 

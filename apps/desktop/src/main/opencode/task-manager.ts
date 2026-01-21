@@ -244,18 +244,22 @@ async function ensureDevBrowserServer(
 
     console.log('[TaskManager] Dev-browser server spawn initiated');
 
-    // On Windows, wait for the server to be ready before proceeding
-    // (On macOS, the server starts faster and the MCP has its own retry logic)
-    if (process.platform === 'win32') {
-      console.log('[TaskManager] Waiting for dev-browser server to be ready (Windows)...');
-      await waitForDevBrowserServer();
-    }
+    // Wait for the server to be ready and get the CDP endpoint
+    console.log('[TaskManager] Waiting for dev-browser server to be ready...');
+    await waitForDevBrowserServer();
 
-    // Set CDP endpoint for agent-browser CLI commands
-    // The agent runs commands via Bash which inherits this environment
-    // DEV_BROWSER_PORT is HTTP (9224), the relay WebSocket is at /cdp on the HTTP port
-    process.env.AGENT_BROWSER_CDP_ENDPOINT = `ws://localhost:${DEV_BROWSER_PORT}/cdp`;
-    console.log('[TaskManager] Set AGENT_BROWSER_CDP_ENDPOINT for agent-browser CLI');
+    // Fetch the dynamic wsEndpoint from the server (includes Chrome's session GUID)
+    try {
+      const response = await fetch(`http://localhost:${DEV_BROWSER_PORT}/`);
+      const data = (await response.json()) as { wsEndpoint: string };
+      process.env.AGENT_BROWSER_CDP_ENDPOINT = data.wsEndpoint;
+      console.log('[TaskManager] Set AGENT_BROWSER_CDP_ENDPOINT:', data.wsEndpoint);
+    } catch (fetchError) {
+      console.error('[TaskManager] Failed to fetch wsEndpoint:', fetchError);
+      // Fallback to direct Chrome CDP port (may not work without GUID)
+      process.env.AGENT_BROWSER_CDP_ENDPOINT = `ws://localhost:${DEV_BROWSER_PORT + 1}`;
+      console.log('[TaskManager] Using fallback AGENT_BROWSER_CDP_ENDPOINT');
+    }
   } catch (error) {
     console.error('[TaskManager] Failed to start dev-browser server:', error);
   }
@@ -469,6 +473,9 @@ export class TaskManager {
       try {
         // Ensure browser is available (may download Playwright if needed)
         await ensureDevBrowserServer(callbacks.onProgress);
+
+        // Set the agent browser session ID for browser isolation
+        process.env.AGENT_BROWSER_SESSION = taskId;
 
         // Now start the agent
         await adapter.startTask({ ...config, taskId });
