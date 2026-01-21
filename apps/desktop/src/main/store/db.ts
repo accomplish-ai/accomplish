@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import { runMigrations } from './migrations';
 
 let _db: Database.Database | null = null;
 
@@ -69,4 +70,15 @@ export function resetDatabase(): void {
  */
 export function databaseExists(): boolean {
   return fs.existsSync(getDatabasePath());
+}
+
+/**
+ * Initialize the database and run migrations.
+ * Call this on app startup before any database access.
+ * Throws FutureSchemaError if the database is from a newer app version.
+ */
+export function initializeDatabase(): void {
+  const db = getDatabase();
+  runMigrations(db);
+  console.log('[DB] Database initialized and migrations complete');
 }
