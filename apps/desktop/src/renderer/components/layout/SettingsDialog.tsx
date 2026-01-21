@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { analytics } from '@/lib/analytics';
 import { getAccomplish } from '@/lib/accomplish';
+import { changeLanguage, getLanguagePreference } from '@/i18n';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   const [gridExpanded, setGridExpanded] = useState(false);
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
+  const [language, setLanguageState] = useState<'en' | 'zh-CN' | 'auto'>('auto');
 
   const {
     settings,
@@ -54,6 +56,8 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
     refetch();
     // Load debug mode from appSettings (correct store)
     accomplish.getDebugMode().then(setDebugModeState);
+    // Load language preference
+    getLanguagePreference().then(setLanguageState);
   }, [open, refetch, accomplish]);
 
   // Auto-select active provider and expand grid if needed when dialog opens
@@ -163,6 +167,12 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
     setDebugModeState(newValue);
     analytics.trackToggleDebugMode(newValue);
   }, [debugMode, accomplish]);
+
+  // Handle language change
+  const handleLanguageChange = useCallback(async (newLanguage: 'en' | 'zh-CN' | 'auto') => {
+    setLanguageState(newLanguage);
+    await changeLanguage(newLanguage);
+  }, []);
 
   // Handle done button (close with validation)
   const handleDone = useCallback(() => {
@@ -349,6 +359,32 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
               </motion.section>
             )}
           </AnimatePresence>
+
+          {/* Language Settings Section - always visible */}
+          <section>
+            <div className="rounded-lg border border-border bg-card p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="font-medium text-foreground">{t('language.title')}</div>
+                  <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                    {t('language.description')}
+                  </p>
+                </div>
+                <div className="ml-4">
+                  <select
+                    value={language}
+                    onChange={(e) => handleLanguageChange(e.target.value as 'en' | 'zh-CN' | 'auto')}
+                    className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    data-testid="language-select"
+                  >
+                    <option value="auto">{t('language.auto')}</option>
+                    <option value="en">{t('language.en')}</option>
+                    <option value="zh-CN">{t('language.zhCN')}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </section>
 
           {/* Done Button */}
           <div className="flex justify-end">
