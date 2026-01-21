@@ -218,7 +218,10 @@ When to call \`complete_task\`:
    - Check off each requirement mentally
    - Summarize what you did for each part
 
-2. **status: "blocked"** - You hit an unresolvable blocker
+2. **status: "blocked"** - You hit an unresolvable TECHNICAL blocker
+   - Only use for: login walls, CAPTCHAs, rate limits, site errors, missing permissions
+   - NOT for: "task is large", "many items to check", "would take many steps"
+   - If the task is big but doable, KEEP WORKING - do not use blocked as an excuse to quit
    - Explain what you were trying to do
    - Describe what went wrong
    - State what remains undone in \`remaining_work\`
