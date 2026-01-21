@@ -801,6 +801,36 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.currentTaskId = null;
   }
 
+  /**
+   * Inject a continuation prompt when agent stops without calling complete_task
+   */
+  private injectContinuationPrompt(): void {
+    if (!this.ptyProcess) {
+      console.warn('[OpenCode Adapter] Cannot inject continuation - no active process');
+      return;
+    }
+
+    const continuationMessage = `You stopped without calling the complete_task tool.
+
+Review the original request: Did you complete ALL parts of what was asked?
+
+- If YES: Call complete_task with status "success" and summarize what you did
+- If NO and you can continue: Keep working on the remaining parts
+- If NO and you're blocked: Call complete_task with status "blocked" and explain why
+
+Do not stop again without calling complete_task.`;
+
+    // Send as user input to the PTY
+    this.ptyProcess.write(continuationMessage + '\n');
+
+    this.emit('debug', {
+      type: 'continuation',
+      message: `Injected continuation prompt (attempt ${this.continuationAttempts})`,
+    });
+
+    console.log(`[OpenCode Adapter] Injected continuation prompt (attempt ${this.continuationAttempts})`);
+  }
+
   private generateTaskId(): string {
     return `task_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
