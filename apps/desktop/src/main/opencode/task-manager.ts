@@ -81,7 +81,7 @@ async function installPlaywrightChromium(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const skillsPath = getSkillsPath();
-    const devBrowserDir = path.join(skillsPath, 'dev-browser');
+    const browserDir = path.join(skillsPath, 'browser');
 
     // Use bundled npx for packaged app compatibility
     const npxPath = getNpxPath();
@@ -98,7 +98,7 @@ async function installPlaywrightChromium(
     }
 
     const child = spawn(npxPath, ['playwright', 'install', 'chromium'], {
-      cwd: devBrowserDir,
+      cwd: browserDir,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: spawnEnv,
       shell: process.platform === 'win32',
@@ -141,9 +141,9 @@ async function installPlaywrightChromium(
 // DEV_BROWSER_PORT imported from @accomplish/shared
 
 /**
- * Check if the dev-browser server is running and ready
+ * Check if the browser server is running and ready
  */
-async function isDevBrowserServerReady(): Promise<boolean> {
+async function isBrowserServerReady(): Promise<boolean> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 1000);
@@ -158,28 +158,28 @@ async function isDevBrowserServerReady(): Promise<boolean> {
 }
 
 /**
- * Wait for the dev-browser server to be ready with polling
+ * Wait for the browser server to be ready with polling
  */
-async function waitForDevBrowserServer(maxWaitMs = 15000, pollIntervalMs = 500): Promise<boolean> {
+async function waitForBrowserServer(maxWaitMs = 15000, pollIntervalMs = 500): Promise<boolean> {
   const startTime = Date.now();
   while (Date.now() - startTime < maxWaitMs) {
-    if (await isDevBrowserServerReady()) {
-      console.log('[TaskManager] Dev-browser server is ready');
+    if (await isBrowserServerReady()) {
+      console.log('[TaskManager] Browser server is ready');
       return true;
     }
     await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
   }
-  console.log('[TaskManager] Dev-browser server not ready after waiting');
+  console.log('[TaskManager] Browser server not ready after waiting');
   return false;
 }
 
 /**
- * Ensure the dev-browser server is running.
+ * Ensure the browser server is running.
  * Called before starting tasks to pre-warm the browser.
  *
  * If neither system Chrome nor Playwright is installed, downloads Playwright first.
  */
-async function ensureDevBrowserServer(
+async function ensureBrowserServer(
   onProgress?: (progress: { stage: string; message?: string }) => void
 ): Promise<void> {
   // Check if we have a browser available
@@ -208,8 +208,8 @@ async function ensureDevBrowserServer(
 
   // Check if server is already running (skip on macOS to avoid Local Network permission dialog)
   if (process.platform !== 'darwin') {
-    if (await isDevBrowserServerReady()) {
-      console.log('[TaskManager] Dev-browser server already running');
+    if (await isBrowserServerReady()) {
+      console.log('[TaskManager] Browser server already running');
       return;
     }
   }
@@ -217,10 +217,12 @@ async function ensureDevBrowserServer(
   // Now start the server
   try {
     const skillsPath = getSkillsPath();
-    const serverScript = path.join(skillsPath, 'dev-browser', 'server.cjs');
+    const browserDir = path.join(skillsPath, 'browser');
+    const serverScript = path.join(browserDir, 'src', 'index.ts');
 
     // Build environment with bundled Node.js in PATH
     const bundledPaths = getBundledNodePaths();
+    const npxPath = getNpxPath();
     let spawnEnv: NodeJS.ProcessEnv = { ...process.env };
     if (bundledPaths) {
       const delimiter = process.platform === 'win32' ? ';' : ':';
@@ -228,30 +230,28 @@ async function ensureDevBrowserServer(
       spawnEnv.NODE_BIN_PATH = bundledPaths.binDir;
     }
 
-    // Get node executable path
-    const nodeExe = bundledPaths?.nodePath || 'node';
-
-    // Spawn server in background (detached, unref to not block)
+    // Spawn server using npx tsx (detached, unref to not block)
     // windowsHide: true prevents a console window from appearing on Windows
-    const child = spawn(nodeExe, [serverScript], {
+    const child = spawn(npxPath, ['tsx', serverScript], {
       detached: true,
       stdio: 'ignore',
-      cwd: path.join(skillsPath, 'dev-browser'),
+      cwd: browserDir,
       env: spawnEnv,
       windowsHide: true,
+      shell: process.platform === 'win32',
     });
     child.unref();
 
-    console.log('[TaskManager] Dev-browser server spawn initiated');
+    console.log('[TaskManager] Browser server spawn initiated');
 
     // On Windows, wait for the server to be ready before proceeding
     // (On macOS, the server starts faster and the MCP has its own retry logic)
     if (process.platform === 'win32') {
-      console.log('[TaskManager] Waiting for dev-browser server to be ready (Windows)...');
-      await waitForDevBrowserServer();
+      console.log('[TaskManager] Waiting for browser server to be ready (Windows)...');
+      await waitForBrowserServer();
     }
   } catch (error) {
-    console.error('[TaskManager] Failed to start dev-browser server:', error);
+    console.error('[TaskManager] Failed to start browser server:', error);
   }
 }
 
@@ -462,7 +462,7 @@ export class TaskManager {
     (async () => {
       try {
         // Ensure browser is available (may download Playwright if needed)
-        await ensureDevBrowserServer(callbacks.onProgress);
+        await ensureBrowserServer(callbacks.onProgress);
 
         // Now start the agent
         await adapter.startTask({ ...config, taskId });

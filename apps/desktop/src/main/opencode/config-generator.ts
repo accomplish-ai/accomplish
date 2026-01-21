@@ -15,9 +15,7 @@ export const ACCOMPLISH_AGENT_NAME = 'accomplish';
 /**
  * System prompt for the Accomplish agent.
  *
- * Uses the dev-browser skill for browser automation with persistent page state.
- *
- * @see https://github.com/SawyerHood/dev-browser
+ * Uses browser automation with persistent page state.
  */
 /**
  * Get the skills directory path (contains MCP servers and SKILL.md files)
@@ -146,7 +144,7 @@ See the ask-user-question skill for full documentation and examples.
 
 <behavior>
 - Use AskUserQuestion tool for clarifying questions before starting ambiguous tasks
-- Use MCP tools directly - browser_navigate, browser_snapshot, browser_click, browser_type, browser_screenshot, browser_sequence
+- Use MCP tools directly - browser_open, browser_snapshot, browser_click, browser_type, browser_fill, browser_press, browser_screenshot
 - **NEVER use shell commands (open, xdg-open, start, subprocess, webbrowser) to open browsers or URLs** - these open the user's default browser, not the automation-controlled Chrome. ALL browser operations MUST use browser_* MCP tools.
 
 **BROWSER ACTION VERBOSITY - Be descriptive about web interactions:**
@@ -164,7 +162,7 @@ Example bad narration (too terse):
 "Done." or "Navigated." or "Clicked."
 
 - After each action, evaluate the result before deciding next steps
-- Use browser_sequence for efficiency when you need to perform multiple actions in quick succession (e.g., filling a form with multiple fields)
+- Use browser_fill for faster form filling when you don't need to simulate keystrokes
 - Don't announce server checks or startup - proceed directly to the task
 - Only use AskUserQuestion when you genuinely need user input or decisions
 
@@ -543,7 +541,7 @@ export async function generateOpenCodeConfig(): Promise<string> {
     provider: Object.keys(providerConfig).length > 0 ? providerConfig : undefined,
     agent: {
       [ACCOMPLISH_AGENT_NAME]: {
-        description: 'Browser automation assistant using dev-browser',
+        description: 'Browser automation assistant',
         prompt: systemPrompt,
         mode: 'primary',
       },
@@ -568,9 +566,9 @@ export async function generateOpenCodeConfig(): Promise<string> {
         },
         timeout: 10000,
       },
-      'dev-browser-mcp': {
+      'browser-mcp': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts')],
+        command: ['npx', 'tsx', path.join(skillsPath, 'browser-mcp', 'src', 'index.ts')],
         enabled: true,
         timeout: 30000,  // Longer timeout for browser operations
       },

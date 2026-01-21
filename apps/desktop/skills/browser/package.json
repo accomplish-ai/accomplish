@@ -1,0 +1,19 @@
+{
+  "name": "browser",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "npx tsx src/index.ts",
+    "dev": "npx tsx --watch src/index.ts"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "playwright": "npm:rebrowser-playwright@^1.52.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0"
+  }
+}
