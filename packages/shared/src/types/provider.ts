@@ -2,6 +2,13 @@
  * Provider and model configuration types for multi-provider support
  */
 
+import type { ZaiRegion } from './providerSettings';
+
+export const ZAI_ENDPOINTS: Record<ZaiRegion, string> = {
+  china: 'https://open.bigmodel.cn/api/paas/v4',
+  international: 'https://api.z.ai/api/coding/paas/v4',
+};
+
 export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'zai' | 'custom' | 'bedrock' | 'litellm';
 
 export interface ProviderConfig {
