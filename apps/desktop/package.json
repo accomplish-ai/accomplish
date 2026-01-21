@@ -105,6 +105,7 @@
       "dist/**/*",
       "dist-electron/**/*",
       "node_modules/opencode-ai/**",
+      "node_modules/agent-browser/**",
       "node_modules/node-pty/**",
       "node_modules/electron-store/**",
       "node_modules/conf/**",
@@ -121,6 +122,8 @@
       "node_modules/opencode-ai/bin/opencode",
       "node_modules/opencode-ai/bin/opencode.exe",
       "node_modules/opencode-ai/package.json",
+      "node_modules/agent-browser/bin/**",
+      "node_modules/agent-browser/package.json",
       "node_modules/node-pty/build/**/*.node",
       "node_modules/node-pty/package.json",
       "dist-electron/main/mcp/*.js"
