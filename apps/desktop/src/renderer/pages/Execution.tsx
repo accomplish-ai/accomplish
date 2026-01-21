@@ -112,6 +112,10 @@ export default function ExecutionPage() {
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [pendingFollowUp, setPendingFollowUp] = useState<string | null>(null);
 
+  // Scroll behavior state
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+
   const {
     currentTask,
     loadTaskById,
@@ -138,6 +142,16 @@ export default function ExecutionPage() {
       }, 100),
     []
   );
+
+  // Handle scroll events to track if user is at bottom
+  const handleScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const threshold = 150; // pixels from bottom to consider "at bottom" - larger value means button only appears after scrolling up more
+    const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
+    setIsAtBottom(atBottom);
+  }, []);
 
   // Load debug mode setting on mount and subscribe to changes
   useEffect(() => {
@@ -232,10 +246,12 @@ export default function ExecutionPage() {
     }
   }, [currentTask?.status]);
 
-  // Auto-scroll to bottom (debounced for performance)
+  // Auto-scroll to bottom only if user is at bottom (debounced for performance)
   useEffect(() => {
-    scrollToBottom();
-  }, [currentTask?.messages?.length, scrollToBottom]);
+    if (isAtBottom) {
+      scrollToBottom();
+    }
+  }, [currentTask?.messages?.length, scrollToBottom, isAtBottom]);
 
   // Auto-scroll debug panel when new logs arrive
   useEffect(() => {
@@ -603,7 +619,7 @@ export default function ExecutionPage() {
 
       {/* Messages - normal state (running, completed, failed, etc.) */}
       {currentTask.status !== 'queued' && (
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="flex-1 overflow-y-auto px-6 py-6" ref={scrollContainerRef} onScroll={handleScroll} data-testid="messages-scroll-container">
           <div className="max-w-4xl mx-auto space-y-4">
             {currentTask.messages
               .filter((m) => !(m.type === 'tool' && m.toolName?.toLowerCase() === 'bash'))
@@ -667,6 +683,28 @@ export default function ExecutionPage() {
             </AnimatePresence>
 
             <div ref={messagesEndRef} />
+
+            {/* Sticky scroll-to-bottom button - stays at bottom of viewport when scrolled up */}
+            <AnimatePresence>
+              {!isAtBottom && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={springs.gentle}
+                  className="sticky bottom-4 flex justify-center pointer-events-none"
+                >
+                  <button
+                    onClick={scrollToBottom}
+                    className="h-8 w-8 rounded-full bg-muted hover:bg-muted/80 border border-border shadow-md flex items-center justify-center transition-colors pointer-events-auto"
+                    aria-label="Scroll to bottom"
+                    data-testid="scroll-to-bottom-button"
+                  >
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       )}

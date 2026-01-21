@@ -526,6 +526,160 @@ test.describe('Execution Page', () => {
     }
   });
 
+  test('should show scroll-to-bottom button when scrolled up', async ({ window }) => {
+    const homePage = new HomePage(window);
+    const executionPage = new ExecutionPage(window);
+
+    await window.waitForLoadState('domcontentloaded');
+
+    // Start a task to generate messages
+    await homePage.enterTask(TEST_SCENARIOS.WITH_TOOL.keyword);
+    await homePage.submitTask();
+
+    // Wait for navigation and task completion
+    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await executionPage.waitForComplete();
+
+    // Get the scroll container
+    const scrollContainer = executionPage.messagesScrollContainer;
+    await scrollContainer.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
+
+    // Scroll to top to simulate user scrolling up
+    await scrollContainer.evaluate((el) => {
+      el.scrollTop = 0;
+    });
+
+    // Wait for scroll state to update
+    await window.waitForTimeout(TEST_TIMEOUTS.STATE_UPDATE);
+
+    // Check if the container is scrollable (has content taller than viewport)
+    const isScrollable = await scrollContainer.evaluate((el) => {
+      return el.scrollHeight > el.clientHeight;
+    });
+
+    if (isScrollable) {
+      // Scroll-to-bottom button should be visible when scrolled up
+      await expect(executionPage.scrollToBottomButton).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+
+      // Capture screenshot
+      await captureForAI(
+        window,
+        'execution-scroll',
+        'scroll-button-visible',
+        [
+          'Scroll-to-bottom button is visible',
+          'User is scrolled up from bottom',
+          'Button appears inline after messages',
+        ]
+      );
+    }
+  });
+
+  test('should hide scroll-to-bottom button when at bottom', async ({ window }) => {
+    const homePage = new HomePage(window);
+    const executionPage = new ExecutionPage(window);
+
+    await window.waitForLoadState('domcontentloaded');
+
+    // Start a task to generate messages
+    await homePage.enterTask(TEST_SCENARIOS.WITH_TOOL.keyword);
+    await homePage.submitTask();
+
+    // Wait for navigation and task completion
+    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await executionPage.waitForComplete();
+
+    // Get the scroll container
+    const scrollContainer = executionPage.messagesScrollContainer;
+    await scrollContainer.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
+
+    // Scroll to bottom
+    await scrollContainer.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+
+    // Wait for scroll state to update
+    await window.waitForTimeout(TEST_TIMEOUTS.STATE_UPDATE);
+
+    // Scroll-to-bottom button should NOT be visible when at bottom
+    await expect(executionPage.scrollToBottomButton).not.toBeVisible({ timeout: TEST_TIMEOUTS.STATE_UPDATE });
+
+    // Capture screenshot
+    await captureForAI(
+      window,
+      'execution-scroll',
+      'scroll-button-hidden',
+      [
+        'Scroll-to-bottom button is hidden',
+        'User is at bottom of messages',
+        'Normal message view without scroll indicator',
+      ]
+    );
+  });
+
+  test('should scroll to bottom when clicking scroll-to-bottom button', async ({ window }) => {
+    const homePage = new HomePage(window);
+    const executionPage = new ExecutionPage(window);
+
+    await window.waitForLoadState('domcontentloaded');
+
+    // Start a task to generate messages
+    await homePage.enterTask(TEST_SCENARIOS.WITH_TOOL.keyword);
+    await homePage.submitTask();
+
+    // Wait for navigation and task completion
+    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await executionPage.waitForComplete();
+
+    // Get the scroll container
+    const scrollContainer = executionPage.messagesScrollContainer;
+    await scrollContainer.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
+
+    // Check if the container is scrollable
+    const isScrollable = await scrollContainer.evaluate((el) => {
+      return el.scrollHeight > el.clientHeight;
+    });
+
+    if (isScrollable) {
+      // Scroll to top
+      await scrollContainer.evaluate((el) => {
+        el.scrollTop = 0;
+      });
+      await window.waitForTimeout(TEST_TIMEOUTS.STATE_UPDATE);
+
+      // Verify button is visible
+      await expect(executionPage.scrollToBottomButton).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+
+      // Click the scroll-to-bottom button
+      await executionPage.scrollToBottomButton.click();
+
+      // Wait for smooth scroll animation
+      await window.waitForTimeout(TEST_TIMEOUTS.ANIMATION + 200);
+
+      // Button should disappear after scrolling to bottom
+      await expect(executionPage.scrollToBottomButton).not.toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+
+      // Verify we're at the bottom
+      const isAtBottom = await scrollContainer.evaluate((el) => {
+        const threshold = 50;
+        return el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
+      });
+      expect(isAtBottom).toBe(true);
+
+      // Capture screenshot
+      await captureForAI(
+        window,
+        'execution-scroll',
+        'after-scroll-click',
+        [
+          'Scrolled to bottom after clicking button',
+          'Scroll-to-bottom button is now hidden',
+          'Latest messages are visible',
+        ]
+      );
+    }
+  });
+
   test('should display question modal with selectable options', async ({ window }) => {
     const homePage = new HomePage(window);
     const executionPage = new ExecutionPage(window);

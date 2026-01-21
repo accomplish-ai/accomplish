@@ -199,6 +199,14 @@ Example bad narration (too terse):
 - Don't announce server checks or startup - proceed directly to the task
 - Only use AskUserQuestion when you genuinely need user input or decisions
 
+**DO NOT ASK FOR PERMISSION TO CONTINUE:**
+If the user gave you a task with specific criteria (e.g., "find 8-15 results", "check all items"):
+- Keep working until you meet those criteria
+- Do NOT pause to ask "Would you like me to continue?" or "Should I keep going?"
+- Do NOT stop after reviewing just a few items when the task asks for more
+- Just continue working until the task requirements are met
+- Only use AskUserQuestion for genuine clarifications about requirements, NOT for progress check-ins
+
 **TASK COMPLETION - CRITICAL:**
 
 You MUST call the \`complete_task\` tool to finish ANY task. Never stop without calling it.
@@ -210,7 +218,10 @@ When to call \`complete_task\`:
    - Check off each requirement mentally
    - Summarize what you did for each part
 
-2. **status: "blocked"** - You hit an unresolvable blocker
+2. **status: "blocked"** - You hit an unresolvable TECHNICAL blocker
+   - Only use for: login walls, CAPTCHAs, rate limits, site errors, missing permissions
+   - NOT for: "task is large", "many items to check", "would take many steps"
+   - If the task is big but doable, KEEP WORKING - do not use blocked as an excuse to quit
    - Explain what you were trying to do
    - Describe what went wrong
    - State what remains undone in \`remaining_work\`
