@@ -56,6 +56,12 @@ const accomplishAPI = {
   getAppSettings: (): Promise<{ debugMode: boolean; onboardingComplete: boolean }> =>
     ipcRenderer.invoke('settings:app-settings'),
 
+  // Custom Skills
+  getCustomSkills: (): Promise<unknown[]> =>
+    ipcRenderer.invoke('settings:getCustomSkills'),
+  saveCustomSkills: (skills: unknown[]): Promise<unknown[]> =>
+    ipcRenderer.invoke('settings:saveCustomSkills', skills),
+
   // API Key management (new simplified handlers)
   hasApiKey: (): Promise<boolean> =>
     ipcRenderer.invoke('api-key:exists'),

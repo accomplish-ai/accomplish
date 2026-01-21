@@ -1,5 +1,5 @@
 import Store from 'electron-store';
-import type { SelectedModel, OllamaConfig, LiteLLMConfig } from '@accomplish/shared';
+import type { SelectedModel, OllamaConfig, LiteLLMConfig, CustomSkillConfig } from '@accomplish/shared';
 
 /**
  * App settings schema
@@ -15,6 +15,16 @@ interface AppSettingsSchema {
   ollamaConfig: OllamaConfig | null;
   /** LiteLLM proxy configuration */
   litellmConfig: LiteLLMConfig | null;
+  /** User-defined custom skills/MCP servers */
+  customSkills: CustomSkillConfig[];
+  /** Main window state (size, position) */
+  windowState: {
+    width: number;
+    height: number;
+    x?: number;
+    y?: number;
+    isMaximized: boolean;
+  } | null;
 }
 
 const appSettingsStore = new Store<AppSettingsSchema>({
@@ -28,6 +38,8 @@ const appSettingsStore = new Store<AppSettingsSchema>({
     },
     ollamaConfig: null,
     litellmConfig: null,
+    customSkills: [],
+    windowState: null,
   },
 });
 
@@ -102,6 +114,34 @@ export function setLiteLLMConfig(config: LiteLLMConfig | null): void {
 }
 
 /**
+ * Get custom skills configuration
+ */
+export function getCustomSkills(): CustomSkillConfig[] {
+  return appSettingsStore.get('customSkills') || [];
+}
+
+/**
+ * Set custom skills configuration
+ */
+export function setCustomSkills(skills: CustomSkillConfig[]): void {
+  appSettingsStore.set('customSkills', skills);
+}
+
+/**
+ * Get window state
+ */
+export function getWindowState(): AppSettingsSchema['windowState'] {
+  return appSettingsStore.get('windowState');
+}
+
+/**
+ * Set window state
+ */
+export function setWindowState(state: AppSettingsSchema['windowState']): void {
+  appSettingsStore.set('windowState', state);
+}
+
+/**
  * Get all app settings
  */
 export function getAppSettings(): AppSettingsSchema {
@@ -111,6 +151,8 @@ export function getAppSettings(): AppSettingsSchema {
     selectedModel: appSettingsStore.get('selectedModel'),
     ollamaConfig: appSettingsStore.get('ollamaConfig') ?? null,
     litellmConfig: appSettingsStore.get('litellmConfig') ?? null,
+    customSkills: appSettingsStore.get('customSkills') || [],
+    windowState: appSettingsStore.get('windowState') || null,
   };
 }
 

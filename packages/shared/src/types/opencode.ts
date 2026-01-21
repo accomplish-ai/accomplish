@@ -160,3 +160,22 @@ export interface NormalizedMessage {
 // Re-export as ClaudeMessage for backward compatibility during migration
 export type ClaudeMessage = OpenCodeMessage;
 export type ClaudeMessageBase = OpenCodeMessageBase;
+
+export interface CustomSkillConfig {
+  id: string;        // UUID
+  name: string;      // Display name
+  type: 'stdio';     // Only stdio supported for now for local
+  command: string;   // e.g. "npx"
+  args: string[];    // e.g. ["-y", "@modelcontextprotocol/server-memory"]
+  env: Record<string, string>;
+  enabled: boolean;
+}
+
+export interface McpServerConfig {
+  type?: 'local' | 'remote';
+  command?: string[];
+  url?: string;
+  enabled?: boolean;
+  environment?: Record<string, string>;
+  timeout?: number;
+}

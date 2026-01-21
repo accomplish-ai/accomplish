@@ -19,6 +19,7 @@ import type {
   ProviderSettings,
   ProviderId,
   ConnectedProvider,
+  CustomSkillConfig,
 } from '@accomplish/shared';
 
 // Define the API interface
@@ -52,6 +53,10 @@ interface AccomplishAPI {
   getDebugMode(): Promise<boolean>;
   setDebugMode(enabled: boolean): Promise<void>;
   getAppSettings(): Promise<{ debugMode: boolean; onboardingComplete: boolean }>;
+
+  // Custom Skills
+  getCustomSkills(): Promise<CustomSkillConfig[]>;
+  saveCustomSkills(skills: CustomSkillConfig[]): Promise<CustomSkillConfig[]>;
 
   // API Key management
   hasApiKey(): Promise<boolean>;

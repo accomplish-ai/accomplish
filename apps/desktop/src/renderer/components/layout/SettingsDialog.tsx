@@ -16,6 +16,7 @@ import { hasAnyReadyProvider, isProviderReady } from '@accomplish/shared';
 import { useProviderSettings } from '@/components/settings/hooks/useProviderSettings';
 import { ProviderGrid } from '@/components/settings/ProviderGrid';
 import { ProviderSettingsPanel } from '@/components/settings/ProviderSettingsPanel';
+import { SkillsManager } from '@/components/settings/SkillsManager';
 
 // First 4 providers shown in collapsed view (matches PROVIDER_ORDER in ProviderGrid)
 const FIRST_FOUR_PROVIDERS: ProviderId[] = ['anthropic', 'openai', 'google', 'bedrock'];
@@ -31,6 +32,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   const [gridExpanded, setGridExpanded] = useState(false);
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<'providers' | 'skills'>('providers');
 
   const {
     settings,
@@ -216,7 +218,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   if (loading || !settings) {
     return (
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="settings-dialog">
+        <DialogContent className="max-w-[90vw] w-[90vw] max-h-[90vh] overflow-y-auto" data-testid="settings-dialog">
           <DialogHeader>
             <DialogTitle>Set up Openwork</DialogTitle>
           </DialogHeader>
@@ -230,7 +232,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="settings-dialog">
+      <DialogContent className="max-w-[90vw] w-[90vw] max-h-[90vh] overflow-y-auto" data-testid="settings-dialog">
         <DialogHeader>
           <DialogTitle>Set up Openwork</DialogTitle>
         </DialogHeader>
@@ -270,84 +272,112 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
             )}
           </AnimatePresence>
 
-          {/* Provider Grid Section */}
-          <section>
-            <ProviderGrid
-              settings={settings}
-              selectedProvider={selectedProvider}
-              onSelectProvider={handleSelectProvider}
-              expanded={gridExpanded}
-              onToggleExpanded={() => setGridExpanded(!gridExpanded)}
-            />
-          </section>
+          {/* Tab Navigation */}
+          <div className="flex border-b border-border mb-4">
+            <button
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${settingsTab === 'providers'
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              onClick={() => setSettingsTab('providers')}
+            >
+              Providers (LLM)
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${settingsTab === 'skills'
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              onClick={() => setSettingsTab('skills')}
+            >
+              Skills (MCP)
+            </button>
+          </div>
 
-          {/* Provider Settings Panel (shown when a provider is selected) */}
-          <AnimatePresence>
-            {selectedProvider && (
-              <motion.section
-                variants={settingsVariants.slideDown}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                transition={settingsTransitions.enter}
-              >
-                <ProviderSettingsPanel
-                  key={selectedProvider}
-                  providerId={selectedProvider}
-                  connectedProvider={settings?.connectedProviders?.[selectedProvider]}
-                  onConnect={handleConnect}
-                  onDisconnect={handleDisconnect}
-                  onModelChange={handleModelChange}
-                  showModelError={showModelError}
+          {settingsTab === 'skills' ? (
+            <SkillsManager />
+          ) : (
+            <>
+              {/* Provider Grid Section */}
+              <section>
+                <ProviderGrid
+                  settings={settings}
+                  selectedProvider={selectedProvider}
+                  onSelectProvider={handleSelectProvider}
+                  expanded={gridExpanded}
+                  onToggleExpanded={() => setGridExpanded(!gridExpanded)}
                 />
-              </motion.section>
-            )}
-          </AnimatePresence>
+              </section>
 
-          {/* Debug Mode Section - only shown when a provider is selected */}
-          <AnimatePresence>
-            {selectedProvider && (
-              <motion.section
-                variants={settingsVariants.slideDown}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                transition={{ ...settingsTransitions.enter, delay: 0.05 }}
-              >
-                <div className="rounded-lg border border-border bg-card p-5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="font-medium text-foreground">Debug Mode</div>
-                      <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-                        Show detailed backend logs in the task view.
-                      </p>
+              {/* Provider Settings Panel (shown when a provider is selected) */}
+              <AnimatePresence>
+                {selectedProvider && (
+                  <motion.section
+                    variants={settingsVariants.slideDown}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={settingsTransitions.enter}
+                  >
+                    <ProviderSettingsPanel
+                      key={selectedProvider}
+                      providerId={selectedProvider}
+                      connectedProvider={settings?.connectedProviders?.[selectedProvider]}
+                      onConnect={handleConnect}
+                      onDisconnect={handleDisconnect}
+                      onModelChange={handleModelChange}
+                      showModelError={showModelError}
+                    />
+                  </motion.section>
+                )}
+              </AnimatePresence>
+
+              {/* Debug Mode Section - only shown when a provider is selected */}
+              <AnimatePresence>
+                {selectedProvider && (
+                  <motion.section
+                    variants={settingsVariants.slideDown}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={{ ...settingsTransitions.enter, delay: 0.05 }}
+                  >
+                    <div className="rounded-lg border border-border bg-card p-5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium text-foreground">Debug Mode</div>
+                          <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                            Show detailed backend logs in the task view.
+                          </p>
+                        </div>
+                        <div className="ml-4">
+                          <button
+                            data-testid="settings-debug-toggle"
+                            onClick={handleDebugToggle}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-accomplish ${debugMode ? 'bg-primary' : 'bg-muted'
+                              }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-accomplish ${debugMode ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                            />
+                          </button>
+                        </div>
+                      </div>
+                      {debugMode && (
+                        <div className="mt-4 rounded-xl bg-warning/10 p-3.5">
+                          <p className="text-sm text-warning">
+                            Debug mode is enabled. Backend logs will appear in the task view
+                            when running tasks.
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <div className="ml-4">
-                      <button
-                        data-testid="settings-debug-toggle"
-                        onClick={handleDebugToggle}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-accomplish ${debugMode ? 'bg-primary' : 'bg-muted'
-                          }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-accomplish ${debugMode ? 'translate-x-6' : 'translate-x-1'
-                            }`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                  {debugMode && (
-                    <div className="mt-4 rounded-xl bg-warning/10 p-3.5">
-                      <p className="text-sm text-warning">
-                        Debug mode is enabled. Backend logs will appear in the task view
-                        when running tasks.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </motion.section>
-            )}
-          </AnimatePresence>
+                  </motion.section>
+                )}
+              </AnimatePresence>
+            </>
+          )}
 
           {/* Done Button */}
           <div className="flex justify-end">

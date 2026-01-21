@@ -84,6 +84,7 @@ import {
   taskConfigSchema,
   validate,
 } from './validation';
+import { registerSkillsHandlers } from './skills-handlers';
 import { BedrockClient, ListFoundationModelsCommand } from '@aws-sdk/client-bedrock';
 import { fromIni } from '@aws-sdk/credential-providers';
 import {
@@ -291,6 +292,9 @@ function handle<Args extends unknown[], ReturnType = unknown>(
  * Register all IPC handlers
  */
 export function registerIPCHandlers(): void {
+  // Register skills handlers
+  registerSkillsHandlers();
+
   const taskManager = getTaskManager();
 
   // Start the permission API server for file-permission MCP

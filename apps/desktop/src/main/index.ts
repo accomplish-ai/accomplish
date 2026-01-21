@@ -70,6 +70,20 @@ function getPreloadPath(): string {
   return path.join(__dirname, '../preload/index.cjs');
 }
 
+import { getWindowState, setWindowState } from './store/appSettings';
+
+// Simple debounce implementation to avoid extra dependencies
+function debounce<T extends (...args: any[]) => any>(fn: T, wait: number): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null;
+  return function (...args: Parameters<T>) {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      fn(...args);
+      timeout = null;
+    }, wait);
+  };
+}
+
 function createWindow() {
   console.log('[Main] Creating main application window');
 
@@ -82,9 +96,16 @@ function createWindow() {
   const preloadPath = getPreloadPath();
   console.log('[Main] Using preload script:', preloadPath);
 
+  // Load saved window state
+  const savedState = getWindowState();
+  const defaultWidth = 1280;
+  const defaultHeight = 800;
+
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: savedState?.width || defaultWidth,
+    height: savedState?.height || defaultHeight,
+    x: savedState?.x,
+    y: savedState?.y,
     minWidth: 900,
     minHeight: 600,
     title: 'Openwork',
@@ -96,6 +117,8 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
     },
+    // Don't show until state is applied to avoid flickering
+    show: false,
   });
 
   // Open external links in browser
@@ -106,8 +129,36 @@ function createWindow() {
     return { action: 'deny' };
   });
 
-  // Maximize window by default
-  mainWindow.maximize();
+  // Restore maximized state or show
+  if (savedState?.isMaximized) {
+    mainWindow.maximize();
+  }
+  mainWindow.show();
+
+  // Save window state handler (debounced)
+  const saveState = debounce(() => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+
+    try {
+      const isMaximized = mainWindow.isMaximized();
+      const bounds = mainWindow.getBounds();
+
+      setWindowState({
+        width: bounds.width,
+        height: bounds.height,
+        x: bounds.x,
+        y: bounds.y,
+        isMaximized,
+      });
+    } catch (e) {
+      console.error('[Main] Failed to save window state:', e);
+    }
+  }, 500);
+
+  mainWindow.on('resize', saveState);
+  mainWindow.on('move', saveState);
+  mainWindow.on('maximize', saveState);
+  mainWindow.on('unmaximize', saveState);
 
   // Open DevTools in dev mode (non-packaged), but not during E2E tests
   const isE2EMode = (global as Record<string, unknown>).E2E_SKIP_AUTH === true;

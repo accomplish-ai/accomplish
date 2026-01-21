@@ -5,7 +5,7 @@ import { PERMISSION_API_PORT, QUESTION_API_PORT } from '../permission-api';
 import { getOllamaConfig } from '../store/appSettings';
 import { getApiKey } from '../store/secureStorage';
 import { getProviderSettings, getActiveProviderModel, getConnectedProviderIds } from '../store/providerSettings';
-import type { BedrockCredentials, ProviderId } from '@accomplish/shared';
+import type { BedrockCredentials, ProviderId, McpServerConfig } from '@accomplish/shared';
 
 /**
  * Agent name used by Accomplish
@@ -192,14 +192,7 @@ interface AgentConfig {
   mode?: 'primary' | 'subagent' | 'all';
 }
 
-interface McpServerConfig {
-  type?: 'local' | 'remote';
-  command?: string[];
-  url?: string;
-  enabled?: boolean;
-  environment?: Record<string, string>;
-  timeout?: number;
-}
+import { getCustomSkillsConfig } from '../services/custom-skills';
 
 interface OllamaProviderModelConfig {
   name: string;
@@ -547,6 +540,7 @@ export async function generateOpenCodeConfig(): Promise<string> {
     },
     // MCP servers for additional tools
     mcp: {
+      ...getCustomSkillsConfig(),
       'file-permission': {
         type: 'local',
         command: ['npx', 'tsx', filePermissionServerPath],
