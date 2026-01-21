@@ -54,9 +54,12 @@ export function LiteLLMProviderForm({
         return;
       }
 
-      // Save API key if provided
+      // Save or remove API key based on user input
       if (trimmedKey) {
         await accomplish.addApiKey('litellm', trimmedKey);
+      } else {
+        // Remove any previously stored key when connecting without one
+        await accomplish.removeApiKey('litellm');
       }
 
       // Map models to the expected format
