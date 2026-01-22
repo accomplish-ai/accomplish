@@ -89,6 +89,8 @@ export default function TaskLauncher() {
   }, [searchQuery, filteredTasks, closeLauncher, navigate, startTask, accomplish]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Ignore Enter during IME composition (Chinese/Japanese input)
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
