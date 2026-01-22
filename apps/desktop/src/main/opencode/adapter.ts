@@ -15,9 +15,10 @@ import { getSelectedModel } from '../store/appSettings';
 import { getActiveProviderModel } from '../store/providerSettings';
 import { generateOpenCodeConfig, ACCOMPLISH_AGENT_NAME, syncApiKeysToOpenCodeAuth } from './config-generator';
 import { getExtendedNodePath } from '../utils/system-path';
-import { getBundledNodePaths, logBundledNodeInfo } from '../utils/bundled-node';
+import { getBundledNodePaths, logBundledNodeInfo, getNpxPath } from '../utils/bundled-node';
 import { getModelDisplayName } from '../utils/model-display';
 import path from 'path';
+import { spawn } from 'child_process';
 import type {
   TaskConfig,
   Task,
@@ -205,6 +206,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       await this.logWatcher.start();
     }
 
+    // Run Node.js diagnostics to help troubleshoot MCP server issues
+    // This is non-blocking and just logs information
+    await this.runNodeDiagnostics();
+
     // Sync API keys to OpenCode CLI's auth.json (for DeepSeek, Z.AI support)
     await syncApiKeysToOpenCodeAuth();
 
@@ -236,7 +241,8 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     // Create a minimal package.json in the working directory so OpenCode finds it there
     // and stops searching upward. This prevents EPERM errors when OpenCode traverses
     // up to protected directories like C:\Program Files\Openwork\resources\
-    if (app.isPackaged) {
+    // This is Windows-specific since the EPERM issue occurs with protected Program Files directories.
+    if (app.isPackaged && process.platform === 'win32') {
       const dummyPackageJson = path.join(safeCwd, 'package.json');
       if (!fs.existsSync(dummyPackageJson)) {
         try {
@@ -462,6 +468,96 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   }
 
   /**
+   * Run diagnostic checks on bundled Node.js to help troubleshoot MCP server failures.
+   * This logs detailed information about the Node.js setup without blocking task execution.
+   */
+  private async runNodeDiagnostics(): Promise<void> {
+    const bundledPaths = getBundledNodePaths();
+
+    console.log('[OpenCode Diagnostics] === Node.js Environment Check ===');
+
+    if (!bundledPaths) {
+      console.log('[OpenCode Diagnostics] Development mode - using system Node.js');
+      return;
+    }
+
+    // Check if bundled files exist
+    const fs = await import('fs');
+    const nodeExists = fs.existsSync(bundledPaths.nodePath);
+    const npxExists = fs.existsSync(bundledPaths.npxPath);
+    const npmExists = fs.existsSync(bundledPaths.npmPath);
+
+    console.log('[OpenCode Diagnostics] Bundled Node.js paths:');
+    console.log(`  node: ${bundledPaths.nodePath} (exists: ${nodeExists})`);
+    console.log(`  npx:  ${bundledPaths.npxPath} (exists: ${npxExists})`);
+    console.log(`  npm:  ${bundledPaths.npmPath} (exists: ${npmExists})`);
+    console.log(`  binDir: ${bundledPaths.binDir}`);
+
+    // Try to run node --version to verify bundled Node.js works
+    // We test node.exe directly because on Windows, .cmd files require shell execution
+    // and MCP servers now use node.exe + cli.mjs to bypass .cmd issues
+    if (nodeExists) {
+      console.log(`[OpenCode Diagnostics] Testing node execution: ${bundledPaths.nodePath} --version`);
+
+      try {
+        const result = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+          const child = spawn(bundledPaths.nodePath, ['--version'], {
+            env: process.env,
+            timeout: 10000,
+            shell: false, // node.exe is a real executable, no shell needed
+          });
+
+          let stdout = '';
+          let stderr = '';
+
+          child.stdout?.on('data', (data) => { stdout += data.toString(); });
+          child.stderr?.on('data', (data) => { stderr += data.toString(); });
+
+          child.on('error', reject);
+          child.on('close', (code) => {
+            if (code === 0) {
+              resolve({ stdout, stderr });
+            } else {
+              reject(new Error(`Process exited with code ${code}`));
+            }
+          });
+        });
+        console.log(`[OpenCode Diagnostics] node --version SUCCESS: ${result.stdout.trim()}`);
+      } catch (error) {
+        const err = error as Error & { code?: string; killed?: boolean };
+        console.error('[OpenCode Diagnostics] node --version FAILED:', err.message);
+        console.error(`[OpenCode Diagnostics]   Error code: ${err.code || 'none'}`);
+        console.error(`[OpenCode Diagnostics]   This WILL cause MCP server startup failures!`);
+
+        // Emit debug event so it shows in UI
+        this.emit('debug', {
+          type: 'error',
+          message: `Bundled node test failed: ${err.message}. MCP servers will not start correctly.`,
+          data: { error: err.message, nodePath: bundledPaths.nodePath }
+        });
+      }
+    } else {
+      console.error('[OpenCode Diagnostics] Bundled node not found - MCP servers will likely fail!');
+      this.emit('debug', {
+        type: 'error',
+        message: 'Bundled node.exe not found. MCP servers will not start.',
+        data: { expectedPath: bundledPaths.nodePath }
+      });
+    }
+
+    // Check for system Node.js as fallback info
+    try {
+      const { execSync } = await import('child_process');
+      const systemNode = execSync('where node', { encoding: 'utf8', timeout: 5000 }).trim();
+      console.log(`[OpenCode Diagnostics] System Node.js found: ${systemNode.split('\n')[0]}`);
+    } catch {
+      console.log('[OpenCode Diagnostics] System Node.js: NOT FOUND (this is OK if bundled Node works)');
+    }
+
+    console.log('[OpenCode Diagnostics] === End Environment Check ===');
+  }
+
+  /**
    * Build environment variables with all API keys
    */
   private async buildEnvironment(): Promise<NodeJS.ProcessEnv> {
@@ -485,6 +581,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         // Also expose as NODE_BIN_PATH so agent can use it in bash commands
         env.NODE_BIN_PATH = bundledNode.binDir;
         console.log('[OpenCode CLI] Added bundled Node.js to PATH:', bundledNode.binDir);
+
+        // Log the full PATH for debugging (truncated to avoid excessive log size)
+        const pathPreview = env.PATH.substring(0, 500) + (env.PATH.length > 500 ? '...' : '');
+        console.log('[OpenCode CLI] Full PATH (first 500 chars):', pathPreview);
       }
 
       // For packaged apps on macOS, also extend PATH to include common Node.js locations as fallback.
