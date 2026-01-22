@@ -89,6 +89,9 @@ export default function TaskLauncher() {
   }, [searchQuery, filteredTasks, closeLauncher, navigate, startTask, accomplish]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Don't process keyboard shortcuts during IME composition (e.g., Chinese, Japanese input)
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();

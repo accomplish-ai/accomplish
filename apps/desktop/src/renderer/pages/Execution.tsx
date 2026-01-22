@@ -459,711 +459,715 @@ export default function ExecutionPage() {
         onApiKeySaved={handleApiKeySaved}
       />
 
-    <div className="h-full flex flex-col bg-background relative">
-      {/* Task header */}
-      <div className="flex-shrink-0 border-b border-border bg-card/50 px-6 py-4">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <div className="flex items-center gap-4 min-w-0 flex-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/')}
-              className="shrink-0 no-drag"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <h1 className="text-base font-medium text-foreground truncate min-w-0">
-                {currentTask.prompt}
-              </h1>
-              <span data-testid="execution-status-badge">
-                {getStatusBadge()}
-              </span>
+      <div className="h-full flex flex-col bg-background relative">
+        {/* Task header */}
+        <div className="flex-shrink-0 border-b border-border bg-card/50 px-6 py-4">
+          <div className="flex items-center justify-between max-w-4xl mx-auto">
+            <div className="flex items-center gap-4 min-w-0 flex-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/')}
+                className="shrink-0 no-drag"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <h1 className="text-base font-medium text-foreground truncate min-w-0">
+                  {currentTask.prompt}
+                </h1>
+                <span data-testid="execution-status-badge">
+                  {getStatusBadge()}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Browser installation modal - only shown during Playwright download */}
-      <AnimatePresence>
-        {setupProgress && setupProgressTaskId === id && (setupProgress.toLowerCase().includes('download') || setupProgress.includes('% of')) && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          >
+        {/* Browser installation modal - only shown during Playwright download */}
+        <AnimatePresence>
+          {setupProgress && setupProgressTaskId === id && (setupProgress.toLowerCase().includes('download') || setupProgress.includes('% of')) && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={springs.bouncy}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
             >
-              <Card className="w-[480px] p-6">
-                <div className="flex flex-col items-center text-center gap-4">
-                  <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                    <Download className="h-7 w-7 text-primary" />
-                    <motion.div
-                      className="absolute inset-0 rounded-full border-2 border-primary/30 border-t-primary"
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    />
-                  </div>
-                  <div className="w-full">
-                    <h3 className="text-lg font-semibold text-foreground mb-1">
-                      Chrome not installed
-                    </h3>
-                    <p className="text-muted-foreground mb-4">
-                      Installing browser for automation...
-                    </p>
-                    {/* Progress bar - combines all downloads into single 0-100% */}
-                    {(() => {
-                      const percentMatch = setupProgress?.match(/(\d+)%/);
-                      const currentPercent = percentMatch ? parseInt(percentMatch[1], 10) : 0;
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={springs.bouncy}
+              >
+                <Card className="w-[480px] p-6">
+                  <div className="flex flex-col items-center text-center gap-4">
+                    <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                      <Download className="h-7 w-7 text-primary" />
+                      <motion.div
+                        className="absolute inset-0 rounded-full border-2 border-primary/30 border-t-primary"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      />
+                    </div>
+                    <div className="w-full">
+                      <h3 className="text-lg font-semibold text-foreground mb-1">
+                        Chrome not installed
+                      </h3>
+                      <p className="text-muted-foreground mb-4">
+                        Installing browser for automation...
+                      </p>
+                      {/* Progress bar - combines all downloads into single 0-100% */}
+                      {(() => {
+                        const percentMatch = setupProgress?.match(/(\d+)%/);
+                        const currentPercent = percentMatch ? parseInt(percentMatch[1], 10) : 0;
 
-                      // Weight each download by size: Chromium ~160MB (64%), FFMPEG ~1MB (0%), Headless ~90MB (36%)
-                      // Step 1: 0-64%, Step 2: 64-64%, Step 3: 64-100%
-                      let overallPercent = 0;
-                      if (setupDownloadStep === 1) {
-                        overallPercent = Math.round(currentPercent * 0.64);
-                      } else if (setupDownloadStep === 2) {
-                        overallPercent = 64 + Math.round(currentPercent * 0.01);
-                      } else {
-                        overallPercent = 65 + Math.round(currentPercent * 0.35);
-                      }
-
-                      return (
-                        <div className="w-full">
-                          <div className="flex justify-between text-sm mb-2">
-                            <span className="text-muted-foreground">Downloading...</span>
-                            <span className="text-foreground font-medium">{overallPercent}%</span>
-                          </div>
-                          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                            <motion.div
-                              className="h-full bg-primary rounded-full"
-                              initial={{ width: 0 }}
-                              animate={{ width: `${overallPercent}%` }}
-                              transition={{ duration: 0.3 }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    <p className="text-xs text-muted-foreground mt-4 text-center">
-                      One-time setup (~250 MB total)
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Queued state - full page (new task, no messages yet) */}
-      {currentTask.status === 'queued' && currentTask.messages.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={springs.gentle}
-          className="flex-1 flex flex-col items-center justify-center gap-6 px-6"
-        >
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10">
-            <Clock className="h-8 w-8 text-amber-600" />
-          </div>
-          <div className="text-center max-w-md">
-            <h2 className="text-xl font-semibold text-foreground mb-2">
-              Waiting for another task
-            </h2>
-            <p className="text-muted-foreground">
-              Your task is queued and will start automatically when the current task completes.
-            </p>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Queued state - inline (follow-up, has previous messages) */}
-      {currentTask.status === 'queued' && currentTask.messages.length > 0 && (
-        <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="max-w-4xl mx-auto space-y-4">
-            {currentTask.messages
-              .filter((m) => !(m.type === 'tool' && m.toolName?.toLowerCase() === 'bash'))
-              .map((message) => (
-              <MessageBubble key={message.id} message={message} />
-            ))}
-
-            {/* Inline waiting indicator */}
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={springs.gentle}
-              className="flex flex-col items-center gap-4 py-8"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
-                <Clock className="h-6 w-6 text-amber-600" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-foreground">
-                  Waiting for another task
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Your follow-up will continue automatically
-                </p>
-              </div>
-            </motion.div>
-
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-      )}
-
-      {/* Messages - normal state (running, completed, failed, etc.) */}
-      {currentTask.status !== 'queued' && (
-        <div className="flex-1 overflow-y-auto px-6 py-6" ref={scrollContainerRef} onScroll={handleScroll} data-testid="messages-scroll-container">
-          <div className="max-w-4xl mx-auto space-y-4">
-            {currentTask.messages
-              .filter((m) => !(m.type === 'tool' && m.toolName?.toLowerCase() === 'bash'))
-              .map((message, index, filteredMessages) => {
-              const isLastMessage = index === filteredMessages.length - 1;
-              const isLastAssistantMessage =
-                message.type === 'assistant' && isLastMessage;
-              // Find the last assistant message index for the continue button
-              let lastAssistantIndex = -1;
-              for (let i = filteredMessages.length - 1; i >= 0; i--) {
-                if (filteredMessages[i].type === 'assistant') {
-                  lastAssistantIndex = i;
-                  break;
-                }
-              }
-              const isLastAssistantForContinue = index === lastAssistantIndex;
-              // Show continue button on last assistant message when:
-              // - Task was interrupted (user can always continue)
-              // - Task completed AND the message indicates agent is waiting for user action
-              const showContinue = isLastAssistantForContinue && !!hasSession &&
-                (currentTask.status === 'interrupted' ||
-                 (currentTask.status === 'completed' && isWaitingForUser(message.content)));
-              return (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  shouldStream={isLastAssistantMessage && currentTask.status === 'running'}
-                  isLastMessage={isLastMessage}
-                  isRunning={currentTask.status === 'running'}
-                  showContinueButton={showContinue}
-                  continueLabel={currentTask.status === 'interrupted' ? 'Continue' : 'Done, Continue'}
-                  onContinue={handleContinue}
-                  isLoading={isLoading}
-                />
-              );
-            })}
-
-            <AnimatePresence>
-              {currentTask.status === 'running' && !permissionRequest && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={springs.gentle}
-                  className="flex items-center gap-2 text-muted-foreground py-2"
-                  data-testid="execution-thinking-indicator"
-                >
-                  <SpinningIcon className="h-4 w-4" />
-                  <span className="text-sm">
-                    {currentTool
-                      ? ((currentToolInput as { description?: string })?.description || TOOL_PROGRESS_MAP[currentTool]?.label || currentTool)
-                      : 'Thinking...'}
-                  </span>
-                  {currentTool && !(currentToolInput as { description?: string })?.description && (
-                    <span className="text-xs text-muted-foreground/60">
-                      ({currentTool})
-                    </span>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div ref={messagesEndRef} />
-
-            {/* Sticky scroll-to-bottom button - stays at bottom of viewport when scrolled up */}
-            <AnimatePresence>
-              {!isAtBottom && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={springs.gentle}
-                  className="sticky bottom-4 flex justify-center pointer-events-none"
-                >
-                  <button
-                    onClick={scrollToBottom}
-                    className="h-8 w-8 rounded-full bg-muted hover:bg-muted/80 border border-border shadow-md flex items-center justify-center transition-colors pointer-events-auto"
-                    aria-label="Scroll to bottom"
-                    data-testid="scroll-to-bottom-button"
-                  >
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      )}
-
-      {/* Permission Request Modal */}
-      <AnimatePresence>
-        {permissionRequest && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-            data-testid="execution-permission-modal"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={springs.bouncy}
-            >
-              <Card className="w-full max-w-lg p-6 mx-4">
-                <div className="flex items-start gap-4">
-                  <div className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full shrink-0",
-                    isDeleteOperation(permissionRequest) ? "bg-red-500/10" :
-                    permissionRequest.type === 'file' ? "bg-amber-500/10" :
-                    permissionRequest.type === 'question' ? "bg-primary/10" : "bg-warning/10"
-                  )}>
-                    {isDeleteOperation(permissionRequest) ? (
-                      <AlertTriangle className="h-5 w-5 text-red-600" />
-                    ) : permissionRequest.type === 'file' ? (
-                      <File className="h-5 w-5 text-amber-600" />
-                    ) : permissionRequest.type === 'question' ? (
-                      <Brain className="h-5 w-5 text-primary" />
-                    ) : (
-                      <AlertCircle className="h-5 w-5 text-warning" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className={cn(
-                      "text-lg font-semibold mb-2",
-                      isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
-                    )}>
-                      {isDeleteOperation(permissionRequest)
-                        ? 'File Deletion Warning'
-                        : permissionRequest.type === 'file'
-                          ? 'File Permission Required'
-                          : permissionRequest.type === 'question'
-                            ? (permissionRequest.header || 'Question')
-                            : 'Permission Required'}
-                    </h3>
-
-                    {/* File permission specific UI */}
-                    {permissionRequest.type === 'file' && (
-                      <>
-                        {/* Delete operation warning banner */}
-                        {isDeleteOperation(permissionRequest) && (
-                          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                            <p className="text-sm text-red-600">
-                              {(() => {
-                                const paths = getDisplayFilePaths(permissionRequest);
-                                return paths.length > 1
-                                  ? `${paths.length} files will be permanently deleted:`
-                                  : 'This file will be permanently deleted:';
-                              })()}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Non-delete operation badge */}
-                        {!isDeleteOperation(permissionRequest) && (
-                          <div className="mb-3">
-                            <span className={cn(
-                              "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                              getOperationBadgeClasses(permissionRequest.fileOperation)
-                            )}>
-                              {permissionRequest.fileOperation?.toUpperCase()}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* File path(s) display */}
-                        <div className={cn(
-                          "mb-4 p-3 rounded-lg",
-                          isDeleteOperation(permissionRequest)
-                            ? "bg-red-500/5 border border-red-500/20"
-                            : "bg-muted"
-                        )}>
-                          {(() => {
-                            const paths = getDisplayFilePaths(permissionRequest);
-                            if (paths.length > 1) {
-                              return (
-                                <ul className="space-y-1">
-                                  {paths.map((path, idx) => (
-                                    <li key={idx} className={cn(
-                                      "text-sm font-mono break-all",
-                                      isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
-                                    )}>
-                                      • {path}
-                                    </li>
-                                  ))}
-                                </ul>
-                              );
-                            }
-                            return (
-                              <p className={cn(
-                                "text-sm font-mono break-all",
-                                isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
-                              )}>
-                                {paths[0]}
-                              </p>
-                            );
-                          })()}
-                          {permissionRequest.targetPath && (
-                            <p className="text-sm font-mono text-muted-foreground mt-1">
-                              → {permissionRequest.targetPath}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Delete warning text */}
-                        {isDeleteOperation(permissionRequest) && (
-                          <p className="text-sm text-red-600/80 mb-4">
-                            This action cannot be undone.
-                          </p>
-                        )}
-
-                        {permissionRequest.contentPreview && (
-                          <details className="mb-4">
-                            <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-                              Preview content
-                            </summary>
-                            <pre className="mt-2 p-2 rounded bg-muted text-xs overflow-x-auto max-h-32 overflow-y-auto">
-                              {permissionRequest.contentPreview}
-                            </pre>
-                          </details>
-                        )}
-                      </>
-                    )}
-
-                    {/* Question type UI with options */}
-                    {permissionRequest.type === 'question' && (
-                      <>
-                        <p className="text-sm text-foreground mb-4">
-                          {permissionRequest.question}
-                        </p>
-
-                        {/* Options list */}
-                        {!showCustomInput && permissionRequest.options && permissionRequest.options.length > 0 && (
-                          <div className="mb-4 space-y-2">
-                            {permissionRequest.options.map((option, idx) => (
-                              <button
-                                key={idx}
-                                onClick={() => {
-                                  // If "Other" is selected, show custom input
-                                  if (option.label.toLowerCase() === 'other') {
-                                    setShowCustomInput(true);
-                                    setSelectedOptions([]);
-                                    return;
-                                  }
-                                  if (permissionRequest.multiSelect) {
-                                    setSelectedOptions((prev) =>
-                                      prev.includes(option.label)
-                                        ? prev.filter((o) => o !== option.label)
-                                        : [...prev, option.label]
-                                    );
-                                  } else {
-                                    setSelectedOptions([option.label]);
-                                  }
-                                }}
-                                className={cn(
-                                  "w-full text-left p-3 rounded-lg border transition-colors",
-                                  selectedOptions.includes(option.label)
-                                    ? "border-primary bg-primary/10"
-                                    : "border-border hover:border-primary/50"
-                                )}
-                              >
-                                <div className="font-medium text-sm">{option.label}</div>
-                                {option.description && (
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    {option.description}
-                                  </div>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Custom text input */}
-                        {showCustomInput && (
-                          <div className="mb-4 space-y-2">
-                            <Input
-                              autoFocus
-                              value={customResponse}
-                              onChange={(e) => setCustomResponse(e.target.value)}
-                              placeholder="Type your response..."
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && customResponse.trim()) {
-                                  handlePermissionResponse(true);
-                                }
-                              }}
-                            />
-                            <button
-                              onClick={() => {
-                                setShowCustomInput(false);
-                                setCustomResponse('');
-                              }}
-                              className="text-xs text-muted-foreground hover:text-foreground"
-                            >
-                              ← Back to options
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {/* Standard tool UI (non-file, non-question) */}
-                    {permissionRequest.type === 'tool' && (
-                      <>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Allow {permissionRequest.toolName}?
-                        </p>
-                        {permissionRequest.toolName && (
-                          <div className="mb-4 p-3 rounded-lg bg-muted text-xs font-mono overflow-x-auto">
-                            <p className="text-muted-foreground mb-1">Tool: {permissionRequest.toolName}</p>
-                            <pre className="text-foreground">
-                              {JSON.stringify(permissionRequest.toolInput, null, 2)}
-                            </pre>
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    <div className="flex gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => handlePermissionResponse(false)}
-                        className="flex-1"
-                        data-testid="permission-deny-button"
-                      >
-                        {permissionRequest.type === 'question' ? 'Cancel' : 'Deny'}
-                      </Button>
-                      <Button
-                        onClick={() => handlePermissionResponse(true)}
-                        className={cn(
-                          "flex-1",
-                          isDeleteOperation(permissionRequest) && "bg-red-600 hover:bg-red-700 text-white"
-                        )}
-                        data-testid="permission-allow-button"
-                        disabled={
-                          permissionRequest.type === 'question' &&
-                          !showCustomInput &&
-                          permissionRequest.options &&
-                          selectedOptions.length === 0
+                        // Weight each download by size: Chromium ~160MB (64%), FFMPEG ~1MB (0%), Headless ~90MB (36%)
+                        // Step 1: 0-64%, Step 2: 64-64%, Step 3: 64-100%
+                        let overallPercent = 0;
+                        if (setupDownloadStep === 1) {
+                          overallPercent = Math.round(currentPercent * 0.64);
+                        } else if (setupDownloadStep === 2) {
+                          overallPercent = 64 + Math.round(currentPercent * 0.01);
+                        } else {
+                          overallPercent = 65 + Math.round(currentPercent * 0.35);
                         }
-                      >
-                        {isDeleteOperation(permissionRequest)
-                          ? getDisplayFilePaths(permissionRequest).length > 1
-                            ? 'Delete All'
-                            : 'Delete'
-                          : permissionRequest.type === 'question'
-                            ? 'Submit'
-                            : 'Allow'}
-                      </Button>
+
+                        return (
+                          <div className="w-full">
+                            <div className="flex justify-between text-sm mb-2">
+                              <span className="text-muted-foreground">Downloading...</span>
+                              <span className="text-foreground font-medium">{overallPercent}%</span>
+                            </div>
+                            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                              <motion.div
+                                className="h-full bg-primary rounded-full"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${overallPercent}%` }}
+                                transition={{ duration: 0.3 }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      <p className="text-xs text-muted-foreground mt-4 text-center">
+                        One-time setup (~250 MB total)
+                      </p>
                     </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              </motion.div>
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Queued state - full page (new task, no messages yet) */}
+        {currentTask.status === 'queued' && currentTask.messages.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={springs.gentle}
+            className="flex-1 flex flex-col items-center justify-center gap-6 px-6"
+          >
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10">
+              <Clock className="h-8 w-8 text-amber-600" />
+            </div>
+            <div className="text-center max-w-md">
+              <h2 className="text-xl font-semibold text-foreground mb-2">
+                Waiting for another task
+              </h2>
+              <p className="text-muted-foreground">
+                Your task is queued and will start automatically when the current task completes.
+              </p>
+            </div>
           </motion.div>
         )}
-      </AnimatePresence>
 
-{/* Running state input with Stop button */}
-      {currentTask.status === 'running' && !permissionRequest && (
-        <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4">
-          <div className="max-w-4xl mx-auto flex gap-3">
-            <Input
-              placeholder="Agent is working..."
-              disabled
-              className="flex-1 opacity-50"
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={interruptTask}
-              title="Stop agent (Ctrl+C)"
-              className="shrink-0 hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
-              data-testid="execution-stop-button"
-            >
-              <Square className="h-4 w-4 fill-current" />
-            </Button>
+        {/* Queued state - inline (follow-up, has previous messages) */}
+        {currentTask.status === 'queued' && currentTask.messages.length > 0 && (
+          <div className="flex-1 overflow-y-auto px-6 py-6">
+            <div className="max-w-4xl mx-auto space-y-4">
+              {currentTask.messages
+                .filter((m) => !(m.type === 'tool' && m.toolName?.toLowerCase() === 'bash'))
+                .map((message) => (
+                  <MessageBubble key={message.id} message={message} />
+                ))}
+
+              {/* Inline waiting indicator */}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={springs.gentle}
+                className="flex flex-col items-center gap-4 py-8"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
+                  <Clock className="h-6 w-6 text-amber-600" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-foreground">
+                    Waiting for another task
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your follow-up will continue automatically
+                  </p>
+                </div>
+              </motion.div>
+
+              <div ref={messagesEndRef} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Follow-up input */}
-      {canFollowUp && (
-        <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4">
-          <div className="max-w-4xl mx-auto">
-            {/* Input field with Send button */}
-            <div className="flex gap-3">
-              <Input
-                ref={followUpInputRef}
-                value={followUp}
-                onChange={(e) => setFollowUp(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleFollowUp();
+        {/* Messages - normal state (running, completed, failed, etc.) */}
+        {currentTask.status !== 'queued' && (
+          <div className="flex-1 overflow-y-auto px-6 py-6" ref={scrollContainerRef} onScroll={handleScroll} data-testid="messages-scroll-container">
+            <div className="max-w-4xl mx-auto space-y-4">
+              {currentTask.messages
+                .filter((m) => !(m.type === 'tool' && m.toolName?.toLowerCase() === 'bash'))
+                .map((message, index, filteredMessages) => {
+                  const isLastMessage = index === filteredMessages.length - 1;
+                  const isLastAssistantMessage =
+                    message.type === 'assistant' && isLastMessage;
+                  // Find the last assistant message index for the continue button
+                  let lastAssistantIndex = -1;
+                  for (let i = filteredMessages.length - 1; i >= 0; i--) {
+                    if (filteredMessages[i].type === 'assistant') {
+                      lastAssistantIndex = i;
+                      break;
+                    }
                   }
-                }}
-                placeholder={
-                  currentTask.status === 'interrupted'
-                    ? (hasSession ? "Give new instructions..." : "Send a new instruction to retry...")
-                    : currentTask.status === 'completed'
-                      ? "Give new instructions..."
-                      : "Ask for something..."
-                }
-                disabled={isLoading}
-                className="flex-1"
-                data-testid="execution-follow-up-input"
+                  const isLastAssistantForContinue = index === lastAssistantIndex;
+                  // Show continue button on last assistant message when:
+                  // - Task was interrupted (user can always continue)
+                  // - Task completed AND the message indicates agent is waiting for user action
+                  const showContinue = isLastAssistantForContinue && !!hasSession &&
+                    (currentTask.status === 'interrupted' ||
+                      (currentTask.status === 'completed' && isWaitingForUser(message.content)));
+                  return (
+                    <MessageBubble
+                      key={message.id}
+                      message={message}
+                      shouldStream={isLastAssistantMessage && currentTask.status === 'running'}
+                      isLastMessage={isLastMessage}
+                      isRunning={currentTask.status === 'running'}
+                      showContinueButton={showContinue}
+                      continueLabel={currentTask.status === 'interrupted' ? 'Continue' : 'Done, Continue'}
+                      onContinue={handleContinue}
+                      isLoading={isLoading}
+                    />
+                  );
+                })}
+
+              <AnimatePresence>
+                {currentTask.status === 'running' && !permissionRequest && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={springs.gentle}
+                    className="flex items-center gap-2 text-muted-foreground py-2"
+                    data-testid="execution-thinking-indicator"
+                  >
+                    <SpinningIcon className="h-4 w-4" />
+                    <span className="text-sm">
+                      {currentTool
+                        ? ((currentToolInput as { description?: string })?.description || TOOL_PROGRESS_MAP[currentTool]?.label || currentTool)
+                        : 'Thinking...'}
+                    </span>
+                    {currentTool && !(currentToolInput as { description?: string })?.description && (
+                      <span className="text-xs text-muted-foreground/60">
+                        ({currentTool})
+                      </span>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div ref={messagesEndRef} />
+
+              {/* Sticky scroll-to-bottom button - stays at bottom of viewport when scrolled up */}
+              <AnimatePresence>
+                {!isAtBottom && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={springs.gentle}
+                    className="sticky bottom-4 flex justify-center pointer-events-none"
+                  >
+                    <button
+                      onClick={scrollToBottom}
+                      className="h-8 w-8 rounded-full bg-muted hover:bg-muted/80 border border-border shadow-md flex items-center justify-center transition-colors pointer-events-auto"
+                      aria-label="Scroll to bottom"
+                      data-testid="scroll-to-bottom-button"
+                    >
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        )}
+
+        {/* Permission Request Modal */}
+        <AnimatePresence>
+          {permissionRequest && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+              data-testid="execution-permission-modal"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                transition={springs.bouncy}
+              >
+                <Card className="w-full max-w-lg p-6 mx-4">
+                  <div className="flex items-start gap-4">
+                    <div className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-full shrink-0",
+                      isDeleteOperation(permissionRequest) ? "bg-red-500/10" :
+                        permissionRequest.type === 'file' ? "bg-amber-500/10" :
+                          permissionRequest.type === 'question' ? "bg-primary/10" : "bg-warning/10"
+                    )}>
+                      {isDeleteOperation(permissionRequest) ? (
+                        <AlertTriangle className="h-5 w-5 text-red-600" />
+                      ) : permissionRequest.type === 'file' ? (
+                        <File className="h-5 w-5 text-amber-600" />
+                      ) : permissionRequest.type === 'question' ? (
+                        <Brain className="h-5 w-5 text-primary" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-warning" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className={cn(
+                        "text-lg font-semibold mb-2",
+                        isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
+                      )}>
+                        {isDeleteOperation(permissionRequest)
+                          ? 'File Deletion Warning'
+                          : permissionRequest.type === 'file'
+                            ? 'File Permission Required'
+                            : permissionRequest.type === 'question'
+                              ? (permissionRequest.header || 'Question')
+                              : 'Permission Required'}
+                      </h3>
+
+                      {/* File permission specific UI */}
+                      {permissionRequest.type === 'file' && (
+                        <>
+                          {/* Delete operation warning banner */}
+                          {isDeleteOperation(permissionRequest) && (
+                            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                              <p className="text-sm text-red-600">
+                                {(() => {
+                                  const paths = getDisplayFilePaths(permissionRequest);
+                                  return paths.length > 1
+                                    ? `${paths.length} files will be permanently deleted:`
+                                    : 'This file will be permanently deleted:';
+                                })()}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Non-delete operation badge */}
+                          {!isDeleteOperation(permissionRequest) && (
+                            <div className="mb-3">
+                              <span className={cn(
+                                "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                                getOperationBadgeClasses(permissionRequest.fileOperation)
+                              )}>
+                                {permissionRequest.fileOperation?.toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* File path(s) display */}
+                          <div className={cn(
+                            "mb-4 p-3 rounded-lg",
+                            isDeleteOperation(permissionRequest)
+                              ? "bg-red-500/5 border border-red-500/20"
+                              : "bg-muted"
+                          )}>
+                            {(() => {
+                              const paths = getDisplayFilePaths(permissionRequest);
+                              if (paths.length > 1) {
+                                return (
+                                  <ul className="space-y-1">
+                                    {paths.map((path, idx) => (
+                                      <li key={idx} className={cn(
+                                        "text-sm font-mono break-all",
+                                        isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
+                                      )}>
+                                        • {path}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                );
+                              }
+                              return (
+                                <p className={cn(
+                                  "text-sm font-mono break-all",
+                                  isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
+                                )}>
+                                  {paths[0]}
+                                </p>
+                              );
+                            })()}
+                            {permissionRequest.targetPath && (
+                              <p className="text-sm font-mono text-muted-foreground mt-1">
+                                → {permissionRequest.targetPath}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Delete warning text */}
+                          {isDeleteOperation(permissionRequest) && (
+                            <p className="text-sm text-red-600/80 mb-4">
+                              This action cannot be undone.
+                            </p>
+                          )}
+
+                          {permissionRequest.contentPreview && (
+                            <details className="mb-4">
+                              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                                Preview content
+                              </summary>
+                              <pre className="mt-2 p-2 rounded bg-muted text-xs overflow-x-auto max-h-32 overflow-y-auto">
+                                {permissionRequest.contentPreview}
+                              </pre>
+                            </details>
+                          )}
+                        </>
+                      )}
+
+                      {/* Question type UI with options */}
+                      {permissionRequest.type === 'question' && (
+                        <>
+                          <p className="text-sm text-foreground mb-4">
+                            {permissionRequest.question}
+                          </p>
+
+                          {/* Options list */}
+                          {!showCustomInput && permissionRequest.options && permissionRequest.options.length > 0 && (
+                            <div className="mb-4 space-y-2">
+                              {permissionRequest.options.map((option, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => {
+                                    // If "Other" is selected, show custom input
+                                    if (option.label.toLowerCase() === 'other') {
+                                      setShowCustomInput(true);
+                                      setSelectedOptions([]);
+                                      return;
+                                    }
+                                    if (permissionRequest.multiSelect) {
+                                      setSelectedOptions((prev) =>
+                                        prev.includes(option.label)
+                                          ? prev.filter((o) => o !== option.label)
+                                          : [...prev, option.label]
+                                      );
+                                    } else {
+                                      setSelectedOptions([option.label]);
+                                    }
+                                  }}
+                                  className={cn(
+                                    "w-full text-left p-3 rounded-lg border transition-colors",
+                                    selectedOptions.includes(option.label)
+                                      ? "border-primary bg-primary/10"
+                                      : "border-border hover:border-primary/50"
+                                  )}
+                                >
+                                  <div className="font-medium text-sm">{option.label}</div>
+                                  {option.description && (
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {option.description}
+                                    </div>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Custom text input */}
+                          {showCustomInput && (
+                            <div className="mb-4 space-y-2">
+                              <Input
+                                autoFocus
+                                value={customResponse}
+                                onChange={(e) => setCustomResponse(e.target.value)}
+                                placeholder="Type your response..."
+                                onKeyDown={(e) => {
+                                  // Don't submit during IME composition
+                                  if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+                                  if (e.key === 'Enter' && customResponse.trim()) {
+                                    handlePermissionResponse(true);
+                                  }
+                                }}
+                              />
+                              <button
+                                onClick={() => {
+                                  setShowCustomInput(false);
+                                  setCustomResponse('');
+                                }}
+                                className="text-xs text-muted-foreground hover:text-foreground"
+                              >
+                                ← Back to options
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Standard tool UI (non-file, non-question) */}
+                      {permissionRequest.type === 'tool' && (
+                        <>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Allow {permissionRequest.toolName}?
+                          </p>
+                          {permissionRequest.toolName && (
+                            <div className="mb-4 p-3 rounded-lg bg-muted text-xs font-mono overflow-x-auto">
+                              <p className="text-muted-foreground mb-1">Tool: {permissionRequest.toolName}</p>
+                              <pre className="text-foreground">
+                                {JSON.stringify(permissionRequest.toolInput, null, 2)}
+                              </pre>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      <div className="flex gap-3">
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePermissionResponse(false)}
+                          className="flex-1"
+                          data-testid="permission-deny-button"
+                        >
+                          {permissionRequest.type === 'question' ? 'Cancel' : 'Deny'}
+                        </Button>
+                        <Button
+                          onClick={() => handlePermissionResponse(true)}
+                          className={cn(
+                            "flex-1",
+                            isDeleteOperation(permissionRequest) && "bg-red-600 hover:bg-red-700 text-white"
+                          )}
+                          data-testid="permission-allow-button"
+                          disabled={
+                            permissionRequest.type === 'question' &&
+                            !showCustomInput &&
+                            permissionRequest.options &&
+                            selectedOptions.length === 0
+                          }
+                        >
+                          {isDeleteOperation(permissionRequest)
+                            ? getDisplayFilePaths(permissionRequest).length > 1
+                              ? 'Delete All'
+                              : 'Delete'
+                            : permissionRequest.type === 'question'
+                              ? 'Submit'
+                              : 'Allow'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Running state input with Stop button */}
+        {currentTask.status === 'running' && !permissionRequest && (
+          <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4">
+            <div className="max-w-4xl mx-auto flex gap-3">
+              <Input
+                placeholder="Agent is working..."
+                disabled
+                className="flex-1 opacity-50"
               />
               <Button
-                onClick={handleFollowUp}
-                disabled={!followUp.trim() || isLoading}
                 variant="outline"
+                size="icon"
+                onClick={interruptTask}
+                title="Stop agent (Ctrl+C)"
+                className="shrink-0 hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
+                data-testid="execution-stop-button"
               >
-                <CornerDownLeft className="h-4 w-4 mr-1.5" />
-                Send
+                <Square className="h-4 w-4 fill-current" />
               </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Completed/Failed state (no session to continue) */}
-      {isComplete && !canFollowUp && (
-        <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4 text-center">
-          <p className="text-sm text-muted-foreground mb-3">
-            Task {currentTask.status === 'interrupted' ? 'stopped' : currentTask.status}
-          </p>
-          <Button onClick={() => navigate('/')}>
-            Start New Task
-          </Button>
-        </div>
-      )}
-
-      {/* Debug Panel - Only visible when debug mode is enabled */}
-      {debugModeEnabled && (
-        <div className="flex-shrink-0 border-t border-border" data-testid="debug-panel">
-          {/* Toggle header */}
-          <button
-            onClick={() => setDebugPanelOpen(!debugPanelOpen)}
-            className="w-full flex items-center justify-between px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 transition-colors"
-          >
-            <div className="flex items-center gap-2 text-sm text-zinc-400">
-              <Bug className="h-4 w-4" />
-              <span className="font-medium">Debug Logs</span>
-              {debugLogs.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-zinc-700 text-zinc-300 text-xs">
-                  {debugLogs.length}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {debugLogs.length > 0 && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleExportDebugLogs();
-                    }}
-                  >
-                    {debugExported ? (
-                      <Check className="h-3 w-3 mr-1 text-green-400" />
-                    ) : (
-                      <Download className="h-3 w-3 mr-1" />
-                    )}
-                    {debugExported ? 'Exported' : 'Export'}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDebugLogs([]);
-                    }}
-                  >
-                    <Trash2 className="h-3 w-3 mr-1" />
-                    Clear
-                  </Button>
-                </>
-              )}
-              {debugPanelOpen ? (
-                <ChevronDown className="h-4 w-4 text-zinc-500" />
-              ) : (
-                <ChevronUp className="h-4 w-4 text-zinc-500" />
-              )}
-            </div>
-          </button>
-
-          {/* Collapsible panel content */}
-          <AnimatePresence>
-            {debugPanelOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 200, opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <div
-                  ref={debugPanelRef}
-                  className="h-[200px] overflow-y-auto bg-zinc-950 text-zinc-300 font-mono text-xs p-4"
+        {/* Follow-up input */}
+        {canFollowUp && (
+          <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4">
+            <div className="max-w-4xl mx-auto">
+              {/* Input field with Send button */}
+              <div className="flex gap-3">
+                <Input
+                  ref={followUpInputRef}
+                  value={followUp}
+                  onChange={(e) => setFollowUp(e.target.value)}
+                  onKeyDown={(e) => {
+                    // Don't submit during IME composition (e.g., Chinese, Japanese input)
+                    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleFollowUp();
+                    }
+                  }}
+                  placeholder={
+                    currentTask.status === 'interrupted'
+                      ? (hasSession ? "Give new instructions..." : "Send a new instruction to retry...")
+                      : currentTask.status === 'completed'
+                        ? "Give new instructions..."
+                        : "Ask for something..."
+                  }
+                  disabled={isLoading}
+                  className="flex-1"
+                  data-testid="execution-follow-up-input"
+                />
+                <Button
+                  onClick={handleFollowUp}
+                  disabled={!followUp.trim() || isLoading}
+                  variant="outline"
                 >
-                  {debugLogs.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-zinc-500">
-                      No debug logs yet. Run a task to see logs.
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      {debugLogs.map((log, index) => (
-                        <div key={index} className="flex gap-2">
-                          <span className="text-zinc-500 shrink-0">
-                            {new Date(log.timestamp).toLocaleTimeString()}
-                          </span>
-                          <span className={cn(
-                            'shrink-0 px-1 rounded',
-                            log.type === 'error' ? 'bg-red-500/20 text-red-400' :
-                            log.type === 'warn' ? 'bg-yellow-500/20 text-yellow-400' :
-                            log.type === 'info' ? 'bg-blue-500/20 text-blue-400' :
-                            'bg-zinc-700 text-zinc-400'
-                          )}>
-                            [{log.type}]
-                          </span>
-                          <span className="text-zinc-300 break-all">
-                            {log.message}
-                            {log.data !== undefined && (
-                              <span className="text-zinc-500 ml-2">
-                                {typeof log.data === 'string' ? log.data : JSON.stringify(log.data, null, 0)}
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
-    </div>
+                  <CornerDownLeft className="h-4 w-4 mr-1.5" />
+                  Send
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Completed/Failed state (no session to continue) */}
+        {isComplete && !canFollowUp && (
+          <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4 text-center">
+            <p className="text-sm text-muted-foreground mb-3">
+              Task {currentTask.status === 'interrupted' ? 'stopped' : currentTask.status}
+            </p>
+            <Button onClick={() => navigate('/')}>
+              Start New Task
+            </Button>
+          </div>
+        )}
+
+        {/* Debug Panel - Only visible when debug mode is enabled */}
+        {debugModeEnabled && (
+          <div className="flex-shrink-0 border-t border-border" data-testid="debug-panel">
+            {/* Toggle header */}
+            <button
+              onClick={() => setDebugPanelOpen(!debugPanelOpen)}
+              className="w-full flex items-center justify-between px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 transition-colors"
+            >
+              <div className="flex items-center gap-2 text-sm text-zinc-400">
+                <Bug className="h-4 w-4" />
+                <span className="font-medium">Debug Logs</span>
+                {debugLogs.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-zinc-700 text-zinc-300 text-xs">
+                    {debugLogs.length}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {debugLogs.length > 0 && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleExportDebugLogs();
+                      }}
+                    >
+                      {debugExported ? (
+                        <Check className="h-3 w-3 mr-1 text-green-400" />
+                      ) : (
+                        <Download className="h-3 w-3 mr-1" />
+                      )}
+                      {debugExported ? 'Exported' : 'Export'}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDebugLogs([]);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Clear
+                    </Button>
+                  </>
+                )}
+                {debugPanelOpen ? (
+                  <ChevronDown className="h-4 w-4 text-zinc-500" />
+                ) : (
+                  <ChevronUp className="h-4 w-4 text-zinc-500" />
+                )}
+              </div>
+            </button>
+
+            {/* Collapsible panel content */}
+            <AnimatePresence>
+              {debugPanelOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 200, opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div
+                    ref={debugPanelRef}
+                    className="h-[200px] overflow-y-auto bg-zinc-950 text-zinc-300 font-mono text-xs p-4"
+                  >
+                    {debugLogs.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-zinc-500">
+                        No debug logs yet. Run a task to see logs.
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {debugLogs.map((log, index) => (
+                          <div key={index} className="flex gap-2">
+                            <span className="text-zinc-500 shrink-0">
+                              {new Date(log.timestamp).toLocaleTimeString()}
+                            </span>
+                            <span className={cn(
+                              'shrink-0 px-1 rounded',
+                              log.type === 'error' ? 'bg-red-500/20 text-red-400' :
+                                log.type === 'warn' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  log.type === 'info' ? 'bg-blue-500/20 text-blue-400' :
+                                    'bg-zinc-700 text-zinc-400'
+                            )}>
+                              [{log.type}]
+                            </span>
+                            <span className="text-zinc-300 break-all">
+                              {log.message}
+                              {log.data !== undefined && (
+                                <span className="text-zinc-500 ml-2">
+                                  {typeof log.data === 'string' ? log.data : JSON.stringify(log.data, null, 0)}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
     </>
   );
 }
