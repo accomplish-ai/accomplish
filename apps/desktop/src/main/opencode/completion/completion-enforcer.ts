@@ -30,7 +30,7 @@
  */
 
 import { CompletionState, CompletionFlowState, CompleteTaskArgs } from './completion-state';
-import { getContinuationPrompt, getVerificationPrompt } from './prompts';
+import { getContinuationPrompt, getVerificationPrompt, getPartialContinuationPrompt } from './prompts';
 
 export interface CompletionEnforcerCallbacks {
   onStartVerification: (prompt: string) => Promise<void>;
@@ -108,6 +108,16 @@ export class CompletionEnforcer {
       return 'pending'; // Let handleProcessExit start verification
     }
 
+    // Check if partial continuation is needed
+    if (this.state.isPendingPartialContinuation()) {
+      this.callbacks.onDebug(
+        'partial_continuation',
+        'Scheduling continuation for partial completion',
+        { remainingWork: this.state.getCompleteTaskArgs()?.remaining_work }
+      );
+      return 'pending'; // Let handleProcessExit start partial continuation
+    }
+
     // Check if agent stopped without calling complete_task
     if (!this.state.isCompleteTaskCalled()) {
       // If we're in verification mode and agent stops without re-calling complete_task,
@@ -163,7 +173,34 @@ export class CompletionEnforcer {
       return;
     }
 
-    // Check if we need to continue
+    // Check if we need to continue after partial completion
+    if (this.state.isPendingPartialContinuation() && exitCode === 0) {
+      const args = this.state.getCompleteTaskArgs();
+      const prompt = getPartialContinuationPrompt(
+        args?.remaining_work || 'No remaining work specified',
+        args?.original_request_summary || 'Unknown request',
+        args?.summary || 'No summary provided'
+      );
+
+      const canContinue = this.state.startPartialContinuation();
+
+      if (!canContinue) {
+        console.warn('[CompletionEnforcer] Max partial continuation attempts reached');
+        this.callbacks.onComplete();
+        return;
+      }
+
+      this.callbacks.onDebug(
+        'partial_continuation',
+        `Starting partial continuation (attempt ${this.state.getContinuationAttempts()})`,
+        { remainingWork: args?.remaining_work, summary: args?.summary }
+      );
+
+      await this.callbacks.onStartContinuation(prompt);
+      return;
+    }
+
+    // Check if we need to continue (agent stopped without complete_task)
     if (this.state.isPendingContinuation() && exitCode === 0) {
       const prompt = getContinuationPrompt();
 
@@ -181,8 +218,9 @@ export class CompletionEnforcer {
     // No pending actions - complete the task
     // This handles:
     // - DONE: verification completed successfully
-    // - COMPLETE_TASK_CALLED: complete_task called (non-success status)
+    // - COMPLETE_TASK_CALLED: complete_task called with blocked status
     // - IDLE: process exited cleanly without triggering completion flow
+    // - MAX_RETRIES_REACHED: exhausted all continuation attempts
     this.callbacks.onComplete();
   }
 

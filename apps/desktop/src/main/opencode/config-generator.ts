@@ -226,10 +226,12 @@ When to call \`complete_task\`:
    - Describe what went wrong
    - State what remains undone in \`remaining_work\`
 
-3. **status: "partial"** - You completed some parts but not all
-   - Summarize what you accomplished
-   - Explain why you couldn't finish the rest
-   - State what remains in \`remaining_work\`
+3. **status: "partial"** - AVOID THIS STATUS
+   - Only use if you are FORCED to stop mid-task (context limit approaching, etc.)
+   - The system will automatically continue you to finish the remaining work
+   - If you use partial, you MUST fill in remaining_work with specific next steps
+   - Do NOT use partial as a way to ask "should I continue?" - just keep working
+   - If you've done some work and can keep going, KEEP GOING - don't use partial
 
 **NEVER** just stop working. If you find yourself about to end without calling \`complete_task\`,
 ask yourself: "Did I actually finish what was asked?" If unsure, keep working.
