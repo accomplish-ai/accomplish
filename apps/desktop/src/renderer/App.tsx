@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { isRunningInElectron, getAccomplish } from './lib/accomplish';
 import { springs, variants } from './lib/animations';
 import { analytics } from './lib/analytics';
+import {useHotkeys} from "react-hotkeys-hook";
 
 // Pages
 import HomePage from './pages/Home';
@@ -25,25 +26,22 @@ export default function App() {
   const location = useLocation();
 
   // Get launcher actions
-  const { openLauncher } = useTaskStore();
+  const { openLauncher, isLauncherOpen, closeLauncher } = useTaskStore();
 
   // Track page views on route changes
   useEffect(() => {
     analytics.trackPageView(location.pathname);
   }, [location.pathname]);
 
-  // Cmd+K keyboard shortcut
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        openLauncher();
-      }
-    };
+  // {Cmd/Ctrl}+K keyboard shortcut
+  useHotkeys('mod+k', () => {
+    if (isLauncherOpen) {
+      closeLauncher();
+      return;
+    }
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [openLauncher]);
+    openLauncher();
+  }, { enableOnFormTags: true }, [openLauncher, isLauncherOpen, closeLauncher])
 
   useEffect(() => {
     const checkStatus = async () => {
