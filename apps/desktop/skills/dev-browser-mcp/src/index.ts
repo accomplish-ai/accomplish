@@ -21,6 +21,7 @@ import {
   type CallToolResult,
 } from '@modelcontextprotocol/sdk/types.js';
 import { chromium, type Browser, type Page, type ElementHandle } from 'playwright';
+import { getSnapshotManager, resetSnapshotManager } from './snapshot/index.js';
 
 console.error('[dev-browser-mcp] All imports completed successfully');
 
@@ -1193,6 +1194,7 @@ interface BrowserNavigateInput {
 interface BrowserSnapshotInput {
   page_name?: string;
   interactive_only?: boolean;
+  full_snapshot?: boolean;
 }
 
 interface BrowserClickInput {
@@ -1385,7 +1387,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'browser_snapshot',
-      description: 'Get the ARIA accessibility tree of the current page. Returns elements with refs like [ref=e5] that can be used with browser_click and browser_type. Use interactive_only=true to show only clickable/typeable elements (recommended for most tasks).',
+      description: 'Get the ARIA accessibility tree of the current page. Returns elements with refs like [ref=e5] that can be used with browser_click and browser_type. By default, returns a diff if the page hasn\'t changed since last snapshot. Use full_snapshot=true to force a complete snapshot after major page changes.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1395,7 +1397,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           },
           interactive_only: {
             type: 'boolean',
-            description: 'If true, only show interactive elements (buttons, links, inputs, etc.). Recommended for most tasks to reduce noise. Default: false.',
+            description: 'If true, only show interactive elements (buttons, links, inputs, etc.). Default: true.',
+          },
+          full_snapshot: {
+            type: 'boolean',
+            description: 'Force a complete snapshot instead of a diff. Use after major page changes (modal opened, dynamic content loaded) or when element refs seem incorrect. Default: false.',
           },
         },
       },
@@ -1475,7 +1481,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'browser_screenshot',
-      description: 'Take a screenshot of the current page. Returns the image for visual inspection.',
+      description: 'Take a screenshot of the current page. Returns a JPEG image (80% quality) for visual inspection. Optimized for size to stay under API limits.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1993,6 +1999,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
           fullUrl = 'https://' + fullUrl;
         }
 
+        // Reset snapshot state - we're navigating to a new page
+        resetSnapshotManager();
+
         const page = await getPage(page_name);
         await page.goto(fullUrl);
         await waitForPageLoad(page);
@@ -2018,11 +2027,12 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_snapshot': {
-        const { page_name, interactive_only } = args as BrowserSnapshotInput;
+        const { page_name, interactive_only, full_snapshot } = args as BrowserSnapshotInput;
         const page = await getPage(page_name);
-        const snapshot = await getAISnapshot(page, { interactiveOnly: interactive_only });
+        const rawSnapshot = await getAISnapshot(page, { interactiveOnly: interactive_only ?? true });
         const viewport = page.viewportSize();
         const url = page.url();
+        const title = await page.title();
 
         // Detect canvas-based apps that need special handling
         const canvasApps = [
@@ -2035,11 +2045,21 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         ];
         const detectedApp = canvasApps.find(app => app.pattern.test(url));
 
+        // Process through snapshot manager for diffing
+        const manager = getSnapshotManager();
+        const result = manager.processSnapshot(rawSnapshot, url, title, {
+          fullSnapshot: full_snapshot,
+          interactiveOnly: interactive_only ?? true,
+        });
+
         // Build output with metadata header
         let output = `# Page Info\n`;
         output += `URL: ${url}\n`;
         output += `Viewport: ${viewport?.width || 1280}x${viewport?.height || 720} (center: ${Math.round((viewport?.width || 1280) / 2)}, ${Math.round((viewport?.height || 720) / 2)})\n`;
-        if (interactive_only) {
+
+        if (result.type === 'diff') {
+          output += `Mode: Diff (showing changes since last snapshot)\n`;
+        } else if (interactive_only ?? true) {
           output += `Mode: Interactive elements only (buttons, links, inputs)\n`;
         }
 
@@ -2050,7 +2070,11 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           output += `(center-lower avoids UI overlays like Google Docs AI suggestions)\n`;
         }
 
-        output += `\n# Accessibility Tree\n${snapshot}`;
+        if (result.type === 'diff') {
+          output += `\n# Changes Since Last Snapshot\n${result.content}`;
+        } else {
+          output += `\n# Accessibility Tree\n${result.content}`;
+        }
 
         return {
           content: [{
@@ -2194,9 +2218,12 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         const { page_name, full_page } = args as BrowserScreenshotInput;
         const page = await getPage(page_name);
 
+        // Use JPEG with 80% quality to keep screenshots under 5MB API limit
+        // PNG screenshots of image-heavy pages can exceed 6MB after base64 encoding
         const screenshotBuffer = await page.screenshot({
           fullPage: full_page ?? false,
-          type: 'png',
+          type: 'jpeg',
+          quality: 80,
         });
 
         const base64 = screenshotBuffer.toString('base64');
@@ -2205,7 +2232,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           content: [{
             type: 'image',
             data: base64,
-            mimeType: 'image/png',
+            mimeType: 'image/jpeg',
           }],
         };
       }
@@ -2472,6 +2499,8 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             };
           }
           await element.scrollIntoViewIfNeeded();
+          // Reset snapshot state after scroll - content likely changed
+          resetSnapshotManager();
           return {
             content: [{ type: 'text', text: `Scrolled [ref=${ref}] into view` }],
           };
@@ -2486,6 +2515,8 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             };
           }
           await element.scrollIntoViewIfNeeded();
+          // Reset snapshot state after scroll - content likely changed
+          resetSnapshotManager();
           return {
             content: [{ type: 'text', text: `Scrolled "${selector}" into view` }],
           };
@@ -2495,11 +2526,15 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         if (position) {
           if (position === 'top') {
             await page.evaluate(() => window.scrollTo(0, 0));
+            // Reset snapshot state after scroll - content likely changed
+            resetSnapshotManager();
             return {
               content: [{ type: 'text', text: 'Scrolled to top of page' }],
             };
           } else if (position === 'bottom') {
             await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+            // Reset snapshot state after scroll - content likely changed
+            resetSnapshotManager();
             return {
               content: [{ type: 'text', text: 'Scrolled to bottom of page' }],
             };
@@ -2528,6 +2563,8 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           }
 
           await page.mouse.wheel(deltaX, deltaY);
+          // Reset snapshot state after scroll - content likely changed
+          resetSnapshotManager();
           return {
             content: [{ type: 'text', text: `Scrolled ${direction} by ${scrollAmount}px` }],
           };

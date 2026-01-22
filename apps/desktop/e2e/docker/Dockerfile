@@ -39,6 +39,9 @@ COPY scripts/ ./scripts/
 # Copy skills directories (needed by desktop postinstall script)
 COPY apps/desktop/skills ./apps/desktop/skills
 
+# Copy scripts directory (needed by postinstall script)
+COPY apps/desktop/scripts ./apps/desktop/scripts
+
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 

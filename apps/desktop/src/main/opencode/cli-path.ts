@@ -5,12 +5,21 @@ import { execSync } from 'child_process';
 
 /**
  * Get OpenCode package name and platform-specific binary name.
- * The package is always 'opencode-ai', only the binary name differs on Windows.
+ *
+ * On Windows: The binary is in a platform-specific package (opencode-windows-x64)
+ * On macOS/Linux: The binary is in the main opencode-ai package
  */
 function getOpenCodePlatformInfo(): { packageName: string; binaryName: string } {
+  if (process.platform === 'win32') {
+    // On Windows, use the platform-specific package
+    return {
+      packageName: 'opencode-windows-x64',
+      binaryName: 'opencode.exe',
+    };
+  }
   return {
     packageName: 'opencode-ai',
-    binaryName: process.platform === 'win32' ? 'opencode.exe' : 'opencode',
+    binaryName: 'opencode',
   };
 }
 

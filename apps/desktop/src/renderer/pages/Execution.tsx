@@ -54,6 +54,7 @@ const TOOL_PROGRESS_MAP: Record<string, { label: string; icon: typeof FileText }
   dev_browser_execute: { label: 'Executing browser action', icon: Terminal },
 };
 
+
 // Debounce utility
 function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
   let timeoutId: ReturnType<typeof setTimeout>;
@@ -117,6 +118,9 @@ export default function ExecutionPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
 
+  // Elapsed time for startup indicator
+  const [elapsedTime, setElapsedTime] = useState(0);
+
   const {
     currentTask,
     loadTaskById,
@@ -133,6 +137,8 @@ export default function ExecutionPage() {
     setupProgress,
     setupProgressTaskId,
     setupDownloadStep,
+    startupStage,
+    startupStageTaskId,
   } = useTaskStore();
 
   // Debounced scroll function
@@ -168,6 +174,28 @@ export default function ExecutionPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - accomplish is a stable singleton wrapper
+
+  // Elapsed time timer for startup indicator
+  useEffect(() => {
+    // Only run timer when there's a startup stage for this task and no tool is active
+    const isShowingStartupStage = startupStageTaskId === id && startupStage && !currentTool;
+
+    if (!isShowingStartupStage) {
+      setElapsedTime(0);
+      return;
+    }
+
+    // Calculate initial elapsed time from startTime
+    const calculateElapsed = () => Math.floor((Date.now() - startupStage.startTime) / 1000);
+    setElapsedTime(calculateElapsed());
+
+    // Update every second
+    const interval = setInterval(() => {
+      setElapsedTime(calculateElapsed());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [startupStageTaskId, startupStage, id, currentTool]);
 
   // Load task and subscribe to events
   useEffect(() => {
@@ -665,18 +693,34 @@ export default function ExecutionPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={springs.gentle}
-                  className="flex items-center gap-2 text-muted-foreground py-2"
+                  className="flex flex-col gap-1 text-muted-foreground py-2"
                   data-testid="execution-thinking-indicator"
                 >
-                  <SpinningIcon className="h-4 w-4" />
-                  <span className="text-sm">
-                    {currentTool
-                      ? ((currentToolInput as { description?: string })?.description || TOOL_PROGRESS_MAP[currentTool]?.label || currentTool)
-                      : 'Thinking...'}
-                  </span>
-                  {currentTool && !(currentToolInput as { description?: string })?.description && (
-                    <span className="text-xs text-muted-foreground/60">
-                      ({currentTool})
+                  <div className="flex items-center gap-2">
+                    <SpinningIcon className="h-4 w-4" />
+                    <span className="text-sm">
+                      {currentTool
+                        ? ((currentToolInput as { description?: string })?.description || TOOL_PROGRESS_MAP[currentTool]?.label || currentTool)
+                        : (startupStageTaskId === id && startupStage)
+                          ? startupStage.message
+                          : 'Thinking...'}
+                    </span>
+                    {currentTool && !(currentToolInput as { description?: string })?.description && (
+                      <span className="text-xs text-muted-foreground/60">
+                        ({currentTool})
+                      </span>
+                    )}
+                    {/* Elapsed time - only show during startup stages */}
+                    {!currentTool && startupStageTaskId === id && startupStage && (
+                      <span className="text-xs text-muted-foreground/60">
+                        ({elapsedTime}s)
+                      </span>
+                    )}
+                  </div>
+                  {/* Cold start hint */}
+                  {!currentTool && startupStageTaskId === id && startupStage?.isFirstTask && startupStage.stage === 'browser' && (
+                    <span className="text-xs text-muted-foreground/50 ml-6">
+                      First task takes a bit longer...
                     </span>
                   )}
                 </motion.div>

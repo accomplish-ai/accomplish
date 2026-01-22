@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "npx tsx src/index.ts"
+    "start": "npx tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "playwright": "npm:rebrowser-playwright@^1.52.0"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0"
   }
 }
