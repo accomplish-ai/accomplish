@@ -249,8 +249,9 @@ test.describe('Settings - All Providers', () => {
       await settingsPage.selectProvider('openai');
       await expect(settingsPage.apiKeyInput).toBeVisible();
 
-      // Switch to CCH
+      // Switch to CCH (requires both server URL and API key)
       await settingsPage.selectProvider('cch');
+      await expect(window.getByTestId('cch-server-url')).toBeVisible();
       await expect(settingsPage.apiKeyInput).toBeVisible();
 
       // Switch to Google
