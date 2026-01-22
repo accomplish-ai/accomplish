@@ -5,6 +5,7 @@ import { PERMISSION_API_PORT, QUESTION_API_PORT } from '../permission-api';
 import { getOllamaConfig } from '../store/appSettings';
 import { getApiKey } from '../store/secureStorage';
 import { getProviderSettings, getActiveProviderModel, getConnectedProviderIds } from '../store/providerSettings';
+import { ensureAzureFoundryProxy } from './azure-foundry-proxy';
 import type { BedrockCredentials, ProviderId, AzureFoundryCredentials } from '@accomplish/shared';
 
 /**
@@ -260,6 +261,7 @@ interface ProviderModelConfig {
     context?: number;
     output?: number;
   };
+  options?: Record<string, unknown>;
 }
 
 interface OllamaProviderConfig {
@@ -350,18 +352,20 @@ interface OpenCodeConfig {
  * Build Azure Foundry provider configuration for OpenCode CLI
  * Shared helper to avoid duplication between new settings and legacy paths
  */
-function buildAzureFoundryProviderConfig(
+async function buildAzureFoundryProviderConfig(
   endpoint: string,
   deploymentName: string,
   authMethod: 'api-key' | 'entra-id',
   azureFoundryToken?: string
-): AzureFoundryProviderConfig | null {
+): Promise<AzureFoundryProviderConfig | null> {
   const baseUrl = endpoint.replace(/\/$/, '');
+  const targetBaseUrl = `${baseUrl}/openai/v1`;
+  const proxyInfo = await ensureAzureFoundryProxy(targetBaseUrl);
 
   // Build options for @ai-sdk/openai-compatible provider
-  // Use baseURL with /openai/v1 - the SDK appends /chat/completions automatically
+  // Route through local proxy to strip unsupported params for Azure Foundry
   const azureOptions: AzureFoundryProviderConfig['options'] = {
-    baseURL: `${baseUrl}/openai/v1`,
+    baseURL: proxyInfo.baseURL,
   };
 
   // Set API key or Entra ID token
@@ -632,7 +636,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
   const azureFoundryProvider = providerSettings.connectedProviders['azure-foundry'];
   if (azureFoundryProvider?.connectionStatus === 'connected' && azureFoundryProvider.credentials.type === 'azure-foundry') {
     const creds = azureFoundryProvider.credentials;
-    const config = buildAzureFoundryProviderConfig(
+    const config = await buildAzureFoundryProviderConfig(
       creds.endpoint,
       creds.deploymentName,
       creds.authMethod,
@@ -657,7 +661,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     const { getAzureFoundryConfig } = await import('../store/appSettings');
     const azureFoundryConfig = getAzureFoundryConfig();
     if (azureFoundryConfig?.enabled && activeModel?.provider === 'azure-foundry') {
-      const config = buildAzureFoundryProviderConfig(
+      const config = await buildAzureFoundryProviderConfig(
         azureFoundryConfig.baseUrl,
         azureFoundryConfig.deploymentName || 'default',
         azureFoundryConfig.authType,
