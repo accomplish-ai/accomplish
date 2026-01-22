@@ -18,6 +18,11 @@ export default defineConfig(() => ({
           startup();
         },
         vite: {
+          resolve: {
+            alias: {
+              '@accomplish/shared': path.resolve(__dirname, '../../packages/shared/src'),
+            },
+          },
           build: {
             outDir: 'dist-electron/main',
             rollupOptions: {

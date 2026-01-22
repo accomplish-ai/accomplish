@@ -477,12 +477,13 @@ describe('OpenCode Adapter Module', () => {
           },
         };
 
-        // Act - simulate 3 stop events (max attempts is 2)
+        // Act - simulate 21 stop events (max attempts is 20)
         // Note: In the real flow, continuation happens after process exit,
         // but for unit testing we simulate multiple step_finish messages
-        mockPtyInstance.simulateData(JSON.stringify(stepFinishMessage) + '\n');
-        mockPtyInstance.simulateData(JSON.stringify(stepFinishMessage) + '\n');
-        mockPtyInstance.simulateData(JSON.stringify(stepFinishMessage) + '\n');
+        // The CompletionEnforcer defaults to maxContinuationAttempts=20
+        for (let i = 0; i < 21; i++) {
+          mockPtyInstance.simulateData(JSON.stringify(stepFinishMessage) + '\n');
+        }
 
         // Assert - should emit complete after exhausting retries
         expect(completeEvents.length).toBe(1);
