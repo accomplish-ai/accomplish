@@ -1481,7 +1481,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'browser_screenshot',
-      description: 'Take a screenshot of the current page. Returns the image for visual inspection.',
+      description: 'Take a screenshot of the current page. Returns a JPEG image (80% quality) for visual inspection. Optimized for size to stay under API limits.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -2218,9 +2218,12 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         const { page_name, full_page } = args as BrowserScreenshotInput;
         const page = await getPage(page_name);
 
+        // Use JPEG with 80% quality to keep screenshots under 5MB API limit
+        // PNG screenshots of image-heavy pages can exceed 6MB after base64 encoding
         const screenshotBuffer = await page.screenshot({
           fullPage: full_page ?? false,
-          type: 'png',
+          type: 'jpeg',
+          quality: 80,
         });
 
         const base64 = screenshotBuffer.toString('base64');
@@ -2229,7 +2232,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           content: [{
             type: 'image',
             data: base64,
-            mimeType: 'image/png',
+            mimeType: 'image/jpeg',
           }],
         };
       }
