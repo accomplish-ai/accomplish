@@ -430,6 +430,13 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       ...process.env,
     };
 
+    // Debug: log CDP endpoint if set
+    if (process.env.AGENT_BROWSER_CDP_ENDPOINT) {
+      console.log('[OpenCode CLI] AGENT_BROWSER_CDP_ENDPOINT in process.env:', process.env.AGENT_BROWSER_CDP_ENDPOINT);
+    } else {
+      console.log('[OpenCode CLI] WARNING: AGENT_BROWSER_CDP_ENDPOINT not set in process.env');
+    }
+
     if (app.isPackaged) {
       // Run the bundled CLI with Electron acting as Node (no system Node required).
       env.ELECTRON_RUN_AS_NODE = '1';

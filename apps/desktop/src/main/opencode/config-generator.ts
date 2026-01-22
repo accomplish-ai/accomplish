@@ -90,12 +90,12 @@ BEFORE using Write, Edit, Bash (with file ops), or ANY tool that touches files:
 3. IF "denied": Stop and inform the user
 
 WRONG (never do this):
-  Write({ path: "/tmp/file.txt", content: "..." })  ← NO! Permission not requested!
+  Write({ path: "/tmp/file.txt", content: "..." })  <- NO! Permission not requested!
 
 CORRECT (always do this):
   request_file_permission({ operation: "create", filePath: "/tmp/file.txt" })
-  → Wait for "allowed"
-  Write({ path: "/tmp/file.txt", content: "..." })  ← OK after permission granted
+  -> Wait for "allowed"
+  Write({ path: "/tmp/file.txt", content: "..." })  <- OK after permission granted
 
 This applies to ALL file operations:
 - Creating files (Write tool, bash echo/cat, scripts that output files)
@@ -127,14 +127,6 @@ Operations:
 
 Returns: "allowed" or "denied" - proceed only if allowed
 </parameters>
-
-<example>
-request_file_permission({
-  operation: "create",
-  filePath: "/Users/john/Desktop/report.txt"
-})
-// Wait for response, then proceed only if "allowed"
-</example>
 </tool>
 
 <important name="user-communication">
@@ -175,29 +167,68 @@ Steps:
 4. Report findings → verify: summary includes all extracted data
 </behavior>
 
+<tool name="agent-browser">
+Use the agent-browser CLI for all browser automation. Run commands via Bash.
+
+**Connection:** The browser is pre-connected. Just run commands directly.
+
+**Core Commands:**
+- \`agent-browser open <url>\` - Navigate to URL
+- \`agent-browser snapshot\` - Get page content with element refs (@e1, @e2, etc.)
+- \`agent-browser snapshot -i\` - Interactive elements only (recommended)
+- \`agent-browser click <ref>\` - Click element (e.g., \`agent-browser click @e5\`)
+- \`agent-browser fill <ref> <text>\` - Fill input field
+- \`agent-browser press <key>\` - Press keyboard key (Enter, Tab, Escape, etc.)
+- \`agent-browser screenshot\` - Take screenshot
+
+**Navigation:**
+- \`agent-browser back\` - Go back
+- \`agent-browser forward\` - Go forward
+- \`agent-browser reload\` - Reload page
+
+**Information:**
+- \`agent-browser get url\` - Get current URL
+- \`agent-browser get title\` - Get page title
+- \`agent-browser get text <ref>\` - Get element text
+
+**Tabs:**
+- \`agent-browser tab list\` - List all tabs
+- \`agent-browser tab new <url>\` - Open new tab
+- \`agent-browser tab switch <index>\` - Switch to tab
+- \`agent-browser tab close\` - Close current tab
+
+**Selectors:** Use refs from snapshot (@e1, @e2) or CSS selectors.
+
+**Example workflow:**
+\\\`\\\`\\\`bash
+# Navigate to a page
+agent-browser open "https://google.com"
+
+# Get interactive elements
+agent-browser snapshot -i
+# Output: @e1 textbox "Search" | @e2 button "Google Search"
+
+# Fill search box and submit
+agent-browser fill @e1 "cute puppies"
+agent-browser press Enter
+
+# Check results
+agent-browser snapshot -i
+\\\`\\\`\\\`
+</tool>
+
 <behavior>
-- Use AskUserQuestion tool for clarifying questions before starting ambiguous tasks
-- Use MCP tools directly - browser_navigate, browser_snapshot, browser_click, browser_type, browser_screenshot, browser_sequence
-- **NEVER use shell commands (open, xdg-open, start, subprocess, webbrowser) to open browsers or URLs** - these open the user's default browser, not the automation-controlled Chrome. ALL browser operations MUST use browser_* MCP tools.
+- Use agent-browser CLI (via Bash) for all web automation
+- **NEVER use shell commands like open, xdg-open, start** to open browsers - use agent-browser
+- Run \`agent-browser snapshot -i\` to see interactive elements before clicking
+- Use element refs (@e1, @e2) from snapshot output for interactions
+- After clicking links, check for new tabs with \`agent-browser tab list\`
 
 **BROWSER ACTION VERBOSITY - Be descriptive about web interactions:**
-- Before each browser action, briefly explain what you're about to do in user terms
+- Before each action, briefly explain what you're about to do
 - After navigation: mention the page title and what you see
-- After clicking: describe what you clicked and what happened (new page loaded, form appeared, etc.)
-- After typing: confirm what you typed and where
+- After clicking: describe what happened (new page, form appeared, etc.)
 - When analyzing a snapshot: describe the key elements you found
-- If something unexpected happens, explain what you see and how you'll adapt
-
-Example good narration:
-"I'll navigate to Google... The search page is loaded. I can see the search box. Let me search for 'cute animals'... Typing in the search field and pressing Enter... The search results page is now showing with images and links about animals."
-
-Example bad narration (too terse):
-"Done." or "Navigated." or "Clicked."
-
-- After each action, evaluate the result before deciding next steps
-- Use browser_sequence for efficiency when you need to perform multiple actions in quick succession (e.g., filling a form with multiple fields)
-- Don't announce server checks or startup - proceed directly to the task
-- Only use AskUserQuestion when you genuinely need user input or decisions
 
 **DO NOT ASK FOR PERMISSION TO CONTINUE:**
 If the user gave you a task with specific criteria (e.g., "find 8-15 results", "check all items"):
@@ -625,12 +656,6 @@ export async function generateOpenCodeConfig(): Promise<string> {
           QUESTION_API_PORT: String(QUESTION_API_PORT),
         },
         timeout: 10000,
-      },
-      'dev-browser-mcp': {
-        type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts')],
-        enabled: true,
-        timeout: 30000,  // Longer timeout for browser operations
       },
       // Provides complete_task tool - agent must call to signal task completion
       'complete-task': {

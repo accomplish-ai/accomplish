@@ -26,6 +26,11 @@
     "pnpm": ">=9.0.0"
   },
   "packageManager": "pnpm@9.15.0",
+  "pnpm": {
+    "patchedDependencies": {
+      "agent-browser@0.1.3": "patches/agent-browser@0.1.3.patch"
+    }
+  },
   "devDependencies": {
     "next": "^15.1.3",
     "react": "^19.0.0",

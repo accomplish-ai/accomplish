@@ -1,0 +1,134 @@
+diff --git a/dist/browser.js b/dist/browser.js
+index 1111111..2222222 100644
+--- a/dist/browser.js
++++ b/dist/browser.js
+@@ -481,6 +481,39 @@ class Browser {
+         return tabs;
+     }
+     /**
++     * Connect to an existing browser via CDP endpoint
++     * Used when connecting to an external browser (e.g., dev-browser with anti-detection)
++     */
++    async connectToCDP(wsEndpoint) {
++        if (this.browser) {
++            return;
++        }
++        try {
++            this.browser = await chromium.connectOverCDP(wsEndpoint);
++        }
++        catch (error) {
++            throw new Error(`Failed to connect to CDP endpoint ${wsEndpoint}. ` +
++                `Ensure dev-browser server is running. Original error: ${error}`);
++        }
++        // Get existing context (preserves cookies/login) or create new one
++        const contexts = this.browser.contexts();
++        let context;
++        if (contexts.length > 0) {
++            context = contexts[0];
++        }
++        else {
++            context = await this.browser.newContext({
++                viewport: { width: 1280, height: 720 },
++            });
++            context.setDefaultTimeout(10000);
++        }
++        this.contexts.push(context);
++        // ALWAYS create a new page for this session (task isolation)
++        const page = await context.newPage();
++        this.pages.push(page);
++        this.setupPageTracking(page);
++        this.activePageIndex = 0;
++    }
++    /**
+      * Close the browser and clean up
+      */
+     async close() {
+diff --git a/dist/daemon.js b/dist/daemon.js
+index 3333333..4444444 100644
+--- a/dist/daemon.js
++++ b/dist/daemon.js
+@@ -98,7 +98,14 @@ async function runDaemon() {
+                     if (!browser.isLaunched() &&
+                         parseResult.command.action !== 'launch' &&
+                         parseResult.command.action !== 'close') {
+-                        await browser.launch({ id: 'auto', action: 'launch', headless: true });
++                        // Check for external CDP endpoint (e.g., dev-browser with anti-detection)
++                        const cdpEndpoint = process.env.AGENT_BROWSER_CDP_ENDPOINT;
++                        if (cdpEndpoint) {
++                            await browser.connectToCDP(cdpEndpoint);
++                        }
++                        else {
++                            await browser.launch({ id: 'auto', action: 'launch', headless: true });
++                        }
+                     }
+                     // Handle close command specially
+                     if (parseResult.command.action === 'close') {
+diff --git a/src/browser.ts b/src/browser.ts
+index 5555555..6666666 100644
+--- a/src/browser.ts
++++ b/src/browser.ts
+@@ -590,6 +590,42 @@ export class Browser {
+       }))
+     );
+     return tabs;
++  }
++
++  /**
++   * Connect to an existing browser via CDP endpoint
++   * Used when connecting to an external browser (e.g., dev-browser with anti-detection)
++   */
++  async connectToCDP(wsEndpoint: string): Promise<void> {
++    if (this.browser) {
++      return;
++    }
++
++    try {
++      this.browser = await chromium.connectOverCDP(wsEndpoint);
++    } catch (error) {
++      throw new Error(
++        `Failed to connect to CDP endpoint ${wsEndpoint}. ` +
++        `Ensure dev-browser server is running. Original error: ${error}`
++      );
++    }
++
++    // Get existing context (preserves cookies/login) or create new one
++    const contexts = this.browser.contexts();
++    let context: BrowserContext;
++
++    if (contexts.length > 0) {
++      context = contexts[0];
++    } else {
++      context = await this.browser.newContext({
++        viewport: { width: 1280, height: 720 },
++      });
++      context.setDefaultTimeout(10000);
++    }
++    this.contexts.push(context);
++
++    // ALWAYS create a new page for this session (task isolation)
++    const page = await context.newPage();
++    this.pages.push(page);
++    this.setupPageTracking(page);
++    this.activePageIndex = 0;
+   }
+
+   /**
+diff --git a/src/daemon.ts b/src/daemon.ts
+index 7777777..8888888 100644
+--- a/src/daemon.ts
++++ b/src/daemon.ts
+@@ -111,7 +111,13 @@ async function runDaemon(): Promise<void> {
+             parseResult.command.action !== 'launch' &&
+             parseResult.command.action !== 'close'
+           ) {
+-            await browser.launch({ id: 'auto', action: 'launch', headless: true });
++            // Check for external CDP endpoint (e.g., dev-browser with anti-detection)
++            const cdpEndpoint = process.env.AGENT_BROWSER_CDP_ENDPOINT;
++            if (cdpEndpoint) {
++              await browser.connectToCDP(cdpEndpoint);
++            } else {
++              await browser.launch({ id: 'auto', action: 'launch', headless: true });
++            }
+           }
+
+           // Handle close command specially
