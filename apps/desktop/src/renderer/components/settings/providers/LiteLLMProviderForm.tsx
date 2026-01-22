@@ -11,6 +11,7 @@ import {
   FormError,
 } from '../shared';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
+import { getAccomplish } from '@/lib/accomplish';
 
 // Import LiteLLM logo
 import litellmLogo from '/assets/ai-logos/litellm.svg';
@@ -42,7 +43,31 @@ export function LiteLLMProviderForm({
     setError(null);
 
     try {
-      // For now, just create a placeholder connected state
+      const accomplish = getAccomplish();
+      const trimmedKey = apiKey.trim() || undefined;
+
+      // Test connection and fetch models
+      const result = await accomplish.testLiteLLMConnection(serverUrl, trimmedKey);
+      if (!result.success) {
+        setError(result.error || 'Connection failed');
+        setConnecting(false);
+        return;
+      }
+
+      // Save or remove API key based on user input
+      if (trimmedKey) {
+        await accomplish.addApiKey('litellm', trimmedKey);
+      } else {
+        // Remove any previously stored key when connecting without one
+        await accomplish.removeApiKey('litellm');
+      }
+
+      // Map models to the expected format
+      const models = result.models?.map(m => ({
+        id: m.id,
+        name: m.name,
+      })) || [];
+
       const provider: ConnectedProvider = {
         providerId: 'litellm',
         connectionStatus: 'connected',
@@ -50,11 +75,11 @@ export function LiteLLMProviderForm({
         credentials: {
           type: 'litellm',
           serverUrl,
-          hasApiKey: !!apiKey.trim(),
-          keyPrefix: apiKey.trim() ? apiKey.trim().substring(0, 10) + '...' : undefined,
+          hasApiKey: !!trimmedKey,
+          keyPrefix: trimmedKey ? trimmedKey.substring(0, 10) + '...' : undefined,
         } as LiteLLMCredentials,
         lastConnectedAt: new Date().toISOString(),
-        availableModels: [],
+        availableModels: models,
       };
 
       onConnect(provider);

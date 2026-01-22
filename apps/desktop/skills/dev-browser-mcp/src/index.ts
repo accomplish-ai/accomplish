@@ -31,11 +31,79 @@ const DEV_BROWSER_URL = `http://localhost:${DEV_BROWSER_PORT}`;
 // Task ID for page name prefixing (supports parallel tasks)
 const TASK_ID = process.env.ACCOMPLISH_TASK_ID || 'default';
 
+/**
+ * Translate Playwright errors into AI-friendly messages with actionable guidance.
+ * Based on Vercel agent-browser pattern: https://github.com/vercel-labs/agent-browser/blob/main/src/actions.ts
+ */
+function toAIFriendlyError(error: unknown, selector: string): Error {
+  const message = error instanceof Error ? error.message : String(error);
+
+  // Handle strict mode violation (multiple elements match)
+  if (message.includes('strict mode violation')) {
+    const countMatch = message.match(/resolved to (\d+) elements/);
+    const count = countMatch ? countMatch[1] : 'multiple';
+    return new Error(
+      `Selector "${selector}" matched ${count} elements. ` +
+      `Run browser_snapshot() to get updated refs, or use a more specific CSS selector.`
+    );
+  }
+
+  // Handle element not interactable (blocked by overlay)
+  if (message.includes('intercepts pointer events') || message.includes('element is not visible')) {
+    return new Error(
+      `Element "${selector}" is blocked by another element (likely a modal, overlay, or cookie banner). ` +
+      `Try: 1) Look for close/dismiss buttons in the snapshot, 2) Press Escape with browser_keyboard, ` +
+      `3) Click outside the overlay. Then retry your action.`
+    );
+  }
+
+  // Handle element not visible
+  if (message.includes('not visible') && !message.includes('Timeout')) {
+    return new Error(
+      `Element "${selector}" exists but is not visible. ` +
+      `Try: 1) Use browser_scroll to scroll it into view, 2) Check if it's behind an overlay, ` +
+      `3) Use browser_wait(condition="selector") to wait for it to appear.`
+    );
+  }
+
+  // Handle element not found / timeout waiting for element
+  if (message.includes('waiting for') && (message.includes('to be visible') || message.includes('Timeout'))) {
+    return new Error(
+      `Element "${selector}" not found or not visible within timeout. ` +
+      `The page may have changed. Run browser_snapshot() to see current page elements.`
+    );
+  }
+
+  // Handle page/target closed
+  if (message.includes('Target closed') || message.includes('Session closed') || message.includes('Page closed')) {
+    return new Error(
+      `The page or tab was closed unexpectedly. ` +
+      `Use browser_tabs(action="list") to see open tabs and browser_tabs(action="switch") to switch to the correct one.`
+    );
+  }
+
+  // Handle navigation errors
+  if (message.includes('net::ERR_') || message.includes('Navigation failed')) {
+    return new Error(
+      `Navigation failed: ${message}. ` +
+      `Check if the URL is correct and the site is accessible. Try browser_screenshot() to see current state.`
+    );
+  }
+
+  // Default: return original error with suggestion
+  return new Error(
+    `${message}. ` +
+    `Try taking a new browser_snapshot() to see the current page state before retrying.`
+  );
+}
+
 // Browser connection state
 let browser: Browser | null = null;
 let connectingPromise: Promise<Browser> | null = null;
 // Cached server mode (fetched once at connection time)
 let cachedServerMode: string | null = null;
+// Active page override for tab switching (dev-browser server doesn't track this)
+let activePageOverride: Page | null = null;
 
 /**
  * Fetch with retry for handling concurrent connection issues
@@ -152,6 +220,15 @@ interface GetPageResponse {
  * Get or create a page by name
  */
 async function getPage(pageName?: string): Promise<Page> {
+  // If we have an active page override from tab switching, use it
+  if (activePageOverride) {
+    if (!activePageOverride.isClosed()) {
+      return activePageOverride;
+    }
+    // Page closed, clear override
+    activePageOverride = null;
+  }
+
   const fullName = getFullPageName(pageName);
 
   const res = await fetchWithRetry(`${DEV_BROWSER_URL}/pages`, {
@@ -939,12 +1016,20 @@ const SNAPSHOT_SCRIPT = `
 
   function hasPointerCursor(ariaNode) { return ariaNode.box.cursor === "pointer"; }
 
-  function renderAriaTree(ariaSnapshot) {
+  // Interactive ARIA roles that agents typically want to interact with
+  const INTERACTIVE_ROLES = ['button', 'link', 'textbox', 'checkbox', 'radio', 'combobox', 'listbox', 'option', 'tab', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'searchbox', 'slider', 'spinbutton', 'switch', 'dialog', 'alertdialog', 'menu', 'navigation', 'form'];
+
+  function renderAriaTree(ariaSnapshot, snapshotOptions) {
+    snapshotOptions = snapshotOptions || {};
     const options = { visibility: "ariaOrVisible", refs: "interactable", refPrefix: "", includeGenericRole: true, renderActive: true, renderCursorPointer: true };
     const lines = [];
     let nodesToRender = ariaSnapshot.root.role === "fragment" ? ariaSnapshot.root.children : [ariaSnapshot.root];
 
+    const isInteractiveRole = (role) => INTERACTIVE_ROLES.includes(role);
+
     const visitText = (text, indent) => {
+      // Skip text nodes in interactive_only mode
+      if (snapshotOptions.interactiveOnly) return;
       const escaped = yamlEscapeValueIfNeeded(text);
       if (escaped) lines.push(indent + "- text: " + escaped);
     };
@@ -979,6 +1064,18 @@ const SNAPSHOT_SCRIPT = `
     };
 
     const visit = (ariaNode, indent, renderCursorPointer) => {
+      const isInteractive = isInteractiveRole(ariaNode.role);
+      // In interactive_only mode, skip non-interactive elements but still recurse into children
+      if (snapshotOptions.interactiveOnly && !isInteractive) {
+        // Still visit children to find nested interactive elements
+        const childIndent = indent;
+        for (const child of ariaNode.children) {
+          if (typeof child === "string") continue; // Skip text in interactive_only mode
+          else visit(child, childIndent, renderCursorPointer);
+        }
+        return;
+      }
+
       const escapedKey = indent + "- " + yamlEscapeKeyIfNeeded(createKey(ariaNode, renderCursorPointer));
       const singleInlinedTextChild = getSingleInlinedTextChild(ariaNode);
       if (!ariaNode.children.length && !Object.keys(ariaNode.props).length) {
@@ -1004,12 +1101,13 @@ const SNAPSHOT_SCRIPT = `
     return lines.join("\\n");
   }
 
-  function getAISnapshot() {
+  function getAISnapshot(options) {
+    options = options || {};
     const snapshot = generateAriaTree(document.body);
     const refsObject = {};
     for (const [ref, element] of snapshot.elements) refsObject[ref] = element;
     window.__devBrowserRefs = refsObject;
-    return renderAriaTree(snapshot);
+    return renderAriaTree(snapshot, options);
   }
 
   function selectSnapshotRef(ref) {
@@ -1026,11 +1124,15 @@ const SNAPSHOT_SCRIPT = `
 })();
 `;
 
+interface SnapshotOptions {
+  interactiveOnly?: boolean;
+}
+
 /**
  * Get ARIA snapshot for a page
  * Optimized: checks if script is already injected before sending
  */
-async function getAISnapshot(page: Page): Promise<string> {
+async function getAISnapshot(page: Page, options: SnapshotOptions = {}): Promise<string> {
   // Check if script is already injected to avoid sending large script on every call
   const isInjected = await page.evaluate(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1045,11 +1147,11 @@ async function getAISnapshot(page: Page): Promise<string> {
     }, SNAPSHOT_SCRIPT);
   }
 
-  // Now call the snapshot function
-  const snapshot = await page.evaluate(() => {
+  // Now call the snapshot function with options
+  const snapshot = await page.evaluate((opts) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (globalThis as any).__devBrowser_getAISnapshot();
-  });
+    return (globalThis as any).__devBrowser_getAISnapshot(opts);
+  }, { interactiveOnly: options.interactiveOnly || false });
   return snapshot;
 }
 
@@ -1090,6 +1192,7 @@ interface BrowserNavigateInput {
 
 interface BrowserSnapshotInput {
   page_name?: string;
+  interactive_only?: boolean;
 }
 
 interface BrowserClickInput {
@@ -1183,8 +1286,9 @@ interface BrowserSelectInput {
 }
 
 interface BrowserWaitInput {
-  condition: 'selector' | 'hidden' | 'navigation' | 'network_idle' | 'timeout';
+  condition: 'selector' | 'hidden' | 'navigation' | 'network_idle' | 'timeout' | 'function';
   selector?: string;
+  script?: string;
   timeout?: number;
   page_name?: string;
 }
@@ -1209,6 +1313,24 @@ interface BrowserDragInput {
 }
 
 interface BrowserGetTextInput {
+  ref?: string;
+  selector?: string;
+  page_name?: string;
+}
+
+interface BrowserIsVisibleInput {
+  ref?: string;
+  selector?: string;
+  page_name?: string;
+}
+
+interface BrowserIsEnabledInput {
+  ref?: string;
+  selector?: string;
+  page_name?: string;
+}
+
+interface BrowserIsCheckedInput {
   ref?: string;
   selector?: string;
   page_name?: string;
@@ -1263,13 +1385,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'browser_snapshot',
-      description: 'Get the ARIA accessibility tree of the current page. Returns elements with refs like [ref=e5] that can be used with browser_click and browser_type.',
+      description: 'Get the ARIA accessibility tree of the current page. Returns elements with refs like [ref=e5] that can be used with browser_click and browser_type. Use interactive_only=true to show only clickable/typeable elements (recommended for most tasks).',
       inputSchema: {
         type: 'object',
         properties: {
           page_name: {
             type: 'string',
             description: 'Optional name of the page to snapshot (default: "main")',
+          },
+          interactive_only: {
+            type: 'boolean',
+            description: 'If true, only show interactive elements (buttons, links, inputs, etc.). Recommended for most tasks to reduce noise. Default: false.',
           },
         },
       },
@@ -1591,12 +1717,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           condition: {
             type: 'string',
-            enum: ['selector', 'hidden', 'navigation', 'network_idle', 'timeout'],
-            description: '"selector" waits for element to appear, "hidden" waits for element to disappear, "navigation" waits for page navigation, "network_idle" waits for network to settle, "timeout" waits fixed time',
+            enum: ['selector', 'hidden', 'navigation', 'network_idle', 'timeout', 'function'],
+            description: '"selector" waits for element to appear, "hidden" waits for element to disappear, "navigation" waits for page navigation, "network_idle" waits for network to settle, "timeout" waits fixed time, "function" waits for custom JS condition to return true',
           },
           selector: {
             type: 'string',
             description: 'CSS selector (required for "selector" and "hidden" conditions)',
+          },
+          script: {
+            type: 'string',
+            description: 'JavaScript expression that returns true when condition is met (required for "function" condition). Example: "document.querySelector(\'.loaded\') !== null"',
           },
           timeout: {
             type: 'number',
@@ -1685,6 +1815,69 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'browser_get_text',
       description: 'Get text content or input value from an element. Faster than browser_snapshot when you just need one element\'s text.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          ref: {
+            type: 'string',
+            description: 'Element ref from browser_snapshot',
+          },
+          selector: {
+            type: 'string',
+            description: 'CSS selector',
+          },
+          page_name: {
+            type: 'string',
+            description: 'Optional page name (default: "main")',
+          },
+        },
+      },
+    },
+    {
+      name: 'browser_is_visible',
+      description: 'Check if an element is visible on the page. Returns true/false. Use this to verify actions succeeded before proceeding.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          ref: {
+            type: 'string',
+            description: 'Element ref from browser_snapshot',
+          },
+          selector: {
+            type: 'string',
+            description: 'CSS selector',
+          },
+          page_name: {
+            type: 'string',
+            description: 'Optional page name (default: "main")',
+          },
+        },
+      },
+    },
+    {
+      name: 'browser_is_enabled',
+      description: 'Check if an element is enabled (not disabled). Returns true/false. Use to verify buttons/inputs are interactive.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          ref: {
+            type: 'string',
+            description: 'Element ref from browser_snapshot',
+          },
+          selector: {
+            type: 'string',
+            description: 'CSS selector',
+          },
+          page_name: {
+            type: 'string',
+            description: 'Optional page name (default: "main")',
+          },
+        },
+      },
+    },
+    {
+      name: 'browser_is_checked',
+      description: 'Check if a checkbox or radio button is checked. Returns true/false. Use to verify form state.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1825,9 +2018,9 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_snapshot': {
-        const { page_name } = args as BrowserSnapshotInput;
+        const { page_name, interactive_only } = args as BrowserSnapshotInput;
         const page = await getPage(page_name);
-        const snapshot = await getAISnapshot(page);
+        const snapshot = await getAISnapshot(page, { interactiveOnly: interactive_only });
         const viewport = page.viewportSize();
         const url = page.url();
 
@@ -1844,7 +2037,11 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
 
         // Build output with metadata header
         let output = `# Page Info\n`;
+        output += `URL: ${url}\n`;
         output += `Viewport: ${viewport?.width || 1280}x${viewport?.height || 720} (center: ${Math.round((viewport?.width || 1280) / 2)}, ${Math.round((viewport?.height || 720) / 2)})\n`;
+        if (interactive_only) {
+          output += `Mode: Interactive elements only (buttons, links, inputs)\n`;
+        }
 
         if (detectedApp) {
           output += `\n⚠️ CANVAS APP DETECTED: ${detectedApp.name}\n`;
@@ -1881,51 +2078,59 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         else if (button === 'middle') descParts.push('middle-click');
         const clickDesc = descParts.length > 0 ? ` (${descParts.join(', ')})` : '';
 
-        // Position-based click (e.g., center for canvas apps)
-        if (position === 'center' || position === 'center-lower') {
-          const viewport = page.viewportSize();
-          const clickX = (viewport?.width || 1280) / 2;
-          // center-lower clicks 2/3 down to avoid UI overlays (like Google Docs AI suggestions)
-          const clickY = position === 'center-lower'
-            ? (viewport?.height || 720) * 2 / 3
-            : (viewport?.height || 720) / 2;
-          await page.mouse.click(clickX, clickY, clickOptions);
-          await waitForPageLoad(page);
-          const positionName = position === 'center-lower' ? 'center-lower (2/3 down)' : 'center';
-          return {
-            content: [{ type: 'text', text: `Clicked viewport ${positionName} (${Math.round(clickX)}, ${Math.round(clickY)})${clickDesc}` }],
-          };
-        }
-
-        // Explicit x/y coordinates
-        if (x !== undefined && y !== undefined) {
-          await page.mouse.click(x, y, clickOptions);
-          await waitForPageLoad(page);
-          return {
-            content: [{ type: 'text', text: `Clicked at coordinates (${x}, ${y})${clickDesc}` }],
-          };
-        } else if (ref) {
-          const element = await selectSnapshotRef(page, ref);
-          if (!element) {
+        try {
+          // Position-based click (e.g., center for canvas apps)
+          if (position === 'center' || position === 'center-lower') {
+            const viewport = page.viewportSize();
+            const clickX = (viewport?.width || 1280) / 2;
+            const clickY = position === 'center-lower'
+              ? (viewport?.height || 720) * 2 / 3
+              : (viewport?.height || 720) / 2;
+            await page.mouse.click(clickX, clickY, clickOptions);
+            await waitForPageLoad(page);
+            const positionName = position === 'center-lower' ? 'center-lower (2/3 down)' : 'center';
             return {
-              content: [{ type: 'text', text: `Error: Could not find element with ref "${ref}"` }],
+              content: [{ type: 'text', text: `Clicked viewport ${positionName} (${Math.round(clickX)}, ${Math.round(clickY)})${clickDesc}` }],
+            };
+          }
+
+          // Explicit x/y coordinates
+          if (x !== undefined && y !== undefined) {
+            await page.mouse.click(x, y, clickOptions);
+            await waitForPageLoad(page);
+            return {
+              content: [{ type: 'text', text: `Clicked at coordinates (${x}, ${y})${clickDesc}` }],
+            };
+          } else if (ref) {
+            const element = await selectSnapshotRef(page, ref);
+            if (!element) {
+              return {
+                content: [{ type: 'text', text: `Element [ref=${ref}] not found. Run browser_snapshot() to get updated refs - the page may have changed.` }],
+                isError: true,
+              };
+            }
+            await element.click(clickOptions);
+            await waitForPageLoad(page);
+            return {
+              content: [{ type: 'text', text: `Clicked element [ref=${ref}]${clickDesc}` }],
+            };
+          } else if (selector) {
+            await page.click(selector, clickOptions);
+            await waitForPageLoad(page);
+            return {
+              content: [{ type: 'text', text: `Clicked element matching "${selector}"${clickDesc}` }],
+            };
+          } else {
+            return {
+              content: [{ type: 'text', text: 'Error: Provide x/y coordinates, ref, selector, or position' }],
               isError: true,
             };
           }
-          await element.click(clickOptions);
-          await waitForPageLoad(page);
+        } catch (err) {
+          const targetDesc = ref ? `[ref=${ref}]` : selector ? `"${selector}"` : `(${x}, ${y})`;
+          const friendlyError = toAIFriendlyError(err, targetDesc);
           return {
-            content: [{ type: 'text', text: `Clicked element [ref=${ref}]${clickDesc}` }],
-          };
-        } else if (selector) {
-          await page.click(selector, clickOptions);
-          await waitForPageLoad(page);
-          return {
-            content: [{ type: 'text', text: `Clicked element matching "${selector}"${clickDesc}` }],
-          };
-        } else {
-          return {
-            content: [{ type: 'text', text: 'Error: Provide x/y coordinates, ref, selector, or position' }],
+            content: [{ type: 'text', text: friendlyError.message }],
             isError: true,
           };
         }
@@ -1935,45 +2140,54 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         const { ref, selector, text, press_enter, page_name } = args as BrowserTypeInput;
         const page = await getPage(page_name);
 
-        let element: ElementHandle | null = null;
+        try {
+          let element: ElementHandle | null = null;
 
-        if (ref) {
-          element = await selectSnapshotRef(page, ref);
-          if (!element) {
+          if (ref) {
+            element = await selectSnapshotRef(page, ref);
+            if (!element) {
+              return {
+                content: [{ type: 'text', text: `Element [ref=${ref}] not found. Run browser_snapshot() to get updated refs - the page may have changed.` }],
+                isError: true,
+              };
+            }
+          } else if (selector) {
+            element = await page.$(selector);
+            if (!element) {
+              return {
+                content: [{ type: 'text', text: `Element "${selector}" not found. Run browser_snapshot() to see current page elements.` }],
+                isError: true,
+              };
+            }
+          } else {
             return {
-              content: [{ type: 'text', text: `Error: Could not find element with ref "${ref}"` }],
+              content: [{ type: 'text', text: 'Error: Either ref or selector is required' }],
               isError: true,
             };
           }
-        } else if (selector) {
-          element = await page.$(selector);
-          if (!element) {
-            return {
-              content: [{ type: 'text', text: `Error: Could not find element matching "${selector}"` }],
-              isError: true,
-            };
+
+          // Clear existing text and type new text
+          await element.click();
+          await element.fill(text);
+
+          if (press_enter) {
+            await element.press('Enter');
+            await waitForPageLoad(page);
           }
-        } else {
+
+          const target = ref ? `[ref=${ref}]` : `"${selector}"`;
+          const enterNote = press_enter ? ' and pressed Enter' : '';
           return {
-            content: [{ type: 'text', text: 'Error: Either ref or selector is required' }],
+            content: [{ type: 'text', text: `Typed "${text}" into ${target}${enterNote}` }],
+          };
+        } catch (err) {
+          const targetDesc = ref ? `[ref=${ref}]` : selector || 'element';
+          const friendlyError = toAIFriendlyError(err, targetDesc);
+          return {
+            content: [{ type: 'text', text: friendlyError.message }],
             isError: true,
           };
         }
-
-        // Clear existing text and type new text
-        await element.click();
-        await element.fill(text);
-
-        if (press_enter) {
-          await element.press('Enter');
-          await waitForPageLoad(page);
-        }
-
-        const target = ref ? `[ref=${ref}]` : `"${selector}"`;
-        const enterNote = press_enter ? ' and pressed Enter' : '';
-        return {
-          content: [{ type: 'text', text: `Typed "${text}" into ${target}${enterNote}` }],
-        };
       }
 
       case 'browser_screenshot': {
@@ -2418,7 +2632,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_wait': {
-        const { condition, selector, timeout, page_name } = args as BrowserWaitInput;
+        const { condition, selector, script, timeout, page_name } = args as BrowserWaitInput;
         const page = await getPage(page_name);
         const waitTimeout = timeout || 30000;
 
@@ -2465,6 +2679,26 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             return {
               content: [{ type: 'text', text: `Waited ${waitMs}ms` }],
             };
+          }
+          case 'function': {
+            if (!script) {
+              return {
+                content: [{ type: 'text', text: 'Error: "script" is required for function condition. Provide a JS expression that returns true when ready.' }],
+                isError: true,
+              };
+            }
+            try {
+              await page.waitForFunction(script, { timeout: waitTimeout });
+              return {
+                content: [{ type: 'text', text: `Custom condition met: ${script.substring(0, 50)}${script.length > 50 ? '...' : ''}` }],
+              };
+            } catch (err) {
+              const friendlyError = toAIFriendlyError(err, script);
+              return {
+                content: [{ type: 'text', text: friendlyError.message }],
+                isError: true,
+              };
+            }
           }
           default:
             return {
@@ -2679,6 +2913,135 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         };
       }
 
+      case 'browser_is_visible': {
+        const { ref, selector, page_name } = args as BrowserIsVisibleInput;
+        const page = await getPage(page_name);
+
+        try {
+          if (ref) {
+            const element = await selectSnapshotRef(page, ref);
+            if (!element) {
+              return {
+                content: [{ type: 'text', text: `false (element [ref=${ref}] not found - run browser_snapshot() to get updated refs)` }],
+              };
+            }
+            const isVisible = await element.isVisible();
+            return {
+              content: [{ type: 'text', text: `${isVisible}` }],
+            };
+          } else if (selector) {
+            const element = await page.$(selector);
+            if (!element) {
+              return {
+                content: [{ type: 'text', text: `false (element "${selector}" not found)` }],
+              };
+            }
+            const isVisible = await element.isVisible();
+            return {
+              content: [{ type: 'text', text: `${isVisible}` }],
+            };
+          } else {
+            return {
+              content: [{ type: 'text', text: 'Error: Provide ref or selector' }],
+              isError: true,
+            };
+          }
+        } catch (err) {
+          const targetDesc = ref ? `[ref=${ref}]` : selector || 'element';
+          const friendlyError = toAIFriendlyError(err, targetDesc);
+          return {
+            content: [{ type: 'text', text: friendlyError.message }],
+            isError: true,
+          };
+        }
+      }
+
+      case 'browser_is_enabled': {
+        const { ref, selector, page_name } = args as BrowserIsEnabledInput;
+        const page = await getPage(page_name);
+
+        try {
+          if (ref) {
+            const element = await selectSnapshotRef(page, ref);
+            if (!element) {
+              return {
+                content: [{ type: 'text', text: `false (element [ref=${ref}] not found - run browser_snapshot() to get updated refs)` }],
+              };
+            }
+            const isEnabled = await element.isEnabled();
+            return {
+              content: [{ type: 'text', text: `${isEnabled}` }],
+            };
+          } else if (selector) {
+            const element = await page.$(selector);
+            if (!element) {
+              return {
+                content: [{ type: 'text', text: `false (element "${selector}" not found)` }],
+              };
+            }
+            const isEnabled = await element.isEnabled();
+            return {
+              content: [{ type: 'text', text: `${isEnabled}` }],
+            };
+          } else {
+            return {
+              content: [{ type: 'text', text: 'Error: Provide ref or selector' }],
+              isError: true,
+            };
+          }
+        } catch (err) {
+          const targetDesc = ref ? `[ref=${ref}]` : selector || 'element';
+          const friendlyError = toAIFriendlyError(err, targetDesc);
+          return {
+            content: [{ type: 'text', text: friendlyError.message }],
+            isError: true,
+          };
+        }
+      }
+
+      case 'browser_is_checked': {
+        const { ref, selector, page_name } = args as BrowserIsCheckedInput;
+        const page = await getPage(page_name);
+
+        try {
+          if (ref) {
+            const element = await selectSnapshotRef(page, ref);
+            if (!element) {
+              return {
+                content: [{ type: 'text', text: `false (element [ref=${ref}] not found - run browser_snapshot() to get updated refs)` }],
+              };
+            }
+            const isChecked = await element.isChecked();
+            return {
+              content: [{ type: 'text', text: `${isChecked}` }],
+            };
+          } else if (selector) {
+            const element = await page.$(selector);
+            if (!element) {
+              return {
+                content: [{ type: 'text', text: `false (element "${selector}" not found)` }],
+              };
+            }
+            const isChecked = await element.isChecked();
+            return {
+              content: [{ type: 'text', text: `${isChecked}` }],
+            };
+          } else {
+            return {
+              content: [{ type: 'text', text: 'Error: Provide ref or selector' }],
+              isError: true,
+            };
+          }
+        } catch (err) {
+          const targetDesc = ref ? `[ref=${ref}]` : selector || 'element';
+          const friendlyError = toAIFriendlyError(err, targetDesc);
+          return {
+            content: [{ type: 'text', text: friendlyError.message }],
+            isError: true,
+          };
+        }
+      }
+
       case 'browser_iframe': {
         const { action, ref, selector, page_name } = args as BrowserIframeInput;
         const page = await getPage(page_name);
@@ -2744,8 +3107,12 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         if (action === 'list') {
           const allPages = b.contexts().flatMap((ctx) => ctx.pages());
           const pageList = allPages.map((p, i) => `${i}: ${p.url()}`).join('\n');
+          let output = `Open tabs (${allPages.length}):\n${pageList}`;
+          if (allPages.length > 1) {
+            output += `\n\nMultiple tabs detected! Use browser_tabs(action="switch", index=N) to switch to another tab.`;
+          }
           return {
-            content: [{ type: 'text', text: `Open tabs (${allPages.length}):\n${pageList}` }],
+            content: [{ type: 'text', text: output }],
           };
         }
 
@@ -2765,8 +3132,9 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           }
           const targetPage = allPages[index]!;
           await targetPage.bringToFront();
+          activePageOverride = targetPage;  // Set the override so getPage() returns this tab
           return {
-            content: [{ type: 'text', text: `Switched to tab ${index}: ${targetPage.url()}` }],
+            content: [{ type: 'text', text: `Switched to tab ${index}: ${targetPage.url()}\n\nNow use browser_snapshot() to see the content of this tab.` }],
           };
         }
 
@@ -2786,6 +3154,10 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           }
           const targetPage = allPages[index]!;
           const closedUrl = targetPage.url();
+          // Clear override if closing the active tab
+          if (activePageOverride === targetPage) {
+            activePageOverride = null;
+          }
           await targetPage.close();
           return {
             content: [{ type: 'text', text: `Closed tab ${index}: ${closedUrl}` }],

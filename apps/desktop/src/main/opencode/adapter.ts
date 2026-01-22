@@ -4,6 +4,7 @@ import { app } from 'electron';
 import fs from 'fs';
 import { StreamParser } from './stream-parser';
 import { OpenCodeLogWatcher, createLogWatcher, OpenCodeLogError } from './log-watcher';
+import { CompletionEnforcer, CompletionEnforcerCallbacks } from './completion';
 import {
   getOpenCodeCliPath,
   isOpenCodeBundled,
@@ -72,6 +73,8 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   private hasCompleted: boolean = false;
   private isDisposed: boolean = false;
   private wasInterrupted: boolean = false;
+  private completionEnforcer: CompletionEnforcer;
+  private lastWorkingDirectory: string | undefined;
 
   /**
    * Create a new OpenCodeAdapter instance
@@ -81,8 +84,34 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     super();
     this.currentTaskId = taskId || null;
     this.streamParser = new StreamParser();
+    this.completionEnforcer = this.createCompletionEnforcer();
     this.setupStreamParsing();
     this.setupLogWatcher();
+  }
+
+  /**
+   * Create the CompletionEnforcer with callbacks that delegate to adapter methods.
+   */
+  private createCompletionEnforcer(): CompletionEnforcer {
+    const callbacks: CompletionEnforcerCallbacks = {
+      onStartVerification: async (prompt: string) => {
+        await this.spawnSessionResumption(prompt);
+      },
+      onStartContinuation: async (prompt: string) => {
+        await this.spawnSessionResumption(prompt);
+      },
+      onComplete: () => {
+        this.hasCompleted = true;
+        this.emit('complete', {
+          status: 'success',
+          sessionId: this.currentSessionId || undefined,
+        });
+      },
+      onDebug: (type: string, message: string, data?: unknown) => {
+        this.emit('debug', { type, message, data });
+      },
+    };
+    return new CompletionEnforcer(callbacks);
   }
 
   /**
@@ -155,6 +184,8 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.streamParser.reset();
     this.hasCompleted = false;
     this.wasInterrupted = false;
+    this.completionEnforcer.reset();
+    this.lastWorkingDirectory = config.workingDirectory;
 
     // Start the log watcher to detect errors that aren't output as JSON
     if (this.logWatcher) {
@@ -200,24 +231,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     // Always use PTY for proper terminal emulation
     // We spawn via shell because posix_spawnp doesn't interpret shebangs
     {
-      const fullCommand = [command, ...allArgs].map(arg => {
-        // Escape single quotes in arguments for shell (Unix) or handle Windows quoting
-        if (process.platform === 'win32') {
-          // Windows/PowerShell: use double quotes for arguments with spaces
-          // PowerShell uses doubled quotes ("") to escape quotes inside double-quoted strings
-          // (backslash escaping does NOT work in PowerShell)
-          if (arg.includes(' ') || arg.includes('"')) {
-            return `"${arg.replace(/"/g, '""')}"`;
-          }
-          return arg;
-        } else {
-          // Unix: use single quotes
-          if (arg.includes("'") || arg.includes(' ') || arg.includes('"')) {
-            return `'${arg.replace(/'/g, "'\\''")}'`;
-          }
-          return arg;
-        }
-      }).join(' ');
+      const fullCommand = this.buildShellCommand(command, allArgs);
 
       const shellCmdMsg = `Full shell command: ${fullCommand}`;
       console.log('[OpenCode CLI]', shellCmdMsg);
@@ -509,10 +523,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       console.log('[OpenCode CLI] Using Ollama host from legacy settings:', selectedModel.baseUrl);
     }
 
-    // Set LiteLLM base URL if configured
+    // Set LiteLLM base URL if configured (for debugging/logging purposes)
     if (activeModel?.provider === 'litellm' && activeModel.baseUrl) {
-      env.LITELLM_BASE_URL = activeModel.baseUrl;
-      console.log('[OpenCode CLI] Using LiteLLM base URL:', activeModel.baseUrl);
+      console.log('[OpenCode CLI] LiteLLM active with base URL:', activeModel.baseUrl);
     }
 
     // Log config environment variable
@@ -561,10 +574,12 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         args.push('--model', selectedModel.model);
       } else if (selectedModel.provider === 'ollama') {
         // Ollama models use format: ollama/model-name
-        args.push('--model', selectedModel.model);
+        const modelId = selectedModel.model.replace(/^ollama\//, '');
+        args.push('--model', `ollama/${modelId}`);
       } else if (selectedModel.provider === 'litellm') {
-        // LiteLLM models pass through directly
-        args.push('--model', selectedModel.model);
+        // LiteLLM models use format: litellm/model-name
+        const modelId = selectedModel.model.replace(/^litellm\//, '');
+        args.push('--model', `litellm/${modelId}`);
       } else {
         args.push('--model', selectedModel.model);
       }
@@ -630,6 +645,13 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
         console.log('[OpenCode Adapter] Tool call:', toolName);
 
+        // COMPLETION ENFORCEMENT: Track complete_task tool calls
+        // Tool name may be prefixed with MCP server name (e.g., "complete-task_complete_task")
+        // so we use endsWith() for fuzzy matching
+        if (toolName === 'complete_task' || toolName.endsWith('_complete_task')) {
+          this.completionEnforcer.handleCompleteTaskDetection(toolInput);
+        }
+
         this.emit('tool-use', toolName, toolInput);
         this.emit('progress', {
           stage: 'tool-use',
@@ -648,6 +670,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         const toolUseName = toolUseMessage.part.tool || 'unknown';
         const toolUseInput = toolUseMessage.part.state?.input;
         const toolUseOutput = toolUseMessage.part.state?.output || '';
+
+        // Track if complete_task was called (tool name may be prefixed with MCP server name)
+        if (toolUseName === 'complete_task' || toolUseName.endsWith('_complete_task')) {
+          this.completionEnforcer.handleCompleteTaskDetection(toolUseInput);
+        }
 
         // For models that don't emit text messages (like Gemini), emit the tool description
         // as a thinking message so users can see what the AI is doing
@@ -701,24 +728,36 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         break;
 
       // Step finish event
+      // COMPLETION ENFORCEMENT: Previously emitted 'complete' immediately on stop/end_turn.
+      // Now we delegate to CompletionEnforcer which may:
+      // - Return 'complete' if complete_task was called and verified
+      // - Return 'pending' if verification or continuation is needed (handled on process exit)
+      // - Return 'continue' if more tool calls are expected (reason='tool_use')
       case 'step_finish':
-        // Only complete if reason is 'stop' or 'end_turn' (final completion)
-        // 'tool_use' means there are more steps coming
-        if (message.part.reason === 'stop' || message.part.reason === 'end_turn') {
+        if (message.part.reason === 'error') {
+          if (!this.hasCompleted) {
+            this.hasCompleted = true;
+            this.emit('complete', {
+              status: 'error',
+              sessionId: this.currentSessionId || undefined,
+              error: 'Task failed',
+            });
+          }
+          break;
+        }
+
+        // Delegate to completion enforcer for stop/end_turn handling
+        const action = this.completionEnforcer.handleStepFinish(message.part.reason);
+        console.log(`[OpenCode Adapter] step_finish action: ${action}`);
+
+        if (action === 'complete' && !this.hasCompleted) {
           this.hasCompleted = true;
           this.emit('complete', {
             status: 'success',
             sessionId: this.currentSessionId || undefined,
           });
-        } else if (message.part.reason === 'error') {
-          this.hasCompleted = true;
-          this.emit('complete', {
-            status: 'error',
-            sessionId: this.currentSessionId || undefined,
-            error: 'Task failed',
-          });
         }
-        // 'tool_use' reason means agent is continuing, don't emit complete
+        // 'pending' and 'continue' - don't emit complete, let handleProcessExit handle it
         break;
 
       // Error event
@@ -758,30 +797,164 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.emit('permission-request', permissionRequest);
   }
 
+  /**
+   * Escape a shell argument for safe execution.
+   */
+  private escapeShellArg(arg: string): string {
+    if (process.platform === 'win32') {
+      if (arg.includes(' ') || arg.includes('"')) {
+        return `"${arg.replace(/"/g, '""')}"`;
+      }
+      return arg;
+    } else {
+      const needsEscaping = ["'", ' ', '$', '`', '\\', '"', '\n'].some(c => arg.includes(c));
+      if (needsEscaping) {
+        return `'${arg.replace(/'/g, "'\\''")}'`;
+      }
+      return arg;
+    }
+  }
+
+  /**
+   * Build a shell command string with properly escaped arguments.
+   */
+  private buildShellCommand(command: string, args: string[]): string {
+    return [command, ...args].map(arg => this.escapeShellArg(arg)).join(' ');
+  }
+
+  /**
+   * COMPLETION ENFORCEMENT: Process exit handler
+   *
+   * When the CLI process exits with code 0 and we haven't already completed:
+   * 1. Delegate to CompletionEnforcer.handleProcessExit()
+   * 2. Enforcer checks if verification or continuation is pending
+   * 3. If so, it spawns a session resumption via callbacks
+   * 4. If not, it calls onComplete() to emit the 'complete' event
+   *
+   * This allows the enforcer to chain multiple CLI invocations (verification,
+   * continuation retries) while maintaining the same session context.
+   */
   private handleProcessExit(code: number | null): void {
+    // Clean up PTY process reference
+    this.ptyProcess = null;
+
+    // Handle interrupted tasks immediately (before completion enforcer)
+    // This ensures user interrupts are respected regardless of completion state
+    if (this.wasInterrupted && code === 0 && !this.hasCompleted) {
+      console.log('[OpenCode CLI] Task was interrupted by user');
+      this.hasCompleted = true;
+      this.emit('complete', {
+        status: 'interrupted',
+        sessionId: this.currentSessionId || undefined,
+      });
+      this.currentTaskId = null;
+      return;
+    }
+
+    // Delegate to completion enforcer for verification/continuation handling
+    if (code === 0 && !this.hasCompleted) {
+      this.completionEnforcer.handleProcessExit(code).catch((error) => {
+        console.error('[OpenCode Adapter] Completion enforcer error:', error);
+        this.hasCompleted = true;
+        this.emit('complete', {
+          status: 'error',
+          sessionId: this.currentSessionId || undefined,
+          error: `Failed to complete: ${error.message}`,
+        });
+      });
+      return; // Let completion enforcer handle next steps
+    }
+
     // Only emit complete/error if we haven't already received a result message
     if (!this.hasCompleted) {
-      if (this.wasInterrupted && code === 0) {
-        // User interrupted the task - emit interrupted status so they can continue
-        console.log('[OpenCode CLI] Task was interrupted by user');
-        this.emit('complete', {
-          status: 'interrupted',
-          sessionId: this.currentSessionId || undefined,
-        });
-      } else if (code === 0) {
-        // Normal exit without result message
-        this.emit('complete', {
-          status: 'success',
-          sessionId: this.currentSessionId || undefined,
-        });
-      } else if (code !== null) {
+      if (code !== null && code !== 0) {
         // Error exit
         this.emit('error', new Error(`OpenCode CLI exited with code ${code}`));
       }
     }
 
-    this.ptyProcess = null;
     this.currentTaskId = null;
+  }
+
+  /**
+   * Spawn a session resumption task with the given prompt.
+   * Used by CompletionEnforcer callbacks for continuation and verification.
+   *
+   * WHY SESSION RESUMPTION (not PTY write):
+   * - OpenCode CLI supports --session-id to continue an existing conversation
+   * - This preserves full context (previous messages, tool results, etc.)
+   * - PTY write would just inject text without proper message framing
+   * - Session resumption creates a clean new API call with the prompt as a user message
+   *
+   * The same session ID is reused, so verification/continuation prompts appear
+   * as natural follow-up messages in the conversation.
+   */
+  private async spawnSessionResumption(prompt: string): Promise<void> {
+    const sessionId = this.currentSessionId;
+    if (!sessionId) {
+      throw new Error('No session ID available for session resumption');
+    }
+
+    console.log(`[OpenCode Adapter] Starting session resumption with session ${sessionId}`);
+
+    // Reset stream parser for new process but preserve other state
+    this.streamParser.reset();
+
+    // Build args for resumption - reuse same model/settings
+    const config: TaskConfig = {
+      prompt,
+      sessionId: sessionId,
+      workingDirectory: this.lastWorkingDirectory,
+    };
+
+    const cliArgs = await this.buildCliArgs(config);
+
+    // Get the bundled CLI path
+    const { command, args: baseArgs } = getOpenCodeCliPath();
+    console.log('[OpenCode Adapter] Session resumption command:', command, [...baseArgs, ...cliArgs].join(' '));
+
+    // Build environment
+    const env = await this.buildEnvironment();
+
+    const allArgs = [...baseArgs, ...cliArgs];
+    const safeCwd = config.workingDirectory || app.getPath('temp');
+
+    // Start new PTY process for session resumption
+    const fullCommand = this.buildShellCommand(command, allArgs);
+
+    const shellCmd = this.getPlatformShell();
+    const shellArgs = this.getShellArgs(fullCommand);
+
+    this.ptyProcess = pty.spawn(shellCmd, shellArgs, {
+      name: 'xterm-256color',
+      cols: 200,
+      rows: 30,
+      cwd: safeCwd,
+      env: env as { [key: string]: string },
+    });
+
+    // Set up event handlers for new process
+    this.ptyProcess.onData((data: string) => {
+      // Filter out ANSI escape codes and control characters for cleaner parsing
+      // Enhanced to handle Windows PowerShell sequences (cursor visibility, window titles)
+      const cleanData = data
+        .replace(/\x1B\[[0-9;?]*[a-zA-Z]/g, '')  // CSI sequences (added ? for DEC modes like cursor hide)
+        .replace(/\x1B\][^\x07]*\x07/g, '')       // OSC sequences with BEL terminator (window titles)
+        .replace(/\x1B\][^\x1B]*\x1B\\/g, '');    // OSC sequences with ST terminator
+      if (cleanData.trim()) {
+        // Truncate for console.log to avoid flooding terminal
+        const truncated = cleanData.substring(0, 500) + (cleanData.length > 500 ? '...' : '');
+        console.log('[OpenCode CLI stdout]:', truncated);
+        // Send full data to debug panel
+        this.emit('debug', { type: 'stdout', message: cleanData });
+
+        this.streamParser.feed(cleanData);
+      }
+    });
+
+    this.ptyProcess.onExit(({ exitCode }) => {
+      this.handleProcessExit(exitCode);
+    });
   }
 
   private generateTaskId(): string {
