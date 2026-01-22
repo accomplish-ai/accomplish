@@ -155,11 +155,14 @@ function findOpenCodeCli(): string {
  * Start the dev-browser server for agent testing
  */
 async function startDevBrowserServer(): Promise<ChildProcess> {
-  const serverScript = path.resolve(__dirname, '..', 'skills', 'dev-browser', 'scripts', 'start-server.ts');
+  const devBrowserDir = path.resolve(__dirname, '..', 'skills', 'dev-browser');
+  const serverScript = path.join(devBrowserDir, 'scripts', 'start-server.ts');
 
   log('agent-test', `Starting dev-browser server on port ${AGENT_TEST_HTTP_PORT}...`);
 
+  // Run from dev-browser directory so tsconfig paths resolve correctly
   const serverProcess = spawn('npx', ['tsx', serverScript], {
+    cwd: devBrowserDir,
     env: {
       ...process.env,
       DEV_BROWSER_PORT: String(AGENT_TEST_HTTP_PORT),
