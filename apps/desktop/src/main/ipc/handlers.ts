@@ -1246,13 +1246,14 @@ export function registerIPCHandlers(): void {
 
   // HuggingFace handlers
   handle('huggingface:validate', async (_event: IpcMainInvokeEvent, token: string) => {
+    console.log('[HuggingFace] Validating token...');
     if (!token?.trim()) {
       return { valid: false, error: 'Token is required' };
     }
 
     try {
       const response = await fetchWithTimeout(
-        'https://huggingface.co/api/whoami',
+        'https://huggingface.co/api/whoami-v2',
         {
           method: 'GET',
           headers: {
@@ -1262,15 +1263,22 @@ export function registerIPCHandlers(): void {
         API_KEY_VALIDATION_TIMEOUT_MS
       );
 
+      console.log('[HuggingFace] Response status:', response.status);
+
       if (!response.ok) {
+        const errorBody = await response.text().catch(() => '');
+        console.log('[HuggingFace] Error response body:', errorBody);
         if (response.status === 401) {
           return { valid: false, error: 'Invalid token' };
         }
         return { valid: false, error: `API returned status ${response.status}` };
       }
 
+      const data = await response.json();
+      console.log('[HuggingFace] Validation successful, user:', (data as { name?: string }).name);
       return { valid: true };
     } catch (error) {
+      console.log('[HuggingFace] Validation error:', error);
       if (error instanceof Error && error.name === 'AbortError') {
         return { valid: false, error: 'Request timed out' };
       }
@@ -1279,43 +1287,18 @@ export function registerIPCHandlers(): void {
   });
 
   handle('huggingface:fetch-models', async (_event: IpcMainInvokeEvent) => {
-    const apiKey = getApiKey('huggingface');
-    if (!apiKey) {
-      return { success: false, error: 'No HuggingFace token configured' };
-    }
+    // Curated list of text-generation models with Inference Providers support
+    // Model IDs must match exactly what OpenCode supports (check suggestions in error messages)
+    const models = [
+      { id: 'deepseek-ai/DeepSeek-R1-0528', name: 'DeepSeek R1 (685B)' },
+      { id: 'deepseek-ai/DeepSeek-V3-0324', name: 'DeepSeek V3 (685B)' },
+      { id: 'Qwen/Qwen3-235B-A22B-Thinking-2507', name: 'Qwen3 235B Thinking' },
+      { id: 'Qwen/Qwen3-Coder-480B-A35B-Instruct', name: 'Qwen3 Coder 480B Instruct' },
+      { id: 'moonshotai/Kimi-K2-Instruct', name: 'Kimi K2 Instruct' },
+      { id: 'zai-org/GLM-4.5-Air', name: 'GLM 4.5 Air' },
+    ];
 
-    try {
-      // Fetch text-generation models with active inference, sorted by downloads
-      const response = await fetchWithTimeout(
-        'https://huggingface.co/api/models?pipeline_tag=text-generation&inference=warm&sort=downloads&direction=-1&limit=200',
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-          },
-        },
-        API_KEY_VALIDATION_TIMEOUT_MS
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = (errorData as { error?: string })?.error || `API returned status ${response.status}`;
-        return { success: false, error: errorMessage };
-      }
-
-      const data = await response.json() as Array<{ id: string; pipeline_tag?: string }>;
-      const models = data.map((m) => ({
-        id: m.id,
-        name: m.id,
-      }));
-
-      return { success: true, models };
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        return { success: false, error: 'Request timed out' };
-      }
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to fetch models' };
-    }
+    return { success: true, models };
   });
 
   // OpenRouter: Fetch available models

@@ -1,6 +1,6 @@
 // apps/desktop/src/renderer/components/settings/providers/HuggingFaceProviderForm.tsx
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
 import type { ConnectedProvider, HuggingFaceCredentials } from '@accomplish/shared';
@@ -25,6 +25,8 @@ interface HuggingFaceProviderFormProps {
   showModelError: boolean;
 }
 
+const OTHER_MODEL_ID = '__other__';
+
 export function HuggingFaceProviderForm({
   connectedProvider,
   onConnect,
@@ -36,6 +38,8 @@ export function HuggingFaceProviderForm({
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [availableModels, setAvailableModels] = useState<Array<{ id: string; name: string }>>([]);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customModelId, setCustomModelId] = useState('');
 
   const meta = PROVIDER_META.huggingface;
   const isConnected = connectedProvider?.connectionStatus === 'connected';
@@ -102,11 +106,44 @@ export function HuggingFaceProviderForm({
     }
   };
 
-  const models = connectedProvider?.availableModels || availableModels;
+  const baseModels = connectedProvider?.availableModels || availableModels;
+  // Add "Other" option at the end
+  const models = [...baseModels, { id: OTHER_MODEL_ID, name: 'Other (enter model ID)' }];
+
+  // Check if current model is a custom one (not in the list)
+  const selectedModelId = connectedProvider?.selectedModelId;
+  const isCustomModel = selectedModelId && !baseModels.some(m => m.id === selectedModelId);
+
+  // Initialize custom input state based on whether current model is custom
+  useEffect(() => {
+    if (isCustomModel && selectedModelId) {
+      setShowCustomInput(true);
+      // Extract model ID without the 'huggingface/' prefix
+      const modelIdWithoutPrefix = selectedModelId.replace(/^huggingface\//, '');
+      setCustomModelId(modelIdWithoutPrefix);
+    }
+  }, [isCustomModel, selectedModelId]);
+
+  const handleModelSelect = (modelId: string) => {
+    if (modelId === OTHER_MODEL_ID) {
+      setShowCustomInput(true);
+      setCustomModelId('');
+    } else {
+      setShowCustomInput(false);
+      onModelChange(modelId);
+    }
+  };
+
+  const handleCustomModelSubmit = () => {
+    if (customModelId.trim()) {
+      const fullModelId = `huggingface/${customModelId.trim()}`;
+      onModelChange(fullModelId);
+    }
+  };
 
   return (
     <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
-      <ProviderFormHeader logoSrc={huggingfaceLogo} providerName="Hugging Face" />
+      <ProviderFormHeader logoSrc={huggingfaceLogo} providerName="HuggingFace" />
 
       <div className="space-y-3">
         <AnimatePresence mode="wait">
@@ -203,10 +240,37 @@ export function HuggingFaceProviderForm({
               {/* Model Selector */}
               <ModelSelector
                 models={models}
-                value={connectedProvider?.selectedModelId || null}
-                onChange={onModelChange}
-                error={showModelError && !connectedProvider?.selectedModelId}
+                value={showCustomInput ? OTHER_MODEL_ID : (connectedProvider?.selectedModelId || null)}
+                onChange={handleModelSelect}
+                error={showModelError && !connectedProvider?.selectedModelId && !showCustomInput}
               />
+
+              {/* Custom Model Input */}
+              {showCustomInput && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Custom Model ID</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customModelId}
+                      onChange={(e) => setCustomModelId(e.target.value)}
+                      placeholder="org/model-name (e.g., Qwen/Qwen3-32B)"
+                      className="flex-1 rounded-md border border-input bg-background px-3 py-2.5 text-sm"
+                    />
+                    <button
+                      onClick={handleCustomModelSubmit}
+                      disabled={!customModelId.trim()}
+                      className="rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                      type="button"
+                    >
+                      Use
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Enter the HuggingFace model ID from huggingface.co/models
+                  </p>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

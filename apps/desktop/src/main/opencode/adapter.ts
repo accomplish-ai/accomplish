@@ -630,6 +630,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       env.LITELLM_API_KEY = apiKeys.litellm;
       console.log('[OpenCode CLI] Using LiteLLM API key from settings');
     }
+    if (apiKeys.huggingface) {
+      env.HF_TOKEN = apiKeys.huggingface;
+      console.log('[OpenCode CLI] Using HuggingFace API key from settings');
+    }
 
     // Set Bedrock credentials if configured
     const bedrockCredentials = getBedrockCredentials();

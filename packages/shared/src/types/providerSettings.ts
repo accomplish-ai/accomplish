@@ -35,7 +35,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   ollama: { id: 'ollama', name: 'Ollama', category: 'local', label: 'Local Models', logoKey: 'olama' },
   openrouter: { id: 'openrouter', name: 'OpenRouter', category: 'proxy', label: 'Service', logoKey: 'open-router', helpUrl: 'https://openrouter.ai/keys' },
   litellm: { id: 'litellm', name: 'LiteLLM', category: 'hybrid', label: 'Service', logoKey: 'liteLLM' },
-  huggingface: { id: 'huggingface', name: 'Hugging Face', category: 'huggingface', label: 'Service', logoKey: 'huggingface', helpUrl: 'https://huggingface.co/settings/tokens' },
+  huggingface: { id: 'huggingface', name: 'HuggingFace', category: 'huggingface', label: 'Service', logoKey: 'huggingface', helpUrl: 'https://huggingface.co/settings/tokens' },
 };
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';

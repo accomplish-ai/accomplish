@@ -269,7 +269,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
   },
   {
     id: 'huggingface',
-    name: 'Hugging Face',
+    name: 'HuggingFace',
     requiresApiKey: true,
     apiKeyEnvVar: 'HF_TOKEN',
     models: [], // Fetched dynamically
