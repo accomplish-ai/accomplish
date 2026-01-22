@@ -36,7 +36,8 @@
     "test:e2e:native:ui": "playwright test --config=e2e/playwright.config.ts --ui",
     "test:e2e:native:debug": "playwright test --config=e2e/playwright.config.ts --debug",
     "test:e2e:native:fast": "playwright test --config=e2e/playwright.config.ts --project=electron-fast",
-    "test:e2e:native:integration": "playwright test --config=e2e/playwright.config.ts --project=electron-integration"
+    "test:e2e:native:integration": "playwright test --config=e2e/playwright.config.ts --project=electron-integration",
+    "agent:test": "tsx scripts/agent-test-cli.ts"
   },
   "dependencies": {
     "@accomplish/shared": "workspace:*",
