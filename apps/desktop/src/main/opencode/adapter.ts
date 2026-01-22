@@ -16,6 +16,7 @@ import { getActiveProviderModel } from '../store/providerSettings';
 import { generateOpenCodeConfig, ACCOMPLISH_AGENT_NAME, syncApiKeysToOpenCodeAuth } from './config-generator';
 import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo } from '../utils/bundled-node';
+import { getModelDisplayName } from '../utils/model-display';
 import path from 'path';
 import type {
   TaskConfig,
@@ -57,7 +58,7 @@ export interface OpenCodeAdapterEvents {
   'tool-use': [string, unknown];
   'tool-result': [string];
   'permission-request': [PermissionRequest];
-  progress: [{ stage: string; message?: string }];
+  progress: [{ stage: string; message?: string; modelName?: string }];
   complete: [TaskResult];
   error: [Error];
   debug: [{ type: string; message: string; data?: unknown }];
@@ -75,6 +76,12 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   private wasInterrupted: boolean = false;
   private completionEnforcer: CompletionEnforcer;
   private lastWorkingDirectory: string | undefined;
+  /** Current model ID for display name */
+  private currentModelId: string | null = null;
+  /** Timer for transitioning from 'connecting' to 'waiting' stage */
+  private waitingTransitionTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Whether the first tool has been received (to stop showing startup stages) */
+  private hasReceivedFirstTool: boolean = false;
 
   /**
    * Create a new OpenCodeAdapter instance
@@ -186,6 +193,12 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.wasInterrupted = false;
     this.completionEnforcer.reset();
     this.lastWorkingDirectory = config.workingDirectory;
+    this.hasReceivedFirstTool = false;
+    // Clear any existing waiting transition timer
+    if (this.waitingTransitionTimer) {
+      clearTimeout(this.waitingTransitionTimer);
+      this.waitingTransitionTimer = null;
+    }
 
     // Start the log watcher to detect errors that aren't output as JSON
     if (this.logWatcher) {
@@ -254,6 +267,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       const pidMsg = `PTY Process PID: ${this.ptyProcess.pid}`;
       console.log('[OpenCode CLI]', pidMsg);
       this.emit('debug', { type: 'info', message: pidMsg });
+
+      // Emit 'loading' stage after PTY spawn
+      this.emit('progress', { stage: 'loading', message: 'Loading agent...' });
 
       // Handle PTY data (combines stdout/stderr)
       this.ptyProcess.onData((data: string) => {
@@ -412,6 +428,14 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.currentTaskId = null;
     this.messages = [];
     this.hasCompleted = true;
+    this.currentModelId = null;
+    this.hasReceivedFirstTool = false;
+
+    // Clear waiting transition timer
+    if (this.waitingTransitionTimer) {
+      clearTimeout(this.waitingTransitionTimer);
+      this.waitingTransitionTimer = null;
+    }
 
     // Reset stream parser
     this.streamParser.reset();
@@ -551,6 +575,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     const activeModel = getActiveProviderModel();
     const selectedModel = activeModel || getSelectedModel();
 
+    // Store the model ID for display name in progress events
+    this.currentModelId = selectedModel?.model || null;
+
     // OpenCode CLI uses: opencode run "message" --format json
     const args = [
       'run',
@@ -617,7 +644,24 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       // Step start event
       case 'step_start':
         this.currentSessionId = message.part.sessionID;
-        this.emit('progress', { stage: 'init', message: 'Task started' });
+        // Emit 'connecting' stage with model display name
+        const modelDisplayName = this.currentModelId
+          ? getModelDisplayName(this.currentModelId)
+          : 'AI';
+        this.emit('progress', {
+          stage: 'connecting',
+          message: `Connecting to ${modelDisplayName}...`,
+          modelName: modelDisplayName,
+        });
+        // Start timer to transition to 'waiting' stage after 500ms if no tool received
+        if (this.waitingTransitionTimer) {
+          clearTimeout(this.waitingTransitionTimer);
+        }
+        this.waitingTransitionTimer = setTimeout(() => {
+          if (!this.hasReceivedFirstTool && !this.hasCompleted) {
+            this.emit('progress', { stage: 'waiting', message: 'Waiting for response...' });
+          }
+        }, 500);
         break;
 
       // Text content event
@@ -645,6 +689,15 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
         console.log('[OpenCode Adapter] Tool call:', toolName);
 
+        // Mark first tool received and cancel waiting transition timer
+        if (!this.hasReceivedFirstTool) {
+          this.hasReceivedFirstTool = true;
+          if (this.waitingTransitionTimer) {
+            clearTimeout(this.waitingTransitionTimer);
+            this.waitingTransitionTimer = null;
+          }
+        }
+
         // COMPLETION ENFORCEMENT: Track complete_task tool calls
         // Tool name may be prefixed with MCP server name (e.g., "complete-task_complete_task")
         // so we use endsWith() for fuzzy matching
@@ -670,6 +723,15 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         const toolUseName = toolUseMessage.part.tool || 'unknown';
         const toolUseInput = toolUseMessage.part.state?.input;
         const toolUseOutput = toolUseMessage.part.state?.output || '';
+
+        // Mark first tool received and cancel waiting transition timer
+        if (!this.hasReceivedFirstTool) {
+          this.hasReceivedFirstTool = true;
+          if (this.waitingTransitionTimer) {
+            clearTimeout(this.waitingTransitionTimer);
+            this.waitingTransitionTimer = null;
+          }
+        }
 
         // Track if complete_task was called (tool name may be prefixed with MCP server name)
         if (toolUseName === 'complete_task' || toolUseName.endsWith('_complete_task')) {

@@ -256,11 +256,23 @@ async function ensureDevBrowserServer(
 }
 
 /**
+ * Progress event with startup stage information
+ */
+export interface TaskProgressEvent {
+  stage: string;
+  message?: string;
+  /** Whether this is the first task (cold start) - used for UI hints */
+  isFirstTask?: boolean;
+  /** Model display name for 'connecting' stage */
+  modelName?: string;
+}
+
+/**
  * Callbacks for task events - scoped to a specific task
  */
 export interface TaskCallbacks {
   onMessage: (message: OpenCodeMessage) => void;
-  onProgress: (progress: { stage: string; message?: string }) => void;
+  onProgress: (progress: TaskProgressEvent) => void;
   onPermissionRequest: (request: PermissionRequest) => void;
   onComplete: (result: TaskResult) => void;
   onError: (error: Error) => void;
@@ -305,9 +317,18 @@ export class TaskManager {
   private activeTasks: Map<string, ManagedTask> = new Map();
   private taskQueue: QueuedTask[] = [];
   private maxConcurrentTasks: number;
+  /** Tracks whether this is the first task since app launch (cold start) */
+  private isFirstTask: boolean = true;
 
   constructor(options?: { maxConcurrentTasks?: number }) {
     this.maxConcurrentTasks = options?.maxConcurrentTasks ?? DEFAULT_MAX_CONCURRENT_TASKS;
+  }
+
+  /**
+   * Check if this is a cold start (first task since app launch)
+   */
+  getIsFirstTask(): boolean {
+    return this.isFirstTask;
   }
 
   /**
@@ -459,10 +480,27 @@ export class TaskManager {
 
     // Start browser setup and agent asynchronously
     // This allows the UI to navigate immediately while setup happens
+    const isFirstTask = this.isFirstTask;
     (async () => {
       try {
+        // Emit starting stage immediately
+        callbacks.onProgress({ stage: 'starting', message: 'Starting task...', isFirstTask });
+
+        // Emit browser stage only on cold start (first task)
+        if (isFirstTask) {
+          callbacks.onProgress({ stage: 'browser', message: 'Preparing browser...', isFirstTask });
+        }
+
         // Ensure browser is available (may download Playwright if needed)
         await ensureDevBrowserServer(callbacks.onProgress);
+
+        // Mark cold start as complete after browser setup
+        if (this.isFirstTask) {
+          this.isFirstTask = false;
+        }
+
+        // Emit environment setup stage
+        callbacks.onProgress({ stage: 'environment', message: 'Setting up environment...', isFirstTask });
 
         // Now start the agent
         await adapter.startTask({ ...config, taskId });

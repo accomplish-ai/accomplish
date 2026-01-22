@@ -21,6 +21,17 @@ interface SetupProgressEvent {
   taskId: string;
   stage: string;
   message?: string;
+  isFirstTask?: boolean;
+  modelName?: string;
+}
+
+// Startup stage info for the progress indicator
+export interface StartupStageInfo {
+  stage: string;
+  message: string;
+  modelName?: string;
+  isFirstTask: boolean;
+  startTime: number;
 }
 
 interface TaskState {
@@ -40,6 +51,10 @@ interface TaskState {
   setupProgressTaskId: string | null;
   setupDownloadStep: number; // 1=Chromium, 2=FFMPEG, 3=Headless Shell
 
+  // Startup stage progress (for task initialization indicator)
+  startupStage: StartupStageInfo | null;
+  startupStageTaskId: string | null;
+
   // Task launcher
   isLauncherOpen: boolean;
   openLauncher: () => void;
@@ -48,6 +63,8 @@ interface TaskState {
   // Actions
   startTask: (config: TaskConfig) => Promise<Task | null>;
   setSetupProgress: (taskId: string | null, message: string | null) => void;
+  setStartupStage: (taskId: string | null, stage: string | null, message?: string, modelName?: string, isFirstTask?: boolean) => void;
+  clearStartupStage: (taskId: string) => void;
   sendFollowUp: (message: string) => Promise<void>;
   cancelTask: () => Promise<void>;
   interruptTask: () => Promise<void>;
@@ -77,6 +94,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   setupProgress: null,
   setupProgressTaskId: null,
   setupDownloadStep: 1,
+  startupStage: null,
+  startupStageTaskId: null,
   isLauncherOpen: false,
 
   setSetupProgress: (taskId: string | null, message: string | null) => {
@@ -93,6 +112,37 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }
     }
     set({ setupProgress: message, setupProgressTaskId: taskId, setupDownloadStep: step });
+  },
+
+  setStartupStage: (taskId: string | null, stage: string | null, message?: string, modelName?: string, isFirstTask?: boolean) => {
+    if (!taskId || !stage) {
+      set({ startupStage: null, startupStageTaskId: null });
+      return;
+    }
+
+    const currentState = get();
+    // Preserve startTime if this is the same task, otherwise start fresh
+    const startTime = currentState.startupStageTaskId === taskId && currentState.startupStage
+      ? currentState.startupStage.startTime
+      : Date.now();
+
+    set({
+      startupStage: {
+        stage,
+        message: message || stage,
+        modelName,
+        isFirstTask: isFirstTask ?? false,
+        startTime,
+      },
+      startupStageTaskId: taskId,
+    });
+  },
+
+  clearStartupStage: (taskId: string) => {
+    const currentState = get();
+    if (currentState.startupStageTaskId === taskId) {
+      set({ startupStage: null, startupStageTaskId: null });
+    }
   },
 
   startTask: async (config: TaskConfig) => {
@@ -461,6 +511,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       setupProgress: null,
       setupProgressTaskId: null,
       setupDownloadStep: 1,
+      startupStage: null,
+      startupStageTaskId: null,
       isLauncherOpen: false,
     });
   },
@@ -469,22 +521,50 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   closeLauncher: () => set({ isLauncherOpen: false }),
 }));
 
-// Global subscription to setup progress events (browser download, etc.)
+// Startup stages that should be tracked (before first tool runs)
+const STARTUP_STAGES = ['starting', 'browser', 'environment', 'loading', 'connecting', 'waiting'];
+
+// Global subscription to setup progress events (browser download, startup stages, etc.)
 // This runs when the module is loaded to catch early progress events
 if (typeof window !== 'undefined' && window.accomplish) {
   window.accomplish.onTaskProgress((progress: unknown) => {
     const event = progress as SetupProgressEvent;
-    if (event.message) {
+    const state = useTaskStore.getState();
+
+    // Handle startup stages
+    if (STARTUP_STAGES.includes(event.stage)) {
+      state.setStartupStage(event.taskId, event.stage, event.message, event.modelName, event.isFirstTask);
+      return;
+    }
+
+    // Handle tool-use stage - clear startup stage since first tool has arrived
+    if (event.stage === 'tool-use') {
+      state.clearStartupStage(event.taskId);
+      return;
+    }
+
+    // Handle browser download progress (setup stage)
+    if (event.stage === 'setup' && event.message) {
       // Clear progress if installation completed
       if (event.message.toLowerCase().includes('installed successfully')) {
-        useTaskStore.getState().setSetupProgress(null, null);
+        state.setSetupProgress(null, null);
       } else {
-        useTaskStore.getState().setSetupProgress(event.taskId, event.message);
+        state.setSetupProgress(event.taskId, event.message);
+      }
+      return;
+    }
+
+    // Legacy fallback for other messages
+    if (event.message) {
+      if (event.message.toLowerCase().includes('installed successfully')) {
+        state.setSetupProgress(null, null);
+      } else if (event.message.toLowerCase().includes('download')) {
+        state.setSetupProgress(event.taskId, event.message);
       }
     }
   });
 
-  // Clear progress when task completes or errors (not on messages - download continues during messages)
+  // Clear progress when task completes or errors
   window.accomplish.onTaskUpdate((event: unknown) => {
     const updateEvent = event as TaskUpdateEvent;
     if (updateEvent.type === 'complete' || updateEvent.type === 'error') {
@@ -492,6 +572,7 @@ if (typeof window !== 'undefined' && window.accomplish) {
       if (state.setupProgressTaskId === updateEvent.taskId) {
         state.setSetupProgress(null, null);
       }
+      state.clearStartupStage(updateEvent.taskId);
     }
   });
 
