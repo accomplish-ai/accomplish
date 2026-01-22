@@ -17,6 +17,7 @@ import {
 // Import provider logos
 import anthropicLogo from '/assets/ai-logos/anthropic.svg';
 import openaiLogo from '/assets/ai-logos/openai.svg';
+import cchLogo from '/assets/ai-logos/cch.svg';
 import googleLogo from '/assets/ai-logos/google.svg';
 import xaiLogo from '/assets/ai-logos/xai.svg';
 import deepseekLogo from '/assets/ai-logos/deepseek.svg';
@@ -25,6 +26,7 @@ import zaiLogo from '/assets/ai-logos/zai.svg';
 const PROVIDER_LOGOS: Record<string, string> = {
   anthropic: anthropicLogo,
   openai: openaiLogo,
+  cch: cchLogo,
   google: googleLogo,
   xai: xaiLogo,
   deepseek: deepseekLogo,

@@ -42,7 +42,7 @@ const accomplishAPI = {
   // Settings
   getApiKeys: (): Promise<unknown[]> => ipcRenderer.invoke('settings:api-keys'),
   addApiKey: (
-    provider: 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'zai' | 'custom' | 'bedrock' | 'litellm',
+    provider: 'anthropic' | 'openai' | 'cch' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'zai' | 'custom' | 'bedrock' | 'litellm',
     key: string,
     label?: string
   ): Promise<unknown> =>
@@ -116,6 +116,13 @@ const accomplishAPI = {
     models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
     error?: string;
   }> => ipcRenderer.invoke('openrouter:fetch-models'),
+
+  // CCH configuration
+  testCchConnection: (url: string, apiKey: string): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string }>;
+    error?: string;
+  }> => ipcRenderer.invoke('cch:test-connection', url, apiKey),
 
   // LiteLLM configuration
   testLiteLLMConnection: (url: string, apiKey?: string): Promise<{

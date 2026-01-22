@@ -3,6 +3,7 @@
 export type ProviderId =
   | 'anthropic'
   | 'openai'
+  | 'cch'
   | 'google'
   | 'xai'
   | 'deepseek'
@@ -26,6 +27,7 @@ export interface ProviderMeta {
 export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   anthropic: { id: 'anthropic', name: 'Anthropic', category: 'classic', label: 'Service', logoKey: 'claude', helpUrl: 'https://console.anthropic.com/settings/keys' },
   openai: { id: 'openai', name: 'OpenAI', category: 'classic', label: 'Service', logoKey: 'open-ai', helpUrl: 'https://platform.openai.com/api-keys' },
+  cch: { id: 'cch', name: 'CCH', category: 'classic', label: 'Service', logoKey: 'cch' },
   google: { id: 'google', name: 'Gemini', category: 'classic', label: 'Service', logoKey: 'google-gen-ai', helpUrl: 'https://aistudio.google.com/app/apikey' },
   xai: { id: 'xai', name: 'XAI', category: 'classic', label: 'Service', logoKey: 'Xai', helpUrl: 'https://x.ai/api' },
   deepseek: { id: 'deepseek', name: 'DeepSeek', category: 'classic', label: 'Service', logoKey: 'Deepseek', helpUrl: 'https://platform.deepseek.com/api_keys' },
@@ -61,6 +63,12 @@ export interface OpenRouterCredentials {
   keyPrefix: string;
 }
 
+export interface CchCredentials {
+  type: 'cch';
+  serverUrl: string;
+  keyPrefix: string;
+}
+
 export interface LiteLLMCredentials {
   type: 'litellm';
   serverUrl: string;
@@ -73,6 +81,7 @@ export type ProviderCredentials =
   | BedrockProviderCredentials
   | OllamaCredentials
   | OpenRouterCredentials
+  | CchCredentials
   | LiteLLMCredentials;
 
 export interface ConnectedProvider {

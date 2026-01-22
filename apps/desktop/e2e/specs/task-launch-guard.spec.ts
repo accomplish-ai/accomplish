@@ -170,7 +170,7 @@ test.describe('Task Launch Guard', () => {
     await settingsPage.toggleShowAll();
 
     // Verify all provider cards are visible
-    const providerIds = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai', 'bedrock', 'ollama', 'litellm'];
+    const providerIds = ['anthropic', 'openai', 'cch', 'openrouter', 'google', 'xai', 'deepseek', 'zai', 'bedrock', 'ollama', 'litellm'];
 
     for (const providerId of providerIds) {
       await expect(settingsPage.getProviderCard(providerId)).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
@@ -181,7 +181,7 @@ test.describe('Task Launch Guard', () => {
       'task-launch-guard',
       'all-providers-visible',
       [
-        'All 10 provider cards are visible',
+        'All 11 provider cards are visible',
         'Show All expanded the grid',
         'User can select any provider'
       ]
@@ -264,7 +264,7 @@ test.describe('Task Launch Guard', () => {
 
     // Check if any provider has a connected badge
     // In E2E mode with skip auth, a provider might be pre-configured
-    const providers = ['anthropic', 'openai', 'openrouter', 'google', 'xai'];
+    const providers = ['anthropic', 'openai', 'cch', 'openrouter', 'google', 'xai'];
 
     let foundConnected = false;
     for (const providerId of providers) {

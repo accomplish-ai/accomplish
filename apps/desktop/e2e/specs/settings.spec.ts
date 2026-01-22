@@ -82,8 +82,8 @@ test.describe('Settings Dialog', () => {
     // In collapsed view, first 4 providers should be visible
     await expect(settingsPage.getProviderCard('anthropic')).toBeVisible();
     await expect(settingsPage.getProviderCard('openai')).toBeVisible();
+    await expect(settingsPage.getProviderCard('cch')).toBeVisible();
     await expect(settingsPage.getProviderCard('google')).toBeVisible();
-    await expect(settingsPage.getProviderCard('bedrock')).toBeVisible();
 
     // 5th provider should NOT be visible in collapsed view
     await expect(settingsPage.getProviderCard('deepseek')).not.toBeVisible();
@@ -387,7 +387,7 @@ test.describe('Settings Dialog', () => {
     await settingsPage.toggleShowAll();
 
     // Verify provider cards are visible (using provider IDs)
-    const providerIds = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai', 'bedrock', 'ollama', 'litellm'];
+    const providerIds = ['anthropic', 'openai', 'cch', 'openrouter', 'google', 'xai', 'deepseek', 'zai', 'bedrock', 'ollama', 'litellm'];
 
     for (const providerId of providerIds) {
       const card = settingsPage.getProviderCard(providerId);

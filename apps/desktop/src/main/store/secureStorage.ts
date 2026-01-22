@@ -187,15 +187,16 @@ export function deleteApiKey(provider: string): boolean {
 /**
  * Supported API key providers
  */
-export type ApiKeyProvider = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'zai' | 'custom' | 'bedrock' | 'litellm';
+export type ApiKeyProvider = 'anthropic' | 'openai' | 'cch' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'zai' | 'custom' | 'bedrock' | 'litellm';
 
 /**
  * Get all API keys for all providers
  */
 export async function getAllApiKeys(): Promise<Record<ApiKeyProvider, string | null>> {
-  const [anthropic, openai, openrouter, google, xai, deepseek, zai, custom, bedrock, litellm] = await Promise.all([
+  const [anthropic, openai, cch, openrouter, google, xai, deepseek, zai, custom, bedrock, litellm] = await Promise.all([
     getApiKey('anthropic'),
     getApiKey('openai'),
+    getApiKey('cch'),
     getApiKey('openrouter'),
     getApiKey('google'),
     getApiKey('xai'),
@@ -206,7 +207,7 @@ export async function getAllApiKeys(): Promise<Record<ApiKeyProvider, string | n
     getApiKey('litellm'),
   ]);
 
-  return { anthropic, openai, openrouter, google, xai, deepseek, zai, custom, bedrock, litellm };
+  return { anthropic, openai, cch, openrouter, google, xai, deepseek, zai, custom, bedrock, litellm };
 }
 
 /**

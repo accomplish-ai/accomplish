@@ -9,6 +9,7 @@ import { settingsVariants, settingsTransitions } from '@/lib/animations';
 // Import provider logos
 import anthropicLogo from '/assets/ai-logos/anthropic.svg';
 import openaiLogo from '/assets/ai-logos/openai.svg';
+import cchLogo from '/assets/ai-logos/cch.svg';
 import googleLogo from '/assets/ai-logos/google.svg';
 import xaiLogo from '/assets/ai-logos/xai.svg';
 import deepseekLogo from '/assets/ai-logos/deepseek.svg';
@@ -24,6 +25,7 @@ import connectedKeyIcon from '/assets/icons/connected-key.svg';
 const PROVIDER_LOGOS: Record<ProviderId, string> = {
   anthropic: anthropicLogo,
   openai: openaiLogo,
+  cch: cchLogo,
   google: googleLogo,
   xai: xaiLogo,
   deepseek: deepseekLogo,

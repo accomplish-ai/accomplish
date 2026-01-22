@@ -11,12 +11,13 @@ import { settingsVariants, settingsTransitions } from '@/lib/animations';
 const PROVIDER_ORDER: ProviderId[] = [
   'anthropic',
   'openai',
+  'cch',
   'google',
-  'bedrock',
   'deepseek',
   'zai',
   'ollama',
   'xai',
+  'bedrock',
   'openrouter',
   'litellm',
 ];

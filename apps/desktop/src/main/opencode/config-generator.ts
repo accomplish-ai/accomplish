@@ -303,6 +303,21 @@ interface LiteLLMProviderConfig {
   models: Record<string, LiteLLMProviderModelConfig>;
 }
 
+interface CchProviderModelConfig {
+  name: string;
+  tools?: boolean;
+}
+
+interface CchProviderConfig {
+  npm: string;
+  name: string;
+  options: {
+    baseURL: string;
+    apiKey?: string;
+  };
+  models: Record<string, CchProviderModelConfig>;
+}
+
 interface ZaiProviderModelConfig {
   name: string;
   tools?: boolean;
@@ -317,7 +332,7 @@ interface ZaiProviderConfig {
   models: Record<string, ZaiProviderModelConfig>;
 }
 
-type ProviderConfig = OllamaProviderConfig | BedrockProviderConfig | OpenRouterProviderConfig | LiteLLMProviderConfig | ZaiProviderConfig;
+type ProviderConfig = OllamaProviderConfig | BedrockProviderConfig | OpenRouterProviderConfig | LiteLLMProviderConfig | CchProviderConfig | ZaiProviderConfig;
 
 interface OpenCodeConfig {
   $schema?: string;
@@ -369,6 +384,7 @@ export async function generateOpenCodeConfig(): Promise<string> {
   const providerIdToOpenCode: Record<ProviderId, string> = {
     anthropic: 'anthropic',
     openai: 'openai',
+    cch: 'cch',
     google: 'google',
     xai: 'xai',
     deepseek: 'deepseek',
@@ -380,7 +396,7 @@ export async function generateOpenCodeConfig(): Promise<string> {
   };
 
   // Build enabled providers list from new settings or fall back to base providers
-  const baseProviders = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai-coding-plan', 'amazon-bedrock'];
+  const baseProviders = ['anthropic', 'openai', 'cch', 'openrouter', 'google', 'xai', 'deepseek', 'zai-coding-plan', 'amazon-bedrock'];
   let enabledProviders = baseProviders;
 
   // If we have connected providers in the new settings, use those
@@ -495,6 +511,31 @@ export async function generateOpenCodeConfig(): Promise<string> {
         };
         console.log('[OpenCode Config] OpenRouter configured from legacy settings:', Object.keys(openrouterModels));
       }
+    }
+  }
+
+  // Configure CCH if connected
+  const cchProvider = providerSettings.connectedProviders.cch;
+  if (cchProvider?.connectionStatus === 'connected' && cchProvider.credentials.type === 'cch') {
+    if (cchProvider.selectedModelId) {
+      const modelId = cchProvider.selectedModelId.replace(/^cch\//, '');
+      const rawBaseUrl = cchProvider.credentials.serverUrl.replace(/\/$/, '');
+      const baseURL = rawBaseUrl.endsWith('/v1') ? rawBaseUrl : `${rawBaseUrl}/v1`;
+      providerConfig.cch = {
+        npm: '@ai-sdk/openai',
+        name: 'CCH',
+        options: {
+          baseURL,
+          apiKey: '{env:CCH_API_KEY}',
+        },
+        models: {
+          [modelId]: {
+            name: modelId,
+            tools: true,
+          },
+        },
+      };
+      console.log('[OpenCode Config] CCH configured:', modelId);
     }
   }
 

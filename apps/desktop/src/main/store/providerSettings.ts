@@ -94,10 +94,12 @@ export function getActiveProviderModel(): { provider: ProviderId; model: string;
     model: activeProvider.selectedModelId,
   };
 
-  // Add baseUrl for Ollama/LiteLLM
+  // Add baseUrl for Ollama/LiteLLM/CCH
   if (activeProvider.credentials.type === 'ollama') {
     result.baseUrl = activeProvider.credentials.serverUrl;
   } else if (activeProvider.credentials.type === 'litellm') {
+    result.baseUrl = activeProvider.credentials.serverUrl;
+  } else if (activeProvider.credentials.type === 'cch') {
     result.baseUrl = activeProvider.credentials.serverUrl;
   }
 

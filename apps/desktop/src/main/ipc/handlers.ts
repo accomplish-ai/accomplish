@@ -94,7 +94,7 @@ import {
 } from '../test-utils/mock-task-flow';
 
 const MAX_TEXT_LENGTH = 8000;
-const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai', 'custom', 'bedrock', 'litellm']);
+const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'cch', 'openrouter', 'google', 'xai', 'deepseek', 'zai', 'custom', 'bedrock', 'litellm']);
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
 
 interface OllamaModel {
@@ -882,6 +882,11 @@ export function registerIPCHandlers(): void {
           );
           break;
 
+        case 'cch':
+          // CCH validation depends on user-provided base URL; skip here.
+          console.log('[API Key] Skipping validation for CCH provider');
+          return { valid: true };
+
         case 'openrouter':
           response = await fetchWithTimeout(
             'https://openrouter.ai/api/v1/models',
@@ -1349,6 +1354,66 @@ export function registerIPCHandlers(): void {
         return { success: false, error: 'Connection timed out. Make sure LiteLLM proxy is running.' };
       }
       return { success: false, error: `Cannot connect to LiteLLM: ${message}` };
+    }
+  });
+
+  // CCH: Test connection and fetch models
+  handle('cch:test-connection', async (_event: IpcMainInvokeEvent, url: string, apiKey: string) => {
+    const sanitizedUrl = sanitizeString(url, 'cchUrl', 256);
+    const sanitizedApiKey = sanitizeString(apiKey, 'apiKey', 256);
+
+    if (!sanitizedApiKey) {
+      return { success: false, error: 'API key is required' };
+    }
+
+    // Validate URL format and protocol
+    let baseUrl: string;
+    try {
+      const parsed = new URL(sanitizedUrl);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return { success: false, error: 'Only http and https URLs are allowed' };
+      }
+      baseUrl = parsed.toString().replace(/\/$/, '');
+    } catch {
+      return { success: false, error: 'Invalid URL format' };
+    }
+
+    const modelsUrl = baseUrl.endsWith('/v1') ? `${baseUrl}/models` : `${baseUrl}/v1/models`;
+
+    try {
+      const response = await fetchWithTimeout(
+        modelsUrl,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${sanitizedApiKey}`,
+          },
+        },
+        API_KEY_VALIDATION_TIMEOUT_MS
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = (errorData as { error?: { message?: string } })?.error?.message || `API returned status ${response.status}`;
+        return { success: false, error: errorMessage };
+      }
+
+      const data = await response.json() as { data?: Array<{ id: string; object?: string; owned_by?: string }> };
+      const models = (data.data || []).map((m) => ({
+        id: m.id,
+        name: m.id,
+      }));
+
+      console.log(`[CCH] Connection successful, found ${models.length} models`);
+      return { success: true, models };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Connection failed';
+      console.warn('[CCH] Connection failed:', message);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        return { success: false, error: 'Connection timed out. Check your network or base URL.' };
+      }
+      return { success: false, error: `Cannot connect to CCH: ${message}` };
     }
   });
 

@@ -5,6 +5,7 @@ import type { ProviderId, ConnectedProvider } from '@accomplish/shared';
 import { PROVIDER_META } from '@accomplish/shared';
 import {
   ClassicProviderForm,
+  CchProviderForm,
   BedrockProviderForm,
   OllamaProviderForm,
   OpenRouterProviderForm,
@@ -33,6 +34,18 @@ export function ProviderSettingsPanel({
 
   // Render form content based on provider category
   const renderForm = () => {
+    if (providerId === 'cch') {
+      return (
+        <CchProviderForm
+          connectedProvider={connectedProvider}
+          onConnect={onConnect}
+          onDisconnect={onDisconnect}
+          onModelChange={onModelChange}
+          showModelError={showModelError}
+        />
+      );
+    }
+
     switch (meta.category) {
       case 'classic':
         return (

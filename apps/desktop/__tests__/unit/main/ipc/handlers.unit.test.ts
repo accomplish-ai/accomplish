@@ -159,6 +159,7 @@ vi.mock('@main/store/secureStorage', () => ({
     Promise.resolve({
       anthropic: mockApiKeys['anthropic'] || null,
       openai: mockApiKeys['openai'] || null,
+      cch: mockApiKeys['cch'] || null,
       google: mockApiKeys['google'] || null,
       xai: mockApiKeys['xai'] || null,
       custom: mockApiKeys['custom'] || null,

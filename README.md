@@ -128,6 +128,7 @@ Openwork is an open source AI desktop agent that automates file management, docu
 ## Supported models and providers
 
 - OpenAI
+- CCH
 - Anthropic
 - Google
 - xAI

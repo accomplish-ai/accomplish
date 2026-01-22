@@ -7,9 +7,9 @@ import { TEST_TIMEOUTS } from '../config';
  * Comprehensive E2E tests for all provider settings permutations
  *
  * Provider order (4 columns per row):
- * Row 1: Anthropic, OpenAI, Google (Gemini), xAI
- * Row 2: DeepSeek, Z-AI, Ollama, Bedrock
- * Row 3: OpenRouter, LiteLLM
+ * Row 1: Anthropic, OpenAI, CCH, Google (Gemini)
+ * Row 2: DeepSeek, Z-AI, Ollama, xAI
+ * Row 3: Bedrock, OpenRouter, LiteLLM
  */
 test.describe('Settings - All Providers', () => {
   // ===== GOOGLE (GEMINI) PROVIDER =====
@@ -63,18 +63,19 @@ test.describe('Settings - All Providers', () => {
 
   // ===== XAI PROVIDER =====
   test.describe('xAI Provider', () => {
-    test('should display xAI provider card in first row', async ({ window }) => {
+    test('should display xAI provider card in expanded view', async ({ window }) => {
       const settingsPage = new SettingsPage(window);
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
 
-      // xAI is in first 4, should be visible without Show All
+      // xAI is not in first 4, show all providers
+      await settingsPage.toggleShowAll();
       const xaiCard = settingsPage.getProviderCard('xai');
       await expect(xaiCard).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
       await captureForAI(window, 'settings-xai', 'provider-card-visible', [
         'xAI provider card is visible',
-        'Card is in first row (no Show All needed)',
+        'Card is visible after Show All',
       ]);
     });
 
@@ -83,6 +84,7 @@ test.describe('Settings - All Providers', () => {
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
 
+      await settingsPage.toggleShowAll();
       await settingsPage.selectProvider('xai');
 
       await expect(settingsPage.apiKeyInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
@@ -98,6 +100,7 @@ test.describe('Settings - All Providers', () => {
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
 
+      await settingsPage.toggleShowAll();
       await settingsPage.selectProvider('xai');
 
       const testKey = 'xai-test-key-67890';
@@ -169,8 +172,8 @@ test.describe('Settings - All Providers', () => {
       // First 4 providers should be visible
       await expect(settingsPage.getProviderCard('anthropic')).toBeVisible();
       await expect(settingsPage.getProviderCard('openai')).toBeVisible();
+      await expect(settingsPage.getProviderCard('cch')).toBeVisible();
       await expect(settingsPage.getProviderCard('google')).toBeVisible();
-      await expect(settingsPage.getProviderCard('xai')).toBeVisible();
 
       // 5th provider (deepseek) should NOT be visible in collapsed view
       await expect(settingsPage.getProviderCard('deepseek')).not.toBeVisible();
@@ -181,18 +184,18 @@ test.describe('Settings - All Providers', () => {
       ]);
     });
 
-    test('should expand to show all 10 providers', async ({ window }) => {
+    test('should expand to show all 11 providers', async ({ window }) => {
       const settingsPage = new SettingsPage(window);
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
 
       await settingsPage.toggleShowAll();
 
-      // All 10 providers should be visible
+      // All 11 providers should be visible
       const allProviders = [
-        'anthropic', 'openai', 'google', 'xai',
-        'deepseek', 'zai', 'ollama', 'bedrock',
-        'openrouter', 'litellm'
+        'anthropic', 'openai', 'cch', 'google',
+        'deepseek', 'zai', 'ollama', 'xai',
+        'bedrock', 'openrouter', 'litellm'
       ];
 
       for (const providerId of allProviders) {
@@ -200,7 +203,7 @@ test.describe('Settings - All Providers', () => {
       }
 
       await captureForAI(window, 'settings-grid', 'expanded-view', [
-        'All 10 providers visible in expanded view',
+        'All 11 providers visible in expanded view',
         'Grid shows 3 rows of providers',
       ]);
     });
@@ -244,6 +247,11 @@ test.describe('Settings - All Providers', () => {
 
       // Switch to OpenAI
       await settingsPage.selectProvider('openai');
+      await expect(settingsPage.apiKeyInput).toBeVisible();
+
+      // Switch to CCH (requires both server URL and API key)
+      await settingsPage.selectProvider('cch');
+      await expect(window.getByTestId('cch-server-url')).toBeVisible();
       await expect(settingsPage.apiKeyInput).toBeVisible();
 
       // Switch to Google
