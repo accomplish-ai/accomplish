@@ -80,7 +80,17 @@ export function getOpenCodeCliPath(): { command: string; args: string[] } {
       args: [],
     };
   } else {
-    // In development, use global opencode if available
+    // In development, prioritize bundled CLI to ensure version compatibility
+    // The bundled CLI version matches the config schema we generate
+
+    // First, try bundled CLI in node_modules (preferred for version consistency)
+    // Use app.getAppPath() instead of process.cwd() as cwd is unpredictable in Electron IPC handlers
+    const binName = process.platform === 'win32' ? 'opencode.cmd' : 'opencode';
+    const devCliPath = path.join(app.getAppPath(), 'node_modules', '.bin', binName);
+    if (fs.existsSync(devCliPath)) {
+      console.log('[CLI Path] Using bundled CLI:', devCliPath);
+      return { command: devCliPath, args: [] };
+    }
 
     // Check nvm installations (dynamically scan all versions)
     const nvmPaths = getNvmOpenCodePaths();
@@ -108,15 +118,6 @@ export function getOpenCodeCliPath(): { command: string; args: string[] } {
         console.log('[CLI Path] Using global OpenCode CLI:', opencodePath);
         return { command: opencodePath, args: [] };
       }
-    }
-
-    // Try bundled CLI in node_modules
-    // Use app.getAppPath() instead of process.cwd() as cwd is unpredictable in Electron IPC handlers
-    const binName = process.platform === 'win32' ? 'opencode.cmd' : 'opencode';
-    const devCliPath = path.join(app.getAppPath(), 'node_modules', '.bin', binName);
-    if (fs.existsSync(devCliPath)) {
-      console.log('[CLI Path] Using bundled CLI:', devCliPath);
-      return { command: devCliPath, args: [] };
     }
 
     // Final fallback: try 'opencode' on PATH
@@ -159,6 +160,15 @@ export function isOpenCodeBundled(): boolean {
       return fs.existsSync(cliPath);
     } else {
       // In dev mode, actually verify the CLI exists
+      // Priority: bundled > nvm > global > PATH (same as getOpenCodeCliPath)
+
+      // Check bundled CLI in node_modules first (preferred for version consistency)
+      // Use app.getAppPath() instead of process.cwd() as cwd is unpredictable in Electron IPC handlers
+      const binName = process.platform === 'win32' ? 'opencode.cmd' : 'opencode';
+      const devCliPath = path.join(app.getAppPath(), 'node_modules', '.bin', binName);
+      if (fs.existsSync(devCliPath)) {
+        return true;
+      }
 
       // Check nvm installations (dynamically scan all versions)
       const nvmPaths = getNvmOpenCodePaths();
@@ -184,14 +194,6 @@ export function isOpenCodeBundled(): boolean {
         if (fs.existsSync(opencodePath)) {
           return true;
         }
-      }
-
-      // Check bundled CLI in node_modules
-      // Use app.getAppPath() instead of process.cwd() as cwd is unpredictable in Electron IPC handlers
-      const binName = process.platform === 'win32' ? 'opencode.cmd' : 'opencode';
-      const devCliPath = path.join(app.getAppPath(), 'node_modules', '.bin', binName);
-      if (fs.existsSync(devCliPath)) {
-        return true;
       }
 
       // Final fallback: check if opencode is available on PATH
