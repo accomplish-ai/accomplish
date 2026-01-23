@@ -164,7 +164,7 @@ Openwork runs locally on your machine. Your files stay on your device, and you c
 | Step | Action | Details |
 |:----:|--------|---------|
 | **1** | **Install the App** | Download the DMG and drag it into Applications |
-| **2** | **Connect Your AI** | Use your own OpenAI or Anthropic API key, or Ollama. No subscriptions. |
+| **2** | **Connect Your AI** | Use your own Google, OpenAI, Anthropic (or other) API key. No subscriptions. |
 | **3** | **Give It Access** | Choose which folders it can see. You stay in control. |
 | **4** | **Start Working** | Ask it to summarize a doc, clean a folder, or create a report. You approve everything. |
 
