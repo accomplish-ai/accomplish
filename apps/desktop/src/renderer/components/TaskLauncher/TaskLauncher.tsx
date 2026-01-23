@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { springs } from '@/lib/animations';
 import TaskLauncherItem from './TaskLauncherItem';
 import { hasAnyReadyProvider } from '@accomplish/shared';
+import {Input} from "@/components/ui/input";
 
 export default function TaskLauncher() {
   const navigate = useNavigate();
@@ -140,14 +141,13 @@ export default function TaskLauncher() {
                 {/* Search Input */}
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
                   <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search tasks..."
-                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                  />
+                  <Input
+                      ref={inputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search tasks..."
+                      className="border-0 px-0 py-1 h-full focus:outline-none focus-visible:ring-0" />
                   <DialogPrimitive.Close asChild>
                     <button className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Close">
                       <X className="h-4 w-4" />
