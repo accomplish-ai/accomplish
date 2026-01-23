@@ -45,6 +45,14 @@ export default function TaskLauncher() {
     setSelectedIndex(i => Math.min(i, Math.max(0, totalItems - 1)));
   }, [totalItems]);
 
+  // Reset state when launcher opens
+  useEffect(() => {
+    if (isLauncherOpen) {
+      setSearchQuery('');
+      setSelectedIndex(0);
+    }
+  }, [isLauncherOpen]);
+
   const handleOpenChange = useCallback((open: boolean) => {
     if (!open && isLauncherOpen) {
       closeLauncher();
