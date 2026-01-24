@@ -5,36 +5,8 @@ import type { ProviderId, ConnectedProvider } from '@accomplish/shared';
 import { PROVIDER_META, isProviderReady } from '@accomplish/shared';
 import { AnimatePresence, motion } from 'framer-motion';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
-
-// Import provider logos
-import anthropicLogo from '/assets/ai-logos/anthropic.svg';
-import openaiLogo from '/assets/ai-logos/openai.svg';
-import googleLogo from '/assets/ai-logos/google.svg';
-import xaiLogo from '/assets/ai-logos/xai.svg';
-import deepseekLogo from '/assets/ai-logos/deepseek.svg';
-import zaiLogo from '/assets/ai-logos/zai.svg';
-import bedrockLogo from '/assets/ai-logos/bedrock.svg';
-import azureLogo from '/assets/ai-logos/azure.svg';
-import ollamaLogo from '/assets/ai-logos/ollama.svg';
-import openrouterLogo from '/assets/ai-logos/openrouter.svg';
-import litellmLogo from '/assets/ai-logos/litellm.svg';
-
-// Import connected badge icon
+import { providerLogos } from './provider-logos';
 import connectedKeyIcon from '/assets/icons/connected-key.svg';
-
-const PROVIDER_LOGOS: Record<ProviderId, string> = {
-  anthropic: anthropicLogo,
-  openai: openaiLogo,
-  google: googleLogo,
-  xai: xaiLogo,
-  deepseek: deepseekLogo,
-  zai: zaiLogo,
-  bedrock: bedrockLogo,
-  'azure-foundry': azureLogo,
-  ollama: ollamaLogo,
-  openrouter: openrouterLogo,
-  litellm: litellmLogo,
-};
 
 interface ProviderCardProps {
   providerId: ProviderId;
@@ -56,7 +28,7 @@ export const ProviderCard = memo(function ProviderCard({
   const meta = PROVIDER_META[providerId];
   const isConnected = connectedProvider?.connectionStatus === 'connected';
   const providerReady = isProviderReady(connectedProvider);
-  const logoSrc = PROVIDER_LOGOS[providerId];
+  const logoSrc = providerLogos[providerId];
 
   // Green background should ONLY show for the active provider that is ready (connected + model selected)
   // isSelected just means the card is clicked for viewing settings - it should only get a border, not green background

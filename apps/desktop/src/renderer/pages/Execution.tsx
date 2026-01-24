@@ -1368,7 +1368,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
                   'opacity-0 group-hover:opacity-100 transition-all duration-200 relative p-1 rounded hover:bg-accent shrink-0 mt-1',
                   isAssistant ? 'self-start' : 'self-end',
                   !copied && 'text-muted-foreground hover:text-foreground',
-                  copied && 'bg-green-500/10! text-green-600! !hover:bg-green-500/20'
+                  copied && 'bg-green-500/10! text-green-600! hover:bg-green-500/20!'
               )}
               aria-label={'Copy to clipboard'}>
             {copied

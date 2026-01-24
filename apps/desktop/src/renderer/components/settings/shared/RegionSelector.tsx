@@ -1,5 +1,14 @@
 // apps/desktop/src/renderer/components/settings/shared/RegionSelector.tsx
 
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
 const AWS_REGIONS = [
   { id: 'us-east-1', name: 'US East (N. Virginia)' },
   { id: 'us-east-2', name: 'US East (Ohio)' },
@@ -23,20 +32,20 @@ interface RegionSelectorProps {
 
 export function RegionSelector({ value, onChange }: RegionSelectorProps) {
   return (
-    <div>
-      <label className="mb-2 block text-sm font-medium text-foreground">Region</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        data-testid="bedrock-region-select"
-        className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
-      >
-        {AWS_REGIONS.map((region) => (
-          <option key={region.id} value={region.id}>
-            {region.id}
-          </option>
-        ))}
-      </select>
+    <div className="grid gap-2">
+      <Label>Region</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="w-full" data-testid="bedrock-region-select">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {AWS_REGIONS.map((region) => (
+            <SelectItem key={region.id} value={region.id}>
+              {region.id}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

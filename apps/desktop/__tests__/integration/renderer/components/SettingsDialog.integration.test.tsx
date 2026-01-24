@@ -102,23 +102,19 @@ vi.mock('framer-motion', () => {
   };
 });
 
-// Mock Radix Dialog to simplify testing
-vi.mock('@radix-ui/react-dialog', () => ({
-  Root: ({ children, open }: { children: React.ReactNode; open: boolean }) => (
+// Mock Dialog wrapper to simplify testing
+vi.mock('@/components/ui/dialog', () => ({
+  Dialog: ({ children, open }: { children: React.ReactNode; open: boolean }) => (
     open ? <div data-testid="dialog-root">{children}</div> : null
   ),
-  Portal: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Overlay: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="dialog-overlay">{children}</div>
-  ),
-  Content: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
+  DialogContent: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
     <div data-testid="dialog-content" role="dialog" {...props}>{children}</div>
   ),
-  Title: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <h2 className={className}>{children}</h2>
+  DialogHeader: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="dialog-header">{children}</div>
   ),
-  Close: ({ children }: { children: React.ReactNode }) => (
-    <button data-testid="dialog-close">{children}</button>
+  DialogTitle: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <h2 className={className}>{children}</h2>
   ),
 }));
 

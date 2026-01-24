@@ -10,6 +10,9 @@ import {
   ProviderFormHeader,
   FormError,
 } from '../shared';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 // Import Azure logo
 import azureLogo from '/assets/ai-logos/azure.svg';
@@ -116,28 +119,24 @@ export function AzureFoundryProviderForm({
           <>
             {/* Auth type tabs */}
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={() => setAuthType('api-key')}
                 data-testid="azure-foundry-auth-api-key"
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  authType === 'api-key'
-                    ? 'bg-[#0078D4] text-white'
-                    : 'bg-muted text-muted-foreground hover:text-foreground'
-                }`}
+                type="button"
+                variant={authType === 'api-key' ? 'default' : 'secondary'}
+                className={authType === 'api-key' ? 'bg-[#0078D4] text-white hover:bg-[#0078D4]/90' : ''}
               >
                 API Key
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setAuthType('entra-id')}
                 data-testid="azure-foundry-auth-entra-id"
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  authType === 'entra-id'
-                    ? 'bg-[#0078D4] text-white'
-                    : 'bg-muted text-muted-foreground hover:text-foreground'
-                }`}
+                type="button"
+                variant={authType === 'entra-id' ? 'default' : 'secondary'}
+                className={authType === 'entra-id' ? 'bg-[#0078D4] text-white hover:bg-[#0078D4]/90' : ''}
               >
                 Entra ID
-              </button>
+              </Button>
             </div>
 
             {authType === 'entra-id' && (
@@ -147,48 +146,39 @@ export function AzureFoundryProviderForm({
             )}
 
             {/* Endpoint URL */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">
-                Azure OpenAI Endpoint
-              </label>
-              <input
+            <div className="grid gap-2">
+              <Label>Azure OpenAI Endpoint</Label>
+              <Input
                 type="text"
                 value={endpoint}
                 onChange={(e) => setEndpoint(e.target.value)}
                 placeholder="https://your-resource.openai.azure.com"
                 data-testid="azure-foundry-endpoint"
-                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
               />
             </div>
 
             {/* Deployment Name */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">
-                Deployment Name
-              </label>
-              <input
+            <div className="grid gap-2">
+              <Label>Deployment Name</Label>
+              <Input
                 type="text"
                 value={deploymentName}
                 onChange={(e) => setDeploymentName(e.target.value)}
                 placeholder="e.g., gpt-4o, gpt-5"
                 data-testid="azure-foundry-deployment"
-                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
               />
             </div>
 
             {/* API Key - only for API key auth */}
             {authType === 'api-key' && (
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">
-                  API Key
-                </label>
-                <input
+              <div className="grid gap-2">
+                <Label>API Key</Label>
+                <Input
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder="Enter your Azure API key"
                   data-testid="azure-foundry-api-key"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                 />
               </div>
             )}
@@ -200,31 +190,28 @@ export function AzureFoundryProviderForm({
           <>
             {/* Display saved credentials info */}
             <div className="space-y-3">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Endpoint</label>
-                <input
+              <div className="grid gap-2">
+                <Label>Endpoint</Label>
+                <Input
                   type="text"
                   value={(connectedProvider?.credentials as AzureFoundryCredentials)?.endpoint || ''}
                   disabled
-                  className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />
               </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Deployment</label>
-                <input
+              <div className="grid gap-2">
+                <Label>Deployment</Label>
+                <Input
                   type="text"
                   value={(connectedProvider?.credentials as AzureFoundryCredentials)?.deploymentName || ''}
                   disabled
-                  className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />
               </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Authentication</label>
-                <input
+              <div className="grid gap-2">
+                <Label>Authentication</Label>
+                <Input
                   type="text"
                   value={(connectedProvider?.credentials as AzureFoundryCredentials)?.authMethod === 'entra-id' ? 'Entra ID (Azure CLI)' : 'API Key'}
                   disabled
-                  className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />
               </div>
             </div>

@@ -13,10 +13,10 @@ export function ProviderFormHeader({ logoSrc, providerName }: ProviderFormHeader
         <img
           src={logoSrc}
           alt={`${providerName} logo`}
-          className="h-6 w-6 object-contain"
+          className="size-5 object-contain"
         />
       </div>
-      <span className="text-base font-medium text-foreground">{providerName} Settings</span>
+      <span className="text-sm font-semibold text-foreground">{providerName} Settings</span>
     </div>
   );
 }

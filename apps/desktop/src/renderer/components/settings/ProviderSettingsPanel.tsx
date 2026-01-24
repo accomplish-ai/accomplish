@@ -110,19 +110,8 @@ export function ProviderSettingsPanel({
   // Wrap in min-height container to prevent layout shifts when switching providers
   // Different forms have different heights; this ensures consistent layout
   return (
-    <div className="min-h-[260px]">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={providerId}
-          variants={settingsVariants.slideDown}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={settingsTransitions.enter}
-        >
+    <div>
           {renderForm()}
-        </motion.div>
-      </AnimatePresence>
     </div>
   );
 }

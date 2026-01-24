@@ -1,9 +1,7 @@
 // apps/desktop/src/renderer/components/settings/providers/ClassicProviderForm.tsx
 
 import { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
-import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import type { ProviderId, ConnectedProvider, ApiKeyCredentials } from '@accomplish/shared';
 import { PROVIDER_META, DEFAULT_PROVIDERS, getDefaultModelForProvider } from '@accomplish/shared';
 import {
@@ -21,6 +19,8 @@ import googleLogo from '/assets/ai-logos/google.svg';
 import xaiLogo from '/assets/ai-logos/xai.svg';
 import deepseekLogo from '/assets/ai-logos/deepseek.svg';
 import zaiLogo from '/assets/ai-logos/zai.svg';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 const PROVIDER_LOGOS: Record<string, string> = {
   anthropic: anthropicLogo,
@@ -114,7 +114,7 @@ export function ClassicProviderForm({
       {/* API Key Section */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-foreground">API Key</label>
+          <Label>API Key</Label>
           {meta.helpUrl && (
             <a
               href={meta.helpUrl}
@@ -127,55 +127,25 @@ export function ClassicProviderForm({
           )}
         </div>
 
-        <AnimatePresence mode="wait">
           {!isConnected ? (
-            <motion.div
-              key="disconnected"
-              variants={settingsVariants.fadeSlide}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={settingsTransitions.enter}
-              className="space-y-3"
-            >
-              {/* Disconnected: API Key input with trash */}
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Enter API Key"
-                  disabled={connecting}
-                  data-testid="api-key-input"
-                  className="flex-1 rounded-md border border-input bg-background px-3 py-2.5 text-sm disabled:opacity-50"
-                />
-                <button
-                  onClick={() => setApiKey('')}
-                  className="rounded-md border border-border p-2.5 text-muted-foreground hover:text-foreground transition-colors"
-                  type="button"
-                  disabled={!apiKey}
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
+            <div className='grid gap-2'>
+              <Input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Enter API Key"
+                disabled={connecting}
+                data-testid="api-key-input"
+              />
 
               <FormError error={error} />
+
               <ConnectButton onClick={handleConnect} connecting={connecting} disabled={!apiKey.trim()} />
-            </motion.div>
+            </div>
           ) : (
-            <motion.div
-              key="connected"
-              variants={settingsVariants.fadeSlide}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={settingsTransitions.enter}
-              className="space-y-3"
-            >
+            <div className='grid gap-2'>
               {/* Connected: Show masked key + Connected button + Model */}
-              <input
+              <Input
                 type="text"
                 value={(() => {
                   const creds = connectedProvider?.credentials as ApiKeyCredentials | undefined;
@@ -184,7 +154,6 @@ export function ClassicProviderForm({
                 })()}
                 disabled
                 data-testid="api-key-display"
-                className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
               />
 
               <ConnectedControls onDisconnect={onDisconnect} />
@@ -196,9 +165,8 @@ export function ClassicProviderForm({
                 onChange={onModelChange}
                 error={showModelError && !connectedProvider?.selectedModelId}
               />
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
       </div>
     </div>
   );

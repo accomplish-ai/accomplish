@@ -1,6 +1,7 @@
 // apps/desktop/src/renderer/components/settings/shared/ConnectButton.tsx
 
 import connectIcon from '/assets/icons/connect.svg';
+import {Button} from "@/components/ui/button";
 
 interface ConnectButtonProps {
   onClick: () => void;
@@ -10,11 +11,12 @@ interface ConnectButtonProps {
 
 export function ConnectButton({ onClick, connecting, disabled }: ConnectButtonProps) {
   return (
-    <button
+    <Button
       onClick={onClick}
       disabled={connecting || disabled}
       data-testid="connect-button"
-      className="w-full flex items-center justify-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted disabled:opacity-50"
+      className="w-full"
+      variant='outline'
     >
       {connecting ? (
         <>
@@ -30,6 +32,6 @@ export function ConnectButton({ onClick, connecting, disabled }: ConnectButtonPr
           Connect
         </>
       )}
-    </button>
+    </Button>
   );
 }
