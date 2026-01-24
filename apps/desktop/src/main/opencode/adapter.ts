@@ -29,6 +29,7 @@ import type {
   TaskResult,
   OpenCodeMessage,
   PermissionRequest,
+  TodoItem,
 } from '@accomplish/shared';
 
 /**
@@ -66,6 +67,7 @@ export interface OpenCodeAdapterEvents {
   complete: [TaskResult];
   error: [Error];
   debug: [{ type: string; message: string; data?: unknown }];
+  'todo:update': [TodoItem[]];
 }
 
 export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
@@ -880,6 +882,16 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         // Track if complete_task was called (tool name may be prefixed with MCP server name)
         if (toolUseName === 'complete_task' || toolUseName.endsWith('_complete_task')) {
           this.completionEnforcer.handleCompleteTaskDetection(toolUseInput);
+        }
+
+        // Detect todowrite tool calls and emit todo state
+        if (toolUseName === 'todowrite') {
+          const input = toolUseInput as { todos?: TodoItem[] };
+          if (input?.todos && Array.isArray(input.todos)) {
+            this.emit('todo:update', input.todos);
+            // Also update completion enforcer
+            this.completionEnforcer.updateTodos(input.todos);
+          }
         }
 
         // For models that don't emit text messages (like Gemini), emit the tool description
