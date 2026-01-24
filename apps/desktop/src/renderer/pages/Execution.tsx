@@ -201,6 +201,32 @@ export default function ExecutionPage() {
     return () => clearInterval(interval);
   }, [startupStageTaskId, startupStage, id, currentTool]);
 
+  // DEV MODE: Test todo UI with Ctrl+Shift+T
+  const { setTodos } = useTaskStore();
+  useEffect(() => {
+    if (import.meta.env.PROD) return; // Only in dev mode
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+        e.preventDefault();
+        console.log('[DEV] Triggering test todo update');
+        const testTodos: TodoItem[] = [
+          { id: '1', content: 'Analyze requirements', status: 'completed', priority: 'high' },
+          { id: '2', content: 'Create component structure', status: 'in_progress', priority: 'high' },
+          { id: '3', content: 'Implement avatar display', status: 'pending', priority: 'medium' },
+          { id: '4', content: 'Add edit functionality', status: 'pending', priority: 'medium' },
+          { id: '5', content: 'Style with Tailwind', status: 'pending', priority: 'low' },
+        ];
+        if (id) {
+          setTodos(id, testTodos);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [id, setTodos]);
+
   // Load task and subscribe to events
   useEffect(() => {
     if (id) {
