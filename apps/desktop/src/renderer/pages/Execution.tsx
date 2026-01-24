@@ -947,6 +947,8 @@ export default function ExecutionPage() {
                               onChange={(e) => setCustomResponse(e.target.value)}
                               placeholder="Type your response..."
                               onKeyDown={(e) => {
+                                // Ignore Enter during IME composition (Chinese/Japanese input)
+                                if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                                 if (e.key === 'Enter' && customResponse.trim()) {
                                   handlePermissionResponse(true);
                                 }
@@ -1057,6 +1059,8 @@ export default function ExecutionPage() {
                 value={followUp}
                 onChange={(e) => setFollowUp(e.target.value)}
                 onKeyDown={(e) => {
+                  // Ignore Enter during IME composition (Chinese/Japanese input)
+                  if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     handleFollowUp();

@@ -11,9 +11,12 @@ import {
   getBundledOpenCodeVersion,
 } from './cli-path';
 import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
-import { getSelectedModel } from '../store/appSettings';
-import { getActiveProviderModel } from '../store/providerSettings';
+// TODO: Remove getAzureFoundryConfig import in v0.4.0 when legacy support is dropped
+import { getSelectedModel, getAzureFoundryConfig } from '../store/appSettings';
+import { getActiveProviderModel, getConnectedProvider } from '../store/providerSettings';
+import type { AzureFoundryCredentials } from '@accomplish/shared';
 import { generateOpenCodeConfig, ACCOMPLISH_AGENT_NAME, syncApiKeysToOpenCodeAuth } from './config-generator';
+import { getAzureEntraToken } from './azure-token-manager';
 import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo, getNpxPath } from '../utils/bundled-node';
 import { getModelDisplayName } from '../utils/model-display';
@@ -213,9 +216,35 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     // Sync API keys to OpenCode CLI's auth.json (for DeepSeek, Z.AI support)
     await syncApiKeysToOpenCodeAuth();
 
+    // For Azure Foundry with Entra ID auth, get the token first so we can include it in config
+    let azureFoundryToken: string | undefined;
+    const activeModel = getActiveProviderModel();
+    const selectedModel = activeModel || getSelectedModel();
+    // TODO: Remove legacy azureFoundryConfig check in v0.4.0
+    const azureFoundryConfig = getAzureFoundryConfig();
+
+    // Check if Azure Foundry is configured via new provider settings
+    const azureFoundryProvider = getConnectedProvider('azure-foundry');
+    const azureFoundryCredentials = azureFoundryProvider?.credentials as AzureFoundryCredentials | undefined;
+
+    // Determine auth type from new settings or legacy config
+    const isAzureFoundryEntraId =
+      (selectedModel?.provider === 'azure-foundry' && azureFoundryCredentials?.authMethod === 'entra-id') ||
+      (selectedModel?.provider === 'azure-foundry' && azureFoundryConfig?.authType === 'entra-id');
+
+    if (isAzureFoundryEntraId) {
+      const tokenResult = await getAzureEntraToken();
+      if (!tokenResult.success) {
+        console.error('[OpenCode CLI] Failed to get Azure Entra ID token:', tokenResult.error);
+        throw new Error(tokenResult.error);
+      }
+      azureFoundryToken = tokenResult.token;
+      console.log('[OpenCode CLI] Obtained Azure Entra ID token for config');
+    }
+
     // Generate OpenCode config file with MCP settings and agent
     console.log('[OpenCode CLI] Generating OpenCode config with MCP settings and agent...');
-    const configPath = await generateOpenCodeConfig();
+    const configPath = await generateOpenCodeConfig(azureFoundryToken);
     console.log('[OpenCode CLI] Config generated at:', configPath);
 
     const cliArgs = await this.buildCliArgs(config);

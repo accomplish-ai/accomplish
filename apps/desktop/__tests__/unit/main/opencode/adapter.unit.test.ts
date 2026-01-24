@@ -117,6 +117,7 @@ vi.mock('@main/store/secureStorage', () => ({
 // Mock app settings
 vi.mock('@main/store/appSettings', () => ({
   getSelectedModel: vi.fn(() => ({ model: 'claude-3-opus-20240229' })),
+  getAzureFoundryConfig: vi.fn(() => null),
 }));
 
 // Mock provider settings (uses SQLite which isn't available in tests)
@@ -127,6 +128,7 @@ vi.mock('@main/store/providerSettings', () => ({
     connectedProviders: {},
     debugMode: false,
   })),
+  getConnectedProvider: vi.fn(() => null),
 }));
 
 // Mock config generator
