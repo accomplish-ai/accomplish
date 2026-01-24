@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../stores/taskStore';
 import { getAccomplish } from '../lib/accomplish';
 import { springs } from '../lib/animations';
-import type { TaskMessage, TodoItem } from '@accomplish/shared';
+import type { TaskMessage } from '@accomplish/shared';
 import { hasAnyReadyProvider } from '@accomplish/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,6 @@ import { isWaitingForUser } from '../lib/waiting-detection';
 import loadingSymbol from '/assets/loading-symbol.svg';
 import SettingsDialog from '../components/layout/SettingsDialog';
 import { TodoSidebar } from '../components/TodoSidebar';
-import { TodoInlineCard } from '../components/TodoInlineCard';
 
 // Debug log entry type
 interface DebugLogEntry {
@@ -1328,9 +1327,8 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
         )}
       >
         {/* Tool messages: show only label and loading animation */}
-        {isTool && message.toolName === 'todowrite' ? (
-          <TodoInlineCard todos={(message.toolInput as { todos?: TodoItem[] })?.todos || []} />
-        ) : isTool ? (
+        {/* Skip todowrite - shown in sidebar instead */}
+        {isTool && message.toolName === 'todowrite' ? null : isTool ? (
           <>
             <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
               {ToolIcon ? <ToolIcon className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
