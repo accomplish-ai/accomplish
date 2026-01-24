@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../stores/taskStore';
 import { getAccomplish } from '../lib/accomplish';
 import { springs } from '../lib/animations';
-import type { TaskMessage } from '@accomplish/shared';
+import type { TaskMessage, TodoItem } from '@accomplish/shared';
 import { hasAnyReadyProvider } from '@accomplish/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,8 @@ import { StreamingText } from '../components/ui/streaming-text';
 import { isWaitingForUser } from '../lib/waiting-detection';
 import loadingSymbol from '/assets/loading-symbol.svg';
 import SettingsDialog from '../components/layout/SettingsDialog';
+import { TodoSidebar } from '../components/TodoSidebar';
+import { TodoInlineCard } from '../components/TodoInlineCard';
 
 // Debug log entry type
 interface DebugLogEntry {
@@ -139,6 +141,8 @@ export default function ExecutionPage() {
     setupDownloadStep,
     startupStage,
     startupStageTaskId,
+    todos,
+    todosTaskId,
   } = useTaskStore();
 
   // Debounced scroll function
@@ -648,8 +652,10 @@ export default function ExecutionPage() {
 
       {/* Messages - normal state (running, completed, failed, etc.) */}
       {currentTask.status !== 'queued' && (
-        <div className="flex-1 overflow-y-auto px-6 py-6" ref={scrollContainerRef} onScroll={handleScroll} data-testid="messages-scroll-container">
-          <div className="max-w-4xl mx-auto space-y-4">
+        <div className="flex-1 flex overflow-hidden">
+          {/* Messages area */}
+          <div className="flex-1 overflow-y-auto px-6 py-6" ref={scrollContainerRef} onScroll={handleScroll} data-testid="messages-scroll-container">
+            <div className="max-w-4xl mx-auto space-y-4">
             {currentTask.messages
               .filter((m) => !(m.type === 'tool' && m.toolName?.toLowerCase() === 'bash'))
               .map((message, index, filteredMessages) => {
@@ -750,7 +756,15 @@ export default function ExecutionPage() {
                 </motion.div>
               )}
             </AnimatePresence>
+            </div>
           </div>
+
+          {/* Todo sidebar - only shown when todos exist for this task */}
+          <AnimatePresence>
+            {todosTaskId === id && todos.length > 0 && (
+              <TodoSidebar todos={todos} />
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -1314,7 +1328,9 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
         )}
       >
         {/* Tool messages: show only label and loading animation */}
-        {isTool ? (
+        {isTool && message.toolName === 'todowrite' ? (
+          <TodoInlineCard todos={(message.toolInput as { todos?: TodoItem[] })?.todos || []} />
+        ) : isTool ? (
           <>
             <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
               {ToolIcon ? <ToolIcon className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
