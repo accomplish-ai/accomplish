@@ -23,6 +23,9 @@ export const TEST_TIMEOUTS = {
 
   /** Permission modal appearance */
   PERMISSION_MODAL: 10000,
+
+  /** Wait for task to reach completed/failed/stopped state */
+  TASK_COMPLETE_WAIT: 20000,
 } as const;
 
 /**

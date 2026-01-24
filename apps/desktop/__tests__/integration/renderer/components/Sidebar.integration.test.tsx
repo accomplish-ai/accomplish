@@ -48,6 +48,27 @@ const mockAccomplish = {
   onTaskUpdate: mockOnTaskUpdate.mockReturnValue(() => {}),
   getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
   getOllamaConfig: vi.fn().mockResolvedValue(null),
+  isE2EMode: vi.fn().mockResolvedValue(false),
+  getProviderSettings: vi.fn().mockResolvedValue({
+    activeProviderId: 'anthropic',
+    connectedProviders: {
+      anthropic: {
+        providerId: 'anthropic',
+        connectionStatus: 'connected',
+        selectedModelId: 'claude-3-5-sonnet-20241022',
+        credentials: { type: 'api-key', apiKey: 'test-key' },
+      },
+    },
+    debugMode: false,
+  }),
+  // Provider settings methods
+  setActiveProvider: vi.fn().mockResolvedValue(undefined),
+  setConnectedProvider: vi.fn().mockResolvedValue(undefined),
+  removeConnectedProvider: vi.fn().mockResolvedValue(undefined),
+  setProviderDebugMode: vi.fn().mockResolvedValue(undefined),
+  validateApiKeyForProvider: vi.fn().mockResolvedValue({ valid: true }),
+  validateBedrockCredentials: vi.fn().mockResolvedValue({ valid: true }),
+  saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
 };
 
 // Mock the accomplish module
@@ -258,7 +279,7 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert - Check for spinning loader icon
-      const taskItem = screen.getByText('Running task').closest('button');
+      const taskItem = screen.getByText('Running task').closest('[role="button"]');
       const spinner = taskItem?.querySelector('.animate-spin-ccw');
       expect(spinner).toBeInTheDocument();
     });
@@ -278,14 +299,14 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert - Check for checkmark icon (CheckCircle2)
-      const taskItem = screen.getByText('Completed task').closest('button');
+      const taskItem = screen.getByText('Completed task').closest('[role="button"]');
       const checkIcon = taskItem?.querySelector('svg');
       expect(checkIcon).toBeInTheDocument();
     });
   });
 
   describe('conversation selection', () => {
-    it('should render conversation items as clickable buttons', () => {
+    it('should render conversation items as clickable elements', () => {
       // Arrange
       mockStoreState.tasks = [createMockTask('task-1', 'Clickable task')];
 
@@ -296,10 +317,10 @@ describe('Sidebar Integration', () => {
         </MemoryRouter>
       );
 
-      // Assert
-      const taskButton = screen.getByText('Clickable task').closest('button');
-      expect(taskButton).toBeInTheDocument();
-      expect(taskButton?.tagName).toBe('BUTTON');
+      // Assert - element is a div with role="button" for accessibility
+      const taskItem = screen.getByText('Clickable task').closest('[role="button"]');
+      expect(taskItem).toBeInTheDocument();
+      expect(taskItem?.getAttribute('role')).toBe('button');
     });
 
     it('should navigate to execution page when conversation is clicked', async () => {
@@ -313,15 +334,15 @@ describe('Sidebar Integration', () => {
         </MemoryRouter>
       );
 
-      const taskButton = screen.getByText('Navigate task').closest('button');
-      if (taskButton) {
-        fireEvent.click(taskButton);
+      const taskItem = screen.getByText('Navigate task').closest('[role="button"]');
+      if (taskItem) {
+        fireEvent.click(taskItem);
       }
 
       // Assert - Check that the link navigates correctly
       // In real scenario, this would change the route
       await waitFor(() => {
-        expect(taskButton).toBeInTheDocument();
+        expect(taskItem).toBeInTheDocument();
       });
     });
 
@@ -337,8 +358,8 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert
-      const taskButton = screen.getByText('Active task').closest('button');
-      expect(taskButton?.className).toContain('bg-accent');
+      const taskItem = screen.getByText('Active task').closest('[role="button"]');
+      expect(taskItem?.className).toContain('bg-accent');
     });
 
     it('should not highlight inactive conversations', () => {
@@ -357,8 +378,8 @@ describe('Sidebar Integration', () => {
 
       // Assert - Second task should not be highlighted with the active class
       // The component uses 'bg-accent' class for active state, while hover state uses 'hover:bg-accent'
-      const secondTaskButton = screen.getByText('Second task').closest('button');
-      const classNames = (secondTaskButton?.className || '').split(' ');
+      const secondTaskItem = screen.getByText('Second task').closest('[role="button"]');
+      const classNames = (secondTaskItem?.className || '').split(' ');
       // Filter to find only exact 'bg-accent' class, not 'hover:bg-accent'
       const hasBgAccent = classNames.some(c => c === 'bg-accent');
       expect(hasBgAccent).toBe(false);

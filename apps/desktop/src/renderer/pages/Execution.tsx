@@ -7,15 +7,18 @@ import { useTaskStore } from '../stores/taskStore';
 import { getAccomplish } from '../lib/accomplish';
 import { springs } from '../lib/animations';
 import type { TaskMessage } from '@accomplish/shared';
+import { hasAnyReadyProvider } from '@accomplish/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { StreamingText } from '../components/ui/streaming-text';
 import { isWaitingForUser } from '../lib/waiting-detection';
 import loadingSymbol from '/assets/loading-symbol.svg';
+import SettingsDialog from '../components/layout/SettingsDialog';
 
 // Debug log entry type
 interface DebugLogEntry {
@@ -51,6 +54,7 @@ const TOOL_PROGRESS_MAP: Record<string, { label: string; icon: typeof FileText }
   dev_browser_execute: { label: 'Executing browser action', icon: Terminal },
 };
 
+
 // Debounce utility
 function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
   let timeoutId: ReturnType<typeof setTimeout>;
@@ -73,6 +77,22 @@ function getOperationBadgeClasses(operation?: string): string {
   }
 }
 
+// Helper to check if this is a delete operation
+function isDeleteOperation(request: { type: string; fileOperation?: string }): boolean {
+  return request.type === 'file' && request.fileOperation === 'delete';
+}
+
+// Get file paths to display (handles both single and multiple)
+function getDisplayFilePaths(request: { filePath?: string; filePaths?: string[] }): string[] {
+  if (request.filePaths && request.filePaths.length > 0) {
+    return request.filePaths;
+  }
+  if (request.filePath) {
+    return [request.filePath];
+  }
+  return [];
+}
+
 export default function ExecutionPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -91,6 +111,15 @@ export default function ExecutionPage() {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [customResponse, setCustomResponse] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [pendingFollowUp, setPendingFollowUp] = useState<string | null>(null);
+
+  // Scroll behavior state
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+
+  // Elapsed time for startup indicator
+  const [elapsedTime, setElapsedTime] = useState(0);
 
   const {
     currentTask,
@@ -108,6 +137,8 @@ export default function ExecutionPage() {
     setupProgress,
     setupProgressTaskId,
     setupDownloadStep,
+    startupStage,
+    startupStageTaskId,
   } = useTaskStore();
 
   // Debounced scroll function
@@ -118,6 +149,16 @@ export default function ExecutionPage() {
       }, 100),
     []
   );
+
+  // Handle scroll events to track if user is at bottom
+  const handleScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const threshold = 150; // pixels from bottom to consider "at bottom" - larger value means button only appears after scrolling up more
+    const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
+    setIsAtBottom(atBottom);
+  }, []);
 
   // Load debug mode setting on mount and subscribe to changes
   useEffect(() => {
@@ -133,6 +174,28 @@ export default function ExecutionPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - accomplish is a stable singleton wrapper
+
+  // Elapsed time timer for startup indicator
+  useEffect(() => {
+    // Only run timer when there's a startup stage for this task and no tool is active
+    const isShowingStartupStage = startupStageTaskId === id && startupStage && !currentTool;
+
+    if (!isShowingStartupStage) {
+      setElapsedTime(0);
+      return;
+    }
+
+    // Calculate initial elapsed time from startTime
+    const calculateElapsed = () => Math.floor((Date.now() - startupStage.startTime) / 1000);
+    setElapsedTime(calculateElapsed());
+
+    // Update every second
+    const interval = setInterval(() => {
+      setElapsedTime(calculateElapsed());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [startupStageTaskId, startupStage, id, currentTool]);
 
   // Load task and subscribe to events
   useEffect(() => {
@@ -212,10 +275,12 @@ export default function ExecutionPage() {
     }
   }, [currentTask?.status]);
 
-  // Auto-scroll to bottom (debounced for performance)
+  // Auto-scroll to bottom only if user is at bottom (debounced for performance)
   useEffect(() => {
-    scrollToBottom();
-  }, [currentTask?.messages?.length, scrollToBottom]);
+    if (isAtBottom) {
+      scrollToBottom();
+    }
+  }, [currentTask?.messages?.length, scrollToBottom, isAtBottom]);
 
   // Auto-scroll debug panel when new logs arrive
   useEffect(() => {
@@ -237,11 +302,53 @@ export default function ExecutionPage() {
 
   const handleFollowUp = async () => {
     if (!followUp.trim()) return;
+
+    // Check if any provider is ready before sending (skip in E2E mode)
+    const isE2EMode = await accomplish.isE2EMode();
+    if (!isE2EMode) {
+      const settings = await accomplish.getProviderSettings();
+      if (!hasAnyReadyProvider(settings)) {
+        // Store the pending message and open settings dialog
+        setPendingFollowUp(followUp);
+        setShowSettingsDialog(true);
+        return;
+      }
+    }
+
     await sendFollowUp(followUp);
     setFollowUp('');
   };
 
+  const handleSettingsDialogClose = (open: boolean) => {
+    setShowSettingsDialog(open);
+    if (!open) {
+      setPendingFollowUp(null);
+    }
+  };
+
+  const handleApiKeySaved = async () => {
+    // Provider is now ready - close dialog and send the pending message
+    setShowSettingsDialog(false);
+    if (pendingFollowUp) {
+      await sendFollowUp(pendingFollowUp);
+      setFollowUp('');
+      setPendingFollowUp(null);
+    }
+  };
+
   const handleContinue = async () => {
+    // Check if any provider is ready before sending (skip in E2E mode)
+    const isE2EMode = await accomplish.isE2EMode();
+    if (!isE2EMode) {
+      const settings = await accomplish.getProviderSettings();
+      if (!hasAnyReadyProvider(settings)) {
+        // Store the pending message and open settings dialog
+        setPendingFollowUp('continue');
+        setShowSettingsDialog(true);
+        return;
+      }
+    }
+
     // Send a simple "continue" message to resume the task
     await sendFollowUp('continue');
   };
@@ -373,6 +480,14 @@ export default function ExecutionPage() {
   };
 
   return (
+    <>
+      {/* Settings Dialog - shown when no provider is ready */}
+      <SettingsDialog
+        open={showSettingsDialog}
+        onOpenChange={handleSettingsDialogClose}
+        onApiKeySaved={handleApiKeySaved}
+      />
+
     <div className="h-full flex flex-col bg-background relative">
       {/* Task header */}
       <div className="flex-shrink-0 border-b border-border bg-card/50 px-6 py-4">
@@ -533,7 +648,7 @@ export default function ExecutionPage() {
 
       {/* Messages - normal state (running, completed, failed, etc.) */}
       {currentTask.status !== 'queued' && (
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="flex-1 overflow-y-auto px-6 py-6" ref={scrollContainerRef} onScroll={handleScroll} data-testid="messages-scroll-container">
           <div className="max-w-4xl mx-auto space-y-4">
             {currentTask.messages
               .filter((m) => !(m.type === 'tool' && m.toolName?.toLowerCase() === 'bash'))
@@ -578,18 +693,34 @@ export default function ExecutionPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={springs.gentle}
-                  className="flex items-center gap-2 text-muted-foreground py-2"
+                  className="flex flex-col gap-1 text-muted-foreground py-2"
                   data-testid="execution-thinking-indicator"
                 >
-                  <SpinningIcon className="h-4 w-4" />
-                  <span className="text-sm">
-                    {currentTool
-                      ? ((currentToolInput as { description?: string })?.description || TOOL_PROGRESS_MAP[currentTool]?.label || currentTool)
-                      : 'Thinking...'}
-                  </span>
-                  {currentTool && !(currentToolInput as { description?: string })?.description && (
-                    <span className="text-xs text-muted-foreground/60">
-                      ({currentTool})
+                  <div className="flex items-center gap-2">
+                    <SpinningIcon className="h-4 w-4" />
+                    <span className="text-sm">
+                      {currentTool
+                        ? ((currentToolInput as { description?: string })?.description || TOOL_PROGRESS_MAP[currentTool]?.label || currentTool)
+                        : (startupStageTaskId === id && startupStage)
+                          ? startupStage.message
+                          : 'Thinking...'}
+                    </span>
+                    {currentTool && !(currentToolInput as { description?: string })?.description && (
+                      <span className="text-xs text-muted-foreground/60">
+                        ({currentTool})
+                      </span>
+                    )}
+                    {/* Elapsed time - only show during startup stages */}
+                    {!currentTool && startupStageTaskId === id && startupStage && (
+                      <span className="text-xs text-muted-foreground/60">
+                        ({elapsedTime}s)
+                      </span>
+                    )}
+                  </div>
+                  {/* Cold start hint */}
+                  {!currentTool && startupStageTaskId === id && startupStage?.isFirstTask && startupStage.stage === 'browser' && (
+                    <span className="text-xs text-muted-foreground/50 ml-6">
+                      First task takes a bit longer...
                     </span>
                   )}
                 </motion.div>
@@ -597,6 +728,28 @@ export default function ExecutionPage() {
             </AnimatePresence>
 
             <div ref={messagesEndRef} />
+
+            {/* Sticky scroll-to-bottom button - stays at bottom of viewport when scrolled up */}
+            <AnimatePresence>
+              {!isAtBottom && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={springs.gentle}
+                  className="sticky bottom-4 flex justify-center pointer-events-none"
+                >
+                  <button
+                    onClick={scrollToBottom}
+                    className="h-8 w-8 rounded-full bg-muted hover:bg-muted/80 border border-border shadow-md flex items-center justify-center transition-colors pointer-events-auto"
+                    aria-label="Scroll to bottom"
+                    data-testid="scroll-to-bottom-button"
+                  >
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       )}
@@ -621,10 +774,13 @@ export default function ExecutionPage() {
                 <div className="flex items-start gap-4">
                   <div className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full shrink-0",
+                    isDeleteOperation(permissionRequest) ? "bg-red-500/10" :
                     permissionRequest.type === 'file' ? "bg-amber-500/10" :
                     permissionRequest.type === 'question' ? "bg-primary/10" : "bg-warning/10"
                   )}>
-                    {permissionRequest.type === 'file' ? (
+                    {isDeleteOperation(permissionRequest) ? (
+                      <AlertTriangle className="h-5 w-5 text-red-600" />
+                    ) : permissionRequest.type === 'file' ? (
                       <File className="h-5 w-5 text-amber-600" />
                     ) : permissionRequest.type === 'question' ? (
                       <Brain className="h-5 w-5 text-primary" />
@@ -633,34 +789,93 @@ export default function ExecutionPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
-                      {permissionRequest.type === 'file' ? 'File Permission Required' :
-                       permissionRequest.type === 'question' ? (permissionRequest.header || 'Question') :
-                       'Permission Required'}
+                    <h3 className={cn(
+                      "text-lg font-semibold mb-2",
+                      isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
+                    )}>
+                      {isDeleteOperation(permissionRequest)
+                        ? 'File Deletion Warning'
+                        : permissionRequest.type === 'file'
+                          ? 'File Permission Required'
+                          : permissionRequest.type === 'question'
+                            ? (permissionRequest.header || 'Question')
+                            : 'Permission Required'}
                     </h3>
 
                     {/* File permission specific UI */}
                     {permissionRequest.type === 'file' && (
                       <>
-                        <div className="mb-3">
-                          <span className={cn(
-                            "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                            getOperationBadgeClasses(permissionRequest.fileOperation)
-                          )}>
-                            {permissionRequest.fileOperation?.toUpperCase()}
-                          </span>
-                        </div>
+                        {/* Delete operation warning banner */}
+                        {isDeleteOperation(permissionRequest) && (
+                          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                            <p className="text-sm text-red-600">
+                              {(() => {
+                                const paths = getDisplayFilePaths(permissionRequest);
+                                return paths.length > 1
+                                  ? `${paths.length} files will be permanently deleted:`
+                                  : 'This file will be permanently deleted:';
+                              })()}
+                            </p>
+                          </div>
+                        )}
 
-                        <div className="mb-4 p-3 rounded-lg bg-muted">
-                          <p className="text-sm font-mono text-foreground break-all">
-                            {permissionRequest.filePath}
-                          </p>
+                        {/* Non-delete operation badge */}
+                        {!isDeleteOperation(permissionRequest) && (
+                          <div className="mb-3">
+                            <span className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                              getOperationBadgeClasses(permissionRequest.fileOperation)
+                            )}>
+                              {permissionRequest.fileOperation?.toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* File path(s) display */}
+                        <div className={cn(
+                          "mb-4 p-3 rounded-lg",
+                          isDeleteOperation(permissionRequest)
+                            ? "bg-red-500/5 border border-red-500/20"
+                            : "bg-muted"
+                        )}>
+                          {(() => {
+                            const paths = getDisplayFilePaths(permissionRequest);
+                            if (paths.length > 1) {
+                              return (
+                                <ul className="space-y-1">
+                                  {paths.map((path, idx) => (
+                                    <li key={idx} className={cn(
+                                      "text-sm font-mono break-all",
+                                      isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
+                                    )}>
+                                      • {path}
+                                    </li>
+                                  ))}
+                                </ul>
+                              );
+                            }
+                            return (
+                              <p className={cn(
+                                "text-sm font-mono break-all",
+                                isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
+                              )}>
+                                {paths[0]}
+                              </p>
+                            );
+                          })()}
                           {permissionRequest.targetPath && (
                             <p className="text-sm font-mono text-muted-foreground mt-1">
                               → {permissionRequest.targetPath}
                             </p>
                           )}
                         </div>
+
+                        {/* Delete warning text */}
+                        {isDeleteOperation(permissionRequest) && (
+                          <p className="text-sm text-red-600/80 mb-4">
+                            This action cannot be undone.
+                          </p>
+                        )}
 
                         {permissionRequest.contentPreview && (
                           <details className="mb-4">
@@ -732,6 +947,8 @@ export default function ExecutionPage() {
                               onChange={(e) => setCustomResponse(e.target.value)}
                               placeholder="Type your response..."
                               onKeyDown={(e) => {
+                                // Ignore Enter during IME composition (Chinese/Japanese input)
+                                if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                                 if (e.key === 'Enter' && customResponse.trim()) {
                                   handlePermissionResponse(true);
                                 }
@@ -779,7 +996,10 @@ export default function ExecutionPage() {
                       </Button>
                       <Button
                         onClick={() => handlePermissionResponse(true)}
-                        className="flex-1"
+                        className={cn(
+                          "flex-1",
+                          isDeleteOperation(permissionRequest) && "bg-red-600 hover:bg-red-700 text-white"
+                        )}
                         data-testid="permission-allow-button"
                         disabled={
                           permissionRequest.type === 'question' &&
@@ -788,7 +1008,13 @@ export default function ExecutionPage() {
                           selectedOptions.length === 0
                         }
                       >
-                        {permissionRequest.type === 'question' ? 'Submit' : 'Allow'}
+                        {isDeleteOperation(permissionRequest)
+                          ? getDisplayFilePaths(permissionRequest).length > 1
+                            ? 'Delete All'
+                            : 'Delete'
+                          : permissionRequest.type === 'question'
+                            ? 'Submit'
+                            : 'Allow'}
                       </Button>
                     </div>
                   </div>
@@ -833,6 +1059,8 @@ export default function ExecutionPage() {
                 value={followUp}
                 onChange={(e) => setFollowUp(e.target.value)}
                 onKeyDown={(e) => {
+                  // Ignore Enter during IME composition (Chinese/Japanese input)
+                  if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     handleFollowUp();
@@ -876,7 +1104,7 @@ export default function ExecutionPage() {
 
       {/* Debug Panel - Only visible when debug mode is enabled */}
       {debugModeEnabled && (
-        <div className="flex-shrink-0 border-t border-border">
+        <div className="flex-shrink-0 border-t border-border" data-testid="debug-panel">
           {/* Toggle header */}
           <button
             onClick={() => setDebugPanelOpen(!debugPanelOpen)}
@@ -985,6 +1213,7 @@ export default function ExecutionPage() {
         </div>
       )}
     </div>
+    </>
   );
 }
 
@@ -999,9 +1228,13 @@ interface MessageBubbleProps {
   isLoading?: boolean;
 }
 
+const COPIED_STATE_DURATION_MS = 1000
+
 // Memoized MessageBubble to prevent unnecessary re-renders and markdown re-parsing
 const MessageBubble = memo(function MessageBubble({ message, shouldStream = false, isLastMessage = false, isRunning = false, showContinueButton = false, continueLabel, onContinue, isLoading = false }: MessageBubbleProps) {
   const [streamComplete, setStreamComplete] = useState(!shouldStream);
+  const [copied, setCopied] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isUser = message.type === 'user';
   const isTool = message.type === 'tool';
   const isSystem = message.type === 'system';
@@ -1018,6 +1251,33 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
     }
   }, [shouldStream]);
 
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = setTimeout(() => {
+        setCopied(false);
+      }, COPIED_STATE_DURATION_MS);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+  }, [message.content]);
+
+  const showCopyButton = !isTool && !(isAssistant && showContinueButton);
+
   const proseClasses = cn(
     'text-sm prose prose-sm max-w-none',
     'prose-headings:text-foreground',
@@ -1030,7 +1290,8 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
     'prose-li:text-foreground prose-li:my-1',
     'prose-a:text-primary prose-a:underline',
     'prose-blockquote:text-muted-foreground prose-blockquote:border-l-4 prose-blockquote:border-border prose-blockquote:pl-4',
-    'prose-hr:border-border'
+    'prose-hr:border-border',
+    'break-words'
   );
 
   return (
@@ -1038,7 +1299,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={springs.gentle}
-      className={cn('flex', isUser ? 'justify-end' : 'justify-start')}
+      className={cn('flex flex-col group', isUser ? 'items-end' : 'items-start')}
     >
       <div
         className={cn(
@@ -1121,6 +1382,34 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
           </>
         )}
       </div>
+
+      {showCopyButton && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleCopy}
+              data-testid="message-copy-button"
+              className={cn(
+                'opacity-0 group-hover:opacity-100 transition-all duration-200 relative',
+                'p-1 rounded hover:bg-accent',
+                'shrink-0 mt-1',
+                isAssistant ? 'self-start' : 'self-end',
+                !copied && 'text-muted-foreground hover:text-foreground',
+                copied && '!bg-green-500/10 !text-green-600 !hover:bg-green-500/20'
+              )}
+              aria-label={'Copy to clipboard'}
+            >
+              <Check className={cn("absolute h-4 w-4", !copied && 'hidden')} />
+              <Copy className={cn("absolute h-4 w-4", copied && 'hidden')} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <span>Copy to clipboard</span>
+          </TooltipContent>
+        </Tooltip>
+      )}
     </motion.div>
   );
 }, (prev, next) => prev.message.id === next.message.id && prev.shouldStream === next.shouldStream && prev.isLastMessage === next.isLastMessage && prev.isRunning === next.isRunning && prev.showContinueButton === next.showContinueButton && prev.isLoading === next.isLoading);

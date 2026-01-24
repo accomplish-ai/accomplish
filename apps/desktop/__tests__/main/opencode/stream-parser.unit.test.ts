@@ -441,8 +441,8 @@ describe('StreamParser', () => {
   });
 
   describe('buffer overflow protection', () => {
-    it('should emit error and truncate buffer when exceeding max size', () => {
-      // Arrange
+    it('should emit error when a single incomplete line exceeds max size', () => {
+      // Arrange - A single line (no newlines) that exceeds 10MB
       const maxBufferSize = 10 * 1024 * 1024; // 10MB
       const largeChunk = 'x'.repeat(maxBufferSize + 100);
 
@@ -458,20 +458,20 @@ describe('StreamParser', () => {
       );
     });
 
-    it('should keep parsing continuity after buffer truncation and reset', () => {
-      // Arrange - Feed large data to trigger truncation
+    it('should continue parsing correctly after overflow without needing reset', () => {
+      // Arrange - Feed large data to trigger overflow
       const maxBufferSize = 10 * 1024 * 1024;
       const largeChunk = 'x'.repeat(maxBufferSize + 100);
 
       // Act - First trigger overflow
       parser.feed(largeChunk);
+      expect(errorHandler).toHaveBeenCalledTimes(1);
 
-      // Reset parser and handlers to verify continued operation
-      parser.reset(); // Clear corrupted buffer
+      // Clear handlers to verify continued operation
       messageHandler.mockClear();
       errorHandler.mockClear();
 
-      // Feed valid message after overflow
+      // Feed valid message after overflow - should work WITHOUT calling reset()
       const message: OpenCodeMessage = {
         type: 'text',
         part: {
@@ -484,8 +484,84 @@ describe('StreamParser', () => {
       };
       parser.feed(JSON.stringify(message) + '\n');
 
-      // Assert - Parser should still work after reset
+      // Assert - Parser should work without reset
       expect(messageHandler).toHaveBeenCalledWith(message);
+      expect(errorHandler).not.toHaveBeenCalled();
+    });
+
+    it('should NOT lose complete messages when buffer grows large', () => {
+      // Arrange - This is the key fix: complete messages should be parsed
+      // even when total buffer size approaches the limit
+      const message1: OpenCodeMessage = {
+        type: 'text',
+        part: {
+          id: 'msg_1',
+          sessionID: 'session_1',
+          messageID: 'msg_1',
+          type: 'text',
+          text: 'First message',
+        },
+      };
+      const message2: OpenCodeMessage = {
+        type: 'text',
+        part: {
+          id: 'msg_2',
+          sessionID: 'session_1',
+          messageID: 'msg_2',
+          type: 'text',
+          text: 'Second message',
+        },
+      };
+
+      // Create a large but valid NDJSON stream with complete messages
+      // followed by a large incomplete line
+      const maxBufferSize = 10 * 1024 * 1024;
+      const validMessages = JSON.stringify(message1) + '\n' + JSON.stringify(message2) + '\n';
+      const largeIncompleteLine = 'x'.repeat(maxBufferSize + 100); // No newline = incomplete
+
+      // Act - Feed valid messages followed by oversized incomplete line
+      parser.feed(validMessages + largeIncompleteLine);
+
+      // Assert - Both complete messages should have been parsed
+      expect(messageHandler).toHaveBeenCalledTimes(2);
+      expect(messageHandler).toHaveBeenNthCalledWith(1, message1);
+      expect(messageHandler).toHaveBeenNthCalledWith(2, message2);
+      // Error should be emitted for the oversized incomplete line
+      expect(errorHandler).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle many complete messages without overflow error', () => {
+      // Arrange - Many small messages that together exceed 10MB
+      // but each individual incomplete line is small
+      const messages: OpenCodeMessage[] = [];
+      const messageTemplate: OpenCodeMessage = {
+        type: 'text',
+        part: {
+          id: 'msg_',
+          sessionID: 'session_1',
+          messageID: 'msg_',
+          type: 'text',
+          text: 'x'.repeat(1000), // 1KB per message
+        },
+      };
+
+      // Create 15000 messages (~15MB total when serialized)
+      let ndjson = '';
+      for (let i = 0; i < 15000; i++) {
+        const msg = {
+          ...messageTemplate,
+          part: { ...messageTemplate.part, id: `msg_${i}`, messageID: `msg_${i}` },
+        };
+        messages.push(msg);
+        ndjson += JSON.stringify(msg) + '\n';
+      }
+
+      // Act - Feed all messages
+      parser.feed(ndjson);
+
+      // Assert - All messages should be parsed, no overflow error
+      expect(messageHandler).toHaveBeenCalledTimes(15000);
+      expect(errorHandler).not.toHaveBeenCalled();
     });
   });
 
@@ -543,36 +619,36 @@ describe('StreamParser', () => {
     });
   });
 
-  describe('error events for malformed JSON', () => {
-    it('should emit error for invalid JSON starting with {', () => {
+  describe('handling malformed JSON (Windows PTY compatibility)', () => {
+    // Note: The parser buffers incomplete JSON for Windows PTY compatibility
+    // instead of emitting errors immediately. This allows fragmented JSON
+    // lines to be reassembled across multiple chunks.
+
+    it('should buffer invalid JSON starting with { for potential continuation', () => {
       // Arrange
       const malformedJson = '{invalid json here}\n';
 
       // Act
       parser.feed(malformedJson);
 
-      // Assert
+      // Assert - parser buffers this as incomplete JSON, no message or error
       expect(messageHandler).not.toHaveBeenCalled();
-      expect(errorHandler).toHaveBeenCalledTimes(1);
-      expect(errorHandler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: expect.stringContaining('Failed to parse JSON'),
-        })
-      );
+      expect(errorHandler).not.toHaveBeenCalled();
     });
 
-    it('should emit error for truncated JSON', () => {
+    it('should buffer truncated JSON for continuation', () => {
       // Arrange
       const truncatedJson = '{"type":"text","part":{"text":"incomplete\n';
 
       // Act
       parser.feed(truncatedJson);
 
-      // Assert
-      expect(errorHandler).toHaveBeenCalledTimes(1);
+      // Assert - buffered, waiting for continuation
+      expect(messageHandler).not.toHaveBeenCalled();
+      expect(errorHandler).not.toHaveBeenCalled();
     });
 
-    it('should continue parsing after error', () => {
+    it('should discard incomplete JSON when new JSON starts and continue parsing', () => {
       // Arrange
       const malformed = '{bad}\n';
       const validMessage: OpenCodeMessage = {
@@ -590,13 +666,13 @@ describe('StreamParser', () => {
       parser.feed(malformed);
       parser.feed(JSON.stringify(validMessage) + '\n');
 
-      // Assert
-      expect(errorHandler).toHaveBeenCalledTimes(1);
+      // Assert - malformed is discarded when valid JSON starts, valid message parsed
+      expect(errorHandler).not.toHaveBeenCalled();
       expect(messageHandler).toHaveBeenCalledTimes(1);
       expect(messageHandler).toHaveBeenCalledWith(validMessage);
     });
 
-    it('should not emit error for non-JSON lines not starting with {', () => {
+    it('should skip non-JSON lines not starting with {', () => {
       // Arrange
       const nonJsonLines = 'Status: OK\nProgress: 50%\n';
 
@@ -604,6 +680,7 @@ describe('StreamParser', () => {
       parser.feed(nonJsonLines);
 
       // Assert
+      expect(messageHandler).not.toHaveBeenCalled();
       expect(errorHandler).not.toHaveBeenCalled();
     });
   });

@@ -162,19 +162,29 @@ describe('OpenCode CLI Path Module', () => {
     });
 
     describe('Packaged Mode', () => {
+      // Helper to get platform-specific package info
+      // Package is always 'opencode-ai', only binary name differs on Windows
+      const getPlatformInfo = () => {
+        return {
+          pkg: 'opencode-ai',
+          binary: process.platform === 'win32' ? 'opencode.exe' : 'opencode',
+        };
+      };
+
       it('should return unpacked asar path when packaged', async () => {
         // Arrange
         mockApp.isPackaged = true;
         const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
         (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
 
+        const { pkg, binary } = getPlatformInfo();
         const expectedPath = path.join(
           resourcesPath,
           'app.asar.unpacked',
           'node_modules',
-          'opencode-ai',
+          pkg,
           'bin',
-          'opencode'
+          binary
         );
 
         mockFs.existsSync.mockImplementation((p: string) => {
@@ -287,19 +297,29 @@ describe('OpenCode CLI Path Module', () => {
     });
 
     describe('Packaged Mode', () => {
+      // Helper to get platform-specific package info
+      // Package is always 'opencode-ai', only binary name differs on Windows
+      const getPlatformInfo = () => {
+        return {
+          pkg: 'opencode-ai',
+          binary: process.platform === 'win32' ? 'opencode.exe' : 'opencode',
+        };
+      };
+
       it('should return true when bundled CLI exists in unpacked asar', async () => {
         // Arrange
         mockApp.isPackaged = true;
         const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
         (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
 
+        const { pkg, binary } = getPlatformInfo();
         const cliPath = path.join(
           resourcesPath,
           'app.asar.unpacked',
           'node_modules',
-          'opencode-ai',
+          pkg,
           'bin',
-          'opencode'
+          binary
         );
 
         mockFs.existsSync.mockImplementation((p: string) => {
@@ -334,6 +354,9 @@ describe('OpenCode CLI Path Module', () => {
   });
 
   describe('getBundledOpenCodeVersion()', () => {
+    // Package is always 'opencode-ai'
+    const getPlatformPackageName = () => 'opencode-ai';
+
     describe('Packaged Mode', () => {
       it('should read version from package.json in unpacked asar', async () => {
         // Arrange
@@ -345,7 +368,7 @@ describe('OpenCode CLI Path Module', () => {
           resourcesPath,
           'app.asar.unpacked',
           'node_modules',
-          'opencode-ai',
+          getPlatformPackageName(),
           'package.json'
         );
 

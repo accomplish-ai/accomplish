@@ -10,6 +10,7 @@ import { getAccomplish } from '../lib/accomplish';
 import { springs, staggerContainer, staggerItem } from '../lib/animations';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronDown } from 'lucide-react';
+import { hasAnyReadyProvider } from '@accomplish/shared';
 
 // Import use case images for proper bundling in production
 import calendarPrepNotesImg from '/assets/usecases/calendar-prep-notes.png';
@@ -116,14 +117,14 @@ export default function HomePage() {
   const handleSubmit = async () => {
     if (!prompt.trim() || isLoading) return;
 
-    // Check if user has any API key (Anthropic, OpenAI, Google, etc.) or Ollama configured before sending
-    const hasKey = await accomplish.hasAnyApiKey();
-    const selectedModel = await accomplish.getSelectedModel();
-    const hasOllamaConfigured = selectedModel?.provider === 'ollama';
-
-    if (!hasKey && !hasOllamaConfigured) {
-      setShowSettingsDialog(true);
-      return;
+    // Check if any provider is ready before sending (skip in E2E mode)
+    const isE2EMode = await accomplish.isE2EMode();
+    if (!isE2EMode) {
+      const settings = await accomplish.getProviderSettings();
+      if (!hasAnyReadyProvider(settings)) {
+        setShowSettingsDialog(true);
+        return;
+      }
     }
 
     await executeTask();

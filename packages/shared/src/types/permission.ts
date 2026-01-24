@@ -25,6 +25,8 @@ export interface PermissionRequest {
   fileOperation?: FileOperation;
   /** File path being operated on if type is 'file' */
   filePath?: string;
+  /** Multiple file paths for batch operations (e.g., deleting multiple files) */
+  filePaths?: string[];
   /** Target path for rename/move operations */
   targetPath?: string;
   /** Preview of content (truncated) for create/modify/overwrite */

@@ -10,7 +10,11 @@
     "url": "https://github.com/accomplish-ai/openwork.git"
   },
   "scripts": {
+    "predev": "node scripts/check-deps.cjs",
     "dev": "pnpm -F @accomplish/desktop dev",
+    "predev:clean": "node scripts/check-deps.cjs",
+    "dev:clean": "pnpm -F @accomplish/desktop dev:clean",
+    "postinstall": "node scripts/save-lockfile-hash.cjs",
     "build": "pnpm -r build",
     "build:desktop": "pnpm -F @accomplish/desktop build",
     "lint": "pnpm -r lint",

@@ -1,42 +1,49 @@
 {
   "name": "@accomplish/desktop",
-  "version": "0.1.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "description": "Accomplish Desktop App",
   "main": "dist-electron/main/index.js",
   "scripts": {
-    "postinstall": "electron-rebuild && npm --prefix skills/dev-browser install && npm --prefix skills/file-permission install && npm --prefix skills/ask-user-question install",
-    "dev": "node scripts/patch-electron-name.cjs && rm -rf dist-electron && vite",
+    "postinstall": "node scripts/postinstall.cjs",
+    "dev": "node scripts/patch-electron-name.cjs && node -e \"require('fs').rmSync('dist-electron',{recursive:true,force:true})\" && vite",
     "dev:clean": "CLEAN_START=1 vite",
-    "build": "tsc && vite build && npm --prefix skills/dev-browser install --omit=dev && npm --prefix skills/file-permission install --omit=dev && npm --prefix skills/ask-user-question install --omit=dev",
+    "build": "tsc && vite build && npm --prefix skills/dev-browser install --omit=dev && npm --prefix skills/dev-browser-mcp install --omit=dev && npm --prefix skills/file-permission install --omit=dev && npm --prefix skills/ask-user-question install --omit=dev && npm --prefix skills/complete-task install --omit=dev",
     "build:electron": "tsc && vite build && node scripts/package.cjs",
     "build:unpack": "tsc && vite build && node scripts/package.cjs --dir",
     "package": "pnpm build && node scripts/package.cjs --mac --publish never",
     "package:mac": "pnpm build && node scripts/package.cjs --mac --publish never",
     "release": "pnpm build && node scripts/package.cjs --mac --publish always",
     "release:mac": "pnpm build && node scripts/package.cjs --mac --publish always",
+    "package:win": "pnpm build && node scripts/package.cjs --win --x64 --publish never",
+    "release:win": "pnpm build && node scripts/package.cjs --win --x64 --publish always",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "clean": "rm -rf dist dist-electron release",
+    "clean": "node -e \"const fs=require('fs');['dist','dist-electron','release'].forEach(d=>fs.rmSync(d,{recursive:true,force:true}))\"",
     "download:nodejs": "node scripts/download-nodejs.cjs",
     "test": "vitest run",
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest watch",
-    "test:e2e": "playwright test --config=e2e/playwright.config.ts",
-    "test:e2e:ui": "playwright test --config=e2e/playwright.config.ts --ui",
-    "test:e2e:debug": "playwright test --config=e2e/playwright.config.ts --debug",
-    "test:e2e:fast": "playwright test --config=e2e/playwright.config.ts --project=electron-fast",
-    "test:e2e:integration": "playwright test --config=e2e/playwright.config.ts --project=electron-integration",
-    "test:e2e:report": "playwright show-report e2e/html-report"
+    "test:e2e": "docker compose -f e2e/docker/docker-compose.yml up --build --abort-on-container-exit --exit-code-from e2e-tests",
+    "test:e2e:build": "docker compose -f e2e/docker/docker-compose.yml build",
+    "test:e2e:clean": "docker compose -f e2e/docker/docker-compose.yml down --rmi local -v",
+    "test:e2e:report": "playwright show-report e2e/html-report",
+    "test:e2e:native": "playwright test --config=e2e/playwright.config.ts",
+    "test:e2e:native:ui": "playwright test --config=e2e/playwright.config.ts --ui",
+    "test:e2e:native:debug": "playwright test --config=e2e/playwright.config.ts --debug",
+    "test:e2e:native:fast": "playwright test --config=e2e/playwright.config.ts --project=electron-fast",
+    "test:e2e:native:integration": "playwright test --config=e2e/playwright.config.ts --project=electron-integration",
+    "test:local-agent": "npx tsx scripts/test-local-agent-cli.ts"
   },
   "dependencies": {
     "@accomplish/shared": "workspace:*",
     "@aws-sdk/client-bedrock": "^3.971.0",
     "@aws-sdk/credential-providers": "^3.971.0",
+    "@azure/identity": "^4.13.0",
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-dropdown-menu": "^2.1.4",
@@ -46,6 +53,7 @@
     "@radix-ui/react-separator": "^1.1.1",
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-tooltip": "^1.1.6",
+    "better-sqlite3": "^12.6.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
@@ -69,6 +77,7 @@
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "^16.3.1",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
@@ -108,15 +117,21 @@
       "node_modules/debounce-fn/**",
       "!node_modules/@accomplish/**",
       "!node_modules/opencode-darwin-*/**",
-      "!node_modules/opencode-linux-*/**",
-      "!node_modules/opencode-win32-*/**"
+      "!node_modules/opencode-linux-*/**"
     ],
     "asar": true,
     "asarUnpack": [
       "node_modules/opencode-ai/bin/opencode",
+      "node_modules/opencode-ai/bin/opencode.exe",
       "node_modules/opencode-ai/package.json",
+      "node_modules/opencode-windows-x64/bin/opencode.exe",
+      "node_modules/opencode-windows-x64/package.json",
+      "node_modules/opencode-windows-x64-baseline/bin/opencode.exe",
+      "node_modules/opencode-windows-x64-baseline/package.json",
       "node_modules/node-pty/build/**/*.node",
       "node_modules/node-pty/package.json",
+      "node_modules/better-sqlite3/build/**/*.node",
+      "node_modules/better-sqlite3/package.json",
       "dist-electron/main/mcp/*.js"
     ],
     "afterPack": "./scripts/after-pack.cjs",
@@ -170,6 +185,19 @@
           "path": "/Applications"
         }
       ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "resources/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Openwork"
     }
   }
 }

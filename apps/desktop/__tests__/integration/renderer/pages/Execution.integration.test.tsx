@@ -66,6 +66,27 @@ const mockAccomplish = {
   getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
   getOllamaConfig: vi.fn().mockResolvedValue(null),
   getDebugMode: vi.fn().mockResolvedValue(false),
+  isE2EMode: vi.fn().mockResolvedValue(false),
+  getProviderSettings: vi.fn().mockResolvedValue({
+    activeProviderId: 'anthropic',
+    connectedProviders: {
+      anthropic: {
+        providerId: 'anthropic',
+        connectionStatus: 'connected',
+        selectedModelId: 'claude-3-5-sonnet-20241022',
+        credentials: { type: 'api-key', apiKey: 'test-key' },
+      },
+    },
+    debugMode: false,
+  }),
+  // Provider settings methods
+  setActiveProvider: vi.fn().mockResolvedValue(undefined),
+  setConnectedProvider: vi.fn().mockResolvedValue(undefined),
+  removeConnectedProvider: vi.fn().mockResolvedValue(undefined),
+  setProviderDebugMode: vi.fn().mockResolvedValue(undefined),
+  validateApiKeyForProvider: vi.fn().mockResolvedValue({ valid: true }),
+  validateBedrockCredentials: vi.fn().mockResolvedValue({ valid: true }),
+  saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
 };
 
 // Mock the accomplish module
@@ -918,7 +939,7 @@ describe('Execution Page Integration', () => {
       expect(screen.getByText('Preview content')).toBeInTheDocument();
     });
 
-    it('should show delete operation badge', () => {
+    it('should show delete operation warning UI', () => {
       // Arrange
       mockStoreState.currentTask = createMockTask('task-123', 'Task', 'running');
       mockStoreState.permissionRequest = {
@@ -933,8 +954,9 @@ describe('Execution Page Integration', () => {
       // Act
       renderWithRouter('task-123');
 
-      // Assert
-      expect(screen.getByText('DELETE')).toBeInTheDocument();
+      // Assert - delete operations show warning UI with title and button, not a badge
+      expect(screen.getByText('File Deletion Warning')).toBeInTheDocument();
+      expect(screen.getByText('Delete')).toBeInTheDocument();
     });
 
     it('should show overwrite operation badge', () => {

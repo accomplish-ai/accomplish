@@ -42,7 +42,7 @@ const accomplishAPI = {
   // Settings
   getApiKeys: (): Promise<unknown[]> => ipcRenderer.invoke('settings:api-keys'),
   addApiKey: (
-    provider: 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'zai' | 'custom' | 'bedrock',
+    provider: 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'elevenlabs',
     key: string,
     label?: string
   ): Promise<unknown> =>
@@ -65,8 +65,8 @@ const accomplishAPI = {
     ipcRenderer.invoke('api-key:get'),
   validateApiKey: (key: string): Promise<{ valid: boolean; error?: string }> =>
     ipcRenderer.invoke('api-key:validate', key),
-  validateApiKeyForProvider: (provider: string, key: string): Promise<{ valid: boolean; error?: string }> =>
-    ipcRenderer.invoke('api-key:validate-provider', provider, key),
+  validateApiKeyForProvider: (provider: string, key: string, options?: Record<string, any>): Promise<{ valid: boolean; error?: string }> =>
+    ipcRenderer.invoke('api-key:validate-provider', provider, key, options),
   clearApiKey: (): Promise<void> =>
     ipcRenderer.invoke('api-key:clear'),
 
@@ -86,9 +86,9 @@ const accomplishAPI = {
     ipcRenderer.invoke('opencode:version'),
 
   // Model selection
-  getSelectedModel: (): Promise<{ provider: string; model: string; baseUrl?: string } | null> =>
+  getSelectedModel: (): Promise<{ provider: string; model: string; baseUrl?: string; deploymentName?: string } | null> =>
     ipcRenderer.invoke('model:get'),
-  setSelectedModel: (model: { provider: string; model: string; baseUrl?: string }): Promise<void> =>
+  setSelectedModel: (model: { provider: string; model: string; baseUrl?: string; deploymentName?: string }): Promise<void> =>
     ipcRenderer.invoke('model:set', model),
 
   // Multi-provider API keys
@@ -110,12 +110,46 @@ const accomplishAPI = {
   setOllamaConfig: (config: { baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; displayName: string; size: number }> } | null): Promise<void> =>
     ipcRenderer.invoke('ollama:set-config', config),
 
+  // Azure Foundry configuration
+  getAzureFoundryConfig: (): Promise<{ baseUrl: string; deploymentName: string; authType: 'api-key' | 'entra-id'; enabled: boolean; lastValidated?: number } | null> =>
+    ipcRenderer.invoke('azure-foundry:get-config'),
+
+  setAzureFoundryConfig: (config: { baseUrl: string; deploymentName: string; authType: 'api-key' | 'entra-id'; enabled: boolean; lastValidated?: number } | null): Promise<void> =>
+    ipcRenderer.invoke('azure-foundry:set-config', config),
+
+  testAzureFoundryConnection: (config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }): Promise<{
+    success: boolean;
+    error?: string;
+  }> => ipcRenderer.invoke('azure-foundry:test-connection', config),
+
+  saveAzureFoundryConfig: (config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }): Promise<void> =>
+    ipcRenderer.invoke('azure-foundry:save-config', config),
+
   // OpenRouter configuration
   fetchOpenRouterModels: (): Promise<{
     success: boolean;
     models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
     error?: string;
   }> => ipcRenderer.invoke('openrouter:fetch-models'),
+
+  // LiteLLM configuration
+  testLiteLLMConnection: (url: string, apiKey?: string): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }> => ipcRenderer.invoke('litellm:test-connection', url, apiKey),
+
+  fetchLiteLLMModels: (): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }> => ipcRenderer.invoke('litellm:fetch-models'),
+
+  getLiteLLMConfig: (): Promise<{ baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; name: string; provider: string; contextLength: number }> } | null> =>
+    ipcRenderer.invoke('litellm:get-config'),
+
+  setLiteLLMConfig: (config: { baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; name: string; provider: string; contextLength: number }> } | null): Promise<void> =>
+    ipcRenderer.invoke('litellm:set-config', config),
 
   // Bedrock
   validateBedrockCredentials: (credentials: string) =>
@@ -124,6 +158,30 @@ const accomplishAPI = {
     ipcRenderer.invoke('bedrock:save', credentials),
   getBedrockCredentials: () =>
     ipcRenderer.invoke('bedrock:get-credentials'),
+  fetchBedrockModels: (credentials: string): Promise<{ success: boolean; models: Array<{ id: string; name: string; provider: string }>; error?: string }> =>
+    ipcRenderer.invoke('bedrock:fetch-models', credentials),
+
+  // E2E Testing
+  isE2EMode: (): Promise<boolean> =>
+    ipcRenderer.invoke('app:is-e2e-mode'),
+
+  // New Provider Settings API
+  getProviderSettings: (): Promise<unknown> =>
+    ipcRenderer.invoke('provider-settings:get'),
+  setActiveProvider: (providerId: string | null): Promise<void> =>
+    ipcRenderer.invoke('provider-settings:set-active', providerId),
+  getConnectedProvider: (providerId: string): Promise<unknown> =>
+    ipcRenderer.invoke('provider-settings:get-connected', providerId),
+  setConnectedProvider: (providerId: string, provider: unknown): Promise<void> =>
+    ipcRenderer.invoke('provider-settings:set-connected', providerId, provider),
+  removeConnectedProvider: (providerId: string): Promise<void> =>
+    ipcRenderer.invoke('provider-settings:remove-connected', providerId),
+  updateProviderModel: (providerId: string, modelId: string | null): Promise<void> =>
+    ipcRenderer.invoke('provider-settings:update-model', providerId, modelId),
+  setProviderDebugMode: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('provider-settings:set-debug', enabled),
+  getProviderDebugMode: (): Promise<boolean> =>
+    ipcRenderer.invoke('provider-settings:get-debug'),
 
   // Event subscriptions
   onTaskUpdate: (callback: (event: unknown) => void) => {
@@ -173,14 +231,26 @@ const accomplishAPI = {
 
   logEvent: (payload: { level?: string; message: string; context?: Record<string, unknown> }) =>
     ipcRenderer.invoke('log:event', payload),
+
+  // Speech-to-Text API
+  speechIsConfigured: (): Promise<boolean> =>
+    ipcRenderer.invoke('speech:is-configured'),
+  speechGetConfig: (): Promise<{ enabled: boolean; hasApiKey: boolean; apiKeyPrefix?: string }> =>
+    ipcRenderer.invoke('speech:get-config'),
+  speechGetApiKey: (): Promise<string> =>
+    ipcRenderer.invoke('speech:get-api-key'),
 };
 
 // Expose the API to the renderer
 contextBridge.exposeInMainWorld('accomplish', accomplishAPI);
 
 // Also expose shell info for compatibility checks
+const packageVersion = process.env.npm_package_version;
+if (!packageVersion) {
+  throw new Error('Package version is not defined. Build is misconfigured.');
+}
 contextBridge.exposeInMainWorld('accomplishShell', {
-  version: process.env.npm_package_version || '1.0.0',
+  version: packageVersion,
   platform: process.platform,
   isElectron: true,
 });

@@ -117,6 +117,18 @@ vi.mock('@main/store/secureStorage', () => ({
 // Mock app settings
 vi.mock('@main/store/appSettings', () => ({
   getSelectedModel: vi.fn(() => ({ model: 'claude-3-opus-20240229' })),
+  getAzureFoundryConfig: vi.fn(() => null),
+}));
+
+// Mock provider settings (uses SQLite which isn't available in tests)
+vi.mock('@main/store/providerSettings', () => ({
+  getActiveProviderModel: vi.fn(() => null),
+  getProviderSettings: vi.fn(() => ({
+    activeProviderId: null,
+    connectedProviders: {},
+    debugMode: false,
+  })),
+  getConnectedProvider: vi.fn(() => null),
 }));
 
 // Mock config generator
@@ -284,6 +296,10 @@ describe('OpenCode Adapter Module', () => {
 
         await adapter.startTask({ prompt: 'Test' });
 
+        // After startTask, we should have 'loading' progress
+        expect(progressEvents.length).toBe(1);
+        expect(progressEvents[0].stage).toBe('loading');
+
         const stepStartMessage: OpenCodeStepStartMessage = {
           type: 'step_start',
           part: {
@@ -297,9 +313,9 @@ describe('OpenCode Adapter Module', () => {
         // Act
         mockPtyInstance.simulateData(JSON.stringify(stepStartMessage) + '\n');
 
-        // Assert
-        expect(progressEvents.length).toBe(1);
-        expect(progressEvents[0].stage).toBe('init');
+        // Assert - now we should have 'loading' + 'connecting' progress events
+        expect(progressEvents.length).toBe(2);
+        expect(progressEvents[1].stage).toBe('connecting');
       });
 
       it('should emit tool-use event on tool_call message', async () => {
@@ -367,7 +383,84 @@ describe('OpenCode Adapter Module', () => {
         expect(toolResultEvents[0]).toBe('File contents here');
       });
 
-      it('should emit complete event on step_finish with stop reason', async () => {
+      it('should emit complete event on step_finish with stop reason when complete_task was called', async () => {
+        // Arrange
+        const adapter = new OpenCodeAdapter();
+        const completeEvents: Array<{ status: string; sessionId?: string }> = [];
+        adapter.on('complete', (result) => completeEvents.push(result));
+
+        await adapter.startTask({ prompt: 'Test' });
+
+        // Simulate complete_task tool being called first
+        // Note: Using 'blocked' status to skip verification flow (which only triggers on 'success')
+        const toolCallMessage: OpenCodeToolCallMessage = {
+          type: 'tool_call',
+          part: {
+            tool: 'complete_task',
+            input: { status: 'blocked', summary: 'Done', original_request_summary: 'Test' },
+          },
+        };
+        mockPtyInstance.simulateData(JSON.stringify(toolCallMessage) + '\n');
+
+        const stepFinishMessage: OpenCodeStepFinishMessage = {
+          type: 'step_finish',
+          part: {
+            id: 'step-1',
+            sessionID: 'session-123',
+            messageID: 'message-123',
+            type: 'step-finish',
+            reason: 'stop',
+          },
+        };
+
+        // Act
+        mockPtyInstance.simulateData(JSON.stringify(stepFinishMessage) + '\n');
+
+        // Assert
+        expect(completeEvents.length).toBe(1);
+        expect(completeEvents[0].status).toBe('success');
+      });
+
+      it('should schedule continuation on step_finish when complete_task was not called', async () => {
+        // Arrange
+        const adapter = new OpenCodeAdapter();
+        const completeEvents: Array<{ status: string; sessionId?: string }> = [];
+        const debugEvents: Array<{ type: string; message: string }> = [];
+        adapter.on('complete', (result) => completeEvents.push(result));
+        adapter.on('debug', (event) => debugEvents.push(event));
+
+        await adapter.startTask({ prompt: 'Test' });
+
+        // Simulate session ID being set (normally happens via step_start)
+        const stepStartMessage = {
+          type: 'step_start',
+          part: {
+            sessionID: 'session-123',
+          },
+        };
+        mockPtyInstance.simulateData(JSON.stringify(stepStartMessage) + '\n');
+
+        const stepFinishMessage: OpenCodeStepFinishMessage = {
+          type: 'step_finish',
+          part: {
+            id: 'step-1',
+            sessionID: 'session-123',
+            messageID: 'message-123',
+            type: 'step-finish',
+            reason: 'stop',
+          },
+        };
+
+        // Act
+        mockPtyInstance.simulateData(JSON.stringify(stepFinishMessage) + '\n');
+
+        // Assert - should NOT emit complete yet (continuation scheduled)
+        expect(completeEvents.length).toBe(0);
+        // Should have emitted debug event about scheduled continuation
+        expect(debugEvents.some(e => e.type === 'continuation')).toBe(true);
+      });
+
+      it('should emit complete after max continuation attempts without complete_task', async () => {
         // Arrange
         const adapter = new OpenCodeAdapter();
         const completeEvents: Array<{ status: string; sessionId?: string }> = [];
@@ -386,10 +479,15 @@ describe('OpenCode Adapter Module', () => {
           },
         };
 
-        // Act
-        mockPtyInstance.simulateData(JSON.stringify(stepFinishMessage) + '\n');
+        // Act - simulate 21 stop events (max attempts is 20)
+        // Note: In the real flow, continuation happens after process exit,
+        // but for unit testing we simulate multiple step_finish messages
+        // The CompletionEnforcer defaults to maxContinuationAttempts=20
+        for (let i = 0; i < 21; i++) {
+          mockPtyInstance.simulateData(JSON.stringify(stepFinishMessage) + '\n');
+        }
 
-        // Assert
+        // Assert - should emit complete after exhausting retries
         expect(completeEvents.length).toBe(1);
         expect(completeEvents[0].status).toBe('success');
       });
@@ -636,7 +734,18 @@ describe('OpenCode Adapter Module', () => {
 
         await adapter.startTask({ prompt: 'Test' });
 
-        // Emit step_finish first (marks hasCompleted = true)
+        // Simulate complete_task being called first to avoid continuation logic
+        // Note: Using 'blocked' status to skip verification flow (which only triggers on 'success')
+        const toolCallMessage: OpenCodeToolCallMessage = {
+          type: 'tool_call',
+          part: {
+            tool: 'complete_task',
+            input: { status: 'blocked', summary: 'Done', original_request_summary: 'Test' },
+          },
+        };
+        mockPtyInstance.simulateData(JSON.stringify(toolCallMessage) + '\n');
+
+        // Emit step_finish (marks hasCompleted = true)
         const stepFinish: OpenCodeStepFinishMessage = {
           type: 'step_finish',
           part: {
@@ -798,6 +907,88 @@ describe('OpenCode Adapter Module', () => {
         // Assert
         expect(task.prompt).toBe('Continue task');
         expect(mockPtySpawn).toHaveBeenCalled();
+      });
+    });
+
+    describe('Session Resumption ANSI Filtering', () => {
+      it('should filter ANSI codes in resumed session data', async () => {
+        // Arrange
+        const adapter = new OpenCodeAdapter();
+        const messages: unknown[] = [];
+        adapter.on('message', (msg) => messages.push(msg));
+
+        // Start initial task to establish session
+        await adapter.resumeSession('existing-session', 'Continue task');
+
+        const validMessage: OpenCodeTextMessage = {
+          type: 'text',
+          part: { id: '1', sessionID: 's', messageID: 'm', type: 'text', text: 'Resumed' },
+        };
+
+        // Act - send JSON with ANSI codes (simulating PTY output in resumed session)
+        const ansiWrapped = '\x1B[32m' + JSON.stringify(validMessage) + '\x1B[0m\n';
+        mockPtyInstance.simulateData(ansiWrapped);
+
+        // Assert - message should be parsed despite ANSI codes
+        expect(messages.length).toBe(1);
+      });
+
+      it('should emit debug events in resumed session', async () => {
+        // Arrange
+        const adapter = new OpenCodeAdapter();
+        const debugEvents: Array<{ type: string; message: string }> = [];
+        adapter.on('debug', (event) => debugEvents.push(event));
+
+        // Start resumed session
+        await adapter.resumeSession('existing-session', 'Continue task');
+
+        const validMessage: OpenCodeTextMessage = {
+          type: 'text',
+          part: { id: '1', sessionID: 's', messageID: 'm', type: 'text', text: 'Test' },
+        };
+
+        // Act
+        mockPtyInstance.simulateData(JSON.stringify(validMessage) + '\n');
+
+        // Assert - should have stdout debug events
+        expect(debugEvents.some(e => e.type === 'stdout')).toBe(true);
+      });
+
+      it('should handle Windows PowerShell ANSI sequences in resumed session', async () => {
+        // Arrange
+        const adapter = new OpenCodeAdapter();
+        const messages: unknown[] = [];
+        adapter.on('message', (msg) => messages.push(msg));
+
+        await adapter.resumeSession('existing-session', 'Continue task');
+
+        const validMessage: OpenCodeTextMessage = {
+          type: 'text',
+          part: { id: '1', sessionID: 's', messageID: 'm', type: 'text', text: 'Windows' },
+        };
+
+        // Act - send JSON with DEC mode sequences (cursor visibility) and OSC sequences (window titles)
+        const windowsAnsi = '\x1B[?25l\x1B]0;PowerShell\x07' + JSON.stringify(validMessage) + '\x1B[?25h\n';
+        mockPtyInstance.simulateData(windowsAnsi);
+
+        // Assert - message should be parsed
+        expect(messages.length).toBe(1);
+      });
+
+      it('should not feed empty data to parser in resumed session', async () => {
+        // Arrange
+        const adapter = new OpenCodeAdapter();
+        const messages: unknown[] = [];
+        adapter.on('message', (msg) => messages.push(msg));
+
+        await adapter.resumeSession('existing-session', 'Continue task');
+
+        // Act - send only ANSI codes (no actual content)
+        mockPtyInstance.simulateData('\x1B[32m\x1B[0m');
+        mockPtyInstance.simulateData('   \n'); // Only whitespace
+
+        // Assert - no messages should be parsed from empty/whitespace data
+        expect(messages.length).toBe(0);
       });
     });
   });
