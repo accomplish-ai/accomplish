@@ -7,12 +7,20 @@ import {
   ModelSelector,
   ConnectButton,
   ConnectedControls,
-  ProviderFormHeader,
-  FormError,
 } from '../shared';
-
-// Import Azure logo
-import azureLogo from '/assets/ai-logos/azure.svg';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel, FieldSet,
+  FieldTitle
+} from '@/components/ui/field';
+import {RadioGroup, RadioGroupItem} from "@/components/ui/radio-group";
 
 interface AzureFoundryProviderFormProps {
   connectedProvider?: ConnectedProvider;
@@ -108,139 +116,129 @@ export function AzureFoundryProviderForm({
   const models = connectedProvider?.availableModels || [];
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
-      <ProviderFormHeader logoSrc={azureLogo} providerName="Azure AI Foundry" />
-
-      <div className="space-y-3">
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">
+          Provider settings
+        </CardTitle>
+        <CardDescription>
+          Connect and select provider model
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
         {!isConnected ? (
-          <>
-            {/* Auth type tabs */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setAuthType('api-key')}
-                data-testid="azure-foundry-auth-api-key"
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  authType === 'api-key'
-                    ? 'bg-[#0078D4] text-white'
-                    : 'bg-muted text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                API Key
-              </button>
-              <button
-                onClick={() => setAuthType('entra-id')}
-                data-testid="azure-foundry-auth-entra-id"
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  authType === 'entra-id'
-                    ? 'bg-[#0078D4] text-white'
-                    : 'bg-muted text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Entra ID
-              </button>
-            </div>
+        <FieldGroup>
+          <FieldSet>
+            <Field>
+              <FieldLabel>
+                Authentication
+              </FieldLabel>
+              <RadioGroup defaultValue={authType} className="flex" onValueChange={(value) => setAuthType(value)}>
+                <FieldLabel htmlFor="api-key">
+                  <Field orientation="horizontal">
+                    <FieldContent>
+                      <FieldTitle>
+                        API Key
+                      </FieldTitle>
+                    </FieldContent>
+                    <RadioGroupItem value="api-key" id="api-key" />
+                  </Field>
+                </FieldLabel>
+                <FieldLabel htmlFor="entra-id">
+                  <Field orientation="horizontal">
+                    <FieldContent>
+                      <FieldTitle>Entra ID</FieldTitle>
+                    </FieldContent>
+                    <RadioGroupItem value="entra-id" id="entra-id" />
+                  </Field>
+                </FieldLabel>
+              </RadioGroup>
+            </Field>
 
-            {authType === 'entra-id' && (
-              <p className="text-xs text-muted-foreground">
-                Uses your Azure CLI credentials. Run <code className="bg-muted px-1 rounded">az login</code> first.
-              </p>
-            )}
-
-            {/* Endpoint URL */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">
-                Azure OpenAI Endpoint
-              </label>
-              <input
+            <Field>
+              <FieldLabel>Azure OpenAI Endpoint</FieldLabel>
+              <Input
                 type="text"
                 value={endpoint}
                 onChange={(e) => setEndpoint(e.target.value)}
                 placeholder="https://your-resource.openai.azure.com"
                 data-testid="azure-foundry-endpoint"
-                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
               />
-            </div>
+            </Field>
 
-            {/* Deployment Name */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">
-                Deployment Name
-              </label>
-              <input
+            <Field>
+              <FieldLabel>Deployment Name</FieldLabel>
+              <Input
                 type="text"
                 value={deploymentName}
                 onChange={(e) => setDeploymentName(e.target.value)}
                 placeholder="e.g., gpt-4o, gpt-5"
                 data-testid="azure-foundry-deployment"
-                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
               />
-            </div>
+            </Field>
 
-            {/* API Key - only for API key auth */}
             {authType === 'api-key' && (
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">
-                  API Key
-                </label>
-                <input
+              <Field>
+                <FieldLabel>API Key</FieldLabel>
+                <Input
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder="Enter your Azure API key"
                   data-testid="azure-foundry-api-key"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                 />
-              </div>
+              </Field>
             )}
 
-            <FormError error={error} />
-            <ConnectButton onClick={handleConnect} connecting={connecting} />
-          </>
+            <Field>
+              <FieldError>{error}</FieldError>
+              <ConnectButton onClick={handleConnect} connecting={connecting} />
+            </Field>
+          </FieldSet>
+          </FieldGroup>
         ) : (
-          <>
-            {/* Display saved credentials info */}
-            <div className="space-y-3">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Endpoint</label>
-                <input
+          <FieldGroup>
+            <FieldSet>
+              <Field>
+                <FieldLabel>Endpoint</FieldLabel>
+                <Input
                   type="text"
                   value={(connectedProvider?.credentials as AzureFoundryCredentials)?.endpoint || ''}
                   disabled
-                  className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Deployment</label>
-                <input
+              </Field>
+
+              <Field>
+                <FieldLabel>Deployment</FieldLabel>
+                <Input
                   type="text"
                   value={(connectedProvider?.credentials as AzureFoundryCredentials)?.deploymentName || ''}
                   disabled
-                  className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Authentication</label>
-                <input
+              </Field>
+
+              <Field>
+                <FieldLabel>Authentication</FieldLabel>
+                <Input
                   type="text"
                   value={(connectedProvider?.credentials as AzureFoundryCredentials)?.authMethod === 'entra-id' ? 'Entra ID (Azure CLI)' : 'API Key'}
                   disabled
-                  className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />
-              </div>
-            </div>
+              </Field>
 
-            <ConnectedControls onDisconnect={onDisconnect} />
-
-            {/* Model Selector */}
-            <ModelSelector
-              models={models}
-              value={connectedProvider?.selectedModelId || null}
-              onChange={onModelChange}
-              error={showModelError && !connectedProvider?.selectedModelId}
-            />
-          </>
+              <Field>
+                <ModelSelector
+                  models={models}
+                  value={connectedProvider?.selectedModelId || null}
+                  onChange={onModelChange}
+                  error={showModelError && !connectedProvider?.selectedModelId}
+                />
+                <ConnectedControls onDisconnect={onDisconnect} />
+              </Field>
+            </FieldSet>
+          </FieldGroup>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

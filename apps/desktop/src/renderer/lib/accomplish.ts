@@ -19,6 +19,7 @@ import type {
   ProviderSettings,
   ProviderId,
   ConnectedProvider,
+  Appearance,
   TodoItem,
 } from '@accomplish/shared';
 
@@ -53,6 +54,8 @@ interface AccomplishAPI {
   getDebugMode(): Promise<boolean>;
   setDebugMode(enabled: boolean): Promise<void>;
   getAppSettings(): Promise<{ debugMode: boolean; onboardingComplete: boolean }>;
+  getAppearance(): Promise<Appearance>;
+  setAppearance(appearance: Appearance): Promise<void>;
 
   // API Key management
   hasApiKey(): Promise<boolean>;
@@ -140,6 +143,7 @@ interface AccomplishAPI {
   onTaskProgress(callback: (progress: TaskProgress) => void): () => void;
   onDebugLog(callback: (log: unknown) => void): () => void;
   onDebugModeChange?(callback: (data: { enabled: boolean }) => void): () => void;
+  onAppearanceChange?(callback: (data: { appearance: Appearance }) => void): () => void;
   onTaskStatusChange?(callback: (data: { taskId: string; status: TaskStatus }) => void): () => void;
   onTaskSummary?(callback: (data: { taskId: string; summary: string }) => void): () => void;
   onTodoUpdate?(callback: (data: { taskId: string; todos: TodoItem[] }) => void): () => void;

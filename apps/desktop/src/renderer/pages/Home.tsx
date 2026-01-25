@@ -154,7 +154,7 @@ export default function HomePage() {
         onApiKeySaved={handleApiKeySaved}
       />
       <div
-        className="h-full flex items-center justify-center p-6 overflow-y-auto bg-accent"
+        className="h-full flex items-center justify-center p-6 overflow-y-auto"
       >
       <div className="w-full max-w-2xl flex flex-col items-center gap-8">
         {/* Main Title */}
@@ -174,8 +174,8 @@ export default function HomePage() {
           transition={{ ...springs.gentle, delay: 0.1 }}
           className="w-full"
         >
-          <Card className="w-full bg-card/95 backdrop-blur-md shadow-xl gap-0 py-0 flex flex-col max-h-[calc(100vh-3rem)]">
-            <CardContent className="p-6 pb-4 flex-shrink-0">
+          <Card className="w-full bg-card rounded-lg backdrop-blur-md gap-0 py-0 flex flex-col max-h-[calc(100vh-3rem)]">
+            <CardContent className="px-4 py-4 pb-4 shrink-0">
               {/* Input Section */}
               <TaskInputBar
                 value={prompt}

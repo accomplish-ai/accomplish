@@ -2,7 +2,7 @@
  * Integration tests for StreamingText component and useStreamingState hook
  * Tests text streaming animation, completion state, and different content types
  * @module __tests__/integration/renderer/components/StreamingText.integration.test
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { describe, it, expect, vi } from 'vitest';

@@ -1,12 +1,19 @@
 // apps/desktop/src/main/store/repositories/appSettings.ts
 
-import type { SelectedModel, OllamaConfig, LiteLLMConfig, AzureFoundryConfig } from '@accomplish/shared';
+import type {
+  SelectedModel,
+  OllamaConfig,
+  LiteLLMConfig,
+  AzureFoundryConfig,
+  Appearance,
+} from '@accomplish/shared';
 import { getDatabase } from '../db';
 
 interface AppSettingsRow {
   id: number;
   debug_mode: number;
   onboarding_complete: number;
+  appearance: string;
   selected_model: string | null;
   ollama_config: string | null;
   litellm_config: string | null;
@@ -16,6 +23,7 @@ interface AppSettingsRow {
 interface AppSettings {
   debugMode: boolean;
   onboardingComplete: boolean;
+  appearance: Appearance;
   selectedModel: SelectedModel | null;
   ollamaConfig: OllamaConfig | null;
   litellmConfig: LiteLLMConfig | null;
@@ -45,6 +53,15 @@ export function setOnboardingComplete(complete: boolean): void {
   db.prepare('UPDATE app_settings SET onboarding_complete = ? WHERE id = 1').run(
     complete ? 1 : 0
   );
+}
+
+export function getAppearance(): Appearance {
+  return (getRow().appearance as Appearance) ?? 'system';
+}
+
+export function setAppearance(appearance: Appearance): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET appearance = ? WHERE id = 1').run(appearance);
 }
 
 export function getSelectedModel(): SelectedModel | null {
@@ -129,6 +146,7 @@ export function getAppSettings(): AppSettings {
   return {
     debugMode: row.debug_mode === 1,
     onboardingComplete: row.onboarding_complete === 1,
+    appearance: (row.appearance as Appearance) ?? 'system',
     selectedModel: safeParseJson<SelectedModel>(row.selected_model),
     ollamaConfig: safeParseJson<OllamaConfig>(row.ollama_config),
     litellmConfig: safeParseJson<LiteLLMConfig>(row.litellm_config),
@@ -142,6 +160,7 @@ export function clearAppSettings(): void {
     `UPDATE app_settings SET
       debug_mode = 0,
       onboarding_complete = 0,
+      appearance = 'system',
       selected_model = NULL,
       ollama_config = NULL,
       litellm_config = NULL,

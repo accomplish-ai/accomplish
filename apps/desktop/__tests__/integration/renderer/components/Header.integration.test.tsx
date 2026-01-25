@@ -2,7 +2,7 @@
  * Integration tests for Header component
  * Tests rendering and navigation elements
  * @module __tests__/integration/renderer/components/Header.integration.test
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { describe, it, expect } from 'vitest';

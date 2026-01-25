@@ -1,107 +1,264 @@
 /* DM Sans Font Faces */
-@font-face {
-  font-family: 'DM Sans';
-  src: url('/fonts/DMSans-Light.ttf') format('truetype');
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
+@import 'tailwindcss';
+@import "tw-animate-css";
 
-@font-face {
-  font-family: 'DM Sans';
-  src: url('/fonts/DMSans-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+@custom-variant dark (&:is(.dark *));
 
-@font-face {
-  font-family: 'DM Sans';
-  src: url('/fonts/DMSans-Medium.ttf') format('truetype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'DM Sans';
-  src: url('/fonts/DMSans-Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'DM Sans';
-  src: url('/fonts/DMSans-Black.ttf') format('truetype');
-  font-weight: 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Shadcn-inspired theme variables */
 :root {
-  --background: 0 0% 97.6%; /* #f9f9f9 */
-  --foreground: 0 0% 12.5%; /* #202020 */
-  --card: 0 0% 98.8%; /* #fcfcfc */
-  --card-foreground: 0 0% 12.5%; /* #202020 */
-  --popover: 0 0% 98.8%; /* #fcfcfc */
-  --popover-foreground: 0 0% 12.5%; /* #202020 */
-  --primary: 123 30% 20%; /* #213c20 */
-  --primary-foreground: 0 0% 100%; /* #ffffff */
-  --secondary: 120 14% 85%; /* #d8dfd7 */
-  --secondary-foreground: 100 20% 18%; /* #2b391e */
-  --muted: 0 0% 93.7%; /* #efefef */
-  --muted-foreground: 0 0% 39.2%; /* #646464 */
-  --accent: 0 0% 91%; /* #e8e8e8 */
-  --accent-foreground: 0 0% 12.5%; /* #202020 */
-  --destructive: 8 78% 54%; /* #e54d2e */
-  --destructive-foreground: 0 0% 100%; /* #ffffff */
-  --border: 12 8% 90%; /* #eae2e1 */
-  --input: 0 0% 84.7%; /* #d8d8d8 */
-  --ring: 20 25% 33%; /* #644a40 */
+  --background: oklch(0.9821 0 0); /* #f9f9f9 */
+  --foreground: oklch(0.2435 0 0); /* #202020 */
+  --card: oklch(0.9911 0 0); /* #fcfcfc */
+  --card-foreground: oklch(0.2435 0 0); /* #202020 */
+  --popover: oklch(0.9911 0 0); /* #fcfcfc */
+  --popover-foreground: oklch(0.2435 0 0); /* #202020 */
+  --primary: oklch(0.326 0.0585 143.33); /* #213c20 */
+  --primary-foreground: oklch(1 0 0); /* #ffffff */
+  --secondary: oklch(0.896 0.0131 141.81); /* #d8dfd7 */
+  --secondary-foreground: oklch(0.3241 0.0487 131.01); /* #2b391e */
+  --muted: oklch(0.9521 0 0); /* #efefef */
+  --muted-foreground: oklch(0.5032 0 0); /* #646464 */
+  --accent: oklch(0.931 0 0); /* #e8e8e8 */
+  --accent-foreground: oklch(0.2435 0 0); /* #202020 */
+  --destructive: oklch(0.6271 0.1936 33.34); /* #e54d2e */
+  --destructive-foreground: oklch(1 0 0); /* #ffffff */
+  --border: oklch(0.9188 0.0088 26.02); /* #eae2e1 */
+  --input: oklch(0.8822 0 0); /* #d8d8d8 */
+  --ring: oklch(0.4341 0.0392 41.99); /* #644a40 */
   --radius: 0.5rem;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.dark {
+  --background: oklch(0.147 0.004 49.25);
+  --foreground: oklch(0.985 0.001 106.423);
+  --card: oklch(0.216 0.006 56.043);
+  --card-foreground: oklch(0.985 0.001 106.423);
+  --popover: oklch(0.216 0.006 56.043);
+  --popover-foreground: oklch(0.985 0.001 106.423);
+  --primary: oklch(0.326 0.0585 143.33);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.268 0.007 34.298);
+  --secondary-foreground: oklch(0.985 0.001 106.423);
+  --muted: oklch(0.268 0.007 34.298);
+  --muted-foreground: oklch(0.709 0.01 56.259);
+  --accent: oklch(0.268 0.007 34.298);
+  --accent-foreground: oklch(0.985 0.001 106.423);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.553 0.013 58.071);
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-hover: var(--accent-foreground);
+  --color-accent-blue: #3397fc;
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background-card: var(--card);
+  --color-background-subtle: var(--muted);
+  --color-background-muted: var(--muted);
+  --color-text: var(--foreground);
+  --color-text-secondary: var(--foreground);
+  --color-text-muted: var(--muted-foreground);
+  --color-text-subtle: var(--muted-foreground);
+  --color-border-strong: var(--border);
+
+  --color-danger: var(--destructive);
+  --color-danger-foreground: var(--destructive-foreground);
+  --color-danger-subtle: var(--destructive) / 0.1;
+
+  --color-warning: #ee7909;
+  --color-warning-subtle: #fef4e6;
+
+  --color-success: #019e55;
+  --color-success-subtle: #e6f7ef;
+
+  --shadow-sm:
+    0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow-md:
+    0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+  --shadow-lg:
+    0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+  --shadow-xl:
+    0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  --shadow-input: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-input-focus: 0 0 0 2px hsl(var(--ring) / 0.2);
+  --shadow-card:
+    0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow-card-hover:
+    0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-input: var(--radius);
+  --radius-card: var(--radius);
+  --radius-chip: 9999px;
+  --radius-button: var(--radius);
+
+  --font-sans:
+    DM Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif;
+
+  --ease-accomplish: cubic-bezier(0.64, 0, 0.78, 0);
+
+  --animate-fade-in: fadeIn 0.2s ease-out;
+  --animate-slide-up: slideUp 0.3s ease-out;
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shimmer: shimmer 2s infinite;
+  --animate-spin-ccw: spinCcw 1s linear infinite;
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes slideUp {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  @keyframes spinCcw {
+    0% {
+      transform: rotate(360deg);
+    }
+    100% {
+      transform: rotate(0deg);
+    }
+  }
 }
 
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 3px;
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+  @font-face {
+    font-family: 'DM Sans';
+    src: url('/fonts/DMSans-Light.ttf') format('truetype');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'DM Sans';
+    src: url('/fonts/DMSans-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'DM Sans';
+    src: url('/fonts/DMSans-Medium.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'DM Sans';
+    src: url('/fonts/DMSans-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'DM Sans';
+    src: url('/fonts/DMSans-Black.ttf') format('truetype');
+    font-weight: 900;
+    font-style: normal;
+    font-display: swap;
+  }
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
+@layer utilities {
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+
+  /* Drag region for frameless window - these work when loaded in Electron BrowserView */
+  .drag-region {
+    -webkit-app-region: drag;
+  }
+
+  .no-drag {
+    -webkit-app-region: no-drag;
+  }
+
+  /* Focus visible for accessibility */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Base styles */
 }
 
-/* Drag region for frameless window - these work when loaded in Electron BrowserView */
-.drag-region {
-  -webkit-app-region: drag;
-}
-
-.no-drag {
-  -webkit-app-region: no-drag;
-}
-
-/* Focus visible for accessibility */
-:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 2px;
-}
-
-/* Base styles */
 @layer base {
   html {
     @apply antialiased;
@@ -138,5 +295,3 @@ textarea::-moz-placeholder {
 textarea::placeholder {
   font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
 }
-
-/* Component utilities - removed as we're using shadcn components now */

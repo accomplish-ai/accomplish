@@ -55,6 +55,10 @@ const accomplishAPI = {
     ipcRenderer.invoke('settings:set-debug-mode', enabled),
   getAppSettings: (): Promise<{ debugMode: boolean; onboardingComplete: boolean }> =>
     ipcRenderer.invoke('settings:app-settings'),
+  getAppearance: (): Promise<'system' | 'dark' | 'light'> =>
+    ipcRenderer.invoke('settings:appearance'),
+  setAppearance: (appearance: 'system' | 'dark' | 'light'): Promise<void> =>
+    ipcRenderer.invoke('settings:set-appearance', appearance),
 
   // API Key management (new simplified handlers)
   hasApiKey: (): Promise<boolean> =>
@@ -215,6 +219,12 @@ const accomplishAPI = {
     const listener = (_: unknown, data: { enabled: boolean }) => callback(data);
     ipcRenderer.on('settings:debug-mode-changed', listener);
     return () => ipcRenderer.removeListener('settings:debug-mode-changed', listener);
+  },
+  onAppearanceChange: (callback: (data: { appearance: 'system' | 'dark' | 'light' }) => void) => {
+    const listener = (_: unknown, data: { appearance: 'system' | 'dark' | 'light' }) =>
+      callback(data);
+    ipcRenderer.on('settings:appearance-changed', listener);
+    return () => ipcRenderer.removeListener('settings:appearance-changed', listener);
   },
   // Task status changes (e.g., queued -> running)
   onTaskStatusChange: (callback: (data: { taskId: string; status: string }) => void) => {

@@ -20,13 +20,28 @@ export default defineConfig({
     name: 'unit',
     globals: true,
     root: __dirname,
-    include: ['__tests__/**/*.unit.test.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/dist-electron/**', '**/release/**'],
     setupFiles: ['__tests__/setup.ts'],
-    environment: 'node',
-    environmentMatchGlobs: [
-      ['__tests__/**/*.renderer.*.test.{ts,tsx}', 'jsdom'],
-      ['__tests__/**/renderer/**/*.test.{ts,tsx}', 'jsdom'],
+    projects: [
+      {
+        test: {
+          environment: 'node',
+          include: ['__tests__/**/*.unit.test.{ts,tsx}'],
+          exclude: [
+            '__tests__/**/*.renderer.*.unit.test.{ts,tsx}',
+            '__tests__/**/renderer/**/*.unit.test.{ts,tsx}',
+          ],
+        },
+      },
+      {
+        test: {
+          environment: 'jsdom',
+          include: [
+            '__tests__/**/*.renderer.*.unit.test.{ts,tsx}',
+            '__tests__/**/renderer/**/*.unit.test.{ts,tsx}',
+          ],
+        },
+      },
     ],
     testTimeout: 5000,
     hookTimeout: 10000,

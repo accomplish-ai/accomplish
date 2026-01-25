@@ -11,7 +11,7 @@
  * For full component rendering integration, see individual component tests.
  *
  * @module __tests__/integration/renderer/App.integration.test
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';

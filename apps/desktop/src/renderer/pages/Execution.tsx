@@ -1,26 +1,28 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo, useCallback, memo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTaskStore } from '../stores/taskStore';
-import { getAccomplish } from '../lib/accomplish';
-import { springs } from '../lib/animations';
+import { useTaskStore } from '@/stores/taskStore';
+import { getAccomplish } from '@/lib/accomplish';
+import { springs } from '@/lib/animations';
 import type { TaskMessage } from '@accomplish/shared';
 import { hasAnyReadyProvider } from '@accomplish/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check, Copy } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check, Copy } from 'lucide-react';
+import {cn, toTitleCase} from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
-import { StreamingText } from '../components/ui/streaming-text';
-import { isWaitingForUser } from '../lib/waiting-detection';
-import { BrowserScriptCard } from '../components/BrowserScriptCard';
+import { StreamingText } from '@/components/ui/streaming-text';
+import { isWaitingForUser } from '@/lib/waiting-detection';
 import loadingSymbol from '/assets/loading-symbol.svg';
 import SettingsDialog from '../components/layout/SettingsDialog';
+import {Progress} from "@/components/ui/progress";
+import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import { TodoSidebar } from '../components/TodoSidebar';
+import {BrowserScriptCard} from "@/components/BrowserScriptCard";
 
 // Debug log entry type
 interface DebugLogEntry {
@@ -440,7 +442,7 @@ export default function ExecutionPage() {
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 shrink-0">
             <span
-              className="animate-shimmer bg-gradient-to-r from-primary via-primary/50 to-primary bg-[length:200%_100%] bg-clip-text text-transparent"
+              className="animate-shimmer bg-linear-to-r from-primary via-primary/50 to-primary bg-size-[200%_100%] bg-clip-text text-transparent"
             >
               Running
             </span>
@@ -494,7 +496,7 @@ export default function ExecutionPage() {
 
     <div className="h-full flex flex-col bg-background relative">
       {/* Task header */}
-      <div className="flex-shrink-0 border-b border-border bg-card/50 px-6 py-4">
+      <div className="shrink-0 border-b border-border bg-card/50 px-6 py-4">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center gap-4 min-w-0 flex-1">
             <Button
@@ -518,80 +520,52 @@ export default function ExecutionPage() {
       </div>
 
       {/* Browser installation modal - only shown during Playwright download */}
-      <AnimatePresence>
-        {setupProgress && setupProgressTaskId === id && (setupProgress.toLowerCase().includes('download') || setupProgress.includes('% of')) && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={springs.bouncy}
-            >
-              <Card className="w-[480px] p-6">
-                <div className="flex flex-col items-center text-center gap-4">
-                  <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                    <Download className="h-7 w-7 text-primary" />
-                    <motion.div
-                      className="absolute inset-0 rounded-full border-2 border-primary/30 border-t-primary"
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    />
-                  </div>
-                  <div className="w-full">
-                    <h3 className="text-lg font-semibold text-foreground mb-1">
-                      Chrome not installed
-                    </h3>
-                    <p className="text-muted-foreground mb-4">
-                      Installing browser for automation...
-                    </p>
-                    {/* Progress bar - combines all downloads into single 0-100% */}
-                    {(() => {
-                      const percentMatch = setupProgress?.match(/(\d+)%/);
-                      const currentPercent = percentMatch ? parseInt(percentMatch[1], 10) : 0;
+      <Dialog open={!!setupProgress && setupProgressTaskId === id && (setupProgress.toLowerCase().includes('download') || setupProgress.includes('% of'))}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle />
+            <DialogTitle />
+          </DialogHeader>
 
-                      // Weight each download by size: Chromium ~160MB (64%), FFMPEG ~1MB (0%), Headless ~90MB (36%)
-                      // Step 1: 0-64%, Step 2: 64-64%, Step 3: 64-100%
-                      let overallPercent = 0;
-                      if (setupDownloadStep === 1) {
-                        overallPercent = Math.round(currentPercent * 0.64);
-                      } else if (setupDownloadStep === 2) {
-                        overallPercent = 64 + Math.round(currentPercent * 0.01);
-                      } else {
-                        overallPercent = 65 + Math.round(currentPercent * 0.35);
-                      }
+          <div className="flex flex-col items-center text-center gap-4">
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <Download className="h-7 w-7 text-primary" />
+              <div className="absolute inset-0 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+            </div>
+            <div className="w-full">
+              <h3 className="text-lg font-semibold text-foreground mb-1">
+                Chrome not installed
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                Installing browser for automation...
+              </p>
+              {/* Progress bar - combines all downloads into single 0-100% */}
+              {(() => {
+                const percentMatch = setupProgress?.match(/(\d+)%/);
+                const currentPercent = percentMatch ? parseInt(percentMatch[1], 10) : 0;
 
-                      return (
-                        <div className="w-full">
-                          <div className="flex justify-between text-sm mb-2">
-                            <span className="text-muted-foreground">Downloading...</span>
-                            <span className="text-foreground font-medium">{overallPercent}%</span>
-                          </div>
-                          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                            <motion.div
-                              className="h-full bg-primary rounded-full"
-                              initial={{ width: 0 }}
-                              animate={{ width: `${overallPercent}%` }}
-                              transition={{ duration: 0.3 }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    <p className="text-xs text-muted-foreground mt-4 text-center">
-                      One-time setup (~250 MB total)
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                // Weight each download by size: Chromium ~160MB (64%), FFMPEG ~1MB (0%), Headless ~90MB (36%)
+                // Step 1: 0-64%, Step 2: 64-64%, Step 3: 64-100%
+                let overallPercent = 0;
+                if (setupDownloadStep === 1) {
+                  overallPercent = Math.round(currentPercent * 0.64);
+                } else if (setupDownloadStep === 2) {
+                  overallPercent = 64 + Math.round(currentPercent * 0.01);
+                } else {
+                  overallPercent = 65 + Math.round(currentPercent * 0.35);
+                }
+
+                return (
+                    <Progress value={overallPercent} max={100} />
+                );
+              })()}
+              <p className="text-xs text-muted-foreground mt-4 text-center">
+                One-time setup (~250 MB total)
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Queued state - full page (new task, no messages yet) */}
       {currentTask.status === 'queued' && currentTask.messages.length === 0 && (
@@ -778,7 +752,7 @@ export default function ExecutionPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs"
             data-testid="execution-permission-modal"
           >
             <motion.div
@@ -1044,7 +1018,7 @@ export default function ExecutionPage() {
 
 {/* Running state input with Stop button */}
       {currentTask.status === 'running' && !permissionRequest && (
-        <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4">
+        <div className="shrink-0 border-t border-border bg-card/50 px-6 py-4">
           <div className="max-w-4xl mx-auto flex gap-3">
             <Input
               placeholder="Agent is working..."
@@ -1067,7 +1041,7 @@ export default function ExecutionPage() {
 
       {/* Follow-up input */}
       {canFollowUp && (
-        <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4">
+        <div className="shrink-0 border-t border-border bg-card/50 px-6 py-4">
           <div className="max-w-4xl mx-auto">
             {/* Input field with Send button */}
             <div className="flex gap-3">
@@ -1109,7 +1083,7 @@ export default function ExecutionPage() {
 
       {/* Completed/Failed state (no session to continue) */}
       {isComplete && !canFollowUp && (
-        <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4 text-center">
+        <div className="shrink-0 border-t border-border bg-card/50 px-6 py-4 text-center">
           <p className="text-sm text-muted-foreground mb-3">
             Task {currentTask.status === 'interrupted' ? 'stopped' : currentTask.status}
           </p>
@@ -1121,7 +1095,7 @@ export default function ExecutionPage() {
 
       {/* Debug Panel - Only visible when debug mode is enabled */}
       {debugModeEnabled && (
-        <div className="flex-shrink-0 border-t border-border" data-testid="debug-panel">
+        <div className="shrink-0 border-t border-border" data-testid="debug-panel">
           {/* Toggle header */}
           <button
             onClick={() => setDebugPanelOpen(!debugPanelOpen)}
@@ -1189,7 +1163,7 @@ export default function ExecutionPage() {
               >
                 <div
                   ref={debugPanelRef}
-                  className="h-[200px] overflow-y-auto bg-zinc-950 text-zinc-300 font-mono text-xs p-4"
+                  className="h-50 overflow-y-auto bg-zinc-950 text-zinc-300 font-mono text-xs p-4"
                 >
                   {debugLogs.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-zinc-500">
@@ -1313,7 +1287,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
     'prose-a:text-primary prose-a:underline',
     'prose-blockquote:text-muted-foreground prose-blockquote:border-l-4 prose-blockquote:border-border prose-blockquote:pl-4',
     'prose-hr:border-border',
-    'break-words'
+    'wrap-break-word',
   );
 
   return (
@@ -1344,13 +1318,15 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
       >
         {/* Tool messages: show only label and loading animation */}
         {isTool ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
-            {ToolIcon ? <ToolIcon className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
-            <span>{TOOL_PROGRESS_MAP[toolName || '']?.label || toolName || 'Processing'}</span>
-            {isLastMessage && isRunning && (
-              <SpinningIcon className="h-3.5 w-3.5 ml-1" />
-            )}
-          </div>
+          <>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
+              {ToolIcon ? <ToolIcon className="size-4" /> : <Wrench className="size-4" />}
+              <span>{TOOL_PROGRESS_MAP[toolName || '']?.label || toTitleCase(toolName || '')  || 'Processing'}</span>
+              {isLastMessage && isRunning && (
+                <SpinningIcon className="h-3.5 w-3.5 ml-1" />
+              )}
+            </div>
+          </>
         ) : (
           <>
             {isSystem && (
@@ -1362,7 +1338,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
             {isUser ? (
               <p
                 className={cn(
-                  'text-sm whitespace-pre-wrap break-words',
+                  'text-sm whitespace-pre-wrap wrap-break-word',
                   'text-primary-foreground'
                 )}
               >
@@ -1413,26 +1389,25 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
 
       {showCopyButton && (
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
+          <TooltipTrigger render={<Button
               variant="ghost"
               size="icon-sm"
               onClick={handleCopy}
               data-testid="message-copy-button"
               className={cn(
-                'opacity-0 group-hover:opacity-100 transition-all duration-200 relative',
-                'p-1 rounded hover:bg-accent',
-                'shrink-0 mt-1',
-                isAssistant ? 'self-start' : 'self-end',
-                !copied && 'text-muted-foreground hover:text-foreground',
-                copied && '!bg-green-500/10 !text-green-600 !hover:bg-green-500/20'
+                  'opacity-0 group-hover:opacity-100 transition-all duration-200 relative p-1 rounded hover:bg-accent shrink-0 mt-1',
+                  isAssistant ? 'self-start' : 'self-end',
+                  !copied && 'text-muted-foreground hover:text-foreground',
+                  copied && 'bg-green-500/10! text-green-600! hover:bg-green-500/20!'
               )}
-              aria-label={'Copy to clipboard'}
-            >
-              <Check className={cn("absolute h-4 w-4", !copied && 'hidden')} />
-              <Copy className={cn("absolute h-4 w-4", copied && 'hidden')} />
-            </Button>
-          </TooltipTrigger>
+              aria-label={'Copy to clipboard'}>
+            {copied
+                ? <Copy className="absolute h-4 w-4" />
+                : <Check className="absolute h-4 w-4" />
+            }
+          </Button>
+          } />
+          {/*</TooltipTrigger>*/}
           <TooltipContent>
             <span>Copy to clipboard</span>
           </TooltipContent>

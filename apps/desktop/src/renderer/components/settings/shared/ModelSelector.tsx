@@ -3,6 +3,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {FieldError} from "@/components/ui/field";
 
 interface Model {
   id: string;
@@ -47,6 +57,10 @@ export function ModelSelector({
   // Get display name for selected value
   const selectedModel = models.find((m) => m.id === value);
   const displayValue = selectedModel?.name || '';
+  const handleValueChange = (nextValue: string | null) => {
+    if (!nextValue) return;
+    onChange(nextValue);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -76,25 +90,29 @@ export function ModelSelector({
   // For small model lists, use simple select
   if (!showSearch) {
     return (
-      <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">Model</label>
-        <select
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          data-testid="model-selector"
-          className={`w-full rounded-md border bg-background px-3 py-2.5 text-sm ${
-            error ? 'border-destructive' : 'border-input'
-          }`}
-        >
-          <option value="" disabled>{placeholder}</option>
-          {models.map((model) => (
-            <option key={model.id} value={model.id}>
-              {model.name}
-            </option>
-          ))}
-        </select>
+      <div className="grid gap-2">
+        <Label>Model</Label>
+        <Select value={value || ''} onValueChange={handleValueChange}>
+          <SelectTrigger
+            className="w-full"
+            aria-invalid={error && !value ? true : undefined}
+            data-testid="model-selector"
+          >
+            <SelectValue placeholder={placeholder}>{displayValue}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {models.map((model) => (
+              <SelectItem key={model.id} value={model.id}>
+                {model.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         {error && !value && (
-          <p className="mt-2 text-sm text-destructive" data-testid="model-selector-error">{errorMessage}</p>
+            <FieldError>
+              {errorMessage}
+            </FieldError>
         )}
       </div>
     );
@@ -102,14 +120,15 @@ export function ModelSelector({
 
   // For large model lists, use searchable dropdown
   return (
-    <div ref={containerRef}>
-      <label className="mb-2 block text-sm font-medium text-foreground">Model</label>
+    <div ref={containerRef} className="grid gap-2">
+      <Label>Model</Label>
       <div className="relative">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           data-testid="model-selector"
-          className={`w-full rounded-md border bg-background px-3 py-2.5 text-sm text-left flex items-center justify-between ${
+          aria-invalid={error && !value ? true : undefined}
+          className={`w-full rounded-lg border bg-transparent px-2.5 py-2 text-sm text-left flex items-center justify-between ${
             error ? 'border-destructive' : 'border-input'
           }`}
         >
@@ -139,13 +158,13 @@ export function ModelSelector({
             >
               {/* Search input */}
               <div className="p-2 border-b border-input">
-                <input
+                <Input
                   ref={inputRef}
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search models..."
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="h-8"
                 />
               </div>
 
@@ -177,7 +196,9 @@ export function ModelSelector({
         </AnimatePresence>
       </div>
       {error && !value && (
-        <p className="mt-2 text-sm text-destructive" data-testid="model-selector-error">{errorMessage}</p>
+        <p className="text-sm text-destructive" data-testid="model-selector-error">
+          {errorMessage}
+        </p>
       )}
     </div>
   );

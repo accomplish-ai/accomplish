@@ -2,7 +2,7 @@
  * Integration tests for TaskInputBar component
  * Tests component rendering and user interactions with mocked window.accomplish API
  * @module __tests__/integration/renderer/components/TaskInputBar.integration.test
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -500,7 +500,7 @@ describe('TaskInputBar Integration', () => {
 
       // Assert
       const textarea = screen.getByRole('textbox');
-      expect(textarea.className).toContain('text-[20px]');
+      expect(textarea.className).toContain('text-xl');
     });
 
     it('should apply default text size when large prop is false', () => {

@@ -282,10 +282,10 @@ describe('utils.ts', () => {
 
       it('should handle focus states', () => {
         // Act
-        const result = cn('outline-none', 'focus:outline-2');
+        const result = cn('outline-hidden', 'focus:outline-2');
 
         // Assert
-        expect(result).toBe('outline-none focus:outline-2');
+        expect(result).toBe('outline-hidden focus:outline-2');
       });
 
       it('should handle dark mode', () => {
@@ -393,10 +393,10 @@ describe('utils.ts', () => {
 
       it('should handle important modifier', () => {
         // Act
-        const result = cn('!text-red-500', '!bg-white');
+        const result = cn('text-red-500!', 'bg-white!');
 
         // Assert
-        expect(result).toBe('!text-red-500 !bg-white');
+        expect(result).toBe('text-red-500! bg-white!');
       });
 
       it('should handle whitespace in class strings', () => {

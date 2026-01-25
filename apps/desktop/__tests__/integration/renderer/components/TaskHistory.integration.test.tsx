@@ -2,7 +2,7 @@
  * Integration tests for TaskHistory component
  * Tests task list rendering, selection, deletion, and history clearing
  * @module __tests__/integration/renderer/components/TaskHistory.integration.test
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -27,6 +27,11 @@ let mockStoreState = {
 vi.mock('@/stores/taskStore', () => ({
   useTaskStore: () => mockStoreState,
 }));
+
+// Define window.confirm if it doesn't exist in happy-dom
+if (typeof window !== 'undefined' && typeof window.confirm === 'undefined') {
+  window.confirm = () => true;
+}
 
 // Helper to create mock tasks
 function createMockTask(
@@ -63,7 +68,7 @@ describe('TaskHistory Integration', () => {
       deleteTask: mockDeleteTask,
       clearHistory: mockClearHistory,
     };
-    // Mock window.confirm
+    // Mock window.confirm (window.confirm is defined at top of file for happy-dom)
     vi.spyOn(window, 'confirm').mockImplementation(() => true);
   });
 

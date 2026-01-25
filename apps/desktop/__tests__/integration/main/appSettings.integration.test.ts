@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 let mockAppSettingsData = {
   debug_mode: 0,
   onboarding_complete: 0,
+  appearance: 'system',
   selected_model: null as string | null,
   ollama_config: null as string | null,
   litellm_config: null as string | null,
@@ -21,6 +22,7 @@ function resetMockData() {
   mockAppSettingsData = {
     debug_mode: 0,
     onboarding_complete: 0,
+    appearance: 'system',
     selected_model: null,
     ollama_config: null,
     litellm_config: null,
@@ -53,6 +55,9 @@ vi.mock('@main/store/db', () => ({
             }
             if (sql.includes('onboarding_complete = ?')) {
               mockAppSettingsData.onboarding_complete = args[0] as number;
+            }
+            if (sql.includes('appearance = ?')) {
+              mockAppSettingsData.appearance = args[0] as string;
             }
             if (sql.includes('selected_model = ?')) {
               mockAppSettingsData.selected_model = args[0] as string | null;
@@ -317,6 +322,7 @@ describe('appSettings Integration', () => {
       expect(result).toEqual({
         debugMode: false,
         onboardingComplete: false,
+        appearance: 'system',
         selectedModel: null,
         ollamaConfig: null,
         litellmConfig: null,
@@ -370,6 +376,7 @@ describe('appSettings Integration', () => {
       expect(result).toEqual({
         debugMode: false,
         onboardingComplete: false,
+        appearance: 'system',
         selectedModel: null,
         ollamaConfig: null,
         litellmConfig: null,

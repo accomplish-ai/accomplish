@@ -1,20 +1,16 @@
 // apps/desktop/src/renderer/components/settings/providers/OllamaProviderForm.tsx
 
 import { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
-import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import type { ConnectedProvider, OllamaCredentials } from '@accomplish/shared';
 import {
   ModelSelector,
   ConnectButton,
   ConnectedControls,
-  ProviderFormHeader,
-  FormError,
 } from '../shared';
-
-// Import Ollama logo
-import ollamaLogo from '/assets/ai-logos/ollama.svg';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {Field, FieldError, FieldGroup, FieldLabel, FieldSet} from '@/components/ui/field';
 
 interface OllamaProviderFormProps {
   connectedProvider?: ConnectedProvider;
@@ -81,70 +77,61 @@ export function OllamaProviderForm({
   const models = connectedProvider?.availableModels || availableModels;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
-      <ProviderFormHeader logoSrc={ollamaLogo} providerName="Ollama" />
-
-      <div className="space-y-3">
-        <AnimatePresence mode="wait">
-          {!isConnected ? (
-            <motion.div
-              key="disconnected"
-              variants={settingsVariants.fadeSlide}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={settingsTransitions.enter}
-              className="space-y-3"
-            >
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Ollama Server URL</label>
-                <input
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">
+          Provider settings
+        </CardTitle>
+        <CardDescription>
+          Connect and select provider model
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {!isConnected ? (
+          <FieldGroup>
+            <FieldSet>
+              <Field>
+                <FieldLabel>Ollama Server URL</FieldLabel>
+                <Input
                   type="text"
                   value={serverUrl}
                   onChange={(e) => setServerUrl(e.target.value)}
                   placeholder="http://localhost:11434"
                   data-testid="ollama-server-url"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                 />
-              </div>
+              </Field>
 
-              <FormError error={error} />
-              <ConnectButton onClick={handleConnect} connecting={connecting} />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="connected"
-              variants={settingsVariants.fadeSlide}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={settingsTransitions.enter}
-              className="space-y-3"
-            >
-              {/* Display saved server URL */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Ollama Server URL</label>
-                <input
+              <Field>
+                <FieldError>{error}</FieldError>
+                <ConnectButton onClick={handleConnect} connecting={connecting} />
+              </Field>
+            </FieldSet>
+          </FieldGroup>
+        ) : (
+          <FieldGroup>
+            <FieldSet>
+              <Field>
+                <FieldLabel>Ollama Server URL</FieldLabel>
+                <Input
                   type="text"
                   value={(connectedProvider?.credentials as OllamaCredentials)?.serverUrl || 'http://localhost:11434'}
                   disabled
-                  className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />
-              </div>
+              </Field>
 
-              <ConnectedControls onDisconnect={onDisconnect} />
-
-              {/* Model Selector */}
+              <Field>
               <ModelSelector
                 models={models}
                 value={connectedProvider?.selectedModelId || null}
                 onChange={onModelChange}
                 error={showModelError && !connectedProvider?.selectedModelId}
               />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
+              <ConnectedControls onDisconnect={onDisconnect} />
+            </Field>
+            </FieldSet>
+          </FieldGroup>
+        )}
+      </CardContent>
+    </Card>
   );
 }

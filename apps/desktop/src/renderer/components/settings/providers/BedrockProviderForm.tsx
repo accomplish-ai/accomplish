@@ -1,22 +1,44 @@
 // apps/desktop/src/renderer/components/settings/providers/BedrockProviderForm.tsx
 
 import { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
-import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import type { ConnectedProvider, BedrockProviderCredentials } from '@accomplish/shared';
 import { getDefaultModelForProvider } from '@accomplish/shared';
 import {
   ModelSelector,
-  RegionSelector,
   ConnectButton,
   ConnectedControls,
-  ProviderFormHeader,
-  FormError,
 } from '../shared';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel, FieldSet,
+  FieldTitle
+} from '@/components/ui/field';
+import {RadioGroup, RadioGroupItem} from "@/components/ui/radio-group";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 
-// Import Bedrock logo
-import bedrockLogo from '/assets/ai-logos/bedrock.svg';
+const AWS_REGIONS = [
+  { id: 'us-east-1', name: 'US East (N. Virginia)' },
+  { id: 'us-east-2', name: 'US East (Ohio)' },
+  { id: 'us-west-1', name: 'US West (N. California)' },
+  { id: 'us-west-2', name: 'US West (Oregon)' },
+  { id: 'eu-west-1', name: 'Europe (Ireland)' },
+  { id: 'eu-west-2', name: 'Europe (London)' },
+  { id: 'eu-west-3', name: 'Europe (Paris)' },
+  { id: 'eu-central-1', name: 'Europe (Frankfurt)' },
+  { id: 'ap-northeast-1', name: 'Asia Pacific (Tokyo)' },
+  { id: 'ap-northeast-2', name: 'Asia Pacific (Seoul)' },
+  { id: 'ap-southeast-1', name: 'Asia Pacific (Singapore)' },
+  { id: 'ap-southeast-2', name: 'Asia Pacific (Sydney)' },
+  { id: 'ap-south-1', name: 'Asia Pacific (Mumbai)' },
+];
+
 
 interface BedrockProviderFormProps {
   connectedProvider?: ConnectedProvider;
@@ -117,159 +139,164 @@ export function BedrockProviderForm({
   const models = connectedProvider?.availableModels || availableModels;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
-      <ProviderFormHeader logoSrc={bedrockLogo} providerName="Bedrock" />
-
-      <div className="space-y-3">
-        <AnimatePresence mode="wait">
-          {!isConnected ? (
-            <motion.div
-              key="disconnected"
-              variants={settingsVariants.fadeSlide}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={settingsTransitions.enter}
-              className="space-y-3"
-            >
-              {/* Auth tabs */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setAuthTab('accessKey')}
-                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    authTab === 'accessKey'
-                      ? 'bg-[#4A7C59] text-white'
-                      : 'bg-muted text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Access Key
-                </button>
-                <button
-                  onClick={() => setAuthTab('profile')}
-                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    authTab === 'profile'
-                      ? 'bg-[#4A7C59] text-white'
-                      : 'bg-muted text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  AWS Profile
-                </button>
-              </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">
+          Provider settings
+        </CardTitle>
+        <CardDescription>
+          Connect and select provider model
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {!isConnected ? (
+          <FieldGroup>
+            <FieldSet>
+              <Field>
+              <FieldLabel>
+                Authentication
+              </FieldLabel>
+              <RadioGroup defaultValue={authTab} className="flex" onValueChange={(value) => setAuthTab(value)}>
+                <FieldLabel htmlFor="accessKey">
+                  <Field orientation="horizontal">
+                    <FieldContent>
+                      <FieldTitle>Access Key</FieldTitle>
+                    </FieldContent>
+                    <RadioGroupItem value="accessKey" id="accessKey" />
+                  </Field>
+                </FieldLabel>
+                <FieldLabel htmlFor="profile">
+                  <Field orientation="horizontal">
+                    <FieldContent>
+                      <FieldTitle>AWS Profile</FieldTitle>
+                    </FieldContent>
+                    <RadioGroupItem value="profile" id="profile" />
+                  </Field>
+                </FieldLabel>
+              </RadioGroup>
+            </Field>
 
               {authTab === 'accessKey' ? (
                 <>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground">Access Key ID</label>
-                    <input
+                  <Field>
+                    <FieldLabel>Access Key ID</FieldLabel>
+                    <Input
                       type="text"
                       value={accessKeyId}
                       onChange={(e) => setAccessKeyId(e.target.value)}
                       placeholder="AKIA..."
                       data-testid="bedrock-access-key-id"
-                      className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                     />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground">Secret Access Key</label>
-                    <input
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>Secret Access Key</FieldLabel>
+                    <Input
                       type="password"
                       value={secretKey}
                       onChange={(e) => setSecretKey(e.target.value)}
                       placeholder="Enter secret access key"
                       data-testid="bedrock-secret-key"
-                      className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                     />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground">
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>
                       Session Token <span className="text-muted-foreground">(Optional)</span>
-                    </label>
-                    <input
+                    </FieldLabel>
+                    <Input
                       type="password"
                       value={sessionToken}
                       onChange={(e) => setSessionToken(e.target.value)}
                       placeholder="For temporary credentials"
                       data-testid="bedrock-session-token"
-                      className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                     />
-                  </div>
+                  </Field>
                 </>
               ) : (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">Profile Name</label>
-                  <input
+                <Field>
+                  <FieldLabel>Profile Name</FieldLabel>
+                  <Input
                     type="text"
                     value={profileName}
                     onChange={(e) => setProfileName(e.target.value)}
                     placeholder="default"
                     data-testid="bedrock-profile-name"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                   />
-                </div>
+                </Field>
               )}
 
-              <RegionSelector value={region} onChange={setRegion} />
+              <Field>
+                <FieldLabel>
+                  Region
+                </FieldLabel>
+                <Select value={region} onValueChange={(value) => {
+                  if (value === null) {
+                    return;
+                  }
+                  setRegion(value)
+                }}>
+                  <SelectTrigger className='w-full' data-testid="bedrock-region-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AWS_REGIONS.map((region) => (
+                        <SelectItem key={region.id} value={region.id}>
+                          {region.id}
+                        </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
 
-              <FormError error={error} />
-              <ConnectButton onClick={handleConnect} connecting={connecting} />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="connected"
-              variants={settingsVariants.fadeSlide}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={settingsTransitions.enter}
-              className="space-y-3"
-            >
-              {/* Display saved credentials info */}
-              <div className="space-y-3">
-                {(connectedProvider?.credentials as BedrockProviderCredentials)?.authMethod === 'accessKey' ? (
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground">Access Key ID</label>
-                    <input
-                      type="text"
-                      value={(connectedProvider?.credentials as BedrockProviderCredentials)?.accessKeyIdPrefix || 'AKIA...'}
-                      disabled
-                      className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
-                    />
-                  </div>
-                ) : (
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground">AWS Profile</label>
-                    <input
-                      type="text"
-                      value={(connectedProvider?.credentials as BedrockProviderCredentials)?.profileName || 'default'}
-                      disabled
-                      className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">Region</label>
-                  <input
-                    type="text"
-                    value={(connectedProvider?.credentials as BedrockProviderCredentials)?.region || 'us-east-1'}
-                    disabled
-                    className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
-                  />
-                </div>
-              </div>
+              <Field>
+                <FieldError>{error}</FieldError>
+                <ConnectButton onClick={handleConnect} connecting={connecting} />
+              </Field>
+            </FieldSet>
+          </FieldGroup>
+        ) : (
+          <>
+            {(connectedProvider?.credentials as BedrockProviderCredentials)?.authMethod === 'accessKey' ? (
+              <Field>
+                <FieldLabel>Access Key ID</FieldLabel>
+                <Input
+                  type="text"
+                  value={(connectedProvider?.credentials as BedrockProviderCredentials)?.accessKeyIdPrefix || 'AKIA...'}
+                  disabled
+                />
+              </Field>
+            ) : (
+              <Field>
+                <FieldLabel>AWS Profile</FieldLabel>
+                <Input
+                  type="text"
+                  value={(connectedProvider?.credentials as BedrockProviderCredentials)?.profileName || 'default'}
+                  disabled
+                />
+              </Field>
+            )}
+            <Field>
+              <FieldLabel>Region</FieldLabel>
+              <Input
+                type="text"
+                value={(connectedProvider?.credentials as BedrockProviderCredentials)?.region || 'us-east-1'}
+                disabled
+              />
+            </Field>
 
-              <ConnectedControls onDisconnect={onDisconnect} />
-
-              {/* Model Selector */}
+            <Field>
               <ModelSelector
                 models={models}
                 value={connectedProvider?.selectedModelId || null}
                 onChange={onModelChange}
                 error={showModelError && !connectedProvider?.selectedModelId}
               />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
+              <ConnectedControls onDisconnect={onDisconnect} />
+            </Field>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }

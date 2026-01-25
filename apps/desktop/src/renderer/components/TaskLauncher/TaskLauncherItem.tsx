@@ -1,13 +1,10 @@
 'use client';
 
 import type { Task } from '@accomplish/shared';
-import { cn } from '@/lib/utils';
 import { Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 
 interface TaskLauncherItemProps {
   task: Task;
-  isSelected: boolean;
-  onClick: () => void;
 }
 
 function formatRelativeDate(dateString: string): string {
@@ -39,26 +36,16 @@ function getStatusIcon(status: Task['status']) {
   }
 }
 
-export default function TaskLauncherItem({ task, isSelected, onClick }: TaskLauncherItemProps) {
+export default function TaskLauncherItem({
+  task,
+}: TaskLauncherItemProps) {
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'w-full text-left px-3 py-2 rounded-md text-sm transition-colors duration-100',
-        'flex items-center gap-2',
-        isSelected
-          ? 'bg-primary text-primary-foreground'
-          : 'text-foreground hover:bg-accent'
-      )}
-    >
+    <div className="flex w-full items-center gap-2 text-sm">
       {getStatusIcon(task.status)}
       <span className="truncate flex-1">{task.prompt}</span>
-      <span className={cn(
-        'text-xs shrink-0',
-        isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'
-      )}>
+      <span className='text-xs shrink-0 text-muted-foreground group-data-highlighted:text-primary-foreground/70'>
         {formatRelativeDate(task.createdAt)}
       </span>
-    </button>
+    </div>
   );
 }

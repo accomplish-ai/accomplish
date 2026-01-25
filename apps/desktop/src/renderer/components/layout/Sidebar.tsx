@@ -48,7 +48,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <div className="flex h-screen w-[260px] flex-col border-r border-border bg-card pt-12">
+      <div className="flex h-screen w-65 flex-col border-r border-border bg-card pt-12">
         {/* Action Buttons */}
         <div className="px-3 py-3 border-b border-border flex gap-2">
           <Button
@@ -74,7 +74,7 @@ export default function Sidebar() {
         </div>
 
         {/* Conversation List */}
-        <ScrollArea className="flex-1">
+        <ScrollArea scrollFade={true} scrollbarGutter={true}>
           <div className="p-2 space-y-1">
             <AnimatePresence mode="wait">
               {tasks.length === 0 ? (
@@ -111,6 +111,7 @@ export default function Sidebar() {
             <img
               src={logoImage}
               alt="Openwork"
+              className='dark:invert'
               style={{ height: '20px', paddingLeft: '6px' }}
             />
           </div>

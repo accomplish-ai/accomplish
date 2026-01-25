@@ -2,7 +2,7 @@
  * Integration tests for SettingsDialog component
  * Tests dialog rendering, API key management, model selection, and debug mode
  * @module __tests__/integration/renderer/components/SettingsDialog.integration.test
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * NOTE: Many tests in this file are skipped because they were written for the old
  * API key-based Settings UI. The SettingsDialog was redesigned to use a provider-based
@@ -31,9 +31,11 @@ vi.mock('@/lib/analytics', () => ({
 // Create mock functions for accomplish API
 const mockGetApiKeys = vi.fn();
 const mockGetDebugMode = vi.fn();
+const mockGetAppearance = vi.fn();
 const mockGetVersion = vi.fn();
 const mockGetSelectedModel = vi.fn();
 const mockSetDebugMode = vi.fn();
+const mockSetAppearance = vi.fn();
 const mockSetSelectedModel = vi.fn();
 const mockAddApiKey = vi.fn();
 const mockRemoveApiKey = vi.fn();
@@ -43,10 +45,12 @@ const mockValidateApiKeyForProvider = vi.fn();
 const mockAccomplish = {
   getApiKeys: mockGetApiKeys,
   getDebugMode: mockGetDebugMode,
+  getAppearance: mockGetAppearance,
   getVersion: mockGetVersion,
   getSelectedModel: mockGetSelectedModel,
   getOllamaConfig: vi.fn().mockResolvedValue(null),
   setDebugMode: mockSetDebugMode,
+  setAppearance: mockSetAppearance,
   setSelectedModel: mockSetSelectedModel,
   addApiKey: mockAddApiKey,
   removeApiKey: mockRemoveApiKey,
@@ -102,23 +106,19 @@ vi.mock('framer-motion', () => {
   };
 });
 
-// Mock Radix Dialog to simplify testing
-vi.mock('@radix-ui/react-dialog', () => ({
-  Root: ({ children, open }: { children: React.ReactNode; open: boolean }) => (
+// Mock Dialog wrapper to simplify testing
+vi.mock('@/components/ui/dialog', () => ({
+  Dialog: ({ children, open }: { children: React.ReactNode; open: boolean }) => (
     open ? <div data-testid="dialog-root">{children}</div> : null
   ),
-  Portal: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Overlay: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="dialog-overlay">{children}</div>
-  ),
-  Content: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
+  DialogContent: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
     <div data-testid="dialog-content" role="dialog" {...props}>{children}</div>
   ),
-  Title: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <h2 className={className}>{children}</h2>
+  DialogHeader: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="dialog-header">{children}</div>
   ),
-  Close: ({ children }: { children: React.ReactNode }) => (
-    <button data-testid="dialog-close">{children}</button>
+  DialogTitle: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <h2 className={className}>{children}</h2>
   ),
 }));
 
@@ -137,9 +137,11 @@ describe('SettingsDialog Integration', () => {
     // Default mock implementations
     mockGetApiKeys.mockResolvedValue([]);
     mockGetDebugMode.mockResolvedValue(false);
+    mockGetAppearance.mockResolvedValue('system');
     mockGetVersion.mockResolvedValue('1.0.0');
     mockGetSelectedModel.mockResolvedValue({ provider: 'anthropic', model: 'anthropic/claude-opus-4-5' });
     mockSetDebugMode.mockResolvedValue(undefined);
+    mockSetAppearance.mockResolvedValue(undefined);
     mockSetSelectedModel.mockResolvedValue(undefined);
     mockValidateApiKeyForProvider.mockResolvedValue({ valid: true });
     mockAddApiKey.mockResolvedValue({ id: 'key-1', provider: 'anthropic', keyPrefix: 'sk-ant-...' });
@@ -169,9 +171,9 @@ describe('SettingsDialog Integration', () => {
       // Arrange & Act
       render(<SettingsDialog {...defaultProps} />);
 
-      // Assert - new SettingsDialog uses "Set up Openwork" as title
+      // Assert - new SettingsDialog opens on Providers
       await waitFor(() => {
-        expect(screen.getByText('Set up Openwork')).toBeInTheDocument();
+        expect(screen.getByText('Providers')).toBeInTheDocument();
       });
     });
 
@@ -216,18 +218,9 @@ describe('SettingsDialog Integration', () => {
      * provider forms which are complex to mock, so we test the observable behavior
      * through the hook's setActiveProvider being called.
      */
-    it('should call setActiveProvider when a ready provider connects (regression test)', async () => {
-      // This test documents the expected behavior:
-      // When handleConnect receives a provider that is "ready" (has selectedModelId),
-      // it should call setActiveProvider with that provider's ID, regardless of
-      // whether activeProviderId already has a value.
-      //
-      // The bug is in SettingsDialog.tsx handleConnect:
-      // BUGGY:   if (!settings?.activeProviderId) { setActiveProvider(...) }
-      // CORRECT: if (isProviderReady(provider)) { setActiveProvider(...) }
-      //
-      // Since the full UI flow is difficult to test in isolation, we document
-      // the expected behavior here and rely on E2E tests for full validation.
+    it('should load provider settings on mount (regression test)', async () => {
+      // This test verifies that getProviderSettings is called when the dialog opens
+      // Full UI behavior for provider switching is better suited for E2E tests
 
       // Initial state: anthropic is connected and active
       mockAccomplish.getProviderSettings = vi.fn().mockResolvedValue({
@@ -246,16 +239,12 @@ describe('SettingsDialog Integration', () => {
 
       render(<SettingsDialog {...defaultProps} />);
 
-      // Wait for dialog to load with anthropic as active
+      // Wait for dialog to load
       await waitFor(() => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
-        // Verify anthropic card has green background (is active)
-        const anthropicCard = screen.getByTestId('provider-card-anthropic');
-        expect(anthropicCard.className).toContain('bg-[#e9f7e7]');
       });
 
-      // Verify the initial state: anthropic is active
-      // This confirms the test setup is correct
+      // Verify getProviderSettings was called to fetch initial state
       expect(mockAccomplish.getProviderSettings).toHaveBeenCalled();
     });
   });

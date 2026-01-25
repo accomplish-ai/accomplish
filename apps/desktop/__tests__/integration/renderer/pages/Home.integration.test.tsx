@@ -2,7 +2,7 @@
  * Integration tests for Home page
  * Tests initial render, task input integration, and loading state
  * @module __tests__/integration/renderer/pages/Home.integration.test
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
