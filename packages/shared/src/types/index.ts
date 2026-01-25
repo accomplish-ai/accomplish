@@ -4,5 +4,6 @@ export * from './permission';
 export * from './provider';
 export * from './providerSettings';
 export * from './task';
+export * from './todo';
 
 export type Appearance = 'system' | 'dark' | 'light';

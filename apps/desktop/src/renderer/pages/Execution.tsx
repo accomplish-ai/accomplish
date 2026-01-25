@@ -21,6 +21,7 @@ import loadingSymbol from '/assets/loading-symbol.svg';
 import SettingsDialog from '../components/layout/SettingsDialog';
 import {Progress} from "@/components/ui/progress";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import { TodoSidebar } from '../components/TodoSidebar';
 
 // Debug log entry type
 interface DebugLogEntry {
@@ -141,6 +142,8 @@ export default function ExecutionPage() {
     setupDownloadStep,
     startupStage,
     startupStageTaskId,
+    todos,
+    todosTaskId,
   } = useTaskStore();
 
   // Debounced scroll function
@@ -622,8 +625,10 @@ export default function ExecutionPage() {
 
       {/* Messages - normal state (running, completed, failed, etc.) */}
       {currentTask.status !== 'queued' && (
-        <div className="flex-1 overflow-y-auto px-6 py-6" ref={scrollContainerRef} onScroll={handleScroll} data-testid="messages-scroll-container">
-          <div className="max-w-4xl mx-auto space-y-4">
+        <div className="flex-1 flex overflow-hidden">
+          {/* Messages area */}
+          <div className="flex-1 overflow-y-auto px-6 py-6" ref={scrollContainerRef} onScroll={handleScroll} data-testid="messages-scroll-container">
+            <div className="max-w-4xl mx-auto space-y-4">
             {currentTask.messages
               .filter((m) => !(m.type === 'tool' && m.toolName?.toLowerCase() === 'bash'))
               .map((message, index, filteredMessages) => {
@@ -662,42 +667,45 @@ export default function ExecutionPage() {
 
             <AnimatePresence>
               {currentTask.status === 'running' && !permissionRequest && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={springs.gentle}
-                  className="flex flex-col gap-1 text-muted-foreground py-2"
-                  data-testid="execution-thinking-indicator"
-                >
-                  <div className="flex items-center gap-2">
-                    <SpinningIcon className="h-4 w-4" />
-                    <span className="text-sm">
-                      {currentTool
-                        ? ((currentToolInput as { description?: string })?.description || TOOL_PROGRESS_MAP[currentTool]?.label || currentTool)
-                        : (startupStageTaskId === id && startupStage)
-                          ? startupStage.message
-                          : 'Thinking...'}
-                    </span>
-                    {currentTool && !(currentToolInput as { description?: string })?.description && (
-                      <span className="text-xs text-muted-foreground/60">
-                        ({currentTool})
+                /* Skip thinking indicator for browser_script - it's shown in the message bubble */
+                currentTool?.endsWith('browser_script') ? null : (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={springs.gentle}
+                    className="flex flex-col gap-1 text-muted-foreground py-2"
+                    data-testid="execution-thinking-indicator"
+                  >
+                    <div className="flex items-center gap-2">
+                      <SpinningIcon className="h-4 w-4" />
+                      <span className="text-sm">
+                        {currentTool
+                          ? ((currentToolInput as { description?: string })?.description || TOOL_PROGRESS_MAP[currentTool]?.label || currentTool)
+                          : (startupStageTaskId === id && startupStage)
+                            ? startupStage.message
+                            : 'Thinking...'}
+                      </span>
+                      {currentTool && !(currentToolInput as { description?: string })?.description && (
+                        <span className="text-xs text-muted-foreground/60">
+                          ({currentTool})
+                        </span>
+                      )}
+                      {/* Elapsed time - only show during startup stages */}
+                      {!currentTool && startupStageTaskId === id && startupStage && (
+                        <span className="text-xs text-muted-foreground/60">
+                          ({elapsedTime}s)
+                        </span>
+                      )}
+                    </div>
+                    {/* Cold start hint */}
+                    {!currentTool && startupStageTaskId === id && startupStage?.isFirstTask && startupStage.stage === 'browser' && (
+                      <span className="text-xs text-muted-foreground/50 ml-6">
+                        First task takes a bit longer...
                       </span>
                     )}
-                    {/* Elapsed time - only show during startup stages */}
-                    {!currentTool && startupStageTaskId === id && startupStage && (
-                      <span className="text-xs text-muted-foreground/60">
-                        ({elapsedTime}s)
-                      </span>
-                    )}
-                  </div>
-                  {/* Cold start hint */}
-                  {!currentTool && startupStageTaskId === id && startupStage?.isFirstTask && startupStage.stage === 'browser' && (
-                    <span className="text-xs text-muted-foreground/50 ml-6">
-                      First task takes a bit longer...
-                    </span>
-                  )}
-                </motion.div>
+                  </motion.div>
+                )
               )}
             </AnimatePresence>
 
@@ -724,7 +732,15 @@ export default function ExecutionPage() {
                 </motion.div>
               )}
             </AnimatePresence>
+            </div>
           </div>
+
+          {/* Todo sidebar - only shown when todos exist for this task */}
+          <AnimatePresence>
+            {todosTaskId === id && todos.length > 0 && (
+              <TodoSidebar todos={todos} />
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -1214,6 +1230,11 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
   const isSystem = message.type === 'system';
   const isAssistant = message.type === 'assistant';
 
+  // Skip todowrite messages entirely - shown in sidebar instead
+  if (isTool && message.toolName === 'todowrite') {
+    return null;
+  }
+
   // Get tool icon from mapping
   const toolName = message.toolName || message.content?.match(/Using tool: (\w+)/)?.[1];
   const ToolIcon = toolName && TOOL_PROGRESS_MAP[toolName]?.icon;
@@ -1275,6 +1296,13 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
       transition={springs.gentle}
       className={cn('flex flex-col group', isUser ? 'items-end' : 'items-start')}
     >
+      {/* Browser Script tool: render card directly without wrapper */}
+      {isTool && toolName?.endsWith('browser_script') && (message.toolInput as { actions?: unknown[] })?.actions ? (
+        <BrowserScriptCard
+          actions={(message.toolInput as { actions: Array<{ action: string; url?: string; selector?: string; ref?: string; text?: string; key?: string }> }).actions}
+          isRunning={isLastMessage && isRunning}
+        />
+      ) : (
       <div
         className={cn(
           'max-w-[85%] rounded-2xl px-4 py-3 transition-all duration-150',
@@ -1356,6 +1384,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
           </>
         )}
       </div>
+      )}
 
       {showCopyButton && (
         <Tooltip>

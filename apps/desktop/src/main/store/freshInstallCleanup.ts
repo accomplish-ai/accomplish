@@ -3,7 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import { clearAppSettings } from './appSettings';
 import { clearTaskHistoryStore } from './taskHistory';
-import { clearSecureStorage } from './secureStorage';
 
 /**
  * Fresh Install Cleanup
@@ -185,13 +184,10 @@ function clearPreviousInstallData(): void {
     }
   }
 
-  // Clear secure storage (API keys stored via electron-store + safeStorage)
-  try {
-    clearSecureStorage();
-    console.log('[FreshInstall]   - Cleared secure storage');
-  } catch (err) {
-    console.error('[FreshInstall]   - Failed to clear secure storage:', err);
-  }
+  // NOTE: We intentionally do NOT clear secure storage (API keys) here.
+  // API keys should persist across app updates - users shouldn't need to
+  // re-enter credentials after every update. The SQLite database handles
+  // schema migrations gracefully, so there's no need to wipe credentials.
 
   console.log('[FreshInstall] Previous installation data cleared');
 }
