@@ -113,8 +113,6 @@ export function OllamaProviderForm({
               />
             </div>
 
-            <ConnectedControls onDisconnect={onDisconnect} />
-
             {/* Model Selector */}
             <ModelSelector
               models={models}
@@ -122,6 +120,8 @@ export function OllamaProviderForm({
               onChange={onModelChange}
               error={showModelError && !connectedProvider?.selectedModelId}
             />
+
+            <ConnectedControls onDisconnect={onDisconnect} />
           </div>
         )}
       </div>

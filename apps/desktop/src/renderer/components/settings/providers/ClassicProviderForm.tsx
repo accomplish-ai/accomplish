@@ -156,8 +156,6 @@ export function ClassicProviderForm({
                 data-testid="api-key-display"
               />
 
-              <ConnectedControls onDisconnect={onDisconnect} />
-
               {/* Model Selector */}
               <ModelSelector
                 models={models}
@@ -165,6 +163,8 @@ export function ClassicProviderForm({
                 onChange={onModelChange}
                 error={showModelError && !connectedProvider?.selectedModelId}
               />
+
+              <ConnectedControls onDisconnect={onDisconnect} />
             </div>
           )}
       </div>

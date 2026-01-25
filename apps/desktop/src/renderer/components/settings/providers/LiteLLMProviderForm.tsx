@@ -151,8 +151,6 @@ export function LiteLLMProviderForm({
               )}
             </div>
 
-            <ConnectedControls onDisconnect={onDisconnect} />
-
             {/* Model Selector */}
             <ModelSelector
               models={models}
@@ -160,6 +158,8 @@ export function LiteLLMProviderForm({
               onChange={onModelChange}
               error={showModelError && !connectedProvider?.selectedModelId}
             />
+
+            <ConnectedControls onDisconnect={onDisconnect} />
           </div>
         )}
       </div>

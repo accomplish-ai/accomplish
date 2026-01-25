@@ -230,8 +230,6 @@ export function BedrockProviderForm({
               </div>
             </div>
 
-            <ConnectedControls onDisconnect={onDisconnect} />
-
             {/* Model Selector */}
             <ModelSelector
               models={models}
@@ -239,6 +237,8 @@ export function BedrockProviderForm({
               onChange={onModelChange}
               error={showModelError && !connectedProvider?.selectedModelId}
             />
+
+            <ConnectedControls onDisconnect={onDisconnect} />
           </div>
         )}
       </div>

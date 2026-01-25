@@ -216,8 +216,6 @@ export function AzureFoundryProviderForm({
               </div>
             </div>
 
-            <ConnectedControls onDisconnect={onDisconnect} />
-
             {/* Model Selector */}
             <ModelSelector
               models={models}
@@ -225,6 +223,8 @@ export function AzureFoundryProviderForm({
               onChange={onModelChange}
               error={showModelError && !connectedProvider?.selectedModelId}
             />
+
+            <ConnectedControls onDisconnect={onDisconnect} />
           </>
         )}
       </div>
