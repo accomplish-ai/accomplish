@@ -22,6 +22,7 @@ import SettingsDialog from '../components/layout/SettingsDialog';
 import {Progress} from "@/components/ui/progress";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import { TodoSidebar } from '../components/TodoSidebar';
+import {BrowserScriptCard} from "@/components/BrowserScriptCard";
 
 // Debug log entry type
 interface DebugLogEntry {
