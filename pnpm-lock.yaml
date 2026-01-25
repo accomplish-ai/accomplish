@@ -189,6 +189,7 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.25.3(hono@4.11.5)(zod@3.25.76)
+    devDependencies:
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
@@ -219,12 +220,6 @@ importers:
       playwright:
         specifier: npm:rebrowser-playwright@^1.52.0
         version: rebrowser-playwright@1.52.0
-      tsx:
-        specifier: ^4.21.0
-        version: 4.21.0
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.3
     optionalDependencies:
       '@rollup/rollup-linux-x64-gnu':
         specifier: ^4.0.0
@@ -233,6 +228,12 @@ importers:
       '@types/express':
         specifier: ^5.0.0
         version: 5.0.6
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
       vitest:
         specifier: ^2.1.0
         version: 2.1.9(@types/node@22.19.3)(happy-dom@20.1.0)(jsdom@27.4.0)
@@ -255,6 +256,7 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.25.3(hono@4.11.5)(zod@3.25.76)
+    devDependencies:
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
