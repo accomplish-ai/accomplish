@@ -135,6 +135,44 @@ function Arrow() {
   return <ChevronRight className="h-3 w-3 text-muted-foreground/50 shrink-0" />;
 }
 
+// Generate stable key for action based on content, not index
+function getActionKey(action: BrowserAction, index: number): string {
+  const parts = [action.action];
+  if (action.url) parts.push(action.url);
+  if (action.selector) parts.push(action.selector);
+  if (action.ref) parts.push(action.ref);
+  if (action.text) parts.push(action.text);
+  if (action.key) parts.push(action.key);
+  // Include index as fallback for duplicate actions
+  return `${parts.join('-')}-${index}`;
+}
+
+// Custom comparison for memo - compare actions by content, not reference
+function arePropsEqual(
+  prevProps: BrowserScriptCardProps,
+  nextProps: BrowserScriptCardProps
+): boolean {
+  if (prevProps.isRunning !== nextProps.isRunning) return false;
+  if (prevProps.actions.length !== nextProps.actions.length) return false;
+
+  // Deep compare actions array
+  for (let i = 0; i < prevProps.actions.length; i++) {
+    const prev = prevProps.actions[i];
+    const next = nextProps.actions[i];
+    if (
+      prev.action !== next.action ||
+      prev.url !== next.url ||
+      prev.selector !== next.selector ||
+      prev.ref !== next.ref ||
+      prev.text !== next.text ||
+      prev.key !== next.key
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export const BrowserScriptCard = memo(function BrowserScriptCard({
   actions,
   isRunning = false,
@@ -170,7 +208,7 @@ export const BrowserScriptCard = memo(function BrowserScriptCard({
         <AnimatePresence mode="popLayout">
           {visibleActions.map((action, index) => (
             <motion.div
-              key={`${action.action}-${index}`}
+              key={getActionKey(action, index)}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
@@ -189,10 +227,13 @@ export const BrowserScriptCard = memo(function BrowserScriptCard({
             <Arrow />
             <button
               onClick={() => setExpanded(!expanded)}
+              aria-expanded={expanded}
+              aria-label={expanded ? 'Show fewer actions' : `Show ${hiddenCount} more actions`}
               className={cn(
                 'inline-flex items-center px-2 py-1 rounded-md text-xs font-medium',
                 'bg-primary/10 text-primary cursor-pointer',
-                'hover:bg-primary/20 transition-colors'
+                'hover:bg-primary/20 transition-colors',
+                'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1'
               )}
             >
               {expanded ? 'Show less' : `+${hiddenCount} more`}
@@ -202,4 +243,4 @@ export const BrowserScriptCard = memo(function BrowserScriptCard({
       </div>
     </motion.div>
   );
-});
+}, arePropsEqual);
