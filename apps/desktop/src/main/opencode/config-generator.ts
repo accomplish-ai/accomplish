@@ -145,35 +145,48 @@ See the ask-user-question skill for full documentation and examples.
 </important>
 
 <behavior name="task-planning">
-**TASK PLANNING - REQUIRED FOR EVERY TASK**
+##############################################################################
+# CRITICAL: PLAN FIRST, THEN USE TODOWRITE - BOTH ARE MANDATORY
+##############################################################################
+
+**STEP 1: OUTPUT A PLAN (before any action)**
 
 Before taking ANY action, you MUST first output a plan:
 
 1. **State the goal** - What the user wants accomplished
-2. **List steps with verification** - Numbered steps, each with a completion criterion
+2. **List steps** - Numbered steps to achieve the goal
 
 Format:
 **Plan:**
 Goal: [what user asked for]
 
 Steps:
-1. [Action] → verify: [how to confirm it's done]
-2. [Action] → verify: [how to confirm it's done]
+1. [First action]
+2. [Second action]
 ...
 
-Then execute the steps. When calling \`complete_task\`:
-- Review each step's verification criterion
-- Only use status "success" if ALL criteria are met
-- Use "partial" if some steps incomplete, list which ones in \`remaining_work\`
+**STEP 2: IMMEDIATELY CALL TODOWRITE**
 
-**Example:**
-Goal: Extract analytics data from a website
+After outputting your plan, you MUST call the \`todowrite\` tool to create your task list.
+This is NOT optional. The user sees your todos in a sidebar - if you skip this, they see nothing.
 
-Steps:
-1. Navigate to URL → verify: page title contains expected text
-2. Locate data section → verify: can see the target metrics
-3. Extract values → verify: have captured specific numbers
-4. Report findings → verify: summary includes all extracted data
+\`\`\`json
+{
+  "todos": [
+    {"id": "1", "content": "First step description", "status": "in_progress", "priority": "high"},
+    {"id": "2", "content": "Second step description", "status": "pending", "priority": "medium"},
+    {"id": "3", "content": "Third step description", "status": "pending", "priority": "medium"}
+  ]
+}
+\`\`\`
+
+**STEP 3: COMPLETE ALL TODOS BEFORE FINISHING**
+- All todos must be "completed" or "cancelled" before calling complete_task
+
+WRONG: Starting work without planning and calling todowrite first
+CORRECT: Output plan FIRST, call todowrite SECOND, then start working
+
+##############################################################################
 </behavior>
 
 <behavior>
@@ -722,7 +735,11 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     // Auto-allow all tool permissions - the system prompt instructs the agent to use
     // AskUserQuestion for user confirmations, which shows in the UI as an interactive modal.
     // CLI-level permission prompts don't show in the UI and would block task execution.
-    permission: 'allow',
+    // Note: todowrite is disabled by default and must be explicitly enabled.
+    permission: {
+      '*': 'allow',
+      todowrite: 'allow',
+    },
     provider: Object.keys(providerConfig).length > 0 ? providerConfig : undefined,
     agent: {
       [ACCOMPLISH_AGENT_NAME]: {
@@ -732,6 +749,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
       },
     },
     // MCP servers for additional tools
+    // Timeout set to 30000ms to handle slow npx startup on Windows
     mcp: {
       'file-permission': {
         type: 'local',
@@ -740,7 +758,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
         environment: {
           PERMISSION_API_PORT: String(PERMISSION_API_PORT),
         },
-        timeout: 10000,
+        timeout: 30000,
       },
       'ask-user-question': {
         type: 'local',
@@ -749,20 +767,20 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
         environment: {
           QUESTION_API_PORT: String(QUESTION_API_PORT),
         },
-        timeout: 10000,
+        timeout: 30000,
       },
       'dev-browser-mcp': {
         type: 'local',
         command: ['npx', 'tsx', path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts')],
         enabled: true,
-        timeout: 30000,  // Longer timeout for browser operations
+        timeout: 30000,
       },
       // Provides complete_task tool - agent must call to signal task completion
       'complete-task': {
         type: 'local',
         command: ['npx', 'tsx', path.join(skillsPath, 'complete-task', 'src', 'index.ts')],
         enabled: true,
-        timeout: 5000,
+        timeout: 30000,
       },
     },
   };

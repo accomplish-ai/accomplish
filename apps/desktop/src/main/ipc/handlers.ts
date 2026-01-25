@@ -79,6 +79,7 @@ import type {
   OllamaConfig,
   AzureFoundryConfig,
   LiteLLMConfig,
+  TodoItem,
 } from '@accomplish/shared';
 import { DEFAULT_PROVIDERS } from '@accomplish/shared';
 import {
@@ -435,6 +436,10 @@ export function registerIPCHandlers(): void {
         // Update task status in history
         updateTaskStatus(taskId, status, new Date().toISOString());
       },
+
+      onTodoUpdate: (todos: TodoItem[]) => {
+        forwardToRenderer('todo:update', { taskId, todos });
+      },
     };
 
     // Start the task via TaskManager (creates isolated adapter or queues if busy)
@@ -686,6 +691,10 @@ export function registerIPCHandlers(): void {
         });
         // Update task status in history
         updateTaskStatus(taskId, status, new Date().toISOString());
+      },
+
+      onTodoUpdate: (todos: TodoItem[]) => {
+        forwardToRenderer('todo:update', { taskId, todos });
       },
     };
 

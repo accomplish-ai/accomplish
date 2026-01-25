@@ -21,6 +21,7 @@ import { isWaitingForUser } from '../lib/waiting-detection';
 import { BrowserScriptCard } from '../components/BrowserScriptCard';
 import loadingSymbol from '/assets/loading-symbol.svg';
 import SettingsDialog from '../components/layout/SettingsDialog';
+import { TodoSidebar } from '../components/TodoSidebar';
 
 // Debug log entry type
 interface DebugLogEntry {
@@ -140,6 +141,8 @@ export default function ExecutionPage() {
     setupDownloadStep,
     startupStage,
     startupStageTaskId,
+    todos,
+    todosTaskId,
   } = useTaskStore();
 
   // Debounced scroll function
@@ -648,8 +651,10 @@ export default function ExecutionPage() {
 
       {/* Messages - normal state (running, completed, failed, etc.) */}
       {currentTask.status !== 'queued' && (
-        <div className="flex-1 overflow-y-auto px-6 py-6" ref={scrollContainerRef} onScroll={handleScroll} data-testid="messages-scroll-container">
-          <div className="max-w-4xl mx-auto space-y-4">
+        <div className="flex-1 flex overflow-hidden">
+          {/* Messages area */}
+          <div className="flex-1 overflow-y-auto px-6 py-6" ref={scrollContainerRef} onScroll={handleScroll} data-testid="messages-scroll-container">
+            <div className="max-w-4xl mx-auto space-y-4">
             {currentTask.messages
               .filter((m) => !(m.type === 'tool' && m.toolName?.toLowerCase() === 'bash'))
               .map((message, index, filteredMessages) => {
@@ -753,7 +758,15 @@ export default function ExecutionPage() {
                 </motion.div>
               )}
             </AnimatePresence>
+            </div>
           </div>
+
+          {/* Todo sidebar - only shown when todos exist for this task */}
+          <AnimatePresence>
+            {todosTaskId === id && todos.length > 0 && (
+              <TodoSidebar todos={todos} />
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -1241,6 +1254,11 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
   const isTool = message.type === 'tool';
   const isSystem = message.type === 'system';
   const isAssistant = message.type === 'assistant';
+
+  // Skip todowrite messages entirely - shown in sidebar instead
+  if (isTool && message.toolName === 'todowrite') {
+    return null;
+  }
 
   // Get tool icon from mapping
   const toolName = message.toolName || message.content?.match(/Using tool: (\w+)/)?.[1];

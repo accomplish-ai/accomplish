@@ -205,7 +205,7 @@ describe('OpenCode Config Generator Integration', () => {
 
       expect(config.$schema).toBe('https://opencode.ai/config.json');
       expect(config.default_agent).toBe('accomplish');
-      expect(config.permission).toBe('allow');
+      expect(config.permission).toEqual({ '*': 'allow', todowrite: 'allow' });
       expect(config.enabled_providers).toContain('anthropic');
       expect(config.enabled_providers).toContain('openai');
       expect(config.enabled_providers).toContain('google');
