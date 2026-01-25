@@ -6,6 +6,7 @@ import { getOllamaConfig } from '../store/appSettings';
 import { getApiKey } from '../store/secureStorage';
 import { getProviderSettings, getActiveProviderModel, getConnectedProviderIds } from '../store/providerSettings';
 import { ensureAzureFoundryProxy } from './azure-foundry-proxy';
+import { getBundledNodePaths } from '../utils/bundled-node';
 import type { BedrockCredentials, ProviderId, AzureFoundryCredentials } from '@accomplish/shared';
 
 /**
@@ -67,6 +68,50 @@ You are running on ${process.platform === 'darwin' ? 'macOS' : 'Linux'}.
   }
 }
 
+/**
+ * Build the command array for spawning an MCP server.
+ *
+ * ## Why this is needed (Windows only)
+ *
+ * On Windows, `npx` is not a native executable—it's a batch script (`npx.cmd`).
+ * When Node.js `child_process.spawn()` tries to run `npx` directly, it fails with
+ * "spawn npx ENOENT" because spawn doesn't invoke a shell by default.
+ *
+ * Additionally, users may not have Node.js installed system-wide. The app bundles
+ * its own Node.js runtime, but the MCP server spawner (OpenCode CLI) needs the
+ * full path to find it.
+ *
+ * ## Solution
+ *
+ * On Windows packaged apps, we use the full absolute path to the bundled `npx.cmd`.
+ * This ensures MCP servers can spawn regardless of system Node.js installation.
+ *
+ * On macOS/Linux, the standard `npx` command works because:
+ * 1. Unix systems handle script shebangs natively
+ * 2. PATH inheritance works better from GUI apps
+ * 3. Most macOS users have Node.js installed via Homebrew/nvm
+ *
+ * If macOS users without system Node.js report issues, this function can be
+ * extended to use full paths on all platforms.
+ *
+ * @see https://en.kelen.cc/faq/troubleshooting-mcp-configuration-and-npx-issues-on-windows
+ * @see https://fransiscuss.com/2025/04/22/fix-spawn-npx-enoent-windows11-mcp-server/
+ *
+ * @param scriptPath - Absolute path to the TypeScript MCP server entry point
+ * @returns Command array suitable for MCP server config
+ */
+function buildMcpCommand(scriptPath: string): string[] {
+  const bundledNode = getBundledNodePaths();
+
+  // Use full path to npx on Windows packaged apps to avoid "spawn npx ENOENT" errors.
+  // In development or on macOS/Linux, the standard 'npx' command works fine.
+  if (bundledNode && process.platform === 'win32') {
+    return [bundledNode.npxPath, 'tsx', scriptPath];
+  }
+
+  // Development mode or macOS/Linux: use system npx from PATH
+  return ['npx', 'tsx', scriptPath];
+}
 
 const ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE = `<identity>
 You are Accomplish, a browser automation assistant.
@@ -750,10 +795,11 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     },
     // MCP servers for additional tools
     // Timeout set to 30000ms to handle slow npx startup on Windows
+    // Uses buildMcpCommand() for Windows compatibility - see function docs for details
     mcp: {
       'file-permission': {
         type: 'local',
-        command: ['npx', 'tsx', filePermissionServerPath],
+        command: buildMcpCommand(filePermissionServerPath),
         enabled: true,
         environment: {
           PERMISSION_API_PORT: String(PERMISSION_API_PORT),
@@ -762,7 +808,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
       },
       'ask-user-question': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'ask-user-question', 'src', 'index.ts')],
+        command: buildMcpCommand(path.join(skillsPath, 'ask-user-question', 'src', 'index.ts')),
         enabled: true,
         environment: {
           QUESTION_API_PORT: String(QUESTION_API_PORT),
@@ -771,14 +817,14 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
       },
       'dev-browser-mcp': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts')],
+        command: buildMcpCommand(path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts')),
         enabled: true,
         timeout: 30000,
       },
       // Provides complete_task tool - agent must call to signal task completion
       'complete-task': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'complete-task', 'src', 'index.ts')],
+        command: buildMcpCommand(path.join(skillsPath, 'complete-task', 'src', 'index.ts')),
         enabled: true,
         timeout: 30000,
       },
