@@ -6,7 +6,7 @@ import { getOllamaConfig } from '../store/appSettings';
 import { getApiKey } from '../store/secureStorage';
 import { getProviderSettings, getActiveProviderModel, getConnectedProviderIds } from '../store/providerSettings';
 import { ensureAzureFoundryProxy } from './azure-foundry-proxy';
-import { getBundledNodePaths } from '../utils/bundled-node';
+import { getNpxPath } from '../utils/bundled-node';
 import type { BedrockCredentials, ProviderId, AzureFoundryCredentials } from '@accomplish/shared';
 
 /**
@@ -101,15 +101,15 @@ You are running on ${process.platform === 'darwin' ? 'macOS' : 'Linux'}.
  * @returns Command array suitable for MCP server config
  */
 function buildMcpCommand(scriptPath: string): string[] {
-  const bundledNode = getBundledNodePaths();
-
-  // Use full path to npx on Windows packaged apps to avoid "spawn npx ENOENT" errors.
-  // In development or on macOS/Linux, the standard 'npx' command works fine.
-  if (bundledNode && process.platform === 'win32') {
-    return [bundledNode.npxPath, 'tsx', scriptPath];
+  // On Windows, use getNpxPath() which returns:
+  // - Full path to bundled npx.cmd if it exists (fixes "spawn npx ENOENT")
+  // - Falls back to 'npx' if bundled binary is missing (preserves system Node.js fallback)
+  // On macOS/Linux, the standard 'npx' command works fine.
+  if (process.platform === 'win32') {
+    return [getNpxPath(), 'tsx', scriptPath];
   }
 
-  // Development mode or macOS/Linux: use system npx from PATH
+  // macOS/Linux: use system npx from PATH
   return ['npx', 'tsx', scriptPath];
 }
 
