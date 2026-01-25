@@ -33,8 +33,14 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/desktop/package.json ./apps/desktop/
 
-# Copy skills directories (needed by postinstall script)
+# Copy scripts directory (needed by root postinstall script)
+COPY scripts/ ./scripts/
+
+# Copy skills directories (needed by desktop postinstall script)
 COPY apps/desktop/skills ./apps/desktop/skills
+
+# Copy scripts directory (needed by postinstall script)
+COPY apps/desktop/scripts ./apps/desktop/scripts
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile

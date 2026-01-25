@@ -55,13 +55,21 @@ export default function ConversationListItem({ task }: ConversationListItemProps
   };
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
       title={task.summary || task.prompt}
       className={cn(
         'w-full text-left px-3 py-2 rounded-md text-sm transition-colors duration-200',
         'text-zinc-700 hover:bg-accent hover:text-accent-foreground',
-        'flex items-center gap-2 group relative',
+        'flex items-center gap-2 group relative cursor-pointer',
         isActive && 'bg-accent text-accent-foreground'
       )}
     >
@@ -79,6 +87,6 @@ export default function ConversationListItem({ task }: ConversationListItemProps
       >
         <X className="h-3 w-3" />
       </button>
-    </button>
+    </div>
   );
 }

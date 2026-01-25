@@ -47,6 +47,8 @@ export default function TaskInputBar({
   }, [value]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Ignore Enter during IME composition (Chinese/Japanese input)
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onSubmit();
@@ -54,7 +56,7 @@ export default function TaskInputBar({
   };
 
   return (
-    <div className="relative flex items-end gap-2 rounded-xl border border-border bg-background px-3 py-2.5 shadow-sm transition-all duration-200 ease-accomplish focus-within:border-ring focus-within:ring-1 focus-within:ring-ring">
+    <div className="relative flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 shadow-sm transition-all duration-200 ease-accomplish focus-within:border-ring focus-within:ring-1 focus-within:ring-ring">
       {/* Text input */}
       <textarea
         data-testid="task-input-textarea"
@@ -65,7 +67,7 @@ export default function TaskInputBar({
         placeholder={placeholder}
         disabled={isDisabled}
         rows={1}
-        className={`max-h-[200px] min-h-[36px] flex-1 resize-none bg-transparent text-foreground placeholder:text-gray-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${large ? 'text-[20px]' : 'text-sm'}`}
+        className={`max-h-[200px] flex-1 resize-none bg-transparent text-foreground placeholder:text-gray-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${large ? 'text-[20px]' : 'text-sm'}`}
       />
 
       {/* Submit button */}

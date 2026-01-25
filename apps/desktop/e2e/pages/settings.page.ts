@@ -4,193 +4,244 @@ import { TEST_TIMEOUTS } from '../config';
 export class SettingsPage {
   constructor(private page: Page) {}
 
-  get title() {
-    return this.page.getByTestId('settings-title');
+  // ===== Provider Grid =====
+
+  get providerGrid() {
+    return this.page.getByTestId('provider-grid');
   }
+
+  get providerSearchInput() {
+    return this.page.getByTestId('provider-search-input');
+  }
+
+  get showAllButton() {
+    return this.page.getByRole('button', { name: 'Show All' });
+  }
+
+  get hideButton() {
+    return this.page.getByRole('button', { name: 'Hide' });
+  }
+
+  getProviderCard(providerId: string) {
+    return this.page.getByTestId(`provider-card-${providerId}`);
+  }
+
+  getProviderConnectedBadge(providerId: string) {
+    return this.page.getByTestId(`provider-connected-badge-${providerId}`);
+  }
+
+  // ===== Connection Status =====
+
+  get connectionStatus() {
+    return this.page.getByTestId('connection-status');
+  }
+
+  get disconnectButton() {
+    return this.page.getByTestId('disconnect-button');
+  }
+
+  get connectButton() {
+    return this.page.getByRole('button', { name: 'Connect' });
+  }
+
+  // ===== Model Selection =====
+
+  get modelSelector() {
+    return this.page.getByTestId('model-selector');
+  }
+
+  get modelSelectorError() {
+    return this.page.getByTestId('model-selector-error');
+  }
+
+  // ===== API Key Input =====
+
+  get apiKeyInput() {
+    return this.page.getByTestId('api-key-input');
+  }
+
+  get apiKeyHelpLink() {
+    return this.page.getByRole('link', { name: 'How can I find it?' });
+  }
+
+  // ===== Bedrock Specific =====
+
+  get bedrockAccessKeyTab() {
+    return this.page.getByRole('button', { name: 'Access Key' });
+  }
+
+  get bedrockAwsProfileTab() {
+    return this.page.getByRole('button', { name: 'AWS Profile' });
+  }
+
+  get bedrockAccessKeyIdInput() {
+    return this.page.getByTestId('bedrock-access-key-id');
+  }
+
+  get bedrockSecretKeyInput() {
+    return this.page.getByTestId('bedrock-secret-key');
+  }
+
+  get bedrockSessionTokenInput() {
+    return this.page.getByTestId('bedrock-session-token');
+  }
+
+  get bedrockProfileNameInput() {
+    return this.page.getByTestId('bedrock-profile-name');
+  }
+
+  get bedrockRegionSelect() {
+    return this.page.getByTestId('bedrock-region-select');
+  }
+
+  // ===== Ollama Specific =====
+
+  get ollamaServerUrlInput() {
+    return this.page.getByTestId('ollama-server-url');
+  }
+
+  get ollamaConnectionError() {
+    return this.page.getByTestId('ollama-connection-error');
+  }
+
+  // ===== LiteLLM Specific =====
+
+  get litellmServerUrlInput() {
+    return this.page.getByTestId('litellm-server-url');
+  }
+
+  get litellmApiKeyInput() {
+    return this.page.getByTestId('litellm-api-key');
+  }
+
+  // ===== OpenRouter Specific =====
+
+  get openrouterFetchModelsButton() {
+    return this.page.getByRole('button', { name: /Fetch Models|Refresh/ });
+  }
+
+  // ===== Debug Mode =====
 
   get debugModeToggle() {
     return this.page.getByTestId('settings-debug-toggle');
   }
 
-  get modelSection() {
-    return this.page.getByTestId('settings-model-section');
+  // ===== Dialog =====
+
+  get settingsDialog() {
+    return this.page.getByTestId('settings-dialog');
   }
 
-  get modelSelect() {
-    return this.page.getByTestId('settings-model-select');
+  get doneButton() {
+    return this.page.getByTestId('settings-done-button');
   }
 
-  get providerSection() {
-    return this.page.getByTestId('settings-provider-section');
+  get closeWarning() {
+    return this.page.getByText('No provider ready');
   }
 
-  get apiKeyInput() {
-    return this.page.getByTestId('settings-api-key-input');
-  }
-
-  get addApiKeyButton() {
-    return this.page.getByTestId('settings-add-api-key-button');
-  }
-
-  get removeApiKeyButton() {
-    return this.page.getByTestId('settings-remove-api-key-button');
-  }
-
-  get backButton() {
-    return this.page.getByTestId('settings-back-button');
+  get closeAnywayButton() {
+    return this.page.getByRole('button', { name: 'Close Anyway' });
   }
 
   get sidebarSettingsButton() {
     return this.page.getByTestId('sidebar-settings-button');
   }
 
-  get bedrockProviderButton() {
-    return this.page.locator('button:has-text("Amazon Bedrock")');
-  }
-
-  get bedrockAccessKeysTab() {
-    return this.page.locator('button:has-text("Access Keys")');
-  }
-
-  get bedrockProfileTab() {
-    return this.page.locator('button:has-text("AWS Profile")');
-  }
-
-  get bedrockAccessKeyInput() {
-    return this.page.getByTestId('bedrock-access-key-input');
-  }
-
-  get bedrockSecretKeyInput() {
-    return this.page.getByTestId('bedrock-secret-key-input');
-  }
-
-  get bedrockProfileInput() {
-    return this.page.getByTestId('bedrock-profile-input');
-  }
-
-  get bedrockRegionInput() {
-    return this.page.getByTestId('bedrock-region-input');
-  }
-
-  get bedrockSaveButton() {
-    return this.page.getByTestId('bedrock-save-button');
-  }
-
-  // Tab buttons
-  get cloudProvidersTab() {
-    return this.page.getByRole('button', { name: 'Cloud Providers' });
-  }
-
-  get localModelsTab() {
-    return this.page.getByRole('button', { name: 'Local Models' });
-  }
-
-  get proxyPlatformsTab() {
-    return this.page.getByRole('button', { name: 'Proxy Platforms' });
-  }
-
-  // Proxy Platforms tab elements
-  get openrouterPlatformButton() {
-    return this.page.locator('button:has-text("OpenRouter")').first();
-  }
-
-  get litellmPlatformButton() {
-    return this.page.locator('button:has-text("LiteLLM"):not([disabled])');
-  }
-
-  get litellmUrlInput() {
-    return this.page.locator('[data-testid="litellm-url-input"]');
-  }
-
-  get litellmApiKeyInput() {
-    return this.page.locator('[data-testid="litellm-api-key-input"]');
-  }
-
-  get litellmTestConnectionButton() {
-    return this.page.locator('[data-testid="litellm-test-button"]');
-  }
-
-  get litellmModelSearch() {
-    return this.page.locator('[data-testid="litellm-search-input"]');
-  }
-
-  get litellmUseModelButton() {
-    return this.page.locator('[data-testid="litellm-save-button"]');
-  }
-
-  async selectLiteLLMPlatform() {
-    await this.litellmPlatformButton.click();
-  }
-
-  get fetchModelsButton() {
-    return this.page.getByRole('button', { name: /Fetch Models|Refresh/ });
-  }
-
-  get openrouterApiKeyInput() {
-    return this.page.getByPlaceholder('sk-or-...');
-  }
-
-  get saveOpenrouterApiKeyButton() {
-    return this.page.getByRole('button', { name: /Save API Key & Fetch Models/ });
-  }
+  // ===== Actions =====
 
   async navigateToSettings() {
-    // Click the settings button in sidebar to navigate
     await this.sidebarSettingsButton.click();
-    // Wait for settings dialog to be visible
-    await this.modelSelect.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
+    await this.settingsDialog.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
+  }
+
+  async selectProvider(providerId: string) {
+    await this.getProviderCard(providerId).click();
+    // Wait for panel to appear
+    await this.page.waitForTimeout(300);
+  }
+
+  async searchProvider(query: string) {
+    await this.providerSearchInput.fill(query);
+  }
+
+  async clearSearch() {
+    await this.providerSearchInput.clear();
+  }
+
+  async toggleShowAll() {
+    const showAllVisible = await this.showAllButton.isVisible();
+    if (showAllVisible) {
+      await this.showAllButton.click();
+    } else {
+      await this.hideButton.click();
+    }
+  }
+
+  async enterApiKey(key: string) {
+    await this.apiKeyInput.fill(key);
+  }
+
+  async clickConnect() {
+    await this.connectButton.click();
+  }
+
+  async clickDisconnect() {
+    await this.disconnectButton.click();
+  }
+
+  async selectModel(modelId: string) {
+    await this.modelSelector.selectOption(modelId);
   }
 
   async toggleDebugMode() {
     await this.debugModeToggle.click();
   }
 
-  async selectModel(modelName: string) {
-    await this.modelSelect.click();
-    await this.page.getByText(modelName).click();
+  async closeDialog() {
+    await this.doneButton.click();
   }
 
-  async addApiKey(provider: string, key: string) {
-    await this.apiKeyInput.fill(key);
-    await this.addApiKeyButton.click();
+  async pressEscapeToClose() {
+    await this.page.keyboard.press('Escape');
   }
 
-  /**
-   * Get a provider button by its name
-   */
-  getProviderButton(providerName: string) {
-    return this.page.getByRole('button', { name: providerName, exact: true });
+  // Bedrock specific actions
+  async selectBedrockAccessKeyTab() {
+    await this.bedrockAccessKeyTab.click();
   }
 
-  /**
-   * Select a provider by clicking its button
-   */
-  async selectProvider(providerName: string) {
-    const button = this.getProviderButton(providerName);
-    await button.click();
+  async selectBedrockAwsProfileTab() {
+    await this.bedrockAwsProfileTab.click();
   }
 
-  /**
-   * Check if a provider button is visible
-   */
-  async isProviderVisible(providerName: string) {
-    const button = this.getProviderButton(providerName);
-    return button.isVisible();
+  async enterBedrockAccessKeyCredentials(accessKeyId: string, secretKey: string, sessionToken?: string) {
+    await this.bedrockAccessKeyIdInput.fill(accessKeyId);
+    await this.bedrockSecretKeyInput.fill(secretKey);
+    if (sessionToken) {
+      await this.bedrockSessionTokenInput.fill(sessionToken);
+    }
   }
 
-  async selectBedrockProvider() {
-    await this.bedrockProviderButton.click();
+  async enterBedrockProfileCredentials(profileName: string) {
+    await this.bedrockProfileNameInput.fill(profileName);
   }
 
-  async selectBedrockAccessKeysTab() {
-    await this.bedrockAccessKeysTab.click();
+  async selectBedrockRegion(region: string) {
+    await this.bedrockRegionSelect.selectOption(region);
   }
 
-  async selectBedrockProfileTab() {
-    await this.bedrockProfileTab.click();
+  // Ollama specific actions
+  async enterOllamaServerUrl(url: string) {
+    await this.ollamaServerUrlInput.fill(url);
   }
 
-  async selectProxyPlatformsTab() {
-    await this.proxyPlatformsTab.click();
+  // LiteLLM specific actions
+  async enterLiteLLMServerUrl(url: string) {
+    await this.litellmServerUrlInput.fill(url);
+  }
+
+  async enterLiteLLMApiKey(key: string) {
+    await this.litellmApiKeyInput.fill(key);
   }
 }

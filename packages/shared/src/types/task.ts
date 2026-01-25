@@ -67,13 +67,28 @@ export interface TaskResult {
   error?: string;
 }
 
+/**
+ * Startup stages shown during task initialization (before first tool runs)
+ */
+export type StartupStage =
+  | 'starting'      // Task created
+  | 'browser'       // Preparing browser (cold start only)
+  | 'environment'   // Setting up environment (config + API keys)
+  | 'loading'       // Loading agent (CLI spawning)
+  | 'connecting'    // Connecting to model (step_start received)
+  | 'waiting';      // Waiting for response (timed transition)
+
 export interface TaskProgress {
   taskId: string;
-  stage: 'init' | 'thinking' | 'tool-use' | 'waiting' | 'complete';
+  stage: 'init' | 'thinking' | 'tool-use' | 'waiting' | 'complete' | 'setup' | StartupStage;
   toolName?: string;
   toolInput?: unknown;
   percentage?: number;
   message?: string;
+  /** Model display name for 'connecting' stage */
+  modelName?: string;
+  /** Whether this is the first task (cold start) */
+  isFirstTask?: boolean;
 }
 
 export interface TaskUpdateEvent {

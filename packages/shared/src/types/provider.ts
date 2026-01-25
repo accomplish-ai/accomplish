@@ -2,7 +2,7 @@
  * Provider and model configuration types for multi-provider support
  */
 
-export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'zai' | 'custom' | 'bedrock' | 'litellm';
+export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm';
 
 export interface ProviderConfig {
   id: ProviderType;
@@ -26,7 +26,8 @@ export interface ModelConfig {
 export interface SelectedModel {
   provider: ProviderType;
   model: string; // Full ID: "anthropic/claude-sonnet-4-5"
-  baseUrl?: string;  // For Ollama: the server URL
+  baseUrl?: string;  // For Ollama: the server URL, for Azure Foundry: the endpoint URL
+  deploymentName?: string;  // For Azure Foundry: the deployment name
 }
 
 /**
@@ -46,6 +47,18 @@ export interface OllamaConfig {
   enabled: boolean;
   lastValidated?: number;
   models?: OllamaModelInfo[];  // Discovered models from Ollama API
+}
+
+/**
+/**
+ * Azure Foundry configuration
+ */
+export interface AzureFoundryConfig {
+  baseUrl: string;  // Azure Foundry endpoint URL
+  deploymentName: string;  // Deployment name
+  authType: 'api-key' | 'entra-id';  // Authentication type
+  enabled: boolean;
+  lastValidated?: number;
 }
 
 /**
@@ -220,10 +233,26 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     baseUrl: 'https://open.bigmodel.cn',
     models: [
       {
+        id: 'glm-4.7-flashx',
+        displayName: 'GLM-4.7 FlashX (Latest)',
+        provider: 'zai',
+        fullId: 'zai/glm-4.7-flashx',
+        contextWindow: 200000,
+        supportsVision: false,
+      },
+      {
         id: 'glm-4.7',
-        displayName: 'GLM-4.7 (Latest)',
+        displayName: 'GLM-4.7',
         provider: 'zai',
         fullId: 'zai/glm-4.7',
+        contextWindow: 200000,
+        supportsVision: false,
+      },
+      {
+        id: 'glm-4.7-flash',
+        displayName: 'GLM-4.7 Flash',
+        provider: 'zai',
+        fullId: 'zai/glm-4.7-flash',
         contextWindow: 200000,
         supportsVision: false,
       },
@@ -249,32 +278,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     id: 'bedrock',
     name: 'Amazon Bedrock',
     requiresApiKey: false, // Uses AWS credentials
-    models: [
-      {
-        id: 'anthropic.claude-opus-4-5-20251101-v1:0',
-        displayName: 'Claude Opus 4.5',
-        provider: 'bedrock',
-        fullId: 'amazon-bedrock/anthropic.claude-opus-4-5-20251101-v1:0',
-        contextWindow: 200000,
-        supportsVision: true,
-      },
-      {
-        id: 'anthropic.claude-sonnet-4-5-20250929-v1:0',
-        displayName: 'Claude Sonnet 4.5',
-        provider: 'bedrock',
-        fullId: 'amazon-bedrock/anthropic.claude-sonnet-4-5-20250929-v1:0',
-        contextWindow: 200000,
-        supportsVision: true,
-      },
-      {
-        id: 'anthropic.claude-haiku-4-5-20251001-v1:0',
-        displayName: 'Claude Haiku 4.5',
-        provider: 'bedrock',
-        fullId: 'amazon-bedrock/anthropic.claude-haiku-4-5-20251001-v1:0',
-        contextWindow: 200000,
-        supportsVision: true,
-      },
-    ],
+    models: [], // Now fetched dynamically from AWS API
   },
 ];
 

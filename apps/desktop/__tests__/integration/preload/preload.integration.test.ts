@@ -40,6 +40,9 @@ describe('Preload Script Integration', () => {
     capturedAccomplishAPI = {};
     capturedAccomplishShell = {};
 
+    // Set the package version env var (normally set by npm/pnpm when running scripts)
+    process.env.npm_package_version = pkg.version;
+
     // Capture what the real preload exposes
     mockExposeInMainWorld.mockImplementation((name: string, api: unknown) => {
       if (name === 'accomplish') {

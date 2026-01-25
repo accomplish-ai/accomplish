@@ -23,7 +23,6 @@ const {
   mockGetVersion,
   mockClearAppSettings,
   mockClearTaskHistoryStore,
-  mockClearSecureStorage,
 } = vi.hoisted(() => ({
   mockExistsSync: vi.fn(),
   mockReadFileSync: vi.fn(),
@@ -35,7 +34,6 @@ const {
   mockGetVersion: vi.fn(),
   mockClearAppSettings: vi.fn(),
   mockClearTaskHistoryStore: vi.fn(),
-  mockClearSecureStorage: vi.fn(),
 }));
 
 // Mock fs module
@@ -74,9 +72,8 @@ vi.mock('@main/store/taskHistory', () => ({
   clearTaskHistoryStore: mockClearTaskHistoryStore,
 }));
 
-vi.mock('@main/store/secureStorage', () => ({
-  clearSecureStorage: mockClearSecureStorage,
-}));
+// NOTE: secureStorage is no longer mocked because clearSecureStorage is no longer
+// called during fresh install cleanup. API keys should persist across app updates.
 
 // Import the REAL module function after mocking dependencies
 import { checkAndCleanupFreshInstall } from '@main/store/freshInstallCleanup';
@@ -118,7 +115,6 @@ describe('Fresh Install Cleanup Integration', () => {
       // Should not call any cleanup functions in dev mode
       expect(mockClearAppSettings).not.toHaveBeenCalled();
       expect(mockClearTaskHistoryStore).not.toHaveBeenCalled();
-      expect(mockClearSecureStorage).not.toHaveBeenCalled();
     });
 
     it('should return false when exe path does not contain .app bundle', async () => {
@@ -211,11 +207,10 @@ describe('Fresh Install Cleanup Integration', () => {
       // Act
       const result = await checkAndCleanupFreshInstall();
 
-      // Assert - cleanup was performed
+      // Assert - cleanup was performed (but NOT secure storage - API keys persist)
       expect(result).toBe(true);
       expect(mockClearAppSettings).toHaveBeenCalled();
       expect(mockClearTaskHistoryStore).toHaveBeenCalled();
-      expect(mockClearSecureStorage).toHaveBeenCalled();
     });
 
     it('should return true and cleanup on reinstall (existing data but no marker)', async () => {
@@ -234,11 +229,10 @@ describe('Fresh Install Cleanup Integration', () => {
       // Act
       const result = await checkAndCleanupFreshInstall();
 
-      // Assert - cleanup was performed (reinstall scenario)
+      // Assert - cleanup was performed (reinstall scenario, but NOT secure storage)
       expect(result).toBe(true);
       expect(mockClearAppSettings).toHaveBeenCalled();
       expect(mockClearTaskHistoryStore).toHaveBeenCalled();
-      expect(mockClearSecureStorage).toHaveBeenCalled();
     });
   });
 });

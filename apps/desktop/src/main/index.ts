@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import { app, BrowserWindow, shell, ipcMain, nativeImage } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, nativeImage, dialog } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -7,6 +7,9 @@ import { registerIPCHandlers } from './ipc/handlers';
 import { flushPendingTasks } from './store/taskHistory';
 import { disposeTaskManager } from './opencode/task-manager';
 import { checkAndCleanupFreshInstall } from './store/freshInstallCleanup';
+import { initializeDatabase, closeDatabase } from './store/db';
+import { FutureSchemaError } from './store/migrations/errors';
+import { stopAzureFoundryProxy } from './opencode/azure-foundry-proxy';
 
 // Local UI - no longer uses remote URL
 
@@ -155,6 +158,24 @@ if (!gotTheLock) {
       console.error('[Main] Fresh install cleanup failed:', err);
     }
 
+    // Initialize database and run migrations
+    try {
+      initializeDatabase();
+    } catch (err) {
+      if (err instanceof FutureSchemaError) {
+        await dialog.showMessageBox({
+          type: 'error',
+          title: 'Update Required',
+          message: `This data was created by a newer version of Openwork (schema v${err.storedVersion}).`,
+          detail: `Your app supports up to schema v${err.appVersion}. Please update Openwork to continue.`,
+          buttons: ['Quit'],
+        });
+        app.quit();
+        return;
+      }
+      throw err;
+    }
+
     // Set dock icon on macOS
     if (process.platform === 'darwin' && app.dock) {
       const iconPath = app.isPackaged
@@ -194,6 +215,12 @@ app.on('before-quit', () => {
   flushPendingTasks();
   // Dispose all active tasks and cleanup PTY processes
   disposeTaskManager();
+  // Stop Azure Foundry proxy server if running
+  stopAzureFoundryProxy().catch((err) => {
+    console.error('[Main] Failed to stop Azure Foundry proxy:', err);
+  });
+  // Close database connection
+  closeDatabase();
 });
 
 // Handle custom protocol (accomplish://)
@@ -215,4 +242,9 @@ ipcMain.handle('app:version', () => {
 
 ipcMain.handle('app:platform', () => {
   return process.platform;
+});
+
+ipcMain.handle('app:is-e2e-mode', () => {
+  return (global as Record<string, unknown>).E2E_MOCK_TASK_EVENTS === true ||
+    process.env.E2E_MOCK_TASK_EVENTS === '1';
 });

@@ -4,6 +4,26 @@ import fs from 'fs';
 import { execSync } from 'child_process';
 
 /**
+ * Get OpenCode package name and platform-specific binary name.
+ *
+ * On Windows: The binary is in a platform-specific package (opencode-windows-x64)
+ * On macOS/Linux: The binary is in the main opencode-ai package
+ */
+function getOpenCodePlatformInfo(): { packageName: string; binaryName: string } {
+  if (process.platform === 'win32') {
+    // On Windows, use the platform-specific package
+    return {
+      packageName: 'opencode-windows-x64',
+      binaryName: 'opencode.exe',
+    };
+  }
+  return {
+    packageName: 'opencode-ai',
+    binaryName: 'opencode',
+  };
+}
+
+/**
  * Get all possible nvm OpenCode CLI paths by scanning the nvm versions directory
  */
 function getNvmOpenCodePaths(): string[] {
@@ -38,13 +58,15 @@ export function getOpenCodeCliPath(): { command: string; args: string[] } {
   if (app.isPackaged) {
     // In packaged app, OpenCode is in unpacked asar
     // process.resourcesPath points to Resources folder in macOS app bundle
+    const { packageName, binaryName } = getOpenCodePlatformInfo();
+
     const cliPath = path.join(
       process.resourcesPath,
       'app.asar.unpacked',
       'node_modules',
-      'opencode-ai',
+      packageName,
       'bin',
-      'opencode'
+      binaryName
     );
 
     // Verify the file exists
@@ -67,13 +89,19 @@ export function getOpenCodeCliPath(): { command: string; args: string[] } {
       return { command: opencodePath, args: [] };
     }
 
-    // Check other global installations
-    const globalOpenCodePaths = [
-      // Global npm
-      '/usr/local/bin/opencode',
-      // Homebrew
-      '/opt/homebrew/bin/opencode',
-    ];
+    // Check other global installations (platform-specific)
+    const globalOpenCodePaths = process.platform === 'win32'
+      ? [
+          // Windows: npm global installs
+          path.join(process.env.APPDATA || '', 'npm', 'opencode.cmd'),
+          path.join(process.env.LOCALAPPDATA || '', 'npm', 'opencode.cmd'),
+        ]
+      : [
+          // macOS/Linux: Global npm
+          '/usr/local/bin/opencode',
+          // Homebrew
+          '/opt/homebrew/bin/opencode',
+        ];
 
     for (const opencodePath of globalOpenCodePaths) {
       if (fs.existsSync(opencodePath)) {
@@ -118,13 +146,15 @@ export function isOpenCodeBundled(): boolean {
   try {
     if (app.isPackaged) {
       // In packaged mode, check if opencode exists
+      const { packageName, binaryName } = getOpenCodePlatformInfo();
+
       const cliPath = path.join(
         process.resourcesPath,
         'app.asar.unpacked',
         'node_modules',
-        'opencode-ai',
+        packageName,
         'bin',
-        'opencode'
+        binaryName
       );
       return fs.existsSync(cliPath);
     } else {
@@ -136,13 +166,19 @@ export function isOpenCodeBundled(): boolean {
         return true;
       }
 
-      // Check other global installations
-      const globalOpenCodePaths = [
-        // Global npm
-        '/usr/local/bin/opencode',
-        // Homebrew
-        '/opt/homebrew/bin/opencode',
-      ];
+      // Check other global installations (platform-specific)
+      const globalOpenCodePaths = process.platform === 'win32'
+        ? [
+            // Windows: npm global installs
+            path.join(process.env.APPDATA || '', 'npm', 'opencode.cmd'),
+            path.join(process.env.LOCALAPPDATA || '', 'npm', 'opencode.cmd'),
+          ]
+        : [
+            // macOS/Linux: Global npm
+            '/usr/local/bin/opencode',
+            // Homebrew
+            '/opt/homebrew/bin/opencode',
+          ];
 
       for (const opencodePath of globalOpenCodePaths) {
         if (fs.existsSync(opencodePath)) {
@@ -179,11 +215,13 @@ export function getBundledOpenCodeVersion(): string | null {
   try {
     if (app.isPackaged) {
       // In packaged mode, read from package.json
+      const { packageName } = getOpenCodePlatformInfo();
+
       const packageJsonPath = path.join(
         process.resourcesPath,
         'app.asar.unpacked',
         'node_modules',
-        'opencode-ai',
+        packageName,
         'package.json'
       );
 

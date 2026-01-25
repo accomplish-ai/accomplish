@@ -9,16 +9,16 @@ Openwork is a standalone desktop automation assistant built with Electron. The a
 ## Common Commands
 
 ```bash
-pnpm dev                              # Run desktop app in dev mode (Vite + Electron)
-pnpm dev:clean                        # Dev mode with CLEAN_START=1 (clears stored data)
-pnpm build                            # Build all workspaces
-pnpm build:desktop                    # Build desktop app only
-pnpm lint                             # TypeScript checks
-pnpm typecheck                        # Type validation
-pnpm clean                            # Clean build outputs and node_modules
-pnpm -F @accomplish/desktop test:e2e  # Playwright E2E tests
-pnpm -F @accomplish/desktop test:e2e:ui    # E2E with Playwright UI
-pnpm -F @accomplish/desktop test:e2e:debug # E2E in debug mode
+pnpm dev                                        # Run desktop app in dev mode (Vite + Electron)
+pnpm dev:clean                                  # Dev mode with CLEAN_START=1 (clears stored data)
+pnpm build                                      # Build all workspaces
+pnpm build:desktop                              # Build desktop app only
+pnpm lint                                       # TypeScript checks
+pnpm typecheck                                  # Type validation
+pnpm clean                                      # Clean build outputs and node_modules
+pnpm -F @accomplish/desktop test:e2e            # Docker-based E2E tests
+pnpm -F @accomplish/desktop test:e2e:native     # Native Playwright E2E tests
+pnpm -F @accomplish/desktop test:e2e:native:ui  # E2E with Playwright UI
 ```
 
 ## Architecture
@@ -36,8 +36,9 @@ packages/shared/  # Shared TypeScript types
 - `ipc/handlers.ts` - IPC handlers for task lifecycle, settings, onboarding, API keys
 - `opencode/adapter.ts` - OpenCode CLI wrapper using `node-pty`, streams output and handles permissions
 - `store/secureStorage.ts` - API key storage via `keytar` (OS keychain)
-- `store/appSettings.ts` - App settings via `electron-store` (debug mode, onboarding state)
-- `store/taskHistory.ts` - Task history persistence
+- `store/db.ts` - SQLite database connection (better-sqlite3)
+- `store/migrations/` - Schema migrations with version tracking
+- `store/repositories/` - Data access layer (appSettings, providerSettings, taskHistory)
 
 **Preload** (`preload/index.ts`):
 - Exposes `window.accomplish` API via `contextBridge`
@@ -57,7 +58,7 @@ Renderer (React)
 Preload (contextBridge)
     ↓ ipcRenderer.invoke
 Main Process
-    ↓ Native APIs (keytar, node-pty, electron-store)
+    ↓ Native APIs (keytar, node-pty, better-sqlite3)
     ↑ IPC events
 Preload
     ↑ ipcRenderer.on callbacks
@@ -67,7 +68,7 @@ Renderer
 ### Key Dependencies
 - `node-pty` - PTY for OpenCode CLI spawning
 - `keytar` - Secure API key storage (OS keychain)
-- `electron-store` - Local settings/preferences
+- `better-sqlite3` - SQLite database for app settings, provider settings, and task history
 - `opencode-ai` - Bundled OpenCode CLI (multi-provider: Anthropic, OpenAI, Google, xAI)
 
 ## Code Conventions
@@ -160,3 +161,49 @@ environment: {
 - API key validation via test request to respective provider API
 - OpenCode CLI permissions are bridged to UI via IPC `permission:request` / `permission:respond`
 - Task output streams through `task:update` and `task:progress` IPC events
+
+## SQLite Storage
+
+App data is stored in SQLite (`openwork.db` in production, `openwork-dev.db` in development) located in the user data directory.
+
+### Database Structure
+```
+src/main/store/
+├── db.ts                    # Connection singleton, WAL mode, foreign keys
+├── migrations/
+│   ├── index.ts             # Migration runner with version checking
+│   ├── errors.ts            # FutureSchemaError, MigrationError
+│   └── v001-initial.ts      # Initial schema + legacy JSON import
+└── repositories/
+    ├── appSettings.ts       # Debug mode, onboarding, selected model
+    ├── providerSettings.ts  # Connected providers, active provider
+    └── taskHistory.ts       # Tasks with messages and attachments
+```
+
+### Adding New Migrations
+
+1. Create `src/main/store/migrations/vXXX-description.ts`:
+```typescript
+import type { Database } from 'better-sqlite3';
+import type { Migration } from './index';
+
+export const migration: Migration = {
+  version: 2,  // Increment from CURRENT_VERSION
+  up(db: Database): void {
+    db.exec(`ALTER TABLE app_settings ADD COLUMN new_field TEXT`);
+  },
+};
+```
+
+2. Update `src/main/store/migrations/index.ts`:
+```typescript
+import { migration as v002 } from './v002-description';
+
+export const CURRENT_VERSION = 2;  // Update this
+
+const migrations: Migration[] = [v001, v002];  // Add to array
+```
+
+### Rollback Protection
+
+If a user opens data from a newer app version, startup is blocked with a dialog prompting them to update. This prevents data corruption from schema mismatches.

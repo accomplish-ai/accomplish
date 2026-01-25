@@ -23,7 +23,8 @@ function getDataDir(): string {
 
 const dataDir = getDataDir();
 const tmpDir = join(dataDir, "tmp");
-const profileDir = join(dataDir, "profiles");
+// Profile can be overridden via environment variable for isolated testing
+const profileDir = process.env.DEV_BROWSER_PROFILE || join(dataDir, "profiles");
 
 // Create data directories if they don't exist
 console.log(`Creating data directory: ${dataDir}`);
@@ -31,8 +32,17 @@ mkdirSync(tmpDir, { recursive: true });
 mkdirSync(profileDir, { recursive: true });
 
 // Accomplish uses ports 9224/9225 to avoid conflicts with Claude Code's dev-browser (9222/9223)
-const ACCOMPLISH_HTTP_PORT = 9224;
-const ACCOMPLISH_CDP_PORT = 9225;
+// Ports can be overridden via environment variable for isolated agent testing
+const ACCOMPLISH_HTTP_PORT = parseInt(process.env.DEV_BROWSER_PORT || '9224', 10);
+const ACCOMPLISH_CDP_PORT = parseInt(process.env.DEV_BROWSER_CDP_PORT || '9225', 10);
+
+// Validate port numbers (catch NaN from invalid env var values)
+if (!Number.isFinite(ACCOMPLISH_HTTP_PORT) || ACCOMPLISH_HTTP_PORT < 1 || ACCOMPLISH_HTTP_PORT > 65535) {
+  throw new Error(`Invalid DEV_BROWSER_PORT: ${process.env.DEV_BROWSER_PORT}. Must be a number between 1 and 65535`);
+}
+if (!Number.isFinite(ACCOMPLISH_CDP_PORT) || ACCOMPLISH_CDP_PORT < 1 || ACCOMPLISH_CDP_PORT > 65535) {
+  throw new Error(`Invalid DEV_BROWSER_CDP_PORT: ${process.env.DEV_BROWSER_CDP_PORT}. Must be a number between 1 and 65535`);
+}
 
 // Check if server is already running
 console.log("Checking for existing servers...");
@@ -41,8 +51,34 @@ try {
     signal: AbortSignal.timeout(1000),
   });
   if (res.ok) {
-    console.log(`Server already running on port ${ACCOMPLISH_HTTP_PORT}`);
-    process.exit(0);
+    const info = await res.json() as { mode?: string };
+
+    // If it's a relay/extension server, kill it - we need launch mode
+    if (info.mode === "extension") {
+      console.log("Found relay server running, killing to start launch server...");
+      try {
+        if (process.platform === "win32") {
+          const output = execSync(`netstat -ano | findstr :${ACCOMPLISH_HTTP_PORT}`, { encoding: "utf-8" });
+          const match = output.match(/LISTENING\s+(\d+)/);
+          if (match) {
+            execSync(`taskkill /F /PID ${match[1]}`, { stdio: "ignore" });
+          }
+        } else {
+          const pid = execSync(`lsof -ti:${ACCOMPLISH_HTTP_PORT}`, { encoding: "utf-8" }).trim();
+          if (pid) {
+            execSync(`kill -9 ${pid}`);
+          }
+        }
+        // Give it a moment to release the port
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch {
+        // Failed to kill, continue anyway and let serve() fail with clear error
+      }
+    } else {
+      // Correct server type already running
+      console.log(`Launch server already running on port ${ACCOMPLISH_HTTP_PORT}`);
+      process.exit(0);
+    }
   }
 } catch {
   // Server not running, continue to start
@@ -51,10 +87,22 @@ try {
 // Clean up stale CDP port if HTTP server isn't running (crash recovery)
 // This handles the case where Node crashed but Chrome is still running
 try {
-  const pid = execSync(`lsof -ti:${ACCOMPLISH_CDP_PORT}`, { encoding: "utf-8" }).trim();
-  if (pid) {
-    console.log(`Cleaning up stale Chrome process on CDP port ${ACCOMPLISH_CDP_PORT} (PID: ${pid})`);
-    execSync(`kill -9 ${pid}`);
+  if (process.platform === 'win32') {
+    // Windows: use netstat to find PID, then taskkill
+    const output = execSync(`netstat -ano | findstr :${ACCOMPLISH_CDP_PORT}`, { encoding: "utf-8" });
+    const match = output.match(/LISTENING\s+(\d+)/);
+    if (match) {
+      const pid = match[1];
+      console.log(`Cleaning up stale Chrome process on CDP port ${ACCOMPLISH_CDP_PORT} (PID: ${pid})`);
+      execSync(`taskkill /F /PID ${pid}`, { stdio: "ignore" });
+    }
+  } else {
+    // Unix: use lsof
+    const pid = execSync(`lsof -ti:${ACCOMPLISH_CDP_PORT}`, { encoding: "utf-8" }).trim();
+    if (pid) {
+      console.log(`Cleaning up stale Chrome process on CDP port ${ACCOMPLISH_CDP_PORT} (PID: ${pid})`);
+      execSync(`kill -9 ${pid}`);
+    }
   }
 } catch {
   // No process on CDP port, which is expected
@@ -99,7 +147,8 @@ function installPlaywrightChromium(): void {
   let pm: { name: string; command: string } | null = null;
   for (const manager of managers) {
     try {
-      execSync(`which ${manager.name}`, { stdio: "ignore" });
+      const cmd = process.platform === 'win32' ? `where ${manager.name}` : `which ${manager.name}`;
+      execSync(cmd, { stdio: "ignore" });
       pm = manager;
       break;
     } catch {
