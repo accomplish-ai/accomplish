@@ -962,15 +962,20 @@ export default function ExecutionPage() {
 
                         {/* Always-visible custom text input */}
                         <div className="mb-4">
-                          <Textarea
+                          <textarea
                             value={customResponse}
                             onChange={(e) => {
                               setSelectedOptions([]); // Clear options when typing
                               setCustomResponse(e.target.value);
+                              // Auto-resize
+                              e.target.style.height = 'auto';
+                              e.target.style.height = `${e.target.scrollHeight}px`;
                             }}
                             placeholder="Enter a different option..."
                             aria-label="Custom response"
                             rows={1}
+                            className="w-full resize-none overflow-hidden rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                            style={{ minHeight: '38px', maxHeight: '150px' }}
                             onKeyDown={(e) => {
                               // Ignore Enter during IME composition (Chinese/Japanese input)
                               if (e.nativeEvent.isComposing || e.keyCode === 229) return;
