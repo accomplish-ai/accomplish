@@ -1355,6 +1355,7 @@ interface BrowserSnapshotInput {
   page_name?: string;
   interactive_only?: boolean;
   full_snapshot?: boolean;
+  include_history?: boolean;
 }
 
 interface BrowserClickInput {
@@ -1605,6 +1606,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           full_snapshot: {
             type: 'boolean',
             description: 'Force a complete snapshot instead of a diff. Use after major page changes (modal opened, dynamic content loaded) or when element refs seem incorrect. Default: false.',
+          },
+          max_elements: {
+            type: 'number',
+            description: 'Maximum elements to include (1-1000). Default: 300',
+          },
+          viewport_only: {
+            type: 'boolean',
+            description: 'Only include elements visible in viewport. Default: false',
+          },
+          include_history: {
+            type: 'boolean',
+            description: 'Include navigation history in output. Default: true',
           },
         },
       },
@@ -2331,7 +2344,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_snapshot': {
-        const { page_name, interactive_only, full_snapshot } = args as BrowserSnapshotInput;
+        const { page_name, interactive_only, full_snapshot, include_history } = args as BrowserSnapshotInput;
         const page = await getPage(page_name);
         const rawSnapshot = await getAISnapshot(page, { interactiveOnly: interactive_only ?? true });
         const viewport = page.viewportSize();
@@ -2356,8 +2369,19 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           interactiveOnly: interactive_only ?? true,
         });
 
-        // Build output with metadata header
-        let output = `# Page Info\n`;
+        // Build output with optional session history
+        let output = '';
+
+        // Include session history if requested (default: true)
+        const includeHistory = include_history !== false;
+        if (includeHistory) {
+          const sessionSummary = manager.getSessionSummary();
+          if (sessionSummary.history) {
+            output += `# ${sessionSummary.history}\n\n`;
+          }
+        }
+
+        output += `# Page Info\n`;
         output += `URL: ${url}\n`;
         output += `Viewport: ${viewport?.width || 1280}x${viewport?.height || 720} (center: ${Math.round((viewport?.width || 1280) / 2)}, ${Math.round((viewport?.height || 720) / 2)})\n`;
 
