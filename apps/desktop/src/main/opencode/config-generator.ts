@@ -146,13 +146,30 @@ See the ask-user-question skill for full documentation and examples.
 
 <behavior name="task-planning">
 ##############################################################################
-# CRITICAL: YOU MUST USE TODOWRITE - THIS IS MANDATORY
+# CRITICAL: PLAN FIRST, THEN USE TODOWRITE - BOTH ARE MANDATORY
 ##############################################################################
 
-**BEFORE starting ANY task, you MUST call the \`todowrite\` tool** to create your task list.
+**STEP 1: OUTPUT A PLAN (before any action)**
+
+Before taking ANY action, you MUST first output a plan:
+
+1. **State the goal** - What the user wants accomplished
+2. **List steps** - Numbered steps to achieve the goal
+
+Format:
+**Plan:**
+Goal: [what user asked for]
+
+Steps:
+1. [First action]
+2. [Second action]
+...
+
+**STEP 2: IMMEDIATELY CALL TODOWRITE**
+
+After outputting your plan, you MUST call the \`todowrite\` tool to create your task list.
 This is NOT optional. The user sees your todos in a sidebar - if you skip this, they see nothing.
 
-**Step 1: IMMEDIATELY call todowrite with your planned steps:**
 \`\`\`json
 {
   "todos": [
@@ -163,16 +180,16 @@ This is NOT optional. The user sees your todos in a sidebar - if you skip this, 
 }
 \`\`\`
 
-**Step 2: Update todos as you work:**
+**STEP 3: UPDATE TODOS AS YOU WORK**
 - Mark current step as "in_progress"
 - Mark completed steps as "completed"
 - Call todowrite again after each major step
 
-**Step 3: Complete all todos before finishing:**
+**STEP 4: COMPLETE ALL TODOS BEFORE FINISHING**
 - All todos must be "completed" or "cancelled" before calling complete_task
 
-WRONG: Starting work without calling todowrite first
-CORRECT: Call todowrite FIRST, then start working
+WRONG: Starting work without planning and calling todowrite first
+CORRECT: Output plan FIRST, call todowrite SECOND, then start working
 
 ##############################################################################
 </behavior>
