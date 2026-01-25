@@ -13,6 +13,7 @@ let mockAppSettingsData = {
   selected_model: null as string | null,
   ollama_config: null as string | null,
   litellm_config: null as string | null,
+  azure_foundry_config: null as string | null,
 };
 
 // Reset mock data
@@ -23,6 +24,7 @@ function resetMockData() {
     selected_model: null,
     ollama_config: null,
     litellm_config: null,
+    azure_foundry_config: null,
   };
 }
 
@@ -60,6 +62,9 @@ vi.mock('@main/store/db', () => ({
             }
             if (sql.includes('litellm_config = ?')) {
               mockAppSettingsData.litellm_config = args[0] as string | null;
+            }
+            if (sql.includes('azure_foundry_config = ?')) {
+              mockAppSettingsData.azure_foundry_config = args[0] as string | null;
             }
             // Handle clearAppSettings - reset all fields
             if (sql.includes('debug_mode = 0') && sql.includes('onboarding_complete = 0')) {
@@ -315,6 +320,7 @@ describe('appSettings Integration', () => {
         selectedModel: null,
         ollamaConfig: null,
         litellmConfig: null,
+        azureFoundryConfig: null,
       });
     });
 
@@ -367,7 +373,113 @@ describe('appSettings Integration', () => {
         selectedModel: null,
         ollamaConfig: null,
         litellmConfig: null,
+        azureFoundryConfig: null,
       });
+    });
+  });
+
+  describe('azureFoundryConfig', () => {
+    it('should return null when azure foundry config is not set', async () => {
+      // Arrange
+      const { getAzureFoundryConfig } = await import('@main/store/appSettings');
+
+      // Act
+      const result = getAzureFoundryConfig();
+
+      // Assert
+      expect(result).toBeNull();
+    });
+
+    it('should store and retrieve azure foundry config', async () => {
+      // Arrange
+      const { getAzureFoundryConfig, setAzureFoundryConfig } = await import('@main/store/appSettings');
+
+      const config = {
+        baseUrl: 'https://myendpoint.openai.azure.com',
+        deploymentName: 'gpt-4',
+        authType: 'api-key' as const,
+        enabled: true,
+      };
+
+      // Act
+      setAzureFoundryConfig(config);
+      const result = getAzureFoundryConfig();
+
+      // Assert
+      expect(result).toEqual(config);
+    });
+
+    it('should handle entra-id auth type', async () => {
+      // Arrange
+      const { getAzureFoundryConfig, setAzureFoundryConfig } = await import('@main/store/appSettings');
+
+      const config = {
+        baseUrl: 'https://test.openai.azure.com',
+        deploymentName: 'claude-deployment',
+        authType: 'entra-id' as const,
+        enabled: true,
+        lastValidated: Date.now(),
+      };
+
+      // Act
+      setAzureFoundryConfig(config);
+      const result = getAzureFoundryConfig();
+
+      // Assert
+      expect(result).toEqual(config);
+    });
+
+    it('should allow setting azure foundry config to null', async () => {
+      // Arrange
+      const { getAzureFoundryConfig, setAzureFoundryConfig } = await import('@main/store/appSettings');
+
+      const config = {
+        baseUrl: 'https://test.openai.azure.com',
+        deploymentName: 'test',
+        authType: 'api-key' as const,
+        enabled: true,
+      };
+
+      // Act
+      setAzureFoundryConfig(config);
+      setAzureFoundryConfig(null);
+      const result = getAzureFoundryConfig();
+
+      // Assert
+      expect(result).toBeNull();
+    });
+
+    it('should handle malformed JSON gracefully', async () => {
+      // Arrange
+      const { getAzureFoundryConfig } = await import('@main/store/appSettings');
+
+      // Set invalid JSON directly in mock
+      mockAppSettingsData.azure_foundry_config = 'invalid-json';
+
+      // Act
+      const result = getAzureFoundryConfig();
+
+      // Assert
+      expect(result).toBeNull();
+    });
+
+    it('should clear azure foundry config with clearAppSettings', async () => {
+      // Arrange
+      const { setAzureFoundryConfig, clearAppSettings, getAzureFoundryConfig } = await import('@main/store/appSettings');
+
+      setAzureFoundryConfig({
+        baseUrl: 'https://test.openai.azure.com',
+        deploymentName: 'test',
+        authType: 'api-key' as const,
+        enabled: true,
+      });
+
+      // Act
+      clearAppSettings();
+      const result = getAzureFoundryConfig();
+
+      // Assert
+      expect(result).toBeNull();
     });
   });
 });

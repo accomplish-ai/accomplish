@@ -26,14 +26,18 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
   feed(chunk: string): void {
     this.buffer += chunk;
 
-    // Prevent memory exhaustion from unbounded buffer growth
+    // Parse complete lines first - this extracts all complete JSON messages
+    // and leaves only the incomplete tail in the buffer
+    this.parseBuffer();
+
+    // After parsing, buffer contains only the incomplete line (after last newline).
+    // If this single incomplete line exceeds MAX_BUFFER_SIZE, it's a pathological case
+    // (e.g., a single JSON line > 10MB, likely corrupted or malicious).
+    // We must discard it to prevent memory exhaustion.
     if (this.buffer.length > MAX_BUFFER_SIZE) {
       this.emit('error', new Error('Stream buffer size exceeded maximum limit'));
-      // Keep the last portion of the buffer to maintain parsing continuity
-      this.buffer = this.buffer.slice(-MAX_BUFFER_SIZE / 2);
+      this.buffer = '';
     }
-
-    this.parseBuffer();
   }
 
   /**

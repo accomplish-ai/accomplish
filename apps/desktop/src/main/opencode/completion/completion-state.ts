@@ -9,15 +9,15 @@
  *
  * STATE FLOW DIAGRAM:
  *
- *   IDLE ──────────────────────────────────────┐
+ *   IDLE ──────────────────────────────────────┬──────────────────────────────┐
+ *     │                                        │                              │
+ *     │ complete_task(success)                 │ complete_task(partial)       │ complete_task(blocked)
+ *     ▼                                        ▼                              ▼
+ *   AWAITING_VERIFICATION              PARTIAL_CONTINUATION_PENDING    COMPLETE_TASK_CALLED ──► (task ends)
  *     │                                        │
- *     │ complete_task(success)                 │ complete_task(blocked/partial)
+ *     │ process exits                          │ startPartialContinuation()
  *     ▼                                        ▼
- *   AWAITING_VERIFICATION              COMPLETE_TASK_CALLED ──► (task ends)
- *     │
- *     │ process exits
- *     ▼
- *   VERIFYING ─────────────────────────────────┐
+ *   VERIFYING ─────────────────────────► IDLE (continue work)
  *     │                                        │
  *     │ agent stops without                    │ agent calls complete_task(success)
  *     │ re-calling complete_task               ▼
@@ -35,7 +35,8 @@
 
 export enum CompletionFlowState {
   IDLE,                           // Initial state, no complete_task called
-  COMPLETE_TASK_CALLED,           // Agent called complete_task (non-success)
+  COMPLETE_TASK_CALLED,           // Agent called complete_task with blocked status
+  PARTIAL_CONTINUATION_PENDING,   // Agent called complete_task(partial), continuation pending
   AWAITING_VERIFICATION,          // Agent called complete_task(success), verification pending
   VERIFYING,                      // Verification task running
   VERIFICATION_CONTINUING,        // Agent found issues during verification, continuing work
@@ -57,7 +58,7 @@ export class CompletionState {
   private completeTaskArgs: CompleteTaskArgs | null = null;
   private readonly maxContinuationAttempts: number;
 
-  constructor(maxContinuationAttempts: number = 20) {
+  constructor(maxContinuationAttempts: number = 50) {
     this.maxContinuationAttempts = maxContinuationAttempts;
   }
 
@@ -80,7 +81,8 @@ export class CompletionState {
 
   isCompleteTaskCalled(): boolean {
     return this.state !== CompletionFlowState.IDLE &&
-           this.state !== CompletionFlowState.CONTINUATION_PENDING;
+           this.state !== CompletionFlowState.CONTINUATION_PENDING &&
+           this.state !== CompletionFlowState.PARTIAL_CONTINUATION_PENDING;
   }
 
   isPendingVerification(): boolean {
@@ -96,6 +98,10 @@ export class CompletionState {
     return this.state === CompletionFlowState.CONTINUATION_PENDING;
   }
 
+  isPendingPartialContinuation(): boolean {
+    return this.state === CompletionFlowState.PARTIAL_CONTINUATION_PENDING;
+  }
+
   isDone(): boolean {
     return this.state === CompletionFlowState.DONE ||
            this.state === CompletionFlowState.MAX_RETRIES_REACHED;
@@ -108,6 +114,9 @@ export class CompletionState {
       this.completeTaskArgs = args;
       if (args.status === 'success') {
         this.state = CompletionFlowState.DONE;
+      } else if (args.status === 'partial') {
+        // Partial during verification - schedule continuation
+        this.state = CompletionFlowState.PARTIAL_CONTINUATION_PENDING;
       } else {
         this.state = CompletionFlowState.COMPLETE_TASK_CALLED;
       }
@@ -118,7 +127,11 @@ export class CompletionState {
     this.completeTaskArgs = args;
     if (args.status === 'success') {
       this.state = CompletionFlowState.AWAITING_VERIFICATION;
+    } else if (args.status === 'partial') {
+      // Partial status - schedule continuation to finish the task
+      this.state = CompletionFlowState.PARTIAL_CONTINUATION_PENDING;
     } else {
+      // blocked or unknown - terminal
       this.state = CompletionFlowState.COMPLETE_TASK_CALLED;
     }
   }
@@ -140,10 +153,15 @@ export class CompletionState {
   }
 
   scheduleContinuation(): boolean {
-    // Can schedule continuation from IDLE (agent never called complete_task)
-    // or from VERIFICATION_CONTINUING (agent found issues and is fixing them)
+    // Can schedule continuation from:
+    // - IDLE: agent never called complete_task
+    // - VERIFICATION_CONTINUING: agent found issues and is fixing them
+    // - CONTINUATION_PENDING: previous continuation was scheduled but process didn't exit
+    //   (OpenCode CLI's auto-continue keeps process alive, so handleProcessExit/startContinuation
+    //   is never called to reset state to IDLE)
     if (this.state !== CompletionFlowState.IDLE &&
-        this.state !== CompletionFlowState.VERIFICATION_CONTINUING) {
+        this.state !== CompletionFlowState.VERIFICATION_CONTINUING &&
+        this.state !== CompletionFlowState.CONTINUATION_PENDING) {
       return false;
     }
 
@@ -163,6 +181,22 @@ export class CompletionState {
     }
     // Reset to IDLE so we can track next complete_task call
     this.state = CompletionFlowState.IDLE;
+  }
+
+  startPartialContinuation(): boolean {
+    if (this.state !== CompletionFlowState.PARTIAL_CONTINUATION_PENDING) {
+      throw new Error(`Cannot start partial continuation from state ${CompletionFlowState[this.state]}`);
+    }
+
+    this.continuationAttempts++;
+    if (this.continuationAttempts > this.maxContinuationAttempts) {
+      this.state = CompletionFlowState.MAX_RETRIES_REACHED;
+      return false;
+    }
+
+    // Reset to IDLE so we can track next complete_task call
+    this.state = CompletionFlowState.IDLE;
+    return true;
   }
 
   markDone(): void {

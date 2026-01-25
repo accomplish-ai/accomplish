@@ -3,12 +3,14 @@
 /**
  * Custom packaging script for Electron app with pnpm workspaces.
  * Temporarily removes workspace symlinks that cause electron-builder issues.
+ * On Windows, skips native module rebuild (uses prebuilt binaries).
  */
 
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
+const isWindows = process.platform === 'win32';
 const nodeModulesPath = path.join(__dirname, '..', 'node_modules');
 const accomplishPath = path.join(nodeModulesPath, '@accomplish');
 
@@ -36,10 +38,18 @@ try {
 
   // Get command line args (everything after 'node scripts/package.js')
   const args = process.argv.slice(2).join(' ');
+
+  // On Windows, skip native module rebuild (use prebuilt binaries)
+  // This avoids issues with node-pty's winpty.gyp batch file handling
+  const npmRebuildFlag = isWindows ? ' --config.npmRebuild=false' : '';
+
   // Use npx to run electron-builder to ensure it's found in node_modules
-  const command = `npx electron-builder ${args}`;
+  const command = `npx electron-builder ${args}${npmRebuildFlag}`;
 
   console.log('Running:', command);
+  if (isWindows) {
+    console.log('(Skipping native module rebuild on Windows - using prebuilt binaries)');
+  }
   execSync(command, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
 
 } finally {

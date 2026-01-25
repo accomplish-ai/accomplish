@@ -5,7 +5,8 @@ import { PERMISSION_API_PORT, QUESTION_API_PORT } from '../permission-api';
 import { getOllamaConfig } from '../store/appSettings';
 import { getApiKey } from '../store/secureStorage';
 import { getProviderSettings, getActiveProviderModel, getConnectedProviderIds } from '../store/providerSettings';
-import type { BedrockCredentials, ProviderId } from '@accomplish/shared';
+import { ensureAzureFoundryProxy } from './azure-foundry-proxy';
+import type { BedrockCredentials, ProviderId, AzureFoundryCredentials } from '@accomplish/shared';
 
 /**
  * Agent name used by Accomplish
@@ -226,10 +227,12 @@ When to call \`complete_task\`:
    - Describe what went wrong
    - State what remains undone in \`remaining_work\`
 
-3. **status: "partial"** - You completed some parts but not all
-   - Summarize what you accomplished
-   - Explain why you couldn't finish the rest
-   - State what remains in \`remaining_work\`
+3. **status: "partial"** - AVOID THIS STATUS
+   - Only use if you are FORCED to stop mid-task (context limit approaching, etc.)
+   - The system will automatically continue you to finish the remaining work
+   - If you use partial, you MUST fill in remaining_work with specific next steps
+   - Do NOT use partial as a way to ask "should I continue?" - just keep working
+   - If you've done some work and can keep going, KEEP GOING - don't use partial
 
 **NEVER** just stop working. If you find yourself about to end without calling \`complete_task\`,
 ask yourself: "Did I actually finish what was asked?" If unsure, keep working.
@@ -253,9 +256,14 @@ interface McpServerConfig {
   timeout?: number;
 }
 
-interface OllamaProviderModelConfig {
+interface ProviderModelConfig {
   name: string;
   tools?: boolean;
+  limit?: {
+    context?: number;
+    output?: number;
+  };
+  options?: Record<string, unknown>;
 }
 
 interface OllamaProviderConfig {
@@ -264,7 +272,7 @@ interface OllamaProviderConfig {
   options: {
     baseURL: string;
   };
-  models: Record<string, OllamaProviderModelConfig>;
+  models: Record<string, ProviderModelConfig>;
 }
 
 interface BedrockProviderConfig {
@@ -272,6 +280,18 @@ interface BedrockProviderConfig {
     region: string;
     profile?: string;
   };
+}
+
+interface AzureFoundryProviderConfig {
+  npm: string;
+  name: string;
+  options: {
+    resourceName?: string;
+    baseURL?: string;
+    apiKey?: string;
+    headers?: Record<string, string>;
+  };
+  models: Record<string, ProviderModelConfig>;
 }
 
 interface OpenRouterProviderModelConfig {
@@ -317,7 +337,7 @@ interface ZaiProviderConfig {
   models: Record<string, ZaiProviderModelConfig>;
 }
 
-type ProviderConfig = OllamaProviderConfig | BedrockProviderConfig | OpenRouterProviderConfig | LiteLLMProviderConfig | ZaiProviderConfig;
+type ProviderConfig = OllamaProviderConfig | BedrockProviderConfig | AzureFoundryProviderConfig | OpenRouterProviderConfig | LiteLLMProviderConfig | ZaiProviderConfig;
 
 interface OpenCodeConfig {
   $schema?: string;
@@ -331,11 +351,64 @@ interface OpenCodeConfig {
 }
 
 /**
+ * Build Azure Foundry provider configuration for OpenCode CLI
+ * Shared helper to avoid duplication between new settings and legacy paths
+ */
+async function buildAzureFoundryProviderConfig(
+  endpoint: string,
+  deploymentName: string,
+  authMethod: 'api-key' | 'entra-id',
+  azureFoundryToken?: string
+): Promise<AzureFoundryProviderConfig | null> {
+  const baseUrl = endpoint.replace(/\/$/, '');
+  const targetBaseUrl = `${baseUrl}/openai/v1`;
+  const proxyInfo = await ensureAzureFoundryProxy(targetBaseUrl);
+
+  // Build options for @ai-sdk/openai-compatible provider
+  // Route through local proxy to strip unsupported params for Azure Foundry
+  const azureOptions: AzureFoundryProviderConfig['options'] = {
+    baseURL: proxyInfo.baseURL,
+  };
+
+  // Set API key or Entra ID token
+  if (authMethod === 'api-key') {
+    const azureApiKey = getApiKey('azure-foundry');
+    if (azureApiKey) {
+      azureOptions.apiKey = azureApiKey;
+    }
+  } else if (authMethod === 'entra-id' && azureFoundryToken) {
+    azureOptions.apiKey = '';
+    azureOptions.headers = {
+      'Authorization': `Bearer ${azureFoundryToken}`,
+    };
+  }
+
+  return {
+    npm: '@ai-sdk/openai-compatible',
+    name: 'Azure AI Foundry',
+    options: azureOptions,
+    models: {
+      [deploymentName]: {
+        name: `Azure Foundry (${deploymentName})`,
+        tools: true,
+        // Set conservative output token limit - can be overridden per-deployment
+        // This prevents errors from models with lower limits (e.g., 16384 for some GPT-5 deployments)
+        limit: {
+          context: 128000,
+          output: 16384,
+        },
+      },
+    },
+  };
+}
+
+/**
  * Generate OpenCode configuration file
  * OpenCode reads config from .opencode.json in the working directory or
  * from ~/.config/opencode/opencode.json
+ * @param azureFoundryToken - Optional Entra ID token for Azure Foundry authentication
  */
-export async function generateOpenCodeConfig(): Promise<string> {
+export async function generateOpenCodeConfig(azureFoundryToken?: string): Promise<string> {
   const configDir = path.join(app.getPath('userData'), 'opencode');
   const configPath = path.join(configDir, 'opencode.json');
 
@@ -374,6 +447,7 @@ export async function generateOpenCodeConfig(): Promise<string> {
     deepseek: 'deepseek',
     zai: 'zai-coding-plan',
     bedrock: 'amazon-bedrock',
+    'azure-foundry': 'azure-foundry',
     ollama: 'ollama',
     openrouter: 'openrouter',
     litellm: 'litellm',
@@ -427,7 +501,7 @@ export async function generateOpenCodeConfig(): Promise<string> {
     // Legacy fallback: use old Ollama config
     const ollamaConfig = getOllamaConfig();
     if (ollamaConfig?.enabled && ollamaConfig.models && ollamaConfig.models.length > 0) {
-      const ollamaModels: Record<string, OllamaProviderModelConfig> = {};
+      const ollamaModels: Record<string, ProviderModelConfig> = {};
       for (const model of ollamaConfig.models) {
         ollamaModels[model.id] = {
           name: model.displayName,
@@ -563,6 +637,57 @@ export async function generateOpenCodeConfig(): Promise<string> {
         },
       };
       console.log('[OpenCode Config] LiteLLM configured:', litellmProvider.selectedModelId, litellmApiKey ? '(with API key)' : '(no API key)');
+    }
+  }
+
+  // Configure Azure Foundry if connected (check new settings first, then legacy)
+  const azureFoundryProvider = providerSettings.connectedProviders['azure-foundry'];
+  if (azureFoundryProvider?.connectionStatus === 'connected' && azureFoundryProvider.credentials.type === 'azure-foundry') {
+    const creds = azureFoundryProvider.credentials;
+    const config = await buildAzureFoundryProviderConfig(
+      creds.endpoint,
+      creds.deploymentName,
+      creds.authMethod,
+      azureFoundryToken
+    );
+
+    if (config) {
+      providerConfig['azure-foundry'] = config;
+
+      if (!enabledProviders.includes('azure-foundry')) {
+        enabledProviders.push('azure-foundry');
+      }
+
+      console.log('[OpenCode Config] Azure Foundry configured from new settings:', {
+        deployment: creds.deploymentName,
+        authMethod: creds.authMethod,
+      });
+    }
+  } else {
+    // TODO: Remove legacy Azure Foundry config support in v0.4.0
+    // Legacy fallback: use old Azure Foundry config
+    const { getAzureFoundryConfig } = await import('../store/appSettings');
+    const azureFoundryConfig = getAzureFoundryConfig();
+    if (azureFoundryConfig?.enabled && activeModel?.provider === 'azure-foundry') {
+      const config = await buildAzureFoundryProviderConfig(
+        azureFoundryConfig.baseUrl,
+        azureFoundryConfig.deploymentName || 'default',
+        azureFoundryConfig.authType,
+        azureFoundryToken
+      );
+
+      if (config) {
+        providerConfig['azure-foundry'] = config;
+
+        if (!enabledProviders.includes('azure-foundry')) {
+          enabledProviders.push('azure-foundry');
+        }
+
+        console.log('[OpenCode Config] Azure Foundry configured from legacy settings:', {
+          deployment: azureFoundryConfig.deploymentName,
+          authType: azureFoundryConfig.authType,
+        });
+      }
     }
   }
 

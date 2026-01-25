@@ -9,6 +9,7 @@ import { disposeTaskManager } from './opencode/task-manager';
 import { checkAndCleanupFreshInstall } from './store/freshInstallCleanup';
 import { initializeDatabase, closeDatabase } from './store/db';
 import { FutureSchemaError } from './store/migrations/errors';
+import { stopAzureFoundryProxy } from './opencode/azure-foundry-proxy';
 
 // Local UI - no longer uses remote URL
 
@@ -214,6 +215,10 @@ app.on('before-quit', () => {
   flushPendingTasks();
   // Dispose all active tasks and cleanup PTY processes
   disposeTaskManager();
+  // Stop Azure Foundry proxy server if running
+  stopAzureFoundryProxy().catch((err) => {
+    console.error('[Main] Failed to stop Azure Foundry proxy:', err);
+  });
   // Close database connection
   closeDatabase();
 });

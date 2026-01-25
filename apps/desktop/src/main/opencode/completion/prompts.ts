@@ -53,3 +53,45 @@ Then either:
 
 Do NOT call complete_task with success unless the screenshot proves the task is done.`;
 }
+
+export function getPartialContinuationPrompt(
+  remainingWork: string,
+  originalRequest: string,
+  completedSummary: string
+): string {
+  return `You called complete_task with status="partial" but the task is not done yet.
+
+## Original Request
+"${originalRequest}"
+
+## What You Completed
+${completedSummary}
+
+## What You Said Remains
+${remainingWork}
+
+## REQUIRED: Create a Continuation Plan
+
+Before continuing, you MUST:
+
+1. **Review the original request** - Re-read every requirement carefully
+2. **Create a TODO list** showing what's done and what remains:
+
+**Continuation Plan:**
+✓ [Items you already completed]
+□ [Next step] → verify: [how to confirm it's done]
+□ [Following step] → verify: [how to confirm it's done]
+...
+
+3. **Execute the plan** - Work through each remaining step
+4. **Call complete_task(success)** - Only when ALL original requirements are met
+
+## IMPORTANT RULES
+
+- Do NOT call complete_task with "partial" again unless you hit an actual TECHNICAL blocker
+- If you hit a real blocker (login wall, CAPTCHA, rate limit, site error), use "blocked" status
+- "partial" is NOT an acceptable final status - keep working until the task is complete
+- Do NOT ask the user "would you like me to continue?" - just continue working
+
+Now create your continuation plan and resume working on the remaining items.`;
+}

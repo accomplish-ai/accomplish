@@ -13,6 +13,7 @@ const PROVIDER_ORDER: ProviderId[] = [
   'openai',
   'google',
   'bedrock',
+  'azure-foundry',
   'deepseek',
   'zai',
   'ollama',

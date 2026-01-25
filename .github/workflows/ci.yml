@@ -125,7 +125,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
+          # Note: No cache here - E2E tests run in Docker so pnpm store isn't on host
 
       - name: Run E2E tests in Docker
         run: pnpm -F @accomplish/desktop test:e2e

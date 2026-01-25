@@ -193,6 +193,8 @@ vi.mock('@main/store/appSettings', () => ({
   setSelectedModel: vi.fn((model: { provider: string; model: string }) => {
     mockSelectedModel = model;
   }),
+  getAzureFoundryConfig: vi.fn(() => null),
+  setAzureFoundryConfig: vi.fn(),
 }));
 
 // Mock provider settings

@@ -162,14 +162,16 @@ async function isDevBrowserServerReady(): Promise<boolean> {
  */
 async function waitForDevBrowserServer(maxWaitMs = 15000, pollIntervalMs = 500): Promise<boolean> {
   const startTime = Date.now();
+  let attempts = 0;
   while (Date.now() - startTime < maxWaitMs) {
+    attempts++;
     if (await isDevBrowserServerReady()) {
-      console.log('[TaskManager] Dev-browser server is ready');
+      console.log(`[TaskManager] Dev-browser server ready after ${attempts} attempts (${Date.now() - startTime}ms)`);
       return true;
     }
     await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
   }
-  console.log('[TaskManager] Dev-browser server not ready after waiting');
+  console.log(`[TaskManager] Dev-browser server not ready after ${attempts} attempts (${maxWaitMs}ms timeout)`);
   return false;
 }
 
@@ -218,6 +220,7 @@ async function ensureDevBrowserServer(
   try {
     const skillsPath = getSkillsPath();
     const serverScript = path.join(skillsPath, 'dev-browser', 'server.cjs');
+    const serverCwd = path.join(skillsPath, 'dev-browser');
 
     // Build environment with bundled Node.js in PATH
     const bundledPaths = getBundledNodePaths();
@@ -231,28 +234,108 @@ async function ensureDevBrowserServer(
     // Get node executable path
     const nodeExe = bundledPaths?.nodePath || 'node';
 
+    console.log('[TaskManager] ========== DEV-BROWSER SERVER STARTUP ==========');
+    console.log('[TaskManager] Node executable:', nodeExe);
+    console.log('[TaskManager] Server script:', serverScript);
+    console.log('[TaskManager] Working directory:', serverCwd);
+    console.log('[TaskManager] NODE_BIN_PATH:', spawnEnv.NODE_BIN_PATH || '(not set)');
+    console.log('[TaskManager] Script exists:', fs.existsSync(serverScript));
+    console.log('[TaskManager] CWD exists:', fs.existsSync(serverCwd));
+
+    // Check if local tsx exists (for debugging)
+    const localTsxBin = path.join(serverCwd, 'node_modules', '.bin', process.platform === 'win32' ? 'tsx.cmd' : 'tsx');
+    console.log('[TaskManager] Local tsx.cmd exists:', fs.existsSync(localTsxBin));
+
     // Spawn server in background (detached, unref to not block)
     // windowsHide: true prevents a console window from appearing on Windows
+    // Use 'pipe' for stdio to capture startup errors
     const child = spawn(nodeExe, [serverScript], {
       detached: true,
-      stdio: 'ignore',
-      cwd: path.join(skillsPath, 'dev-browser'),
+      stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: serverCwd,
       env: spawnEnv,
       windowsHide: true,
     });
+
+    // Store logs for debugging - these will be available in Electron DevTools console
+    const serverLogs: string[] = [];
+
+    // Capture and log stdout/stderr for debugging
+    child.stdout?.on('data', (data: Buffer) => {
+      const lines = data.toString().split('\n').filter(l => l.trim());
+      for (const line of lines) {
+        serverLogs.push(`[stdout] ${line}`);
+        console.log('[DevBrowser stdout]', line);
+      }
+    });
+
+    child.stderr?.on('data', (data: Buffer) => {
+      const lines = data.toString().split('\n').filter(l => l.trim());
+      for (const line of lines) {
+        serverLogs.push(`[stderr] ${line}`);
+        console.log('[DevBrowser stderr]', line);
+      }
+    });
+
+    child.on('error', (err) => {
+      const errorMsg = `Spawn error: ${err.message} (code: ${(err as NodeJS.ErrnoException).code})`;
+      serverLogs.push(`[error] ${errorMsg}`);
+      console.error('[TaskManager] Dev-browser spawn error:', err);
+      // Store logs globally for debugging
+      (global as Record<string, unknown>).__devBrowserLogs = serverLogs;
+    });
+
+    child.on('exit', (code, signal) => {
+      const exitMsg = `Process exited with code ${code}, signal ${signal}`;
+      serverLogs.push(`[exit] ${exitMsg}`);
+      console.log('[TaskManager] Dev-browser', exitMsg);
+      if (code !== 0 && code !== null) {
+        console.error('[TaskManager] Dev-browser server failed. Logs:');
+        for (const log of serverLogs) {
+          console.error('[TaskManager]  ', log);
+        }
+      }
+      // Store logs globally for debugging
+      (global as Record<string, unknown>).__devBrowserLogs = serverLogs;
+    });
+
     child.unref();
 
-    console.log('[TaskManager] Dev-browser server spawn initiated');
+    console.log('[TaskManager] Dev-browser server spawn initiated (PID:', child.pid, ')');
 
-    // On Windows, wait for the server to be ready before proceeding
-    // (On macOS, the server starts faster and the MCP has its own retry logic)
-    if (process.platform === 'win32') {
-      console.log('[TaskManager] Waiting for dev-browser server to be ready (Windows)...');
-      await waitForDevBrowserServer();
+    // Wait for the server to be ready (longer timeout on Windows)
+    const maxWaitMs = process.platform === 'win32' ? 30000 : 15000;
+    console.log(`[TaskManager] Waiting for dev-browser server to be ready (max ${maxWaitMs}ms)...`);
+
+    const serverReady = await waitForDevBrowserServer(maxWaitMs);
+    if (serverReady) {
+      console.log('[TaskManager] Dev-browser server is ready!');
+    } else {
+      console.error('[TaskManager] Dev-browser server did NOT become ready within timeout');
+      console.error('[TaskManager] Captured logs:');
+      for (const log of serverLogs) {
+        console.error('[TaskManager]  ', log);
+      }
+      // Store logs globally for debugging
+      (global as Record<string, unknown>).__devBrowserLogs = serverLogs;
     }
+
+    console.log('[TaskManager] ========== END DEV-BROWSER SERVER STARTUP ==========');
   } catch (error) {
     console.error('[TaskManager] Failed to start dev-browser server:', error);
   }
+}
+
+/**
+ * Progress event with startup stage information
+ */
+export interface TaskProgressEvent {
+  stage: string;
+  message?: string;
+  /** Whether this is the first task (cold start) - used for UI hints */
+  isFirstTask?: boolean;
+  /** Model display name for 'connecting' stage */
+  modelName?: string;
 }
 
 /**
@@ -260,7 +343,7 @@ async function ensureDevBrowserServer(
  */
 export interface TaskCallbacks {
   onMessage: (message: OpenCodeMessage) => void;
-  onProgress: (progress: { stage: string; message?: string }) => void;
+  onProgress: (progress: TaskProgressEvent) => void;
   onPermissionRequest: (request: PermissionRequest) => void;
   onComplete: (result: TaskResult) => void;
   onError: (error: Error) => void;
@@ -305,9 +388,18 @@ export class TaskManager {
   private activeTasks: Map<string, ManagedTask> = new Map();
   private taskQueue: QueuedTask[] = [];
   private maxConcurrentTasks: number;
+  /** Tracks whether this is the first task since app launch (cold start) */
+  private isFirstTask: boolean = true;
 
   constructor(options?: { maxConcurrentTasks?: number }) {
     this.maxConcurrentTasks = options?.maxConcurrentTasks ?? DEFAULT_MAX_CONCURRENT_TASKS;
+  }
+
+  /**
+   * Check if this is a cold start (first task since app launch)
+   */
+  getIsFirstTask(): boolean {
+    return this.isFirstTask;
   }
 
   /**
@@ -459,10 +551,27 @@ export class TaskManager {
 
     // Start browser setup and agent asynchronously
     // This allows the UI to navigate immediately while setup happens
+    const isFirstTask = this.isFirstTask;
     (async () => {
       try {
+        // Emit starting stage immediately
+        callbacks.onProgress({ stage: 'starting', message: 'Starting task...', isFirstTask });
+
+        // Emit browser stage only on cold start (first task)
+        if (isFirstTask) {
+          callbacks.onProgress({ stage: 'browser', message: 'Preparing browser...', isFirstTask });
+        }
+
         // Ensure browser is available (may download Playwright if needed)
         await ensureDevBrowserServer(callbacks.onProgress);
+
+        // Mark cold start as complete after browser setup
+        if (this.isFirstTask) {
+          this.isFirstTask = false;
+        }
+
+        // Emit environment setup stage
+        callbacks.onProgress({ stage: 'environment', message: 'Setting up environment...', isFirstTask });
 
         // Now start the agent
         await adapter.startTask({ ...config, taskId });
