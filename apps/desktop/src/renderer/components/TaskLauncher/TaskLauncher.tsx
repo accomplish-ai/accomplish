@@ -122,7 +122,7 @@ export default function TaskLauncher() {
           <CommandInput
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search..."
+            placeholder="Search tasks..."
           />
           <CommandList>
             <CommandGroup items={newTaskItems}>

@@ -15,17 +15,31 @@ export default defineConfig({
   test: {
     globals: true,
     root: __dirname,
-    include: ['__tests__/**/*.test.ts', '__tests__/**/*.test.tsx'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/dist-electron/**', '**/release/**'],
     setupFiles: ['__tests__/setup.ts'],
     // Use different environments based on test type
-    // Unit tests for main process use Node environment
+    // Unit tests for the main process use Node environment
     // Unit tests for renderer use jsdom
-    environment: 'node',
-    environmentMatchGlobs: [
-      // Renderer tests use jsdom for DOM APIs
-      ['__tests__/**/*.renderer.*.test.{ts,tsx}', 'jsdom'],
-      ['__tests__/**/renderer/**/*.test.{ts,tsx}', 'jsdom'],
+    projects: [
+      {
+        test: {
+          environment: 'node',
+          include: ['__tests__/**/*.test.{ts,tsx}'],
+          exclude: [
+            '__tests__/**/*.renderer.*.test.{ts,tsx}',
+            '__tests__/**/renderer/**/*.test.{ts,tsx}',
+          ],
+        },
+      },
+      {
+        test: {
+          environment: 'jsdom',
+          include: [
+            '__tests__/**/*.renderer.*.test.{ts,tsx}',
+            '__tests__/**/renderer/**/*.test.{ts,tsx}',
+          ],
+        },
+      },
     ],
     coverage: {
       provider: 'v8',

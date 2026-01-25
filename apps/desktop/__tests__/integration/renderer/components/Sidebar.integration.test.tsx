@@ -2,7 +2,7 @@
  * Integration tests for Sidebar component
  * Tests rendering with conversations, conversation selection, and settings
  * @module __tests__/integration/renderer/components/Sidebar.integration.test
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -137,8 +137,8 @@ describe('Sidebar Integration', () => {
         </MemoryRouter>
       );
 
-      // Assert - sidebar should be present (260px width)
-      const sidebar = document.querySelector('.w-\\[260px\\]');
+      // Assert - sidebar should be present (w-65 = 260px)
+      const sidebar = document.querySelector('.w-65');
       expect(sidebar).toBeInTheDocument();
     });
 
@@ -501,8 +501,8 @@ describe('Sidebar Integration', () => {
         </MemoryRouter>
       );
 
-      // Assert - Check for border classes
-      const sidebar = document.querySelector('.w-\\[260px\\]');
+      // Assert - Check for border classes (w-65 = 260px)
+      const sidebar = document.querySelector('.w-65');
       expect(sidebar?.className).toContain('border-r');
     });
 

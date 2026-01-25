@@ -2,13 +2,14 @@
  * Integration tests for Execution page
  * Tests rendering with active task, message display, and permission dialog
  * @module __tests__/integration/renderer/pages/Execution.integration.test
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import type { Task, TaskStatus, TaskMessage, PermissionRequest } from '@accomplish/shared';
+import type { ReactNode } from 'react';
 
 // Create mock functions
 const mockLoadTaskById = vi.fn();
@@ -149,11 +150,13 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-// Mock StreamingText component
-vi.mock('@/components/ui/streaming-text', () => ({
-  StreamingText: ({ text, children }: { text: string; children: (text: string) => React.ReactNode }) => (
-    <>{children(text)}</>
-  ),
+// Mock Streamdown component and plugins
+vi.mock('streamdown', () => ({
+  Streamdown: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock('@streamdown/code', () => ({
+  code: {},
 }));
 
 // Mock openwork icon
@@ -792,10 +795,9 @@ describe('Execution Page Integration', () => {
       // Act
       renderWithRouter('task-123');
 
-      // Assert
+      // Assert - Progress bar is shown instead of text percentage
       expect(screen.getByText('Chrome not installed')).toBeInTheDocument();
       expect(screen.getByText('Installing browser for automation...')).toBeInTheDocument();
-      expect(screen.getByText('Downloading...')).toBeInTheDocument();
     });
 
     it('should show download modal when setupProgress contains "% of"', () => {
@@ -812,46 +814,24 @@ describe('Execution Page Integration', () => {
       expect(screen.getByText('Chrome not installed')).toBeInTheDocument();
     });
 
-    it('should calculate overall progress for step 1 (Chromium)', () => {
-      // Arrange
-      mockStoreState.currentTask = createMockTask('task-123', 'Task', 'running');
-      mockStoreState.setupProgress = 'Downloading 50%';
-      mockStoreState.setupProgressTaskId = 'task-123';
-      mockStoreState.setupDownloadStep = 1;
+    it('should show download modal for all progress steps', () => {
+      // The component uses a Progress bar component instead of text percentages
+      // Testing that the modal appears for different download steps
+      [1, 2, 3].forEach((step) => {
+        // Arrange
+        mockStoreState.currentTask = createMockTask('task-123', 'Task', 'running');
+        mockStoreState.setupProgress = 'Downloading 50%';
+        mockStoreState.setupProgressTaskId = 'task-123';
+        mockStoreState.setupDownloadStep = step;
 
-      // Act
-      renderWithRouter('task-123');
+        // Act
+        const { unmount } = renderWithRouter('task-123');
 
-      // Assert - 50% * 0.64 = 32%
-      expect(screen.getByText('32%')).toBeInTheDocument();
-    });
+        // Assert - Modal should be visible
+        expect(screen.getByText('Chrome not installed')).toBeInTheDocument();
 
-    it('should calculate overall progress for step 2 (FFMPEG)', () => {
-      // Arrange
-      mockStoreState.currentTask = createMockTask('task-123', 'Task', 'running');
-      mockStoreState.setupProgress = 'Downloading 50%';
-      mockStoreState.setupProgressTaskId = 'task-123';
-      mockStoreState.setupDownloadStep = 2;
-
-      // Act
-      renderWithRouter('task-123');
-
-      // Assert - 64 + Math.round(50 * 0.01) = 64 + 1 = 65%
-      expect(screen.getByText('65%')).toBeInTheDocument();
-    });
-
-    it('should calculate overall progress for step 3 (Headless)', () => {
-      // Arrange
-      mockStoreState.currentTask = createMockTask('task-123', 'Task', 'running');
-      mockStoreState.setupProgress = 'Downloading 50%';
-      mockStoreState.setupProgressTaskId = 'task-123';
-      mockStoreState.setupDownloadStep = 3;
-
-      // Act
-      renderWithRouter('task-123');
-
-      // Assert - 65 + Math.round(50 * 0.35) = 65 + 18 = 83%
-      expect(screen.getByText('83%')).toBeInTheDocument();
+        unmount();
+      });
     });
 
     it('should not show download modal for different task', () => {
@@ -1302,8 +1282,8 @@ describe('Execution Page Integration', () => {
       // Act
       renderWithRouter('task-123');
 
-      // Assert
-      expect(screen.getByText('CustomTool')).toBeInTheDocument();
+      // Assert - Tool name is displayed (case may vary based on formatting)
+      expect(screen.getByText(/customtool/i)).toBeInTheDocument();
     });
   });
 

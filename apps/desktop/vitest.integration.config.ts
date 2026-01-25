@@ -5,27 +5,51 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Shared resolve configuration for all projects
+const resolveConfig = {
+  alias: {
+    '@': path.resolve(__dirname, 'src/renderer'),
+    '@main': path.resolve(__dirname, 'src/main'),
+    '@renderer': path.resolve(__dirname, 'src/renderer'),
+    '@shared': path.resolve(__dirname, '../../packages/shared/src'),
+    '@accomplish/shared': path.resolve(__dirname, '../../packages/shared/src'),
+  },
+};
+
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src/renderer'),
-      '@main': path.resolve(__dirname, 'src/main'),
-      '@renderer': path.resolve(__dirname, 'src/renderer'),
-      '@shared': path.resolve(__dirname, '../../packages/shared/src'),
-    },
-  },
+  resolve: resolveConfig,
   test: {
     name: 'integration',
     globals: true,
     root: __dirname,
-    include: ['__tests__/**/*.integration.test.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/dist-electron/**', '**/release/**'],
     setupFiles: ['__tests__/setup.ts'],
-    environment: 'node',
-    environmentMatchGlobs: [
-      ['__tests__/**/*.renderer.*.test.{ts,tsx}', 'jsdom'],
-      ['__tests__/**/renderer/**/*.test.{ts,tsx}', 'jsdom'],
+    projects: [
+      {
+        resolve: resolveConfig,
+        test: {
+          environment: 'node',
+          include: ['__tests__/**/*.integration.test.{ts,tsx}'],
+          exclude: [
+            '__tests__/**/*.renderer.*.integration.test.{ts,tsx}',
+            '__tests__/**/renderer/**/*.integration.test.{ts,tsx}',
+          ],
+          setupFiles: ['__tests__/setup.ts'],
+        },
+      },
+      {
+        plugins: [react()],
+        resolve: resolveConfig,
+        test: {
+          environment: 'happy-dom',
+          include: [
+            '__tests__/**/*.renderer.*.integration.test.{ts,tsx}',
+            '__tests__/**/renderer/**/*.integration.test.{ts,tsx}',
+          ],
+          setupFiles: ['__tests__/setup.ts'],
+        },
+      },
     ],
     // Integration tests may need longer timeouts
     testTimeout: 10000,
