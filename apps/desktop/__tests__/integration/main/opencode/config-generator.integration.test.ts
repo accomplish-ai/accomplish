@@ -292,7 +292,7 @@ describe('OpenCode Config Generator Integration', () => {
   });
 
   describe('System Prompt Content', () => {
-    it('should include browser automation MCP tools guidance', async () => {
+    it('should include browser automation guidance', async () => {
       // Act
       const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
@@ -301,11 +301,10 @@ describe('OpenCode Config Generator Integration', () => {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       const prompt = config.agent['accomplish'].prompt;
 
-      // Should contain browser MCP tool names
-      expect(prompt).toContain('browser_navigate');
-      expect(prompt).toContain('browser_snapshot');
-      expect(prompt).toContain('browser_click');
-      expect(prompt).toContain('browser_type');
+      // Should contain browser guidance (detailed tool docs are now in SKILL.md)
+      expect(prompt).toContain('browser_script');
+      expect(prompt).toContain('browser_*');
+      expect(prompt).toContain('Browser Automation');
     });
 
     it('should include file permission rules', async () => {

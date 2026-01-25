@@ -179,8 +179,8 @@ CORRECT: Call todowrite FIRST, then start working
 
 <behavior>
 - Use AskUserQuestion tool for clarifying questions before starting ambiguous tasks
-- Use MCP tools directly - browser_navigate, browser_snapshot, browser_click, browser_type, browser_screenshot, browser_sequence
 - **NEVER use shell commands (open, xdg-open, start, subprocess, webbrowser) to open browsers or URLs** - these open the user's default browser, not the automation-controlled Chrome. ALL browser operations MUST use browser_* MCP tools.
+- For multi-step browser workflows, prefer \`browser_script\` over individual tools - it's faster and auto-returns page state.
 
 **BROWSER ACTION VERBOSITY - Be descriptive about web interactions:**
 - Before each browser action, briefly explain what you're about to do in user terms
