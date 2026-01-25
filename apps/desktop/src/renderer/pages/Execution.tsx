@@ -1175,6 +1175,11 @@ export default function ExecutionPage() {
             tabIndex={0}
             onClick={() => setDebugPanelOpen(!debugPanelOpen)}
             onKeyDown={(e) => {
+              // Only handle if the event originated from this element, not child buttons
+              // This prevents hijacking key events from Export/Clear buttons
+              if (e.currentTarget !== e.target) {
+                return;
+              }
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 setDebugPanelOpen(!debugPanelOpen);

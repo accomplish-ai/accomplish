@@ -55,6 +55,11 @@ export default function ConversationListItem({ task }: ConversationListItemProps
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Only handle if the event originated from this element, not child elements
+    // This prevents hijacking key events from the Delete button
+    if (e.currentTarget !== e.target) {
+      return;
+    }
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       handleClick();
