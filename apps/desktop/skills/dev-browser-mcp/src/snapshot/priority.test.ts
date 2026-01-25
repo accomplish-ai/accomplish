@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getElementPriority, ROLE_PRIORITIES } from './priority';
+import { getElementPriority, ROLE_PRIORITIES, truncateElements, type TruncatableElement } from './priority';
 
 describe('priority scoring', () => {
   describe('getElementPriority', () => {
@@ -42,5 +42,63 @@ describe('priority scoring', () => {
         expect(ROLE_PRIORITIES[role]).toBeGreaterThan(0);
       }
     });
+  });
+});
+
+describe('truncateElements', () => {
+  const createElements = (count: number, role = 'button', inViewport = true): TruncatableElement[] => {
+    return Array.from({ length: count }, (_, i) => ({
+      ref: `e${i + 1}`,
+      role,
+      name: `Element ${i + 1}`,
+      inViewport,
+    }));
+  };
+
+  it('should return all elements when under limit', () => {
+    const elements = createElements(5);
+    const result = truncateElements(elements, { maxElements: 10 });
+    expect(result.elements).toHaveLength(5);
+    expect(result.truncated).toBe(false);
+  });
+
+  it('should truncate to maxElements', () => {
+    const elements = createElements(100);
+    const result = truncateElements(elements, { maxElements: 50 });
+    expect(result.elements).toHaveLength(50);
+    expect(result.truncated).toBe(true);
+    expect(result.totalElements).toBe(100);
+  });
+
+  it('should prioritize viewport elements', () => {
+    const inViewport = createElements(5, 'button', true);
+    const outViewport = createElements(5, 'button', false);
+    const mixed = [...outViewport, ...inViewport]; // Out of viewport first
+
+    const result = truncateElements(mixed, { maxElements: 5 });
+
+    // Should keep all viewport elements
+    expect(result.elements.every(e => e.inViewport)).toBe(true);
+  });
+
+  it('should prioritize by role', () => {
+    const buttons = createElements(3, 'button', false);
+    const links = createElements(3, 'link', false);
+    const navs = createElements(3, 'navigation', false);
+    const mixed = [...navs, ...links, ...buttons]; // Lowest priority first
+
+    const result = truncateElements(mixed, { maxElements: 3 });
+
+    // Should keep buttons (highest priority)
+    expect(result.elements.every(e => e.role === 'button')).toBe(true);
+  });
+
+  it('should return metadata about truncation', () => {
+    const elements = createElements(100);
+    const result = truncateElements(elements, { maxElements: 30 });
+
+    expect(result.totalElements).toBe(100);
+    expect(result.includedElements).toBe(30);
+    expect(result.truncated).toBe(true);
   });
 });
