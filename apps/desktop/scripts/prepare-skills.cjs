@@ -7,12 +7,20 @@
  * way to package pnpm workspace packages for distribution.
  *
  * Run this BEFORE electron-builder to ensure skills have proper node_modules.
+ *
+ * Common errors and solutions:
+ * - "pnpm is not installed": Install pnpm globally with `npm install -g pnpm`
+ * - "entry point not found": Run `pnpm install` in the skill directory first
+ * - "Failed to deploy": Ensure skill's package.json has a valid "name" field
+ * - "No dist/ found": Run `build-skills.mjs` before `prepare-skills.cjs`
  */
 
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+// Hardcoded list of skills to deploy
+// These names must match directory names in apps/desktop/skills/
 const skills = [
   'dev-browser',
   'dev-browser-mcp',
@@ -21,46 +29,121 @@ const skills = [
   'complete-task'
 ];
 
+// Valid npm package name pattern (simplified)
+const VALID_PACKAGE_NAME_REGEX = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/;
+
 const desktopDir = path.join(__dirname, '..');
 const skillsSourceDir = path.join(desktopDir, 'skills');
 const outputDir = path.join(desktopDir, 'build', 'skills');
 const monorepoRoot = path.resolve(desktopDir, '..', '..');
 
-console.log('Preparing skills for packaging with pnpm deploy...');
+/**
+ * Validate that a path doesn't escape its parent directory
+ */
+function validatePathWithinDir(filePath, parentDir, description) {
+  const resolvedPath = path.resolve(filePath);
+  const resolvedParent = path.resolve(parentDir);
+  if (!resolvedPath.startsWith(resolvedParent + path.sep) && resolvedPath !== resolvedParent) {
+    throw new Error(`${description} escapes parent directory: ${filePath}`);
+  }
+}
+
+/**
+ * Validate skill name doesn't contain path traversal characters
+ */
+function validateSkillName(skill) {
+  if (skill.includes('/') || skill.includes('\\') || skill.includes('..') || skill.includes('\0')) {
+    throw new Error(`Invalid skill name (contains path characters): ${skill}`);
+  }
+}
+
+// Verify pnpm is available
+console.log('Checking pnpm availability...');
+const pnpmCheck = spawnSync('pnpm', ['--version'], { encoding: 'utf-8' });
+if (pnpmCheck.error || pnpmCheck.status !== 0) {
+  console.error('ERROR: pnpm is not installed or not in PATH.');
+  console.error('Please install pnpm: npm install -g pnpm');
+  process.exit(1);
+}
+console.log(`  pnpm version: ${pnpmCheck.stdout.trim()}`);
+
+console.log('\nPreparing skills for packaging with pnpm deploy...');
 console.log(`  Source: ${skillsSourceDir}`);
 console.log(`  Output: ${outputDir}`);
 console.log(`  Monorepo root: ${monorepoRoot}`);
 
 // Clean and create output directory
 if (fs.existsSync(outputDir)) {
-  fs.rmSync(outputDir, { recursive: true });
+  try {
+    fs.rmSync(outputDir, { recursive: true, force: true });
+  } catch (error) {
+    console.error(`Failed to clean output directory: ${error.message}`);
+    process.exit(1);
+  }
 }
-fs.mkdirSync(outputDir, { recursive: true });
+
+try {
+  fs.mkdirSync(outputDir, { recursive: true });
+} catch (error) {
+  console.error(`Failed to create output directory: ${error.message}`);
+  process.exit(1);
+}
 
 for (const skill of skills) {
+  // Validate skill name for path safety
+  validateSkillName(skill);
+
   const skillOutput = path.join(outputDir, skill);
   const skillSource = path.join(skillsSourceDir, skill);
+
+  // Validate paths don't escape their parent directories
+  validatePathWithinDir(skillOutput, outputDir, 'Skill output path');
+  validatePathWithinDir(skillSource, skillsSourceDir, 'Skill source path');
 
   console.log(`\nDeploying ${skill}...`);
 
   // Check if skill has a package.json (required for pnpm deploy)
   const packageJsonPath = path.join(skillSource, 'package.json');
   if (!fs.existsSync(packageJsonPath)) {
-    console.warn(`  Skipping ${skill}: no package.json found`);
-    continue;
+    throw new Error(`Skill ${skill} is missing package.json at ${packageJsonPath}`);
   }
 
-  // Read the skill's package.json to get its name
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+  // Read and validate the skill's package.json
+  let packageJson;
+  try {
+    const content = fs.readFileSync(packageJsonPath, 'utf-8');
+    packageJson = JSON.parse(content);
+  } catch (error) {
+    throw new Error(`Failed to read/parse package.json for ${skill}: ${error.message}`);
+  }
+
+  if (!packageJson.name || typeof packageJson.name !== 'string') {
+    throw new Error(`Invalid or missing "name" field in package.json for ${skill}`);
+  }
+
   const packageName = packageJson.name;
 
+  // Validate package name format to prevent command injection
+  if (!VALID_PACKAGE_NAME_REGEX.test(packageName)) {
+    throw new Error(`Invalid package name format: ${packageName}`);
+  }
+
   try {
-    // Run pnpm deploy from monorepo root
+    // Run pnpm deploy from monorepo root using spawnSync (safer than execSync with string template)
     // --prod: only install production dependencies
-    execSync(`pnpm deploy --filter="${packageName}" --prod "${skillOutput}"`, {
+    const result = spawnSync('pnpm', ['deploy', `--filter=${packageName}`, '--prod', skillOutput], {
       cwd: monorepoRoot,
-      stdio: 'inherit'
+      stdio: 'inherit',
+      encoding: 'utf-8'
     });
+
+    if (result.error) {
+      throw new Error(`Failed to spawn pnpm: ${result.error.message}`);
+    }
+
+    if (result.status !== 0) {
+      throw new Error(`pnpm deploy exited with code ${result.status}`);
+    }
 
     // Copy the pre-built dist/ directory (esbuild output)
     const distSrc = path.join(skillSource, 'dist');
@@ -68,8 +151,14 @@ for (const skill of skills) {
     if (fs.existsSync(distSrc)) {
       console.log(`  Copying dist/ for ${skill}...`);
       fs.cpSync(distSrc, distDest, { recursive: true });
+
+      // Verify the bundled file exists
+      const bundledFile = path.join(distDest, 'index.mjs');
+      if (!fs.existsSync(bundledFile)) {
+        throw new Error(`Bundled file not found after copy: ${bundledFile}`);
+      }
     } else {
-      console.warn(`  Warning: No dist/ found for ${skill}. Run build-skills.mjs first.`);
+      throw new Error(`No dist/ found for ${skill}. Run build-skills.mjs first.`);
     }
 
     // Copy server.cjs for dev-browser (the launcher script)
@@ -79,6 +168,11 @@ for (const skill of skills) {
       if (fs.existsSync(serverSrc)) {
         console.log(`  Copying server.cjs for ${skill}...`);
         fs.copyFileSync(serverSrc, serverDest);
+        if (!fs.existsSync(serverDest)) {
+          throw new Error(`Failed to copy server.cjs - destination doesn't exist`);
+        }
+      } else {
+        throw new Error(`server.cjs not found for dev-browser at ${serverSrc}`);
       }
     }
 
