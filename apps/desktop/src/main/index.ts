@@ -222,8 +222,6 @@ app.on('window-all-closed', () => {
 // Flush pending task history writes and dispose TaskManager before quitting
 app.on('before-quit', () => {
   console.log('[Main] App before-quit event fired');
-  // Flush and shutdown logging
-  shutdownLogCollector();
   flushPendingTasks();
   // Dispose all active tasks and cleanup PTY processes
   disposeTaskManager();
@@ -233,6 +231,8 @@ app.on('before-quit', () => {
   });
   // Close database connection
   closeDatabase();
+  // Flush and shutdown logging LAST to capture all shutdown logs
+  shutdownLogCollector();
 });
 
 // Handle custom protocol (accomplish://)

@@ -99,11 +99,16 @@ class LogFileWriter {
     // Append to file
     try {
       fs.appendFileSync(this.currentFilePath, lines.join('\n') + '\n');
+      this.buffer = [];  // Only clear on success
     } catch (error) {
       console.error('[LogFileWriter] Failed to write logs:', error);
+      // Don't clear buffer - retry on next flush
+      // But prevent unbounded growth
+      if (this.buffer.length > BUFFER_MAX_ENTRIES * 10) {
+        console.error('[LogFileWriter] Buffer overflow - dropping oldest entries');
+        this.buffer = this.buffer.slice(-BUFFER_MAX_ENTRIES);
+      }
     }
-
-    this.buffer = [];
   }
 
   /**
@@ -142,10 +147,11 @@ class LogFileWriter {
         );
         try {
           fs.appendFileSync(this.currentFilePath, lines.join('\n') + '\n');
+          this.buffer = [];  // Only clear on success
         } catch (error) {
           console.error('[LogFileWriter] Failed to write logs on date change:', error);
+          // Don't clear buffer - entries will be written to new file
         }
-        this.buffer = [];
       }
       this.currentDate = today;
       this.currentFilePath = path.join(this.logDir, `app-${today}.log`);
