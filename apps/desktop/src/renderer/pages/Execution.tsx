@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { StreamingText } from '../components/ui/streaming-text';
 import { isWaitingForUser } from '../lib/waiting-detection';
+import { BrowserScriptCard } from '../components/BrowserScriptCard';
 import loadingSymbol from '/assets/loading-symbol.svg';
 import SettingsDialog from '../components/layout/SettingsDialog';
 import { TodoSidebar } from '../components/TodoSidebar';
@@ -693,42 +694,45 @@ export default function ExecutionPage() {
 
             <AnimatePresence>
               {currentTask.status === 'running' && !permissionRequest && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={springs.gentle}
-                  className="flex flex-col gap-1 text-muted-foreground py-2"
-                  data-testid="execution-thinking-indicator"
-                >
-                  <div className="flex items-center gap-2">
-                    <SpinningIcon className="h-4 w-4" />
-                    <span className="text-sm">
-                      {currentTool
-                        ? ((currentToolInput as { description?: string })?.description || TOOL_PROGRESS_MAP[currentTool]?.label || currentTool)
-                        : (startupStageTaskId === id && startupStage)
-                          ? startupStage.message
-                          : 'Thinking...'}
-                    </span>
-                    {currentTool && !(currentToolInput as { description?: string })?.description && (
-                      <span className="text-xs text-muted-foreground/60">
-                        ({currentTool})
+                /* Skip thinking indicator for browser_script - it's shown in the message bubble */
+                currentTool?.endsWith('browser_script') ? null : (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={springs.gentle}
+                    className="flex flex-col gap-1 text-muted-foreground py-2"
+                    data-testid="execution-thinking-indicator"
+                  >
+                    <div className="flex items-center gap-2">
+                      <SpinningIcon className="h-4 w-4" />
+                      <span className="text-sm">
+                        {currentTool
+                          ? ((currentToolInput as { description?: string })?.description || TOOL_PROGRESS_MAP[currentTool]?.label || currentTool)
+                          : (startupStageTaskId === id && startupStage)
+                            ? startupStage.message
+                            : 'Thinking...'}
+                      </span>
+                      {currentTool && !(currentToolInput as { description?: string })?.description && (
+                        <span className="text-xs text-muted-foreground/60">
+                          ({currentTool})
+                        </span>
+                      )}
+                      {/* Elapsed time - only show during startup stages */}
+                      {!currentTool && startupStageTaskId === id && startupStage && (
+                        <span className="text-xs text-muted-foreground/60">
+                          ({elapsedTime}s)
+                        </span>
+                      )}
+                    </div>
+                    {/* Cold start hint */}
+                    {!currentTool && startupStageTaskId === id && startupStage?.isFirstTask && startupStage.stage === 'browser' && (
+                      <span className="text-xs text-muted-foreground/50 ml-6">
+                        First task takes a bit longer...
                       </span>
                     )}
-                    {/* Elapsed time - only show during startup stages */}
-                    {!currentTool && startupStageTaskId === id && startupStage && (
-                      <span className="text-xs text-muted-foreground/60">
-                        ({elapsedTime}s)
-                      </span>
-                    )}
-                  </div>
-                  {/* Cold start hint */}
-                  {!currentTool && startupStageTaskId === id && startupStage?.isFirstTask && startupStage.stage === 'browser' && (
-                    <span className="text-xs text-muted-foreground/50 ml-6">
-                      First task takes a bit longer...
-                    </span>
-                  )}
-                </motion.div>
+                  </motion.div>
+                )
               )}
             </AnimatePresence>
 
@@ -1319,6 +1323,13 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
       transition={springs.gentle}
       className={cn('flex flex-col group', isUser ? 'items-end' : 'items-start')}
     >
+      {/* Browser Script tool: render card directly without wrapper */}
+      {isTool && toolName?.endsWith('browser_script') && (message.toolInput as { actions?: unknown[] })?.actions ? (
+        <BrowserScriptCard
+          actions={(message.toolInput as { actions: Array<{ action: string; url?: string; selector?: string; ref?: string; text?: string; key?: string }> }).actions}
+          isRunning={isLastMessage && isRunning}
+        />
+      ) : (
       <div
         className={cn(
           'max-w-[85%] rounded-2xl px-4 py-3 transition-all duration-150',
@@ -1333,15 +1344,13 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
       >
         {/* Tool messages: show only label and loading animation */}
         {isTool ? (
-          <>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
-              {ToolIcon ? <ToolIcon className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
-              <span>{TOOL_PROGRESS_MAP[toolName || '']?.label || toolName || 'Processing'}</span>
-              {isLastMessage && isRunning && (
-                <SpinningIcon className="h-3.5 w-3.5 ml-1" />
-              )}
-            </div>
-          </>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
+            {ToolIcon ? <ToolIcon className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
+            <span>{TOOL_PROGRESS_MAP[toolName || '']?.label || toolName || 'Processing'}</span>
+            {isLastMessage && isRunning && (
+              <SpinningIcon className="h-3.5 w-3.5 ml-1" />
+            )}
+          </div>
         ) : (
           <>
             {isSystem && (
@@ -1400,6 +1409,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
           </>
         )}
       </div>
+      )}
 
       {showCopyButton && (
         <Tooltip>

@@ -930,7 +930,7 @@ export function registerIPCHandlers(): void {
 
         case 'openrouter':
           response = await fetchWithTimeout(
-            'https://openrouter.ai/api/v1/models',
+            'https://openrouter.ai/api/v1/auth/key',
             {
               method: 'GET',
               headers: {
