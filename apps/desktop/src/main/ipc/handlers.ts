@@ -79,6 +79,7 @@ import type {
   OllamaConfig,
   AzureFoundryConfig,
   LiteLLMConfig,
+  TodoItem,
 } from '@accomplish/shared';
 import { DEFAULT_PROVIDERS } from '@accomplish/shared';
 import {
@@ -435,6 +436,10 @@ export function registerIPCHandlers(): void {
         // Update task status in history
         updateTaskStatus(taskId, status, new Date().toISOString());
       },
+
+      onTodoUpdate: (todos: TodoItem[]) => {
+        forwardToRenderer('todo:update', { taskId, todos });
+      },
     };
 
     // Start the task via TaskManager (creates isolated adapter or queues if busy)
@@ -687,6 +692,10 @@ export function registerIPCHandlers(): void {
         // Update task status in history
         updateTaskStatus(taskId, status, new Date().toISOString());
       },
+
+      onTodoUpdate: (todos: TodoItem[]) => {
+        forwardToRenderer('todo:update', { taskId, todos });
+      },
     };
 
     // Start the task via TaskManager with sessionId for resume (creates isolated adapter or queues if busy)
@@ -921,7 +930,7 @@ export function registerIPCHandlers(): void {
 
         case 'openrouter':
           response = await fetchWithTimeout(
-            'https://openrouter.ai/api/v1/models',
+            'https://openrouter.ai/api/v1/auth/key',
             {
               method: 'GET',
               headers: {

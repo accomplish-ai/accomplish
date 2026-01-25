@@ -19,6 +19,7 @@ import type {
   ProviderSettings,
   ProviderId,
   ConnectedProvider,
+  TodoItem,
 } from '@accomplish/shared';
 
 // Define the API interface
@@ -141,6 +142,7 @@ interface AccomplishAPI {
   onDebugModeChange?(callback: (data: { enabled: boolean }) => void): () => void;
   onTaskStatusChange?(callback: (data: { taskId: string; status: TaskStatus }) => void): () => void;
   onTaskSummary?(callback: (data: { taskId: string; summary: string }) => void): () => void;
+  onTodoUpdate?(callback: (data: { taskId: string; todos: TodoItem[] }) => void): () => void;
 
   // Logging
   logEvent(payload: { level?: string; message: string; context?: Record<string, unknown> }): Promise<unknown>;
