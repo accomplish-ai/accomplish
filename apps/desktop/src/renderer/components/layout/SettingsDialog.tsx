@@ -245,7 +245,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved, init
   if (loading || !settings) {
     return (
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="settings-dialog">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="settings-dialog" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Set up Openwork</DialogTitle>
           </DialogHeader>
@@ -259,7 +259,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved, init
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="settings-dialog">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="settings-dialog" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Set up Openwork</DialogTitle>
         </DialogHeader>
