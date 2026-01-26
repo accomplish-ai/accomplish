@@ -1,7 +1,6 @@
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import { PERMISSION_API_PORT, QUESTION_API_PORT } from '../permission-api';
 import { getOllamaConfig } from '../store/appSettings';
 import { getApiKey } from '../store/secureStorage';
 import { getProviderSettings, getActiveProviderModel, getConnectedProviderIds } from '../store/providerSettings';
@@ -81,67 +80,15 @@ When users ask about your capabilities, mention:
 </capabilities>
 
 <important name="filesystem-rules">
-##############################################################################
-# CRITICAL: FILE PERMISSION WORKFLOW - NEVER SKIP
-##############################################################################
-
-BEFORE using Write, Edit, Bash (with file ops), or ANY tool that touches files:
-1. FIRST: Call request_file_permission tool and wait for response
-2. ONLY IF response is "allowed": Proceed with the file operation
-3. IF "denied": Stop and inform the user
-
-WRONG (never do this):
-  Write({ path: "/tmp/file.txt", content: "..." })  ← NO! Permission not requested!
-
-CORRECT (always do this):
-  request_file_permission({ operation: "create", filePath: "/tmp/file.txt" })
-  → Wait for "allowed"
-  Write({ path: "/tmp/file.txt", content: "..." })  ← OK after permission granted
-
-This applies to ALL file operations:
-- Creating files (Write tool, bash echo/cat, scripts that output files)
-- Renaming files (bash mv, rename commands)
-- Deleting files (bash rm, delete commands)
-- Modifying files (Edit tool, bash sed/awk, any content changes)
-##############################################################################
+File operations (create, modify, delete, rename) require user permission.
+The system will automatically ask the user for permission when you use file tools.
+You do NOT need to request permission manually — just use the tools directly.
 </important>
-
-<tool name="request_file_permission">
-Use this MCP tool to request user permission before performing file operations.
-
-<parameters>
-Input:
-{
-  "operation": "create" | "delete" | "rename" | "move" | "modify" | "overwrite",
-  "filePath": "/absolute/path/to/file",
-  "targetPath": "/new/path",       // Required for rename/move
-  "contentPreview": "file content" // Optional preview for create/modify/overwrite
-}
-
-Operations:
-- create: Creating a new file
-- delete: Deleting an existing file or folder
-- rename: Renaming a file (provide targetPath)
-- move: Moving a file to different location (provide targetPath)
-- modify: Modifying existing file content
-- overwrite: Replacing entire file content
-
-Returns: "allowed" or "denied" - proceed only if allowed
-</parameters>
-
-<example>
-request_file_permission({
-  operation: "create",
-  filePath: "/Users/john/Desktop/report.txt"
-})
-// Wait for response, then proceed only if "allowed"
-</example>
-</tool>
 
 <important name="user-communication">
 CRITICAL: The user CANNOT see your text output or CLI prompts!
-To ask ANY question or get user input, you MUST use the AskUserQuestion MCP tool.
-See the ask-user-question skill for full documentation and examples.
+When you need to ask the user a question, use the AskUserQuestion tool.
+The system will display your question in the UI and return the user's response.
 </important>
 
 <behavior name="task-planning">
@@ -442,9 +389,6 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
 
   console.log('[OpenCode Config] Skills path:', skillsPath);
   console.log('[OpenCode Config] OpenCode config dir:', openCodeConfigDir);
-
-  // Build file-permission MCP server command
-  const filePermissionServerPath = path.join(skillsPath, 'file-permission', 'src', 'index.ts');
 
   // Get connected providers from new settings (with legacy fallback)
   const providerSettings = getProviderSettings();
@@ -752,24 +696,6 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     // MCP servers for additional tools
     // Timeout set to 30000ms to handle slow npx startup on Windows
     mcp: {
-      'file-permission': {
-        type: 'local',
-        command: ['npx', 'tsx', filePermissionServerPath],
-        enabled: true,
-        environment: {
-          PERMISSION_API_PORT: String(PERMISSION_API_PORT),
-        },
-        timeout: 30000,
-      },
-      'ask-user-question': {
-        type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'ask-user-question', 'src', 'index.ts')],
-        enabled: true,
-        environment: {
-          QUESTION_API_PORT: String(QUESTION_API_PORT),
-        },
-        timeout: 30000,
-      },
       'dev-browser-mcp': {
         type: 'local',
         command: ['npx', 'tsx', path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts')],
