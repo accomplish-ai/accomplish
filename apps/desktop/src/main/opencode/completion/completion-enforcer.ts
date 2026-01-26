@@ -87,8 +87,6 @@ export class CompletionEnforcer {
       return false;
     }
 
-    this.hasActivity = true;
-
     const args = toolInput as {
       status?: string;
       summary?: string;
@@ -142,6 +140,14 @@ export class CompletionEnforcer {
 
     // Check if verification is needed
     if (this.state.isPendingVerification()) {
+      if (!this.hasActivity) {
+        this.state.markDone();
+        this.callbacks.onDebug(
+          'verification',
+          'Skipping verification for simple response with no activity'
+        );
+        return 'complete';
+      }
       this.callbacks.onDebug(
         'verification',
         'Scheduling verification for completion claim',
