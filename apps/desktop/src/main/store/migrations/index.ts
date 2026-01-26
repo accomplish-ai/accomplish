@@ -1,7 +1,7 @@
 // apps/desktop/src/main/store/migrations/index.ts
 
 import type { Database } from 'better-sqlite3';
-import { FutureSchemaError, MigrationError } from './errors';
+import { FutureSchemaError, MigrationError, MissingDownMigrationError } from './errors';
 
 export interface Migration {
   version: number;
@@ -73,27 +73,71 @@ export function setStoredVersion(db: Database, version: number): void {
  * Run all pending migrations.
  * Throws FutureSchemaError if the database is from a newer app version.
  */
-export function runMigrations(db: Database): void {
+export function runMigrations(db: Database, targetVersion: number = CURRENT_VERSION): void {
   const storedVersion = getStoredVersion(db);
+  const sortedMigrations = [...migrations].sort((a, b) => a.version - b.version);
 
   console.log(
-    `[Migrations] Stored version: ${storedVersion}, App version: ${CURRENT_VERSION}`
+    `[Migrations] Stored version: ${storedVersion}, App version: ${targetVersion}`
   );
 
-  // Block if database is from a newer app version
-  if (storedVersion > CURRENT_VERSION) {
-    throw new FutureSchemaError(storedVersion, CURRENT_VERSION);
-  }
-
   // No migrations to run
-  if (storedVersion === CURRENT_VERSION) {
+  if (storedVersion === targetVersion) {
     console.log('[Migrations] Database is up to date');
     return;
   }
 
+  if (storedVersion > targetVersion) {
+    const reversedMigrations = [...sortedMigrations].sort((a, b) => b.version - a.version);
+    const migrationVersions = sortedMigrations.map((migration) => migration.version);
+    const maxKnownVersion = migrationVersions[migrationVersions.length - 1] ?? 0;
+
+    if (storedVersion > maxKnownVersion) {
+      throw new FutureSchemaError(storedVersion, targetVersion);
+    }
+
+    for (const migration of reversedMigrations) {
+      if (migration.version <= targetVersion || migration.version > storedVersion) {
+        continue;
+      }
+
+      if (!migration.down) {
+        throw new MissingDownMigrationError(
+          migration.version,
+          storedVersion,
+          targetVersion
+        );
+      }
+
+      const previousVersion =
+        migrationVersions
+          .slice()
+          .reverse()
+          .find((version) => version < migration.version) ?? 0;
+
+      console.log(`[Migrations] Rolling back migration v${migration.version}`);
+
+      try {
+        db.transaction(() => {
+          migration.down?.(db);
+          setStoredVersion(db, previousVersion);
+        })();
+        console.log(`[Migrations] Rollback of v${migration.version} complete`);
+      } catch (err) {
+        throw new MigrationError(
+          previousVersion,
+          err instanceof Error ? err : new Error(String(err))
+        );
+      }
+    }
+
+    console.log('[Migrations] Database downgraded to app version');
+    return;
+  }
+
   // Run pending migrations
-  for (const migration of migrations) {
-    if (migration.version > storedVersion) {
+  for (const migration of sortedMigrations) {
+    if (migration.version > storedVersion && migration.version <= targetVersion) {
       console.log(`[Migrations] Running migration v${migration.version}`);
 
       try {
@@ -115,4 +159,9 @@ export function runMigrations(db: Database): void {
 }
 
 // Re-export errors for convenience
-export { FutureSchemaError, MigrationError, CorruptDatabaseError } from './errors';
+export {
+  FutureSchemaError,
+  MigrationError,
+  CorruptDatabaseError,
+  MissingDownMigrationError,
+} from './errors';

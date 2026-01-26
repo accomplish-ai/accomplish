@@ -8,7 +8,7 @@ import { flushPendingTasks } from './store/taskHistory';
 import { disposeTaskManager } from './opencode/task-manager';
 import { checkAndCleanupFreshInstall } from './store/freshInstallCleanup';
 import { initializeDatabase, closeDatabase } from './store/db';
-import { FutureSchemaError } from './store/migrations/errors';
+import { FutureSchemaError, MissingDownMigrationError } from './store/migrations/errors';
 import { stopAzureFoundryProxy } from './opencode/azure-foundry-proxy';
 import { initializeLogCollector, shutdownLogCollector, getLogCollector } from './logging';
 
@@ -178,6 +178,17 @@ if (!gotTheLock) {
           title: 'Update Required',
           message: `This data was created by a newer version of Openwork (schema v${err.storedVersion}).`,
           detail: `Your app supports up to schema v${err.appVersion}. Please update Openwork to continue.`,
+          buttons: ['Quit'],
+        });
+        app.quit();
+        return;
+      }
+      if (err instanceof MissingDownMigrationError) {
+        await dialog.showMessageBox({
+          type: 'error',
+          title: 'Downgrade Not Supported',
+          message: `This data was created by a newer version of Openwork (schema v${err.storedVersion}).`,
+          detail: `Your app supports up to schema v${err.appVersion} and cannot downgrade schema v${err.version}. Please update Openwork to continue.`,
           buttons: ['Quit'],
         });
         app.quit();

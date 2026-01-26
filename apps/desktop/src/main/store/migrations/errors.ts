@@ -41,3 +41,20 @@ export class CorruptDatabaseError extends Error {
     super(`Database corrupted: ${message}`);
   }
 }
+
+/**
+ * Thrown when a downgrade requires a migration without a down handler.
+ */
+export class MissingDownMigrationError extends Error {
+  name = 'MissingDownMigrationError' as const;
+
+  constructor(
+    public readonly version: number,
+    public readonly storedVersion: number,
+    public readonly appVersion: number
+  ) {
+    super(
+      `Missing down migration for v${version}. Database schema is v${storedVersion} but app supports v${appVersion}.`
+    );
+  }
+}

@@ -322,4 +322,13 @@ export const migration: Migration = {
     // Cleanup legacy files (outside transaction is fine)
     cleanupLegacyStores();
   },
+  down: (db: Database) => {
+    db.exec('DROP TABLE IF EXISTS task_attachments');
+    db.exec('DROP TABLE IF EXISTS task_messages');
+    db.exec('DROP TABLE IF EXISTS tasks');
+    db.exec('DROP TABLE IF EXISTS providers');
+    db.exec('DROP TABLE IF EXISTS provider_meta');
+    db.exec('DROP TABLE IF EXISTS app_settings');
+    db.exec('DROP TABLE IF EXISTS schema_meta');
+  },
 };

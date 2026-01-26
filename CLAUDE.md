@@ -192,6 +192,9 @@ export const migration: Migration = {
   up(db: Database): void {
     db.exec(`ALTER TABLE app_settings ADD COLUMN new_field TEXT`);
   },
+  down(db: Database): void {
+    db.exec(`ALTER TABLE app_settings DROP COLUMN new_field`);
+  },
 };
 ```
 
@@ -207,3 +210,7 @@ const migrations: Migration[] = [v001, v002];  // Add to array
 ### Rollback Protection
 
 If a user opens data from a newer app version, startup is blocked with a dialog prompting them to update. This prevents data corruption from schema mismatches.
+
+### Downgrade Support
+
+All new migrations must include a `down` handler. If you add a migration without a `down`, the app cannot safely downgrade and will block startup when rolling back. Ensure legacy migrations also have `down` handlers when adding downgrade support.
