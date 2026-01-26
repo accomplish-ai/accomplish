@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check, Copy, Globe, MousePointer2, Type, Image, Keyboard, ArrowUpDown, ListChecks, Layers, Highlighter, ListOrdered, Upload, Move, Frame } from 'lucide-react';
+import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check, Copy, Globe, MousePointer2, Type, Image, Keyboard, ArrowUpDown, ListChecks, Layers, Highlighter, ListOrdered, Upload, Move, Frame, ShieldCheck, MessageCircleQuestion, CheckCircle, Lightbulb, Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { StreamingText } from '../components/ui/streaming-text';
@@ -82,20 +82,31 @@ const TOOL_PROGRESS_MAP: Record<string, { label: string; icon: typeof FileText }
   browser_iframe: { label: 'Switching frame', icon: Frame },
   browser_canvas_type: { label: 'Typing in canvas', icon: Type },
   browser_script: { label: 'Browser Actions', icon: Globe },
+  // Utility MCP tools
+  request_file_permission: { label: 'Requesting permission', icon: ShieldCheck },
+  AskUserQuestion: { label: 'Asking question', icon: MessageCircleQuestion },
+  complete_task: { label: 'Completing task', icon: CheckCircle },
+  report_thought: { label: 'Thinking', icon: Lightbulb },
+  report_checkpoint: { label: 'Checkpoint', icon: Flag },
 };
 
 // Extract base tool name from MCP-prefixed tool names
-// e.g., "dev-browser-mcp_browser_navigate" -> "browser_navigate"
+// MCP tools are prefixed as "servername_toolname", e.g.:
+//   "dev-browser-mcp_browser_navigate" -> "browser_navigate"
+//   "file-permission_request_file_permission" -> "request_file_permission"
+//   "complete-task_complete_task" -> "complete_task"
 function getBaseToolName(toolName: string): string {
-  // MCP tools are prefixed with server name and underscore
-  // e.g., "dev-browser-mcp_browser_navigate" or "complete-task_complete_task"
-  const lastUnderscoreIndex = toolName.indexOf('_');
-  if (lastUnderscoreIndex !== -1) {
-    const possibleBaseName = toolName.substring(lastUnderscoreIndex + 1);
-    // Check if the base name exists in our map
-    if (TOOL_PROGRESS_MAP[possibleBaseName]) {
-      return possibleBaseName;
+  // Try progressively stripping prefixes at each underscore position
+  // to find a match in our map. This handles server names with hyphens
+  // (e.g., "file-permission_request_file_permission" needs to split
+  // after "file-permission_", not after "file_").
+  let idx = 0;
+  while ((idx = toolName.indexOf('_', idx)) !== -1) {
+    const candidate = toolName.substring(idx + 1);
+    if (TOOL_PROGRESS_MAP[candidate]) {
+      return candidate;
     }
+    idx += 1;
   }
   return toolName;
 }
