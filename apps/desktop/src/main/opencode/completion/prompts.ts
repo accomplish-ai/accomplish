@@ -95,3 +95,11 @@ Before continuing, you MUST:
 
 Now create your continuation plan and resume working on the remaining items.`;
 }
+
+export function getIncompleteTodosPrompt(incompleteTodos: string): string {
+  return `You marked the task complete but have incomplete todos:
+
+${incompleteTodos}
+
+Either complete these items or update the todo list to mark them as cancelled if no longer needed. Then call complete_task again.`;
+}

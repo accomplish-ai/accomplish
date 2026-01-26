@@ -247,6 +247,7 @@ describe('secureStorage Integration', () => {
         openrouter: null,
         bedrock: null,
         litellm: null,
+        minimax: null,
         custom: null,
       });
     });
@@ -359,6 +360,7 @@ describe('secureStorage Integration', () => {
         openrouter: null,
         bedrock: null,
         litellm: null,
+        minimax: null,
         custom: null,
       });
     });

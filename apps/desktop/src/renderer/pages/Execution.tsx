@@ -10,15 +10,18 @@ import type { TaskMessage } from '@accomplish/shared';
 import { hasAnyReadyProvider } from '@accomplish/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check, Copy } from 'lucide-react';
+import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check, Copy, Globe, MousePointer2, Type, Image, Keyboard, ArrowUpDown, ListChecks, Layers, Highlighter, ListOrdered, Upload, Move, Frame, ShieldCheck, MessageCircleQuestion, CheckCircle, Lightbulb, Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { StreamingText } from '../components/ui/streaming-text';
 import { isWaitingForUser } from '../lib/waiting-detection';
+import { BrowserScriptCard } from '../components/BrowserScriptCard';
 import loadingSymbol from '/assets/loading-symbol.svg';
 import SettingsDialog from '../components/layout/SettingsDialog';
+import { TodoSidebar } from '../components/TodoSidebar';
 
 // Debug log entry type
 interface DebugLogEntry {
@@ -40,6 +43,8 @@ const SpinningIcon = ({ className }: { className?: string }) => (
 
 // Tool name to human-readable progress mapping
 const TOOL_PROGRESS_MAP: Record<string, { label: string; icon: typeof FileText }> = {
+  // Special error case - OpenCode returns "invalid" when LLM makes invalid tool call
+  invalid: { label: 'Retrying...', icon: AlertCircle },
   // Standard Claude Code tools
   Read: { label: 'Reading files', icon: FileText },
   Glob: { label: 'Finding files', icon: Search },
@@ -50,9 +55,72 @@ const TOOL_PROGRESS_MAP: Record<string, { label: string; icon: typeof FileText }
   Task: { label: 'Running agent', icon: Brain },
   WebFetch: { label: 'Fetching web page', icon: Search },
   WebSearch: { label: 'Searching web', icon: Search },
-  // Dev Browser tools
+  // Dev Browser tools (legacy)
   dev_browser_execute: { label: 'Executing browser action', icon: Terminal },
+  // Browser MCP tools
+  browser_navigate: { label: 'Navigating', icon: Globe },
+  browser_snapshot: { label: 'Reading page', icon: Search },
+  browser_click: { label: 'Clicking', icon: MousePointer2 },
+  browser_type: { label: 'Typing', icon: Type },
+  browser_screenshot: { label: 'Taking screenshot', icon: Image },
+  browser_evaluate: { label: 'Running script', icon: Code },
+  browser_keyboard: { label: 'Pressing keys', icon: Keyboard },
+  browser_scroll: { label: 'Scrolling', icon: ArrowUpDown },
+  browser_hover: { label: 'Hovering', icon: MousePointer2 },
+  browser_select: { label: 'Selecting option', icon: ListChecks },
+  browser_wait: { label: 'Waiting', icon: Clock },
+  browser_tabs: { label: 'Managing tabs', icon: Layers },
+  browser_pages: { label: 'Getting pages', icon: Layers },
+  browser_highlight: { label: 'Highlighting', icon: Highlighter },
+  browser_sequence: { label: 'Browser sequence', icon: ListOrdered },
+  browser_file_upload: { label: 'Uploading file', icon: Upload },
+  browser_drag: { label: 'Dragging', icon: Move },
+  browser_get_text: { label: 'Getting text', icon: FileText },
+  browser_is_visible: { label: 'Checking visibility', icon: Search },
+  browser_is_enabled: { label: 'Checking state', icon: Search },
+  browser_is_checked: { label: 'Checking state', icon: Search },
+  browser_iframe: { label: 'Switching frame', icon: Frame },
+  browser_canvas_type: { label: 'Typing in canvas', icon: Type },
+  browser_script: { label: 'Browser Actions', icon: Globe },
+  // Utility MCP tools
+  request_file_permission: { label: 'Requesting permission', icon: ShieldCheck },
+  AskUserQuestion: { label: 'Asking question', icon: MessageCircleQuestion },
+  complete_task: { label: 'Completing task', icon: CheckCircle },
+  report_thought: { label: 'Thinking', icon: Lightbulb },
+  report_checkpoint: { label: 'Checkpoint', icon: Flag },
 };
+
+// Extract base tool name from MCP-prefixed tool names
+// MCP tools are prefixed as "servername_toolname", e.g.:
+//   "dev-browser-mcp_browser_navigate" -> "browser_navigate"
+//   "file-permission_request_file_permission" -> "request_file_permission"
+//   "complete-task_complete_task" -> "complete_task"
+function getBaseToolName(toolName: string): string {
+  // Try progressively stripping prefixes at each underscore position
+  // to find a match in our map. This handles server names with hyphens
+  // (e.g., "file-permission_request_file_permission" needs to split
+  // after "file-permission_", not after "file_").
+  let idx = 0;
+  while ((idx = toolName.indexOf('_', idx)) !== -1) {
+    const candidate = toolName.substring(idx + 1);
+    if (TOOL_PROGRESS_MAP[candidate]) {
+      return candidate;
+    }
+    idx += 1;
+  }
+  return toolName;
+}
+
+// Get tool display info (label and icon) from tool name
+function getToolDisplayInfo(toolName: string): { label: string; icon: typeof FileText } | undefined {
+  // First try direct lookup
+  if (TOOL_PROGRESS_MAP[toolName]) {
+    return TOOL_PROGRESS_MAP[toolName];
+  }
+  // Then try extracting base name from MCP-prefixed name
+  const baseName = getBaseToolName(toolName);
+  return TOOL_PROGRESS_MAP[baseName];
+}
 
 
 // Debounce utility
@@ -110,7 +178,6 @@ export default function ExecutionPage() {
   const debugPanelRef = useRef<HTMLDivElement>(null);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [customResponse, setCustomResponse] = useState('');
-  const [showCustomInput, setShowCustomInput] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [pendingFollowUp, setPendingFollowUp] = useState<string | null>(null);
 
@@ -139,6 +206,8 @@ export default function ExecutionPage() {
     setupDownloadStep,
     startupStage,
     startupStageTaskId,
+    todos,
+    todosTaskId,
   } = useTaskStore();
 
   // Debounced scroll function
@@ -380,9 +449,9 @@ export default function ExecutionPage() {
   const handlePermissionResponse = async (allowed: boolean) => {
     if (!permissionRequest || !currentTask) return;
 
-    // For questions, handle custom text response
+    // For questions, handle custom text response (mutually exclusive: text OR options)
     const isQuestion = permissionRequest.type === 'question';
-    const hasCustomText = isQuestion && showCustomInput && customResponse.trim();
+    const hasCustomText = isQuestion && customResponse.trim();
 
     await respondToPermission({
       requestId: permissionRequest.id,
@@ -395,7 +464,6 @@ export default function ExecutionPage() {
     // Reset state for next question
     setSelectedOptions([]);
     setCustomResponse('');
-    setShowCustomInput(false);
 
     // If denied on a question, also interrupt the task
     if (!allowed && isQuestion) {
@@ -648,8 +716,10 @@ export default function ExecutionPage() {
 
       {/* Messages - normal state (running, completed, failed, etc.) */}
       {currentTask.status !== 'queued' && (
-        <div className="flex-1 overflow-y-auto px-6 py-6" ref={scrollContainerRef} onScroll={handleScroll} data-testid="messages-scroll-container">
-          <div className="max-w-4xl mx-auto space-y-4">
+        <div className="flex-1 flex overflow-hidden">
+          {/* Messages area */}
+          <div className="flex-1 overflow-y-auto px-6 py-6" ref={scrollContainerRef} onScroll={handleScroll} data-testid="messages-scroll-container">
+            <div className="max-w-4xl mx-auto space-y-4">
             {currentTask.messages
               .filter((m) => !(m.type === 'tool' && m.toolName?.toLowerCase() === 'bash'))
               .map((message, index, filteredMessages) => {
@@ -688,42 +758,45 @@ export default function ExecutionPage() {
 
             <AnimatePresence>
               {currentTask.status === 'running' && !permissionRequest && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={springs.gentle}
-                  className="flex flex-col gap-1 text-muted-foreground py-2"
-                  data-testid="execution-thinking-indicator"
-                >
-                  <div className="flex items-center gap-2">
-                    <SpinningIcon className="h-4 w-4" />
-                    <span className="text-sm">
-                      {currentTool
-                        ? ((currentToolInput as { description?: string })?.description || TOOL_PROGRESS_MAP[currentTool]?.label || currentTool)
-                        : (startupStageTaskId === id && startupStage)
-                          ? startupStage.message
-                          : 'Thinking...'}
-                    </span>
-                    {currentTool && !(currentToolInput as { description?: string })?.description && (
-                      <span className="text-xs text-muted-foreground/60">
-                        ({currentTool})
+                /* Skip thinking indicator for browser_script - it's shown in the message bubble */
+                currentTool?.endsWith('browser_script') ? null : (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={springs.gentle}
+                    className="flex flex-col gap-1 text-muted-foreground py-2"
+                    data-testid="execution-thinking-indicator"
+                  >
+                    <div className="flex items-center gap-2">
+                      <SpinningIcon className="h-4 w-4" />
+                      <span className="text-sm">
+                        {currentTool
+                          ? ((currentToolInput as { description?: string })?.description || getToolDisplayInfo(currentTool)?.label || currentTool)
+                          : (startupStageTaskId === id && startupStage)
+                            ? startupStage.message
+                            : 'Thinking...'}
+                      </span>
+                      {currentTool && !(currentToolInput as { description?: string })?.description && (
+                        <span className="text-xs text-muted-foreground/60">
+                          ({currentTool})
+                        </span>
+                      )}
+                      {/* Elapsed time - only show during startup stages */}
+                      {!currentTool && startupStageTaskId === id && startupStage && (
+                        <span className="text-xs text-muted-foreground/60">
+                          ({elapsedTime}s)
+                        </span>
+                      )}
+                    </div>
+                    {/* Cold start hint */}
+                    {!currentTool && startupStageTaskId === id && startupStage?.isFirstTask && startupStage.stage === 'browser' && (
+                      <span className="text-xs text-muted-foreground/50 ml-6">
+                        First task takes a bit longer...
                       </span>
                     )}
-                    {/* Elapsed time - only show during startup stages */}
-                    {!currentTool && startupStageTaskId === id && startupStage && (
-                      <span className="text-xs text-muted-foreground/60">
-                        ({elapsedTime}s)
-                      </span>
-                    )}
-                  </div>
-                  {/* Cold start hint */}
-                  {!currentTool && startupStageTaskId === id && startupStage?.isFirstTask && startupStage.stage === 'browser' && (
-                    <span className="text-xs text-muted-foreground/50 ml-6">
-                      First task takes a bit longer...
-                    </span>
-                  )}
-                </motion.div>
+                  </motion.div>
+                )
               )}
             </AnimatePresence>
 
@@ -750,7 +823,15 @@ export default function ExecutionPage() {
                 </motion.div>
               )}
             </AnimatePresence>
+            </div>
           </div>
+
+          {/* Todo sidebar - only shown when todos exist for this task */}
+          <AnimatePresence>
+            {todosTaskId === id && todos.length > 0 && (
+              <TodoSidebar todos={todos} />
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -898,73 +979,78 @@ export default function ExecutionPage() {
                         </p>
 
                         {/* Options list */}
-                        {!showCustomInput && permissionRequest.options && permissionRequest.options.length > 0 && (
+                        {permissionRequest.options && permissionRequest.options.length > 0 && (
                           <div className="mb-4 space-y-2">
-                            {permissionRequest.options.map((option, idx) => (
-                              <button
-                                key={idx}
-                                onClick={() => {
-                                  // If "Other" is selected, show custom input
-                                  if (option.label.toLowerCase() === 'other') {
-                                    setShowCustomInput(true);
-                                    setSelectedOptions([]);
-                                    return;
-                                  }
-                                  if (permissionRequest.multiSelect) {
-                                    setSelectedOptions((prev) =>
-                                      prev.includes(option.label)
-                                        ? prev.filter((o) => o !== option.label)
-                                        : [...prev, option.label]
-                                    );
-                                  } else {
-                                    setSelectedOptions([option.label]);
-                                  }
-                                }}
-                                className={cn(
-                                  "w-full text-left p-3 rounded-lg border transition-colors",
-                                  selectedOptions.includes(option.label)
-                                    ? "border-primary bg-primary/10"
-                                    : "border-border hover:border-primary/50"
-                                )}
-                              >
-                                <div className="font-medium text-sm">{option.label}</div>
-                                {option.description && (
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    {option.description}
-                                  </div>
-                                )}
-                              </button>
-                            ))}
+                            {permissionRequest.options
+                              .filter((opt) => opt.label.toLowerCase() !== 'other')
+                              .map((option, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => {
+                                    setCustomResponse(''); // Clear text when selecting option
+                                    if (permissionRequest.multiSelect) {
+                                      setSelectedOptions((prev) =>
+                                        prev.includes(option.label)
+                                          ? prev.filter((o) => o !== option.label)
+                                          : [...prev, option.label]
+                                      );
+                                    } else {
+                                      setSelectedOptions([option.label]);
+                                    }
+                                  }}
+                                  className={cn(
+                                    "w-full text-left p-3 rounded-lg border transition-colors",
+                                    selectedOptions.includes(option.label)
+                                      ? "border-primary bg-primary/10"
+                                      : "border-border hover:border-primary/50"
+                                  )}
+                                >
+                                  <div className="font-medium text-sm">{option.label}</div>
+                                  {option.description && (
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {option.description}
+                                    </div>
+                                  )}
+                                </button>
+                              ))}
                           </div>
                         )}
 
-                        {/* Custom text input */}
-                        {showCustomInput && (
-                          <div className="mb-4 space-y-2">
-                            <Input
-                              autoFocus
-                              value={customResponse}
-                              onChange={(e) => setCustomResponse(e.target.value)}
-                              placeholder="Type your response..."
-                              onKeyDown={(e) => {
-                                // Ignore Enter during IME composition (Chinese/Japanese input)
-                                if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-                                if (e.key === 'Enter' && customResponse.trim()) {
-                                  handlePermissionResponse(true);
-                                }
-                              }}
-                            />
-                            <button
-                              onClick={() => {
-                                setShowCustomInput(false);
-                                setCustomResponse('');
-                              }}
-                              className="text-xs text-muted-foreground hover:text-foreground"
-                            >
-                              ← Back to options
-                            </button>
+                        {/* Divider */}
+                        {permissionRequest.options && permissionRequest.options.length > 0 && (
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="flex-1 h-px bg-border" />
+                            <span className="text-xs text-muted-foreground">or type your own</span>
+                            <div className="flex-1 h-px bg-border" />
                           </div>
                         )}
+
+                        {/* Always-visible custom text input */}
+                        <div className="mb-4">
+                          <textarea
+                            value={customResponse}
+                            onChange={(e) => {
+                              setSelectedOptions([]); // Clear options when typing
+                              setCustomResponse(e.target.value);
+                              // Auto-resize
+                              e.target.style.height = 'auto';
+                              e.target.style.height = `${e.target.scrollHeight}px`;
+                            }}
+                            placeholder="Enter a different option..."
+                            aria-label="Custom response"
+                            rows={1}
+                            className="w-full resize-none overflow-hidden rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                            style={{ minHeight: '38px', maxHeight: '150px' }}
+                            onKeyDown={(e) => {
+                              // Ignore Enter during IME composition (Chinese/Japanese input)
+                              if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+                              // Submit on Cmd/Ctrl+Enter (not plain Enter, to allow multi-line)
+                              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && customResponse.trim()) {
+                                handlePermissionResponse(true);
+                              }
+                            }}
+                          />
+                        </div>
                       </>
                     )}
 
@@ -1003,9 +1089,8 @@ export default function ExecutionPage() {
                         data-testid="permission-allow-button"
                         disabled={
                           permissionRequest.type === 'question' &&
-                          !showCustomInput &&
-                          permissionRequest.options &&
-                          selectedOptions.length === 0
+                          selectedOptions.length === 0 &&
+                          !customResponse.trim()
                         }
                       >
                         {isDeleteOperation(permissionRequest)
@@ -1240,9 +1325,15 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
   const isSystem = message.type === 'system';
   const isAssistant = message.type === 'assistant';
 
-  // Get tool icon from mapping
+  // Skip todowrite messages entirely - shown in sidebar instead
+  if (isTool && message.toolName === 'todowrite') {
+    return null;
+  }
+
+  // Get tool display info from mapping
   const toolName = message.toolName || message.content?.match(/Using tool: (\w+)/)?.[1];
-  const ToolIcon = toolName && TOOL_PROGRESS_MAP[toolName]?.icon;
+  const toolDisplayInfo = toolName ? getToolDisplayInfo(toolName) : undefined;
+  const ToolIcon = toolDisplayInfo?.icon;
 
   // Mark stream as complete when shouldStream becomes false
   useEffect(() => {
@@ -1301,6 +1392,13 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
       transition={springs.gentle}
       className={cn('flex flex-col group', isUser ? 'items-end' : 'items-start')}
     >
+      {/* Browser Script tool: render card directly without wrapper */}
+      {isTool && toolName?.endsWith('browser_script') && (message.toolInput as { actions?: unknown[] })?.actions ? (
+        <BrowserScriptCard
+          actions={(message.toolInput as { actions: Array<{ action: string; url?: string; selector?: string; ref?: string; text?: string; key?: string }> }).actions}
+          isRunning={isLastMessage && isRunning}
+        />
+      ) : (
       <div
         className={cn(
           'max-w-[85%] rounded-2xl px-4 py-3 transition-all duration-150',
@@ -1315,15 +1413,13 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
       >
         {/* Tool messages: show only label and loading animation */}
         {isTool ? (
-          <>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
-              {ToolIcon ? <ToolIcon className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
-              <span>{TOOL_PROGRESS_MAP[toolName || '']?.label || toolName || 'Processing'}</span>
-              {isLastMessage && isRunning && (
-                <SpinningIcon className="h-3.5 w-3.5 ml-1" />
-              )}
-            </div>
-          </>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
+            {ToolIcon ? <ToolIcon className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
+            <span>{toolDisplayInfo?.label || toolName || 'Processing'}</span>
+            {isLastMessage && isRunning && (
+              <SpinningIcon className="h-3.5 w-3.5 ml-1" />
+            )}
+          </div>
         ) : (
           <>
             {isSystem && (
@@ -1382,6 +1478,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
           </>
         )}
       </div>
+      )}
 
       {showCopyButton && (
         <Tooltip>

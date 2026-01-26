@@ -228,9 +228,19 @@ const accomplishAPI = {
     ipcRenderer.on('task:summary', listener);
     return () => ipcRenderer.removeListener('task:summary', listener);
   },
+  // Todo updates from OpenCode todowrite tool
+  onTodoUpdate: (callback: (data: { taskId: string; todos: Array<{ id: string; content: string; status: string; priority: string }> }) => void) => {
+    const listener = (_: unknown, data: { taskId: string; todos: Array<{ id: string; content: string; status: string; priority: string }> }) => callback(data);
+    ipcRenderer.on('todo:update', listener);
+    return () => ipcRenderer.removeListener('todo:update', listener);
+  },
 
   logEvent: (payload: { level?: string; message: string; context?: Record<string, unknown> }) =>
     ipcRenderer.invoke('log:event', payload),
+
+  // Export application logs
+  exportLogs: (): Promise<{ success: boolean; path?: string; error?: string; reason?: string }> =>
+    ipcRenderer.invoke('logs:export'),
 };
 
 // Expose the API to the renderer

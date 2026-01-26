@@ -137,6 +137,7 @@ Openwork is an open source AI desktop agent that automates file management, docu
 - Z.ai
 - Amazon Bedrock
 - Ollama (local models)
+- MiniMax (via international coding plan)
 
 <br />
 
@@ -204,7 +205,7 @@ A quick look at Openwork on macOS, plus a short demo video.
 Yes. Openwork runs locally on your machine and you control which folders it can access.
 
 **Do I need an API key?**  
-You can use your own API keys (OpenAI, Anthropic, Google, xAI) or run local models via Ollama.
+You can use your own API keys (OpenAI, Anthropic, Google, xAI, etc.) or run local models via Ollama.
 
 **Is Openwork free?**  
 Yes. Openwork is open source and MIT licensed.

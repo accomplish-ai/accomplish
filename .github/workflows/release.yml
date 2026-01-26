@@ -13,6 +13,15 @@ on:
           - patch
           - minor
           - major
+      platforms:
+        description: 'Platforms to build'
+        required: true
+        type: choice
+        options:
+          - all
+          - windows-only
+          - macos-only
+        default: all
       dry_run:
         description: 'Test mode - skips push to main, creates test release'
         required: false
@@ -34,6 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       new_version: ${{ steps.bump.outputs.new_version }}
+      platforms: ${{ steps.inputs.outputs.platforms }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -52,14 +62,17 @@ jobs:
           if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
             BUMP_TYPE="${{ github.event.client_payload.bump_type }}"
             DRY_RUN="false"
+            PLATFORMS="all"
           else
             BUMP_TYPE="${{ inputs.bump_type }}"
             DRY_RUN="${{ inputs.dry_run }}"
+            PLATFORMS="${{ inputs.platforms }}"
           fi
 
           echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
           echo "dry_run=$DRY_RUN" >> $GITHUB_OUTPUT
-          echo "Bump type: $BUMP_TYPE, Dry run: $DRY_RUN"
+          echo "platforms=$PLATFORMS" >> $GITHUB_OUTPUT
+          echo "Bump type: $BUMP_TYPE, Dry run: $DRY_RUN, Platforms: $PLATFORMS"
 
       - name: Calculate new version
         id: bump
@@ -166,6 +179,7 @@ jobs:
   build-mac-arm64:
     name: Build macOS (Apple Silicon)
     needs: version-bump
+    if: needs.version-bump.outputs.platforms == 'all' || needs.version-bump.outputs.platforms == 'macos-only'
     runs-on: macos-14
     steps:
       - name: Checkout code
@@ -216,6 +230,7 @@ jobs:
   build-mac-x64:
     name: Build macOS (Intel)
     needs: version-bump
+    if: needs.version-bump.outputs.platforms == 'all' || needs.version-bump.outputs.platforms == 'macos-only'
     runs-on: macos-15-large
     steps:
       - name: Checkout code
@@ -263,11 +278,93 @@ jobs:
             apps/desktop/release/*-x64.zip
           retention-days: 30
 
+  build-windows-x64:
+    name: Build Windows (x64)
+    needs: version-bump
+    if: needs.version-bump.outputs.platforms == 'all' || needs.version-bump.outputs.platforms == 'windows-only'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.version-bump.outputs.new_version }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download Node.js binaries
+        run: pnpm -F @accomplish/desktop download:nodejs
+
+      - name: Build desktop app
+        run: pnpm -F @accomplish/desktop build
+
+      - name: Package (unsigned)
+        run: node scripts/package.cjs --win --x64 --publish never
+        working-directory: apps/desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Openwork-Windows-x64
+          path: apps/desktop/release/*.exe
+          retention-days: 30
+
   create-release:
     name: Create GitHub Release
-    needs: [version-bump, build-mac-arm64, build-mac-x64]
+    needs: [version-bump, build-mac-arm64, build-mac-x64, build-windows-x64]
+    if: always() && needs.version-bump.result == 'success'
     runs-on: ubuntu-latest
     steps:
+      - name: Check build results
+        run: |
+          PLATFORMS="${{ needs.version-bump.outputs.platforms }}"
+          MAC_ARM64="${{ needs.build-mac-arm64.result }}"
+          MAC_X64="${{ needs.build-mac-x64.result }}"
+          WIN_X64="${{ needs.build-windows-x64.result }}"
+
+          echo "Requested platforms: $PLATFORMS"
+          echo "Build results: macOS-arm64=$MAC_ARM64, macOS-x64=$MAC_X64, Windows-x64=$WIN_X64"
+
+          # Validate all requested platform builds succeeded
+          FAILED=0
+
+          if [ "$PLATFORMS" == "all" ] || [ "$PLATFORMS" == "macos-only" ]; then
+            if [ "$MAC_ARM64" != "success" ]; then
+              echo "Error: macOS ARM64 build failed (result: $MAC_ARM64)"
+              FAILED=1
+            fi
+            if [ "$MAC_X64" != "success" ]; then
+              echo "Error: macOS x64 build failed (result: $MAC_X64)"
+              FAILED=1
+            fi
+          fi
+
+          if [ "$PLATFORMS" == "all" ] || [ "$PLATFORMS" == "windows-only" ]; then
+            if [ "$WIN_X64" != "success" ]; then
+              echo "Error: Windows x64 build failed (result: $WIN_X64)"
+              FAILED=1
+            fi
+          fi
+
+          if [ $FAILED -eq 1 ]; then
+            echo "Error: One or more requested platform builds failed"
+            exit 1
+          fi
+
+          echo "All requested platform builds succeeded"
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -283,16 +380,30 @@ jobs:
           fi
 
       - name: Download macOS ARM64 artifacts
+        if: needs.build-mac-arm64.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: Openwork-macOS-arm64
           path: ./release/arm64
 
       - name: Download macOS x64 artifacts
+        if: needs.build-mac-x64.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: Openwork-macOS-x64
           path: ./release/x64
+
+      - name: Download Windows x64 artifacts
+        if: needs.build-windows-x64.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: Openwork-Windows-x64
+          path: ./release/win-x64
+
+      - name: List release artifacts
+        run: |
+          echo "Release artifacts:"
+          find ./release -type f 2>/dev/null || echo "No artifacts found"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -305,6 +416,7 @@ jobs:
           files: |
             ./release/arm64/*
             ./release/x64/*
+            ./release/win-x64/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

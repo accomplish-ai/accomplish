@@ -105,6 +105,136 @@ let connectingPromise: Promise<Browser> | null = null;
 let cachedServerMode: string | null = null;
 // Active page override for tab switching (dev-browser server doesn't track this)
 let activePageOverride: Page | null = null;
+// Track the page that currently has the active glow effect
+let glowingPage: Page | null = null;
+
+// Track pages with navigation listeners to avoid duplicates
+const pagesWithGlowListeners = new WeakSet<Page>();
+
+/**
+ * Inject the glow CSS/DOM into the page
+ */
+async function injectGlowElements(page: Page): Promise<void> {
+  if (page.isClosed()) return;
+
+  try {
+    await page.evaluate(() => {
+    // Remove existing glow if any
+    document.getElementById('__dev-browser-active-glow')?.remove();
+    document.getElementById('__dev-browser-active-glow-style')?.remove();
+
+    // Create style element for keyframes - cycles through colors with enhanced visibility
+    const style = document.createElement('style');
+    style.id = '__dev-browser-active-glow-style';
+    style.textContent = `
+      @keyframes devBrowserGlowColor {
+        0%, 100% {
+          border-color: rgba(59, 130, 246, 0.9);
+          box-shadow:
+            inset 0 0 30px rgba(59, 130, 246, 0.6),
+            inset 0 0 60px rgba(59, 130, 246, 0.3),
+            0 0 20px rgba(59, 130, 246, 0.4);
+        }
+        25% {
+          border-color: rgba(168, 85, 247, 0.9);
+          box-shadow:
+            inset 0 0 30px rgba(168, 85, 247, 0.6),
+            inset 0 0 60px rgba(168, 85, 247, 0.3),
+            0 0 20px rgba(168, 85, 247, 0.4);
+        }
+        50% {
+          border-color: rgba(236, 72, 153, 0.9);
+          box-shadow:
+            inset 0 0 30px rgba(236, 72, 153, 0.6),
+            inset 0 0 60px rgba(236, 72, 153, 0.3),
+            0 0 20px rgba(236, 72, 153, 0.4);
+        }
+        75% {
+          border-color: rgba(34, 211, 238, 0.9);
+          box-shadow:
+            inset 0 0 30px rgba(34, 211, 238, 0.6),
+            inset 0 0 60px rgba(34, 211, 238, 0.3),
+            0 0 20px rgba(34, 211, 238, 0.4);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Create enhanced glow overlay - thicker border, stronger effect
+    const overlay = document.createElement('div');
+    overlay.id = '__dev-browser-active-glow';
+    overlay.style.cssText = `
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2147483647;
+      border: 5px solid rgba(59, 130, 246, 0.9);
+      border-radius: 4px;
+      box-shadow:
+        inset 0 0 30px rgba(59, 130, 246, 0.6),
+        inset 0 0 60px rgba(59, 130, 246, 0.3),
+        0 0 20px rgba(59, 130, 246, 0.4);
+      animation: devBrowserGlowColor 6s ease-in-out infinite;
+    `;
+    document.body.appendChild(overlay);
+  });
+  } catch (err) {
+    console.error('[dev-browser-mcp] Error injecting glow elements:', err);
+  }
+}
+
+/**
+ * Inject active tab glow effect into a page (with navigation listener)
+ */
+async function injectActiveTabGlow(page: Page): Promise<void> {
+  // Remove glow from previous page if different
+  if (glowingPage && glowingPage !== page && !glowingPage.isClosed()) {
+    await removeActiveTabGlow(glowingPage);
+  }
+
+  glowingPage = page;
+
+  // Inject glow elements now
+  await injectGlowElements(page);
+
+  // Set up listener to re-inject glow after navigation (only once per page)
+  if (!pagesWithGlowListeners.has(page)) {
+    pagesWithGlowListeners.add(page);
+
+    page.on('load', async () => {
+      // Re-inject glow if this page is still the active glowing page
+      if (glowingPage === page && !page.isClosed()) {
+        console.error('[dev-browser-mcp] Page navigated, re-injecting glow...');
+        await injectGlowElements(page);
+      }
+    });
+  }
+}
+
+/**
+ * Remove active tab glow effect from a page
+ */
+async function removeActiveTabGlow(page: Page): Promise<void> {
+  if (page.isClosed()) {
+    if (glowingPage === page) {
+      glowingPage = null;
+    }
+    return;
+  }
+
+  try {
+    await page.evaluate(() => {
+      document.getElementById('__dev-browser-active-glow')?.remove();
+      document.getElementById('__dev-browser-active-glow-style')?.remove();
+    });
+  } catch {
+    // Page may have been closed or navigated, ignore errors
+  }
+
+  if (glowingPage === page) {
+    glowingPage = null;
+  }
+}
 
 /**
  * Fetch with retry for handling concurrent connection issues
@@ -158,6 +288,36 @@ async function ensureConnected(): Promise<Browser> {
       // Cache the server mode once at connection time
       cachedServerMode = info.mode || 'normal';
       browser = await chromium.connectOverCDP(info.wsEndpoint);
+
+      // Set up listener for new pages - auto-inject glow when tabs open
+      for (const context of browser.contexts()) {
+        context.on('page', async (page) => {
+          console.error('[dev-browser-mcp] New page detected, injecting glow immediately...');
+          // Small delay to ensure page has a body element, then inject
+          setTimeout(async () => {
+            try {
+              if (!page.isClosed()) {
+                await injectActiveTabGlow(page);
+                console.error('[dev-browser-mcp] Glow injected on new page');
+              }
+            } catch (err) {
+              console.error('[dev-browser-mcp] Failed to inject glow on new page:', err);
+            }
+          }, 100);
+        });
+
+        // Also inject glow on existing pages
+        for (const page of context.pages()) {
+          if (!page.isClosed() && !glowingPage) {
+            try {
+              await injectActiveTabGlow(page);
+            } catch (err) {
+              console.error('[dev-browser-mcp] Failed to inject glow on existing page:', err);
+            }
+          }
+        }
+      }
+
       return browser;
     } finally {
       connectingPromise = null;
@@ -278,7 +438,7 @@ async function getPage(pageName?: string): Promise<Page> {
 /**
  * Wait for page to finish loading using Playwright's built-in function
  */
-async function waitForPageLoad(page: Page, timeout = 10000): Promise<void> {
+async function waitForPageLoad(page: Page, timeout = 3000): Promise<void> {
   try {
     // Use Playwright's optimized wait which monitors network activity
     await page.waitForLoadState('domcontentloaded', { timeout });
@@ -1020,11 +1180,105 @@ const SNAPSHOT_SCRIPT = `
   // Interactive ARIA roles that agents typically want to interact with
   const INTERACTIVE_ROLES = ['button', 'link', 'textbox', 'checkbox', 'radio', 'combobox', 'listbox', 'option', 'tab', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'searchbox', 'slider', 'spinbutton', 'switch', 'dialog', 'alertdialog', 'menu', 'navigation', 'form'];
 
+  // === Token optimization: Priority scoring and truncation ===
+  const ROLE_PRIORITIES = {
+    button: 100, textbox: 95, searchbox: 95,
+    checkbox: 90, radio: 90, switch: 90,
+    combobox: 85, listbox: 85, slider: 85, spinbutton: 85,
+    link: 80, tab: 75,
+    menuitem: 70, menuitemcheckbox: 70, menuitemradio: 70, option: 70,
+    navigation: 60, menu: 60, tablist: 55,
+    form: 50, dialog: 50, alertdialog: 50
+  };
+  const VIEWPORT_BONUS = 50;
+  const DEFAULT_PRIORITY = 50;
+
+  function isInViewport(box) {
+    if (!box || !box.rect) return false;
+    const rect = box.rect;
+    if (rect.width === 0 || rect.height === 0) return false;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    return rect.x < vw && rect.y < vh && rect.x + rect.width > 0 && rect.y + rect.height > 0;
+  }
+
+  function getElementPriority(role, inViewport) {
+    const base = ROLE_PRIORITIES[role] || DEFAULT_PRIORITY;
+    return inViewport ? base + VIEWPORT_BONUS : base;
+  }
+
+  function collectScoredElements(root, opts) {
+    const elements = [];
+    const interactiveOnly = opts.interactiveOnly !== false;
+    const viewportOnlyOpt = opts.viewportOnly === true;
+
+    function visit(node) {
+      const isInteractive = INTERACTIVE_ROLES.includes(node.role);
+      if (interactiveOnly && !isInteractive) {
+        if (node.children) node.children.forEach(c => typeof c !== 'string' && visit(c));
+        return;
+      }
+      const inVp = isInViewport(node.box);
+      if (viewportOnlyOpt && !inVp) {
+        if (node.children) node.children.forEach(c => typeof c !== 'string' && visit(c));
+        return;
+      }
+      elements.push({ node, score: getElementPriority(node.role, inVp), inViewport: inVp });
+      if (node.children) node.children.forEach(c => typeof c !== 'string' && visit(c));
+    }
+    visit(root);
+    return elements;
+  }
+
+  function truncateWithBudget(elements, maxElements, maxTokens) {
+    const sorted = elements.slice().sort((a, b) => b.score - a.score);
+    const included = [];
+    let tokenCount = 0;
+    let truncationReason = null;
+
+    for (const el of sorted) {
+      if (included.length >= maxElements) { truncationReason = 'maxElements'; break; }
+      const elementTokens = 15; // Estimate per element
+      if (maxTokens && tokenCount + elementTokens > maxTokens) { truncationReason = 'maxTokens'; break; }
+      included.push(el);
+      tokenCount += elementTokens;
+    }
+
+    return {
+      elements: included,
+      totalElements: elements.length,
+      estimatedTokens: tokenCount,
+      truncated: included.length < elements.length,
+      truncationReason
+    };
+  }
+
   function renderAriaTree(ariaSnapshot, snapshotOptions) {
     snapshotOptions = snapshotOptions || {};
+    const maxElements = snapshotOptions.maxElements || 300;
+    const maxTokens = snapshotOptions.maxTokens || 8000;
     const options = { visibility: "ariaOrVisible", refs: "interactable", refPrefix: "", includeGenericRole: true, renderActive: true, renderCursorPointer: true };
     const lines = [];
     let nodesToRender = ariaSnapshot.root.role === "fragment" ? ariaSnapshot.root.children : [ariaSnapshot.root];
+
+    // Collect and score all elements
+    const scoredElements = collectScoredElements(ariaSnapshot.root, snapshotOptions);
+
+    // Truncate with token budget
+    const truncateResult = truncateWithBudget(scoredElements, maxElements, maxTokens);
+
+    // Build set of refs to include
+    const includedRefs = {};
+    for (const el of truncateResult.elements) {
+      if (el.node.ref) includedRefs[el.node.ref] = true;
+    }
+
+    // Add header with truncation info
+    if (truncateResult.truncated) {
+      const reason = truncateResult.truncationReason === 'maxTokens' ? 'token budget' : 'element limit';
+      lines.push("# Elements: " + truncateResult.elements.length + " of " + truncateResult.totalElements + " (truncated: " + reason + ")");
+      lines.push("# Tokens: ~" + truncateResult.estimatedTokens);
+    }
 
     const isInteractiveRole = (role) => INTERACTIVE_ROLES.includes(role);
 
@@ -1073,6 +1327,15 @@ const SNAPSHOT_SCRIPT = `
         for (const child of ariaNode.children) {
           if (typeof child === "string") continue; // Skip text in interactive_only mode
           else visit(child, childIndent, renderCursorPointer);
+        }
+        return;
+      }
+
+      // Skip elements not in included refs (truncation), but still visit children
+      if (ariaNode.ref && !includedRefs[ariaNode.ref]) {
+        for (const child of ariaNode.children) {
+          if (typeof child === "string") continue;
+          else visit(child, indent, renderCursorPointer);
         }
         return;
       }
@@ -1127,6 +1390,54 @@ const SNAPSHOT_SCRIPT = `
 
 interface SnapshotOptions {
   interactiveOnly?: boolean;
+  maxElements?: number;
+  viewportOnly?: boolean;
+  maxTokens?: number;
+  fullSnapshot?: boolean;
+}
+
+/**
+ * Default snapshot options for token optimization.
+ * Used by browser_script and other internal snapshot calls.
+ */
+const DEFAULT_SNAPSHOT_OPTIONS: SnapshotOptions = {
+  interactiveOnly: true,
+  maxElements: 300,
+  maxTokens: 8000,
+};
+
+/**
+ * Get a snapshot with session history header and diff support.
+ * Used by browser_script to include Tier 3 context management.
+ * Behaves like browser_snapshot - returns diff when on same page with few changes.
+ */
+async function getSnapshotWithHistory(page: Page, options: SnapshotOptions = {}): Promise<string> {
+  const rawSnapshot = await getAISnapshot(page, options);
+  const url = page.url();
+  const title = await page.title();
+
+  // Process through snapshot manager for diffing (same as browser_snapshot)
+  const manager = getSnapshotManager();
+  const result = manager.processSnapshot(rawSnapshot, url, title, {
+    fullSnapshot: options.fullSnapshot ?? false,
+    interactiveOnly: options.interactiveOnly ?? true,
+  });
+
+  // Build output with session history
+  let output = '';
+  const sessionSummary = manager.getSessionSummary();
+  if (sessionSummary.history) {
+    output += `# ${sessionSummary.history}\n\n`;
+  }
+
+  // Use diff result when available, otherwise full snapshot
+  if (result.type === 'diff') {
+    output += `# Changes Since Last Snapshot\n${result.content}`;
+  } else {
+    output += result.content;
+  }
+
+  return output;
 }
 
 /**
@@ -1152,7 +1463,12 @@ async function getAISnapshot(page: Page, options: SnapshotOptions = {}): Promise
   const snapshot = await page.evaluate((opts) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (globalThis as any).__devBrowser_getAISnapshot(opts);
-  }, { interactiveOnly: options.interactiveOnly || false });
+  }, {
+    interactiveOnly: options.interactiveOnly || false,
+    maxElements: options.maxElements,
+    viewportOnly: options.viewportOnly || false,
+    maxTokens: options.maxTokens,
+  });
   return snapshot;
 }
 
@@ -1195,6 +1511,10 @@ interface BrowserSnapshotInput {
   page_name?: string;
   interactive_only?: boolean;
   full_snapshot?: boolean;
+  max_elements?: number;
+  viewport_only?: boolean;
+  include_history?: boolean;
+  max_tokens?: number;
 }
 
 interface BrowserClickInput {
@@ -1234,6 +1554,7 @@ interface BrowserPagesInput {
 interface BrowserKeyboardInput {
   text?: string;
   key?: string;
+  typing_delay?: number;
   page_name?: string;
 }
 
@@ -1254,10 +1575,47 @@ interface BrowserSequenceInput {
   page_name?: string;
 }
 
+/**
+ * Script action for browser_script tool.
+ * These actions find elements at runtime, enabling single-roundtrip workflows.
+ */
+interface ScriptAction {
+  action:
+    | 'goto'           // Navigate to URL
+    | 'waitForLoad'    // Wait for page load
+    | 'waitForSelector' // Wait for element to appear
+    | 'waitForNavigation' // Wait for navigation to complete
+    | 'findAndFill'    // Find element by selector, fill if exists
+    | 'findAndClick'   // Find element by selector, click if exists
+    | 'fillByRef'      // Fill using ref from previous snapshot
+    | 'clickByRef'     // Click using ref from previous snapshot
+    | 'snapshot'       // Get ARIA snapshot
+    | 'screenshot'     // Take screenshot
+    | 'keyboard'       // Press key or type text
+    | 'evaluate';      // Run JavaScript
+  // Parameters for different actions
+  url?: string;           // For goto
+  selector?: string;      // For waitForSelector, findAndFill, findAndClick
+  ref?: string;           // For fillByRef, clickByRef
+  text?: string;          // For findAndFill, fillByRef, keyboard (type mode)
+  key?: string;           // For keyboard (press mode)
+  pressEnter?: boolean;   // For findAndFill, fillByRef
+  timeout?: number;       // For waitForSelector, waitForNavigation
+  fullPage?: boolean;     // For screenshot
+  code?: string;          // For evaluate
+  skipIfNotFound?: boolean; // For findAndFill, findAndClick - don't fail if element missing
+}
+
+interface BrowserScriptInput {
+  actions: ScriptAction[];
+  page_name?: string;
+}
+
 interface BrowserKeyboardInput {
   action: 'press' | 'type' | 'down' | 'up';
   key?: string;
   text?: string;
+  typing_delay?: number;
   page_name?: string;
 }
 
@@ -1358,6 +1716,11 @@ interface BrowserCanvasTypeInput {
   page_name?: string;
 }
 
+interface BrowserHighlightInput {
+  enabled: boolean;
+  page_name?: string;
+}
+
 // Create MCP server
 const server = new Server(
   { name: 'dev-browser-mcp', version: '1.0.0' },
@@ -1369,7 +1732,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: 'browser_navigate',
-      description: 'Navigate to a URL in the browser. Opens a new page if needed and waits for the page to load.',
+      description: 'Navigate to a URL. TIP: For multi-step workflows (navigate + fill + click), use browser_script instead - it\'s 5-10x faster.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1387,7 +1750,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'browser_snapshot',
-      description: 'Get the ARIA accessibility tree of the current page. Returns elements with refs like [ref=e5] that can be used with browser_click and browser_type. By default, returns a diff if the page hasn\'t changed since last snapshot. Use full_snapshot=true to force a complete snapshot after major page changes.',
+      description: 'Get ARIA accessibility tree with element refs like [ref=e5]. NOTE: browser_script auto-returns a snapshot, so you rarely need this separately.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1403,12 +1766,28 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: 'boolean',
             description: 'Force a complete snapshot instead of a diff. Use after major page changes (modal opened, dynamic content loaded) or when element refs seem incorrect. Default: false.',
           },
+          max_elements: {
+            type: 'number',
+            description: 'Maximum elements to include (1-1000). Default: 300',
+          },
+          viewport_only: {
+            type: 'boolean',
+            description: 'Only include elements visible in viewport. Default: false',
+          },
+          include_history: {
+            type: 'boolean',
+            description: 'Include navigation history in output. Default: true',
+          },
+          max_tokens: {
+            type: 'number',
+            description: 'Maximum estimated tokens (1000-50000). Default: 8000',
+          },
         },
       },
     },
     {
       name: 'browser_click',
-      description: 'Click on the page. Supports double-click (click_count=2) and right-click (button="right"). Use position="center-lower" for canvas apps.',
+      description: 'Click on the page. TIP: For multi-step workflows, use browser_script with findAndClick instead - it\'s faster.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1451,7 +1830,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'browser_type',
-      description: 'Type text into an input field. Use either a ref from browser_snapshot (preferred) or a CSS selector.',
+      description: 'Type text into an input. TIP: For form filling, use browser_script with findAndFill instead - it\'s faster and finds elements at runtime.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1481,7 +1860,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'browser_screenshot',
-      description: 'Take a screenshot of the current page. Returns a JPEG image (80% quality) for visual inspection. Optimized for size to stay under API limits.',
+      description: 'Take a screenshot. AVOID using this - browser_script auto-returns a snapshot which is faster and more useful. Only use screenshots to show the user what the page looks like.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1547,6 +1926,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: 'string',
             description: 'Special key to press (e.g., "Enter", "Tab", "Escape", "Backspace", "ArrowDown"). Can be combined with modifiers like "Control+a", "Shift+Enter".',
           },
+          typing_delay: {
+            type: 'number',
+            description: 'Delay in ms between keystrokes when typing text (default: 20). Set to 0 for instant typing.',
+          },
           page_name: {
             type: 'string',
             description: 'Optional page name (default: "main")',
@@ -1556,7 +1939,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'browser_sequence',
-      description: 'Execute multiple browser actions in sequence. More efficient than separate calls for multi-step operations like form filling.',
+      description: 'Execute actions in sequence. NOTE: browser_script is better - it finds elements at runtime and auto-returns snapshot. Use browser_sequence only if you already have refs.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1609,6 +1992,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           text: {
             type: 'string',
             description: 'Text to type character by character (for action="type")',
+          },
+          typing_delay: {
+            type: 'number',
+            description: 'Delay in ms between keystrokes when typing text (default: 20). Set to 0 for instant typing.',
           },
           page_name: {
             type: 'string',
@@ -1717,7 +2104,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'browser_wait',
-      description: 'Wait for a condition before continuing. Useful for dynamic content, SPAs, and loading states.',
+      description: 'Wait for a condition. TIP: browser_script has built-in waitForLoad, waitForSelector, waitForNavigation - prefer using those.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1979,6 +2366,98 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['text'],
       },
     },
+    {
+      name: 'browser_script',
+      description: `⚡ PREFERRED: Execute complete browser workflows in ONE call. 5-10x faster than individual tools.
+
+ALWAYS use this for multi-step tasks. Actions find elements at RUNTIME using CSS selectors.
+Final page snapshot is AUTO-RETURNED - no need to add snapshot action.
+
+Example - complete login:
+{"actions": [
+  {"action": "goto", "url": "example.com/login"},
+  {"action": "waitForLoad"},
+  {"action": "findAndFill", "selector": "input[type='email']", "text": "user@example.com"},
+  {"action": "findAndFill", "selector": "input[type='password']", "text": "secret"},
+  {"action": "findAndClick", "selector": "button[type='submit']"},
+  {"action": "waitForNavigation"}
+]}
+
+Actions: goto, waitForLoad, waitForSelector, waitForNavigation, findAndFill, findAndClick, fillByRef, clickByRef, snapshot, screenshot, keyboard, evaluate
+}`,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          actions: {
+            type: 'array',
+            description: 'Array of actions to execute in order',
+            items: {
+              type: 'object',
+              properties: {
+                action: {
+                  type: 'string',
+                  enum: [
+                    'goto',
+                    'waitForLoad',
+                    'waitForSelector',
+                    'waitForNavigation',
+                    'findAndFill',
+                    'findAndClick',
+                    'fillByRef',
+                    'clickByRef',
+                    'snapshot',
+                    'screenshot',
+                    'keyboard',
+                    'evaluate',
+                  ],
+                  description: 'The action to perform',
+                },
+                url: { type: 'string', description: 'URL for goto action' },
+                selector: {
+                  type: 'string',
+                  description: 'CSS selector for waitForSelector, findAndFill, findAndClick',
+                },
+                ref: { type: 'string', description: 'Element ref for fillByRef, clickByRef' },
+                text: { type: 'string', description: 'Text to type for fill actions or keyboard type' },
+                key: { type: 'string', description: 'Key to press for keyboard action (e.g., "Enter", "Tab")' },
+                pressEnter: { type: 'boolean', description: 'Press Enter after filling' },
+                timeout: { type: 'number', description: 'Timeout in ms (default: 10000)' },
+                fullPage: { type: 'boolean', description: 'Full page screenshot' },
+                code: { type: 'string', description: 'JavaScript code for evaluate action' },
+                skipIfNotFound: {
+                  type: 'boolean',
+                  description: 'Skip action if element not found (default: false - will fail)',
+                },
+              },
+              required: ['action'],
+            },
+          },
+          page_name: {
+            type: 'string',
+            description: 'Optional page name (default: "main")',
+          },
+        },
+        required: ['actions'],
+      },
+    },
+    {
+      name: 'browser_highlight',
+      description: 'Toggle the visual highlight glow on the current tab. Use to indicate when automation is active on a tab, and turn off when done.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          enabled: {
+            type: 'boolean',
+            description: 'true to show the highlight glow, false to hide it',
+          },
+          page_name: {
+            type: 'string',
+            description: 'Optional page name (default: "main")',
+          },
+        },
+        required: ['enabled'],
+      },
+    },
   ],
 }));
 
@@ -2005,6 +2484,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
         const page = await getPage(page_name);
         await page.goto(fullUrl);
         await waitForPageLoad(page);
+        await injectActiveTabGlow(page);  // Add visual indicator for active tab
 
         const title = await page.title();
         const currentUrl = page.url();
@@ -2027,9 +2507,29 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_snapshot': {
-        const { page_name, interactive_only, full_snapshot } = args as BrowserSnapshotInput;
+        const { page_name, interactive_only, full_snapshot, max_elements, viewport_only, include_history, max_tokens } = args as BrowserSnapshotInput;
         const page = await getPage(page_name);
-        const rawSnapshot = await getAISnapshot(page, { interactiveOnly: interactive_only ?? true });
+
+        // Parse and validate max_elements (1-1000, default 300)
+        // If full_snapshot is true, use Infinity to bypass element limits
+        const validatedMaxElements = full_snapshot
+          ? Infinity
+          : Math.min(Math.max(max_elements ?? 300, 1), 1000);
+
+        // Parse and validate max_tokens (1000-50000, default 8000)
+        // If full_snapshot is true, use Infinity to bypass token limits
+        const validatedMaxTokens = full_snapshot
+          ? Infinity
+          : Math.min(Math.max(max_tokens ?? 8000, 1000), 50000);
+
+        const snapshotOptions: SnapshotOptions = {
+          interactiveOnly: interactive_only ?? true,
+          maxElements: validatedMaxElements,
+          viewportOnly: viewport_only ?? false,
+          maxTokens: validatedMaxTokens,
+        };
+
+        const rawSnapshot = await getAISnapshot(page, snapshotOptions);
         const viewport = page.viewportSize();
         const url = page.url();
         const title = await page.title();
@@ -2052,8 +2552,19 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           interactiveOnly: interactive_only ?? true,
         });
 
-        // Build output with metadata header
-        let output = `# Page Info\n`;
+        // Build output with optional session history
+        let output = '';
+
+        // Include session history if requested (default: true)
+        const includeHistory = include_history !== false;
+        if (includeHistory) {
+          const sessionSummary = manager.getSessionSummary();
+          if (sessionSummary.history) {
+            output += `# ${sessionSummary.history}\n\n`;
+          }
+        }
+
+        output += `# Page Info\n`;
         output += `URL: ${url}\n`;
         output += `Viewport: ${viewport?.width || 1280}x${viewport?.height || 720} (center: ${Math.round((viewport?.width || 1280) / 2)}, ${Math.round((viewport?.height || 720) / 2)})\n`;
 
@@ -2113,18 +2624,14 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             await page.mouse.click(clickX, clickY, clickOptions);
             await waitForPageLoad(page);
             const positionName = position === 'center-lower' ? 'center-lower (2/3 down)' : 'center';
-            return {
-              content: [{ type: 'text', text: `Clicked viewport ${positionName} (${Math.round(clickX)}, ${Math.round(clickY)})${clickDesc}` }],
-            };
+            return { content: [{ type: 'text' as const, text: `Clicked viewport ${positionName} (${Math.round(clickX)}, ${Math.round(clickY)})${clickDesc}` }] };
           }
 
           // Explicit x/y coordinates
           if (x !== undefined && y !== undefined) {
             await page.mouse.click(x, y, clickOptions);
             await waitForPageLoad(page);
-            return {
-              content: [{ type: 'text', text: `Clicked at coordinates (${x}, ${y})${clickDesc}` }],
-            };
+            return { content: [{ type: 'text' as const, text: `Clicked at coordinates (${x}, ${y})${clickDesc}` }] };
           } else if (ref) {
             const element = await selectSnapshotRef(page, ref);
             if (!element) {
@@ -2135,15 +2642,11 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             }
             await element.click(clickOptions);
             await waitForPageLoad(page);
-            return {
-              content: [{ type: 'text', text: `Clicked element [ref=${ref}]${clickDesc}` }],
-            };
+            return { content: [{ type: 'text' as const, text: `Clicked element [ref=${ref}]${clickDesc}` }] };
           } else if (selector) {
             await page.click(selector, clickOptions);
             await waitForPageLoad(page);
-            return {
-              content: [{ type: 'text', text: `Clicked element matching "${selector}"${clickDesc}` }],
-            };
+            return { content: [{ type: 'text' as const, text: `Clicked element matching "${selector}"${clickDesc}` }] };
           } else {
             return {
               content: [{ type: 'text', text: 'Error: Provide x/y coordinates, ref, selector, or position' }],
@@ -2306,7 +2809,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_keyboard': {
-        const { text, key, page_name } = args as BrowserKeyboardInput;
+        const { text, key, typing_delay, page_name } = args as BrowserKeyboardInput;
         const page = await getPage(page_name);
 
         if (!text && !key) {
@@ -2320,7 +2823,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
 
         // Type text if provided
         if (text) {
-          await page.keyboard.type(text, { delay: 50 }); // Small delay between characters for reliability
+          await page.keyboard.type(text, { delay: typing_delay ?? 20 });
           results.push(`Typed: "${text}"`);
         }
 
@@ -2388,7 +2891,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
               }
 
               case 'snapshot': {
-                await getAISnapshot(page);
+                await getSnapshotWithHistory(page, DEFAULT_SNAPSHOT_OPTIONS);
                 results.push(`${stepNum}. Snapshot taken (refs updated)`);
                 break;
               }
@@ -2424,8 +2927,220 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         };
       }
 
+      case 'browser_script': {
+        const { actions, page_name } = args as BrowserScriptInput;
+        let page = await getPage(page_name);
+        const results: string[] = [];
+        let snapshotResult = '';
+        let screenshotData: { type: 'image'; mimeType: string; data: string } | null = null;
+
+        for (let i = 0; i < actions.length; i++) {
+          const step = actions[i];
+          const stepNum = i + 1;
+
+          try {
+            switch (step.action) {
+              case 'goto': {
+                if (!step.url) throw new Error('goto requires url parameter');
+                let fullUrl = step.url;
+                if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+                  fullUrl = 'https://' + fullUrl;
+                }
+                await page.goto(fullUrl, { waitUntil: 'domcontentloaded', timeout: step.timeout || 30000 });
+                results.push(`${stepNum}. Navigated to ${fullUrl}`);
+                break;
+              }
+
+              case 'waitForLoad': {
+                await waitForPageLoad(page, step.timeout || 10000);
+                results.push(`${stepNum}. Page loaded`);
+                break;
+              }
+
+              case 'waitForSelector': {
+                if (!step.selector) throw new Error('waitForSelector requires selector parameter');
+                await page.waitForSelector(step.selector, { timeout: step.timeout || 10000 });
+                results.push(`${stepNum}. Found "${step.selector}"`);
+                break;
+              }
+
+              case 'waitForNavigation': {
+                await page.waitForNavigation({ timeout: step.timeout || 10000 }).catch(() => {
+                  // Ignore timeout - navigation may have already completed
+                });
+                results.push(`${stepNum}. Navigation completed`);
+                break;
+              }
+
+              case 'findAndFill': {
+                if (!step.selector) throw new Error('findAndFill requires selector parameter');
+                const element = await page.$(step.selector);
+                if (element) {
+                  await element.click();
+                  await element.fill(step.text || '');
+                  if (step.pressEnter) {
+                    await element.press('Enter');
+                    await waitForPageLoad(page);
+                  }
+                  results.push(`${stepNum}. Filled "${step.selector}" with "${step.text || ''}"${step.pressEnter ? ' + Enter' : ''}`);
+                } else if (step.skipIfNotFound) {
+                  results.push(`${stepNum}. Skipped (not found): "${step.selector}"`);
+                } else {
+                  throw new Error(`Element not found: "${step.selector}"`);
+                }
+                break;
+              }
+
+              case 'findAndClick': {
+                if (!step.selector) throw new Error('findAndClick requires selector parameter');
+                const element = await page.$(step.selector);
+                if (element) {
+                  await element.click();
+                  await waitForPageLoad(page);
+                  results.push(`${stepNum}. Clicked "${step.selector}"`);
+                } else if (step.skipIfNotFound) {
+                  results.push(`${stepNum}. Skipped (not found): "${step.selector}"`);
+                } else {
+                  throw new Error(`Element not found: "${step.selector}"`);
+                }
+                break;
+              }
+
+              case 'fillByRef': {
+                if (!step.ref) throw new Error('fillByRef requires ref parameter');
+                const element = await selectSnapshotRef(page, step.ref);
+                if (element) {
+                  await element.click();
+                  await element.fill(step.text || '');
+                  if (step.pressEnter) {
+                    await element.press('Enter');
+                    await waitForPageLoad(page);
+                  }
+                  results.push(`${stepNum}. Filled [ref=${step.ref}] with "${step.text || ''}"${step.pressEnter ? ' + Enter' : ''}`);
+                } else if (step.skipIfNotFound) {
+                  results.push(`${stepNum}. Skipped (ref not found): "${step.ref}"`);
+                } else {
+                  throw new Error(`Ref not found: "${step.ref}". Run snapshot first.`);
+                }
+                break;
+              }
+
+              case 'clickByRef': {
+                if (!step.ref) throw new Error('clickByRef requires ref parameter');
+                const element = await selectSnapshotRef(page, step.ref);
+                if (element) {
+                  await element.click();
+                  await waitForPageLoad(page);
+                  results.push(`${stepNum}. Clicked [ref=${step.ref}]`);
+                } else if (step.skipIfNotFound) {
+                  results.push(`${stepNum}. Skipped (ref not found): "${step.ref}"`);
+                } else {
+                  throw new Error(`Ref not found: "${step.ref}". Run snapshot first.`);
+                }
+                break;
+              }
+
+              case 'snapshot': {
+                snapshotResult = await getSnapshotWithHistory(page, DEFAULT_SNAPSHOT_OPTIONS);
+                results.push(`${stepNum}. Snapshot taken`);
+                break;
+              }
+
+              case 'screenshot': {
+                const buffer = await page.screenshot({
+                  fullPage: step.fullPage ?? false,
+                  type: 'jpeg',
+                  quality: 80,
+                });
+                screenshotData = {
+                  type: 'image',
+                  mimeType: 'image/jpeg',
+                  data: buffer.toString('base64'),
+                };
+                results.push(`${stepNum}. Screenshot taken`);
+                break;
+              }
+
+              case 'keyboard': {
+                if (step.key) {
+                  await page.keyboard.press(step.key);
+                  results.push(`${stepNum}. Pressed key: ${step.key}`);
+                } else if (step.text) {
+                  await page.keyboard.type(step.text);
+                  results.push(`${stepNum}. Typed: "${step.text}"`);
+                } else {
+                  throw new Error('keyboard requires key or text parameter');
+                }
+                break;
+              }
+
+              case 'evaluate': {
+                if (!step.code) throw new Error('evaluate requires code parameter');
+                const evalResult = await page.evaluate((code: string) => {
+                  // eslint-disable-next-line no-eval
+                  return eval(code);
+                }, step.code);
+                results.push(`${stepNum}. Evaluated: ${JSON.stringify(evalResult)}`);
+                break;
+              }
+
+              default:
+                results.push(`${stepNum}. Unknown action: ${(step as any).action}`);
+            }
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            results.push(`${stepNum}. FAILED: ${errMsg}`);
+
+            // Try to capture page state on failure for debugging (with session history)
+            try {
+              snapshotResult = await getSnapshotWithHistory(page, DEFAULT_SNAPSHOT_OPTIONS);
+              results.push(`→ Captured page state at failure`);
+            } catch {
+              // Ignore - page might be in bad state
+            }
+
+            // Build response with error info
+            const content: CallToolResult['content'] = [
+              { type: 'text', text: `Script stopped at step ${stepNum}:\n${results.join('\n')}` },
+            ];
+            if (snapshotResult) {
+              content.push({ type: 'text', text: `\nPage state:\n${snapshotResult}` });
+            }
+            if (screenshotData) {
+              content.push(screenshotData);
+            }
+            return { content, isError: true };
+          }
+        }
+
+        // Always get final snapshot for agent feedback (unless one was just taken)
+        const lastAction = actions[actions.length - 1];
+        if (lastAction?.action !== 'snapshot') {
+          try {
+            // Wait for page to stabilize before capturing final state
+            await waitForPageLoad(page, 2000);
+            snapshotResult = await getSnapshotWithHistory(page, DEFAULT_SNAPSHOT_OPTIONS);
+            results.push(`→ Auto-captured final page state`);
+          } catch {
+            // Ignore snapshot errors - page might be navigating
+          }
+        }
+
+        // Build successful response
+        const content: CallToolResult['content'] = [
+          { type: 'text', text: `Script completed (${actions.length} actions):\n${results.join('\n')}` },
+        ];
+        if (snapshotResult) {
+          content.push({ type: 'text', text: `\nPage state:\n${snapshotResult}` });
+        }
+        if (screenshotData) {
+          content.push(screenshotData);
+        }
+        return { content };
+      }
+
       case 'browser_keyboard': {
-        const { action, key, text, page_name } = args as BrowserKeyboardInput;
+        const { action, key, text, typing_delay, page_name } = args as BrowserKeyboardInput;
         const page = await getPage(page_name);
 
         switch (action) {
@@ -2448,7 +3163,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
                 isError: true,
               };
             }
-            await page.keyboard.type(text);
+            await page.keyboard.type(text, { delay: typing_delay ?? 20 });
             return {
               content: [{ type: 'text', text: `Typed text: "${text}"` }],
             };
@@ -3170,6 +3885,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           const targetPage = allPages[index]!;
           await targetPage.bringToFront();
           activePageOverride = targetPage;  // Set the override so getPage() returns this tab
+          await injectActiveTabGlow(targetPage);  // Add visual indicator for active tab
           return {
             content: [{ type: 'text', text: `Switched to tab ${index}: ${targetPage.url()}\n\nNow use browser_snapshot() to see the content of this tab.` }],
           };
@@ -3216,6 +3932,8 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             await newPage.waitForLoadState('domcontentloaded');
             const allPages = context.pages();
             const newIndex = allPages.indexOf(newPage);
+            activePageOverride = newPage;  // Set the new tab as active
+            await injectActiveTabGlow(newPage);  // Add visual indicator for new tab
             return {
               content: [{ type: 'text', text: `New tab opened at index ${newIndex}: ${newPage.url()}` }],
             };
@@ -3264,6 +3982,23 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         };
       }
 
+      case 'browser_highlight': {
+        const { enabled, page_name } = args as BrowserHighlightInput;
+        const page = await getPage(page_name);
+
+        if (enabled) {
+          await injectActiveTabGlow(page);
+          return {
+            content: [{ type: 'text', text: 'Highlight enabled - tab now shows color-cycling glow border' }],
+          };
+        } else {
+          await removeActiveTabGlow(page);
+          return {
+            content: [{ type: 'text', text: 'Highlight disabled - glow removed from tab' }],
+          };
+        }
+      }
+
       default:
         return {
           content: [{ type: 'text', text: `Error: Unknown tool: ${name}` }],
@@ -3287,6 +4022,15 @@ async function main() {
   await server.connect(transport);
   console.error('[dev-browser-mcp] Server connected successfully!');
   console.error('[dev-browser-mcp] MCP Server ready and listening for tool calls');
+
+  // Connect to browser immediately to set up page listeners for auto-glow
+  console.error('[dev-browser-mcp] Connecting to browser for auto-glow setup...');
+  try {
+    await ensureConnected();
+    console.error('[dev-browser-mcp] Browser connected, page listeners active');
+  } catch (err) {
+    console.error('[dev-browser-mcp] Could not connect to browser yet (will retry on first tool call):', err);
+  }
 }
 
 console.error('[dev-browser-mcp] Calling main()...');

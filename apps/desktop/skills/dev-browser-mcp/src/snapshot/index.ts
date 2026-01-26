@@ -16,3 +16,6 @@ export {
   resetSnapshotManager,
   type SnapshotManagerOptions,
 } from './manager.js';
+export * from './tokens.js';
+export * from './priority.js';
+export * from './compactor.js';

@@ -709,9 +709,9 @@ test.describe('Execution Page', () => {
       ]
     );
 
-    // Assert modal is visible with options
+    // Assert modal is visible with options (Other option is replaced by always-visible text input)
     await expect(executionPage.permissionModal).toBeVisible();
-    await expect(executionPage.questionOptions).toHaveCount(3); // Option A, Option B, Other
+    await expect(executionPage.questionOptions).toHaveCount(2); // Option A, Option B
 
     // Submit button should be disabled (no option selected yet)
     await expect(executionPage.allowButton).toBeDisabled();

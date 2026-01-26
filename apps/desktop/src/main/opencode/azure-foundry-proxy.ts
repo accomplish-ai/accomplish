@@ -38,21 +38,40 @@ function getProxyBaseUrl(): string {
   return `http://127.0.0.1:${AZURE_FOUNDRY_PROXY_PORT}`;
 }
 
-function shouldStripReasoningEffort(contentType: string | undefined): boolean {
+function shouldTransformBody(contentType: string | undefined): boolean {
   return !!contentType && contentType.toLowerCase().includes('application/json');
 }
 
 /**
- * Strip the 'reasoning_effort' parameter from request body.
- * Azure AI Foundry doesn't support this parameter and will reject requests containing it.
+ * Transform request body for Azure AI Foundry compatibility.
+ * - Strips 'reasoning_effort' parameter (not supported by Azure)
+ * - Converts 'max_tokens' to 'max_completion_tokens' (required by newer models like gpt-5.2, o1, o3)
  */
-function stripReasoningEffort(body: Buffer): Buffer {
+export function transformRequestBody(body: Buffer): Buffer {
   const text = body.toString('utf8');
   try {
     const parsed = JSON.parse(text) as Record<string, unknown>;
+    let modified = false;
+
+    // Strip reasoning_effort (Azure doesn't support it)
     if ('reasoning_effort' in parsed) {
       console.log('[Azure Foundry Proxy] Stripping unsupported reasoning_effort parameter');
       delete parsed.reasoning_effort;
+      modified = true;
+    }
+
+    // Convert max_tokens to max_completion_tokens (required by gpt-5.2, o1, o3, etc.)
+    if ('max_tokens' in parsed) {
+      // Only convert if max_completion_tokens isn't already set
+      if (!('max_completion_tokens' in parsed)) {
+        console.log('[Azure Foundry Proxy] Converting max_tokens to max_completion_tokens');
+        parsed.max_completion_tokens = parsed.max_tokens;
+      }
+      delete parsed.max_tokens;
+      modified = true;
+    }
+
+    if (modified) {
       return Buffer.from(JSON.stringify(parsed), 'utf8');
     }
   } catch {
@@ -132,8 +151,8 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
     const rawBody = Buffer.concat(chunks);
     const contentType = req.headers['content-type'];
     const body =
-      rawBody.length > 0 && shouldStripReasoningEffort(contentType)
-        ? stripReasoningEffort(rawBody)
+      rawBody.length > 0 && shouldTransformBody(contentType)
+        ? transformRequestBody(rawBody)
         : rawBody;
 
     const headers = { ...req.headers } as Record<string, string | string[] | undefined>;

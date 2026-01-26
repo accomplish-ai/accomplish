@@ -21,6 +21,7 @@ import googleLogo from '/assets/ai-logos/google.svg';
 import xaiLogo from '/assets/ai-logos/xai.svg';
 import deepseekLogo from '/assets/ai-logos/deepseek.svg';
 import zaiLogo from '/assets/ai-logos/zai.svg';
+import minimaxLogo from '/assets/ai-logos/minimax.svg'
 
 const PROVIDER_LOGOS: Record<string, string> = {
   anthropic: anthropicLogo,
@@ -29,6 +30,7 @@ const PROVIDER_LOGOS: Record<string, string> = {
   xai: xaiLogo,
   deepseek: deepseekLogo,
   zai: zaiLogo,
+  minimax: minimaxLogo,
 };
 
 interface ClassicProviderFormProps {

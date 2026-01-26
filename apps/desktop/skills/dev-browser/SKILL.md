@@ -20,6 +20,77 @@ Shell commands open the user's **default browser** (Safari, Arc, Firefox, etc.),
 
 **ALL browser automation MUST use the browser_* MCP tools below.**
 
+## IMPORTANT: Use browser_script for Speed
+
+**For multi-step workflows, ALWAYS use browser_script.** It's 5-10x faster than individual calls.
+
+browser_script finds elements at RUNTIME using CSS selectors - you don't need refs beforehand. This enables complete workflows in ONE call.
+
+### When to Use browser_script
+
+- **Login flows**: Navigate → fill email → fill password → submit → verify
+- **Form submissions**: Fill multiple fields → click submit → wait for result
+- **Multi-page workflows**: Navigate → click → wait → interact → snapshot
+- **Any workflow with 2+ steps**
+
+### Example: Complete Login Flow (ONE call)
+
+```json
+browser_script(actions=[
+  {"action": "goto", "url": "example.com/login"},
+  {"action": "waitForLoad"},
+  {"action": "findAndFill", "selector": "input[type='email']", "text": "user@example.com"},
+  {"action": "findAndFill", "selector": "input[type='password']", "text": "secret123"},
+  {"action": "findAndClick", "selector": "button[type='submit']"},
+  {"action": "waitForNavigation"}
+])
+```
+
+This executes the entire login in ONE roundtrip. **A snapshot is automatically returned** so you always see the final page state.
+
+### browser_script Actions
+
+| Action | Parameters | Description |
+|--------|-----------|-------------|
+| `goto` | url | Navigate to URL |
+| `waitForLoad` | timeout? | Wait for page to load |
+| `waitForSelector` | selector, timeout? | Wait for element to appear |
+| `waitForNavigation` | timeout? | Wait for navigation to complete |
+| `findAndFill` | selector, text, pressEnter?, skipIfNotFound? | Find element, fill it |
+| `findAndClick` | selector, skipIfNotFound? | Find element, click it |
+| `fillByRef` | ref, text, pressEnter? | Fill using ref from snapshot |
+| `clickByRef` | ref | Click using ref from snapshot |
+| `snapshot` | - | Get ARIA snapshot (returned at end) |
+| `screenshot` | fullPage? | Take screenshot (returned at end) |
+| `keyboard` | key OR text | Press key or type text |
+| `evaluate` | code | Run JavaScript in page |
+
+### Key Features
+
+- **Runtime element discovery**: `findAndFill` and `findAndClick` locate elements when the action runs
+- **Auto-snapshot**: Final page state is **always returned** - no need to add snapshot action
+- **skipIfNotFound**: Set to true to continue if element missing (useful for optional fields)
+- **Automatic waits**: Actions like `goto` and clicks wait for page stability
+- **Error debugging**: If script fails, page state at failure is captured automatically
+
+### Example: Form with Optional Field
+
+```json
+browser_script(actions=[
+  {"action": "goto", "url": "example.com/signup"},
+  {"action": "waitForLoad"},
+  {"action": "findAndFill", "selector": "#name", "text": "John Doe"},
+  {"action": "findAndFill", "selector": "#email", "text": "john@example.com"},
+  {"action": "findAndFill", "selector": "#phone", "text": "555-1234", "skipIfNotFound": true},
+  {"action": "findAndClick", "selector": "button[type='submit']"},
+  {"action": "waitForNavigation"}
+])
+```
+
+Note: No need to add `snapshot` at the end - it's automatic!
+
+---
+
 ## Tools
 
 **browser_navigate(url, page_name?)** - Navigate to a URL
@@ -58,10 +129,13 @@ Shell commands open the user's **default browser** (Safari, Arc, Firefox, etc.),
 - USE THIS for complex editors like Google Docs, Monaco, etc. that don't have simple input refs
 - Workflow: first click to focus the editor area, then use browser_keyboard to type
 
-**browser_sequence(actions, page_name?)** - Execute multiple actions efficiently
-- actions: Array of {action, ref?, selector?, x?, y?, text?, press_enter?, timeout?}
-- Supported actions: "click", "type", "snapshot", "screenshot", "wait"
-- Use for multi-step operations like form filling
+**browser_script(actions, page_name?)** - Execute complete workflows in ONE call (see above)
+- **USE THIS for speed** - finds elements at runtime, no refs needed beforehand
+- Actions: goto, waitForLoad, waitForSelector, waitForNavigation, findAndFill, findAndClick, fillByRef, clickByRef, snapshot, screenshot, keyboard, evaluate
+
+**browser_sequence(actions, page_name?)** - Simpler batching (requires refs beforehand)
+- Use when you already have refs from a snapshot
+- Supported actions: click, type, snapshot, screenshot, wait
 
 **browser_get_text(ref?, selector?, page_name?)** - Get text content of element
 - Returns the text content of the element
@@ -81,10 +155,21 @@ Shell commands open the user's **default browser** (Safari, Arc, Firefox, etc.),
 
 ## Workflow
 
-1. **Navigate**: `browser_navigate("google.com")`
-2. **Discover elements**: `browser_snapshot()` - find refs like [ref=e5]
-3. **Interact**: `browser_click(ref="e5")` or `browser_type(ref="e3", text="search query", press_enter=true)`
-4. **Verify**: `browser_screenshot()` to see the result
+**Preferred: Use browser_script for complete workflows**
+```json
+browser_script(actions=[
+  {"action": "goto", "url": "example.com"},
+  {"action": "waitForLoad"},
+  {"action": "findAndFill", "selector": "input[name='search']", "text": "query", "pressEnter": true},
+  {"action": "waitForNavigation"}
+])
+```
+→ Returns step results + final page snapshot automatically
+
+**Alternative: Step-by-step when you need to inspect first**
+1. `browser_navigate("example.com")` - Go to page
+2. `browser_snapshot()` - Find refs like [ref=e5]
+3. `browser_script` or `browser_sequence` - Execute remaining actions
 
 ## CRITICAL: Verification-Driven Workflow
 
@@ -185,28 +270,65 @@ browser_snapshot()
 
 ## Examples
 
-### Google Search
+### Google Search (ONE call with browser_script)
 
-1. browser_navigate(url="google.com")
-2. browser_snapshot() -> find search box [ref=e12]
-3. browser_type(ref="e12", text="cute animals", press_enter=true)
-4. browser_screenshot() -> see search results
+```json
+browser_script(actions=[
+  {"action": "goto", "url": "google.com"},
+  {"action": "waitForLoad"},
+  {"action": "findAndFill", "selector": "textarea[name='q']", "text": "cute animals", "pressEnter": true},
+  {"action": "waitForNavigation"}
+])
+```
+Returns: step results + final page snapshot (automatic)
+
+### Complete Login Flow (ONE call)
+
+```json
+browser_script(actions=[
+  {"action": "goto", "url": "example.com/login"},
+  {"action": "waitForLoad"},
+  {"action": "findAndFill", "selector": "input[type='email']", "text": "user@example.com"},
+  {"action": "findAndFill", "selector": "input[type='password']", "text": "mypassword"},
+  {"action": "findAndClick", "selector": "button[type='submit']"},
+  {"action": "waitForNavigation"}
+])
+```
+Returns: step results + final page snapshot (automatic)
+
+### Multi-Step Checkout (ONE call)
+
+```json
+browser_script(actions=[
+  {"action": "goto", "url": "example.com/checkout"},
+  {"action": "waitForLoad"},
+  {"action": "findAndFill", "selector": "#name", "text": "John Doe"},
+  {"action": "findAndFill", "selector": "#address", "text": "123 Main St"},
+  {"action": "findAndFill", "selector": "#city", "text": "New York"},
+  {"action": "findAndFill", "selector": "#zip", "text": "10001"},
+  {"action": "findAndClick", "selector": "button.submit"},
+  {"action": "waitForNavigation"}
+])
+```
+Returns: step results + final page snapshot (automatic)
 
 ### Google Docs
 
-**IMPORTANT**: For Google Docs/Sheets/Slides, ALWAYS navigate directly - don't click through Drive UI (new tabs don't work well):
+**IMPORTANT**: For Google Docs/Sheets/Slides, navigate directly and use browser_keyboard:
 
-1. browser_navigate(url="docs.google.com/document/create") -> creates new doc directly
-2. browser_click(x=640, y=300) -> click on document area to focus the editor
-3. browser_keyboard(text="Hello, this is my document") -> type with real keyboard events
-4. browser_keyboard(key="Enter") -> press Enter for new line
-5. browser_keyboard(text="Second paragraph")
-6. browser_screenshot() -> verify text was typed
+```
+browser_navigate(url="docs.google.com/document/create")
+browser_click(x=640, y=300)  # Focus editor
+browser_keyboard(text="Hello, this is my document")
+browser_keyboard(key="Enter")
+browser_keyboard(text="Second paragraph")
+browser_screenshot()  # Verify
+```
 
-Direct URLs to remember:
-- New Doc: docs.google.com/document/create
-- New Sheet: docs.google.com/spreadsheets/create
-- New Slide: docs.google.com/presentation/create
+**Direct URLs:**
+- New Doc: `docs.google.com/document/create`
+- New Sheet: `docs.google.com/spreadsheets/create`
+- New Slide: `docs.google.com/presentation/create`
 
 ## Login Pages
 

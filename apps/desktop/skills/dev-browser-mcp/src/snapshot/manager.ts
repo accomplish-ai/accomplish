@@ -1,6 +1,6 @@
 // apps/desktop/skills/dev-browser-mcp/src/snapshot/manager.ts
 
-import type { ParsedSnapshot, SnapshotResult } from './types.js';
+import type { ParsedSnapshot, SnapshotResult, SessionHistoryEntry, SessionSummary } from './types.js';
 import { parseSnapshot } from './parser.js';
 import { diffSnapshots, formatDiff } from './differ.js';
 
@@ -19,6 +19,8 @@ export interface SnapshotManagerOptions {
 export class SnapshotManager {
   private lastSnapshot: ParsedSnapshot | null = null;
   private lastTimestamp: number = 0;
+  private sessionHistory: SessionHistoryEntry[] = [];
+  private readonly MAX_HISTORY_SIZE = 10;
 
   /**
    * Process a new snapshot and decide whether to return full or diff.
@@ -37,6 +39,9 @@ export class SnapshotManager {
   ): SnapshotResult {
     const currentSnapshot = parseSnapshot(rawYaml, url, title);
     const now = Date.now();
+
+    // Record navigation in session history
+    this.recordNavigation(url, title);
 
     // Force full snapshot if:
     // 1. Explicitly requested
@@ -82,6 +87,7 @@ export class SnapshotManager {
   reset(): void {
     this.lastSnapshot = null;
     this.lastTimestamp = 0;
+    this.sessionHistory = [];
   }
 
   /**
@@ -116,6 +122,41 @@ export class SnapshotManager {
   private updateState(snapshot: ParsedSnapshot, timestamp: number): void {
     this.lastSnapshot = snapshot;
     this.lastTimestamp = timestamp;
+  }
+
+  /**
+   * Record a navigation in session history.
+   */
+  private recordNavigation(url: string, title: string): void {
+    this.sessionHistory.push({
+      url,
+      title,
+      timestamp: Date.now(),
+      actionsTaken: [],
+    });
+
+    // Trim to max size
+    if (this.sessionHistory.length > this.MAX_HISTORY_SIZE) {
+      this.sessionHistory = this.sessionHistory.slice(-this.MAX_HISTORY_SIZE);
+    }
+  }
+
+  /**
+   * Get a summary of the session navigation history.
+   */
+  public getSessionSummary(): SessionSummary {
+    if (this.sessionHistory.length === 0) {
+      return { history: '', pagesVisited: 0 };
+    }
+
+    const history = this.sessionHistory
+      .map(h => h.title || new URL(h.url).pathname)
+      .join(' → ');
+
+    return {
+      history,
+      pagesVisited: this.sessionHistory.length,
+    };
   }
 }
 

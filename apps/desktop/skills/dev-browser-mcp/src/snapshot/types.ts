@@ -19,6 +19,26 @@ export interface SnapshotElement {
 }
 
 /**
+ * Priority scoring for elements during snapshot truncation.
+ * Higher scores = more likely to be included.
+ */
+export interface ElementPriority {
+  ref: string;
+  score: number;
+  inViewport: boolean;
+}
+
+/**
+ * Metadata about snapshot truncation.
+ */
+export interface SnapshotMetadata {
+  totalElements: number;
+  includedElements: number;
+  truncated: boolean;
+  estimatedTokens: number;
+}
+
+/**
  * Represents the full parsed snapshot with elements indexed by ref
  */
 export interface ParsedSnapshot {
@@ -27,7 +47,36 @@ export interface ParsedSnapshot {
   timestamp: number;
   elements: Map<string, SnapshotElement>;
   rawYaml: string;
+  metadata?: SnapshotMetadata;
 }
+
+/**
+ * Options for snapshot generation and processing.
+ */
+export interface SnapshotOptions {
+  /** Return all elements without filtering. Default: false */
+  fullSnapshot?: boolean;
+  /** Only include interactive elements. Default: true */
+  interactiveOnly?: boolean;
+  /** Maximum number of elements to include. Default: 300, max: 1000 */
+  maxElements?: number;
+  /** Only include elements visible in viewport. Default: false */
+  viewportOnly?: boolean;
+  /** Maximum estimated tokens for output. Default: 8000, max: 50000 */
+  maxTokens?: number;
+  /** Include session navigation history in output. Default: true */
+  includeHistory?: boolean;
+}
+
+/** Default values for snapshot options */
+export const DEFAULT_SNAPSHOT_OPTIONS: Required<SnapshotOptions> = {
+  fullSnapshot: false,
+  interactiveOnly: true,
+  maxElements: 300,
+  viewportOnly: false,
+  maxTokens: 8000,
+  includeHistory: true,
+};
 
 /**
  * Represents a change to an element between snapshots
@@ -59,3 +108,22 @@ export interface SnapshotDiff {
 export type SnapshotResult =
   | { type: 'full'; content: string }
   | { type: 'diff'; content: string; unchangedRefs: string[] };
+
+/**
+ * Entry in session navigation history.
+ */
+export interface SessionHistoryEntry {
+  url: string;
+  title: string;
+  timestamp: number;
+  actionsTaken: string[];
+}
+
+/**
+ * Compact session summary for context.
+ */
+export interface SessionSummary {
+  history: string;  // "Page A → Page B → Page C"
+  pagesVisited: number;
+  navigationPatternHash?: string;
+}
