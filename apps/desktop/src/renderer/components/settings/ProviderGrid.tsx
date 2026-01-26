@@ -9,8 +9,8 @@ import { settingsVariants, settingsTransitions } from '@/lib/animations';
 
 // Provider order matching Figma design (4 columns per row)
 const PROVIDER_ORDER: ProviderId[] = [
-  'anthropic',
   'openai',
+  'anthropic',
   'google',
   'bedrock',
   'azure-foundry',
