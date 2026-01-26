@@ -56,8 +56,6 @@ export function ClassicProviderForm({
 
   // OpenAI-specific state
   const [openAiBaseUrl, setOpenAiBaseUrl] = useState('');
-  const [savingBaseUrl, setSavingBaseUrl] = useState(false);
-  const [baseUrlSaved, setBaseUrlSaved] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
 
   const meta = PROVIDER_META[providerId];
@@ -127,22 +125,6 @@ export function ClassicProviderForm({
       setError(err instanceof Error ? err.message : 'Connection failed');
     } finally {
       setConnecting(false);
-    }
-  };
-
-  // OpenAI-specific handlers
-  const handleSaveBaseUrl = async () => {
-    setSavingBaseUrl(true);
-    setBaseUrlSaved(false);
-    try {
-      const accomplish = getAccomplish();
-      await accomplish.setOpenAiBaseUrl(openAiBaseUrl.trim());
-      setBaseUrlSaved(true);
-      setTimeout(() => setBaseUrlSaved(false), 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save base URL');
-    } finally {
-      setSavingBaseUrl(false);
     }
   };
 
@@ -352,77 +334,14 @@ export function ClassicProviderForm({
       {/* Connected state for OpenAI */}
       {isOpenAI && isConnected && (
         <div className="space-y-3">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key="connected"
-              variants={settingsVariants.fadeSlide}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={settingsTransitions.enter}
-              className="space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">
-                  {(connectedProvider?.credentials as OAuthCredentials)?.type === 'oauth' ? 'OAuth' : 'API Key'}
-                </label>
-              </div>
-              <input
-                type="text"
-                value={(() => {
-                  const creds = connectedProvider?.credentials;
-                  if (creds?.type === 'oauth') {
-                    return 'Connected via ChatGPT';
-                  }
-                  const apiCreds = creds as ApiKeyCredentials | undefined;
-                  if (apiCreds?.keyPrefix) return apiCreds.keyPrefix;
-                  return 'API key saved (reconnect to see prefix)';
-                })()}
-                disabled
-                data-testid="api-key-display"
-                className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
-              />
+          <ConnectedControls onDisconnect={onDisconnect} />
 
-              <ConnectedControls onDisconnect={onDisconnect} />
-
-              <ModelSelector
-                models={models}
-                value={connectedProvider?.selectedModelId || null}
-                onChange={onModelChange}
-                error={showModelError && !connectedProvider?.selectedModelId}
-              />
-
-              {/* Base URL override when connected */}
-              <div className="pt-2 border-t border-border">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-foreground">Base URL (optional)</label>
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={openAiBaseUrl}
-                    onChange={(e) => setOpenAiBaseUrl(e.target.value)}
-                    placeholder="https://api.openai.com/v1"
-                    className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  />
-                  <button
-                    onClick={handleSaveBaseUrl}
-                    disabled={savingBaseUrl}
-                    className={`rounded-md px-3 py-2 text-xs font-medium transition-colors ${
-                      baseUrlSaved
-                        ? 'bg-green-500/20 text-green-500'
-                        : 'border border-border bg-background text-foreground hover:bg-muted'
-                    }`}
-                  >
-                    {savingBaseUrl ? 'Saving...' : baseUrlSaved ? 'Saved' : 'Save'}
-                  </button>
-                </div>
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  Leave blank for OpenAI. Set to use an OpenAI-compatible endpoint.
-                </p>
-              </div>
-            </motion.div>
-          </AnimatePresence>
+          <ModelSelector
+            models={models}
+            value={connectedProvider?.selectedModelId || null}
+            onChange={onModelChange}
+            error={showModelError && !connectedProvider?.selectedModelId}
+          />
         </div>
       )}
     </div>
