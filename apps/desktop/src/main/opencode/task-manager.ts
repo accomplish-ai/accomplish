@@ -7,7 +7,14 @@
  */
 
 import { OpenCodeAdapter, isOpenCodeCliInstalled, OpenCodeCliNotFoundError } from './adapter';
+import { getSkillsPath } from './config-generator';
+import { getNpxPath, getBundledNodePaths } from '../utils/bundled-node';
+import { spawn } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
 import {
+  DEV_BROWSER_PORT,
   type TaskConfig,
   type Task,
   type TaskResult,
@@ -16,6 +23,309 @@ import {
   type PermissionRequest,
   type TodoItem,
 } from '@accomplish/shared';
+
+/**
+ * Check if system Chrome is installed
+ */
+function isSystemChromeInstalled(): boolean {
+  if (process.platform === 'darwin') {
+    return fs.existsSync('/Applications/Google Chrome.app');
+  } else if (process.platform === 'win32') {
+    // Check common Windows Chrome locations
+    const programFiles = process.env['PROGRAMFILES'] || 'C:\\Program Files';
+    const programFilesX86 = process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)';
+    return (
+      fs.existsSync(path.join(programFiles, 'Google', 'Chrome', 'Application', 'chrome.exe')) ||
+      fs.existsSync(path.join(programFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'))
+    );
+  }
+  // Linux - check common paths
+  return fs.existsSync('/usr/bin/google-chrome') || fs.existsSync('/usr/bin/chromium-browser');
+}
+
+/**
+ * Check if Playwright Chromium is installed
+ */
+function isPlaywrightInstalled(): boolean {
+  const homeDir = os.homedir();
+  const possiblePaths = [
+    path.join(homeDir, 'Library', 'Caches', 'ms-playwright'), // macOS
+    path.join(homeDir, '.cache', 'ms-playwright'), // Linux
+  ];
+
+  if (process.platform === 'win32' && process.env.LOCALAPPDATA) {
+    possiblePaths.unshift(path.join(process.env.LOCALAPPDATA, 'ms-playwright'));
+  }
+
+  for (const playwrightDir of possiblePaths) {
+    if (fs.existsSync(playwrightDir)) {
+      try {
+        const entries = fs.readdirSync(playwrightDir);
+        if (entries.some((entry) => entry.startsWith('chromium'))) {
+          return true;
+        }
+      } catch {
+        continue;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Install Playwright Chromium browser.
+ * Returns a promise that resolves when installation is complete.
+ * Uses bundled Node.js to ensure it works in packaged app.
+ */
+async function installPlaywrightChromium(
+  onProgress?: (message: string) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const skillsPath = getSkillsPath();
+    const devBrowserDir = path.join(skillsPath, 'dev-browser');
+
+    // Use bundled npx for packaged app compatibility
+    const npxPath = getNpxPath();
+    const bundledPaths = getBundledNodePaths();
+
+    console.log(`[TaskManager] Installing Playwright Chromium using bundled npx: ${npxPath}`);
+    onProgress?.('Downloading browser...');
+
+    // Build environment with bundled node in PATH
+    let spawnEnv: NodeJS.ProcessEnv = { ...process.env };
+    if (bundledPaths) {
+      const delimiter = process.platform === 'win32' ? ';' : ':';
+      spawnEnv.PATH = `${bundledPaths.binDir}${delimiter}${process.env.PATH || ''}`;
+    }
+
+    const child = spawn(npxPath, ['playwright', 'install', 'chromium'], {
+      cwd: devBrowserDir,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: spawnEnv,
+      shell: process.platform === 'win32',
+    });
+
+    child.stdout?.on('data', (data: Buffer) => {
+      const line = data.toString().trim();
+      if (line) {
+        console.log(`[Playwright Install] ${line}`);
+        // Send progress info: percentage updates and "Downloading X" messages
+        if (line.includes('%') || line.toLowerCase().startsWith('downloading')) {
+          onProgress?.(line);
+        }
+      }
+    });
+
+    child.stderr?.on('data', (data: Buffer) => {
+      const line = data.toString().trim();
+      if (line) {
+        console.log(`[Playwright Install] ${line}`);
+      }
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        console.log('[TaskManager] Playwright Chromium installed successfully');
+        onProgress?.('Browser installed successfully!');
+        resolve();
+      } else {
+        reject(new Error(`Playwright install failed with code ${code}`));
+      }
+    });
+
+    child.on('error', (err) => {
+      reject(err);
+    });
+  });
+}
+
+// DEV_BROWSER_PORT imported from @accomplish/shared
+
+/**
+ * Check if the dev-browser server is running and ready
+ */
+async function isDevBrowserServerReady(): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1000);
+    const res = await fetch(`http://localhost:${DEV_BROWSER_PORT}`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Wait for the dev-browser server to be ready with polling
+ */
+async function waitForDevBrowserServer(maxWaitMs = 15000, pollIntervalMs = 500): Promise<boolean> {
+  const startTime = Date.now();
+  let attempts = 0;
+  while (Date.now() - startTime < maxWaitMs) {
+    attempts++;
+    if (await isDevBrowserServerReady()) {
+      console.log(`[TaskManager] Dev-browser server ready after ${attempts} attempts (${Date.now() - startTime}ms)`);
+      return true;
+    }
+    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+  }
+  console.log(`[TaskManager] Dev-browser server not ready after ${attempts} attempts (${maxWaitMs}ms timeout)`);
+  return false;
+}
+
+/**
+ * Ensure the dev-browser server is running.
+ * Called before starting tasks to pre-warm the browser.
+ *
+ * If neither system Chrome nor Playwright is installed, downloads Playwright first.
+ */
+async function ensureDevBrowserServer(
+  onProgress?: (progress: { stage: string; message?: string }) => void
+): Promise<void> {
+  // Check if we have a browser available
+  const hasChrome = isSystemChromeInstalled();
+  const hasPlaywright = isPlaywrightInstalled();
+
+  console.log(`[TaskManager] Browser check: Chrome=${hasChrome}, Playwright=${hasPlaywright}`);
+
+  // If no browser available, install Playwright first
+  if (!hasChrome && !hasPlaywright) {
+    console.log('[TaskManager] No browser available, installing Playwright Chromium...');
+    onProgress?.({
+      stage: 'setup',
+      message: 'Chrome not found. Downloading browser (one-time setup, ~2 min)...',
+    });
+
+    try {
+      await installPlaywrightChromium((msg) => {
+        onProgress?.({ stage: 'setup', message: msg });
+      });
+    } catch (error) {
+      console.error('[TaskManager] Failed to install Playwright:', error);
+      // Don't throw - let agent handle the failure
+    }
+  }
+
+  // Check if server is already running (skip on macOS to avoid Local Network permission dialog)
+  if (process.platform !== 'darwin') {
+    if (await isDevBrowserServerReady()) {
+      console.log('[TaskManager] Dev-browser server already running');
+      return;
+    }
+  }
+
+  // Now start the server
+  try {
+    const skillsPath = getSkillsPath();
+    const serverScript = path.join(skillsPath, 'dev-browser', 'server.cjs');
+    const serverCwd = path.join(skillsPath, 'dev-browser');
+
+    // Build environment with bundled Node.js in PATH
+    const bundledPaths = getBundledNodePaths();
+    let spawnEnv: NodeJS.ProcessEnv = { ...process.env };
+    if (bundledPaths) {
+      const delimiter = process.platform === 'win32' ? ';' : ':';
+      spawnEnv.PATH = `${bundledPaths.binDir}${delimiter}${process.env.PATH || ''}`;
+      spawnEnv.NODE_BIN_PATH = bundledPaths.binDir;
+    }
+
+    // Get node executable path
+    const nodeExe = bundledPaths?.nodePath || 'node';
+
+    console.log('[TaskManager] ========== DEV-BROWSER SERVER STARTUP ==========');
+    console.log('[TaskManager] Node executable:', nodeExe);
+    console.log('[TaskManager] Server script:', serverScript);
+    console.log('[TaskManager] Working directory:', serverCwd);
+    console.log('[TaskManager] NODE_BIN_PATH:', spawnEnv.NODE_BIN_PATH || '(not set)');
+    console.log('[TaskManager] Script exists:', fs.existsSync(serverScript));
+    console.log('[TaskManager] CWD exists:', fs.existsSync(serverCwd));
+
+    // Check if local tsx exists (for debugging)
+    const localTsxBin = path.join(serverCwd, 'node_modules', '.bin', process.platform === 'win32' ? 'tsx.cmd' : 'tsx');
+    console.log('[TaskManager] Local tsx.cmd exists:', fs.existsSync(localTsxBin));
+
+    // Spawn server in background (detached, unref to not block)
+    // windowsHide: true prevents a console window from appearing on Windows
+    // Use 'pipe' for stdio to capture startup errors
+    const child = spawn(nodeExe, [serverScript], {
+      detached: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: serverCwd,
+      env: spawnEnv,
+      windowsHide: true,
+    });
+
+    // Store logs for debugging - these will be available in Electron DevTools console
+    const serverLogs: string[] = [];
+
+    // Capture and log stdout/stderr for debugging
+    child.stdout?.on('data', (data: Buffer) => {
+      const lines = data.toString().split('\n').filter(l => l.trim());
+      for (const line of lines) {
+        serverLogs.push(`[stdout] ${line}`);
+        console.log('[DevBrowser stdout]', line);
+      }
+    });
+
+    child.stderr?.on('data', (data: Buffer) => {
+      const lines = data.toString().split('\n').filter(l => l.trim());
+      for (const line of lines) {
+        serverLogs.push(`[stderr] ${line}`);
+        console.log('[DevBrowser stderr]', line);
+      }
+    });
+
+    child.on('error', (err) => {
+      const errorMsg = `Spawn error: ${err.message} (code: ${(err as NodeJS.ErrnoException).code})`;
+      serverLogs.push(`[error] ${errorMsg}`);
+      console.error('[TaskManager] Dev-browser spawn error:', err);
+      // Store logs globally for debugging
+      (global as Record<string, unknown>).__devBrowserLogs = serverLogs;
+    });
+
+    child.on('exit', (code, signal) => {
+      const exitMsg = `Process exited with code ${code}, signal ${signal}`;
+      serverLogs.push(`[exit] ${exitMsg}`);
+      console.log('[TaskManager] Dev-browser', exitMsg);
+      if (code !== 0 && code !== null) {
+        console.error('[TaskManager] Dev-browser server failed. Logs:');
+        for (const log of serverLogs) {
+          console.error('[TaskManager]  ', log);
+        }
+      }
+      // Store logs globally for debugging
+      (global as Record<string, unknown>).__devBrowserLogs = serverLogs;
+    });
+
+    child.unref();
+
+    console.log('[TaskManager] Dev-browser server spawn initiated (PID:', child.pid, ')');
+
+    // Wait for the server to be ready (longer timeout on Windows)
+    const maxWaitMs = process.platform === 'win32' ? 30000 : 15000;
+    console.log(`[TaskManager] Waiting for dev-browser server to be ready (max ${maxWaitMs}ms)...`);
+
+    const serverReady = await waitForDevBrowserServer(maxWaitMs);
+    if (serverReady) {
+      console.log('[TaskManager] Dev-browser server is ready!');
+    } else {
+      console.error('[TaskManager] Dev-browser server did NOT become ready within timeout');
+      console.error('[TaskManager] Captured logs:');
+      for (const log of serverLogs) {
+        console.error('[TaskManager]  ', log);
+      }
+      // Store logs globally for debugging
+      (global as Record<string, unknown>).__devBrowserLogs = serverLogs;
+    }
+
+    console.log('[TaskManager] ========== END DEV-BROWSER SERVER STARTUP ==========');
+  } catch (error) {
+    console.error('[TaskManager] Failed to start dev-browser server:', error);
+  }
+}
 
 /**
  * Progress event with startup stage information
@@ -247,7 +557,7 @@ export class TaskManager {
       createdAt: new Date().toISOString(),
     };
 
-    // Start agent asynchronously
+    // Start browser setup and agent asynchronously
     // This allows the UI to navigate immediately while setup happens
     const isFirstTask = this.isFirstTask;
     (async () => {
@@ -255,7 +565,15 @@ export class TaskManager {
         // Emit starting stage immediately
         callbacks.onProgress({ stage: 'starting', message: 'Starting task...', isFirstTask });
 
-        // Mark cold start as complete
+        // Emit browser stage only on cold start (first task)
+        if (isFirstTask) {
+          callbacks.onProgress({ stage: 'browser', message: 'Preparing browser...', isFirstTask });
+        }
+
+        // Ensure browser is available (may download Playwright if needed)
+        await ensureDevBrowserServer(callbacks.onProgress);
+
+        // Mark cold start as complete after browser setup
         if (this.isFirstTask) {
           this.isFirstTask = false;
         }

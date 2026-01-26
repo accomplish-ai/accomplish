@@ -833,6 +833,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           message: `Using ${toolName}`,
         });
 
+        // Check if this is AskUserQuestion (requires user input)
+        if (toolName === 'AskUserQuestion') {
+          this.handleAskUserQuestion(toolInput as AskUserQuestionInput);
+        }
         break;
 
       // Tool use event - combined tool call and result from OpenCode CLI
@@ -899,6 +903,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           this.emit('tool-result', toolUseOutput);
         }
 
+        // Check if this is AskUserQuestion (requires user input)
+        if (toolUseName === 'AskUserQuestion') {
+          this.handleAskUserQuestion(toolUseInput as AskUserQuestionInput);
+        }
         break;
 
       // Tool result event
@@ -947,6 +955,26 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         const unknownMessage = message as unknown as { type: string };
         console.log('[OpenCode Adapter] Unknown message type:', unknownMessage.type);
     }
+  }
+
+  private handleAskUserQuestion(input: AskUserQuestionInput): void {
+    const question = input.questions?.[0];
+    if (!question) return;
+
+    const permissionRequest: PermissionRequest = {
+      id: this.generateRequestId(),
+      taskId: this.currentTaskId || '',
+      type: 'question',
+      question: question.question,
+      options: question.options?.map((o) => ({
+        label: o.label,
+        description: o.description,
+      })),
+      multiSelect: question.multiSelect,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.emit('permission-request', permissionRequest);
   }
 
   /**
@@ -1026,6 +1054,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     return `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 
+  private generateRequestId(): string {
+    return `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  }
+
   /**
    * Get platform-appropriate shell command
    *
@@ -1078,6 +1110,15 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       return ['-c', command];
     }
   }
+}
+
+interface AskUserQuestionInput {
+  questions?: Array<{
+    question: string;
+    header?: string;
+    options?: Array<{ label: string; description?: string }>;
+    multiSelect?: boolean;
+  }>;
 }
 
 /**
