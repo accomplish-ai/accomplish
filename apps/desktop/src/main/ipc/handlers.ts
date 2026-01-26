@@ -333,6 +333,36 @@ export function registerIPCHandlers(): void {
             // Server may not be fully ready yet
           }
         }
+
+        if (state === 'error') {
+          // Server crashed — all in-flight sessions are lost.
+          // Error all active tasks so the UI shows failure instead of
+          // tasks being silently stuck.
+          const activeTaskIds = taskManager.getActiveTaskIds();
+          if (activeTaskIds.length > 0) {
+            console.warn(`[IPC] Server crashed. Failing ${activeTaskIds.length} active task(s).`);
+            for (const activeTaskId of activeTaskIds) {
+              // Flush pending messages for this task
+              flushAndCleanupBatcher(activeTaskId);
+
+              // Send error to renderer
+              const window = BrowserWindow.getAllWindows()[0];
+              if (window && !window.isDestroyed()) {
+                window.webContents.send('task:update', {
+                  taskId: activeTaskId,
+                  type: 'error',
+                  error: 'The backend process crashed unexpectedly. Please try again.',
+                });
+              }
+
+              // Update task status in history
+              updateTaskStatus(activeTaskId, 'failed', new Date().toISOString());
+            }
+
+            // Dispose all tasks from TaskManager (clears EventRouter mappings too)
+            disposeTaskManager();
+          }
+        }
       });
 
       serverManagerStarted = true;
@@ -369,9 +399,18 @@ export function registerIPCHandlers(): void {
     // Create task-scoped callbacks for the TaskManager
     const callbacks: TaskCallbacks = {
       onMessage: (message: TaskMessage) => {
-        // Messages from EventRouter are already in TaskMessage format
-        // Queue message for batching instead of immediate send
-        queueMessage(taskId, message, forwardToRenderer, addTaskMessage);
+        // Assistant text messages are already batched by EventRouter (50ms debounce).
+        // Send them directly to avoid double-batching latency.
+        // Tool messages and other types still go through the IPC batcher.
+        if (message.type === 'assistant') {
+          forwardToRenderer('task:update:batch', {
+            taskId,
+            messages: [message],
+          });
+          addTaskMessage(taskId, message);
+        } else {
+          queueMessage(taskId, message, forwardToRenderer, addTaskMessage);
+        }
       },
 
       onProgress: (progress: { stage: string; message?: string }) => {
@@ -595,9 +634,18 @@ export function registerIPCHandlers(): void {
     // Create task-scoped callbacks for the TaskManager (with batching for performance)
     const callbacks: TaskCallbacks = {
       onMessage: (message: TaskMessage) => {
-        // Messages from EventRouter are already in TaskMessage format
-        // Queue message for batching instead of immediate send
-        queueMessage(taskId, message, forwardToRenderer, addTaskMessage);
+        // Assistant text messages are already batched by EventRouter (50ms debounce).
+        // Send them directly to avoid double-batching latency.
+        // Tool messages and other types still go through the IPC batcher.
+        if (message.type === 'assistant') {
+          forwardToRenderer('task:update:batch', {
+            taskId,
+            messages: [message],
+          });
+          addTaskMessage(taskId, message);
+        } else {
+          queueMessage(taskId, message, forwardToRenderer, addTaskMessage);
+        }
       },
 
       onProgress: (progress: { stage: string; message?: string }) => {

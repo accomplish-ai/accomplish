@@ -539,7 +539,10 @@ export class TaskManager {
       sessionId = config.sessionId;
     } else {
       const session = await client.session.create({});
-      sessionId = session.data!.id;
+      if (!session.data) {
+        throw new Error('Failed to create SDK session: no data returned from server');
+      }
+      sessionId = session.data.id;
     }
 
     // Register with EventRouter so SSE events for this session are routed to this task
@@ -659,11 +662,18 @@ export class TaskManager {
       await client.session.abort({ path: { id: managedTask.sessionId } });
     } catch (error) {
       console.error(`[TaskManager] Error aborting session for task ${taskId}:`, error);
-    } finally {
-      this.cleanupTask(taskId);
-      // Process queue after cancellation
-      this.processQueue();
     }
+
+    // Fire onComplete so the renderer is notified of cancellation.
+    // We do this explicitly rather than waiting for the EventRouter's abort event
+    // because we're about to unregister the session immediately.
+    managedTask.callbacks.onComplete({
+      status: 'interrupted',
+      sessionId: managedTask.sessionId,
+    });
+
+    this.cleanupTask(taskId);
+    this.processQueue();
   }
 
   /**
@@ -754,7 +764,20 @@ export class TaskManager {
     }
 
     const client = getServerManager().getClient();
-    const decision = response === 'no' ? 'reject' : 'once';
+
+    // The SDK permission response is binary: once/always/reject.
+    // Map 'no' or 'deny' to 'reject', everything else to 'once'.
+    // Note: The SDK does not support passing freeform text or selected options
+    // back to the agent. The permission system is approve/reject only.
+    const isDenial = response === 'no' || response === 'deny';
+    const decision: 'once' | 'always' | 'reject' = isDenial ? 'reject' : 'once';
+
+    if (!isDenial && response !== 'yes' && response.length > 3) {
+      // Log that we're losing response content -- this happens when the user
+      // selects specific options in a question dialog. The SDK doesn't support
+      // passing this content back; the agent will only know it was approved.
+      console.warn(`[TaskManager] Permission response content lost (SDK only supports once/reject): "${response.substring(0, 100)}"`);
+    }
 
     await client.postSessionIdPermissionsPermissionId({
       path: {

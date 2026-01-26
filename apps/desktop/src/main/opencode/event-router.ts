@@ -15,6 +15,7 @@ import type {
   EventSessionStatus,
   EventPermissionUpdated,
   EventTodoUpdated,
+  GlobalEvent,
   Part,
   TextPart,
   ToolPart,
@@ -56,7 +57,12 @@ export interface TaskEventCallbacks {
 // ---------------------------------------------------------------------------
 
 interface TextAccumulator {
+  /** Pending text since last flush */
   text: string;
+  /** ALL text emitted for the current assistant turn (survives flushes) */
+  totalText: string;
+  /** Stable message ID for the current assistant turn (reused across flushes) */
+  messageId: string;
   timer: ReturnType<typeof setTimeout> | null;
 }
 
@@ -163,6 +169,9 @@ export class EventRouter {
    */
   dispose(): void {
     this.subscriptionActive = false;
+    // The abort controller signals the stream loop to stop. The SDK's SSE stream
+    // doesn't accept an AbortSignal directly, so we rely on subscriptionActive
+    // to break between events. The abort fires for any custom listeners.
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
@@ -200,13 +209,21 @@ export class EventRouter {
           continue;
         }
 
-        console.log('[EventRouter] Subscribing to SSE event stream...');
-        const result = await client.event.subscribe();
+        console.log('[EventRouter] Subscribing to global SSE event stream...');
+        // Use global.event() instead of event.subscribe() because the latter
+        // requires a `directory` query param to scope events to a project.
+        // The global endpoint delivers events for all projects, each wrapped
+        // as { directory, payload: Event }.
+        const result = await client.global.event();
         const stream = result.stream;
 
-        for await (const event of stream) {
+        for await (const globalEvent of stream) {
           if (!this.subscriptionActive) break;
-          this.handleEvent(event as SdkEvent);
+          // Unwrap GlobalEvent → Event payload
+          const event = (globalEvent as GlobalEvent).payload;
+          if (event) {
+            this.handleEvent(event as SdkEvent);
+          }
         }
 
         // Stream ended normally
@@ -338,8 +355,10 @@ export class EventRouter {
     switch (state.status) {
       case 'pending':
       case 'running': {
-        // Flush any accumulated text before tool use starts
+        // Flush any accumulated text before tool use starts, then reset
+        // so the next text chunk after tool completion starts a new bubble.
         this.flushText(taskId);
+        this.resetTextTurn(taskId);
 
         this.callbacks?.onTaskProgress(taskId, {
           stage: 'tool-use',
@@ -398,8 +417,10 @@ export class EventRouter {
   }
 
   private handleStepFinish(taskId: string, _part: StepFinishPart): void {
-    // Flush accumulated text when a step finishes
+    // Flush accumulated text when a step finishes, then reset turn
+    // so the next step's text starts a new bubble.
     this.flushText(taskId);
+    this.resetTextTurn(taskId);
   }
 
   private handleFilePart(taskId: string, part: FilePart): void {
@@ -482,8 +503,14 @@ export class EventRouter {
   private accumulateText(taskId: string, text: string): void {
     let acc = this.textAccumulators.get(taskId);
     if (!acc) {
-      acc = { text: '', timer: null };
+      acc = { text: '', totalText: '', messageId: createMessageId(), timer: null };
       this.textAccumulators.set(taskId, acc);
+    }
+
+    // If this is the first text after a turn boundary (totalText was reset),
+    // generate a fresh stable ID for the new assistant turn.
+    if (!acc.totalText && !acc.text) {
+      acc.messageId = createMessageId();
     }
 
     acc.text += text;
@@ -500,6 +527,8 @@ export class EventRouter {
 
   /**
    * Immediately emit any buffered text for a task as a TaskMessage.
+   * Uses the stable messageId so the renderer can update an existing bubble
+   * rather than creating a new one for each flush within the same turn.
    */
   private flushText(taskId: string): void {
     const acc = this.textAccumulators.get(taskId);
@@ -510,17 +539,30 @@ export class EventRouter {
       acc.timer = null;
     }
 
-    const content = acc.text;
+    // Append pending text to the running total for this turn
+    acc.totalText += acc.text;
     acc.text = '';
 
     const message: TaskMessage = {
-      id: createMessageId(),
+      id: acc.messageId,
       type: 'assistant',
-      content,
+      content: acc.totalText,
       timestamp: new Date().toISOString(),
     };
 
     this.callbacks?.onTaskMessage(taskId, message);
+  }
+
+  /**
+   * Reset the text accumulator for a task so the next text chunk
+   * starts a new assistant turn with a new message bubble.
+   */
+  private resetTextTurn(taskId: string): void {
+    const acc = this.textAccumulators.get(taskId);
+    if (acc) {
+      acc.totalText = '';
+      // messageId will be regenerated on next accumulateText call
+    }
   }
 
   // -------------------------------------------------------------------
@@ -534,6 +576,7 @@ export class EventRouter {
 
     // Flush text before signaling completion
     this.flushText(taskId);
+    this.resetTextTurn(taskId);
 
     const result: TaskResult = {
       status: 'success',
@@ -552,6 +595,7 @@ export class EventRouter {
 
     // Flush text before signaling error
     this.flushText(taskId);
+    this.resetTextTurn(taskId);
 
     const sdkError = event.properties.error;
     let errorMessage = 'Unknown error';
@@ -627,14 +671,36 @@ export class EventRouter {
 
     // Flush text before showing permission dialog
     this.flushText(taskId);
+    this.resetTextTurn(taskId);
+
+    // Build a rich PermissionRequest from SDK Permission metadata.
+    // The SDK's metadata object may contain tool-specific fields that map
+    // to our PermissionRequest shape. Extract what we can.
+    const meta = permission.metadata || {};
+
+    // Determine the permission type based on SDK permission.type and metadata hints
+    let permType: 'tool' | 'question' | 'file' = 'tool';
+    if (meta.fileOperation || meta.filePath || permission.type === 'file-write' || permission.type === 'file-read') {
+      permType = 'file';
+    } else if (meta.options || meta.question || meta.header) {
+      permType = 'question';
+    }
 
     const request: PermissionRequest = {
       id: permission.id,
       taskId,
-      type: 'tool',
-      toolName: permission.title,
-      toolInput: permission.metadata,
-      question: permission.title,
+      type: permType,
+      toolName: typeof meta.toolName === 'string' ? meta.toolName : permission.title,
+      toolInput: meta.toolInput ?? meta,
+      question: typeof meta.question === 'string' ? meta.question : permission.title,
+      header: typeof meta.header === 'string' ? meta.header : undefined,
+      options: Array.isArray(meta.options) ? meta.options as PermissionRequest['options'] : undefined,
+      multiSelect: typeof meta.multiSelect === 'boolean' ? meta.multiSelect : undefined,
+      fileOperation: typeof meta.fileOperation === 'string' ? meta.fileOperation as PermissionRequest['fileOperation'] : undefined,
+      filePath: typeof meta.filePath === 'string' ? meta.filePath : undefined,
+      filePaths: Array.isArray(meta.filePaths) ? meta.filePaths as string[] : undefined,
+      targetPath: typeof meta.targetPath === 'string' ? meta.targetPath : undefined,
+      contentPreview: typeof meta.contentPreview === 'string' ? meta.contentPreview : undefined,
       createdAt: new Date(permission.time.created).toISOString(),
     };
 

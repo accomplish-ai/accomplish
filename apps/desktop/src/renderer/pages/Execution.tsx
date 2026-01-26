@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check, Copy, Globe, MousePointer2, Type, Image, Keyboard, ArrowUpDown, ListChecks, Layers, Highlighter, ListOrdered, Upload, Move, Frame, ShieldCheck, MessageCircleQuestion, CheckCircle, Lightbulb, Flag } from 'lucide-react';
+import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check, Copy, Globe, MousePointer2, Type, Image, Keyboard, ArrowUpDown, ListChecks, Layers, Highlighter, ListOrdered, Upload, Move, Frame, CheckCircle, Lightbulb, Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { StreamingText } from '../components/ui/streaming-text';
@@ -82,9 +82,7 @@ const TOOL_PROGRESS_MAP: Record<string, { label: string; icon: typeof FileText }
   browser_iframe: { label: 'Switching frame', icon: Frame },
   browser_canvas_type: { label: 'Typing in canvas', icon: Type },
   browser_script: { label: 'Browser Actions', icon: Globe },
-  // Utility MCP tools
-  request_file_permission: { label: 'Requesting permission', icon: ShieldCheck },
-  AskUserQuestion: { label: 'Asking question', icon: MessageCircleQuestion },
+  // Task lifecycle tools
   complete_task: { label: 'Completing task', icon: CheckCircle },
   report_thought: { label: 'Thinking', icon: Lightbulb },
   report_checkpoint: { label: 'Checkpoint', icon: Flag },

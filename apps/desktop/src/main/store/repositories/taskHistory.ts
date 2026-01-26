@@ -203,31 +203,43 @@ export function addTaskMessage(taskId: string, message: TaskMessage): void {
   const db = getDatabase();
 
   db.transaction(() => {
-    // Get the next sort_order
-    const maxOrder = db
-      .prepare('SELECT MAX(sort_order) as max FROM task_messages WHERE task_id = ?')
-      .get(taskId) as { max: number | null };
+    // Check if this message already exists (streaming text reuses the same ID)
+    const existing = db
+      .prepare('SELECT sort_order FROM task_messages WHERE id = ?')
+      .get(message.id) as { sort_order: number } | undefined;
 
-    const sortOrder = (maxOrder.max ?? -1) + 1;
+    if (existing) {
+      // Update existing message content (same assistant turn, more text arrived)
+      db.prepare(
+        `UPDATE task_messages SET content = ?, timestamp = ? WHERE id = ?`
+      ).run(message.content, message.timestamp, message.id);
+    } else {
+      // New message — insert with next sort_order
+      const maxOrder = db
+        .prepare('SELECT MAX(sort_order) as max FROM task_messages WHERE task_id = ?')
+        .get(taskId) as { max: number | null };
 
-    db.prepare(
-      `INSERT INTO task_messages
-        (id, task_id, type, content, tool_name, tool_input, timestamp, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      message.id,
-      taskId,
-      message.type,
-      message.content,
-      message.toolName || null,
-      message.toolInput ? JSON.stringify(message.toolInput) : null,
-      message.timestamp,
-      sortOrder
-    );
+      const sortOrder = (maxOrder.max ?? -1) + 1;
+
+      db.prepare(
+        `INSERT INTO task_messages
+          (id, task_id, type, content, tool_name, tool_input, timestamp, sort_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        message.id,
+        taskId,
+        message.type,
+        message.content,
+        message.toolName || null,
+        message.toolInput ? JSON.stringify(message.toolInput) : null,
+        message.timestamp,
+        sortOrder
+      );
+    }
 
     if (message.attachments) {
       const insertAttachment = db.prepare(
-        `INSERT INTO task_attachments (message_id, type, data, label) VALUES (?, ?, ?, ?)`
+        `INSERT OR REPLACE INTO task_attachments (message_id, type, data, label) VALUES (?, ?, ?, ?)`
       );
 
       for (const att of message.attachments) {

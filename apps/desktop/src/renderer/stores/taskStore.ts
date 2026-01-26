@@ -357,10 +357,20 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       let newStatus: TaskStatus | null = null;
 
       // Handle message events - only if viewing this task
+      // Uses upsert: update existing message by ID (streaming text), or append new one.
       if (event.type === 'message' && event.message && isCurrentTask && state.currentTask) {
+        const existingIdx = state.currentTask.messages.findIndex((m) => m.id === event.message!.id);
+        const updatedMessages = [...state.currentTask.messages];
+        if (existingIdx !== -1) {
+          // Update existing message (same assistant turn, more text arrived)
+          updatedMessages[existingIdx] = { ...updatedMessages[existingIdx], ...event.message };
+        } else {
+          // New message - append
+          updatedMessages.push(event.message);
+        }
         updatedCurrentTask = {
           ...state.currentTask,
-          messages: [...state.currentTask.messages, event.message],
+          messages: updatedMessages,
         };
       }
 
@@ -430,6 +440,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
   // Batch update handler for performance - processes multiple messages in single state update
+  // Uses upsert logic: if a message with the same ID already exists, update its content
+  // (supports streaming text that arrives across multiple flushes within one assistant turn).
   addTaskUpdateBatch: (event: TaskUpdateBatchEvent) => {
     const accomplish = getAccomplish();
     void accomplish.logEvent({
@@ -442,10 +454,27 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         return state;
       }
 
-      // Add all messages in a single state update
+      // Upsert: update existing messages by ID, append new ones
+      const existing = [...state.currentTask.messages];
+      const existingIds = new Set(existing.map((m) => m.id));
+
+      for (const msg of event.messages) {
+        if (existingIds.has(msg.id)) {
+          // Update existing message content (same assistant turn, more text arrived)
+          const idx = existing.findIndex((m) => m.id === msg.id);
+          if (idx !== -1) {
+            existing[idx] = { ...existing[idx], ...msg };
+          }
+        } else {
+          // New message - append
+          existing.push(msg);
+          existingIds.add(msg.id);
+        }
+      }
+
       const updatedTask = {
         ...state.currentTask,
-        messages: [...state.currentTask.messages, ...event.messages],
+        messages: existing,
       };
 
       return { currentTask: updatedTask, isLoading: false };
