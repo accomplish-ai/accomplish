@@ -421,7 +421,7 @@ describe('OpenCode Adapter Module', () => {
         expect(completeEvents[0].status).toBe('success');
       });
 
-      it('should schedule continuation on step_finish when complete_task was not called', async () => {
+      it('should schedule continuation on step_finish when complete_task was not called but tools were used', async () => {
         // Arrange
         const adapter = new OpenCodeAdapter();
         const completeEvents: Array<{ status: string; sessionId?: string }> = [];
@@ -439,6 +439,20 @@ describe('OpenCode Adapter Module', () => {
           },
         };
         mockPtyInstance.simulateData(JSON.stringify(stepStartMessage) + '\n');
+
+        // Simulate a tool call (so hasEngagedWithTools is true)
+        const toolCallMessage: OpenCodeToolCallMessage = {
+          type: 'tool_call',
+          part: {
+            id: 'tool-1',
+            sessionID: 'session-123',
+            messageID: 'message-123',
+            type: 'tool-call',
+            tool: 'Bash',
+            input: { command: 'ls' },
+          },
+        };
+        mockPtyInstance.simulateData(JSON.stringify(toolCallMessage) + '\n');
 
         const stepFinishMessage: OpenCodeStepFinishMessage = {
           type: 'step_finish',
@@ -467,6 +481,21 @@ describe('OpenCode Adapter Module', () => {
         adapter.on('complete', (result) => completeEvents.push(result));
 
         await adapter.startTask({ prompt: 'Test' });
+
+        // Simulate a tool call first so hasEngagedWithTools is true
+        // (without tool engagement, agent stops would be treated as conversational responses)
+        const toolCallMessage: OpenCodeToolCallMessage = {
+          type: 'tool_call',
+          part: {
+            id: 'tool-1',
+            sessionID: 'session-123',
+            messageID: 'message-123',
+            type: 'tool-call',
+            tool: 'Bash',
+            input: { command: 'ls' },
+          },
+        };
+        mockPtyInstance.simulateData(JSON.stringify(toolCallMessage) + '\n');
 
         const stepFinishMessage: OpenCodeStepFinishMessage = {
           type: 'step_finish',
@@ -611,6 +640,107 @@ describe('OpenCode Adapter Module', () => {
         // Assert
         expect(todoEvents.length).toBe(1);
         expect(todoEvents[0]).toHaveLength(2);
+      });
+
+      it('should emit complete immediately on step_finish stop when no tools were ever used', async () => {
+        // Arrange - simulates a conversational response like user saying "Hey"
+        const adapter = new OpenCodeAdapter();
+        const completeEvents: Array<{ status: string; sessionId?: string }> = [];
+        const debugEvents: Array<{ type: string; message: string }> = [];
+        adapter.on('complete', (result) => completeEvents.push(result));
+        adapter.on('debug', (event) => debugEvents.push(event));
+
+        await adapter.startTask({ prompt: 'Hey' });
+
+        // Simulate a text response (no tool calls)
+        const textMessage: OpenCodeTextMessage = {
+          type: 'text',
+          part: {
+            id: 'msg-1',
+            sessionID: 'session-123',
+            messageID: 'message-123',
+            type: 'text',
+            text: 'Hello! How can I help you today?',
+          },
+        };
+        mockPtyInstance.simulateData(JSON.stringify(textMessage) + '\n');
+
+        const stepFinishMessage: OpenCodeStepFinishMessage = {
+          type: 'step_finish',
+          part: {
+            id: 'step-1',
+            sessionID: 'session-123',
+            messageID: 'message-123',
+            type: 'step-finish',
+            reason: 'stop',
+          },
+        };
+
+        // Act
+        mockPtyInstance.simulateData(JSON.stringify(stepFinishMessage) + '\n');
+
+        // Assert - should complete immediately (no continuation loop)
+        expect(completeEvents.length).toBe(1);
+        expect(completeEvents[0].status).toBe('success');
+        // Should have emitted debug event about conversational completion
+        expect(debugEvents.some(e => e.type === 'conversational_complete')).toBe(true);
+      });
+
+      it('should still schedule continuation when tools were used but complete_task was not called', async () => {
+        // Arrange - simulates agent stopping mid-task after using tools
+        const adapter = new OpenCodeAdapter();
+        const completeEvents: Array<{ status: string; sessionId?: string }> = [];
+        const debugEvents: Array<{ type: string; message: string }> = [];
+        adapter.on('complete', (result) => completeEvents.push(result));
+        adapter.on('debug', (event) => debugEvents.push(event));
+
+        await adapter.startTask({ prompt: 'Build a website' });
+
+        // Simulate step_start
+        const stepStartMessage: OpenCodeStepStartMessage = {
+          type: 'step_start',
+          part: {
+            id: 'step-1',
+            sessionID: 'session-123',
+            messageID: 'message-123',
+            type: 'step-start',
+          },
+        };
+        mockPtyInstance.simulateData(JSON.stringify(stepStartMessage) + '\n');
+
+        // Simulate a tool call (Bash) - this engages tools
+        const toolCallMessage: OpenCodeToolCallMessage = {
+          type: 'tool_call',
+          part: {
+            id: 'tool-1',
+            sessionID: 'session-123',
+            messageID: 'message-123',
+            type: 'tool-call',
+            tool: 'Bash',
+            input: { command: 'mkdir website' },
+          },
+        };
+        mockPtyInstance.simulateData(JSON.stringify(toolCallMessage) + '\n');
+
+        // Agent stops without calling complete_task
+        const stepFinishMessage: OpenCodeStepFinishMessage = {
+          type: 'step_finish',
+          part: {
+            id: 'step-1',
+            sessionID: 'session-123',
+            messageID: 'message-123',
+            type: 'step-finish',
+            reason: 'stop',
+          },
+        };
+
+        // Act
+        mockPtyInstance.simulateData(JSON.stringify(stepFinishMessage) + '\n');
+
+        // Assert - should NOT emit complete (continuation scheduled instead)
+        expect(completeEvents.length).toBe(0);
+        // Should have emitted debug event about scheduled continuation
+        expect(debugEvents.some(e => e.type === 'continuation')).toBe(true);
       });
 
       it('should NOT emit todo:update for empty todos array', async () => {

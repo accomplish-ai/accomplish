@@ -46,10 +46,20 @@ export class CompletionEnforcer {
   private state: CompletionState;
   private callbacks: CompletionEnforcerCallbacks;
   private currentTodos: TodoItem[] = [];
+  private hasEngagedWithTools: boolean = false;
 
   constructor(callbacks: CompletionEnforcerCallbacks, maxContinuationAttempts: number = 20) {
     this.callbacks = callbacks;
     this.state = new CompletionState(maxContinuationAttempts);
+  }
+
+  /**
+   * Called by adapter when any non-completion tool call is detected.
+   * Used to distinguish conversational responses (no tools) from
+   * mid-task stops (tools were used but complete_task not called).
+   */
+  recordToolEngagement(): void {
+    this.hasEngagedWithTools = true;
   }
 
   /**
@@ -143,6 +153,16 @@ export class CompletionEnforcer {
         { remainingWork: this.state.getCompleteTaskArgs()?.remaining_work }
       );
       return 'pending'; // Let handleProcessExit start partial continuation
+    }
+
+    // If agent stopped without ever using tools, this is a conversational response
+    // (e.g., user said "Hey" and agent greeted back). No need to enforce completion.
+    if (!this.state.isCompleteTaskCalled() && !this.hasEngagedWithTools) {
+      this.callbacks.onDebug(
+        'conversational_complete',
+        'Agent stopped without tool use - treating as conversational response (no enforcement needed)'
+      );
+      return 'complete';
     }
 
     // Check if agent stopped without calling complete_task
@@ -266,6 +286,7 @@ export class CompletionEnforcer {
   reset(): void {
     this.state.reset();
     this.currentTodos = [];
+    this.hasEngagedWithTools = false;
   }
 
   private hasIncompleteTodos(): boolean {
