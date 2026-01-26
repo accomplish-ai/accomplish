@@ -1,10 +1,30 @@
 // packages/browser-manager/src/test/scenarios/happy-path.test.ts
 import { describe, it, expect, afterEach } from 'vitest';
+import { existsSync } from 'fs';
 import { BrowserManager } from '../../manager.js';
 import type { BrowserState } from '../../types.js';
 
 // High ports unlikely to conflict with system services
 const TEST_PORT_RANGE = { start: 59900, end: 59910 };
+
+// Check if Chrome is installed
+function isChromeInstalled(): boolean {
+  const platform = process.platform;
+  const paths =
+    platform === 'darwin'
+      ? [
+          '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+          '/Applications/Chromium.app/Contents/MacOS/Chromium',
+        ]
+      : platform === 'win32'
+        ? [
+            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+          ]
+        : ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'];
+
+  return paths.some((path) => existsSync(path));
+}
 
 describe('Happy Path Integration', () => {
   let manager: BrowserManager | null = null;
@@ -23,7 +43,9 @@ describe('Happy Path Integration', () => {
     states = [];
   });
 
-  it.skipIf(!!process.env.CI)(
+  const testFn = !!process.env.CI || !isChromeInstalled() ? it.skip : it;
+
+  testFn(
     'transitions through expected states on acquire',
     async () => {
       manager = new BrowserManager({
