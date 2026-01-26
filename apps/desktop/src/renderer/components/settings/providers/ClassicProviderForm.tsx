@@ -59,7 +59,6 @@ export function ClassicProviderForm({
   const [savingBaseUrl, setSavingBaseUrl] = useState(false);
   const [baseUrlSaved, setBaseUrlSaved] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
-  const [authTab, setAuthTab] = useState<'oauth' | 'apikey'>('oauth');
 
   const meta = PROVIDER_META[providerId];
   const providerConfig = DEFAULT_PROVIDERS.find(p => p.id === providerId);
@@ -87,6 +86,12 @@ export function ClassicProviderForm({
 
     try {
       const accomplish = getAccomplish();
+
+      // Save base URL for OpenAI before validating
+      if (isOpenAI) {
+        await accomplish.setOpenAiBaseUrl(openAiBaseUrl.trim());
+      }
+
       const validation = await accomplish.validateApiKeyForProvider(providerId, apiKey.trim());
 
       if (!validation.valid) {
@@ -175,125 +180,83 @@ export function ClassicProviderForm({
     <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
       <ProviderFormHeader logoSrc={logoSrc} providerName={meta.name} />
 
-      {/* OpenAI: Tabbed OAuth/API Key interface */}
+      {/* OpenAI: Linear OAuth + API Key interface */}
       {isOpenAI && !isConnected && (
         <div className="space-y-4">
-          {/* Segmented control tabs */}
-          <div className="flex rounded-lg border border-border overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setAuthTab('oauth')}
-              data-testid="openai-oauth-tab"
-              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
-                authTab === 'oauth'
-                  ? 'bg-[#e9f7e7] text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Login to OpenAI
-            </button>
-            <button
-              type="button"
-              onClick={() => setAuthTab('apikey')}
-              data-testid="openai-apikey-tab"
-              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
-                authTab === 'apikey'
-                  ? 'bg-[#e9f7e7] text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Use API Key
-            </button>
+          {/* OAuth login button */}
+          <button
+            type="button"
+            onClick={handleChatGptSignIn}
+            disabled={signingIn}
+            data-testid="openai-oauth-signin"
+            className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+          >
+            <img src={openaiLogo} alt="" className="h-5 w-5" />
+            {signingIn ? 'Signing in...' : 'Login with OpenAI'}
+          </button>
+
+          {/* Divider with "or" */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-sm text-muted-foreground">or</span>
+            <div className="flex-1 h-px bg-border" />
           </div>
 
-          {/* OAuth tab content */}
-          {authTab === 'oauth' && (
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={handleChatGptSignIn}
-                disabled={signingIn}
-                data-testid="openai-oauth-signin"
-                className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
-              >
-                <img src={openaiLogo} alt="" className="h-5 w-5" />
-                {signingIn ? 'Signing in...' : 'Login with OpenAI'}
-              </button>
-              <FormError error={error} />
-            </div>
-          )}
-
-          {/* API Key tab content */}
-          {authTab === 'apikey' && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">API Key</label>
-                {meta.helpUrl && (
-                  <a
-                    href={meta.helpUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-primary underline"
-                  >
-                    How can I find it?
-                  </a>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Enter API Key"
-                  disabled={connecting}
-                  data-testid="api-key-input"
-                  className="flex-1 rounded-md border border-input bg-background px-3 py-2.5 text-sm disabled:opacity-50"
-                />
-                <button
-                  onClick={() => setApiKey('')}
-                  className="rounded-md border border-border p-2.5 text-muted-foreground hover:text-foreground transition-colors"
-                  type="button"
-                  disabled={!apiKey}
+          {/* API Key section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">API Key</label>
+              {meta.helpUrl && (
+                <a
+                  href={meta.helpUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-muted-foreground hover:text-primary underline"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
-              <FormError error={error} />
-              <ConnectButton onClick={handleConnect} connecting={connecting} disabled={!apiKey.trim()} />
-            </div>
-          )}
-
-          {/* Base URL override (shown in both tabs) */}
-          <div className="pt-2 border-t border-border">
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-foreground">Base URL (optional)</label>
+                  How can I find it?
+                </a>
+              )}
             </div>
             <div className="flex gap-2">
               <input
-                type="text"
-                value={openAiBaseUrl}
-                onChange={(e) => setOpenAiBaseUrl(e.target.value)}
-                placeholder="https://api.openai.com/v1"
-                className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Enter API Key"
+                disabled={connecting}
+                data-testid="api-key-input"
+                className="flex-1 rounded-md border border-input bg-background px-3 py-2.5 text-sm disabled:opacity-50"
               />
               <button
-                onClick={handleSaveBaseUrl}
-                disabled={savingBaseUrl}
-                className={`rounded-md px-3 py-2 text-xs font-medium transition-colors ${
-                  baseUrlSaved
-                    ? 'bg-green-500/20 text-green-500'
-                    : 'border border-border bg-background text-foreground hover:bg-muted'
-                }`}
+                onClick={() => setApiKey('')}
+                className="rounded-md border border-border p-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                type="button"
+                disabled={!apiKey}
               >
-                {savingBaseUrl ? 'Saving...' : baseUrlSaved ? 'Saved' : 'Save'}
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
               </button>
             </div>
-            <p className="mt-1.5 text-xs text-muted-foreground">
+          </div>
+
+          {/* Base URL section */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Base URL (optional)</label>
+            <input
+              type="text"
+              value={openAiBaseUrl}
+              onChange={(e) => setOpenAiBaseUrl(e.target.value)}
+              placeholder="https://api.openai.com/v1"
+              className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
               Leave blank for OpenAI. Set to use an OpenAI-compatible endpoint.
             </p>
           </div>
+
+          <FormError error={error} />
+          <ConnectButton onClick={handleConnect} connecting={connecting} disabled={!apiKey.trim()} />
         </div>
       )}
 
