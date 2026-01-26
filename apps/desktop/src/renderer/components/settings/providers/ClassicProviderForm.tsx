@@ -60,6 +60,7 @@ export function ClassicProviderForm({
   const [baseUrlSaved, setBaseUrlSaved] = useState(false);
   const [oauthStatus, setOauthStatus] = useState<{ connected: boolean; expires?: number } | null>(null);
   const [signingIn, setSigningIn] = useState(false);
+  const [authTab, setAuthTab] = useState<'oauth' | 'apikey'>('oauth');
 
   const meta = PROVIDER_META[providerId];
   const providerConfig = DEFAULT_PROVIDERS.find(p => p.id === providerId);
@@ -177,96 +178,67 @@ export function ClassicProviderForm({
     <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
       <ProviderFormHeader logoSrc={logoSrc} providerName={meta.name} />
 
-      {/* ChatGPT Sign-in (OpenAI only) */}
+      {/* OpenAI: Tabbed OAuth/API Key interface */}
       {isOpenAI && !isConnected && (
-        <div className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <div className="font-medium text-foreground text-sm">Sign in with ChatGPT</div>
-              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                Use your ChatGPT Plus/Pro subscription via OAuth. No API key required.
-              </p>
-              {oauthStatus && (
-                <div className="mt-2 text-xs">
-                  <span className="text-muted-foreground">Status: </span>
-                  <span className={oauthStatus.connected ? 'text-green-500 font-medium' : 'text-muted-foreground'}>
-                    {oauthStatus.connected ? 'Connected' : 'Not connected'}
-                  </span>
-                </div>
-              )}
-            </div>
+        <div className="space-y-4">
+          {/* Segmented control tabs */}
+          <div className="flex rounded-lg border border-border overflow-hidden">
             <button
               type="button"
-              onClick={handleChatGptSignIn}
-              disabled={signingIn}
-              className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
-            >
-              {signingIn ? 'Signing in...' : 'Sign in'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* OpenAI Base URL Override (OpenAI only) */}
-      {isOpenAI && (
-        <div className="mb-5">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-foreground">Base URL (optional)</label>
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={openAiBaseUrl}
-              onChange={(e) => setOpenAiBaseUrl(e.target.value)}
-              placeholder="https://api.openai.com/v1"
-              className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-            <button
-              onClick={handleSaveBaseUrl}
-              disabled={savingBaseUrl}
-              className={`rounded-md px-3 py-2 text-xs font-medium transition-colors ${
-                baseUrlSaved
-                  ? 'bg-green-500/20 text-green-500'
-                  : 'border border-border bg-background text-foreground hover:bg-muted'
+              onClick={() => setAuthTab('oauth')}
+              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                authTab === 'oauth'
+                  ? 'bg-[#e9f7e7] text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              {savingBaseUrl ? 'Saving...' : baseUrlSaved ? 'Saved' : 'Save'}
+              Login to OpenAI
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthTab('apikey')}
+              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                authTab === 'apikey'
+                  ? 'bg-[#e9f7e7] text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Use API Key
             </button>
           </div>
-          <p className="mt-1.5 text-xs text-muted-foreground">
-            Leave blank for OpenAI. Set to use an OpenAI-compatible endpoint.
-          </p>
-        </div>
-      )}
 
-      {/* API Key Section */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-foreground">API Key</label>
-          {meta.helpUrl && (
-            <a
-              href={meta.helpUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hover:text-primary underline"
-            >
-              How can I find it?
-            </a>
+          {/* OAuth tab content */}
+          {authTab === 'oauth' && (
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={handleChatGptSignIn}
+                disabled={signingIn}
+                className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+              >
+                <img src={openaiLogo} alt="" className="h-5 w-5" />
+                {signingIn ? 'Signing in...' : 'Login with OpenAI'}
+              </button>
+              <FormError error={error} />
+            </div>
           )}
-        </div>
 
-        <AnimatePresence mode="wait">
-          {!isConnected ? (
-            <motion.div
-              key="disconnected"
-              variants={settingsVariants.fadeSlide}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={settingsTransitions.enter}
-              className="space-y-3"
-            >
-              {/* Disconnected: API Key input with trash */}
+          {/* API Key tab content */}
+          {authTab === 'apikey' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">API Key</label>
+                {meta.helpUrl && (
+                  <a
+                    href={meta.helpUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground hover:text-primary underline"
+                  >
+                    How can I find it?
+                  </a>
+                )}
+              </div>
               <div className="flex gap-2">
                 <input
                   type="password"
@@ -288,11 +260,136 @@ export function ClassicProviderForm({
                   </svg>
                 </button>
               </div>
-
               <FormError error={error} />
               <ConnectButton onClick={handleConnect} connecting={connecting} disabled={!apiKey.trim()} />
-            </motion.div>
-          ) : (
+            </div>
+          )}
+
+          {/* Base URL override (shown in both tabs) */}
+          <div className="pt-2 border-t border-border">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-foreground">Base URL (optional)</label>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={openAiBaseUrl}
+                onChange={(e) => setOpenAiBaseUrl(e.target.value)}
+                placeholder="https://api.openai.com/v1"
+                className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+              <button
+                onClick={handleSaveBaseUrl}
+                disabled={savingBaseUrl}
+                className={`rounded-md px-3 py-2 text-xs font-medium transition-colors ${
+                  baseUrlSaved
+                    ? 'bg-green-500/20 text-green-500'
+                    : 'border border-border bg-background text-foreground hover:bg-muted'
+                }`}
+              >
+                {savingBaseUrl ? 'Saving...' : baseUrlSaved ? 'Saved' : 'Save'}
+              </button>
+            </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Leave blank for OpenAI. Set to use an OpenAI-compatible endpoint.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Non-OpenAI providers: Standard API Key interface */}
+      {!isOpenAI && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-foreground">API Key</label>
+            {meta.helpUrl && (
+              <a
+                href={meta.helpUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-muted-foreground hover:text-primary underline"
+              >
+                How can I find it?
+              </a>
+            )}
+          </div>
+
+          <AnimatePresence mode="wait">
+            {!isConnected ? (
+              <motion.div
+                key="disconnected"
+                variants={settingsVariants.fadeSlide}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={settingsTransitions.enter}
+                className="space-y-3"
+              >
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="Enter API Key"
+                    disabled={connecting}
+                    data-testid="api-key-input"
+                    className="flex-1 rounded-md border border-input bg-background px-3 py-2.5 text-sm disabled:opacity-50"
+                  />
+                  <button
+                    onClick={() => setApiKey('')}
+                    className="rounded-md border border-border p-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                    type="button"
+                    disabled={!apiKey}
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+
+                <FormError error={error} />
+                <ConnectButton onClick={handleConnect} connecting={connecting} disabled={!apiKey.trim()} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="connected"
+                variants={settingsVariants.fadeSlide}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={settingsTransitions.enter}
+                className="space-y-3"
+              >
+                <input
+                  type="text"
+                  value={(() => {
+                    const creds = connectedProvider?.credentials as ApiKeyCredentials | undefined;
+                    if (creds?.keyPrefix) return creds.keyPrefix;
+                    return 'API key saved (reconnect to see prefix)';
+                  })()}
+                  disabled
+                  data-testid="api-key-display"
+                  className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+                />
+
+                <ConnectedControls onDisconnect={onDisconnect} />
+
+                <ModelSelector
+                  models={models}
+                  value={connectedProvider?.selectedModelId || null}
+                  onChange={onModelChange}
+                  error={showModelError && !connectedProvider?.selectedModelId}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* Connected state for OpenAI */}
+      {isOpenAI && isConnected && (
+        <div className="space-y-3">
+          <AnimatePresence mode="wait">
             <motion.div
               key="connected"
               variants={settingsVariants.fadeSlide}
@@ -302,12 +399,20 @@ export function ClassicProviderForm({
               transition={settingsTransitions.enter}
               className="space-y-3"
             >
-              {/* Connected: Show masked key + Connected button + Model */}
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">
+                  {(connectedProvider?.credentials as OAuthCredentials)?.type === 'oauth' ? 'OAuth' : 'API Key'}
+                </label>
+              </div>
               <input
                 type="text"
                 value={(() => {
-                  const creds = connectedProvider?.credentials as ApiKeyCredentials | undefined;
-                  if (creds?.keyPrefix) return creds.keyPrefix;
+                  const creds = connectedProvider?.credentials;
+                  if (creds?.type === 'oauth') {
+                    return 'Connected via ChatGPT';
+                  }
+                  const apiCreds = creds as ApiKeyCredentials | undefined;
+                  if (apiCreds?.keyPrefix) return apiCreds.keyPrefix;
                   return 'API key saved (reconnect to see prefix)';
                 })()}
                 disabled
@@ -317,17 +422,46 @@ export function ClassicProviderForm({
 
               <ConnectedControls onDisconnect={onDisconnect} />
 
-              {/* Model Selector */}
               <ModelSelector
                 models={models}
                 value={connectedProvider?.selectedModelId || null}
                 onChange={onModelChange}
                 error={showModelError && !connectedProvider?.selectedModelId}
               />
+
+              {/* Base URL override when connected */}
+              <div className="pt-2 border-t border-border">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-foreground">Base URL (optional)</label>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={openAiBaseUrl}
+                    onChange={(e) => setOpenAiBaseUrl(e.target.value)}
+                    placeholder="https://api.openai.com/v1"
+                    className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                  <button
+                    onClick={handleSaveBaseUrl}
+                    disabled={savingBaseUrl}
+                    className={`rounded-md px-3 py-2 text-xs font-medium transition-colors ${
+                      baseUrlSaved
+                        ? 'bg-green-500/20 text-green-500'
+                        : 'border border-border bg-background text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {savingBaseUrl ? 'Saving...' : baseUrlSaved ? 'Saved' : 'Save'}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Leave blank for OpenAI. Set to use an OpenAI-compatible endpoint.
+                </p>
+              </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+          </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }
