@@ -1180,11 +1180,105 @@ const SNAPSHOT_SCRIPT = `
   // Interactive ARIA roles that agents typically want to interact with
   const INTERACTIVE_ROLES = ['button', 'link', 'textbox', 'checkbox', 'radio', 'combobox', 'listbox', 'option', 'tab', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'searchbox', 'slider', 'spinbutton', 'switch', 'dialog', 'alertdialog', 'menu', 'navigation', 'form'];
 
+  // === Token optimization: Priority scoring and truncation ===
+  const ROLE_PRIORITIES = {
+    button: 100, textbox: 95, searchbox: 95,
+    checkbox: 90, radio: 90, switch: 90,
+    combobox: 85, listbox: 85, slider: 85, spinbutton: 85,
+    link: 80, tab: 75,
+    menuitem: 70, menuitemcheckbox: 70, menuitemradio: 70, option: 70,
+    navigation: 60, menu: 60, tablist: 55,
+    form: 50, dialog: 50, alertdialog: 50
+  };
+  const VIEWPORT_BONUS = 50;
+  const DEFAULT_PRIORITY = 50;
+
+  function isInViewport(box) {
+    if (!box || !box.rect) return false;
+    const rect = box.rect;
+    if (rect.width === 0 || rect.height === 0) return false;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    return rect.x < vw && rect.y < vh && rect.x + rect.width > 0 && rect.y + rect.height > 0;
+  }
+
+  function getElementPriority(role, inViewport) {
+    const base = ROLE_PRIORITIES[role] || DEFAULT_PRIORITY;
+    return inViewport ? base + VIEWPORT_BONUS : base;
+  }
+
+  function collectScoredElements(root, opts) {
+    const elements = [];
+    const interactiveOnly = opts.interactiveOnly !== false;
+    const viewportOnlyOpt = opts.viewportOnly === true;
+
+    function visit(node) {
+      const isInteractive = INTERACTIVE_ROLES.includes(node.role);
+      if (interactiveOnly && !isInteractive) {
+        if (node.children) node.children.forEach(c => typeof c !== 'string' && visit(c));
+        return;
+      }
+      const inVp = isInViewport(node.box);
+      if (viewportOnlyOpt && !inVp) {
+        if (node.children) node.children.forEach(c => typeof c !== 'string' && visit(c));
+        return;
+      }
+      elements.push({ node, score: getElementPriority(node.role, inVp), inViewport: inVp });
+      if (node.children) node.children.forEach(c => typeof c !== 'string' && visit(c));
+    }
+    visit(root);
+    return elements;
+  }
+
+  function truncateWithBudget(elements, maxElements, maxTokens) {
+    const sorted = elements.slice().sort((a, b) => b.score - a.score);
+    const included = [];
+    let tokenCount = 0;
+    let truncationReason = null;
+
+    for (const el of sorted) {
+      if (included.length >= maxElements) { truncationReason = 'maxElements'; break; }
+      const elementTokens = 15; // Estimate per element
+      if (maxTokens && tokenCount + elementTokens > maxTokens) { truncationReason = 'maxTokens'; break; }
+      included.push(el);
+      tokenCount += elementTokens;
+    }
+
+    return {
+      elements: included,
+      totalElements: elements.length,
+      estimatedTokens: tokenCount,
+      truncated: included.length < elements.length,
+      truncationReason
+    };
+  }
+
   function renderAriaTree(ariaSnapshot, snapshotOptions) {
     snapshotOptions = snapshotOptions || {};
+    const maxElements = snapshotOptions.maxElements || 300;
+    const maxTokens = snapshotOptions.maxTokens || 8000;
     const options = { visibility: "ariaOrVisible", refs: "interactable", refPrefix: "", includeGenericRole: true, renderActive: true, renderCursorPointer: true };
     const lines = [];
     let nodesToRender = ariaSnapshot.root.role === "fragment" ? ariaSnapshot.root.children : [ariaSnapshot.root];
+
+    // Collect and score all elements
+    const scoredElements = collectScoredElements(ariaSnapshot.root, snapshotOptions);
+
+    // Truncate with token budget
+    const truncateResult = truncateWithBudget(scoredElements, maxElements, maxTokens);
+
+    // Build set of refs to include
+    const includedRefs = {};
+    for (const el of truncateResult.elements) {
+      if (el.node.ref) includedRefs[el.node.ref] = true;
+    }
+
+    // Add header with truncation info
+    if (truncateResult.truncated) {
+      const reason = truncateResult.truncationReason === 'maxTokens' ? 'token budget' : 'element limit';
+      lines.push("# Elements: " + truncateResult.elements.length + " of " + truncateResult.totalElements + " (truncated: " + reason + ")");
+      lines.push("# Tokens: ~" + truncateResult.estimatedTokens);
+    }
 
     const isInteractiveRole = (role) => INTERACTIVE_ROLES.includes(role);
 
@@ -1233,6 +1327,15 @@ const SNAPSHOT_SCRIPT = `
         for (const child of ariaNode.children) {
           if (typeof child === "string") continue; // Skip text in interactive_only mode
           else visit(child, childIndent, renderCursorPointer);
+        }
+        return;
+      }
+
+      // Skip elements not in included refs (truncation), but still visit children
+      if (ariaNode.ref && !includedRefs[ariaNode.ref]) {
+        for (const child of ariaNode.children) {
+          if (typeof child === "string") continue;
+          else visit(child, indent, renderCursorPointer);
         }
         return;
       }
@@ -1287,6 +1390,54 @@ const SNAPSHOT_SCRIPT = `
 
 interface SnapshotOptions {
   interactiveOnly?: boolean;
+  maxElements?: number;
+  viewportOnly?: boolean;
+  maxTokens?: number;
+  fullSnapshot?: boolean;
+}
+
+/**
+ * Default snapshot options for token optimization.
+ * Used by browser_script and other internal snapshot calls.
+ */
+const DEFAULT_SNAPSHOT_OPTIONS: SnapshotOptions = {
+  interactiveOnly: true,
+  maxElements: 300,
+  maxTokens: 8000,
+};
+
+/**
+ * Get a snapshot with session history header and diff support.
+ * Used by browser_script to include Tier 3 context management.
+ * Behaves like browser_snapshot - returns diff when on same page with few changes.
+ */
+async function getSnapshotWithHistory(page: Page, options: SnapshotOptions = {}): Promise<string> {
+  const rawSnapshot = await getAISnapshot(page, options);
+  const url = page.url();
+  const title = await page.title();
+
+  // Process through snapshot manager for diffing (same as browser_snapshot)
+  const manager = getSnapshotManager();
+  const result = manager.processSnapshot(rawSnapshot, url, title, {
+    fullSnapshot: options.fullSnapshot ?? false,
+    interactiveOnly: options.interactiveOnly ?? true,
+  });
+
+  // Build output with session history
+  let output = '';
+  const sessionSummary = manager.getSessionSummary();
+  if (sessionSummary.history) {
+    output += `# ${sessionSummary.history}\n\n`;
+  }
+
+  // Use diff result when available, otherwise full snapshot
+  if (result.type === 'diff') {
+    output += `# Changes Since Last Snapshot\n${result.content}`;
+  } else {
+    output += result.content;
+  }
+
+  return output;
 }
 
 /**
@@ -1312,7 +1463,12 @@ async function getAISnapshot(page: Page, options: SnapshotOptions = {}): Promise
   const snapshot = await page.evaluate((opts) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (globalThis as any).__devBrowser_getAISnapshot(opts);
-  }, { interactiveOnly: options.interactiveOnly || false });
+  }, {
+    interactiveOnly: options.interactiveOnly || false,
+    maxElements: options.maxElements,
+    viewportOnly: options.viewportOnly || false,
+    maxTokens: options.maxTokens,
+  });
   return snapshot;
 }
 
@@ -1355,6 +1511,10 @@ interface BrowserSnapshotInput {
   page_name?: string;
   interactive_only?: boolean;
   full_snapshot?: boolean;
+  max_elements?: number;
+  viewport_only?: boolean;
+  include_history?: boolean;
+  max_tokens?: number;
 }
 
 interface BrowserClickInput {
@@ -1605,6 +1765,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           full_snapshot: {
             type: 'boolean',
             description: 'Force a complete snapshot instead of a diff. Use after major page changes (modal opened, dynamic content loaded) or when element refs seem incorrect. Default: false.',
+          },
+          max_elements: {
+            type: 'number',
+            description: 'Maximum elements to include (1-1000). Default: 300',
+          },
+          viewport_only: {
+            type: 'boolean',
+            description: 'Only include elements visible in viewport. Default: false',
+          },
+          include_history: {
+            type: 'boolean',
+            description: 'Include navigation history in output. Default: true',
+          },
+          max_tokens: {
+            type: 'number',
+            description: 'Maximum estimated tokens (1000-50000). Default: 8000',
           },
         },
       },
@@ -2331,9 +2507,29 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_snapshot': {
-        const { page_name, interactive_only, full_snapshot } = args as BrowserSnapshotInput;
+        const { page_name, interactive_only, full_snapshot, max_elements, viewport_only, include_history, max_tokens } = args as BrowserSnapshotInput;
         const page = await getPage(page_name);
-        const rawSnapshot = await getAISnapshot(page, { interactiveOnly: interactive_only ?? true });
+
+        // Parse and validate max_elements (1-1000, default 300)
+        // If full_snapshot is true, use Infinity to bypass element limits
+        const validatedMaxElements = full_snapshot
+          ? Infinity
+          : Math.min(Math.max(max_elements ?? 300, 1), 1000);
+
+        // Parse and validate max_tokens (1000-50000, default 8000)
+        // If full_snapshot is true, use Infinity to bypass token limits
+        const validatedMaxTokens = full_snapshot
+          ? Infinity
+          : Math.min(Math.max(max_tokens ?? 8000, 1000), 50000);
+
+        const snapshotOptions: SnapshotOptions = {
+          interactiveOnly: interactive_only ?? true,
+          maxElements: validatedMaxElements,
+          viewportOnly: viewport_only ?? false,
+          maxTokens: validatedMaxTokens,
+        };
+
+        const rawSnapshot = await getAISnapshot(page, snapshotOptions);
         const viewport = page.viewportSize();
         const url = page.url();
         const title = await page.title();
@@ -2356,8 +2552,19 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           interactiveOnly: interactive_only ?? true,
         });
 
-        // Build output with metadata header
-        let output = `# Page Info\n`;
+        // Build output with optional session history
+        let output = '';
+
+        // Include session history if requested (default: true)
+        const includeHistory = include_history !== false;
+        if (includeHistory) {
+          const sessionSummary = manager.getSessionSummary();
+          if (sessionSummary.history) {
+            output += `# ${sessionSummary.history}\n\n`;
+          }
+        }
+
+        output += `# Page Info\n`;
         output += `URL: ${url}\n`;
         output += `Viewport: ${viewport?.width || 1280}x${viewport?.height || 720} (center: ${Math.round((viewport?.width || 1280) / 2)}, ${Math.round((viewport?.height || 720) / 2)})\n`;
 
@@ -2684,7 +2891,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
               }
 
               case 'snapshot': {
-                await getAISnapshot(page);
+                await getSnapshotWithHistory(page, DEFAULT_SNAPSHOT_OPTIONS);
                 results.push(`${stepNum}. Snapshot taken (refs updated)`);
                 break;
               }
@@ -2834,7 +3041,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
               }
 
               case 'snapshot': {
-                snapshotResult = await getAISnapshot(page);
+                snapshotResult = await getSnapshotWithHistory(page, DEFAULT_SNAPSHOT_OPTIONS);
                 results.push(`${stepNum}. Snapshot taken`);
                 break;
               }
@@ -2884,9 +3091,9 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             const errMsg = err instanceof Error ? err.message : String(err);
             results.push(`${stepNum}. FAILED: ${errMsg}`);
 
-            // Try to capture page state on failure for debugging
+            // Try to capture page state on failure for debugging (with session history)
             try {
-              snapshotResult = await getAISnapshot(page);
+              snapshotResult = await getSnapshotWithHistory(page, DEFAULT_SNAPSHOT_OPTIONS);
               results.push(`→ Captured page state at failure`);
             } catch {
               // Ignore - page might be in bad state
@@ -2912,7 +3119,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           try {
             // Wait for page to stabilize before capturing final state
             await waitForPageLoad(page, 2000);
-            snapshotResult = await getAISnapshot(page);
+            snapshotResult = await getSnapshotWithHistory(page, DEFAULT_SNAPSHOT_OPTIONS);
             results.push(`→ Auto-captured final page state`);
           } catch {
             // Ignore snapshot errors - page might be navigating
