@@ -70,9 +70,10 @@ export class CompletionEnforcer {
 
   /**
    * Track any tool usage so we don't enforce continuation on simple text-only replies.
+   * Excludes complete_task since it's an internal signaling tool, not real activity.
    */
   markToolUse(toolName: string): void {
-    if (toolName) {
+    if (toolName && toolName !== 'complete_task' && !toolName.endsWith('_complete_task')) {
       this.hasActivity = true;
     }
   }
