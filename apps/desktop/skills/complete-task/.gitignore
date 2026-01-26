@@ -1,6 +1,3 @@
-# Browser profile data
-profiles/
-tmp/
 node_modules/
 
 # Build output (bundled by esbuild)

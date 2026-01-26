@@ -239,8 +239,9 @@ describe('OpenCode Config Generator Integration', () => {
       expect(filePermission).toBeDefined();
       expect(filePermission.type).toBe('local');
       expect(filePermission.enabled).toBe(true);
-      expect(filePermission.command[0]).toBe('npx');
-      expect(filePermission.command[1]).toBe('tsx');
+      // Skills are now bundled with esbuild and run directly with node
+      expect(filePermission.command[0]).toBe('node');
+      expect(filePermission.command[1]).toContain('dist/index.mjs');
       expect(filePermission.environment.PERMISSION_API_PORT).toBe('9999');
     });
 

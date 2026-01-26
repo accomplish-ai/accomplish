@@ -4,6 +4,9 @@
  * This hook runs after packing but before creating distributable formats.
  * It copies the correct Node.js binary based on the target platform and architecture.
  *
+ * Note: Skills symlinks are handled by prepare-skills.cjs (using pnpm deploy)
+ * which runs BEFORE electron-builder, so no symlink fixing is needed here.
+ *
  * @see https://www.electron.build/configuration/configuration#afterpack
  */
 

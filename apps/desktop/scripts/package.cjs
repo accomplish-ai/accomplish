@@ -11,7 +11,23 @@ const fs = require('fs');
 const path = require('path');
 
 const isWindows = process.platform === 'win32';
-const nodeModulesPath = path.join(__dirname, '..', 'node_modules');
+const desktopDir = path.join(__dirname, '..');
+const nodeModulesPath = path.join(desktopDir, 'node_modules');
+
+// Step 1: Bundle skills with esbuild (TypeScript → JavaScript)
+console.log('Building skills with esbuild...');
+execSync('node scripts/build-skills.mjs', {
+  cwd: desktopDir,
+  stdio: 'inherit'
+});
+
+// Step 2: Prepare skills for packaging using pnpm deploy
+// This creates standalone copies with resolved symlinks (no pnpm symlinks)
+console.log('\nPreparing skills with pnpm deploy...');
+execSync('node scripts/prepare-skills.cjs', {
+  cwd: desktopDir,
+  stdio: 'inherit'
+});
 const accomplishPath = path.join(nodeModulesPath, '@accomplish');
 
 // Save symlink target for restoration

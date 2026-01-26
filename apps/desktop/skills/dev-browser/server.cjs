@@ -1,10 +1,7 @@
 #!/usr/bin/env node
 /**
  * Cross-platform dev-browser server launcher.
- * Replaces server.sh for Windows compatibility.
- *
- * This script uses the local tsx binary directly instead of npx to avoid
- * issues with path resolution when running from the packaged Electron app.
+ * Runs the pre-bundled JavaScript directly - no tsx required.
  */
 const { spawn } = require('child_process');
 const path = require('path');
@@ -27,7 +24,6 @@ log('  skillDir:', skillDir);
 log('  isWindows:', isWindows);
 log('  headless:', headless);
 log('  NODE_BIN_PATH:', process.env.NODE_BIN_PATH || '(not set)');
-log('  PATH (first 500 chars):', (process.env.PATH || '').substring(0, 500));
 
 // Find the node executable
 let nodeExe = 'node';
@@ -43,49 +39,13 @@ if (process.env.NODE_BIN_PATH) {
   log('  Using system node');
 }
 
-// Find tsx - on Windows, ALWAYS prefer cli.mjs over tsx.cmd to avoid shell quoting issues
-// with paths containing spaces (e.g., "C:\Program Files\...")
-const localTsxJs = path.join(skillDir, 'node_modules', 'tsx', 'dist', 'cli.mjs');
-const localTsxBin = path.join(skillDir, 'node_modules', '.bin', isWindows ? 'tsx.cmd' : 'tsx');
+// Run the pre-bundled JavaScript
+const serverScript = path.join(skillDir, 'dist', 'index.mjs');
 
-let tsxCommand;
-let tsxArgs;
-
-// On Windows: prefer cli.mjs (run via node.exe, no shell needed, no path quoting issues)
-// On Unix: prefer the tsx binary (simpler)
-if (isWindows && fs.existsSync(localTsxJs)) {
-  // Windows: run tsx via node directly to avoid shell quoting issues with spaces in paths
-  tsxCommand = nodeExe;
-  tsxArgs = [localTsxJs, path.join('scripts', 'start-server.ts')];
-  log('  Using tsx via node (Windows):', localTsxJs);
-} else if (!isWindows && fs.existsSync(localTsxBin)) {
-  // Unix: use tsx binary directly
-  tsxCommand = localTsxBin;
-  tsxArgs = [path.join('scripts', 'start-server.ts')];
-  log('  Using local tsx binary (Unix):', localTsxBin);
-} else if (fs.existsSync(localTsxJs)) {
-  // Fallback for any platform: run tsx via node directly
-  tsxCommand = nodeExe;
-  tsxArgs = [localTsxJs, path.join('scripts', 'start-server.ts')];
-  log('  Using tsx via node (fallback):', localTsxJs);
-} else if (fs.existsSync(localTsxBin)) {
-  // Fallback: try tsx binary even on Windows (may have issues with spaces)
-  tsxCommand = localTsxBin;
-  tsxArgs = [path.join('scripts', 'start-server.ts')];
-  log('  Using local tsx binary (fallback):', localTsxBin);
-} else {
-  // Last resort: try npx (may fail with path issues)
-  log('  WARNING: Local tsx not found, falling back to npx');
-  log('  Checked:', localTsxJs);
-  log('  Checked:', localTsxBin);
-
-  let npxCommand = isWindows ? 'npx.cmd' : 'npx';
-  if (process.env.NODE_BIN_PATH) {
-    npxCommand = path.join(process.env.NODE_BIN_PATH, isWindows ? 'npx.cmd' : 'npx');
-  }
-  tsxCommand = npxCommand;
-  tsxArgs = ['tsx', path.join('scripts', 'start-server.ts')];
-  log('  Using npx:', npxCommand);
+if (!fs.existsSync(serverScript)) {
+  log('ERROR: Bundled script not found at:', serverScript);
+  log('Run "node scripts/build-skills.mjs" from apps/desktop to build skills');
+  process.exit(1);
 }
 
 // Build environment
@@ -94,35 +54,20 @@ if (headless) {
   env.HEADLESS = 'true';
 }
 
-log('Spawning:', tsxCommand, tsxArgs.join(' '));
+log('Spawning:', nodeExe, serverScript);
 log('  cwd:', skillDir);
 
-// Spawn options
-const spawnOptions = {
+const child = spawn(nodeExe, [serverScript], {
   cwd: skillDir,
   stdio: 'inherit',
   env,
   windowsHide: true,
-};
-
-// On Windows, .cmd batch files REQUIRE shell: true to execute.
-// When running node directly (with cli.mjs), we can use shell: false.
-const isCmdFile = isWindows && tsxCommand.endsWith('.cmd');
-if (isCmdFile) {
-  spawnOptions.shell = true;
-  log('  shell: true (Windows .cmd file)');
-} else {
-  // For node direct execution (cli.mjs) or Unix, shell is not needed
-  spawnOptions.shell = false;
-  log('  shell: false (direct executable)');
-}
-
-const child = spawn(tsxCommand, tsxArgs, spawnOptions);
+});
 
 child.on('error', (err) => {
   log('ERROR: Failed to spawn:', err.message);
-  log('  Command:', tsxCommand);
-  log('  Args:', tsxArgs);
+  log('  Command:', nodeExe);
+  log('  Script:', serverScript);
   log('  Error code:', err.code);
   process.exit(1);
 });

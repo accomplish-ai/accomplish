@@ -6,13 +6,14 @@ on:
   workflow_dispatch:
     inputs:
       bump_type:
-        description: 'Version bump type'
+        description: 'Version bump type (none = rebuild current version, requires dry_run)'
         required: true
         type: choice
         options:
           - patch
           - minor
           - major
+          - none (overrides existing release)
       platforms:
         description: 'Platforms to build'
         required: true
@@ -44,11 +45,15 @@ jobs:
     outputs:
       new_version: ${{ steps.bump.outputs.new_version }}
       platforms: ${{ steps.inputs.outputs.platforms }}
+      bump_type: ${{ steps.inputs.outputs.bump_type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          # In dry_run mode, checkout the branch that triggered the workflow
+          # Otherwise, checkout main for production releases
+          ref: ${{ inputs.dry_run == true && github.ref || 'main' }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -67,6 +72,12 @@ jobs:
             BUMP_TYPE="${{ inputs.bump_type }}"
             DRY_RUN="${{ inputs.dry_run }}"
             PLATFORMS="${{ inputs.platforms }}"
+          fi
+
+          # Validate: 'none' bump_type requires dry_run
+          if [ "$BUMP_TYPE" == "none (overrides existing release)" ] && [ "$DRY_RUN" != "true" ]; then
+            echo "Error: bump_type 'none' requires dry_run to be enabled"
+            exit 1
           fi
 
           echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
@@ -95,6 +106,9 @@ jobs:
             patch)
               NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
               ;;
+            "none (overrides existing release)")
+              NEW_VERSION="$CURRENT_VERSION"
+              ;;
             *)
               echo "Error: Invalid bump_type: ${{ steps.inputs.outputs.bump_type }}"
               exit 1
@@ -105,6 +119,7 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Update package.json version
+        if: steps.inputs.outputs.bump_type != 'none (overrides existing release)'
         run: |
           cd apps/desktop
           npm version ${{ steps.bump.outputs.new_version }} --no-git-tag-version
@@ -116,9 +131,21 @@ jobs:
           VERSION="${{ steps.bump.outputs.new_version }}"
           BRANCH="release/v${VERSION}"
           DRY_RUN="${{ steps.inputs.outputs.dry_run }}"
+          BUMP_TYPE="${{ steps.inputs.outputs.bump_type }}"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Handle 'none' bump type (rebuild existing version)
+          if [ "$BUMP_TYPE" == "none (overrides existing release)" ]; then
+            echo "REBUILD MODE: Rebuilding version ${VERSION}"
+            # In dry_run mode, update the tag to point to the current branch
+            # This allows testing feature branches without bumping version
+            git tag -f "v${VERSION}"
+            git push origin "v${VERSION}" --force
+            echo "Tag v${VERSION} updated to current branch"
+            exit 0
+          fi
 
           # Create release branch
           git checkout -b "$BRANCH"
@@ -404,6 +431,15 @@ jobs:
         run: |
           echo "Release artifacts:"
           find ./release -type f 2>/dev/null || echo "No artifacts found"
+
+      - name: Delete existing release (rebuild mode)
+        if: needs.version-bump.outputs.bump_type == 'none (overrides existing release)'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.version-bump.outputs.new_version }}"
+          echo "Deleting existing release v${VERSION} for rebuild..."
+          gh release delete "v${VERSION}" --yes || echo "No existing release to delete"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

@@ -1,0 +1,148 @@
+name: Build Desktop App
+
+on:
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Platforms to build'
+        required: true
+        type: choice
+        options:
+          - all
+          - windows-only
+          - macos-only
+        default: all
+
+jobs:
+  build-mac-arm64:
+    name: Build macOS (Apple Silicon)
+    if: inputs.platforms == 'all' || inputs.platforms == 'macos-only'
+    runs-on: macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download Node.js binaries
+        run: pnpm -F @accomplish/desktop download:nodejs
+
+      - name: Build desktop app
+        run: pnpm -F @accomplish/desktop build
+
+      - name: Package (unsigned)
+        run: node scripts/package.cjs --mac --arm64 --publish never
+        working-directory: apps/desktop
+        env:
+          PYTHON: python
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Openwork-macOS-arm64
+          path: |
+            apps/desktop/release/*-arm64.dmg
+            apps/desktop/release/*-arm64.zip
+          retention-days: 7
+
+  build-mac-x64:
+    name: Build macOS (Intel)
+    if: inputs.platforms == 'all' || inputs.platforms == 'macos-only'
+    runs-on: macos-15-large
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download Node.js binaries
+        run: pnpm -F @accomplish/desktop download:nodejs
+
+      - name: Build desktop app
+        run: pnpm -F @accomplish/desktop build
+
+      - name: Package (unsigned)
+        run: node scripts/package.cjs --mac --x64 --publish never
+        working-directory: apps/desktop
+        env:
+          PYTHON: python
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Openwork-macOS-x64
+          path: |
+            apps/desktop/release/*-x64.dmg
+            apps/desktop/release/*-x64.zip
+          retention-days: 7
+
+  build-windows-x64:
+    name: Build Windows (x64)
+    if: inputs.platforms == 'all' || inputs.platforms == 'windows-only'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download Node.js binaries
+        run: pnpm -F @accomplish/desktop download:nodejs
+
+      - name: Build desktop app
+        run: pnpm -F @accomplish/desktop build
+
+      - name: Package (unsigned)
+        run: node scripts/package.cjs --win --x64 --publish never
+        working-directory: apps/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Openwork-Windows-x64
+          path: apps/desktop/release/*.exe
+          retention-days: 7

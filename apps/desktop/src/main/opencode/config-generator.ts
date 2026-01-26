@@ -443,8 +443,8 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
   console.log('[OpenCode Config] Skills path:', skillsPath);
   console.log('[OpenCode Config] OpenCode config dir:', openCodeConfigDir);
 
-  // Build file-permission MCP server command
-  const filePermissionServerPath = path.join(skillsPath, 'file-permission', 'src', 'index.ts');
+  // Build MCP server paths (using pre-bundled JavaScript)
+  const filePermissionServerPath = path.join(skillsPath, 'file-permission', 'dist', 'index.mjs');
 
   // Get connected providers from new settings (with legacy fallback)
   const providerSettings = getProviderSettings();
@@ -754,7 +754,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     mcp: {
       'file-permission': {
         type: 'local',
-        command: ['npx', 'tsx', filePermissionServerPath],
+        command: ['node', filePermissionServerPath],
         enabled: true,
         environment: {
           PERMISSION_API_PORT: String(PERMISSION_API_PORT),
@@ -763,7 +763,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
       },
       'ask-user-question': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'ask-user-question', 'src', 'index.ts')],
+        command: ['node', path.join(skillsPath, 'ask-user-question', 'dist', 'index.mjs')],
         enabled: true,
         environment: {
           QUESTION_API_PORT: String(QUESTION_API_PORT),
@@ -772,14 +772,14 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
       },
       'dev-browser-mcp': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts')],
+        command: ['node', path.join(skillsPath, 'dev-browser-mcp', 'dist', 'index.mjs')],
         enabled: true,
         timeout: 30000,
       },
       // Provides complete_task tool - agent must call to signal task completion
       'complete-task': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'complete-task', 'src', 'index.ts')],
+        command: ['node', path.join(skillsPath, 'complete-task', 'dist', 'index.mjs')],
         enabled: true,
         timeout: 30000,
       },

@@ -86,6 +86,7 @@
     "autoprefixer": "^10.4.20",
     "electron": "^35.2.1",
     "electron-builder": "^25.1.8",
+    "esbuild": "^0.27.2",
     "happy-dom": "^20.1.0",
     "jsdom": "^27.4.0",
     "postcss": "^8.4.49",
@@ -141,17 +142,14 @@
         "to": "icon.png"
       },
       {
-        "from": "skills",
+        "from": "build/skills",
         "to": "skills",
         "filter": [
           "**/*",
           "!**/profiles/**",
           "!**/tmp/**",
           "!**/.git/**",
-          "!**/.browser-data/**",
-          "!**/bun.lock",
-          "!**/*.test.ts",
-          "!**/vitest.config.ts"
+          "!**/.browser-data/**"
         ]
       }
     ],
