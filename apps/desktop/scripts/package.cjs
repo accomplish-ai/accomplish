@@ -13,12 +13,62 @@ const path = require('path');
 const isWindows = process.platform === 'win32';
 const nodeModulesPath = path.join(__dirname, '..', 'node_modules');
 const accomplishPath = path.join(nodeModulesPath, '@accomplish');
+const skillsPath = path.join(__dirname, '..', 'skills');
 
 // Save symlink target for restoration
 let symlinkTarget = null;
 const sharedPath = path.join(accomplishPath, 'shared');
+const skillSymlinks = [];
+
+function materializeSymlink(entryPath, symlinkTargetPath, collector) {
+  if (collector) {
+    collector.push({ path: entryPath, target: symlinkTargetPath });
+  }
+  const realPath = fs.realpathSync(entryPath);
+  fs.rmSync(entryPath, { recursive: true, force: true });
+  fs.cpSync(realPath, entryPath, { recursive: true, dereference: true });
+}
+
+function materializeNodeModules(modulesPath, collector) {
+  if (!fs.existsSync(modulesPath)) {
+    throw new Error(`Missing node_modules at ${modulesPath}. Run pnpm install before packaging.`);
+  }
+
+  const entries = fs.readdirSync(modulesPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const entryPath = path.join(modulesPath, entry.name);
+    if (entry.isSymbolicLink()) {
+      const linkTarget = fs.readlinkSync(entryPath);
+      materializeSymlink(entryPath, linkTarget, collector);
+      continue;
+    }
+    if (entry.isDirectory() && entry.name.startsWith('@')) {
+      materializeNodeModules(entryPath, collector);
+    }
+  }
+}
+
+function materializeSkillDependencies() {
+  if (!fs.existsSync(skillsPath)) {
+    return;
+  }
+
+  const skills = fs.readdirSync(skillsPath, { withFileTypes: true });
+  for (const skill of skills) {
+    if (!skill.isDirectory()) continue;
+    const skillDir = path.join(skillsPath, skill.name);
+    const packageJson = path.join(skillDir, 'package.json');
+    if (!fs.existsSync(packageJson)) continue;
+
+    const nodeModulesDir = path.join(skillDir, 'node_modules');
+    console.log('Materializing skill dependencies:', path.relative(skillsPath, skillDir));
+    materializeNodeModules(nodeModulesDir, skillSymlinks);
+  }
+}
 
 try {
+  materializeSkillDependencies();
+
   // Check if @accomplish/shared symlink exists
   if (fs.existsSync(sharedPath)) {
     const stats = fs.lstatSync(sharedPath);
@@ -53,6 +103,28 @@ try {
   execSync(command, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
 
 } finally {
+  // Restore skill symlinks after packaging
+  if (skillSymlinks.length > 0) {
+    console.log('Restoring skill workspace symlinks');
+    for (const entry of skillSymlinks) {
+      try {
+        fs.rmSync(entry.path, { recursive: true, force: true });
+
+        const absoluteTarget = path.isAbsolute(entry.target)
+          ? entry.target
+          : path.resolve(path.dirname(entry.path), entry.target);
+
+        if (isWindows) {
+          fs.symlinkSync(absoluteTarget, entry.path, 'junction');
+        } else {
+          fs.symlinkSync(entry.target, entry.path);
+        }
+      } catch (error) {
+        console.warn('Failed to restore symlink:', entry.path, error.message);
+      }
+    }
+  }
+
   // Restore the symlink
   if (symlinkTarget) {
     console.log('Restoring workspace symlink');

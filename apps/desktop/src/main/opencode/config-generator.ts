@@ -6,6 +6,7 @@ import { getOllamaConfig } from '../store/appSettings';
 import { getApiKey } from '../store/secureStorage';
 import { getProviderSettings, getActiveProviderModel, getConnectedProviderIds } from '../store/providerSettings';
 import { ensureAzureFoundryProxy } from './azure-foundry-proxy';
+import { getNodePath } from '../utils/bundled-node';
 import type { BedrockCredentials, ProviderId, AzureFoundryCredentials } from '@accomplish/shared';
 
 /**
@@ -750,11 +751,14 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
       },
     },
     // MCP servers for additional tools
-    // Timeout set to 30000ms to handle slow npx startup on Windows
+    // In packaged mode: use node + pre-built dist/index.cjs (no tsx/esbuild needed)
+    // In dev mode: use npx tsx + TypeScript source for hot reload
     mcp: {
       'file-permission': {
         type: 'local',
-        command: ['npx', 'tsx', filePermissionServerPath],
+        command: app.isPackaged
+          ? [getNodePath(), path.join(skillsPath, 'file-permission', 'dist', 'index.cjs')]
+          : ['npx', 'tsx', filePermissionServerPath],
         enabled: true,
         environment: {
           PERMISSION_API_PORT: String(PERMISSION_API_PORT),
@@ -763,7 +767,9 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
       },
       'ask-user-question': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'ask-user-question', 'src', 'index.ts')],
+        command: app.isPackaged
+          ? [getNodePath(), path.join(skillsPath, 'ask-user-question', 'dist', 'index.cjs')]
+          : ['npx', 'tsx', path.join(skillsPath, 'ask-user-question', 'src', 'index.ts')],
         enabled: true,
         environment: {
           QUESTION_API_PORT: String(QUESTION_API_PORT),
@@ -772,14 +778,18 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
       },
       'dev-browser-mcp': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts')],
+        command: app.isPackaged
+          ? [getNodePath(), path.join(skillsPath, 'dev-browser-mcp', 'dist', 'index.cjs')]
+          : ['npx', 'tsx', path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts')],
         enabled: true,
         timeout: 30000,
       },
       // Provides complete_task tool - agent must call to signal task completion
       'complete-task': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'complete-task', 'src', 'index.ts')],
+        command: app.isPackaged
+          ? [getNodePath(), path.join(skillsPath, 'complete-task', 'dist', 'index.cjs')]
+          : ['npx', 'tsx', path.join(skillsPath, 'complete-task', 'src', 'index.ts')],
         enabled: true,
         timeout: 30000,
       },

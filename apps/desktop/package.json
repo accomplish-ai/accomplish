@@ -1,6 +1,6 @@
 {
   "name": "@accomplish/desktop",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "type": "module",
   "description": "Accomplish Desktop App",
@@ -23,6 +23,8 @@
     "lint": "tsc --noEmit",
     "clean": "node -e \"const fs=require('fs');['dist','dist-electron','release'].forEach(d=>fs.rmSync(d,{recursive:true,force:true}))\"",
     "download:nodejs": "node scripts/download-nodejs.cjs",
+    "install:skills": "node scripts/install-skill-deps.cjs",
+    "build:skills": "node scripts/build-skills.cjs",
     "test": "vitest run",
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
@@ -72,6 +74,7 @@
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.2",
+    "esbuild": "^0.24.0",
     "@playwright/test": "^1.57.0",
     "@tailwindcss/typography": "^0.5.15",
     "@testing-library/dom": "^10.4.1",

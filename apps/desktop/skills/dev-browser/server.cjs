@@ -3,8 +3,8 @@
  * Cross-platform dev-browser server launcher.
  * Replaces server.sh for Windows compatibility.
  *
- * This script uses the local tsx binary directly instead of npx to avoid
- * issues with path resolution when running from the packaged Electron app.
+ * In packaged mode: runs pre-built dist/index.cjs with node directly (no tsx/esbuild needed)
+ * In dev mode: uses tsx for TypeScript hot reload
  */
 const { spawn } = require('child_process');
 const path = require('path');
@@ -43,49 +43,61 @@ if (process.env.NODE_BIN_PATH) {
   log('  Using system node');
 }
 
-// Find tsx - on Windows, ALWAYS prefer cli.mjs over tsx.cmd to avoid shell quoting issues
-// with paths containing spaces (e.g., "C:\Program Files\...")
-const localTsxJs = path.join(skillDir, 'node_modules', 'tsx', 'dist', 'cli.mjs');
-const localTsxBin = path.join(skillDir, 'node_modules', '.bin', isWindows ? 'tsx.cmd' : 'tsx');
+// Check for pre-built JavaScript bundle (used in packaged Electron apps)
+// dev-browser is built as ESM (.mjs) due to top-level await in start-server.ts
+const builtIndexPath = path.join(skillDir, 'dist', 'index.mjs');
+const hasBuiltBundle = fs.existsSync(builtIndexPath);
 
 let tsxCommand;
 let tsxArgs;
 
-// On Windows: prefer cli.mjs (run via node.exe, no shell needed, no path quoting issues)
-// On Unix: prefer the tsx binary (simpler)
-if (isWindows && fs.existsSync(localTsxJs)) {
-  // Windows: run tsx via node directly to avoid shell quoting issues with spaces in paths
+// Prefer pre-built bundle in packaged mode (no tsx/esbuild runtime dependency)
+if (hasBuiltBundle && process.env.NODE_BIN_PATH) {
+  // Packaged mode: use node + pre-built bundle
   tsxCommand = nodeExe;
-  tsxArgs = [localTsxJs, path.join('scripts', 'start-server.ts')];
-  log('  Using tsx via node (Windows):', localTsxJs);
-} else if (!isWindows && fs.existsSync(localTsxBin)) {
-  // Unix: use tsx binary directly
-  tsxCommand = localTsxBin;
-  tsxArgs = [path.join('scripts', 'start-server.ts')];
-  log('  Using local tsx binary (Unix):', localTsxBin);
-} else if (fs.existsSync(localTsxJs)) {
-  // Fallback for any platform: run tsx via node directly
-  tsxCommand = nodeExe;
-  tsxArgs = [localTsxJs, path.join('scripts', 'start-server.ts')];
-  log('  Using tsx via node (fallback):', localTsxJs);
-} else if (fs.existsSync(localTsxBin)) {
-  // Fallback: try tsx binary even on Windows (may have issues with spaces)
-  tsxCommand = localTsxBin;
-  tsxArgs = [path.join('scripts', 'start-server.ts')];
-  log('  Using local tsx binary (fallback):', localTsxBin);
+  tsxArgs = [builtIndexPath];
+  log('  Using pre-built bundle:', builtIndexPath);
 } else {
-  // Last resort: try npx (may fail with path issues)
-  log('  WARNING: Local tsx not found, falling back to npx');
-  log('  Checked:', localTsxJs);
-  log('  Checked:', localTsxBin);
+  // Development mode: use tsx for TypeScript hot reload
+  const localTsxJs = path.join(skillDir, 'node_modules', 'tsx', 'dist', 'cli.mjs');
+  const localTsxBin = path.join(skillDir, 'node_modules', '.bin', isWindows ? 'tsx.cmd' : 'tsx');
 
-  let npxCommand = isWindows ? 'npx.cmd' : 'npx';
-  if (process.env.NODE_BIN_PATH) {
-    npxCommand = path.join(process.env.NODE_BIN_PATH, isWindows ? 'npx.cmd' : 'npx');
+  // On Windows: prefer cli.mjs (run via node.exe, no shell needed, no path quoting issues)
+  // On Unix: prefer the tsx binary (simpler)
+  if (isWindows && fs.existsSync(localTsxJs)) {
+    // Windows: run tsx via node directly to avoid shell quoting issues with spaces in paths
+    tsxCommand = nodeExe;
+    tsxArgs = [localTsxJs, path.join('scripts', 'start-server.ts')];
+    log('  Using tsx via node (Windows):', localTsxJs);
+  } else if (!isWindows && fs.existsSync(localTsxBin)) {
+    // Unix: use tsx binary directly
+    tsxCommand = localTsxBin;
+    tsxArgs = [path.join('scripts', 'start-server.ts')];
+    log('  Using local tsx binary (Unix):', localTsxBin);
+  } else if (fs.existsSync(localTsxJs)) {
+    // Fallback for any platform: run tsx via node directly
+    tsxCommand = nodeExe;
+    tsxArgs = [localTsxJs, path.join('scripts', 'start-server.ts')];
+    log('  Using tsx via node (fallback):', localTsxJs);
+  } else if (fs.existsSync(localTsxBin)) {
+    // Fallback: try tsx binary even on Windows (may have issues with spaces)
+    tsxCommand = localTsxBin;
+    tsxArgs = [path.join('scripts', 'start-server.ts')];
+    log('  Using local tsx binary (fallback):', localTsxBin);
+  } else {
+    // Last resort: try npx (may fail with path issues)
+    log('  WARNING: Local tsx not found, falling back to npx');
+    log('  Checked:', localTsxJs);
+    log('  Checked:', localTsxBin);
+
+    let npxCommand = isWindows ? 'npx.cmd' : 'npx';
+    if (process.env.NODE_BIN_PATH) {
+      npxCommand = path.join(process.env.NODE_BIN_PATH, isWindows ? 'npx.cmd' : 'npx');
+    }
+    tsxCommand = npxCommand;
+    tsxArgs = ['tsx', path.join('scripts', 'start-server.ts')];
+    log('  Using npx:', npxCommand);
   }
-  tsxCommand = npxCommand;
-  tsxArgs = ['tsx', path.join('scripts', 'start-server.ts')];
-  log('  Using npx:', npxCommand);
 }
 
 // Build environment
