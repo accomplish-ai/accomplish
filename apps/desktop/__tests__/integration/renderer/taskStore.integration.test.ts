@@ -82,6 +82,8 @@ vi.stubGlobal('window', {
   accomplish: {
     onTaskProgress: mockOnTaskProgress,
     onTaskUpdate: mockOnTaskUpdate,
+    onTodoUpdate: vi.fn(),
+    onTaskSummary: vi.fn(),
   },
 });
 
@@ -104,6 +106,8 @@ describe('taskStore Integration', () => {
         setupProgress: null,
         setupProgressTaskId: null,
         setupDownloadStep: 1,
+        todos: [],
+        todosTaskId: null,
       });
     } catch {
       // Store may not be loaded
@@ -864,6 +868,78 @@ describe('taskStore Integration', () => {
       // Assert
       expect(state.currentTask?.sessionId).toBe('session-from-result');
       expect(state.currentTask?.result).toEqual(result);
+    });
+
+    it('should NOT clear todos when task is interrupted', async () => {
+      // Arrange
+      const { useTaskStore } = await import('@/stores/taskStore');
+      const task = createMockTask('task-123', 'Test', 'running');
+      useTaskStore.setState({
+        currentTask: task,
+        tasks: [task],
+        todos: [{ id: 'todo-1', content: 'First task', status: 'in_progress' }],
+        todosTaskId: 'task-123',
+      });
+
+      // Act - simulate interrupted completion
+      useTaskStore.getState().addTaskUpdate({
+        type: 'complete',
+        taskId: 'task-123',
+        result: { status: 'interrupted' },
+      });
+      const state = useTaskStore.getState();
+
+      // Assert - todos should be preserved
+      expect(state.todos).toHaveLength(1);
+      expect(state.todosTaskId).toBe('task-123');
+    });
+
+    it('should clear todos when task completes successfully', async () => {
+      // Arrange
+      const { useTaskStore } = await import('@/stores/taskStore');
+      const task = createMockTask('task-123', 'Test', 'running');
+      useTaskStore.setState({
+        currentTask: task,
+        tasks: [task],
+        todos: [{ id: 'todo-1', content: 'First task', status: 'completed' }],
+        todosTaskId: 'task-123',
+      });
+
+      // Act - simulate successful completion
+      useTaskStore.getState().addTaskUpdate({
+        type: 'complete',
+        taskId: 'task-123',
+        result: { status: 'success' },
+      });
+      const state = useTaskStore.getState();
+
+      // Assert - todos should be cleared
+      expect(state.todos).toHaveLength(0);
+      expect(state.todosTaskId).toBeNull();
+    });
+
+    it('should NOT clear todos for different task completion', async () => {
+      // Arrange
+      const { useTaskStore } = await import('@/stores/taskStore');
+      const task = createMockTask('task-123', 'Test', 'running');
+      useTaskStore.setState({
+        currentTask: task,
+        tasks: [task],
+        todos: [{ id: 'todo-1', content: 'First task', status: 'in_progress' }],
+        todosTaskId: 'task-123',
+      });
+
+      // Act - simulate different task completing
+      useTaskStore.getState().addTaskUpdate({
+        type: 'complete',
+        taskId: 'task-different',
+        result: { status: 'success' },
+      });
+      const state = useTaskStore.getState();
+
+      // Assert - todos should be preserved (different task)
+      expect(state.todos).toHaveLength(1);
+      expect(state.todosTaskId).toBe('task-123');
     });
   });
 });

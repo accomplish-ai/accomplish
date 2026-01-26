@@ -10,6 +10,7 @@ import { checkAndCleanupFreshInstall } from './store/freshInstallCleanup';
 import { initializeDatabase, closeDatabase } from './store/db';
 import { FutureSchemaError } from './store/migrations/errors';
 import { stopAzureFoundryProxy } from './opencode/azure-foundry-proxy';
+import { initializeLogCollector, shutdownLogCollector, getLogCollector } from './logging';
 
 // Local UI - no longer uses remote URL
 
@@ -136,6 +137,15 @@ if (!gotTheLock) {
   console.log('[Main] Second instance attempted; quitting');
   app.quit();
 } else {
+  // Initialize logging FIRST - before anything else
+  initializeLogCollector();
+  getLogCollector().logEnv('INFO', 'App starting', {
+    version: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+    nodeVersion: process.version,
+  });
+
   app.on('second-instance', () => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
@@ -221,6 +231,8 @@ app.on('before-quit', () => {
   });
   // Close database connection
   closeDatabase();
+  // Flush and shutdown logging LAST to capture all shutdown logs
+  shutdownLogCollector();
 });
 
 // Handle custom protocol (accomplish://)

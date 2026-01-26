@@ -62,6 +62,16 @@ try {
       fs.mkdirSync(accomplishPath, { recursive: true });
     }
 
-    fs.symlinkSync(symlinkTarget, sharedPath);
+    // On Windows, use junction instead of symlink (doesn't require admin privileges)
+    // The target needs to be an absolute path for junctions
+    const absoluteTarget = path.isAbsolute(symlinkTarget)
+      ? symlinkTarget
+      : path.resolve(path.dirname(sharedPath), symlinkTarget);
+
+    if (isWindows) {
+      fs.symlinkSync(absoluteTarget, sharedPath, 'junction');
+    } else {
+      fs.symlinkSync(symlinkTarget, sharedPath);
+    }
   }
 }

@@ -31,6 +31,7 @@
 
 import { CompletionState, CompletionFlowState, CompleteTaskArgs } from './completion-state';
 import { getContinuationPrompt, getVerificationPrompt, getPartialContinuationPrompt } from './prompts';
+import type { TodoItem } from '@accomplish/shared';
 
 export interface CompletionEnforcerCallbacks {
   onStartVerification: (prompt: string) => Promise<void>;
@@ -44,10 +45,23 @@ export type StepFinishAction = 'continue' | 'pending' | 'complete';
 export class CompletionEnforcer {
   private state: CompletionState;
   private callbacks: CompletionEnforcerCallbacks;
+  private currentTodos: TodoItem[] = [];
 
   constructor(callbacks: CompletionEnforcerCallbacks, maxContinuationAttempts: number = 20) {
     this.callbacks = callbacks;
     this.state = new CompletionState(maxContinuationAttempts);
+  }
+
+  /**
+   * Update current todos from todowrite tool.
+   */
+  updateTodos(todos: TodoItem[]): void {
+    this.currentTodos = todos;
+    this.callbacks.onDebug(
+      'todo_update',
+      `Todo list updated: ${todos.length} items`,
+      { todos }
+    );
   }
 
   /**
@@ -73,6 +87,19 @@ export class CompletionEnforcer {
       original_request_summary: args?.original_request_summary || '',
       remaining_work: args?.remaining_work,
     };
+
+    // If claiming success but have incomplete todos, downgrade to partial BEFORE recording state
+    // This ensures the state machine enters the partial continuation path instead of success/verification
+    if (completeTaskArgs.status === 'success' && this.hasIncompleteTodos()) {
+      this.callbacks.onDebug(
+        'incomplete_todos',
+        'Agent claimed success but has incomplete todos - downgrading to partial',
+        { incompleteTodos: this.getIncompleteTodosSummary() }
+      );
+      // Downgrade status to partial and set remaining work
+      completeTaskArgs.status = 'partial';
+      completeTaskArgs.remaining_work = this.getIncompleteTodosSummary();
+    }
 
     this.state.recordCompleteTaskCall(completeTaskArgs);
 
@@ -238,6 +265,20 @@ export class CompletionEnforcer {
    */
   reset(): void {
     this.state.reset();
+    this.currentTodos = [];
+  }
+
+  private hasIncompleteTodos(): boolean {
+    return this.currentTodos.some(
+      t => t.status === 'pending' || t.status === 'in_progress'
+    );
+  }
+
+  private getIncompleteTodosSummary(): string {
+    const incomplete = this.currentTodos.filter(
+      t => t.status === 'pending' || t.status === 'in_progress'
+    );
+    return incomplete.map(t => `- ${t.content}`).join('\n');
   }
 
   /**

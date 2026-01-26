@@ -2,7 +2,7 @@
  * Provider and model configuration types for multi-provider support
  */
 
-export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm';
+export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'minimax';
 
 export interface ProviderConfig {
   id: ProviderType;
@@ -279,6 +279,31 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     name: 'Amazon Bedrock',
     requiresApiKey: false, // Uses AWS credentials
     models: [], // Now fetched dynamically from AWS API
+  },
+  {
+    id: 'minimax',
+    name: 'MiniMax',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'MINIMAX_API_KEY',
+    baseUrl: 'https://api.minimax.io',
+    models: [
+      {
+        id: 'MiniMax-M2',
+        displayName: 'MiniMax-M2',
+        provider: 'minimax',
+        fullId: 'minimax/MiniMax-M2',
+        contextWindow: 196608,
+        supportsVision: false,
+      },
+      {
+        id: 'MiniMax-M2.1',
+        displayName: 'MiniMax-M2.1',
+        provider: 'minimax',
+        fullId: 'minimax/MiniMax-M2.1',
+        contextWindow: 204800,
+        supportsVision: false,
+      },
+    ],
   },
 ];
 

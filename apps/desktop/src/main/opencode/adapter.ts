@@ -29,6 +29,7 @@ import type {
   TaskResult,
   OpenCodeMessage,
   PermissionRequest,
+  TodoItem,
 } from '@accomplish/shared';
 
 /**
@@ -66,6 +67,7 @@ export interface OpenCodeAdapterEvents {
   complete: [TaskResult];
   error: [Error];
   debug: [{ type: string; message: string; data?: unknown }];
+  'todo:update': [TodoItem[]];
 }
 
 export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
@@ -659,6 +661,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       env.LITELLM_API_KEY = apiKeys.litellm;
       console.log('[OpenCode CLI] Using LiteLLM API key from settings');
     }
+    if (apiKeys.minimax) {
+      env.MINIMAX_API_KEY = apiKeys.minimax;
+      console.log('[OpenCode CLI] Using MiniMax API key from settings');
+    }
 
     // Set Bedrock credentials if configured
     const bedrockCredentials = getBedrockCredentials();
@@ -849,6 +855,18 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           this.completionEnforcer.handleCompleteTaskDetection(toolInput);
         }
 
+        // Detect todowrite tool calls and emit todo state
+        // Built-in tool name is 'todowrite', MCP-prefixed would be '*_todowrite'
+        if (toolName === 'todowrite' || toolName.endsWith('_todowrite')) {
+          const input = toolInput as { todos?: TodoItem[] };
+          // Only emit if we have actual todos (ignore empty arrays to prevent accidental clearing)
+          if (input?.todos && Array.isArray(input.todos) && input.todos.length > 0) {
+            this.emit('todo:update', input.todos);
+            // Also update completion enforcer
+            this.completionEnforcer.updateTodos(input.todos);
+          }
+        }
+
         this.emit('tool-use', toolName, toolInput);
         this.emit('progress', {
           stage: 'tool-use',
@@ -880,6 +898,18 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         // Track if complete_task was called (tool name may be prefixed with MCP server name)
         if (toolUseName === 'complete_task' || toolUseName.endsWith('_complete_task')) {
           this.completionEnforcer.handleCompleteTaskDetection(toolUseInput);
+        }
+
+        // Detect todowrite tool calls and emit todo state
+        // Built-in tool name is 'todowrite', MCP-prefixed would be '*_todowrite'
+        if (toolUseName === 'todowrite' || toolUseName.endsWith('_todowrite')) {
+          const input = toolUseInput as { todos?: TodoItem[] };
+          // Only emit if we have actual todos (ignore empty arrays to prevent accidental clearing)
+          if (input?.todos && Array.isArray(input.todos) && input.todos.length > 0) {
+            this.emit('todo:update', input.todos);
+            // Also update completion enforcer
+            this.completionEnforcer.updateTodos(input.todos);
+          }
         }
 
         // For models that don't emit text messages (like Gemini), emit the tool description

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
@@ -11,10 +11,10 @@ import { cn } from '@/lib/utils';
 import { springs } from '@/lib/animations';
 import TaskLauncherItem from './TaskLauncherItem';
 import { hasAnyReadyProvider } from '@accomplish/shared';
+import {Input} from "@/components/ui/input";
 
 export default function TaskLauncher() {
   const navigate = useNavigate();
-  const inputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -40,20 +40,26 @@ export default function TaskLauncher() {
   // Total items: "New task" + filtered tasks
   const totalItems = 1 + filteredTasks.length;
 
-  // Reset state when modal opens
-  useEffect(() => {
-    if (isLauncherOpen) {
-      setSearchQuery('');
-      setSelectedIndex(0);
-      // Focus input after animation
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [isLauncherOpen]);
-
   // Clamp selected index when results change
   useEffect(() => {
     setSelectedIndex(i => Math.min(i, Math.max(0, totalItems - 1)));
   }, [totalItems]);
+
+  // Reset state when launcher opens
+  useEffect(() => {
+    if (isLauncherOpen) {
+      setSearchQuery('');
+      setSelectedIndex(0);
+    }
+  }, [isLauncherOpen]);
+
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (!open && isLauncherOpen) {
+      closeLauncher();
+      setSearchQuery('');
+      setSelectedIndex(0);
+    }
+  }, [isLauncherOpen, closeLauncher])
 
   const handleSelect = useCallback(async (index: number) => {
     if (index === 0) {
@@ -112,7 +118,7 @@ export default function TaskLauncher() {
   }, [totalItems, selectedIndex, handleSelect, closeLauncher]);
 
   return (
-    <DialogPrimitive.Root open={isLauncherOpen} onOpenChange={(open) => !open && closeLauncher()}>
+    <DialogPrimitive.Root open={isLauncherOpen} onOpenChange={handleOpenChange}>
       <AnimatePresence>
         {isLauncherOpen && (
           <DialogPrimitive.Portal forceMount>
@@ -142,14 +148,12 @@ export default function TaskLauncher() {
                 {/* Search Input */}
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
                   <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search tasks..."
-                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                  />
+                  <Input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search tasks..."
+                      className="border-0 px-0 py-1 h-full focus:outline-none focus-visible:ring-0" />
                   <DialogPrimitive.Close asChild>
                     <button className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Close">
                       <X className="h-4 w-4" />
