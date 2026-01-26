@@ -855,6 +855,13 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           this.completionEnforcer.handleCompleteTaskDetection(toolInput);
         }
 
+        // Track tool engagement for completion enforcement
+        const isCompletionTool = toolName === 'complete_task' || toolName.endsWith('_complete_task');
+        const isTodoTool = toolName === 'todowrite' || toolName.endsWith('_todowrite');
+        if (!isCompletionTool && !isTodoTool) {
+          this.completionEnforcer.recordToolEngagement();
+        }
+
         // Detect todowrite tool calls and emit todo state
         // Built-in tool name is 'todowrite', MCP-prefixed would be '*_todowrite'
         if (toolName === 'todowrite' || toolName.endsWith('_todowrite')) {
@@ -898,6 +905,15 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         // Track if complete_task was called (tool name may be prefixed with MCP server name)
         if (toolUseName === 'complete_task' || toolUseName.endsWith('_complete_task')) {
           this.completionEnforcer.handleCompleteTaskDetection(toolUseInput);
+        }
+
+        // Track tool engagement for completion enforcement
+        {
+          const isCompletionTool = toolUseName === 'complete_task' || toolUseName.endsWith('_complete_task');
+          const isTodoTool = toolUseName === 'todowrite' || toolUseName.endsWith('_todowrite');
+          if (!isCompletionTool && !isTodoTool) {
+            this.completionEnforcer.recordToolEngagement();
+          }
         }
 
         // Detect todowrite tool calls and emit todo state
