@@ -854,6 +854,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         const toolInput = message.part.input;
 
         console.log('[OpenCode Adapter] Tool call:', toolName);
+        this.completionEnforcer.markToolUse(toolName);
 
         // Mark first tool received and cancel waiting transition timer
         if (!this.hasReceivedFirstTool) {
@@ -915,6 +916,8 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         if (toolUseName === 'complete_task' || toolUseName.endsWith('_complete_task')) {
           this.completionEnforcer.handleCompleteTaskDetection(toolUseInput);
         }
+
+        this.completionEnforcer.markToolUse(toolUseName);
 
         // Detect todowrite tool calls and emit todo state
         // Built-in tool name is 'todowrite', MCP-prefixed would be '*_todowrite'

@@ -46,6 +46,7 @@ export class CompletionEnforcer {
   private state: CompletionState;
   private callbacks: CompletionEnforcerCallbacks;
   private currentTodos: TodoItem[] = [];
+  private hasActivity: boolean = false;
 
   constructor(callbacks: CompletionEnforcerCallbacks, maxContinuationAttempts: number = 20) {
     this.callbacks = callbacks;
@@ -57,11 +58,23 @@ export class CompletionEnforcer {
    */
   updateTodos(todos: TodoItem[]): void {
     this.currentTodos = todos;
+    if (todos.length > 0) {
+      this.hasActivity = true;
+    }
     this.callbacks.onDebug(
       'todo_update',
       `Todo list updated: ${todos.length} items`,
       { todos }
     );
+  }
+
+  /**
+   * Track any tool usage so we don't enforce continuation on simple text-only replies.
+   */
+  markToolUse(toolName: string): void {
+    if (toolName) {
+      this.hasActivity = true;
+    }
   }
 
   /**
@@ -73,6 +86,8 @@ export class CompletionEnforcer {
     if (this.state.isCompleteTaskCalled() && !this.state.isInVerificationMode()) {
       return false;
     }
+
+    this.hasActivity = true;
 
     const args = toolInput as {
       status?: string;
@@ -147,6 +162,15 @@ export class CompletionEnforcer {
 
     // Check if agent stopped without calling complete_task
     if (!this.state.isCompleteTaskCalled()) {
+      // If there was no tool usage or todo activity, treat simple responses as complete
+      if (!this.hasActivity && this.state.getContinuationAttempts() === 0) {
+        this.callbacks.onDebug(
+          'completion',
+          'Skipping continuation for simple response with no activity'
+        );
+        return 'complete';
+      }
+
       // If we're in verification mode and agent stops without re-calling complete_task,
       // it means they found issues and are continuing to work
       if (this.state.isInVerificationMode()) {
@@ -266,6 +290,7 @@ export class CompletionEnforcer {
   reset(): void {
     this.state.reset();
     this.currentTodos = [];
+    this.hasActivity = false;
   }
 
   private hasIncompleteTodos(): boolean {
