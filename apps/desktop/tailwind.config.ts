@@ -112,6 +112,12 @@ const config: Config = {
           'Hiragino Sans GB',
           'Noto Sans CJK SC',
           'Source Han Sans SC',
+          // Japanese font support
+          'Hiragino Sans',
+          'Hiragino Kaku Gothic ProN',
+          'Noto Sans JP',
+          'Yu Gothic',
+          'Meiryo',
           'sans-serif',
         ],
       },
