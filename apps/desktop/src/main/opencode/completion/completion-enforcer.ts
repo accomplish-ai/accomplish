@@ -5,7 +5,7 @@
  *
  * PURPOSE: Ensures agents properly finish tasks instead of stopping prematurely.
  *
- * TWO MAIN ENFORCEMENT MECHANISMS:
+ * ENFORCEMENT MECHANISMS:
  *
  * 1. CONTINUATION PROMPTS (if agent stops without calling complete_task):
  *    - Agent sometimes stops mid-task (API limits, confusion, etc.)
@@ -13,28 +13,23 @@
  *    - Spawn a session resumption with a firm reminder to call complete_task
  *    - Retry up to 50 times before giving up
  *
- * 2. VERIFICATION (if agent claims status="success"):
- *    - Agent may claim success without actually verifying work is done
- *    - Especially problematic for browser automation where UI state matters
- *    - On success claim, spawn verification task asking agent to:
- *      a) Take a screenshot of current browser state
- *      b) Compare against the plan's completion criteria
- *      c) Only re-call complete_task(success) if screenshot proves completion
- *    - If agent finds issues during verification, it continues working instead
+ * 2. PARTIAL CONTINUATION (if agent calls complete_task with partial status):
+ *    - Agent completed some work but not all (or success downgraded due to incomplete todos)
+ *    - Spawn a session resumption with remaining work context
+ *    - Agent continues working on remaining items
  *
  * CALLBACK PATTERN:
  * - Enforcer is decoupled from adapter via callbacks
- * - onStartVerification/onStartContinuation: adapter spawns session resumption
+ * - onStartContinuation: adapter spawns session resumption
  * - onComplete: adapter emits the 'complete' event
  * - onDebug: adapter emits debug info for the UI debug panel
  */
 
 import { CompletionState, CompletionFlowState, CompleteTaskArgs } from './completion-state';
-import { getContinuationPrompt, getVerificationPrompt, getPartialContinuationPrompt } from './prompts';
+import { getContinuationPrompt, getPartialContinuationPrompt } from './prompts';
 import type { TodoItem } from '@accomplish/shared';
 
 export interface CompletionEnforcerCallbacks {
-  onStartVerification: (prompt: string) => Promise<void>;
   onStartContinuation: (prompt: string) => Promise<void>;
   onComplete: () => void;
   onDebug: (type: string, message: string, data?: unknown) => void;
@@ -70,7 +65,7 @@ export class CompletionEnforcer {
    */
   handleCompleteTaskDetection(toolInput: unknown): boolean {
     // Already processed complete_task in current flow
-    if (this.state.isCompleteTaskCalled() && !this.state.isInVerificationMode()) {
+    if (this.state.isCompleteTaskCalled()) {
       return false;
     }
 
@@ -125,16 +120,6 @@ export class CompletionEnforcer {
       return 'continue';
     }
 
-    // Check if verification is needed
-    if (this.state.isPendingVerification()) {
-      this.callbacks.onDebug(
-        'verification',
-        'Scheduling verification for completion claim',
-        { summary: this.state.getCompleteTaskArgs()?.summary }
-      );
-      return 'pending'; // Let handleProcessExit start verification
-    }
-
     // Check if partial continuation is needed
     if (this.state.isPendingPartialContinuation()) {
       this.callbacks.onDebug(
@@ -147,17 +132,6 @@ export class CompletionEnforcer {
 
     // Check if agent stopped without calling complete_task
     if (!this.state.isCompleteTaskCalled()) {
-      // If we're in verification mode and agent stops without re-calling complete_task,
-      // it means they found issues and are continuing to work
-      if (this.state.isInVerificationMode()) {
-        this.state.verificationContinuing();
-        this.callbacks.onDebug(
-          'verification',
-          'Agent continuing work after verification check'
-        );
-        return 'pending'; // Let process exit, agent will continue
-      }
-
       // Try to schedule a continuation
       if (this.state.scheduleContinuation()) {
         this.callbacks.onDebug(
@@ -180,26 +154,6 @@ export class CompletionEnforcer {
    * Triggers verification or continuation if pending.
    */
   async handleProcessExit(exitCode: number): Promise<void> {
-    // Check if we need to verify a completion claim
-    if (this.state.isPendingVerification() && exitCode === 0) {
-      const args = this.state.getCompleteTaskArgs();
-      const prompt = getVerificationPrompt(
-        args?.summary || 'No summary provided',
-        args?.original_request_summary || 'Unknown request'
-      );
-
-      this.state.startVerification();
-
-      this.callbacks.onDebug(
-        'verification',
-        'Starting verification task',
-        { claimedSummary: args?.summary, originalRequest: args?.original_request_summary }
-      );
-
-      await this.callbacks.onStartVerification(prompt);
-      return;
-    }
-
     // Check if we need to continue after partial completion
     if (this.state.isPendingPartialContinuation() && exitCode === 0) {
       const args = this.state.getCompleteTaskArgs();
@@ -244,8 +198,8 @@ export class CompletionEnforcer {
 
     // No pending actions - complete the task
     // This handles:
-    // - DONE: verification completed successfully
-    // - COMPLETE_TASK_CALLED: complete_task called with blocked status
+    // - DONE: complete_task called with success status
+    // - BLOCKED: complete_task called with blocked status
     // - IDLE: process exited cleanly without triggering completion flow
     // - MAX_RETRIES_REACHED: exhausted all continuation attempts
     this.callbacks.onComplete();
@@ -256,7 +210,7 @@ export class CompletionEnforcer {
    */
   shouldComplete(): boolean {
     return this.state.isDone() ||
-           this.state.getState() === CompletionFlowState.COMPLETE_TASK_CALLED ||
+           this.state.getState() === CompletionFlowState.BLOCKED ||
            this.state.getState() === CompletionFlowState.MAX_RETRIES_REACHED;
   }
 

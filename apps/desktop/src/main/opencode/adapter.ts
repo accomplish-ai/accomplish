@@ -108,9 +108,6 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
    */
   private createCompletionEnforcer(): CompletionEnforcer {
     const callbacks: CompletionEnforcerCallbacks = {
-      onStartVerification: async (prompt: string) => {
-        await this.spawnSessionResumption(prompt);
-      },
       onStartContinuation: async (prompt: string) => {
         await this.spawnSessionResumption(prompt);
       },
