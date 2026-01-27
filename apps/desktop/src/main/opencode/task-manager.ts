@@ -21,6 +21,7 @@ import {
   type TaskStatus,
   type OpenCodeMessage,
   type PermissionRequest,
+  type TodoItem,
 } from '@accomplish/shared';
 
 /**
@@ -349,6 +350,8 @@ export interface TaskCallbacks {
   onError: (error: Error) => void;
   onStatusChange?: (status: TaskStatus) => void;
   onDebug?: (log: { type: string; message: string; data?: unknown }) => void;
+  onTodoUpdate?: (todos: TodoItem[]) => void;
+  onAuthError?: (error: { providerId: string; message: string }) => void;
 }
 
 /**
@@ -509,6 +512,14 @@ export class TaskManager {
       callbacks.onDebug?.(log);
     };
 
+    const onTodoUpdate = (todos: TodoItem[]) => {
+      callbacks.onTodoUpdate?.(todos);
+    };
+
+    const onAuthError = (error: { providerId: string; message: string }) => {
+      callbacks.onAuthError?.(error);
+    };
+
     // Attach listeners
     adapter.on('message', onMessage);
     adapter.on('progress', onProgress);
@@ -516,6 +527,8 @@ export class TaskManager {
     adapter.on('complete', onComplete);
     adapter.on('error', onError);
     adapter.on('debug', onDebug);
+    adapter.on('todo:update', onTodoUpdate);
+    adapter.on('auth-error', onAuthError);
 
     // Create cleanup function
     const cleanup = () => {
@@ -525,6 +538,8 @@ export class TaskManager {
       adapter.off('complete', onComplete);
       adapter.off('error', onError);
       adapter.off('debug', onDebug);
+      adapter.off('todo:update', onTodoUpdate);
+      adapter.off('auth-error', onAuthError);
       adapter.dispose();
     };
 

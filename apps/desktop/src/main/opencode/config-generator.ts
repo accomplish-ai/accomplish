@@ -2,10 +2,12 @@ import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { PERMISSION_API_PORT, QUESTION_API_PORT } from '../permission-api';
-import { getOllamaConfig } from '../store/appSettings';
+import { getOllamaConfig, getLMStudioConfig } from '../store/appSettings';
 import { getApiKey } from '../store/secureStorage';
 import { getProviderSettings, getActiveProviderModel, getConnectedProviderIds } from '../store/providerSettings';
-import type { BedrockCredentials, ProviderId } from '@accomplish/shared';
+import { ensureAzureFoundryProxy } from './azure-foundry-proxy';
+import { ensureMoonshotProxy } from './moonshot-proxy';
+import type { BedrockCredentials, ProviderId, ZaiCredentials, AzureFoundryCredentials } from '@accomplish/shared';
 
 /**
  * Agent name used by Accomplish
@@ -144,41 +146,54 @@ See the ask-user-question skill for full documentation and examples.
 </important>
 
 <behavior name="task-planning">
-**TASK PLANNING - REQUIRED FOR EVERY TASK**
+##############################################################################
+# CRITICAL: PLAN FIRST, THEN USE TODOWRITE - BOTH ARE MANDATORY
+##############################################################################
+
+**STEP 1: OUTPUT A PLAN (before any action)**
 
 Before taking ANY action, you MUST first output a plan:
 
 1. **State the goal** - What the user wants accomplished
-2. **List steps with verification** - Numbered steps, each with a completion criterion
+2. **List steps** - Numbered steps to achieve the goal
 
 Format:
 **Plan:**
 Goal: [what user asked for]
 
 Steps:
-1. [Action] → verify: [how to confirm it's done]
-2. [Action] → verify: [how to confirm it's done]
+1. [First action]
+2. [Second action]
 ...
 
-Then execute the steps. When calling \`complete_task\`:
-- Review each step's verification criterion
-- Only use status "success" if ALL criteria are met
-- Use "partial" if some steps incomplete, list which ones in \`remaining_work\`
+**STEP 2: IMMEDIATELY CALL TODOWRITE**
 
-**Example:**
-Goal: Extract analytics data from a website
+After outputting your plan, you MUST call the \`todowrite\` tool to create your task list.
+This is NOT optional. The user sees your todos in a sidebar - if you skip this, they see nothing.
 
-Steps:
-1. Navigate to URL → verify: page title contains expected text
-2. Locate data section → verify: can see the target metrics
-3. Extract values → verify: have captured specific numbers
-4. Report findings → verify: summary includes all extracted data
+\`\`\`json
+{
+  "todos": [
+    {"id": "1", "content": "First step description", "status": "in_progress", "priority": "high"},
+    {"id": "2", "content": "Second step description", "status": "pending", "priority": "medium"},
+    {"id": "3", "content": "Third step description", "status": "pending", "priority": "medium"}
+  ]
+}
+\`\`\`
+
+**STEP 3: COMPLETE ALL TODOS BEFORE FINISHING**
+- All todos must be "completed" or "cancelled" before calling complete_task
+
+WRONG: Starting work without planning and calling todowrite first
+CORRECT: Output plan FIRST, call todowrite SECOND, then start working
+
+##############################################################################
 </behavior>
 
 <behavior>
 - Use AskUserQuestion tool for clarifying questions before starting ambiguous tasks
-- Use MCP tools directly - browser_navigate, browser_snapshot, browser_click, browser_type, browser_screenshot, browser_sequence
 - **NEVER use shell commands (open, xdg-open, start, subprocess, webbrowser) to open browsers or URLs** - these open the user's default browser, not the automation-controlled Chrome. ALL browser operations MUST use browser_* MCP tools.
+- For multi-step browser workflows, prefer \`browser_script\` over individual tools - it's faster and auto-returns page state.
 
 **BROWSER ACTION VERBOSITY - Be descriptive about web interactions:**
 - Before each browser action, briefly explain what you're about to do in user terms
@@ -255,9 +270,14 @@ interface McpServerConfig {
   timeout?: number;
 }
 
-interface OllamaProviderModelConfig {
+interface ProviderModelConfig {
   name: string;
   tools?: boolean;
+  limit?: {
+    context?: number;
+    output?: number;
+  };
+  options?: Record<string, unknown>;
 }
 
 interface OllamaProviderConfig {
@@ -266,7 +286,7 @@ interface OllamaProviderConfig {
   options: {
     baseURL: string;
   };
-  models: Record<string, OllamaProviderModelConfig>;
+  models: Record<string, ProviderModelConfig>;
 }
 
 interface BedrockProviderConfig {
@@ -274,6 +294,18 @@ interface BedrockProviderConfig {
     region: string;
     profile?: string;
   };
+}
+
+interface AzureFoundryProviderConfig {
+  npm: string;
+  name: string;
+  options: {
+    resourceName?: string;
+    baseURL?: string;
+    apiKey?: string;
+    headers?: Record<string, string>;
+  };
+  models: Record<string, ProviderModelConfig>;
 }
 
 interface OpenRouterProviderModelConfig {
@@ -288,6 +320,20 @@ interface OpenRouterProviderConfig {
     baseURL: string;
   };
   models: Record<string, OpenRouterProviderModelConfig>;
+}
+
+interface MoonshotProviderModelConfig {
+  name: string;
+  tools?: boolean;
+}
+
+interface MoonshotProviderConfig {
+  npm: string;
+  name: string;
+  options: {
+    baseURL: string;
+  };
+  models: Record<string, MoonshotProviderModelConfig>;
 }
 
 interface LiteLLMProviderModelConfig {
@@ -319,7 +365,21 @@ interface ZaiProviderConfig {
   models: Record<string, ZaiProviderModelConfig>;
 }
 
-type ProviderConfig = OllamaProviderConfig | BedrockProviderConfig | OpenRouterProviderConfig | LiteLLMProviderConfig | ZaiProviderConfig;
+interface LMStudioProviderModelConfig {
+  name: string;
+  tools?: boolean;
+}
+
+interface LMStudioProviderConfig {
+  npm: string;
+  name: string;
+  options: {
+    baseURL: string;
+  };
+  models: Record<string, LMStudioProviderModelConfig>;
+}
+
+type ProviderConfig = OllamaProviderConfig | BedrockProviderConfig | AzureFoundryProviderConfig | OpenRouterProviderConfig | MoonshotProviderConfig | LiteLLMProviderConfig | ZaiProviderConfig | LMStudioProviderConfig;
 
 interface OpenCodeConfig {
   $schema?: string;
@@ -333,11 +393,64 @@ interface OpenCodeConfig {
 }
 
 /**
+ * Build Azure Foundry provider configuration for OpenCode CLI
+ * Shared helper to avoid duplication between new settings and legacy paths
+ */
+async function buildAzureFoundryProviderConfig(
+  endpoint: string,
+  deploymentName: string,
+  authMethod: 'api-key' | 'entra-id',
+  azureFoundryToken?: string
+): Promise<AzureFoundryProviderConfig | null> {
+  const baseUrl = endpoint.replace(/\/$/, '');
+  const targetBaseUrl = `${baseUrl}/openai/v1`;
+  const proxyInfo = await ensureAzureFoundryProxy(targetBaseUrl);
+
+  // Build options for @ai-sdk/openai-compatible provider
+  // Route through local proxy to strip unsupported params for Azure Foundry
+  const azureOptions: AzureFoundryProviderConfig['options'] = {
+    baseURL: proxyInfo.baseURL,
+  };
+
+  // Set API key or Entra ID token
+  if (authMethod === 'api-key') {
+    const azureApiKey = getApiKey('azure-foundry');
+    if (azureApiKey) {
+      azureOptions.apiKey = azureApiKey;
+    }
+  } else if (authMethod === 'entra-id' && azureFoundryToken) {
+    azureOptions.apiKey = '';
+    azureOptions.headers = {
+      'Authorization': `Bearer ${azureFoundryToken}`,
+    };
+  }
+
+  return {
+    npm: '@ai-sdk/openai-compatible',
+    name: 'Azure AI Foundry',
+    options: azureOptions,
+    models: {
+      [deploymentName]: {
+        name: `Azure Foundry (${deploymentName})`,
+        tools: true,
+        // Set conservative output token limit - can be overridden per-deployment
+        // This prevents errors from models with lower limits (e.g., 16384 for some GPT-5 deployments)
+        limit: {
+          context: 128000,
+          output: 16384,
+        },
+      },
+    },
+  };
+}
+
+/**
  * Generate OpenCode configuration file
  * OpenCode reads config from .opencode.json in the working directory or
  * from ~/.config/opencode/opencode.json
+ * @param azureFoundryToken - Optional Entra ID token for Azure Foundry authentication
  */
-export async function generateOpenCodeConfig(): Promise<string> {
+export async function generateOpenCodeConfig(azureFoundryToken?: string): Promise<string> {
   const configDir = path.join(app.getPath('userData'), 'opencode');
   const configPath = path.join(configDir, 'opencode.json');
 
@@ -374,16 +487,20 @@ export async function generateOpenCodeConfig(): Promise<string> {
     google: 'google',
     xai: 'xai',
     deepseek: 'deepseek',
+    moonshot: 'moonshot',
     zai: 'zai-coding-plan',
     bedrock: 'amazon-bedrock',
+    'azure-foundry': 'azure-foundry',
     ollama: 'ollama',
     openrouter: 'openrouter',
     litellm: 'litellm',
+    minimax: 'minimax',
+    lmstudio: 'lmstudio',
     huggingface: 'huggingface',
   };
 
   // Build enabled providers list from new settings or fall back to base providers
-  const baseProviders = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai-coding-plan', 'amazon-bedrock'];
+  const baseProviders = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'moonshot', 'zai-coding-plan', 'amazon-bedrock', 'minimax'];
   let enabledProviders = baseProviders;
 
   // If we have connected providers in the new settings, use those
@@ -430,7 +547,7 @@ export async function generateOpenCodeConfig(): Promise<string> {
     // Legacy fallback: use old Ollama config
     const ollamaConfig = getOllamaConfig();
     if (ollamaConfig?.enabled && ollamaConfig.models && ollamaConfig.models.length > 0) {
-      const ollamaModels: Record<string, OllamaProviderModelConfig> = {};
+      const ollamaModels: Record<string, ProviderModelConfig> = {};
       for (const model of ollamaConfig.models) {
         ollamaModels[model.id] = {
           name: model.displayName,
@@ -498,6 +615,31 @@ export async function generateOpenCodeConfig(): Promise<string> {
         };
         console.log('[OpenCode Config] OpenRouter configured from legacy settings:', Object.keys(openrouterModels));
       }
+    }
+  }
+
+  // Configure Moonshot if connected
+  const moonshotProvider = providerSettings.connectedProviders.moonshot;
+  if (moonshotProvider?.connectionStatus === 'connected') {
+    if (moonshotProvider.selectedModelId) {
+      const modelId = moonshotProvider.selectedModelId.replace(/^moonshot\//, '');
+      const moonshotApiKey = getApiKey('moonshot');
+      const proxyInfo = await ensureMoonshotProxy('https://api.moonshot.ai/v1');
+      providerConfig.moonshot = {
+        npm: '@ai-sdk/openai-compatible',
+        name: 'Moonshot AI',
+        options: {
+          baseURL: proxyInfo.baseURL,
+          ...(moonshotApiKey ? { apiKey: moonshotApiKey } : {}),
+        },
+        models: {
+          [modelId]: {
+            name: modelId,
+            tools: true,
+          },
+        },
+      };
+      console.log('[OpenCode Config] Moonshot AI configured:', modelId);
     }
   }
 
@@ -569,6 +711,111 @@ export async function generateOpenCodeConfig(): Promise<string> {
     }
   }
 
+  // Configure LM Studio if connected
+  const lmstudioProvider = providerSettings.connectedProviders.lmstudio;
+  if (lmstudioProvider?.connectionStatus === 'connected' && lmstudioProvider.credentials.type === 'lmstudio') {
+    if (lmstudioProvider.selectedModelId) {
+      // OpenCode CLI splits "lmstudio/model" into provider="lmstudio" and modelID="model"
+      // So we need to register the model without the "lmstudio/" prefix
+      const modelId = lmstudioProvider.selectedModelId.replace(/^lmstudio\//, '');
+
+      // Check if the model supports tools from the availableModels metadata
+      const modelInfo = lmstudioProvider.availableModels?.find(
+        m => m.id === lmstudioProvider.selectedModelId || m.id === modelId
+      );
+      const supportsTools = (modelInfo as { toolSupport?: string })?.toolSupport === 'supported';
+
+      providerConfig.lmstudio = {
+        npm: '@ai-sdk/openai-compatible',
+        name: 'LM Studio',
+        options: {
+          baseURL: `${lmstudioProvider.credentials.serverUrl}/v1`,
+        },
+        models: {
+          [modelId]: {
+            name: modelId,
+            tools: supportsTools,
+          },
+        },
+      };
+      console.log(`[OpenCode Config] LM Studio configured: ${modelId} (tools: ${supportsTools})`);
+    }
+  } else {
+    // Legacy fallback: use old LM Studio config if it exists
+    const lmstudioConfig = getLMStudioConfig();
+    if (lmstudioConfig?.enabled && lmstudioConfig.models && lmstudioConfig.models.length > 0) {
+      const lmstudioModels: Record<string, LMStudioProviderModelConfig> = {};
+      for (const model of lmstudioConfig.models) {
+        lmstudioModels[model.id] = {
+          name: model.name,
+          tools: model.toolSupport === 'supported',
+        };
+      }
+
+      providerConfig.lmstudio = {
+        npm: '@ai-sdk/openai-compatible',
+        name: 'LM Studio',
+        options: {
+          baseURL: `${lmstudioConfig.baseUrl}/v1`,
+        },
+        models: lmstudioModels,
+      };
+
+      console.log('[OpenCode Config] LM Studio configured from legacy settings:', Object.keys(lmstudioModels));
+    }
+  }
+
+  // Configure Azure Foundry if connected (check new settings first, then legacy)
+  const azureFoundryProvider = providerSettings.connectedProviders['azure-foundry'];
+  if (azureFoundryProvider?.connectionStatus === 'connected' && azureFoundryProvider.credentials.type === 'azure-foundry') {
+    const creds = azureFoundryProvider.credentials;
+    const config = await buildAzureFoundryProviderConfig(
+      creds.endpoint,
+      creds.deploymentName,
+      creds.authMethod,
+      azureFoundryToken
+    );
+
+    if (config) {
+      providerConfig['azure-foundry'] = config;
+
+      if (!enabledProviders.includes('azure-foundry')) {
+        enabledProviders.push('azure-foundry');
+      }
+
+      console.log('[OpenCode Config] Azure Foundry configured from new settings:', {
+        deployment: creds.deploymentName,
+        authMethod: creds.authMethod,
+      });
+    }
+  } else {
+    // TODO: Remove legacy Azure Foundry config support in v0.4.0
+    // Legacy fallback: use old Azure Foundry config
+    const { getAzureFoundryConfig } = await import('../store/appSettings');
+    const azureFoundryConfig = getAzureFoundryConfig();
+    if (azureFoundryConfig?.enabled && activeModel?.provider === 'azure-foundry') {
+      const config = await buildAzureFoundryProviderConfig(
+        azureFoundryConfig.baseUrl,
+        azureFoundryConfig.deploymentName || 'default',
+        azureFoundryConfig.authType,
+        azureFoundryToken
+      );
+
+      if (config) {
+        providerConfig['azure-foundry'] = config;
+
+        if (!enabledProviders.includes('azure-foundry')) {
+          enabledProviders.push('azure-foundry');
+        }
+
+        console.log('[OpenCode Config] Azure Foundry configured from legacy settings:', {
+          deployment: azureFoundryConfig.deploymentName,
+          authType: azureFoundryConfig.authType,
+        });
+      }
+    }
+  }
+
   // Add Z.AI Coding Plan provider configuration with all supported models
   // This is needed because OpenCode's built-in zai-coding-plan provider may not have all models
   const zaiKey = getApiKey('zai');
@@ -581,15 +828,22 @@ export async function generateOpenCodeConfig(): Promise<string> {
       'glm-4.5-flash': { name: 'GLM-4.5 Flash', tools: true },
     };
 
+    // Z.AI - use endpoint based on stored region
+    const zaiCredentials = providerSettings.connectedProviders.zai?.credentials as ZaiCredentials | undefined;
+    const zaiRegion = zaiCredentials?.region || 'international';
+    const zaiEndpoint = zaiRegion === 'china'
+      ? 'https://open.bigmodel.cn/api/paas/v4'
+      : 'https://api.z.ai/api/coding/paas/v4';
+
     providerConfig['zai-coding-plan'] = {
       npm: '@ai-sdk/openai-compatible',
       name: 'Z.AI Coding Plan',
       options: {
-        baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+        baseURL: zaiEndpoint,
       },
       models: zaiModels,
     };
-    console.log('[OpenCode Config] Z.AI Coding Plan provider configured with models:', Object.keys(zaiModels));
+    console.log('[OpenCode Config] Z.AI Coding Plan provider configured with models:', Object.keys(zaiModels), 'region:', zaiRegion, 'endpoint:', zaiEndpoint);
   }
 
   const config: OpenCodeConfig = {
@@ -600,7 +854,11 @@ export async function generateOpenCodeConfig(): Promise<string> {
     // Auto-allow all tool permissions - the system prompt instructs the agent to use
     // AskUserQuestion for user confirmations, which shows in the UI as an interactive modal.
     // CLI-level permission prompts don't show in the UI and would block task execution.
-    permission: 'allow',
+    // Note: todowrite is disabled by default and must be explicitly enabled.
+    permission: {
+      '*': 'allow',
+      todowrite: 'allow',
+    },
     provider: Object.keys(providerConfig).length > 0 ? providerConfig : undefined,
     agent: {
       [ACCOMPLISH_AGENT_NAME]: {
@@ -610,6 +868,7 @@ export async function generateOpenCodeConfig(): Promise<string> {
       },
     },
     // MCP servers for additional tools
+    // Timeout set to 30000ms to handle slow npx startup on Windows
     mcp: {
       'file-permission': {
         type: 'local',
@@ -618,7 +877,7 @@ export async function generateOpenCodeConfig(): Promise<string> {
         environment: {
           PERMISSION_API_PORT: String(PERMISSION_API_PORT),
         },
-        timeout: 10000,
+        timeout: 30000,
       },
       'ask-user-question': {
         type: 'local',
@@ -627,20 +886,20 @@ export async function generateOpenCodeConfig(): Promise<string> {
         environment: {
           QUESTION_API_PORT: String(QUESTION_API_PORT),
         },
-        timeout: 10000,
+        timeout: 30000,
       },
       'dev-browser-mcp': {
         type: 'local',
         command: ['npx', 'tsx', path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts')],
         enabled: true,
-        timeout: 30000,  // Longer timeout for browser operations
+        timeout: 30000,
       },
       // Provides complete_task tool - agent must call to signal task completion
       'complete-task': {
         type: 'local',
         command: ['npx', 'tsx', path.join(skillsPath, 'complete-task', 'src', 'index.ts')],
         enabled: true,
-        timeout: 5000,
+        timeout: 30000,
       },
     },
   };
@@ -729,6 +988,15 @@ export async function syncApiKeysToOpenCodeAuth(): Promise<void> {
       auth['zai-coding-plan'] = { type: 'api', key: apiKeys.zai };
       updated = true;
       console.log('[OpenCode Auth] Synced Z.AI Coding Plan API key');
+    }
+  }
+
+  // Sync MiniMax API key
+  if (apiKeys.minimax) {
+    if (!auth.minimax || auth.minimax.key !== apiKeys.minimax) {
+      auth.minimax = { type: 'api', key: apiKeys.minimax };
+      updated = true;
+      console.log('[OpenCode Auth] Synced MiniMax API key');
     }
   }
 

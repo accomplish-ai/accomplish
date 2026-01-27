@@ -87,6 +87,7 @@ const mockAccomplish = {
   validateApiKeyForProvider: vi.fn().mockResolvedValue({ valid: true }),
   validateBedrockCredentials: vi.fn().mockResolvedValue({ valid: true }),
   saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
+  speechIsConfigured: vi.fn().mockResolvedValue(true),
 };
 
 // Mock the accomplish module

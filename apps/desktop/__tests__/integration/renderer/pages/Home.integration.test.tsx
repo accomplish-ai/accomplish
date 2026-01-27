@@ -10,13 +10,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { Task, TaskStatus } from '@accomplish/shared';
 
-// Mock analytics to prevent tracking calls
-vi.mock('@/lib/analytics', () => ({
-  analytics: {
-    trackSubmitTask: vi.fn(),
-  },
-}));
-
 // Create mock functions
 const mockStartTask = vi.fn();
 const mockAddTaskUpdate = vi.fn();
@@ -70,6 +63,7 @@ const mockAccomplish = {
   validateApiKeyForProvider: vi.fn().mockResolvedValue({ valid: true }),
   validateBedrockCredentials: vi.fn().mockResolvedValue({ valid: true }),
   saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
+  speechIsConfigured: vi.fn().mockResolvedValue(true),
 };
 
 // Mock the accomplish module

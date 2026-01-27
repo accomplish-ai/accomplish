@@ -11,9 +11,12 @@ import {
   getBundledOpenCodeVersion,
 } from './cli-path';
 import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
-import { getSelectedModel } from '../store/appSettings';
-import { getActiveProviderModel } from '../store/providerSettings';
+// TODO: Remove getAzureFoundryConfig import in v0.4.0 when legacy support is dropped
+import { getSelectedModel, getAzureFoundryConfig, getOpenAiBaseUrl } from '../store/appSettings';
+import { getActiveProviderModel, getConnectedProvider } from '../store/providerSettings';
+import type { AzureFoundryCredentials } from '@accomplish/shared';
 import { generateOpenCodeConfig, ACCOMPLISH_AGENT_NAME, syncApiKeysToOpenCodeAuth } from './config-generator';
+import { getAzureEntraToken } from './azure-token-manager';
 import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo, getNpxPath } from '../utils/bundled-node';
 import { getModelDisplayName } from '../utils/model-display';
@@ -26,6 +29,7 @@ import type {
   TaskResult,
   OpenCodeMessage,
   PermissionRequest,
+  TodoItem,
 } from '@accomplish/shared';
 
 /**
@@ -63,6 +67,8 @@ export interface OpenCodeAdapterEvents {
   complete: [TaskResult];
   error: [Error];
   debug: [{ type: string; message: string; data?: unknown }];
+  'todo:update': [TodoItem[]];
+  'auth-error': [{ providerId: string; message: string }];
 }
 
 export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
@@ -102,9 +108,6 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
    */
   private createCompletionEnforcer(): CompletionEnforcer {
     const callbacks: CompletionEnforcerCallbacks = {
-      onStartVerification: async (prompt: string) => {
-        await this.spawnSessionResumption(prompt);
-      },
       onStartContinuation: async (prompt: string) => {
         await this.spawnSessionResumption(prompt);
       },
@@ -149,6 +152,15 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
             message: error.message,
           },
         });
+
+        // Emit auth-error event if this is an authentication error
+        if (error.isAuthError && error.providerID) {
+          console.log('[OpenCode Adapter] Emitting auth-error for provider:', error.providerID);
+          this.emit('auth-error', {
+            providerId: error.providerID,
+            message: errorMessage,
+          });
+        }
 
         this.hasCompleted = true;
         this.emit('complete', {
@@ -213,9 +225,35 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     // Sync API keys to OpenCode CLI's auth.json (for DeepSeek, Z.AI support)
     await syncApiKeysToOpenCodeAuth();
 
+    // For Azure Foundry with Entra ID auth, get the token first so we can include it in config
+    let azureFoundryToken: string | undefined;
+    const activeModel = getActiveProviderModel();
+    const selectedModel = activeModel || getSelectedModel();
+    // TODO: Remove legacy azureFoundryConfig check in v0.4.0
+    const azureFoundryConfig = getAzureFoundryConfig();
+
+    // Check if Azure Foundry is configured via new provider settings
+    const azureFoundryProvider = getConnectedProvider('azure-foundry');
+    const azureFoundryCredentials = azureFoundryProvider?.credentials as AzureFoundryCredentials | undefined;
+
+    // Determine auth type from new settings or legacy config
+    const isAzureFoundryEntraId =
+      (selectedModel?.provider === 'azure-foundry' && azureFoundryCredentials?.authMethod === 'entra-id') ||
+      (selectedModel?.provider === 'azure-foundry' && azureFoundryConfig?.authType === 'entra-id');
+
+    if (isAzureFoundryEntraId) {
+      const tokenResult = await getAzureEntraToken();
+      if (!tokenResult.success) {
+        console.error('[OpenCode CLI] Failed to get Azure Entra ID token:', tokenResult.error);
+        throw new Error(tokenResult.error);
+      }
+      azureFoundryToken = tokenResult.token;
+      console.log('[OpenCode CLI] Obtained Azure Entra ID token for config');
+    }
+
     // Generate OpenCode config file with MCP settings and agent
     console.log('[OpenCode CLI] Generating OpenCode config with MCP settings and agent...');
-    const configPath = await generateOpenCodeConfig();
+    const configPath = await generateOpenCodeConfig(azureFoundryToken);
     console.log('[OpenCode CLI] Config generated at:', configPath);
 
     const cliArgs = await this.buildCliArgs(config);
@@ -602,9 +640,15 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       env.ANTHROPIC_API_KEY = apiKeys.anthropic;
       console.log('[OpenCode CLI] Using Anthropic API key from settings');
     }
+    const configuredOpenAiBaseUrl = getOpenAiBaseUrl().trim();
     if (apiKeys.openai) {
       env.OPENAI_API_KEY = apiKeys.openai;
       console.log('[OpenCode CLI] Using OpenAI API key from settings');
+
+      if (configuredOpenAiBaseUrl) {
+        env.OPENAI_BASE_URL = configuredOpenAiBaseUrl;
+        console.log('[OpenCode CLI] Using OPENAI_BASE_URL override from settings');
+      }
     }
     if (apiKeys.google) {
       env.GOOGLE_GENERATIVE_AI_API_KEY = apiKeys.google;
@@ -618,6 +662,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       env.DEEPSEEK_API_KEY = apiKeys.deepseek;
       console.log('[OpenCode CLI] Using DeepSeek API key from settings');
     }
+    if (apiKeys.moonshot) {
+      env.MOONSHOT_API_KEY = apiKeys.moonshot;
+      console.log('[OpenCode CLI] Using Moonshot API key from settings');
+    }
     if (apiKeys.zai) {
       env.ZAI_API_KEY = apiKeys.zai;
       console.log('[OpenCode CLI] Using Z.AI API key from settings');
@@ -629,6 +677,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     if (apiKeys.litellm) {
       env.LITELLM_API_KEY = apiKeys.litellm;
       console.log('[OpenCode CLI] Using LiteLLM API key from settings');
+    }
+    if (apiKeys.minimax) {
+      env.MINIMAX_API_KEY = apiKeys.minimax;
+      console.log('[OpenCode CLI] Using MiniMax API key from settings');
     }
     if (apiKeys.huggingface) {
       env.HF_TOKEN = apiKeys.huggingface;
@@ -817,11 +869,26 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           }
         }
 
+        // Notify completion enforcer that tools were used in this invocation
+        this.completionEnforcer.markToolsUsed();
+
         // COMPLETION ENFORCEMENT: Track complete_task tool calls
         // Tool name may be prefixed with MCP server name (e.g., "complete-task_complete_task")
         // so we use endsWith() for fuzzy matching
         if (toolName === 'complete_task' || toolName.endsWith('_complete_task')) {
           this.completionEnforcer.handleCompleteTaskDetection(toolInput);
+        }
+
+        // Detect todowrite tool calls and emit todo state
+        // Built-in tool name is 'todowrite', MCP-prefixed would be '*_todowrite'
+        if (toolName === 'todowrite' || toolName.endsWith('_todowrite')) {
+          const input = toolInput as { todos?: TodoItem[] };
+          // Only emit if we have actual todos (ignore empty arrays to prevent accidental clearing)
+          if (input?.todos && Array.isArray(input.todos) && input.todos.length > 0) {
+            this.emit('todo:update', input.todos);
+            // Also update completion enforcer
+            this.completionEnforcer.updateTodos(input.todos);
+          }
         }
 
         this.emit('tool-use', toolName, toolInput);
@@ -852,9 +919,24 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           }
         }
 
+        // Notify completion enforcer that tools were used in this invocation
+        this.completionEnforcer.markToolsUsed();
+
         // Track if complete_task was called (tool name may be prefixed with MCP server name)
         if (toolUseName === 'complete_task' || toolUseName.endsWith('_complete_task')) {
           this.completionEnforcer.handleCompleteTaskDetection(toolUseInput);
+        }
+
+        // Detect todowrite tool calls and emit todo state
+        // Built-in tool name is 'todowrite', MCP-prefixed would be '*_todowrite'
+        if (toolUseName === 'todowrite' || toolUseName.endsWith('_todowrite')) {
+          const input = toolUseInput as { todos?: TodoItem[] };
+          // Only emit if we have actual todos (ignore empty arrays to prevent accidental clearing)
+          if (input?.todos && Array.isArray(input.todos) && input.todos.length > 0) {
+            this.emit('todo:update', input.todos);
+            // Also update completion enforcer
+            this.completionEnforcer.updateTodos(input.todos);
+          }
         }
 
         // For models that don't emit text messages (like Gemini), emit the tool description

@@ -441,8 +441,8 @@ describe('StreamParser', () => {
   });
 
   describe('buffer overflow protection', () => {
-    it('should emit error and truncate buffer when exceeding max size', () => {
-      // Arrange
+    it('should emit error when a single incomplete line exceeds max size', () => {
+      // Arrange - A single line (no newlines) that exceeds 10MB
       const maxBufferSize = 10 * 1024 * 1024; // 10MB
       const largeChunk = 'x'.repeat(maxBufferSize + 100);
 
@@ -458,20 +458,20 @@ describe('StreamParser', () => {
       );
     });
 
-    it('should keep parsing continuity after buffer truncation and reset', () => {
-      // Arrange - Feed large data to trigger truncation
+    it('should continue parsing correctly after overflow without needing reset', () => {
+      // Arrange - Feed large data to trigger overflow
       const maxBufferSize = 10 * 1024 * 1024;
       const largeChunk = 'x'.repeat(maxBufferSize + 100);
 
       // Act - First trigger overflow
       parser.feed(largeChunk);
+      expect(errorHandler).toHaveBeenCalledTimes(1);
 
-      // Reset parser and handlers to verify continued operation
-      parser.reset(); // Clear corrupted buffer
+      // Clear handlers to verify continued operation
       messageHandler.mockClear();
       errorHandler.mockClear();
 
-      // Feed valid message after overflow
+      // Feed valid message after overflow - should work WITHOUT calling reset()
       const message: OpenCodeMessage = {
         type: 'text',
         part: {
@@ -484,8 +484,84 @@ describe('StreamParser', () => {
       };
       parser.feed(JSON.stringify(message) + '\n');
 
-      // Assert - Parser should still work after reset
+      // Assert - Parser should work without reset
       expect(messageHandler).toHaveBeenCalledWith(message);
+      expect(errorHandler).not.toHaveBeenCalled();
+    });
+
+    it('should NOT lose complete messages when buffer grows large', () => {
+      // Arrange - This is the key fix: complete messages should be parsed
+      // even when total buffer size approaches the limit
+      const message1: OpenCodeMessage = {
+        type: 'text',
+        part: {
+          id: 'msg_1',
+          sessionID: 'session_1',
+          messageID: 'msg_1',
+          type: 'text',
+          text: 'First message',
+        },
+      };
+      const message2: OpenCodeMessage = {
+        type: 'text',
+        part: {
+          id: 'msg_2',
+          sessionID: 'session_1',
+          messageID: 'msg_2',
+          type: 'text',
+          text: 'Second message',
+        },
+      };
+
+      // Create a large but valid NDJSON stream with complete messages
+      // followed by a large incomplete line
+      const maxBufferSize = 10 * 1024 * 1024;
+      const validMessages = JSON.stringify(message1) + '\n' + JSON.stringify(message2) + '\n';
+      const largeIncompleteLine = 'x'.repeat(maxBufferSize + 100); // No newline = incomplete
+
+      // Act - Feed valid messages followed by oversized incomplete line
+      parser.feed(validMessages + largeIncompleteLine);
+
+      // Assert - Both complete messages should have been parsed
+      expect(messageHandler).toHaveBeenCalledTimes(2);
+      expect(messageHandler).toHaveBeenNthCalledWith(1, message1);
+      expect(messageHandler).toHaveBeenNthCalledWith(2, message2);
+      // Error should be emitted for the oversized incomplete line
+      expect(errorHandler).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle many complete messages without overflow error', () => {
+      // Arrange - Many small messages that together exceed 10MB
+      // but each individual incomplete line is small
+      const messages: OpenCodeMessage[] = [];
+      const messageTemplate: OpenCodeMessage = {
+        type: 'text',
+        part: {
+          id: 'msg_',
+          sessionID: 'session_1',
+          messageID: 'msg_',
+          type: 'text',
+          text: 'x'.repeat(1000), // 1KB per message
+        },
+      };
+
+      // Create 15000 messages (~15MB total when serialized)
+      let ndjson = '';
+      for (let i = 0; i < 15000; i++) {
+        const msg = {
+          ...messageTemplate,
+          part: { ...messageTemplate.part, id: `msg_${i}`, messageID: `msg_${i}` },
+        };
+        messages.push(msg);
+        ndjson += JSON.stringify(msg) + '\n';
+      }
+
+      // Act - Feed all messages
+      parser.feed(ndjson);
+
+      // Assert - All messages should be parsed, no overflow error
+      expect(messageHandler).toHaveBeenCalledTimes(15000);
+      expect(errorHandler).not.toHaveBeenCalled();
     });
   });
 

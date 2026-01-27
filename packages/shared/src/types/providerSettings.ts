@@ -6,14 +6,18 @@ export type ProviderId =
   | 'google'
   | 'xai'
   | 'deepseek'
+  | 'moonshot'
   | 'zai'
   | 'bedrock'
+  | 'azure-foundry'
   | 'ollama'
   | 'openrouter'
   | 'litellm'
+  | 'minimax'
+  | 'lmstudio'
   | 'huggingface';
 
-export type ProviderCategory = 'classic' | 'aws' | 'local' | 'proxy' | 'hybrid' | 'huggingface';
+export type ProviderCategory = 'classic' | 'aws' | 'azure' | 'local' | 'proxy' | 'hybrid' | 'huggingface';
 
 export interface ProviderMeta {
   id: ProviderId;
@@ -30,11 +34,15 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   google: { id: 'google', name: 'Gemini', category: 'classic', label: 'Service', logoKey: 'google-gen-ai', helpUrl: 'https://aistudio.google.com/app/apikey' },
   xai: { id: 'xai', name: 'XAI', category: 'classic', label: 'Service', logoKey: 'Xai', helpUrl: 'https://x.ai/api' },
   deepseek: { id: 'deepseek', name: 'DeepSeek', category: 'classic', label: 'Service', logoKey: 'Deepseek', helpUrl: 'https://platform.deepseek.com/api_keys' },
+  moonshot: { id: 'moonshot', name: 'Moonshot AI', category: 'classic', label: 'Service', logoKey: 'moonshot', helpUrl: 'https://platform.moonshot.ai/docs/guide/start-using-kimi-api' },
   zai: { id: 'zai', name: 'Z-AI', category: 'classic', label: 'Service', logoKey: 'z-ai' },
   bedrock: { id: 'bedrock', name: 'AWS Bedrock', category: 'aws', label: 'Service', logoKey: 'aws-bedrock' },
+  'azure-foundry': { id: 'azure-foundry', name: 'Azure AI Foundry', category: 'azure', label: 'Service', logoKey: 'azure', helpUrl: 'https://ai.azure.com' },
   ollama: { id: 'ollama', name: 'Ollama', category: 'local', label: 'Local Models', logoKey: 'olama' },
   openrouter: { id: 'openrouter', name: 'OpenRouter', category: 'proxy', label: 'Service', logoKey: 'open-router', helpUrl: 'https://openrouter.ai/keys' },
   litellm: { id: 'litellm', name: 'LiteLLM', category: 'hybrid', label: 'Service', logoKey: 'liteLLM' },
+  minimax: { id: 'minimax', name: 'MiniMax', category: 'classic', label: 'Service', logoKey: 'minimax', helpUrl: 'https://platform.minimax.io/user-center/basic-information/interface-key' },
+  lmstudio: { id: 'lmstudio', name: 'LM Studio', category: 'local', label: 'Local Models', logoKey: 'lmstudio', helpUrl: 'https://lmstudio.ai/' },
   huggingface: { id: 'huggingface', name: 'HuggingFace', category: 'huggingface', label: 'Service', logoKey: 'huggingface', helpUrl: 'https://huggingface.co/settings/tokens' },
 };
 
@@ -70,6 +78,32 @@ export interface LiteLLMCredentials {
   keyPrefix?: string;
 }
 
+export type ZaiRegion = 'china' | 'international';
+
+export interface ZaiCredentials {
+  type: 'zai';
+  keyPrefix: string;
+  region: ZaiRegion;
+}
+
+export interface LMStudioCredentials {
+  type: 'lmstudio';
+  serverUrl: string;
+}
+
+export interface AzureFoundryCredentials {
+  type: 'azure-foundry';
+  authMethod: 'api-key' | 'entra-id';
+  endpoint: string;
+  deploymentName: string;
+  keyPrefix?: string; // Only for api-key auth
+}
+
+export interface OAuthCredentials {
+  type: 'oauth';
+  oauthProvider: 'chatgpt';
+}
+
 export interface HuggingFaceCredentials {
   type: 'huggingface';
   keyPrefix: string;
@@ -81,7 +115,21 @@ export type ProviderCredentials =
   | OllamaCredentials
   | OpenRouterCredentials
   | LiteLLMCredentials
+  | ZaiCredentials
+  | AzureFoundryCredentials
+  | LMStudioCredentials
+  | OAuthCredentials
   | HuggingFaceCredentials;
+
+/** Tool support status for a model */
+export type ToolSupportStatus = 'supported' | 'unsupported' | 'unknown';
+
+/** Model with tool support metadata */
+export interface ModelWithToolSupport {
+  id: string;
+  name: string;
+  toolSupport?: ToolSupportStatus;
+}
 
 export interface ConnectedProvider {
   providerId: ProviderId;
@@ -89,7 +137,7 @@ export interface ConnectedProvider {
   selectedModelId: string | null;
   credentials: ProviderCredentials;
   lastConnectedAt: string;
-  availableModels?: Array<{ id: string; name: string }>; // For dynamic providers
+  availableModels?: Array<{ id: string; name: string; toolSupport?: ToolSupportStatus }>; // For dynamic providers
 }
 
 export interface ProviderSettings {
@@ -119,10 +167,11 @@ export function getActiveProvider(settings: ProviderSettings | null | undefined)
  */
 export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
   anthropic: 'anthropic/claude-haiku-4-5',
-  openai: 'openai/gpt-5-codex',
+  openai: 'openai/gpt-5.2-codex',
   google: 'google/gemini-3-pro-preview',
   xai: 'xai/grok-4',
   bedrock: 'amazon-bedrock/anthropic.claude-haiku-4-5-20251001-v1:0',
+  moonshot: 'moonshot/kimi-latest',
 };
 
 /**

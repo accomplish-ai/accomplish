@@ -3,7 +3,7 @@
  * Tests router setup and route rendering
  *
  * NOTE: This test follows React component integration testing principles:
- * - Mocks external boundaries (IPC API, analytics) - cannot run real Electron in vitest
+ * - Mocks external boundaries (IPC API) - cannot run real Electron in vitest
  * - Mocks animation libraries (framer-motion) - for test stability
  * - Mocks child page components - to focus on App's coordination logic
  * - Uses real router (MemoryRouter) for route testing
@@ -63,15 +63,6 @@ const mockAccomplish = {
 vi.mock('@/lib/accomplish', () => ({
   getAccomplish: () => mockAccomplish,
   isRunningInElectron: () => true,
-}));
-
-// Mock analytics
-vi.mock('@/lib/analytics', () => ({
-  analytics: {
-    trackPageView: vi.fn(),
-    trackNewTask: vi.fn(),
-    trackOpenSettings: vi.fn(),
-  },
 }));
 
 // Mock framer-motion to simplify testing animations
@@ -323,34 +314,6 @@ describe('App Integration', () => {
       await waitFor(() => {
         const main = document.querySelector('main.flex-1');
         expect(main).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('analytics tracking', () => {
-    it('should track page view on mount', async () => {
-      // Arrange
-      const { analytics } = await import('@/lib/analytics');
-
-      // Act
-      renderApp('/');
-
-      // Assert
-      await waitFor(() => {
-        expect(analytics.trackPageView).toHaveBeenCalledWith('/');
-      });
-    });
-
-    it('should track page view for execution route', async () => {
-      // Arrange
-      const { analytics } = await import('@/lib/analytics');
-
-      // Act
-      renderApp('/execution/task-123');
-
-      // Assert
-      await waitFor(() => {
-        expect(analytics.trackPageView).toHaveBeenCalledWith('/execution/task-123');
       });
     });
   });

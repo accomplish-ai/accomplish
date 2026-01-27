@@ -41,14 +41,9 @@ export class ExecutionPage {
     return this.permissionModal.locator('button').filter({ hasText: /Option|Other/ });
   }
 
-  /** Get the custom response text input (visible when "Other" is selected) */
+  /** Get the custom response textarea (always visible below options) */
   get customResponseInput() {
-    return this.page.getByPlaceholder('Type your response...');
-  }
-
-  /** Get the "Back to options" button (visible in custom input mode) */
-  get backToOptionsButton() {
-    return this.page.getByText('← Back to options');
+    return this.page.getByPlaceholder('Enter a different option...');
   }
 
   /** Get the messages scroll container */

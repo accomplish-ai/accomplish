@@ -125,7 +125,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
+          # Note: No cache here - E2E tests run in Docker so pnpm store isn't on host
 
       - name: Run E2E tests in Docker
         run: pnpm -F @accomplish/desktop test:e2e
@@ -138,4 +138,39 @@ jobs:
           path: |
             apps/desktop/e2e/test-results/
             apps/desktop/e2e/html-report/
+          retention-days: 7
+
+  # Windows CI (unit tests + typecheck only, integration tests have macOS-specific paths)
+  windows-ci:
+    name: Windows CI
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run unit tests
+        run: pnpm -F @accomplish/desktop test:unit
+
+      - name: Run typecheck
+        run: pnpm -F @accomplish/desktop typecheck
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-test-results
+          path: apps/desktop/coverage/
           retention-days: 7

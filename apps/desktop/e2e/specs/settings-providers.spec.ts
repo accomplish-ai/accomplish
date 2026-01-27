@@ -7,9 +7,10 @@ import { TEST_TIMEOUTS } from '../config';
  * Comprehensive E2E tests for all provider settings permutations
  *
  * Provider order (4 columns per row):
- * Row 1: Anthropic, OpenAI, Google (Gemini), xAI
- * Row 2: DeepSeek, Z-AI, Ollama, Bedrock
- * Row 3: OpenRouter, LiteLLM
+ * Row 1: OpenAI, Anthropic, Google (Gemini), Bedrock
+ * Row 2: Moonshot AI, Azure AI Foundry, DeepSeek, Z-AI
+ * Row 3: Ollama, LM Studio, xAI, OpenRouter
+ * Row 4: LiteLLM, MiniMax
  */
 test.describe('Settings - All Providers', () => {
   // ===== GOOGLE (GEMINI) PROVIDER =====
@@ -63,18 +64,20 @@ test.describe('Settings - All Providers', () => {
 
   // ===== XAI PROVIDER =====
   test.describe('xAI Provider', () => {
-    test('should display xAI provider card in first row', async ({ window }) => {
+    test('should display xAI provider card in expanded view', async ({ window }) => {
       const settingsPage = new SettingsPage(window);
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
 
-      // xAI is in first 4, should be visible without Show All
+      await settingsPage.toggleShowAll();
+
+      // xAI is not in first 4, should be visible after Show All
       const xaiCard = settingsPage.getProviderCard('xai');
       await expect(xaiCard).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
       await captureForAI(window, 'settings-xai', 'provider-card-visible', [
         'xAI provider card is visible',
-        'Card is in first row (no Show All needed)',
+        'Card is visible after Show All',
       ]);
     });
 
@@ -83,6 +86,7 @@ test.describe('Settings - All Providers', () => {
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
 
+      await settingsPage.toggleShowAll();
       await settingsPage.selectProvider('xai');
 
       await expect(settingsPage.apiKeyInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
@@ -98,6 +102,7 @@ test.describe('Settings - All Providers', () => {
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
 
+      await settingsPage.toggleShowAll();
       await settingsPage.selectProvider('xai');
 
       const testKey = 'xai-test-key-67890';
@@ -167,13 +172,13 @@ test.describe('Settings - All Providers', () => {
       await settingsPage.navigateToSettings();
 
       // First 4 providers should be visible
-      await expect(settingsPage.getProviderCard('anthropic')).toBeVisible();
       await expect(settingsPage.getProviderCard('openai')).toBeVisible();
+      await expect(settingsPage.getProviderCard('anthropic')).toBeVisible();
       await expect(settingsPage.getProviderCard('google')).toBeVisible();
-      await expect(settingsPage.getProviderCard('xai')).toBeVisible();
+      await expect(settingsPage.getProviderCard('bedrock')).toBeVisible();
 
-      // 5th provider (deepseek) should NOT be visible in collapsed view
-      await expect(settingsPage.getProviderCard('deepseek')).not.toBeVisible();
+      // 5th provider (moonshot) should NOT be visible in collapsed view
+      await expect(settingsPage.getProviderCard('moonshot')).not.toBeVisible();
 
       await captureForAI(window, 'settings-grid', 'collapsed-view', [
         'First 4 providers visible in collapsed view',
@@ -181,18 +186,19 @@ test.describe('Settings - All Providers', () => {
       ]);
     });
 
-    test('should expand to show all 10 providers', async ({ window }) => {
+    test('should expand to show all providers', async ({ window }) => {
       const settingsPage = new SettingsPage(window);
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
 
       await settingsPage.toggleShowAll();
 
-      // All 10 providers should be visible
+      // All providers should be visible
       const allProviders = [
-        'anthropic', 'openai', 'google', 'xai',
-        'deepseek', 'zai', 'ollama', 'bedrock',
-        'openrouter', 'litellm'
+        'openai', 'anthropic', 'google', 'bedrock',
+        'moonshot', 'azure-foundry', 'deepseek', 'zai',
+        'ollama', 'lmstudio', 'xai', 'openrouter',
+        'litellm', 'minimax',
       ];
 
       for (const providerId of allProviders) {
@@ -200,8 +206,8 @@ test.describe('Settings - All Providers', () => {
       }
 
       await captureForAI(window, 'settings-grid', 'expanded-view', [
-        'All 10 providers visible in expanded view',
-        'Grid shows 3 rows of providers',
+        'All providers visible in expanded view',
+        'Grid shows multiple rows of providers',
       ]);
     });
 
@@ -221,8 +227,8 @@ test.describe('Settings - All Providers', () => {
       await settingsPage.toggleShowAll();
       await expect(settingsPage.showAllButton).toBeVisible();
 
-      // DeepSeek should be hidden again (5th provider)
-      await expect(settingsPage.getProviderCard('deepseek')).not.toBeVisible();
+      // Moonshot should be hidden again (5th provider)
+      await expect(settingsPage.getProviderCard('moonshot')).not.toBeVisible();
 
       await captureForAI(window, 'settings-grid', 'toggle-behavior', [
         'Show All/Hide toggle works correctly',

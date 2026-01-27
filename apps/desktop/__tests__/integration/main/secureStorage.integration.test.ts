@@ -243,10 +243,12 @@ describe('secureStorage Integration', () => {
         google: null,
         xai: null,
         deepseek: null,
+        moonshot: null,
         zai: null,
         openrouter: null,
         bedrock: null,
         litellm: null,
+        minimax: null,
         custom: null,
       });
     });
@@ -355,10 +357,12 @@ describe('secureStorage Integration', () => {
         google: null,
         xai: null,
         deepseek: null,
+        moonshot: null,
         zai: null,
         openrouter: null,
         bedrock: null,
         litellm: null,
+        minimax: null,
         custom: null,
       });
     });

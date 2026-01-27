@@ -2,31 +2,29 @@
  * Explicit state machine for completion enforcement flow.
  *
  * WHY A STATE MACHINE:
- * - Replaces what would be 7+ boolean flags (completeTaskCalled, verificationPending,
- *   continuationAttempts, isVerifying, etc.)
+ * - Replaces what would be multiple boolean flags
  * - Makes state transitions explicit and debuggable
- * - Prevents invalid state combinations (e.g., being in both verification and continuation)
+ * - Prevents invalid state combinations
  *
  * STATE FLOW DIAGRAM:
  *
- *   IDLE ──────────────────────────────────────┬──────────────────────────────┐
- *     │                                        │                              │
- *     │ complete_task(success)                 │ complete_task(partial)       │ complete_task(blocked)
- *     ▼                                        ▼                              ▼
- *   AWAITING_VERIFICATION              PARTIAL_CONTINUATION_PENDING    COMPLETE_TASK_CALLED ──► (task ends)
- *     │                                        │
- *     │ process exits                          │ startPartialContinuation()
- *     ▼                                        ▼
- *   VERIFYING ─────────────────────────► IDLE (continue work)
- *     │                                        │
- *     │ agent stops without                    │ agent calls complete_task(success)
- *     │ re-calling complete_task               ▼
- *     ▼                                      DONE ──► (task ends)
- *   VERIFICATION_CONTINUING
+ *   IDLE ──────────────────────────────────────┬──────────────────────────┐
+ *     │                                        │                          │
+ *     │ complete_task(success,                 │ complete_task(partial)   │ complete_task(blocked)
+ *     │ todos complete)                        │   OR                    │
+ *     │                                        │ success→partial          │
+ *     ▼                                        │ (incomplete todos)       ▼
+ *   DONE ──► (task ends)                       ▼                     BLOCKED ──► (task ends)
+ *                                      PARTIAL_CONTINUATION_PENDING
+ *                                              │
+ *                                              │ startPartialContinuation()
+ *                                              ▼
+ *                                            IDLE (continue work)
+ *
+ *   IDLE ──► agent stops without complete_task
  *     │
- *     │ (merges back to continuation flow)
  *     ▼
- *   CONTINUATION_PENDING ◄─── agent stops without complete_task from IDLE
+ *   CONTINUATION_PENDING ──► startContinuation() ──► IDLE
  *     │
  *     │ max retries exceeded
  *     ▼
@@ -35,11 +33,8 @@
 
 export enum CompletionFlowState {
   IDLE,                           // Initial state, no complete_task called
-  COMPLETE_TASK_CALLED,           // Agent called complete_task with blocked status
+  BLOCKED,                        // Agent called complete_task with blocked status
   PARTIAL_CONTINUATION_PENDING,   // Agent called complete_task(partial), continuation pending
-  AWAITING_VERIFICATION,          // Agent called complete_task(success), verification pending
-  VERIFYING,                      // Verification task running
-  VERIFICATION_CONTINUING,        // Agent found issues during verification, continuing work
   CONTINUATION_PENDING,           // Agent stopped without complete_task, continuation pending
   MAX_RETRIES_REACHED,            // Exhausted continuation attempts
   DONE                            // Task complete
@@ -85,15 +80,6 @@ export class CompletionState {
            this.state !== CompletionFlowState.PARTIAL_CONTINUATION_PENDING;
   }
 
-  isPendingVerification(): boolean {
-    return this.state === CompletionFlowState.AWAITING_VERIFICATION;
-  }
-
-  isInVerificationMode(): boolean {
-    return this.state === CompletionFlowState.VERIFYING ||
-           this.state === CompletionFlowState.VERIFICATION_CONTINUING;
-  }
-
   isPendingContinuation(): boolean {
     return this.state === CompletionFlowState.CONTINUATION_PENDING;
   }
@@ -109,58 +95,24 @@ export class CompletionState {
 
   // State transitions
   recordCompleteTaskCall(args: CompleteTaskArgs): void {
-    // Allow re-calling complete_task during verification
-    if (this.state === CompletionFlowState.VERIFYING) {
-      this.completeTaskArgs = args;
-      if (args.status === 'success') {
-        this.state = CompletionFlowState.DONE;
-      } else if (args.status === 'partial') {
-        // Partial during verification - schedule continuation
-        this.state = CompletionFlowState.PARTIAL_CONTINUATION_PENDING;
-      } else {
-        this.state = CompletionFlowState.COMPLETE_TASK_CALLED;
-      }
-      return;
-    }
-
-    // First complete_task call
     this.completeTaskArgs = args;
     if (args.status === 'success') {
-      this.state = CompletionFlowState.AWAITING_VERIFICATION;
+      this.state = CompletionFlowState.DONE;
     } else if (args.status === 'partial') {
-      // Partial status - schedule continuation to finish the task
       this.state = CompletionFlowState.PARTIAL_CONTINUATION_PENDING;
     } else {
       // blocked or unknown - terminal
-      this.state = CompletionFlowState.COMPLETE_TASK_CALLED;
+      this.state = CompletionFlowState.BLOCKED;
     }
-  }
-
-  startVerification(): void {
-    if (this.state !== CompletionFlowState.AWAITING_VERIFICATION) {
-      throw new Error(`Cannot start verification from state ${CompletionFlowState[this.state]}`);
-    }
-    this.state = CompletionFlowState.VERIFYING;
-    // Reset completeTaskCalled tracking for re-confirmation
-    this.completeTaskArgs = null;
-  }
-
-  verificationContinuing(): void {
-    if (this.state !== CompletionFlowState.VERIFYING) {
-      throw new Error(`Cannot mark verification continuing from state ${CompletionFlowState[this.state]}`);
-    }
-    this.state = CompletionFlowState.VERIFICATION_CONTINUING;
   }
 
   scheduleContinuation(): boolean {
     // Can schedule continuation from:
     // - IDLE: agent never called complete_task
-    // - VERIFICATION_CONTINUING: agent found issues and is fixing them
     // - CONTINUATION_PENDING: previous continuation was scheduled but process didn't exit
     //   (OpenCode CLI's auto-continue keeps process alive, so handleProcessExit/startContinuation
     //   is never called to reset state to IDLE)
     if (this.state !== CompletionFlowState.IDLE &&
-        this.state !== CompletionFlowState.VERIFICATION_CONTINUING &&
         this.state !== CompletionFlowState.CONTINUATION_PENDING) {
       return false;
     }

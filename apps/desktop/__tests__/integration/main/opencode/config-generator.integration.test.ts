@@ -80,12 +80,18 @@ vi.mock('@main/store/appSettings', () => ({
   setOllamaConfig: vi.fn(),
   getLiteLLMConfig: vi.fn(() => null),
   setLiteLLMConfig: vi.fn(),
+  getAzureFoundryConfig: vi.fn(() => null),
+  setAzureFoundryConfig: vi.fn(),
+  getLMStudioConfig: vi.fn(() => null),
+  setLMStudioConfig: vi.fn(),
   getAppSettings: vi.fn(() => ({
     debugMode: false,
     onboardingComplete: false,
     selectedModel: null,
     ollamaConfig: null,
     litellmConfig: null,
+    azureFoundryConfig: null,
+    lmstudioConfig: null,
   })),
   clearAppSettings: vi.fn(),
 }));
@@ -202,7 +208,7 @@ describe('OpenCode Config Generator Integration', () => {
 
       expect(config.$schema).toBe('https://opencode.ai/config.json');
       expect(config.default_agent).toBe('accomplish');
-      expect(config.permission).toBe('allow');
+      expect(config.permission).toEqual({ '*': 'allow', todowrite: 'allow' });
       expect(config.enabled_providers).toContain('anthropic');
       expect(config.enabled_providers).toContain('openai');
       expect(config.enabled_providers).toContain('google');
@@ -289,7 +295,7 @@ describe('OpenCode Config Generator Integration', () => {
   });
 
   describe('System Prompt Content', () => {
-    it('should include browser automation MCP tools guidance', async () => {
+    it('should include browser automation guidance', async () => {
       // Act
       const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
@@ -298,11 +304,10 @@ describe('OpenCode Config Generator Integration', () => {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       const prompt = config.agent['accomplish'].prompt;
 
-      // Should contain browser MCP tool names
-      expect(prompt).toContain('browser_navigate');
-      expect(prompt).toContain('browser_snapshot');
-      expect(prompt).toContain('browser_click');
-      expect(prompt).toContain('browser_type');
+      // Should contain browser guidance (detailed tool docs are now in SKILL.md)
+      expect(prompt).toContain('browser_script');
+      expect(prompt).toContain('browser_*');
+      expect(prompt).toContain('Browser Automation');
     });
 
     it('should include file permission rules', async () => {

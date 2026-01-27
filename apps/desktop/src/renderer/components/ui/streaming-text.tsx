@@ -51,6 +51,17 @@ export function StreamingText({
     }
   }, [isComplete, text.length]);
 
+  // Track when streaming finishes to call onComplete outside of render
+  const [streamingJustFinished, setStreamingJustFinished] = useState(false);
+
+  // Call onComplete in a separate effect to avoid setState during render
+  useEffect(() => {
+    if (streamingJustFinished) {
+      setStreamingJustFinished(false);
+      onComplete?.();
+    }
+  }, [streamingJustFinished, onComplete]);
+
   // Animation loop
   useEffect(() => {
     if (!isStreaming || isComplete) return;
@@ -70,7 +81,7 @@ export function StreamingText({
           const next = Math.min(prev + charsToAdd, textRef.current.length);
           if (next >= textRef.current.length) {
             setIsStreaming(false);
-            onComplete?.();
+            setStreamingJustFinished(true);
           }
           return next;
         });
@@ -89,7 +100,7 @@ export function StreamingText({
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [isStreaming, isComplete, speed, onComplete, displayedLength]);
+  }, [isStreaming, isComplete, speed, displayedLength]);
 
   const displayedText = text.slice(0, displayedLength);
 
