@@ -67,6 +67,29 @@
   --radius: 0.5rem;
 }
 
+/* Dark theme */
+.dark {
+  --background: 0 0% 9%; /* #171717 */
+  --foreground: 0 0% 95%; /* #f2f2f2 */
+  --card: 0 0% 12%; /* #1f1f1f */
+  --card-foreground: 0 0% 95%; /* #f2f2f2 */
+  --popover: 0 0% 12%; /* #1f1f1f */
+  --popover-foreground: 0 0% 95%; /* #f2f2f2 */
+  --primary: 123 25% 75%; /* #a8d4a6 */
+  --primary-foreground: 120 30% 15%; /* #1a2e1a */
+  --secondary: 120 10% 25%; /* #3a4039 */
+  --secondary-foreground: 120 15% 80%; /* #cad8c9 */
+  --muted: 0 0% 18%; /* #2e2e2e */
+  --muted-foreground: 0 0% 60%; /* #999999 */
+  --accent: 0 0% 20%; /* #333333 */
+  --accent-foreground: 0 0% 95%; /* #f2f2f2 */
+  --destructive: 8 70% 50%; /* #d94527 */
+  --destructive-foreground: 0 0% 100%; /* #ffffff */
+  --border: 0 0% 22%; /* #383838 */
+  --input: 0 0% 22%; /* #383838 */
+  --ring: 123 25% 60%; /* #81b880 */
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

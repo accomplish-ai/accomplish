@@ -53,7 +53,11 @@ const accomplishAPI = {
     ipcRenderer.invoke('settings:debug-mode'),
   setDebugMode: (enabled: boolean): Promise<void> =>
     ipcRenderer.invoke('settings:set-debug-mode', enabled),
-  getAppSettings: (): Promise<{ debugMode: boolean; onboardingComplete: boolean }> =>
+  getTheme: (): Promise<'light' | 'dark'> =>
+    ipcRenderer.invoke('settings:theme:get'),
+  setTheme: (theme: 'light' | 'dark'): Promise<void> =>
+    ipcRenderer.invoke('settings:theme:set', theme),
+  getAppSettings: (): Promise<{ debugMode: boolean; onboardingComplete: boolean; theme: 'light' | 'dark' }> =>
     ipcRenderer.invoke('settings:app-settings'),
   getOpenAiBaseUrl: (): Promise<string> =>
     ipcRenderer.invoke('settings:openai-base-url:get'),
@@ -250,6 +254,12 @@ const accomplishAPI = {
     const listener = (_: unknown, data: { enabled: boolean }) => callback(data);
     ipcRenderer.on('settings:debug-mode-changed', listener);
     return () => ipcRenderer.removeListener('settings:debug-mode-changed', listener);
+  },
+  // Theme setting changes
+  onThemeChange: (callback: (data: { theme: 'light' | 'dark' }) => void) => {
+    const listener = (_: unknown, data: { theme: 'light' | 'dark' }) => callback(data);
+    ipcRenderer.on('settings:theme-changed', listener);
+    return () => ipcRenderer.removeListener('settings:theme-changed', listener);
   },
   // Task status changes (e.g., queued -> running)
   onTaskStatusChange: (callback: (data: { taskId: string; status: string }) => void) => {

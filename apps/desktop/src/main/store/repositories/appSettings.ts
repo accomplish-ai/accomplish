@@ -13,6 +13,7 @@ interface AppSettingsRow {
   azure_foundry_config: string | null;
   lmstudio_config: string | null;
   openai_base_url: string | null;
+  theme: string;
 }
 
 interface AppSettings {
@@ -24,6 +25,7 @@ interface AppSettings {
   azureFoundryConfig: AzureFoundryConfig | null;
   lmstudioConfig: LMStudioConfig | null;
   openaiBaseUrl: string;
+  theme: 'light' | 'dark';
 }
 
 function getRow(): AppSettingsRow {
@@ -152,6 +154,16 @@ export function setOpenAiBaseUrl(baseUrl: string): void {
   db.prepare('UPDATE app_settings SET openai_base_url = ? WHERE id = 1').run(baseUrl || '');
 }
 
+export function getTheme(): 'light' | 'dark' {
+  const row = getRow();
+  return (row.theme === 'dark' ? 'dark' : 'light') as 'light' | 'dark';
+}
+
+export function setTheme(theme: 'light' | 'dark'): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET theme = ? WHERE id = 1').run(theme);
+}
+
 function safeParseJson<T>(json: string | null): T | null {
   if (!json) return null;
   try {
@@ -172,6 +184,7 @@ export function getAppSettings(): AppSettings {
     azureFoundryConfig: safeParseJson<AzureFoundryConfig>(row.azure_foundry_config),
     lmstudioConfig: safeParseJson<LMStudioConfig>(row.lmstudio_config),
     openaiBaseUrl: row.openai_base_url || '',
+    theme: (row.theme === 'dark' ? 'dark' : 'light') as 'light' | 'dark',
   };
 }
 
@@ -186,7 +199,8 @@ export function clearAppSettings(): void {
       litellm_config = NULL,
       azure_foundry_config = NULL,
       lmstudio_config = NULL,
-      openai_base_url = ''
+      openai_base_url = '',
+      theme = 'light'
     WHERE id = 1`
   ).run();
 }

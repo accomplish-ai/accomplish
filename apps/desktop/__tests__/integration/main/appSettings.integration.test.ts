@@ -333,6 +333,7 @@ describe('appSettings Integration', () => {
         azureFoundryConfig: null,
         lmstudioConfig: null,
         openaiBaseUrl: '',
+        theme: 'light',
       });
     });
 
@@ -388,6 +389,7 @@ describe('appSettings Integration', () => {
         azureFoundryConfig: null,
         lmstudioConfig: null,
         openaiBaseUrl: '',
+        theme: 'light',
       });
     });
   });

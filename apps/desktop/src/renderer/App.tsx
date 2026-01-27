@@ -54,6 +54,22 @@ export default function App() {
     analytics.trackPageView(location.pathname);
   }, [location.pathname]);
 
+  // Listen for theme changes
+  useEffect(() => {
+    if (!isRunningInElectron()) return;
+
+    const accomplish = getAccomplish();
+    const unsubscribe = accomplish.onThemeChange?.((data) => {
+      if (data.theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    });
+
+    return () => unsubscribe?.();
+  }, []);
+
   // Cmd+K keyboard shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -80,6 +96,15 @@ export default function App() {
         const accomplish = getAccomplish();
         // Mark onboarding as complete (no welcome screen needed)
         await accomplish.setOnboardingComplete(true);
+
+        // Load and apply theme from settings
+        const savedTheme = await accomplish.getTheme();
+        if (savedTheme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+
         setStatus('ready');
       } catch (error) {
         console.error('Failed to initialize app:', error);

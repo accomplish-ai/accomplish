@@ -51,6 +51,8 @@ import {
   setLiteLLMConfig,
   getLMStudioConfig,
   setLMStudioConfig,
+  getTheme,
+  setTheme,
 } from '../store/appSettings';
 import {
   getProviderSettings,
@@ -2232,6 +2234,23 @@ export function registerIPCHandlers(): void {
     // Broadcast the change to all renderer windows
     for (const win of BrowserWindow.getAllWindows()) {
       win.webContents.send('settings:debug-mode-changed', { enabled });
+    }
+  });
+
+  // Settings: Get theme
+  handle('settings:theme:get', async (_event: IpcMainInvokeEvent) => {
+    return getTheme();
+  });
+
+  // Settings: Set theme
+  handle('settings:theme:set', async (_event: IpcMainInvokeEvent, theme: 'light' | 'dark') => {
+    if (theme !== 'light' && theme !== 'dark') {
+      throw new Error('Invalid theme value. Must be "light" or "dark"');
+    }
+    setTheme(theme);
+    // Broadcast the change to all renderer windows
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.send('settings:theme-changed', { theme });
     }
   });
 

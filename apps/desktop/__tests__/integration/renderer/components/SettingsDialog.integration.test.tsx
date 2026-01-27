@@ -31,9 +31,11 @@ vi.mock('@/lib/analytics', () => ({
 // Create mock functions for accomplish API
 const mockGetApiKeys = vi.fn();
 const mockGetDebugMode = vi.fn();
+const mockGetTheme = vi.fn();
 const mockGetVersion = vi.fn();
 const mockGetSelectedModel = vi.fn();
 const mockSetDebugMode = vi.fn();
+const mockSetTheme = vi.fn();
 const mockSetSelectedModel = vi.fn();
 const mockAddApiKey = vi.fn();
 const mockRemoveApiKey = vi.fn();
@@ -43,10 +45,12 @@ const mockValidateApiKeyForProvider = vi.fn();
 const mockAccomplish = {
   getApiKeys: mockGetApiKeys,
   getDebugMode: mockGetDebugMode,
+  getTheme: mockGetTheme,
   getVersion: mockGetVersion,
   getSelectedModel: mockGetSelectedModel,
   getOllamaConfig: vi.fn().mockResolvedValue(null),
   setDebugMode: mockSetDebugMode,
+  setTheme: mockSetTheme,
   setSelectedModel: mockSetSelectedModel,
   addApiKey: mockAddApiKey,
   removeApiKey: mockRemoveApiKey,
@@ -137,9 +141,11 @@ describe('SettingsDialog Integration', () => {
     // Default mock implementations
     mockGetApiKeys.mockResolvedValue([]);
     mockGetDebugMode.mockResolvedValue(false);
+    mockGetTheme.mockResolvedValue('light');
     mockGetVersion.mockResolvedValue('1.0.0');
     mockGetSelectedModel.mockResolvedValue({ provider: 'anthropic', model: 'anthropic/claude-opus-4-5' });
     mockSetDebugMode.mockResolvedValue(undefined);
+    mockSetTheme.mockResolvedValue(undefined);
     mockSetSelectedModel.mockResolvedValue(undefined);
     mockValidateApiKeyForProvider.mockResolvedValue({ valid: true });
     mockAddApiKey.mockResolvedValue({ id: 'key-1', provider: 'anthropic', keyPrefix: 'sk-ant-...' });

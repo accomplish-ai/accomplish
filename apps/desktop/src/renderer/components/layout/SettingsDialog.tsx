@@ -45,6 +45,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved, init
 
   // Debug mode state - stored in appSettings, not providerSettings
   const [debugMode, setDebugModeState] = useState(false);
+  const [theme, setThemeState] = useState<'light' | 'dark'>('light');
   const [exportStatus, setExportStatus] = useState<'idle' | 'exporting' | 'success' | 'error'>('idle');
   const accomplish = getAccomplish();
 
@@ -52,8 +53,9 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved, init
   useEffect(() => {
     if (!open) return;
     refetch();
-    // Load debug mode from appSettings (correct store)
+    // Load debug mode and theme from appSettings (correct store)
     accomplish.getDebugMode().then(setDebugModeState);
+    accomplish.getTheme().then(setThemeState);
   }, [open, refetch, accomplish]);
 
   // Auto-select active provider (or initialProvider) and expand grid if needed when dialog opens
@@ -167,6 +169,14 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved, init
     setDebugModeState(newValue);
     analytics.trackToggleDebugMode(newValue);
   }, [debugMode, accomplish]);
+
+  // Handle theme toggle
+  const handleThemeToggle = useCallback(async () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    await accomplish.setTheme(newTheme);
+    setThemeState(newTheme);
+    analytics.trackEvent('theme_changed', { theme: newTheme });
+  }, [theme, accomplish]);
 
   // Handle log export
   const handleExportLogs = useCallback(async () => {
@@ -332,6 +342,32 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved, init
               </motion.section>
             )}
           </AnimatePresence>
+
+          {/* Theme Section - always visible */}
+          <div className="rounded-lg border border-border bg-card p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="font-medium text-foreground">Theme</div>
+                <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                  Choose between light and dark mode.
+                </p>
+              </div>
+              <div className="ml-4 flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">{theme === 'light' ? 'Light' : 'Dark'}</span>
+                <button
+                  data-testid="settings-theme-toggle"
+                  onClick={handleThemeToggle}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-accomplish ${theme === 'dark' ? 'bg-primary' : 'bg-muted'
+                    }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-accomplish ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
 
           {/* Debug Mode Section - only shown when a provider is selected */}
           <AnimatePresence>
