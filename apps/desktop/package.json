@@ -152,6 +152,7 @@
           "!**/tmp/**",
           "!**/.git/**",
           "!**/.browser-data/**",
+          "!**/.ignored_*/**",
           "!**/bun.lock",
           "!**/*.test.ts",
           "!**/vitest.config.ts"
