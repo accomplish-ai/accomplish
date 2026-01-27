@@ -62,6 +62,7 @@
     "lucide-react": "^0.454.0",
     "node-pty": "^1.1.0",
     "opencode-ai": "1.1.16",
+    "prism-react-renderer": "^2.4.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-markdown": "^9.0.1",

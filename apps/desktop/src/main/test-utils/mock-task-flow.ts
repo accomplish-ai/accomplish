@@ -4,7 +4,7 @@
  */
 import { BrowserWindow } from 'electron';
 import type { Task, TaskMessage, TaskStatus } from '@accomplish/shared';
-import { updateTaskStatus } from '../store/taskHistory';
+import { updateTaskStatus, addTaskMessage } from '../store/taskHistory';
 
 // ============================================================================
 // Types
@@ -16,7 +16,8 @@ export type MockScenario =
   | 'permission-required'
   | 'question'
   | 'error'
-  | 'interrupted';
+  | 'interrupted'
+  | 'code-block';
 
 export interface MockTaskConfig {
   taskId: string;
@@ -56,6 +57,7 @@ const SCENARIO_KEYWORDS: Record<MockScenario, string[]> = {
   question: ['__e2e_question__'],
   error: ['__e2e_error__', 'cause error', 'trigger failure'],
   interrupted: ['__e2e_interrupt__', 'stop task', 'cancel task'],
+  'code-block': ['__e2e_code__'],
 };
 
 /**
@@ -71,6 +73,7 @@ export function detectScenarioFromPrompt(prompt: string): MockScenario {
     'interrupted',
     'question',
     'permission-required',
+    'code-block',
     'with-tool',
     'success',
   ];
@@ -124,25 +127,34 @@ export async function executeMockTaskFlow(
     }
   };
 
+  // Helper to send message event AND persist to database
+  const sendMessage = (message: TaskMessage) => {
+    // Persist to database first so loadTaskById can find it
+    addTaskMessage(taskId, message);
+    // Then send IPC event for real-time updates
+    sendEvent('task:update', {
+      taskId,
+      type: 'message',
+      message,
+    });
+  };
+
   // Initial progress event
   sendEvent('task:progress', { taskId, stage: 'init' });
   await sleep(delayMs);
 
   // Assistant acknowledgment message
-  sendEvent('task:update', {
-    taskId,
-    type: 'message',
-    message: {
-      id: createMessageId(),
-      type: 'assistant',
-      content: `I'll help you with: ${prompt}`,
-      timestamp: new Date().toISOString(),
-    },
-  });
+  const ackMessage: TaskMessage = {
+    id: createMessageId(),
+    type: 'assistant',
+    content: `I'll help you with: ${prompt}`,
+    timestamp: new Date().toISOString(),
+  };
+  sendMessage(ackMessage);
   await sleep(delayMs);
 
   // Execute scenario-specific flow
-  await executeScenario(sendEvent, taskId, scenario, delayMs);
+  await executeScenario(sendEvent, sendMessage, taskId, scenario, delayMs);
 }
 
 /**
@@ -150,17 +162,18 @@ export async function executeMockTaskFlow(
  */
 async function executeScenario(
   sendEvent: (channel: string, data: unknown) => void,
+  sendMessage: (message: TaskMessage) => void,
   taskId: string,
   scenario: MockScenario,
   delayMs: number
 ): Promise<void> {
   switch (scenario) {
     case 'success':
-      await executeSuccessScenario(sendEvent, taskId, delayMs);
+      await executeSuccessScenario(sendEvent, sendMessage, taskId, delayMs);
       break;
 
     case 'with-tool':
-      await executeToolScenario(sendEvent, taskId, delayMs);
+      await executeToolScenario(sendEvent, sendMessage, taskId, delayMs);
       break;
 
     case 'permission-required':
@@ -176,25 +189,26 @@ async function executeScenario(
       break;
 
     case 'interrupted':
-      await executeInterruptedScenario(sendEvent, taskId, delayMs);
+      await executeInterruptedScenario(sendEvent, sendMessage, taskId, delayMs);
+      break;
+
+    case 'code-block':
+      await executeCodeBlockScenario(sendEvent, sendMessage, taskId, delayMs);
       break;
   }
 }
 
 async function executeSuccessScenario(
   sendEvent: (channel: string, data: unknown) => void,
+  sendMessage: (message: TaskMessage) => void,
   taskId: string,
   delayMs: number
 ): Promise<void> {
-  sendEvent('task:update', {
-    taskId,
-    type: 'message',
-    message: {
-      id: createMessageId(),
-      type: 'assistant',
-      content: 'Task completed successfully.',
-      timestamp: new Date().toISOString(),
-    },
+  sendMessage({
+    id: createMessageId(),
+    type: 'assistant',
+    content: 'Task completed successfully.',
+    timestamp: new Date().toISOString(),
   });
   await sleep(delayMs);
 
@@ -210,10 +224,11 @@ async function executeSuccessScenario(
 
 async function executeToolScenario(
   sendEvent: (channel: string, data: unknown) => void,
+  sendMessage: (message: TaskMessage) => void,
   taskId: string,
   delayMs: number
 ): Promise<void> {
-  // Simulate tool usage
+  // Simulate tool usage (tool messages don't need to be persisted - they're transient)
   sendEvent('task:update:batch', {
     taskId,
     messages: [
@@ -235,15 +250,11 @@ async function executeToolScenario(
   });
   await sleep(delayMs * 2);
 
-  sendEvent('task:update', {
-    taskId,
-    type: 'message',
-    message: {
-      id: createMessageId(),
-      type: 'assistant',
-      content: 'Found the information using available tools.',
-      timestamp: new Date().toISOString(),
-    },
+  sendMessage({
+    id: createMessageId(),
+    type: 'assistant',
+    content: 'Found the information using available tools.',
+    timestamp: new Date().toISOString(),
   });
   await sleep(delayMs);
 
@@ -312,18 +323,15 @@ function executeErrorScenario(
 
 async function executeInterruptedScenario(
   sendEvent: (channel: string, data: unknown) => void,
+  sendMessage: (message: TaskMessage) => void,
   taskId: string,
   delayMs: number
 ): Promise<void> {
-  sendEvent('task:update', {
-    taskId,
-    type: 'message',
-    message: {
-      id: createMessageId(),
-      type: 'assistant',
-      content: 'Task was interrupted by user.',
-      timestamp: new Date().toISOString(),
-    },
+  sendMessage({
+    id: createMessageId(),
+    type: 'assistant',
+    content: 'Task was interrupted by user.',
+    timestamp: new Date().toISOString(),
   });
   await sleep(delayMs);
 
@@ -334,6 +342,54 @@ async function executeInterruptedScenario(
     taskId,
     type: 'complete',
     result: { status: 'interrupted', sessionId: `session_${taskId}` },
+  });
+}
+
+async function executeCodeBlockScenario(
+  sendEvent: (channel: string, data: unknown) => void,
+  sendMessage: (message: TaskMessage) => void,
+  taskId: string,
+  delayMs: number
+): Promise<void> {
+  // Send a message with syntax-highlighted code blocks
+  const codeContent = `Here's an example function:
+
+\`\`\`typescript
+function greet(name: string): string {
+  return \`Hello, \${name}!\`;
+}
+
+const message = greet("World");
+console.log(message);
+\`\`\`
+
+And here's another example in Python:
+
+\`\`\`python
+def calculate_sum(numbers):
+    return sum(numbers)
+
+result = calculate_sum([1, 2, 3, 4, 5])
+print(f"Sum: {result}")
+\`\`\`
+
+The code blocks above demonstrate syntax highlighting.`;
+
+  sendMessage({
+    id: createMessageId(),
+    type: 'assistant',
+    content: codeContent,
+    timestamp: new Date().toISOString(),
+  });
+  await sleep(delayMs);
+
+  // Update task history status before sending completion event
+  updateTaskStatus(taskId, 'completed', new Date().toISOString());
+
+  sendEvent('task:update', {
+    taskId,
+    type: 'complete',
+    result: { status: 'success', sessionId: `session_${taskId}` },
   });
 }
 
