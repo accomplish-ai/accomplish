@@ -187,13 +187,13 @@ export function deleteApiKey(provider: string): boolean {
 /**
  * Supported API key providers
  */
-export type ApiKeyProvider = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'zai' | 'custom' | 'bedrock' | 'litellm' | 'minimax';
+export type ApiKeyProvider = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'zai' | 'zai-intl' | 'custom' | 'bedrock' | 'litellm' | 'minimax';
 
 /**
  * Get all API keys for all providers
  */
 export async function getAllApiKeys(): Promise<Record<ApiKeyProvider, string | null>> {
-  const [anthropic, openai, openrouter, google, xai, deepseek, zai, custom, bedrock, litellm, minimax] = await Promise.all([
+  const [anthropic, openai, openrouter, google, xai, deepseek, zai, zaiIntl, custom, bedrock, litellm, minimax] = await Promise.all([
     getApiKey('anthropic'),
     getApiKey('openai'),
     getApiKey('openrouter'),
@@ -201,13 +201,14 @@ export async function getAllApiKeys(): Promise<Record<ApiKeyProvider, string | n
     getApiKey('xai'),
     getApiKey('deepseek'),
     getApiKey('zai'),
+    getApiKey('zai-intl'),
     getApiKey('custom'),
     getApiKey('bedrock'),
     getApiKey('litellm'),
     getApiKey('minimax'),
   ]);
 
-  return { anthropic, openai, openrouter, google, xai, deepseek, zai, custom, bedrock, litellm, minimax };
+  return { anthropic, openai, openrouter, google, xai, deepseek, zai, 'zai-intl': zaiIntl, custom, bedrock, litellm, minimax };
 }
 
 /**

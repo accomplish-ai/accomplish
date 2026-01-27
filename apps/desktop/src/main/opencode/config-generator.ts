@@ -473,6 +473,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     xai: 'xai',
     deepseek: 'deepseek',
     zai: 'zai-coding-plan',
+    'zai-intl': 'zai-coding-plan-intl',
     bedrock: 'amazon-bedrock',
     'azure-foundry': 'azure-foundry',
     ollama: 'ollama',
@@ -483,7 +484,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
   };
 
   // Build enabled providers list from new settings or fall back to base providers
-  const baseProviders = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai-coding-plan', 'amazon-bedrock', 'minimax'];
+  const baseProviders = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai-coding-plan', 'zai-coding-plan-intl', 'amazon-bedrock', 'minimax'];
   let enabledProviders = baseProviders;
 
   // If we have connected providers in the new settings, use those
@@ -788,13 +789,35 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
 
     providerConfig['zai-coding-plan'] = {
       npm: '@ai-sdk/openai-compatible',
-      name: 'Z.AI Coding Plan',
+      name: 'Z.AI Coding Plan (Chinese)',
       options: {
         baseURL: 'https://open.bigmodel.cn/api/paas/v4',
       },
       models: zaiModels,
     };
-    console.log('[OpenCode Config] Z.AI Coding Plan provider configured with models:', Object.keys(zaiModels));
+    console.log('[OpenCode Config] Z.AI Coding Plan (Chinese) provider configured with models:', Object.keys(zaiModels));
+  }
+
+  // Add Z.AI Coding Plan International provider configuration
+  const zaiIntlKey = getApiKey('zai-intl');
+  if (zaiIntlKey) {
+    const zaiIntlModels: Record<string, ZaiProviderModelConfig> = {
+      'glm-4.7-flashx': { name: 'GLM-4.7 FlashX (Latest)', tools: true },
+      'glm-4.7': { name: 'GLM-4.7', tools: true },
+      'glm-4.7-flash': { name: 'GLM-4.7 Flash', tools: true },
+      'glm-4.6': { name: 'GLM-4.6', tools: true },
+      'glm-4.5-flash': { name: 'GLM-4.5 Flash', tools: true },
+    };
+
+    providerConfig['zai-coding-plan-intl'] = {
+      npm: '@ai-sdk/openai-compatible',
+      name: 'Z.AI Coding Plan (International)',
+      options: {
+        baseURL: 'https://api.z.ai/api/coding/paas/v4',
+      },
+      models: zaiIntlModels,
+    };
+    console.log('[OpenCode Config] Z.AI Coding Plan (International) provider configured with models:', Object.keys(zaiIntlModels));
   }
 
   const config: OpenCodeConfig = {
@@ -938,7 +961,16 @@ export async function syncApiKeysToOpenCodeAuth(): Promise<void> {
     if (!auth['zai-coding-plan'] || auth['zai-coding-plan'].key !== apiKeys.zai) {
       auth['zai-coding-plan'] = { type: 'api', key: apiKeys.zai };
       updated = true;
-      console.log('[OpenCode Auth] Synced Z.AI Coding Plan API key');
+      console.log('[OpenCode Auth] Synced Z.AI Coding Plan (Chinese) API key');
+    }
+  }
+
+  // Sync Z.AI Coding Plan International API key
+  if (apiKeys['zai-intl']) {
+    if (!auth['zai-coding-plan-intl'] || auth['zai-coding-plan-intl'].key !== apiKeys['zai-intl']) {
+      auth['zai-coding-plan-intl'] = { type: 'api', key: apiKeys['zai-intl'] };
+      updated = true;
+      console.log('[OpenCode Auth] Synced Z.AI Coding Plan (International) API key');
     }
   }
 

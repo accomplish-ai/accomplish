@@ -31,6 +31,7 @@ const PROVIDER_LOGOS: Record<ProviderId, string> = {
   xai: xaiLogo,
   deepseek: deepseekLogo,
   zai: zaiLogo,
+  'zai-intl': zaiLogo,
   bedrock: bedrockLogo,
   'azure-foundry': azureLogo,
   ollama: ollamaLogo,

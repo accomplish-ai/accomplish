@@ -2,7 +2,7 @@
  * Provider and model configuration types for multi-provider support
  */
 
-export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'minimax' | 'lmstudio';
+export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'zai' | 'zai-intl' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'minimax' | 'lmstudio';
 
 export interface ProviderConfig {
   id: ProviderType;
@@ -270,7 +270,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
   },
   {
     id: 'zai',
-    name: 'Z.AI Coding Plan',
+    name: 'Z.AI Coding Plan (Chinese)',
     requiresApiKey: true,
     apiKeyEnvVar: 'ZAI_API_KEY',
     baseUrl: 'https://open.bigmodel.cn',
@@ -312,6 +312,55 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
         displayName: 'GLM-4.5 Flash',
         provider: 'zai',
         fullId: 'zai/glm-4.5-flash',
+        contextWindow: 128000,
+        supportsVision: false,
+      },
+    ],
+  },
+  {
+    id: 'zai-intl',
+    name: 'Z.AI Coding Plan (International)',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'ZAI_INTL_API_KEY',
+    baseUrl: 'https://api.z.ai',
+    models: [
+      {
+        id: 'glm-4.7-flashx',
+        displayName: 'GLM-4.7 FlashX (Latest)',
+        provider: 'zai-intl',
+        fullId: 'zai-intl/glm-4.7-flashx',
+        contextWindow: 200000,
+        supportsVision: false,
+      },
+      {
+        id: 'glm-4.7',
+        displayName: 'GLM-4.7',
+        provider: 'zai-intl',
+        fullId: 'zai-intl/glm-4.7',
+        contextWindow: 200000,
+        supportsVision: false,
+      },
+      {
+        id: 'glm-4.7-flash',
+        displayName: 'GLM-4.7 Flash',
+        provider: 'zai-intl',
+        fullId: 'zai-intl/glm-4.7-flash',
+        contextWindow: 200000,
+        supportsVision: false,
+      },
+      {
+        id: 'glm-4.6',
+        displayName: 'GLM-4.6',
+        provider: 'zai-intl',
+        fullId: 'zai-intl/glm-4.6',
+        contextWindow: 200000,
+        supportsVision: false,
+      },
+      {
+        id: 'glm-4.5-flash',
+        displayName: 'GLM-4.5 Flash',
+        provider: 'zai-intl',
+        fullId: 'zai-intl/glm-4.5-flash',
         contextWindow: 128000,
         supportsVision: false,
       },
