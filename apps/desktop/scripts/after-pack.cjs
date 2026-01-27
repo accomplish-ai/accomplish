@@ -89,7 +89,6 @@ exports.default = async function afterPack(context) {
   if (platformName === 'windows') {
     await copyNodePtyPrebuilds(context, archName);
     await pruneNodePtyArm64(context, archName);
-    await logWindowsPackagingStats(context);
   }
 
   // Re-sign macOS apps after modifying the bundle
@@ -184,33 +183,6 @@ async function pruneNodePtyArm64(context, arch) {
   }
 }
 
-/**
- * Log Windows packaging stats to help diagnose long NSIS compression.
- */
-async function logWindowsPackagingStats(context) {
-  const { appOutDir } = context;
-
-  console.log('[after-pack] Diagnostics: collecting Windows packaging stats...');
-
-  logDriveSpace(appOutDir);
-
-  const asarPath = path.join(appOutDir, 'resources', 'app.asar');
-  if (fs.existsSync(asarPath)) {
-    const asarStat = fs.statSync(asarPath);
-    console.log(`[after-pack] Diagnostics: app.asar size=${(asarStat.size / (1024 * 1024)).toFixed(2)}MB`);
-  } else {
-    console.log('[after-pack] Diagnostics: app.asar not found');
-  }
-
-  const unpackedPath = path.join(appOutDir, 'resources', 'app.asar.unpacked');
-  logScanSummary(unpackedPath, 'app.asar.unpacked');
-
-  const skillsPath = path.join(appOutDir, 'resources', 'skills');
-  logScanSummary(skillsPath, 'resources/skills');
-
-  const nodejsPath = path.join(appOutDir, 'resources', 'nodejs');
-  logScanSummary(nodejsPath, 'resources/nodejs');
-}
 
 /**
  * Copy Node.js binary for a specific platform/arch combination
@@ -343,136 +315,6 @@ function copyDirRecursive(src, dest, rootDest = dest, excludeDirs = []) {
   }
 }
 
-function logDriveSpace(appOutDir) {
-  const driveMatch = /^[A-Za-z]:/.exec(appOutDir);
-  if (!driveMatch) {
-    return;
-  }
-  const drive = driveMatch[0];
-  try {
-    const cmd = `powershell -NoProfile -Command "$d=Get-PSDrive -Name ${drive[0]}; if ($d) { Write-Output ('[after-pack] Diagnostics: drive ${drive} free=' + [math]::Round($d.Free/1GB,2) + 'GB used=' + [math]::Round($d.Used/1GB,2) + 'GB total=' + [math]::Round(($d.Free+$d.Used)/1GB,2) + 'GB') }"`;
-    const output = execSync(cmd, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
-    if (output) {
-      console.log(output);
-    }
-  } catch (err) {
-    console.warn(`[after-pack] Diagnostics: failed to read drive space: ${err.message}`);
-  }
-}
-
-function logScanSummary(rootPath, label) {
-  if (!fs.existsSync(rootPath)) {
-    console.log(`[after-pack] Diagnostics: ${label} not found`);
-    return;
-  }
-
-  const stats = scanDirectory(rootPath, {
-    topFilesLimit: 10,
-    topDirsLimit: 10,
-  });
-
-  const sizeMb = (stats.sizeBytes / (1024 * 1024)).toFixed(2);
-  console.log(
-    `[after-pack] Diagnostics: ${label} size=${sizeMb}MB files=${stats.fileCount} dirs=${stats.dirCount} symlinks=${stats.symlinkCount}`
-  );
-
-  if (stats.topDirs.length) {
-    console.log(`[after-pack] Diagnostics: ${label} top dirs (by size):`);
-    for (const dir of stats.topDirs) {
-      const dirSize = (dir.sizeBytes / (1024 * 1024)).toFixed(2);
-      console.log(`[after-pack] Diagnostics:   ${dir.name} ${dirSize}MB`);
-    }
-  }
-
-  if (stats.topFiles.length) {
-    console.log(`[after-pack] Diagnostics: ${label} top files (by size):`);
-    for (const file of stats.topFiles) {
-      const fileSize = (file.sizeBytes / (1024 * 1024)).toFixed(2);
-      console.log(`[after-pack] Diagnostics:   ${file.path} ${fileSize}MB`);
-    }
-  }
-}
-
-function scanDirectory(rootPath, options = {}) {
-  const topFilesLimit = options.topFilesLimit || 10;
-  const topDirsLimit = options.topDirsLimit || 10;
-
-  let fileCount = 0;
-  let dirCount = 0;
-  let symlinkCount = 0;
-  let sizeBytes = 0;
-
-  const topFiles = [];
-  const topDirSizes = new Map();
-
-  const stack = [rootPath];
-  while (stack.length) {
-    const current = stack.pop();
-    let entries;
-    try {
-      entries = fs.readdirSync(current, { withFileTypes: true });
-    } catch (err) {
-      console.warn(`[after-pack] Diagnostics: failed to read ${current}: ${err.message}`);
-      continue;
-    }
-
-    for (const entry of entries) {
-      const entryPath = path.join(current, entry.name);
-      let entryStat;
-      try {
-        entryStat = fs.lstatSync(entryPath);
-      } catch (err) {
-        console.warn(`[after-pack] Diagnostics: failed to stat ${entryPath}: ${err.message}`);
-        continue;
-      }
-
-      if (entryStat.isSymbolicLink()) {
-        symlinkCount += 1;
-        continue;
-      }
-
-      if (entryStat.isDirectory()) {
-        dirCount += 1;
-        stack.push(entryPath);
-        continue;
-      }
-
-      if (entryStat.isFile()) {
-        fileCount += 1;
-        sizeBytes += entryStat.size;
-
-        pushTopFile(topFiles, {
-          path: path.relative(rootPath, entryPath) || entry.name,
-          sizeBytes: entryStat.size,
-        }, topFilesLimit);
-
-        const rel = path.relative(rootPath, entryPath);
-        const firstSegment = rel.split(path.sep)[0] || '(root)';
-        topDirSizes.set(firstSegment, (topDirSizes.get(firstSegment) || 0) + entryStat.size);
-      }
-    }
-  }
-
-  const topDirs = Array.from(topDirSizes.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, topDirsLimit)
-    .map(([name, size]) => ({ name, sizeBytes: size }));
-
-  return { fileCount, dirCount, symlinkCount, sizeBytes, topFiles, topDirs };
-}
-
-function pushTopFile(list, item, limit) {
-  if (limit <= 0) return;
-  if (list.length < limit) {
-    list.push(item);
-    list.sort((a, b) => b.sizeBytes - a.sizeBytes);
-    return;
-  }
-  const last = list[list.length - 1];
-  if (item.sizeBytes <= last.sizeBytes) return;
-  list[list.length - 1] = item;
-  list.sort((a, b) => b.sizeBytes - a.sizeBytes);
-}
 
 /**
  * Re-sign macOS app after modifying the bundle.
