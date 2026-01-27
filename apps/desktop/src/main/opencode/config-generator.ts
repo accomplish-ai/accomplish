@@ -210,6 +210,14 @@ Example bad narration (too terse):
 
 - After each action, evaluate the result before deciding next steps
 - Use browser_sequence for efficiency when you need to perform multiple actions in quick succession (e.g., filling a form with multiple fields)
+- When browser_script supports it, prefer text/role-based actions over snapshots:
+  - findAndClickText (visible text)
+  - findAndClickRole (aria role + name)
+  - findAndFillLabel (label text to input)
+  - findAndSelectOption (label + option text)
+  - findAndClickNth (selector + index)
+- Use browser_snapshot only when these actions fail or the UI is ambiguous
+- Do NOT use full_snapshot unless explicitly requested by the user
 - Don't announce server checks or startup - proceed directly to the task
 - Only use AskUserQuestion when you genuinely need user input or decisions
 
