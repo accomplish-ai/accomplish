@@ -283,11 +283,18 @@ jobs:
     needs: version-bump
     if: needs.version-bump.outputs.platforms == 'all' || needs.version-bump.outputs.platforms == 'windows-only'
     runs-on: windows-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: v${{ needs.version-bump.outputs.new_version }}
+
+      - name: Disable Windows Defender scanning
+        run: |
+          Set-MpPreference -DisableRealtimeMonitoring $true
+          Add-MpPreference -ExclusionPath "${{ github.workspace }}"
+        shell: powershell
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -298,21 +305,30 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
+      - name: Setup Python (for node-gyp)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        timeout-minutes: 15
 
       - name: Download Node.js binaries
         run: pnpm -F @accomplish/desktop download:nodejs
 
       - name: Build desktop app
         run: pnpm -F @accomplish/desktop build
+        timeout-minutes: 10
 
       - name: Package (unsigned)
         run: node scripts/package.cjs --win --x64 --publish never
         working-directory: apps/desktop
+        timeout-minutes: 20
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          DEBUG: electron-builder
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
