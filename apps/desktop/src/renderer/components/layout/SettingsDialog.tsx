@@ -3,7 +3,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
-import { analytics } from '@/lib/analytics';
 import { getAccomplish } from '@/lib/accomplish';
 import {
   Dialog,
@@ -113,7 +112,6 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved, init
   // Handle provider connection
   const handleConnect = useCallback(async (provider: ConnectedProvider) => {
     await connectProvider(provider.providerId, provider);
-    analytics.trackSaveApiKey(provider.providerId);
 
     // Auto-set as active if the new provider is ready (connected + has model selected)
     // This ensures newly connected ready providers become active, regardless of
@@ -146,7 +144,6 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved, init
   const handleModelChange = useCallback(async (modelId: string) => {
     if (!selectedProvider) return;
     await updateModel(selectedProvider, modelId);
-    analytics.trackSelectModel(modelId);
 
     // Auto-set as active if this provider is now ready
     const provider = settings?.connectedProviders[selectedProvider];
@@ -165,7 +162,6 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved, init
     const newValue = !debugMode;
     await accomplish.setDebugMode(newValue);
     setDebugModeState(newValue);
-    analytics.trackToggleDebugMode(newValue);
   }, [debugMode, accomplish]);
 
   // Handle log export

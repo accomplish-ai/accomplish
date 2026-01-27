@@ -2,7 +2,6 @@
 
 import { useRef, useEffect } from 'react';
 import { getAccomplish } from '../../lib/accomplish';
-import { analytics } from '../../lib/analytics';
 import { CornerDownLeft, Loader2 } from 'lucide-react';
 
 interface TaskInputBarProps {
@@ -75,7 +74,6 @@ export default function TaskInputBar({
         data-testid="task-input-submit"
         type="button"
         onClick={() => {
-          analytics.trackSubmitTask();
           accomplish.logEvent({
             level: 'info',
             message: 'Task input submit clicked',

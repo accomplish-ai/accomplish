@@ -18,16 +18,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { ApiKeyConfig } from '@accomplish/shared';
 
-// Mock analytics to prevent tracking calls
-vi.mock('@/lib/analytics', () => ({
-  analytics: {
-    trackToggleDebugMode: vi.fn(),
-    trackSelectModel: vi.fn(),
-    trackSaveApiKey: vi.fn(),
-    trackSelectProvider: vi.fn(),
-  },
-}));
-
 // Create mock functions for accomplish API
 const mockGetApiKeys = vi.fn();
 const mockGetDebugMode = vi.fn();

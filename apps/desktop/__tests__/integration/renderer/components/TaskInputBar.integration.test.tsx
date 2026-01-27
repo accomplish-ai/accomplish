@@ -9,13 +9,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import TaskInputBar from '@/components/landing/TaskInputBar';
 
-// Mock analytics to prevent tracking calls
-vi.mock('@/lib/analytics', () => ({
-  analytics: {
-    trackSubmitTask: vi.fn(),
-  },
-}));
-
 // Mock accomplish API
 const mockAccomplish = {
   logEvent: vi.fn().mockResolvedValue(undefined),

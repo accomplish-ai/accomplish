@@ -5,7 +5,6 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { isRunningInElectron, getAccomplish } from './lib/accomplish';
 import { springs, variants } from './lib/animations';
-import { analytics } from './lib/analytics';
 import type { ProviderId } from '@accomplish/shared';
 
 // Pages
@@ -48,11 +47,6 @@ export default function App() {
       clearAuthError();
     }
   }, [clearAuthError]);
-
-  // Track page views on route changes
-  useEffect(() => {
-    analytics.trackPageView(location.pathname);
-  }, [location.pathname]);
 
   // Cmd+K keyboard shortcut
   useEffect(() => {
