@@ -144,10 +144,17 @@ jobs:
   windows-ci:
     name: Windows CI
     runs-on: windows-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Disable Windows Defender scanning
+        run: |
+          Set-MpPreference -DisableRealtimeMonitoring $true
+          Add-MpPreference -ExclusionPath "${{ github.workspace }}"
+        shell: powershell
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -158,8 +165,14 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
+      - name: Setup Python (for node-gyp)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        timeout-minutes: 15
 
       - name: Run unit tests
         run: pnpm -F @accomplish/desktop test:unit
