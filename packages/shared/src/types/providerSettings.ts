@@ -17,7 +17,8 @@ export type ProviderId =
   | 'nebius'
   | 'together'
   | 'fireworks'
-  | 'groq';
+  | 'groq'
+  | 'kimi';
 
 export type ProviderCategory = 'classic' | 'aws' | 'azure' | 'local' | 'proxy' | 'hybrid';
 
@@ -48,6 +49,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   together: { id: 'together', name: 'Together AI', category: 'classic', label: 'Service', logoKey: 'together', helpUrl: 'https://api.together.xyz/settings/api-keys' },
   fireworks: { id: 'fireworks', name: 'Fireworks AI', category: 'classic', label: 'Service', logoKey: 'fireworks', helpUrl: 'https://fireworks.ai/account/api-keys' },
   groq: { id: 'groq', name: 'Groq', category: 'classic', label: 'Service', logoKey: 'groq', helpUrl: 'https://console.groq.com/keys' },
+  kimi: { id: 'kimi', name: 'Kimi (Moonshot AI)', category: 'classic', label: 'Service', logoKey: 'kimi', helpUrl: 'https://platform.moonshot.cn/console/api-keys' },
 };
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';

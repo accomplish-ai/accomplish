@@ -484,10 +484,11 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     together: 'together',
     fireworks: 'fireworks',
     groq: 'groq',
+    kimi: 'kimi',
   };
 
   // Build enabled providers list from new settings or fall back to base providers
-  const baseProviders = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai-coding-plan', 'amazon-bedrock', 'minimax', 'nebius', 'together', 'fireworks', 'groq'];
+  const baseProviders = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai-coding-plan', 'amazon-bedrock', 'minimax', 'nebius', 'together', 'fireworks', 'groq', 'kimi'];
   let enabledProviders = baseProviders;
 
   // If we have connected providers in the new settings, use those
@@ -988,6 +989,15 @@ export async function syncApiKeysToOpenCodeAuth(): Promise<void> {
       auth.groq = { type: 'api', key: apiKeys.groq };
       updated = true;
       console.log('[OpenCode Auth] Synced Groq API key');
+    }
+  }
+
+  // Sync Kimi (Moonshot AI) API key
+  if (apiKeys.kimi) {
+    if (!auth.kimi || auth.kimi.key !== apiKeys.kimi) {
+      auth.kimi = { type: 'api', key: apiKeys.kimi };
+      updated = true;
+      console.log('[OpenCode Auth] Synced Kimi API key');
     }
   }
 

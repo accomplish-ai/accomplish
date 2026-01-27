@@ -2,7 +2,7 @@
  * Provider and model configuration types for multi-provider support
  */
 
-export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'minimax' | 'lmstudio' | 'nebius' | 'together' | 'fireworks' | 'groq';
+export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'minimax' | 'lmstudio' | 'nebius' | 'together' | 'fireworks' | 'groq' | 'kimi';
 
 export interface ProviderConfig {
   id: ProviderType;
@@ -500,6 +500,39 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
         provider: 'groq',
         fullId: 'groq/gemma2-9b-it',
         contextWindow: 8192,
+        supportsVision: false,
+      },
+    ],
+  },
+  {
+    id: 'kimi',
+    name: 'Kimi (Moonshot AI)',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'MOONSHOT_API_KEY',
+    baseUrl: 'https://api.moonshot.cn',
+    models: [
+      {
+        id: 'moonshot-v1-128k',
+        displayName: 'Moonshot V1 128K',
+        provider: 'kimi',
+        fullId: 'kimi/moonshot-v1-128k',
+        contextWindow: 128000,
+        supportsVision: false,
+      },
+      {
+        id: 'moonshot-v1-32k',
+        displayName: 'Moonshot V1 32K',
+        provider: 'kimi',
+        fullId: 'kimi/moonshot-v1-32k',
+        contextWindow: 32000,
+        supportsVision: false,
+      },
+      {
+        id: 'moonshot-v1-8k',
+        displayName: 'Moonshot V1 8K',
+        provider: 'kimi',
+        fullId: 'kimi/moonshot-v1-8k',
+        contextWindow: 8000,
         supportsVision: false,
       },
     ],

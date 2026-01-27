@@ -24,6 +24,7 @@ import nebiusLogo from '/assets/ai-logos/nebius.svg';
 import togetherLogo from '/assets/ai-logos/together.svg';
 import fireworksLogo from '/assets/ai-logos/fireworks.svg';
 import groqLogo from '/assets/ai-logos/groq.svg';
+import kimiLogo from '/assets/ai-logos/kimi.svg';
 
 // Import connected badge icon
 import connectedKeyIcon from '/assets/icons/connected-key.svg';
@@ -46,6 +47,7 @@ const PROVIDER_LOGOS: Record<ProviderId, string> = {
   together: togetherLogo,
   fireworks: fireworksLogo,
   groq: groqLogo,
+  kimi: kimiLogo,
 };
 
 interface ProviderCardProps {
