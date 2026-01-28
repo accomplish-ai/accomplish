@@ -27,36 +27,15 @@ pnpm lint         # Run linting
 
 ## Contributing Translations
 
-Openwork supports multiple languages (English, Simplified Chinese, Hebrew). When adding or modifying UI text:
+When adding UI text:
+1. Add English to `apps/desktop/locales/en/*.json`
+2. Use `t('key')` in components
+3. Run `pnpm i18n:sync` to auto-translate
+4. Commit all translation files together
 
-1. **Add English text** to translation files in `apps/desktop/locales/en/*.json`
-   ```json
-   {
-     "buttons": {
-       "newFeature": "New Feature"
-     }
-   }
-   ```
+See [Translation Guide](scripts/README-i18n.md) for details.
 
-2. **Use translations in components**:
-   ```tsx
-   const { t } = useTranslation('common');
-   <button>{t('buttons.newFeature')}</button>
-   ```
-
-3. **Run translation sync** to auto-translate to other languages:
-   ```bash
-   pnpm i18n:sync
-   ```
-
-4. **Validate translations** (automatically runs in CI):
-   ```bash
-   pnpm i18n:validate
-   ```
-
-5. **Commit all translation files** together with your changes
-
-For detailed instructions, see [Translation Guide](scripts/README-i18n.md).
+**Native speakers welcome!** Help improve translations by [opening an issue](https://github.com/accomplish-ai/openwork/issues/new) with suggestions, or edit `locales/{language-code}/*.json` files directly.
 
 ## Pull Request Process
 
