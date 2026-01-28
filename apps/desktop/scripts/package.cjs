@@ -54,6 +54,10 @@ try {
 
   // Use npx to run electron-builder to ensure it's found in node_modules
   const command = `npx electron-builder ${args}${npmRebuildFlag}${skipSigningFlag}${nsisZipFlag}`;
+  const builderEnv = {
+    ...process.env,
+    ...(isWindows && isCi ? { ELECTRON_BUILDER_LOG_LEVEL: 'debug' } : {}),
+  };
 
   console.log('Running:', command);
   if (isWindows) {
@@ -65,7 +69,12 @@ try {
       console.log('(Using NSIS zip compression on CI)');
     }
   }
-  execSync(command, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+  const startTime = Date.now();
+  console.log(`[package] electron-builder start: ${new Date(startTime).toISOString()}`);
+  execSync(command, { stdio: 'inherit', cwd: path.join(__dirname, '..'), env: builderEnv });
+  const endTime = Date.now();
+  console.log(`[package] electron-builder end: ${new Date(endTime).toISOString()}`);
+  console.log(`[package] electron-builder duration: ${Math.round((endTime - startTime) / 1000)}s`);
 
 } finally {
   // Restore the symlink
