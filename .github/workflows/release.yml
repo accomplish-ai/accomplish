@@ -108,24 +108,46 @@ jobs:
           cd apps/desktop
           npm version ${{ steps.bump.outputs.new_version }} --no-git-tag-version
 
-      - name: Validate no existing GitHub release
+      - name: Validate no previous release artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.bump.outputs.new_version }}"
+          echo "=== Validating no stale artifacts exist for v${VERSION} ==="
 
+          CONFLICTS=""
+
+          # Check for existing tag
+          if git ls-remote --tags origin | grep -q "refs/tags/v${VERSION}$"; then
+            CONFLICTS="${CONFLICTS}\n  - Tag: v${VERSION} (delete with: git push origin --delete v${VERSION})"
+          fi
+
+          # Check for existing branch
+          if git ls-remote --heads origin | grep -q "refs/heads/release/v${VERSION}$"; then
+            CONFLICTS="${CONFLICTS}\n  - Branch: release/v${VERSION} (delete with: git push origin --delete release/v${VERSION})"
+          fi
+
+          # Check for existing GitHub release
           if gh release view "v${VERSION}" &>/dev/null; then
+            CONFLICTS="${CONFLICTS}\n  - GitHub Release: v${VERSION} (delete with: gh release delete v${VERSION} --yes --cleanup-tag)"
+          fi
+
+          if [ -n "$CONFLICTS" ]; then
+            echo ""
             echo "============================================"
-            echo "ERROR: GitHub Release v${VERSION} already exists"
+            echo "ERROR: Found existing release artifacts for v${VERSION}"
             echo "============================================"
             echo ""
-            echo "Delete it before re-running:"
-            echo "  gh release delete v${VERSION} --yes --cleanup-tag"
+            echo "The following resources must be manually deleted before re-running:"
+            echo -e "$CONFLICTS"
+            echo ""
+            echo "This usually happens when a previous release attempt or dry run"
+            echo "partially completed. Clean up the resources above and re-run."
             echo "============================================"
             exit 1
           fi
 
-          echo "No existing release found, safe to proceed"
+          echo "No conflicts found, safe to proceed"
 
       - name: Create release PR and merge
         if: steps.inputs.outputs.dry_run != 'true'
