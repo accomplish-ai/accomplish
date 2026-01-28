@@ -276,6 +276,10 @@ function validateConfig(config: EvalConfig): string | null {
 export async function runEvalMode(config: EvalConfig): Promise<never> {
   console.log('[Eval Mode] Starting eval mode...');
 
+  // Use environment variables for API keys instead of secure storage
+  // This enables running in containers/CI where secure storage is unavailable
+  process.env.OPENWORK_PREFER_ENV_KEYS = '1';
+
   // Validate configuration
   const validationError = validateConfig(config);
   if (validationError) {
