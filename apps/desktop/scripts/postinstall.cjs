@@ -23,7 +23,7 @@ process.env.OPENWORK_POSTINSTALL_RUNNING = '1';
 
 const isWindows = process.platform === 'win32';
 
-function runCommand(command, description) {
+function runCommand(command, description, extraEnv = {}) {
   console.log(`\n> ${description}...`);
   try {
     execSync(command, {
@@ -33,6 +33,7 @@ function runCommand(command, description) {
       env: {
         ...process.env,
         OPENWORK_POSTINSTALL_RUNNING: '1',
+        ...extraEnv,
       }
     });
   } catch (error) {
@@ -99,7 +100,14 @@ const useBundledSkills = process.env.OPENWORK_BUNDLED_SKILLS === '1' || process.
 
 // Install shared skills runtime dependencies (Playwright) at skills/ root
 if (useBundledSkills) {
-  runCommand('npm --prefix skills install --omit=dev', 'Installing shared skills runtime dependencies');
+  runCommand(
+    'npm --prefix skills install --omit=dev',
+    'Installing shared skills runtime dependencies',
+    {
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',
+      PLAYWRIGHT_BROWSERS_PATH: '0',
+    }
+  );
 }
 
 // Install per-skill dependencies for dev/tsx workflows
