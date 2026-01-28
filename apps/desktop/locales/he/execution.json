@@ -98,5 +98,26 @@
   "debug": {
     "title": "לוגי דיבאג",
     "noLogs": "אין עדיין לוגי דיבאג. הרץ משימה כדי לראות לוגים."
+  },
+  "browserScript": {
+    "title": "פעולות דפדפן",
+    "actions": {
+      "navigateTo": "נווט אל {{hostname}}",
+      "navigate": "נווט",
+      "fill": "מלא \"{{text}}\"",
+      "fillField": "מלא שדה",
+      "click": "לחץ על {{target}}",
+      "press": "לחץ {{key}}",
+      "capturePage": "לכוד דף",
+      "screenshot": "צילום מסך",
+      "waitForElement": "המתן לאלמנט",
+      "waitForPage": "המתן לדף",
+      "waitForNavigation": "המתן לניווט",
+      "runScript": "הרץ סקריפט"
+    },
+    "showMore": "+{{count}} עוד",
+    "showLess": "הצג פחות",
+    "showFewerActions": "הצג פחות פעולות",
+    "showMoreActions": "הצג {{count}} פעולות נוספות"
   }
 }

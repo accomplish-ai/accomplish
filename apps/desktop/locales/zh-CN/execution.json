@@ -98,5 +98,26 @@
   "debug": {
     "title": "调试日志",
     "noLogs": "暂无调试日志。运行任务后将显示日志。"
+  },
+  "browserScript": {
+    "title": "浏览器操作",
+    "actions": {
+      "navigateTo": "导航到 {{hostname}}",
+      "navigate": "导航",
+      "fill": "填写 \"{{text}}\"",
+      "fillField": "填写字段",
+      "click": "点击 {{target}}",
+      "press": "按 {{key}}",
+      "capturePage": "捕获页面",
+      "screenshot": "截图",
+      "waitForElement": "等待元素",
+      "waitForPage": "等待页面",
+      "waitForNavigation": "等待导航",
+      "runScript": "运行脚本"
+    },
+    "showMore": "+{{count}} 更多",
+    "showLess": "收起",
+    "showFewerActions": "显示更少操作",
+    "showMoreActions": "显示 {{count}} 更多操作"
   }
 }

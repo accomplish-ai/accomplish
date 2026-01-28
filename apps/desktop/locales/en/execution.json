@@ -98,5 +98,26 @@
   "debug": {
     "title": "Debug Logs",
     "noLogs": "No debug logs yet. Run a task to see logs."
+  },
+  "browserScript": {
+    "title": "Browser Actions",
+    "actions": {
+      "navigateTo": "Navigate to {{hostname}}",
+      "navigate": "Navigate",
+      "fill": "Fill \"{{text}}\"",
+      "fillField": "Fill field",
+      "click": "Click {{target}}",
+      "press": "Press {{key}}",
+      "capturePage": "Capture page",
+      "screenshot": "Screenshot",
+      "waitForElement": "Wait for element",
+      "waitForPage": "Wait for page",
+      "waitForNavigation": "Wait for navigation",
+      "runScript": "Run script"
+    },
+    "showMore": "+{{count}} more",
+    "showLess": "Show less",
+    "showFewerActions": "Show fewer actions",
+    "showMoreActions": "Show {{count}} more actions"
   }
 }
