@@ -62,7 +62,7 @@ export function ConnectionStatus({
   return (
     <div className="flex items-center gap-2">
       <button
-        className="flex-1 flex items-center justify-center gap-2 rounded-md bg-[#4A7C59] px-4 py-2.5 text-sm font-medium text-white"
+        className="flex flex-1 items-center justify-center gap-2 rounded-md bg-[#4A7C59] px-4 py-2.5 text-sm font-medium text-white"
         disabled
       >
         <svg
@@ -84,7 +84,7 @@ export function ConnectionStatus({
         <button
           onClick={onDisconnect}
           data-testid="disconnect-button"
-          className="rounded-md border border-border p-2.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+          className="rounded-md border border-border p-2.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
           title="Disconnect"
         >
           <svg

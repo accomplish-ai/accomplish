@@ -10,9 +10,9 @@ export function ProviderFormHeader({
   providerName,
 }: ProviderFormHeaderProps) {
   return (
-    <div className="flex items-center gap-3 mb-5">
+    <div className="mb-5 flex items-center gap-3">
       {/* Fixed-size container to prevent layout shift when switching providers */}
-      <div className="h-8 w-8 flex items-center justify-center flex-shrink-0">
+      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center">
         <img
           src={logoSrc}
           alt={`${providerName} logo`}

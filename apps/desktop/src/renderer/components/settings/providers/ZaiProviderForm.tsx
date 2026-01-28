@@ -138,7 +138,7 @@ export function ZaiProviderForm({
                   <button
                     type="button"
                     onClick={() => setRegion('china')}
-                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                       region === 'china'
                         ? 'bg-[#4A7C59] text-white'
                         : 'bg-muted text-muted-foreground hover:text-foreground'
@@ -149,7 +149,7 @@ export function ZaiProviderForm({
                   <button
                     type="button"
                     onClick={() => setRegion('international')}
-                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                       region === 'international'
                         ? 'bg-[#4A7C59] text-white'
                         : 'bg-muted text-muted-foreground hover:text-foreground'
@@ -162,7 +162,7 @@ export function ZaiProviderForm({
 
               {/* API Key Section */}
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="mb-2 flex items-center justify-between">
                   <label className="text-sm font-medium text-foreground">
                     API Key
                   </label>
@@ -171,7 +171,7 @@ export function ZaiProviderForm({
                       href={meta.helpUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-muted-foreground hover:text-primary underline"
+                      className="text-sm text-muted-foreground underline hover:text-primary"
                     >
                       How can I find it?
                     </a>
@@ -189,7 +189,7 @@ export function ZaiProviderForm({
                   />
                   <button
                     onClick={() => setApiKey('')}
-                    className="rounded-md border border-border p-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                    className="rounded-md border border-border p-2.5 text-muted-foreground transition-colors hover:text-foreground"
                     type="button"
                     disabled={!apiKey}
                   >

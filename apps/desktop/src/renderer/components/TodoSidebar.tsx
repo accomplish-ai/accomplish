@@ -20,20 +20,20 @@ export function TodoSidebar({ todos }: TodoSidebarProps) {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className="w-[250px] border-l border-border bg-card/50 flex flex-col"
+      className="flex w-[250px] flex-col border-l border-border bg-card/50"
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border">
-        <div className="flex items-center justify-between mb-2">
+      <div className="border-b border-border px-4 py-3">
+        <div className="mb-2 flex items-center justify-between">
           <span className="text-sm font-medium text-foreground">Tasks</span>
           <span className="text-xs text-muted-foreground">
             {completed} of {total}
           </span>
         </div>
         {/* Progress bar */}
-        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
           <motion.div
-            className="h-full bg-primary rounded-full"
+            className="h-full rounded-full bg-primary"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.3 }}
@@ -57,7 +57,7 @@ function TodoListItem({ todo }: { todo: TodoItem }) {
   return (
     <li
       className={cn(
-        'flex items-start gap-2 px-2 py-1.5 rounded-md border-l-2 border-l-border',
+        'flex items-start gap-2 rounded-md border-l-2 border-l-border px-2 py-1.5',
         todo.status === 'completed' && 'border-l-primary',
         todo.status === 'in_progress' && 'border-l-primary',
         todo.status === 'cancelled' && 'opacity-50'
@@ -66,8 +66,8 @@ function TodoListItem({ todo }: { todo: TodoItem }) {
       <StatusIcon status={todo.status} />
       <span
         className={cn(
-          'text-xs text-foreground leading-snug',
-          todo.status === 'cancelled' && 'line-through text-muted-foreground'
+          'text-xs leading-snug text-foreground',
+          todo.status === 'cancelled' && 'text-muted-foreground line-through'
         )}
       >
         {todo.content}
@@ -80,20 +80,20 @@ function StatusIcon({ status }: { status: TodoItem['status'] }) {
   switch (status) {
     case 'completed':
       return (
-        <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
       );
     case 'in_progress':
       return (
-        <Loader2 className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5 animate-spin" />
+        <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
       );
     case 'cancelled':
       return (
-        <XCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+        <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       );
     case 'pending':
     default:
       return (
-        <Circle className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+        <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       );
   }
 }

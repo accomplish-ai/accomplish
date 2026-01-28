@@ -127,7 +127,7 @@ export function AzureFoundryProviderForm({
               <button
                 onClick={() => setAuthType('api-key')}
                 data-testid="azure-foundry-auth-api-key"
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   authType === 'api-key'
                     ? 'bg-[#0078D4] text-white'
                     : 'bg-muted text-muted-foreground hover:text-foreground'
@@ -138,7 +138,7 @@ export function AzureFoundryProviderForm({
               <button
                 onClick={() => setAuthType('entra-id')}
                 data-testid="azure-foundry-auth-entra-id"
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   authType === 'entra-id'
                     ? 'bg-[#0078D4] text-white'
                     : 'bg-muted text-muted-foreground hover:text-foreground'
@@ -151,7 +151,7 @@ export function AzureFoundryProviderForm({
             {authType === 'entra-id' && (
               <p className="text-xs text-muted-foreground">
                 Uses your Azure CLI credentials. Run{' '}
-                <code className="bg-muted px-1 rounded">az login</code> first.
+                <code className="rounded bg-muted px-1">az login</code> first.
               </p>
             )}
 

@@ -93,13 +93,13 @@
     "jsdom": "^27.4.0",
     "postcss": "^8.4.49",
     "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.7.2",
     "vite": "^6.0.6",
     "vite-plugin-electron": "^0.28.8",
-    "vitest": "^4.0.17",
-    "prettier": "^3.5.0"
+    "vitest": "^4.0.17"
   },
   "build": {
     "npmRebuild": false,

@@ -77,11 +77,11 @@ export const ProviderCard = memo(function ProviderCard({
     <button
       onClick={handleClick}
       data-testid={`provider-card-${providerId}`}
-      className={`relative flex flex-col items-center justify-center rounded-xl border p-4 w-[130px] h-[110px] transition-[background-color,border-color] duration-150 ${
+      className={`relative flex h-[110px] w-[130px] flex-col items-center justify-center rounded-xl border p-4 transition-[background-color,border-color] duration-150 ${
         showGreenBackground
-          ? 'border-[#4a4330] border-2 bg-[#e9f7e7]'
+          ? 'border-2 border-[#4a4330] bg-[#e9f7e7]'
           : isSelected
-            ? 'border-[#4a4330] border-2 bg-[#f9f8f6]'
+            ? 'border-2 border-[#4a4330] bg-[#f9f8f6]'
             : 'border-border bg-[#f9f8f6] hover:border-ring'
       }`}
     >
@@ -89,7 +89,7 @@ export const ProviderCard = memo(function ProviderCard({
       <AnimatePresence>
         {isConnected && (
           <motion.div
-            className="absolute top-2 right-2"
+            className="absolute right-2 top-2"
             data-testid={`provider-connected-badge-${providerId}`}
             variants={settingsVariants.fadeSlide}
             initial="initial"
@@ -110,7 +110,7 @@ export const ProviderCard = memo(function ProviderCard({
       </AnimatePresence>
 
       {/* Provider Logo */}
-      <div className="mb-2 h-10 w-10 flex items-center justify-center">
+      <div className="mb-2 flex h-10 w-10 items-center justify-center">
         <img
           src={logoSrc}
           alt={`${meta.name} logo`}

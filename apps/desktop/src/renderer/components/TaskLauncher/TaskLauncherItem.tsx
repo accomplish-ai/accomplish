@@ -28,14 +28,14 @@ function formatRelativeDate(dateString: string): string {
 function getStatusIcon(status: Task['status']) {
   switch (status) {
     case 'running':
-      return <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />;
+      return <Loader2 className="h-3 w-3 shrink-0 animate-spin text-primary" />;
     case 'completed':
-      return <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />;
+      return <CheckCircle2 className="h-3 w-3 shrink-0 text-green-500" />;
     case 'failed':
-      return <XCircle className="h-3 w-3 text-destructive shrink-0" />;
+      return <XCircle className="h-3 w-3 shrink-0 text-destructive" />;
     case 'cancelled':
     case 'interrupted':
-      return <AlertCircle className="h-3 w-3 text-yellow-500 shrink-0" />;
+      return <AlertCircle className="h-3 w-3 shrink-0 text-yellow-500" />;
     default:
       return null;
   }
@@ -50,7 +50,7 @@ export default function TaskLauncherItem({
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-3 py-2 rounded-md text-sm transition-colors duration-100',
+        'w-full rounded-md px-3 py-2 text-left text-sm transition-colors duration-100',
         'flex items-center gap-2',
         isSelected
           ? 'bg-primary text-primary-foreground'
@@ -58,10 +58,10 @@ export default function TaskLauncherItem({
       )}
     >
       {getStatusIcon(task.status)}
-      <span className="truncate flex-1">{task.prompt}</span>
+      <span className="flex-1 truncate">{task.prompt}</span>
       <span
         className={cn(
-          'text-xs shrink-0',
+          'shrink-0 text-xs',
           isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'
         )}
       >

@@ -149,21 +149,21 @@ export default function TaskLauncher() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -10 }}
                 transition={springs.bouncy}
-                className="w-full max-w-lg bg-card border border-border rounded-lg shadow-2xl overflow-hidden"
+                className="w-full max-w-lg overflow-hidden rounded-lg border border-border bg-card shadow-2xl"
               >
                 {/* Search Input */}
-                <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-                  <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+                  <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <Input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search tasks..."
-                    className="border-0 px-0 py-1 h-full focus:outline-none focus-visible:ring-0"
+                    className="h-full border-0 px-0 py-1 focus:outline-none focus-visible:ring-0"
                   />
                   <DialogPrimitive.Close asChild>
                     <button
-                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      className="text-muted-foreground transition-colors hover:text-foreground"
                       aria-label="Close"
                     >
                       <X className="h-4 w-4" />
@@ -177,7 +177,7 @@ export default function TaskLauncher() {
                   <button
                     onClick={() => handleSelect(0)}
                     className={cn(
-                      'w-full text-left px-3 py-2 rounded-md text-sm transition-colors duration-100',
+                      'w-full rounded-md px-3 py-2 text-left text-sm transition-colors duration-100',
                       'flex items-center gap-2',
                       selectedIndex === 0
                         ? 'bg-primary text-primary-foreground'
@@ -189,7 +189,7 @@ export default function TaskLauncher() {
                     {searchQuery.trim() && (
                       <span
                         className={cn(
-                          'text-xs truncate',
+                          'truncate text-xs',
                           selectedIndex === 0
                             ? 'text-primary-foreground/70'
                             : 'text-muted-foreground'
@@ -219,28 +219,28 @@ export default function TaskLauncher() {
 
                   {/* Empty State */}
                   {searchQuery.trim() && filteredTasks.length === 0 && (
-                    <div className="px-3 py-4 text-sm text-muted-foreground text-center">
+                    <div className="px-3 py-4 text-center text-sm text-muted-foreground">
                       No tasks found
                     </div>
                   )}
                 </div>
 
                 {/* Footer hint */}
-                <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground flex items-center gap-4">
+                <div className="flex items-center gap-4 border-t border-border px-4 py-2 text-xs text-muted-foreground">
                   <span>
-                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
+                    <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px]">
                       ↑↓
                     </kbd>{' '}
                     Navigate
                   </span>
                   <span>
-                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
+                    <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px]">
                       ↵
                     </kbd>{' '}
                     Select
                   </span>
                   <span>
-                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
+                    <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px]">
                       Esc
                     </kbd>{' '}
                     Close

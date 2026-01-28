@@ -10,7 +10,7 @@ export function ConnectedControls({ onDisconnect }: ConnectedControlsProps) {
   return (
     <div className="flex gap-4">
       <button
-        className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-[#e6e3dd] bg-[#e9f7e7] px-4 py-2.5 text-sm font-semibold text-[#244325] shadow-sm"
+        className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#e6e3dd] bg-[#e9f7e7] px-4 py-2.5 text-sm font-semibold text-[#244325] shadow-sm"
         disabled
       >
         <img src={connectedIcon} alt="" className="h-4 w-4" />
@@ -19,7 +19,7 @@ export function ConnectedControls({ onDisconnect }: ConnectedControlsProps) {
       <button
         onClick={onDisconnect}
         data-testid="disconnect-button"
-        className="rounded-lg border border-[#d7d3ca] bg-[#f9f8f6] p-2.5 text-muted-foreground shadow-sm hover:bg-destructive/10 hover:text-destructive transition-colors"
+        className="rounded-lg border border-[#d7d3ca] bg-[#f9f8f6] p-2.5 text-muted-foreground shadow-sm transition-colors hover:bg-destructive/10 hover:text-destructive"
         title="Disconnect"
       >
         <svg

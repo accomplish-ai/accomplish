@@ -177,8 +177,8 @@ export default function HomePage() {
         onApiKeySaved={handleApiKeySaved}
         initialTab={settingsInitialTab}
       />
-      <div className="h-full flex items-center justify-center p-6 overflow-y-auto bg-accent">
-        <div className="w-full max-w-2xl flex flex-col items-center gap-8">
+      <div className="flex h-full items-center justify-center overflow-y-auto bg-accent p-6">
+        <div className="flex w-full max-w-2xl flex-col items-center gap-8">
           {/* Main Title */}
           <motion.h1
             data-testid="home-title"
@@ -196,8 +196,8 @@ export default function HomePage() {
             transition={{ ...springs.gentle, delay: 0.1 }}
             className="w-full"
           >
-            <Card className="w-full bg-card/95 backdrop-blur-md shadow-xl gap-0 py-0 flex flex-col max-h-[calc(100vh-3rem)]">
-              <CardContent className="p-6 pb-4 flex-shrink-0">
+            <Card className="flex max-h-[calc(100vh-3rem)] w-full flex-col gap-0 bg-card/95 py-0 shadow-xl backdrop-blur-md">
+              <CardContent className="flex-shrink-0 p-6 pb-4">
                 {/* Input Section */}
                 <TaskInputBar
                   value={prompt}
@@ -215,7 +215,7 @@ export default function HomePage() {
               <div className="border-t border-border">
                 <button
                   onClick={() => setShowExamples(!showExamples)}
-                  className="w-full px-6 py-3 flex items-center justify-between text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-200"
+                  className="flex w-full items-center justify-between px-6 py-3 text-sm text-muted-foreground transition-colors duration-200 hover:bg-muted/50 hover:text-foreground"
                 >
                   <span>Example prompts</span>
                   <motion.div
@@ -236,7 +236,7 @@ export default function HomePage() {
                       className="overflow-hidden"
                     >
                       <div
-                        className="px-6 pt-1 pb-4 overflow-y-auto max-h-[360px]"
+                        className="max-h-[360px] overflow-y-auto px-6 pb-4 pt-1"
                         style={{
                           background:
                             'linear-gradient(to bottom, hsl(var(--muted)) 0%, hsl(var(--background)) 100%)',
@@ -261,18 +261,18 @@ export default function HomePage() {
                               }}
                               whileTap={{ scale: 0.97 }}
                               onClick={() => handleExampleClick(example.prompt)}
-                              className="flex flex-col items-center gap-2 p-3 rounded-lg border border-border bg-card hover:border-ring hover:bg-muted/50"
+                              className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-3 hover:border-ring hover:bg-muted/50"
                             >
                               <img
                                 src={example.image}
                                 alt={example.title}
-                                className="w-12 h-12 object-cover rounded"
+                                className="h-12 w-12 rounded object-cover"
                               />
-                              <div className="flex flex-col items-center gap-1 w-full">
-                                <div className="font-medium text-xs text-foreground text-center">
+                              <div className="flex w-full flex-col items-center gap-1">
+                                <div className="text-center text-xs font-medium text-foreground">
                                   {example.title}
                                 </div>
-                                <div className="text-xs text-muted-foreground text-center line-clamp-2">
+                                <div className="line-clamp-2 text-center text-xs text-muted-foreground">
                                   {example.description}
                                 </div>
                               </div>

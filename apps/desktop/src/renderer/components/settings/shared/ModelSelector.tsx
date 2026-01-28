@@ -87,7 +87,7 @@ export function ModelSelector({
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             data-testid="model-selector"
-            className={`w-full appearance-none rounded-md border bg-background pl-3 pr-10 py-2.5 text-sm ${
+            className={`w-full appearance-none rounded-md border bg-background py-2.5 pl-3 pr-10 text-sm ${
               error ? 'border-destructive' : 'border-input'
             }`}
           >
@@ -101,7 +101,7 @@ export function ModelSelector({
             ))}
           </select>
           <svg
-            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+            className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -137,7 +137,7 @@ export function ModelSelector({
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           data-testid="model-selector"
-          className={`w-full rounded-md border bg-background px-3 py-2.5 text-sm text-left flex items-center justify-between ${
+          className={`flex w-full items-center justify-between rounded-md border bg-background px-3 py-2.5 text-left text-sm ${
             error ? 'border-destructive' : 'border-input'
           }`}
         >
@@ -162,7 +162,7 @@ export function ModelSelector({
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              className="absolute z-50 w-full mt-1 rounded-md border border-input bg-background shadow-lg"
+              className="absolute z-50 mt-1 w-full rounded-md border border-input bg-background shadow-lg"
               variants={settingsVariants.scaleDropdown}
               initial="initial"
               animate="animate"
@@ -171,7 +171,7 @@ export function ModelSelector({
               style={{ transformOrigin: 'top' }}
             >
               {/* Search input */}
-              <div className="p-2 border-b border-input">
+              <div className="border-b border-input p-2">
                 <input
                   ref={inputRef}
                   type="text"
@@ -198,7 +198,7 @@ export function ModelSelector({
                         setIsOpen(false);
                         setSearch('');
                       }}
-                      className={`w-full px-3 py-2 text-sm text-left hover:bg-muted ${
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-muted ${
                         model.id === value ? 'bg-muted font-medium' : ''
                       }`}
                     >

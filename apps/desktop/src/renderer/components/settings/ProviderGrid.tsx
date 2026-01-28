@@ -57,11 +57,11 @@ export function ProviderGrid({
       data-testid="provider-grid"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <span className="text-sm font-medium text-foreground">Providers</span>
         <div className="relative">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -79,7 +79,7 @@ export function ProviderGrid({
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search Providers"
             data-testid="provider-search-input"
-            className="w-48 rounded-md border border-input bg-background pl-9 pr-3 py-1.5 text-sm"
+            className="w-48 rounded-md border border-input bg-background py-1.5 pl-9 pr-3 text-sm"
           />
           {search && (
             <button
@@ -105,7 +105,7 @@ export function ProviderGrid({
       </div>
 
       {/* Providers - first 4 always visible */}
-      <div className="grid grid-cols-4 gap-3 min-h-[110px] justify-items-center">
+      <div className="grid min-h-[110px] grid-cols-4 justify-items-center gap-3">
         {filteredProviders.slice(0, 4).map((providerId) => (
           <ProviderCard
             key={providerId}
@@ -122,7 +122,7 @@ export function ProviderGrid({
       <AnimatePresence mode="sync">
         {expanded && filteredProviders.length > 4 && (
           <motion.div
-            className="grid grid-cols-4 gap-3 mt-3 justify-items-center overflow-hidden"
+            className="mt-3 grid grid-cols-4 justify-items-center gap-3 overflow-hidden"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -149,10 +149,10 @@ export function ProviderGrid({
       </AnimatePresence>
 
       {/* Show All / Hide toggle */}
-      <div className="mt-4 text-center border-t border-border pt-3">
+      <div className="mt-4 border-t border-border pt-3 text-center">
         <button
           onClick={onToggleExpanded}
-          className="text-sm text-muted-foreground hover:text-foreground font-medium"
+          className="text-sm font-medium text-muted-foreground hover:text-foreground"
           data-testid="show-all-toggle"
         >
           {expanded ? 'Hide' : 'Show All'}

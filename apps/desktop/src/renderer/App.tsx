@@ -124,7 +124,7 @@ export default function App() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Invisible drag region for window dragging (macOS hiddenInset titlebar) */}
-      <div className="drag-region fixed top-0 left-0 right-0 h-10 z-50 pointer-events-none" />
+      <div className="drag-region pointer-events-none fixed left-0 right-0 top-0 z-50 h-10" />
       <Sidebar />
       <main className="flex-1 overflow-hidden">
         <AnimatePresence mode="wait">

@@ -21,7 +21,7 @@ export function ApiKeyInput({
 }: ApiKeyInputProps) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
+      <div className="mb-2 flex items-center justify-between">
         <label className="text-sm font-medium text-foreground">{label}</label>
         {helpUrl && (
           <a
@@ -42,7 +42,7 @@ export function ApiKeyInput({
           placeholder={placeholder}
           disabled={disabled}
           data-testid="api-key-input"
-          className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm pr-10 disabled:opacity-50"
+          className="w-full rounded-md border border-input bg-background px-3 py-2.5 pr-10 text-sm disabled:opacity-50"
         />
         {value && (
           <button

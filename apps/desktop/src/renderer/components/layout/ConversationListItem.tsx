@@ -49,18 +49,18 @@ export default function ConversationListItem({
     switch (task.status) {
       case 'running':
         return (
-          <Loader2 className="h-3 w-3 animate-spin-ccw text-primary shrink-0" />
+          <Loader2 className="h-3 w-3 shrink-0 animate-spin-ccw text-primary" />
         );
       case 'completed':
-        return <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />;
+        return <CheckCircle2 className="h-3 w-3 shrink-0 text-green-500" />;
       case 'failed':
-        return <XCircle className="h-3 w-3 text-red-500 shrink-0" />;
+        return <XCircle className="h-3 w-3 shrink-0 text-red-500" />;
       case 'cancelled':
-        return <Square className="h-3 w-3 text-zinc-400 shrink-0" />;
+        return <Square className="h-3 w-3 shrink-0 text-zinc-400" />;
       case 'interrupted':
-        return <PauseCircle className="h-3 w-3 text-amber-500 shrink-0" />;
+        return <PauseCircle className="h-3 w-3 shrink-0 text-amber-500" />;
       case 'queued':
-        return <Clock className="h-3 w-3 text-amber-500 shrink-0" />;
+        return <Clock className="h-3 w-3 shrink-0 text-amber-500" />;
       default:
         return null;
     }
@@ -79,21 +79,21 @@ export default function ConversationListItem({
       }}
       title={task.summary || task.prompt}
       className={cn(
-        'w-full text-left px-3 py-2 rounded-md text-sm transition-colors duration-200',
+        'w-full rounded-md px-3 py-2 text-left text-sm transition-colors duration-200',
         'text-zinc-700 hover:bg-accent hover:text-accent-foreground',
-        'flex items-center gap-2 group relative cursor-pointer',
+        'group relative flex cursor-pointer items-center gap-2',
         isActive && 'bg-accent text-accent-foreground'
       )}
     >
       {getStatusIcon()}
-      <span className="block truncate flex-1">
+      <span className="block flex-1 truncate">
         {task.summary || task.prompt}
       </span>
       <button
         onClick={handleDelete}
         className={cn(
-          'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
-          'p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20',
+          'opacity-0 transition-opacity duration-200 group-hover:opacity-100',
+          'rounded p-1 hover:bg-red-100 dark:hover:bg-red-900/20',
           'text-zinc-400 hover:text-red-600 dark:hover:text-red-400',
           'shrink-0'
         )}

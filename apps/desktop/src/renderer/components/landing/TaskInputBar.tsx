@@ -111,7 +111,7 @@ export default function TaskInputBar({
       {speechInput.error && (
         <Alert
           variant="destructive"
-          className="py-2 px-3 flex items-center gap-2 [&>svg]:static [&>svg~*]:pl-0"
+          className="flex items-center gap-2 px-3 py-2 [&>svg]:static [&>svg~*]:pl-0"
         >
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-xs leading-tight">

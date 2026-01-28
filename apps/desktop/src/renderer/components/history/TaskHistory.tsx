@@ -22,7 +22,7 @@ export default function TaskHistory({
 
   if (displayedTasks.length === 0) {
     return (
-      <div className="text-center py-8">
+      <div className="py-8 text-center">
         <p className="text-text-muted">
           No tasks yet. Start by describing what you want to accomplish.
         </p>
@@ -33,7 +33,7 @@ export default function TaskHistory({
   return (
     <div>
       {showTitle && (
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-medium text-text">Recent Tasks</h2>
           {tasks.length > 0 && !limit && (
             <button
@@ -44,7 +44,7 @@ export default function TaskHistory({
                   clearHistory();
                 }
               }}
-              className="text-sm text-text-muted hover:text-danger transition-colors"
+              className="text-sm text-text-muted transition-colors hover:text-danger"
             >
               Clear all
             </button>
@@ -65,7 +65,7 @@ export default function TaskHistory({
       {limit && tasks.length > limit && (
         <Link
           to="/history"
-          className="block mt-4 text-center text-sm text-text-muted hover:text-text transition-colors"
+          className="mt-4 block text-center text-sm text-text-muted transition-colors hover:text-text"
         >
           View all {tasks.length} tasks
         </Link>
@@ -96,17 +96,17 @@ function TaskHistoryItem({
   return (
     <Link
       to={`/execution/${task.id}`}
-      className="flex items-center gap-4 p-4 rounded-card border border-border bg-background-card hover:shadow-card-hover transition-all"
+      className="flex items-center gap-4 rounded-card border border-border bg-background-card p-4 transition-all hover:shadow-card-hover"
     >
-      <div className={`w-2 h-2 rounded-full ${config.color}`} />
-      <div className="flex-1 min-w-0">
+      <div className={`h-2 w-2 rounded-full ${config.color}`} />
+      <div className="min-w-0 flex-1">
         <p
-          className="text-sm text-text truncate"
+          className="truncate text-sm text-text"
           title={task.summary || task.prompt}
         >
           {task.summary || task.prompt}
         </p>
-        <p className="text-xs text-text-muted mt-1">
+        <p className="mt-1 text-xs text-text-muted">
           {config.label} · {timeAgo} · {task.messages.length} messages
         </p>
       </div>
@@ -118,7 +118,7 @@ function TaskHistoryItem({
             onDelete();
           }
         }}
-        className="p-2 text-text-muted hover:text-danger transition-colors"
+        className="p-2 text-text-muted transition-colors hover:text-danger"
       >
         <svg
           className="h-4 w-4"

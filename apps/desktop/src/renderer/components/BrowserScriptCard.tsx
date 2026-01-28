@@ -124,7 +124,7 @@ function ActionChip({ action }: { action: BrowserAction }) {
   const label = formatActionLabel(action);
 
   return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-muted text-muted-foreground border border-border whitespace-nowrap">
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
       <Icon className="h-3 w-3 shrink-0" />
       <span>{label}</span>
     </span>
@@ -133,7 +133,7 @@ function ActionChip({ action }: { action: BrowserAction }) {
 
 // Arrow separator
 function Arrow() {
-  return <ChevronRight className="h-3 w-3 text-muted-foreground/50 shrink-0" />;
+  return <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />;
 }
 
 // Generate stable key for action based on content, not index
@@ -195,15 +195,15 @@ export const BrowserScriptCard = memo(function BrowserScriptCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={springs.gentle}
-      className="bg-muted border border-border rounded-2xl px-4 py-3 max-w-[85%]"
+      className="max-w-[85%] rounded-2xl border border-border bg-muted px-4 py-3"
     >
       {/* Header */}
-      <div className="flex items-center gap-2 mb-2">
+      <div className="mb-2 flex items-center gap-2">
         <Globe className="h-4 w-4 text-primary" />
         <span className="text-sm font-medium text-primary">
           Browser Actions
         </span>
-        {isRunning && <SpinningIcon className="h-3.5 w-3.5 ml-auto" />}
+        {isRunning && <SpinningIcon className="ml-auto h-3.5 w-3.5" />}
       </div>
 
       {/* Action chips */}
@@ -237,9 +237,9 @@ export const BrowserScriptCard = memo(function BrowserScriptCard({
                   : `Show ${hiddenCount} more actions`
               }
               className={cn(
-                'inline-flex items-center px-2 py-1 rounded-md text-xs font-medium',
-                'bg-primary/10 text-primary cursor-pointer',
-                'hover:bg-primary/20 transition-colors',
+                'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium',
+                'cursor-pointer bg-primary/10 text-primary',
+                'transition-colors hover:bg-primary/20',
                 'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1'
               )}
             >

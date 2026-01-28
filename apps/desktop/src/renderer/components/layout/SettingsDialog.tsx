@@ -297,7 +297,7 @@ export default function SettingsDialog({
     return (
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent
-          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          className="max-h-[90vh] max-w-2xl overflow-y-auto"
           data-testid="settings-dialog"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
@@ -315,7 +315,7 @@ export default function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="max-h-[90vh] max-w-2xl overflow-y-auto"
         data-testid="settings-dialog"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
@@ -323,14 +323,14 @@ export default function SettingsDialog({
           <DialogTitle>Set up Openwork</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 mt-4">
+        <div className="mt-4 space-y-6">
           {/* Tab Navigation */}
           <div className="flex gap-4 border-b border-border">
             <button
               onClick={() => setActiveTab('providers')}
-              className={`pb-3 px-1 font-medium text-sm transition-colors ${
+              className={`px-1 pb-3 text-sm font-medium transition-colors ${
                 activeTab === 'providers'
-                  ? 'text-foreground border-b-2 border-primary'
+                  ? 'border-b-2 border-primary text-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -338,9 +338,9 @@ export default function SettingsDialog({
             </button>
             <button
               onClick={() => setActiveTab('voice')}
-              className={`pb-3 px-1 font-medium text-sm transition-colors ${
+              className={`px-1 pb-3 text-sm font-medium transition-colors ${
                 activeTab === 'voice'
-                  ? 'text-foreground border-b-2 border-primary'
+                  ? 'border-b-2 border-primary text-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -364,7 +364,7 @@ export default function SettingsDialog({
                   >
                     <div className="flex items-start gap-3">
                       <svg
-                        className="h-5 w-5 text-warning flex-shrink-0 mt-0.5"
+                        className="mt-0.5 h-5 w-5 flex-shrink-0 text-warning"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -387,7 +387,7 @@ export default function SettingsDialog({
                         <div className="mt-3 flex gap-2">
                           <button
                             onClick={handleForceClose}
-                            className="rounded-md px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
+                            className="rounded-md bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/80"
                           >
                             Close Anyway
                           </button>
@@ -450,7 +450,7 @@ export default function SettingsDialog({
                           <div className="font-medium text-foreground">
                             Debug Mode
                           </div>
-                          <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                             Show detailed backend logs in the task view.
                           </p>
                         </div>

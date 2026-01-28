@@ -145,7 +145,7 @@ function LMStudioModelSelector({
       <select
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full rounded-md border px-3 py-2.5 text-sm bg-background ${
+        className={`w-full rounded-md border bg-background px-3 py-2.5 text-sm ${
           error ? 'border-destructive' : 'border-input'
         }`}
       >
@@ -166,7 +166,7 @@ function LMStudioModelSelector({
       {hasUnsupportedSelected && (
         <div className="mt-2 flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
           <svg
-            className="h-5 w-5 flex-shrink-0 mt-0.5"
+            className="mt-0.5 h-5 w-5 flex-shrink-0"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -182,7 +182,7 @@ function LMStudioModelSelector({
             <p className="font-medium">
               This model does not support tool/function calling
             </p>
-            <p className="text-red-400/80 mt-1">
+            <p className="mt-1 text-red-400/80">
               Tasks requiring browser automation or file operations will not
               work correctly.
             </p>
@@ -193,7 +193,7 @@ function LMStudioModelSelector({
       {hasUnknownSelected && (
         <div className="mt-2 flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-400">
           <svg
-            className="h-5 w-5 flex-shrink-0 mt-0.5"
+            className="mt-0.5 h-5 w-5 flex-shrink-0"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -207,7 +207,7 @@ function LMStudioModelSelector({
           </svg>
           <div>
             <p className="font-medium">Tool support could not be verified</p>
-            <p className="text-yellow-400/80 mt-1">
+            <p className="mt-1 text-yellow-400/80">
               This model may or may not support tool/function calling. Test it
               to confirm.
             </p>
@@ -387,7 +387,7 @@ export function LMStudioProviderForm({
               {/* Context length hint */}
               <div className="flex items-start gap-2 rounded-md border border-blue-500/30 bg-blue-500/10 p-3 text-sm text-blue-400">
                 <svg
-                  className="h-5 w-5 flex-shrink-0 mt-0.5"
+                  className="mt-0.5 h-5 w-5 flex-shrink-0"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -401,7 +401,7 @@ export function LMStudioProviderForm({
                 </svg>
                 <div>
                   <p className="font-medium">Context length requirement</p>
-                  <p className="text-blue-400/80 mt-1">
+                  <p className="mt-1 text-blue-400/80">
                     Ensure your model is loaded with a large enough context
                     length (max available recommended) in LM Studio settings.
                   </p>

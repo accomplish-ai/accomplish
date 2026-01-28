@@ -49,7 +49,7 @@ export default function Sidebar() {
     <>
       <div className="flex h-screen w-[260px] flex-col border-r border-border bg-card pt-12">
         {/* Action Buttons */}
-        <div className="px-3 py-3 border-b border-border flex gap-2">
+        <div className="flex gap-2 border-b border-border px-3 py-3">
           <Button
             data-testid="sidebar-new-task-button"
             onClick={handleNewConversation}
@@ -74,7 +74,7 @@ export default function Sidebar() {
 
         {/* Conversation List */}
         <ScrollArea className="flex-1">
-          <div className="p-2 space-y-1">
+          <div className="space-y-1 p-2">
             <AnimatePresence mode="wait">
               {tasks.length === 0 ? (
                 <motion.div
@@ -104,7 +104,7 @@ export default function Sidebar() {
         </ScrollArea>
 
         {/* Bottom Section - Logo and Settings */}
-        <div className="px-3 py-4 border-t border-border flex items-center justify-between">
+        <div className="flex items-center justify-between border-t border-border px-3 py-4">
           {/* Logo - Bottom Left */}
           <div className="flex items-center">
             <img

@@ -188,7 +188,7 @@ export function SpeechSettingsForm({
             disabled={isLoading || !apiKey.trim()}
             className="flex-1"
           >
-            {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save API Key
           </Button>
         </div>
@@ -208,11 +208,11 @@ export function SpeechSettingsForm({
         )}
 
         {/* Usage Instructions */}
-        <div className="rounded-lg bg-blue-50 dark:bg-blue-950 p-3 text-sm">
-          <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+        <div className="rounded-lg bg-blue-50 p-3 text-sm dark:bg-blue-950">
+          <p className="mb-2 font-medium text-blue-900 dark:text-blue-100">
             How to use:
           </p>
-          <ul className="text-blue-800 dark:text-blue-200 space-y-1 text-xs">
+          <ul className="space-y-1 text-xs text-blue-800 dark:text-blue-200">
             <li>
               • <strong>Click the microphone button</strong> to start recording,
               click again to stop

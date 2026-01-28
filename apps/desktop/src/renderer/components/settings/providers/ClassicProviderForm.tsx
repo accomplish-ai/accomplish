@@ -194,7 +194,7 @@ export function ClassicProviderForm({
             onClick={handleChatGptSignIn}
             disabled={signingIn}
             data-testid="openai-oauth-signin"
-            className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
           >
             <img src={openaiLogo} alt="" className="h-5 w-5" />
             {signingIn ? 'Signing in...' : 'Login with OpenAI'}
@@ -202,9 +202,9 @@ export function ClassicProviderForm({
 
           {/* Divider with "or" */}
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-border" />
+            <div className="h-px flex-1 bg-border" />
             <span className="text-sm text-muted-foreground">or</span>
-            <div className="flex-1 h-px bg-border" />
+            <div className="h-px flex-1 bg-border" />
           </div>
 
           {/* API Key section */}
@@ -218,7 +218,7 @@ export function ClassicProviderForm({
                   href={meta.helpUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-muted-foreground hover:text-primary underline"
+                  className="text-sm text-muted-foreground underline hover:text-primary"
                 >
                   How can I find it?
                 </a>
@@ -236,7 +236,7 @@ export function ClassicProviderForm({
               />
               <button
                 onClick={() => setApiKey('')}
-                className="rounded-md border border-border p-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                className="rounded-md border border-border p-2.5 text-muted-foreground transition-colors hover:text-foreground"
                 type="button"
                 disabled={!apiKey}
               >
@@ -295,7 +295,7 @@ export function ClassicProviderForm({
                 href={meta.helpUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-muted-foreground hover:text-primary underline"
+                className="text-sm text-muted-foreground underline hover:text-primary"
               >
                 How can I find it?
               </a>
@@ -325,7 +325,7 @@ export function ClassicProviderForm({
                   />
                   <button
                     onClick={() => setApiKey('')}
-                    className="rounded-md border border-border p-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                    className="rounded-md border border-border p-2.5 text-muted-foreground transition-colors hover:text-foreground"
                     type="button"
                     disabled={!apiKey}
                   >

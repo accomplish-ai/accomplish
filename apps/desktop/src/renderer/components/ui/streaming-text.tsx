@@ -110,7 +110,7 @@ export function StreamingText({
     <div className={className}>
       {children(displayedText)}
       {isStreaming && displayedLength < text.length && (
-        <span className="inline-block w-2 h-4 bg-foreground/60 animate-pulse ml-0.5 align-text-bottom" />
+        <span className="ml-0.5 inline-block h-4 w-2 animate-pulse bg-foreground/60 align-text-bottom" />
       )}
     </div>
   );

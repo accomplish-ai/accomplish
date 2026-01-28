@@ -619,10 +619,10 @@ export default function ExecutionPage() {
 
   if (error) {
     return (
-      <div className="h-full flex items-center justify-center p-6">
-        <Card className="max-w-md w-full p-6 text-center">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <p className="text-destructive mb-4">{error}</p>
+      <div className="flex h-full items-center justify-center p-6">
+        <Card className="w-full max-w-md p-6 text-center">
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-destructive" />
+          <p className="mb-4 text-destructive">{error}</p>
           <Button onClick={() => navigate('/')}>Go Home</Button>
         </Card>
       </div>
@@ -631,7 +631,7 @@ export default function ExecutionPage() {
 
   if (!currentTask) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <SpinningIcon className="h-8 w-8" />
       </div>
     );
@@ -641,14 +641,14 @@ export default function ExecutionPage() {
     switch (currentTask.status) {
       case 'queued':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 shrink-0">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600">
             <Clock className="h-3 w-3" />
             Queued
           </span>
         );
       case 'running':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 shrink-0">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium">
             <span className="animate-shimmer bg-gradient-to-r from-primary via-primary/50 to-primary bg-[length:200%_100%] bg-clip-text text-transparent">
               Running
             </span>
@@ -656,35 +656,35 @@ export default function ExecutionPage() {
         );
       case 'completed':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-600 shrink-0">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-medium text-green-600">
             <CheckCircle2 className="h-3 w-3" />
             Completed
           </span>
         );
       case 'failed':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive shrink-0">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive">
             <XCircle className="h-3 w-3" />
             Failed
           </span>
         );
       case 'cancelled':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground shrink-0">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
             <XCircle className="h-3 w-3" />
             Cancelled
           </span>
         );
       case 'interrupted':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 shrink-0">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600">
             <Square className="h-3 w-3" />
             Stopped
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground shrink-0">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
             {currentTask.status}
           </span>
         );
@@ -701,21 +701,21 @@ export default function ExecutionPage() {
         initialTab={settingsInitialTab}
       />
 
-      <div className="h-full flex flex-col bg-background relative">
+      <div className="relative flex h-full flex-col bg-background">
         {/* Task header */}
         <div className="flex-shrink-0 border-b border-border bg-card/50 px-6 py-4">
-          <div className="flex items-center justify-between max-w-4xl mx-auto">
-            <div className="flex items-center gap-4 min-w-0 flex-1">
+          <div className="mx-auto flex max-w-4xl items-center justify-between">
+            <div className="flex min-w-0 flex-1 items-center gap-4">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate('/')}
-                className="shrink-0 no-drag"
+                className="no-drag shrink-0"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <h1 className="text-base font-medium text-foreground truncate min-w-0">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <h1 className="min-w-0 truncate text-base font-medium text-foreground">
                   {currentTask.prompt}
                 </h1>
                 <span data-testid="execution-status-badge">
@@ -745,7 +745,7 @@ export default function ExecutionPage() {
                   transition={springs.bouncy}
                 >
                   <Card className="w-[480px] p-6">
-                    <div className="flex flex-col items-center text-center gap-4">
+                    <div className="flex flex-col items-center gap-4 text-center">
                       <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                         <Download className="h-7 w-7 text-primary" />
                         <motion.div
@@ -759,10 +759,10 @@ export default function ExecutionPage() {
                         />
                       </div>
                       <div className="w-full">
-                        <h3 className="text-lg font-semibold text-foreground mb-1">
+                        <h3 className="mb-1 text-lg font-semibold text-foreground">
                           Chrome not installed
                         </h3>
-                        <p className="text-muted-foreground mb-4">
+                        <p className="mb-4 text-muted-foreground">
                           Installing browser for automation...
                         </p>
                         {/* Progress bar - combines all downloads into single 0-100% */}
@@ -787,17 +787,17 @@ export default function ExecutionPage() {
 
                           return (
                             <div className="w-full">
-                              <div className="flex justify-between text-sm mb-2">
+                              <div className="mb-2 flex justify-between text-sm">
                                 <span className="text-muted-foreground">
                                   Downloading...
                                 </span>
-                                <span className="text-foreground font-medium">
+                                <span className="font-medium text-foreground">
                                   {overallPercent}%
                                 </span>
                               </div>
-                              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                                 <motion.div
-                                  className="h-full bg-primary rounded-full"
+                                  className="h-full rounded-full bg-primary"
                                   initial={{ width: 0 }}
                                   animate={{ width: `${overallPercent}%` }}
                                   transition={{ duration: 0.3 }}
@@ -806,7 +806,7 @@ export default function ExecutionPage() {
                             </div>
                           );
                         })()}
-                        <p className="text-xs text-muted-foreground mt-4 text-center">
+                        <p className="mt-4 text-center text-xs text-muted-foreground">
                           One-time setup (~250 MB total)
                         </p>
                       </div>
@@ -824,13 +824,13 @@ export default function ExecutionPage() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={springs.gentle}
-              className="flex-1 flex flex-col items-center justify-center gap-6 px-6"
+              className="flex flex-1 flex-col items-center justify-center gap-6 px-6"
             >
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10">
                 <Clock className="h-8 w-8 text-amber-600" />
               </div>
-              <div className="text-center max-w-md">
-                <h2 className="text-xl font-semibold text-foreground mb-2">
+              <div className="max-w-md text-center">
+                <h2 className="mb-2 text-xl font-semibold text-foreground">
                   Waiting for another task
                 </h2>
                 <p className="text-muted-foreground">
@@ -844,7 +844,7 @@ export default function ExecutionPage() {
         {/* Queued state - inline (follow-up, has previous messages) */}
         {currentTask.status === 'queued' && currentTask.messages.length > 0 && (
           <div className="flex-1 overflow-y-auto px-6 py-6">
-            <div className="max-w-4xl mx-auto space-y-4">
+            <div className="mx-auto max-w-4xl space-y-4">
               {currentTask.messages
                 .filter(
                   (m) =>
@@ -868,7 +868,7 @@ export default function ExecutionPage() {
                   <p className="text-sm font-medium text-foreground">
                     Waiting for another task
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     Your follow-up will continue automatically
                   </p>
                 </div>
@@ -881,7 +881,7 @@ export default function ExecutionPage() {
 
         {/* Messages - normal state (running, completed, failed, etc.) */}
         {currentTask.status !== 'queued' && (
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex flex-1 overflow-hidden">
             {/* Messages area */}
             <div
               className="flex-1 overflow-y-auto px-6 py-6"
@@ -889,7 +889,7 @@ export default function ExecutionPage() {
               onScroll={handleScroll}
               data-testid="messages-scroll-container"
             >
-              <div className="max-w-4xl mx-auto space-y-4">
+              <div className="mx-auto max-w-4xl space-y-4">
                 {currentTask.messages
                   .filter(
                     (m) =>
@@ -953,7 +953,7 @@ export default function ExecutionPage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -8 }}
                         transition={springs.gentle}
-                        className="flex flex-col gap-1 text-muted-foreground py-2"
+                        className="flex flex-col gap-1 py-2 text-muted-foreground"
                         data-testid="execution-thinking-indicator"
                       >
                         <div className="flex items-center gap-2">
@@ -989,7 +989,7 @@ export default function ExecutionPage() {
                           startupStageTaskId === id &&
                           startupStage?.isFirstTask &&
                           startupStage.stage === 'browser' && (
-                            <span className="text-xs text-muted-foreground/50 ml-6">
+                            <span className="ml-6 text-xs text-muted-foreground/50">
                               First task takes a bit longer...
                             </span>
                           )}
@@ -1007,11 +1007,11 @@ export default function ExecutionPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}
                       transition={springs.gentle}
-                      className="sticky bottom-4 flex justify-center pointer-events-none"
+                      className="pointer-events-none sticky bottom-4 flex justify-center"
                     >
                       <button
                         onClick={scrollToBottom}
-                        className="h-8 w-8 rounded-full bg-muted hover:bg-muted/80 border border-border shadow-md flex items-center justify-center transition-colors pointer-events-auto"
+                        className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-full border border-border bg-muted shadow-md transition-colors hover:bg-muted/80"
                         aria-label="Scroll to bottom"
                         data-testid="scroll-to-bottom-button"
                       >
@@ -1048,11 +1048,11 @@ export default function ExecutionPage() {
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
                 transition={springs.bouncy}
               >
-                <Card className="w-full max-w-lg p-6 mx-4">
+                <Card className="mx-4 w-full max-w-lg p-6">
                   <div className="flex items-start gap-4">
                     <div
                       className={cn(
-                        'flex h-10 w-10 items-center justify-center rounded-full shrink-0',
+                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
                         isDeleteOperation(permissionRequest)
                           ? 'bg-red-500/10'
                           : permissionRequest.type === 'file'
@@ -1072,10 +1072,10 @@ export default function ExecutionPage() {
                         <AlertCircle className="h-5 w-5 text-warning" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <h3
                         className={cn(
-                          'text-lg font-semibold mb-2',
+                          'mb-2 text-lg font-semibold',
                           isDeleteOperation(permissionRequest)
                             ? 'text-red-600'
                             : 'text-foreground'
@@ -1095,7 +1095,7 @@ export default function ExecutionPage() {
                         <>
                           {/* Delete operation warning banner */}
                           {isDeleteOperation(permissionRequest) && (
-                            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                            <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3">
                               <p className="text-sm text-red-600">
                                 {(() => {
                                   const paths =
@@ -1113,7 +1113,7 @@ export default function ExecutionPage() {
                             <div className="mb-3">
                               <span
                                 className={cn(
-                                  'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                                  'inline-flex items-center rounded px-2 py-0.5 text-xs font-medium',
                                   getOperationBadgeClasses(
                                     permissionRequest.fileOperation
                                   )
@@ -1127,9 +1127,9 @@ export default function ExecutionPage() {
                           {/* File path(s) display */}
                           <div
                             className={cn(
-                              'mb-4 p-3 rounded-lg',
+                              'mb-4 rounded-lg p-3',
                               isDeleteOperation(permissionRequest)
-                                ? 'bg-red-500/5 border border-red-500/20'
+                                ? 'border border-red-500/20 bg-red-500/5'
                                 : 'bg-muted'
                             )}
                           >
@@ -1143,7 +1143,7 @@ export default function ExecutionPage() {
                                       <li
                                         key={idx}
                                         className={cn(
-                                          'text-sm font-mono break-all',
+                                          'break-all font-mono text-sm',
                                           isDeleteOperation(permissionRequest)
                                             ? 'text-red-600'
                                             : 'text-foreground'
@@ -1158,7 +1158,7 @@ export default function ExecutionPage() {
                               return (
                                 <p
                                   className={cn(
-                                    'text-sm font-mono break-all',
+                                    'break-all font-mono text-sm',
                                     isDeleteOperation(permissionRequest)
                                       ? 'text-red-600'
                                       : 'text-foreground'
@@ -1169,7 +1169,7 @@ export default function ExecutionPage() {
                               );
                             })()}
                             {permissionRequest.targetPath && (
-                              <p className="text-sm font-mono text-muted-foreground mt-1">
+                              <p className="mt-1 font-mono text-sm text-muted-foreground">
                                 → {permissionRequest.targetPath}
                               </p>
                             )}
@@ -1177,17 +1177,17 @@ export default function ExecutionPage() {
 
                           {/* Delete warning text */}
                           {isDeleteOperation(permissionRequest) && (
-                            <p className="text-sm text-red-600/80 mb-4">
+                            <p className="mb-4 text-sm text-red-600/80">
                               This action cannot be undone.
                             </p>
                           )}
 
                           {permissionRequest.contentPreview && (
                             <details className="mb-4">
-                              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                              <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
                                 Preview content
                               </summary>
-                              <pre className="mt-2 p-2 rounded bg-muted text-xs overflow-x-auto max-h-32 overflow-y-auto">
+                              <pre className="mt-2 max-h-32 overflow-x-auto overflow-y-auto rounded bg-muted p-2 text-xs">
                                 {permissionRequest.contentPreview}
                               </pre>
                             </details>
@@ -1198,7 +1198,7 @@ export default function ExecutionPage() {
                       {/* Question type UI with options */}
                       {permissionRequest.type === 'question' && (
                         <>
-                          <p className="text-sm text-foreground mb-4">
+                          <p className="mb-4 text-sm text-foreground">
                             {permissionRequest.question}
                           </p>
 
@@ -1228,17 +1228,17 @@ export default function ExecutionPage() {
                                         }
                                       }}
                                       className={cn(
-                                        'w-full text-left p-3 rounded-lg border transition-colors',
+                                        'w-full rounded-lg border p-3 text-left transition-colors',
                                         selectedOptions.includes(option.label)
                                           ? 'border-primary bg-primary/10'
                                           : 'border-border hover:border-primary/50'
                                       )}
                                     >
-                                      <div className="font-medium text-sm">
+                                      <div className="text-sm font-medium">
                                         {option.label}
                                       </div>
                                       {option.description && (
-                                        <div className="text-xs text-muted-foreground mt-1">
+                                        <div className="mt-1 text-xs text-muted-foreground">
                                           {option.description}
                                         </div>
                                       )}
@@ -1250,12 +1250,12 @@ export default function ExecutionPage() {
                           {/* Divider */}
                           {permissionRequest.options &&
                             permissionRequest.options.length > 0 && (
-                              <div className="flex items-center gap-3 mb-4">
-                                <div className="flex-1 h-px bg-border" />
+                              <div className="mb-4 flex items-center gap-3">
+                                <div className="h-px flex-1 bg-border" />
                                 <span className="text-xs text-muted-foreground">
                                   or type your own
                                 </span>
-                                <div className="flex-1 h-px bg-border" />
+                                <div className="h-px flex-1 bg-border" />
                               </div>
                             )}
 
@@ -1273,7 +1273,7 @@ export default function ExecutionPage() {
                               placeholder="Enter a different option..."
                               aria-label="Custom response"
                               rows={1}
-                              className="w-full resize-none overflow-hidden rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                              className="shadow-xs w-full resize-none overflow-hidden rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                               style={{ minHeight: '38px', maxHeight: '150px' }}
                               onKeyDown={(e) => {
                                 // Ignore Enter during IME composition (Chinese/Japanese input)
@@ -1299,12 +1299,12 @@ export default function ExecutionPage() {
                       {/* Standard tool UI (non-file, non-question) */}
                       {permissionRequest.type === 'tool' && (
                         <>
-                          <p className="text-sm text-muted-foreground mb-4">
+                          <p className="mb-4 text-sm text-muted-foreground">
                             Allow {permissionRequest.toolName}?
                           </p>
                           {permissionRequest.toolName && (
-                            <div className="mb-4 p-3 rounded-lg bg-muted text-xs font-mono overflow-x-auto">
-                              <p className="text-muted-foreground mb-1">
+                            <div className="mb-4 overflow-x-auto rounded-lg bg-muted p-3 font-mono text-xs">
+                              <p className="mb-1 text-muted-foreground">
                                 Tool: {permissionRequest.toolName}
                               </p>
                               <pre className="text-foreground">
@@ -1335,7 +1335,7 @@ export default function ExecutionPage() {
                           className={cn(
                             'flex-1',
                             isDeleteOperation(permissionRequest) &&
-                              'bg-red-600 hover:bg-red-700 text-white'
+                              'bg-red-600 text-white hover:bg-red-700'
                           )}
                           data-testid="permission-allow-button"
                           disabled={
@@ -1364,7 +1364,7 @@ export default function ExecutionPage() {
         {/* Running state input with Stop button */}
         {currentTask.status === 'running' && !permissionRequest && (
           <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4">
-            <div className="max-w-4xl mx-auto flex gap-3">
+            <div className="mx-auto flex max-w-4xl gap-3">
               <Input
                 placeholder="Agent is working..."
                 disabled
@@ -1375,7 +1375,7 @@ export default function ExecutionPage() {
                 size="icon"
                 onClick={interruptTask}
                 title="Stop agent (Ctrl+C)"
-                className="shrink-0 hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
+                className="shrink-0 hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
                 data-testid="execution-stop-button"
               >
                 <Square className="h-4 w-4 fill-current" />
@@ -1387,11 +1387,11 @@ export default function ExecutionPage() {
         {/* Follow-up input */}
         {canFollowUp && (
           <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4">
-            <div className="max-w-4xl mx-auto">
+            <div className="mx-auto max-w-4xl">
               {speechInput.error && (
                 <Alert
                   variant="destructive"
-                  className="mb-2 py-2 px-3 flex items-center gap-2 [&>svg]:static [&>svg~*]:pl-0"
+                  className="mb-2 flex items-center gap-2 px-3 py-2 [&>svg]:static [&>svg~*]:pl-0"
                 >
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="text-xs leading-tight">
@@ -1455,7 +1455,7 @@ export default function ExecutionPage() {
                   }
                   variant="outline"
                 >
-                  <CornerDownLeft className="h-4 w-4 mr-1.5" />
+                  <CornerDownLeft className="mr-1.5 h-4 w-4" />
                   Send
                 </Button>
               </div>
@@ -1466,7 +1466,7 @@ export default function ExecutionPage() {
         {/* Completed/Failed state (no session to continue) */}
         {isComplete && !canFollowUp && (
           <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4 text-center">
-            <p className="text-sm text-muted-foreground mb-3">
+            <p className="mb-3 text-sm text-muted-foreground">
               Task{' '}
               {currentTask.status === 'interrupted'
                 ? 'stopped'
@@ -1493,13 +1493,13 @@ export default function ExecutionPage() {
                   setDebugPanelOpen(!debugPanelOpen);
                 }
               }}
-              className="w-full flex items-center justify-between px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="flex w-full cursor-pointer items-center justify-between bg-zinc-900 px-6 py-2.5 transition-colors hover:bg-zinc-800"
             >
               <div className="flex items-center gap-2 text-sm text-zinc-400">
                 <Bug className="h-4 w-4" />
                 <span className="font-medium">Debug Logs</span>
                 {debugLogs.length > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full bg-zinc-700 text-zinc-300 text-xs">
+                  <span className="rounded-full bg-zinc-700 px-1.5 py-0.5 text-xs text-zinc-300">
                     {debugLogs.length}
                   </span>
                 )}
@@ -1510,29 +1510,29 @@ export default function ExecutionPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700"
+                      className="h-6 px-2 text-xs text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleExportDebugLogs();
                       }}
                     >
                       {debugExported ? (
-                        <Check className="h-3 w-3 mr-1 text-green-400" />
+                        <Check className="mr-1 h-3 w-3 text-green-400" />
                       ) : (
-                        <Download className="h-3 w-3 mr-1" />
+                        <Download className="mr-1 h-3 w-3" />
                       )}
                       {debugExported ? 'Exported' : 'Export'}
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700"
+                      className="h-6 px-2 text-xs text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
                       onClick={(e) => {
                         e.stopPropagation();
                         setDebugLogs([]);
                       }}
                     >
-                      <Trash2 className="h-3 w-3 mr-1" />
+                      <Trash2 className="mr-1 h-3 w-3" />
                       Clear
                     </Button>
                   </>
@@ -1557,22 +1557,22 @@ export default function ExecutionPage() {
                 >
                   <div
                     ref={debugPanelRef}
-                    className="h-[200px] overflow-y-auto bg-zinc-950 text-zinc-300 font-mono text-xs p-4"
+                    className="h-[200px] overflow-y-auto bg-zinc-950 p-4 font-mono text-xs text-zinc-300"
                   >
                     {debugLogs.length === 0 ? (
-                      <div className="flex items-center justify-center h-full text-zinc-500">
+                      <div className="flex h-full items-center justify-center text-zinc-500">
                         No debug logs yet. Run a task to see logs.
                       </div>
                     ) : (
                       <div className="space-y-1">
                         {debugLogs.map((log, index) => (
                           <div key={index} className="flex gap-2">
-                            <span className="text-zinc-500 shrink-0">
+                            <span className="shrink-0 text-zinc-500">
                               {new Date(log.timestamp).toLocaleTimeString()}
                             </span>
                             <span
                               className={cn(
-                                'shrink-0 px-1 rounded',
+                                'shrink-0 rounded px-1',
                                 log.type === 'error'
                                   ? 'bg-red-500/20 text-red-400'
                                   : log.type === 'warn'
@@ -1584,10 +1584,10 @@ export default function ExecutionPage() {
                             >
                               [{log.type}]
                             </span>
-                            <span className="text-zinc-300 break-all">
+                            <span className="break-all text-zinc-300">
                               {log.message}
                               {log.data !== undefined && (
-                                <span className="text-zinc-500 ml-2">
+                                <span className="ml-2 text-zinc-500">
                                   {typeof log.data === 'string'
                                     ? log.data
                                     : JSON.stringify(log.data, null, 0)}
@@ -1709,7 +1709,7 @@ const MessageBubble = memo(
         animate={{ opacity: 1, y: 0 }}
         transition={springs.gentle}
         className={cn(
-          'flex flex-col group',
+          'group flex flex-col',
           isUser ? 'items-end' : 'items-start'
         )}
       >
@@ -1737,19 +1737,19 @@ const MessageBubble = memo(
         ) : (
           <div
             className={cn(
-              'max-w-[85%] rounded-2xl px-4 py-3 transition-all duration-150 relative',
+              'relative max-w-[85%] rounded-2xl px-4 py-3 transition-all duration-150',
               isUser
                 ? 'bg-primary text-primary-foreground'
                 : isTool
-                  ? 'bg-muted border border-border'
+                  ? 'border border-border bg-muted'
                   : isSystem
-                    ? 'bg-muted/50 border border-border'
-                    : 'bg-card border border-border'
+                    ? 'border border-border bg-muted/50'
+                    : 'border border-border bg-card'
             )}
           >
             {/* Tool messages: show only label and loading animation */}
             {isTool ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 {ToolIcon ? (
                   <ToolIcon className="h-4 w-4" />
                 ) : (
@@ -1759,13 +1759,13 @@ const MessageBubble = memo(
                   {toolDisplayInfo?.label || toolName || 'Processing'}
                 </span>
                 {isLastMessage && isRunning && (
-                  <SpinningIcon className="h-3.5 w-3.5 ml-1" />
+                  <SpinningIcon className="ml-1 h-3.5 w-3.5" />
                 )}
               </div>
             ) : (
               <>
                 {isSystem && (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5 font-medium">
+                  <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <Terminal className="h-3.5 w-3.5" />
                     System
                   </div>
@@ -1773,7 +1773,7 @@ const MessageBubble = memo(
                 {isUser ? (
                   <p
                     className={cn(
-                      'text-sm whitespace-pre-wrap break-words',
+                      'whitespace-pre-wrap break-words text-sm',
                       'text-primary-foreground'
                     )}
                   >
@@ -1799,7 +1799,7 @@ const MessageBubble = memo(
                 )}
                 <p
                   className={cn(
-                    'text-xs mt-1.5',
+                    'mt-1.5 text-xs',
                     isUser
                       ? 'text-primary-foreground/70'
                       : 'text-muted-foreground'
@@ -1831,8 +1831,8 @@ const MessageBubble = memo(
                     data-testid="message-copy-button"
                     className={cn(
                       'absolute bottom-2 right-2',
-                      'opacity-0 group-hover:opacity-100 transition-all duration-200',
-                      'p-1 rounded',
+                      'opacity-0 transition-all duration-200 group-hover:opacity-100',
+                      'rounded p-1',
                       isUser
                         ? 'hover:bg-primary-foreground/20'
                         : 'hover:bg-accent',

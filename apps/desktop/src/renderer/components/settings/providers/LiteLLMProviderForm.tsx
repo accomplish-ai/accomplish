@@ -148,7 +148,7 @@ export function LiteLLMProviderForm({
                   />
                   <button
                     onClick={() => setApiKey('')}
-                    className="rounded-md border border-border p-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                    className="rounded-md border border-border p-2.5 text-muted-foreground transition-colors hover:text-foreground"
                     type="button"
                     disabled={!apiKey}
                   >

@@ -9,7 +9,7 @@ export default function Header() {
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
         {/* Logo */}
         <Link to="/" className="no-drag flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
             <svg
               className="h-4 w-4 text-white"
               fill="none"

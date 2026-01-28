@@ -144,7 +144,7 @@ export function OpenRouterProviderForm({
                     href={meta.helpUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-primary underline"
+                    className="text-sm text-muted-foreground underline hover:text-primary"
                   >
                     How can I find it?
                   </a>
@@ -164,7 +164,7 @@ export function OpenRouterProviderForm({
                 />
                 <button
                   onClick={() => setApiKey('')}
-                  className="rounded-md border border-border p-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                  className="rounded-md border border-border p-2.5 text-muted-foreground transition-colors hover:text-foreground"
                   type="button"
                   disabled={!apiKey}
                 >
@@ -211,7 +211,7 @@ export function OpenRouterProviderForm({
                     href={meta.helpUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-primary underline"
+                    className="text-sm text-muted-foreground underline hover:text-primary"
                   >
                     How can I find it?
                   </a>

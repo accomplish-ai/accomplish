@@ -187,7 +187,7 @@ export function SpeechInputButton({
             onClick={handleClick}
             disabled={disabled || isTranscribing}
             className={cn(
-              'inline-flex items-center justify-center rounded-lg transition-all duration-200 ease-accomplish shrink-0',
+              'inline-flex shrink-0 items-center justify-center rounded-lg transition-all duration-200 ease-accomplish',
               'disabled:cursor-not-allowed disabled:opacity-50',
               sizeClasses,
               buttonClasses,
@@ -216,21 +216,21 @@ export function SpeechInputButton({
 
       {/* Recording timer */}
       {isRecording && (
-        <div className="text-xs font-mono text-red-600 dark:text-red-400 shrink-0 min-w-[40px]">
+        <div className="min-w-[40px] shrink-0 font-mono text-xs text-red-600 dark:text-red-400">
           {formatDuration(recordingDuration)}
         </div>
       )}
 
       {/* Status indicator */}
       {isTranscribing && (
-        <div className="text-xs text-blue-600 dark:text-blue-400 shrink-0">
+        <div className="shrink-0 text-xs text-blue-600 dark:text-blue-400">
           Processing...
         </div>
       )}
 
       {/* Error retry helper text */}
       {error && !isRecording && !isTranscribing && (
-        <div className="text-xs text-orange-600 dark:text-orange-400 shrink-0">
+        <div className="shrink-0 text-xs text-orange-600 dark:text-orange-400">
           Retry
         </div>
       )}
@@ -266,10 +266,10 @@ export function MicrophoneIcon({
       )}
     >
       <Mic
-        className={cn('h-4 w-4', isRecording && 'text-red-500 animate-pulse')}
+        className={cn('h-4 w-4', isRecording && 'animate-pulse text-red-500')}
       />
       {isRecording && (
-        <div className="absolute inset-0 rounded-full border-2 border-red-500 animate-ping opacity-75" />
+        <div className="absolute inset-0 animate-ping rounded-full border-2 border-red-500 opacity-75" />
       )}
     </div>
   );
