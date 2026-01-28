@@ -45,53 +45,53 @@ const SpinningIcon = ({ className }: { className?: string }) => (
   />
 );
 
-// Tool name to human-readable progress mapping
-const TOOL_PROGRESS_MAP: Record<string, { label: string; icon: typeof FileText }> = {
+// Tool name to icon mapping
+const TOOL_ICON_MAP: Record<string, typeof FileText> = {
   // Special error case - OpenCode returns "invalid" when LLM makes invalid tool call
-  invalid: { label: 'Retrying...', icon: AlertCircle },
+  invalid: AlertCircle,
   // Standard Claude Code tools
-  Read: { label: 'Reading files', icon: FileText },
-  Glob: { label: 'Finding files', icon: Search },
-  Grep: { label: 'Searching code', icon: Search },
-  Bash: { label: 'Running command', icon: Terminal },
-  Write: { label: 'Writing file', icon: FileText },
-  Edit: { label: 'Editing file', icon: FileText },
-  Task: { label: 'Running agent', icon: Brain },
-  WebFetch: { label: 'Fetching web page', icon: Search },
-  WebSearch: { label: 'Searching web', icon: Search },
+  Read: FileText,
+  Glob: Search,
+  Grep: Search,
+  Bash: Terminal,
+  Write: FileText,
+  Edit: FileText,
+  Task: Brain,
+  WebFetch: Search,
+  WebSearch: Search,
   // Dev Browser tools (legacy)
-  dev_browser_execute: { label: 'Executing browser action', icon: Terminal },
+  dev_browser_execute: Terminal,
   // Browser MCP tools
-  browser_navigate: { label: 'Navigating', icon: Globe },
-  browser_snapshot: { label: 'Reading page', icon: Search },
-  browser_click: { label: 'Clicking', icon: MousePointer2 },
-  browser_type: { label: 'Typing', icon: Type },
-  browser_screenshot: { label: 'Taking screenshot', icon: Image },
-  browser_evaluate: { label: 'Running script', icon: Code },
-  browser_keyboard: { label: 'Pressing keys', icon: Keyboard },
-  browser_scroll: { label: 'Scrolling', icon: ArrowUpDown },
-  browser_hover: { label: 'Hovering', icon: MousePointer2 },
-  browser_select: { label: 'Selecting option', icon: ListChecks },
-  browser_wait: { label: 'Waiting', icon: Clock },
-  browser_tabs: { label: 'Managing tabs', icon: Layers },
-  browser_pages: { label: 'Getting pages', icon: Layers },
-  browser_highlight: { label: 'Highlighting', icon: Highlighter },
-  browser_sequence: { label: 'Browser sequence', icon: ListOrdered },
-  browser_file_upload: { label: 'Uploading file', icon: Upload },
-  browser_drag: { label: 'Dragging', icon: Move },
-  browser_get_text: { label: 'Getting text', icon: FileText },
-  browser_is_visible: { label: 'Checking visibility', icon: Search },
-  browser_is_enabled: { label: 'Checking state', icon: Search },
-  browser_is_checked: { label: 'Checking state', icon: Search },
-  browser_iframe: { label: 'Switching frame', icon: Frame },
-  browser_canvas_type: { label: 'Typing in canvas', icon: Type },
-  browser_script: { label: 'Browser Actions', icon: Globe },
+  browser_navigate: Globe,
+  browser_snapshot: Search,
+  browser_click: MousePointer2,
+  browser_type: Type,
+  browser_screenshot: Image,
+  browser_evaluate: Code,
+  browser_keyboard: Keyboard,
+  browser_scroll: ArrowUpDown,
+  browser_hover: MousePointer2,
+  browser_select: ListChecks,
+  browser_wait: Clock,
+  browser_tabs: Layers,
+  browser_pages: Layers,
+  browser_highlight: Highlighter,
+  browser_sequence: ListOrdered,
+  browser_file_upload: Upload,
+  browser_drag: Move,
+  browser_get_text: FileText,
+  browser_is_visible: Search,
+  browser_is_enabled: Search,
+  browser_is_checked: Search,
+  browser_iframe: Frame,
+  browser_canvas_type: Type,
+  browser_script: Globe,
   // Utility MCP tools
-  request_file_permission: { label: 'Requesting permission', icon: ShieldCheck },
-  AskUserQuestion: { label: 'Asking question', icon: MessageCircleQuestion },
-  complete_task: { label: 'Completing task', icon: CheckCircle },
-  report_thought: { label: 'Thinking', icon: Lightbulb },
-  report_checkpoint: { label: 'Checkpoint', icon: Flag },
+  request_file_permission: ShieldCheck,
+  AskUserQuestion: MessageCircleQuestion,
+  complete_task: CheckCircle,
+  report_thought: Lightbulb,
+  report_checkpoint: Flag,
 };
 
 // Extract base tool name from MCP-prefixed tool names
@@ -107,7 +107,7 @@ function getBaseToolName(toolName: string): string {
   let idx = 0;
   while ((idx = toolName.indexOf('_', idx)) !== -1) {
     const candidate = toolName.substring(idx + 1);
-    if (TOOL_PROGRESS_MAP[candidate]) {
+    if (TOOL_ICON_MAP[candidate]) {
       return candidate;
     }
     idx += 1;
@@ -115,15 +115,15 @@ function getBaseToolName(toolName: string): string {
   return toolName;
 }
 
-// Get tool display info (label and icon) from tool name
-function getToolDisplayInfo(toolName: string): { label: string; icon: typeof FileText } | undefined {
+// Get tool icon from tool name
+function getToolIcon(toolName: string): typeof FileText | undefined {
   // First try direct lookup
-  if (TOOL_PROGRESS_MAP[toolName]) {
-    return TOOL_PROGRESS_MAP[toolName];
+  if (TOOL_ICON_MAP[toolName]) {
+    return TOOL_ICON_MAP[toolName];
   }
   // Then try extracting base name from MCP-prefixed name
   const baseName = getBaseToolName(toolName);
-  return TOOL_PROGRESS_MAP[baseName];
+  return TOOL_ICON_MAP[baseName];
 }
 
 
@@ -822,7 +822,10 @@ export default function ExecutionPage() {
                       <SpinningIcon className="h-4 w-4" />
                       <span className="text-sm">
                         {currentTool
-                          ? ((currentToolInput as { description?: string })?.description || getToolDisplayInfo(currentTool)?.label || currentTool)
+                          ? ((currentToolInput as { description?: string })?.description || (() => {
+                              const baseName = getBaseToolName(currentTool);
+                              return t(`tools.${baseName}`, { defaultValue: currentTool });
+                            })())
                           : (startupStageTaskId === id && startupStage)
                             ? startupStage.message
                             : t('thinking')}
@@ -1422,10 +1425,10 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
     return null;
   }
 
-  // Get tool display info from mapping
+  // Get tool icon and name from mapping
   const toolName = message.toolName || message.content?.match(/Using tool: (\w+)/)?.[1];
-  const toolDisplayInfo = toolName ? getToolDisplayInfo(toolName) : undefined;
-  const ToolIcon = toolDisplayInfo?.icon;
+  const baseToolName = toolName ? getBaseToolName(toolName) : undefined;
+  const ToolIcon = toolName ? getToolIcon(toolName) : undefined;
 
   // Mark stream as complete when shouldStream becomes false
   useEffect(() => {
@@ -1507,7 +1510,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
         {isTool ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
             {ToolIcon ? <ToolIcon className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
-            <span>{toolDisplayInfo?.label || toolName || t('processing')}</span>
+            <span>{baseToolName ? t(`tools.${baseToolName}`, { defaultValue: toolName || t('processing') }) : (toolName || t('processing'))}</span>
             {isLastMessage && isRunning && (
               <SpinningIcon className="h-3.5 w-3.5 ml-1" />
             )}
