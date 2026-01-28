@@ -280,6 +280,16 @@ export async function runEvalMode(config: EvalConfig): Promise<never> {
   // This enables running in containers/CI where secure storage is unavailable
   process.env.OPENWORK_PREFER_ENV_KEYS = '1';
 
+  // Wire CLI flags to env vars (CLI args override existing env vars)
+  if (config.provider) {
+    process.env.OPENWORK_PROVIDER = config.provider;
+    console.log(`[Eval Mode] Provider from CLI: ${config.provider}`);
+  }
+  if (config.model) {
+    process.env.OPENWORK_MODEL = config.model;
+    console.log(`[Eval Mode] Model from CLI: ${config.model}`);
+  }
+
   // Validate configuration
   const validationError = validateConfig(config);
   if (validationError) {
