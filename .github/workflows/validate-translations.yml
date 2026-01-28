@@ -1,0 +1,76 @@
+name: Validate Translations
+
+on:
+  pull_request:
+    paths:
+      - 'apps/desktop/locales/**'
+      - 'apps/desktop/src/**/*.tsx'
+      - 'apps/desktop/src/**/*.ts'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/desktop/locales/**'
+
+jobs:
+  validate:
+    name: Validate Translation Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate translation files
+        run: pnpm i18n:validate
+
+      - name: Comment on PR (if validation fails)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **Translation validation failed!**\n\nSome translation keys are missing or invalid. Please run `pnpm i18n:sync` locally to update translations.\n\nSee the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.'
+            })
+
+      - name: Comment on PR (if validation succeeds)
+        if: success() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ **All translations are valid!**\n\nTranslation files are complete and properly formatted.'
+            })

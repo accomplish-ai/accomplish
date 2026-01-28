@@ -10,7 +10,7 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
 // Supported languages and namespaces
-export const SUPPORTED_LANGUAGES = ['en', 'zh-CN'] as const;
+export const SUPPORTED_LANGUAGES = ['en', 'zh-CN', 'he'] as const;
 export const NAMESPACES = [
   'common',
   'home',
@@ -27,8 +27,8 @@ export type Namespace = (typeof NAMESPACES)[number];
 // Type for the window.accomplish API
 interface AccomplishI18nAPI {
   i18n: {
-    getLanguage: () => Promise<'en' | 'zh-CN' | 'auto'>;
-    setLanguage: (language: 'en' | 'zh-CN' | 'auto') => Promise<void>;
+    getLanguage: () => Promise<'en' | 'zh-CN' | 'he' | 'auto'>;
+    setLanguage: (language: 'en' | 'zh-CN' | 'he' | 'auto') => Promise<void>;
     getTranslations: (language?: string) => Promise<{
       language: string;
       translations: Record<string, Record<string, unknown>>;
@@ -52,6 +52,17 @@ function getAccomplishAPI(): AccomplishI18nAPI | null {
 // Flag to track initialization
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
+
+/**
+ * Update document direction based on language
+ */
+function updateDocumentDirection(language: string): void {
+  if (typeof document === 'undefined') return;
+
+  const isRTL = language === 'he' || language.startsWith('ar');
+  document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+  document.documentElement.lang = language;
+}
 
 /**
  * Initialize i18n with translations from main process
@@ -156,9 +167,13 @@ export async function initI18n(): Promise<void> {
             }
           }
           await i18n.changeLanguage(resolvedLanguage);
+          updateDocumentDirection(resolvedLanguage);
         }
       });
     }
+
+    // Set initial document direction
+    updateDocumentDirection(initialLanguage);
 
     isInitialized = true;
     console.log(`[i18n] Initialized with language: ${initialLanguage}`);
@@ -170,7 +185,7 @@ export async function initI18n(): Promise<void> {
 /**
  * Change language and sync with main process
  */
-export async function changeLanguage(language: 'en' | 'zh-CN' | 'auto'): Promise<void> {
+export async function changeLanguage(language: 'en' | 'zh-CN' | 'he' | 'auto'): Promise<void> {
   const api = getAccomplishAPI();
 
   if (api) {
@@ -186,19 +201,21 @@ export async function changeLanguage(language: 'en' | 'zh-CN' | 'auto'): Promise
       });
     }
 
-    // Change i18next language
+    // Change i18next language and update document direction
     await i18n.changeLanguage(resolvedLanguage);
+    updateDocumentDirection(resolvedLanguage);
   } else {
     // Fallback: just change i18next language directly
     const resolvedLanguage = language === 'auto' ? 'en' : language;
     await i18n.changeLanguage(resolvedLanguage);
+    updateDocumentDirection(resolvedLanguage);
   }
 }
 
 /**
  * Get the current language preference from main process
  */
-export async function getLanguagePreference(): Promise<'en' | 'zh-CN' | 'auto'> {
+export async function getLanguagePreference(): Promise<'en' | 'zh-CN' | 'he' | 'auto'> {
   const api = getAccomplishAPI();
   if (api) {
     return api.i18n.getLanguage();

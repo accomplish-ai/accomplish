@@ -1,0 +1,72 @@
+# Example: Auto-translate only when merging to main
+#
+# To use this:
+# 1. Add ANTHROPIC_API_KEY to GitHub Secrets
+# 2. Rename this file from .yml.example to .yml
+# 3. Understand the cost implications
+#
+# WARNING: This will use API credits on every merge to main!
+
+name: Auto-Translate on Merge
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/desktop/locales/en/**'
+
+jobs:
+  auto-translate:
+    name: Auto-translate and commit
+    runs-on: ubuntu-latest
+
+    # Only run if English translations were modified
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run translation sync
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: pnpm i18n:sync
+
+      - name: Check for translation changes
+        id: check_changes
+        run: |
+          if [[ -n $(git status --porcelain apps/desktop/locales) ]]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push translations
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add apps/desktop/locales
+          git commit -m "chore(i18n): auto-translate missing keys [skip ci]"
+          git push
+
+# To set up GitHub Secret:
+# 1. Go to repo Settings → Secrets and variables → Actions
+# 2. Click "New repository secret"
+# 3. Name: ANTHROPIC_API_KEY
+# 4. Value: sk-ant-api03-your-key-here
+# 5. Click "Add secret"

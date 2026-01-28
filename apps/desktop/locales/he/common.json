@@ -1,0 +1,55 @@
+{
+  "app": {
+    "name": "Openwork"
+  },
+  "buttons": {
+    "send": "שלח",
+    "submit": "הגש",
+    "cancel": "ביטול",
+    "close": "סגור",
+    "save": "שמור",
+    "delete": "מחק",
+    "deleteAll": "מחק הכל",
+    "allow": "אפשר",
+    "deny": "דחה",
+    "continue": "המשך",
+    "doneContinue": "סיום, המשך",
+    "goHome": "חזור לעמוד הבית",
+    "startNewTask": "התחל משימה חדשה",
+    "test": "בדוק",
+    "testing": "בודק...",
+    "saving": "שומר...",
+    "validating": "מאמת...",
+    "export": "ייצא",
+    "exported": "יוצא",
+    "clear": "נקה",
+    "clearAll": "נקה הכל",
+    "yes": "כן",
+    "no": "לא"
+  },
+  "status": {
+    "running": "רץ",
+    "completed": "הושלם",
+    "failed": "נכשל",
+    "cancelled": "בוטל",
+    "queued": "בתור",
+    "pending": "ממתין",
+    "waiting": "ממתין",
+    "stopped": "נעצר",
+    "interrupted": "נקטע"
+  },
+  "time": {
+    "justNow": "כרגע",
+    "minutesAgo": "לפני {{count}} דקות",
+    "hoursAgo": "לפני {{count}} שעות",
+    "daysAgo": "לפני {{count}} ימים",
+    "today": "היום",
+    "yesterday": "אתמול"
+  },
+  "nav": {
+    "home": "בית",
+    "history": "היסטוריה",
+    "settings": "הגדרות"
+  },
+  "messages": "{{count}} הודעות"
+}

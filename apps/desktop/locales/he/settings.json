@@ -1,0 +1,173 @@
+{
+  "title": "הגדרות",
+  "setupTitle": "הגדרת Openwork",
+  "model": {
+    "title": "מודל",
+    "cloudProviders": "ספקי ענן",
+    "localModels": "מודלים מקומיים",
+    "cloudDescription": "בחר מודל בינה מלאכותית בענן. דורש מפתח API עבור הספק.",
+    "selectModel": "בחר מודל...",
+    "searchModels": "חיפוש מודלים...",
+    "noApiKey": "(אין מפתח API)",
+    "modelUpdated": "המודל עודכן ל-{{model}}",
+    "noApiKeyWarning": "אין מפתח API מוגדר עבור {{provider}}. הוסף אחד למטה.",
+    "noModelsFound": "לא נמצאו מודלים",
+    "required": "אנא בחר מודל כדי להמשיך"
+  },
+  "apiKey": {
+    "title": "מפתח API",
+    "bringYourOwn": "הבא את המודל/מפתח API שלך",
+    "description": "הגדר את מפתח ה-API והמודל עבור עמית העבודה הבינה מלאכותית שלך.",
+    "provider": "ספק",
+    "apiKeyLabel": "מפתח API של {{provider}}",
+    "saveButton": "שמור מפתח API",
+    "invalidFormat": "פורמט מפתח API לא תקין. המפתח צריך להתחיל ב-{{prefix}}",
+    "savedMessage": "מפתח API של {{provider}} נשמר בבטחה.",
+    "removedMessage": "מפתח API של {{provider}} הוסר.",
+    "savedKeys": "מפתחות שמורים",
+    "confirmDelete": "האם אתה בטוח?",
+    "enterKey": "הזן מפתח API",
+    "invalidKey": "מפתח API לא תקין",
+    "enterKeyRequired": "אנא הזן מפתח API",
+    "saved": "מפתח API נשמר",
+    "savedReconnectToSee": "מפתח API נשמר (התחבר מחדש כדי לראות את הקידומת)"
+  },
+  "providers": {
+    "title": "ספקים",
+    "search": "חיפוש ספקים...",
+    "unknownType": "סוג ספק לא ידוע",
+    "formTitle": "הגדרות {{provider}}",
+    "formLogo": "לוגו של {{provider}}",
+    "showMore": "הצג עוד",
+    "showLess": "הצג פחות",
+    "anthropic": "Anthropic",
+    "openai": "OpenAI",
+    "google": "Google AI",
+    "xai": "xAI (Grok)",
+    "deepseek": "DeepSeek",
+    "zai": "תוכנית קידוד Z.AI",
+    "bedrock": "Amazon Bedrock",
+    "ollama": "Ollama",
+    "openrouter": "OpenRouter",
+    "litellm": "LiteLLM",
+    "vertex": "Vertex AI"
+  },
+  "providerLabels": {
+    "anthropic": "מודלי Claude",
+    "openai": "מודלי GPT",
+    "google": "מודלי Gemini",
+    "xai": "מודלי Grok",
+    "deepseek": "מודלי DeepSeek",
+    "zai": "מודלי GLM",
+    "bedrock": "מנוהל AWS",
+    "ollama": "הסקה מקומית",
+    "openrouter": "200+ מודלים",
+    "litellm": "פרוקסי מאוחד",
+    "vertex": "Google Cloud"
+  },
+  "status": {
+    "connected": "מחובר",
+    "ready": "מוכן",
+    "notConfigured": "לא מוגדר",
+    "connecting": "מתחבר...",
+    "disconnecting": "מתנתק...",
+    "testing": "בודק חיבור...",
+    "fetchingModels": "טוען מודלים...",
+    "selectModelToComplete": "בחר מודל כדי להשלים את ההגדרה",
+    "error": "אירעה שגיאה",
+    "connectionFailed": "החיבור נכשל"
+  },
+  "buttons": {
+    "connect": "התחבר",
+    "disconnect": "התנתק",
+    "connecting": "מתחבר...",
+    "done": "סיום",
+    "refresh": "רענן",
+    "test": "בדוק חיבור"
+  },
+  "help": {
+    "findApiKey": "איך אוכל למצוא את זה?",
+    "learnMore": "למד עוד"
+  },
+  "common": {
+    "optional": "אופציונלי"
+  },
+  "ollama": {
+    "description": "התחבר לשרת Ollama מקומי כדי להשתמש במודלים הרצים על המחשב שלך.",
+    "serverUrl": "URL שרת Ollama",
+    "connected": "מחובר - {{count}} מודל(ים) זמינים",
+    "selectModel": "בחר מודל",
+    "useThisModel": "השתמש במודל הזה",
+    "helpText": "וודא ש-<link>Ollama</link> מותקן ופועל, ואז לחץ בדוק כדי להתחבר.",
+    "currentlyUsing": "נמצא כרגע בשימוש"
+  },
+  "bedrock": {
+    "accessKeys": "מפתחות גישה",
+    "awsProfile": "פרופיל AWS",
+    "accessKeyId": "מזהה מפתח גישה",
+    "secretAccessKey": "מפתח גישה סודי",
+    "sessionToken": "אסימון הפעלה",
+    "sessionTokenOptional": "אופציונלי",
+    "sessionTokenHint": "עבור אישורים זמניים (STS)",
+    "profileName": "שם פרופיל",
+    "defaultProfile": "ברירת מחדל",
+    "region": "אזור",
+    "saveButton": "שמור אישורי Bedrock",
+    "savedMessage": "אישורי Amazon Bedrock נשמרו בהצלחה.",
+    "enterSecretAccessKey": "הזן מפתח גישה סודי",
+    "invalidCredentials": "אישורים לא תקינים",
+    "regions": {
+      "us-east-1": "מזרח ארה\"ב (צפון וירג'יניה)",
+      "us-east-2": "מזרח ארה\"ב (אוהיו)",
+      "us-west-1": "מערב ארה\"ב (צפון קליפורניה)",
+      "us-west-2": "מערב ארה\"ב (אורגון)",
+      "eu-west-1": "אירופה (אירלנד)",
+      "eu-west-2": "אירופה (לונדון)",
+      "eu-west-3": "אירופה (פריז)",
+      "eu-central-1": "אירופה (פרנקפורט)",
+      "ap-northeast-1": "אסיה פסיפיק (טוקיו)",
+      "ap-northeast-2": "אסיה פסיפיק (סיאול)",
+      "ap-southeast-1": "אסיה פסיפיק (סינגפור)",
+      "ap-southeast-2": "אסיה פסיפיק (סידני)",
+      "ap-south-1": "אסיה פסיפיק (מומבאי)"
+    }
+  },
+  "openrouter": {
+    "description": "גישה ל-200+ מודלי בינה מלאכותית דרך API מאוחד של OpenRouter.",
+    "fetchModelsFailed": "נכשל בטעינת מודלים"
+  },
+  "litellm": {
+    "description": "התחבר לשרת הפרוקסי LiteLLM שלך עבור גישה מאוחדת למודל.",
+    "serverUrl": "URL שרת",
+    "optionalApiKey": "מפתח API אופציונלי"
+  },
+  "developer": {
+    "title": "מפתח",
+    "debugMode": "מצב ניפוי שגיאות",
+    "debugDescription": "הצג לוגים מפורטים של הקצה העורפי בתצוגת המשימות.",
+    "debugEnabled": "מצב ניפוי שגיאות מופעל. לוגים של הקצה העורפי יופיעו בתצוגת המשימות בזמן הרצת משימות.",
+    "exportLogs": "ייצא לוגים",
+    "exporting": "מייצא...",
+    "exported": "יוצא",
+    "exportFailed": "הייצוא נכשל"
+  },
+  "language": {
+    "title": "שפה",
+    "description": "בחר את שפת התצוגה המועדפת שלך.",
+    "auto": "אוטומטי (מערכת)",
+    "en": "אנגלית",
+    "zhCN": "סינית מפושטת",
+    "he": "עברית"
+  },
+  "about": {
+    "title": "אודות",
+    "version": "גרסה {{version}}",
+    "description": "Openwork הוא סוכן בינה מלאכותית מקומי לשימוש במחשב עבור ה-Mac שלך שקורא את הקבצים שלך, יוצר מסמכים, ומבצע אוטומציה לעבודת ידע חוזרת—הכל בקוד פתוח עם מודלי הבינה מלאכותית לבחירתך.",
+    "contact": "יש שאלות או משוב? לחץ כאן כדי ליצור איתנו קשר"
+  },
+  "warnings": {
+    "noProviderReady": "אין ספק מוכן",
+    "noProviderReadyDescription": "אתה צריך להתחבר לספק ולבחור מודל לפני שתוכל להריץ משימות.",
+    "closeAnyway": "סגור בכל זאת"
+  }
+}

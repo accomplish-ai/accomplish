@@ -156,7 +156,8 @@
     "description": "选择您偏好的显示语言。",
     "auto": "自动（跟随系统）",
     "en": "English",
-    "zhCN": "简体中文"
+    "zhCN": "简体中文",
+    "he": "希伯来语"
   },
   "about": {
     "title": "关于",

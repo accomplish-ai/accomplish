@@ -1,0 +1,77 @@
+{
+  "api": {
+    "timeout": "הבקשה פגה. אנא בדוק את החיבור לאינטרנט.",
+    "timeoutRetry": "הבקשה פגה. אנא בדוק את החיבור לאינטרנט ונסה שוב.",
+    "invalidKey": "מפתח API לא תקין",
+    "noKey": "אנא הזן מפתח API.",
+    "validationFailed": "אימות מפתח API נכשל",
+    "networkError": "שגיאת רשת. אנא בדוק את החיבור שלך.",
+    "connectionFailed": "אימות מפתח API נכשל. בדוק את החיבור לאינטרנט.",
+    "unsupportedProvider": "ספק לא נתמך"
+  },
+  "task": {
+    "notFound": "משימה לא נמצאה",
+    "startFailed": "הפעלת המשימה נכשלה",
+    "cancelFailed": "ביטול המשימה נכשל",
+    "taskFailed": "המשימה נכשלה",
+    "noActiveTask": "אין משימה פעילה להמשך",
+    "noSession": "אין סשן להמשך - אנא התחל משימה חדשה",
+    "sendMessageFailed": "שליחת ההודעה נכשלה"
+  },
+  "adapter": {
+    "cliNotFound": "OpenCode CLI אינו זמין. ה-CLI המוטמע עשוי להיות חסר או פגום. אנא התקן מחדש את האפליקציה.",
+    "disposed": "המתאם הושמד ולא יכול להתחיל משימות חדשות",
+    "noActiveProcess": "אין תהליך פעיל",
+    "exitWithCode": "OpenCode CLI יצא עם קוד {{code}}"
+  },
+  "validation": {
+    "mustBeString": "{{field}} חייב להיות מחרוזת",
+    "required": "{{field}} הוא שדה חובה",
+    "exceedsLength": "{{field}} חורג מהאורך המקסימלי",
+    "unsupportedProvider": "ספק מפתח API לא נתמך",
+    "untrustedWindow": "חלון לא מהימן",
+    "focusedWindowRequired": "בקשת IPC חייבת להגיע מהחלון הפעיל"
+  },
+  "ollama": {
+    "connectionFailed": "החיבור נכשל",
+    "noModels": "לא נמצאו מודלים",
+    "saveFailed": "השמירה נכשלה",
+    "invalidUrl": "פורמט URL לא תקין",
+    "protocolNotAllowed": "רק כתובות http ו-https מותרות",
+    "invalidConfig": "תצורת Ollama לא תקינה",
+    "modelsArray": "תצורת Ollama לא תקינה: models חייב להיות מערך",
+    "invalidModelFormat": "תצורת Ollama לא תקינה: פורמט מודל לא תקין",
+    "connectionTimeout": "החיבור פג. וודא ש-Ollama פועל.",
+    "cannotConnect": "לא ניתן להתחבר ל-Ollama: {{message}}"
+  },
+  "bedrock": {
+    "invalidCredentials": "פרטי הזדהות לא תקינים",
+    "saveFailed": "שמירת פרטי ההזדהות נכשלה",
+    "invalidAuthType": "סוג אימות לא תקין",
+    "invalidAwsCredentials": "פרטי הזדהות AWS לא תקינים. אנא בדוק את מפתח הגישה ומפתח הגישה הסודי.",
+    "accessDenied": "הגישה נדחתה. וודא שלפרטי ההזדהות שלך ל-AWS יש הרשאות Bedrock.",
+    "profileNotFound": "פרופיל AWS לא נמצא. בדוק את הקובץ ~/.aws/credentials.",
+    "accessKeyRequired": "מפתח הגישה ומפתח הגישה הסודי נדרשים",
+    "profileNameRequired": "שם הפרופיל נדרש"
+  },
+  "model": {
+    "invalidConfig": "תצורת מודל לא תקינה"
+  },
+  "settings": {
+    "invalidDebugFlag": "דגל מצב ניפוי שגיאות לא תקין"
+  },
+  "i18n": {
+    "unsupportedLanguage": "שפה לא נתמכת"
+  },
+  "url": {
+    "protocolNotAllowed": "רק כתובות http ו-https מותרות"
+  },
+  "permission": {
+    "denied": "הרשאה נדחתה",
+    "required": "הרשאה נדרשת"
+  },
+  "generic": {
+    "unknown": "אירעה שגיאה לא ידועה",
+    "tryAgain": "אנא נסה שוב"
+  }
+}

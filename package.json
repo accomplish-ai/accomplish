@@ -19,7 +19,11 @@
     "build:desktop": "pnpm -F @accomplish/desktop build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "clean": "pnpm -r clean && rm -rf node_modules"
+    "clean": "pnpm -r clean && rm -rf node_modules",
+    "i18n:sync": "tsx scripts/sync-translations.ts",
+    "i18n:sync:zh": "tsx scripts/sync-translations.ts zh-CN",
+    "i18n:sync:he": "tsx scripts/sync-translations.ts he",
+    "i18n:validate": "tsx scripts/validate-translations.ts"
   },
   "engines": {
     "node": ">=20.0.0",
@@ -27,8 +31,10 @@
   },
   "packageManager": "pnpm@9.15.0",
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "next": "^15.1.3",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "tsx": "^4.21.0"
   }
 }

@@ -1,0 +1,72 @@
+{
+  "status": {
+    "queued": "בתור",
+    "running": "פועל",
+    "completed": "הושלם",
+    "failed": "נכשל",
+    "cancelled": "בוטל",
+    "stopped": "הופסק"
+  },
+  "waiting": {
+    "title": "ממתין למשימה אחרת",
+    "description": "המשימה שלך בתור ותתחיל אוטומטית כאשר המשימה הנוכחית תסתיים.",
+    "followUpDescription": "המעקב שלך ימשיך אוטומטית"
+  },
+  "thinking": "חושב...",
+  "coldStartHint": "המשימה הראשונה לוקחת קצת יותר זמן...",
+  "agentWorking": "הסוכן עובד...",
+  "stopAgent": "עצור סוכן (Ctrl+C)",
+  "followUp": {
+    "interruptedPlaceholder": "תן הוראות חדשות...",
+    "noSessionPlaceholder": "שלח הוראה חדשה כדי לנסות שוב...",
+    "completedPlaceholder": "תן הוראות חדשות...",
+    "defaultPlaceholder": "בקש משהו..."
+  },
+  "taskStatus": "משימה {{status}}",
+  "tools": {
+    "Read": "קורא קבצים",
+    "Glob": "מוצא קבצים",
+    "Grep": "מחפש בקוד",
+    "Bash": "מריץ פקודה",
+    "Write": "כותב קובץ",
+    "Edit": "עורך קובץ",
+    "Task": "מריץ סוכן",
+    "WebFetch": "מביא דף אינטרנט",
+    "WebSearch": "מחפש ברשת",
+    "dev_browser_execute": "מבצע פעולת דפדפן"
+  },
+  "processing": "מעבד",
+  "system": "מערכת",
+  "permission": {
+    "title": "נדרשת הרשאה",
+    "fileTitle": "נדרשת הרשאת קובץ",
+    "fileDeleteTitle": "אזהרת מחיקת קובץ",
+    "questionTitle": "שאלה",
+    "toolQuestion": "לאפשר {{toolName}}?",
+    "tool": "כלי",
+    "previewContent": "תצוגה מקדימה של התוכן",
+    "backToOptions": "← חזור לאפשרויות",
+    "typeResponse": "הקלד את תגובתך...",
+    "orTypeOwn": "או הקלד משלך",
+    "deleteWarningSingle": "הקובץ הזה יימחק לצמיתות:",
+    "deleteWarningMultiple": "{{count}} קבצים יימחקו לצמיתות:",
+    "operations": {
+      "delete": "מחק",
+      "overwrite": "החלף",
+      "modify": "שנה",
+      "create": "צור",
+      "rename": "שנה שם",
+      "move": "העבר"
+    }
+  },
+  "browserInstall": {
+    "title": "Chrome לא מותקן",
+    "description": "מתקין דפדפן לאוטומציה...",
+    "downloading": "מוריד...",
+    "oneTimeSetup": "התקנה חד-פעמית (~250 מגה בסך הכל)"
+  },
+  "debug": {
+    "title": "לוגי דיבאג",
+    "noLogs": "אין עדיין לוגי דיבאג. הרץ משימה כדי לראות לוגים."
+  }
+}

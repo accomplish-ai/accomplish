@@ -34,7 +34,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   const [gridExpanded, setGridExpanded] = useState(false);
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
-  const [language, setLanguageState] = useState<'en' | 'zh-CN' | 'auto'>('auto');
+  const [language, setLanguageState] = useState<'en' | 'zh-CN' | 'he' | 'auto'>('auto');
 
   const {
     settings,
@@ -170,7 +170,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   }, [debugMode, accomplish]);
 
   // Handle language change
-  const handleLanguageChange = useCallback(async (newLanguage: 'en' | 'zh-CN' | 'auto') => {
+  const handleLanguageChange = useCallback(async (newLanguage: 'en' | 'zh-CN' | 'he' | 'auto') => {
     setLanguageState(newLanguage);
     await changeLanguage(newLanguage);
   }, []);
@@ -431,13 +431,14 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
                 <div className="ml-4">
                   <select
                     value={language}
-                    onChange={(e) => handleLanguageChange(e.target.value as 'en' | 'zh-CN' | 'auto')}
+                    onChange={(e) => handleLanguageChange(e.target.value as 'en' | 'zh-CN' | 'he' | 'auto')}
                     className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                     data-testid="language-select"
                   >
                     <option value="auto">{t('language.auto')}</option>
-                    <option value="en">{t('language.en')}</option>
-                    <option value="zh-CN">{t('language.zhCN')}</option>
+                    <option value="en">English</option>
+                    <option value="zh-CN">简体中文</option>
+                    <option value="he">עברית</option>
                   </select>
                 </div>
               </div>
