@@ -4,8 +4,17 @@ import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
-import type { ProviderId, ConnectedProvider, ApiKeyCredentials, OAuthCredentials } from '@accomplish/shared';
-import { PROVIDER_META, DEFAULT_PROVIDERS, getDefaultModelForProvider } from '@accomplish/shared';
+import type {
+  ProviderId,
+  ConnectedProvider,
+  ApiKeyCredentials,
+  OAuthCredentials,
+} from '@accomplish/shared';
+import {
+  PROVIDER_META,
+  DEFAULT_PROVIDERS,
+  getDefaultModelForProvider,
+} from '@accomplish/shared';
 import {
   ModelSelector,
   ConnectButton,
@@ -61,8 +70,12 @@ export function ClassicProviderForm({
   const [signingIn, setSigningIn] = useState(false);
 
   const meta = PROVIDER_META[providerId];
-  const providerConfig = DEFAULT_PROVIDERS.find(p => p.id === providerId);
-  const models = providerConfig?.models.map(m => ({ id: m.fullId, name: m.displayName })) || [];
+  const providerConfig = DEFAULT_PROVIDERS.find((p) => p.id === providerId);
+  const models =
+    providerConfig?.models.map((m) => ({
+      id: m.fullId,
+      name: m.displayName,
+    })) || [];
   const isConnected = connectedProvider?.connectionStatus === 'connected';
   const logoSrc = PROVIDER_LOGOS[providerId];
   const isOpenAI = providerId === 'openai';
@@ -92,7 +105,10 @@ export function ClassicProviderForm({
         await accomplish.setOpenAiBaseUrl(openAiBaseUrl.trim());
       }
 
-      const validation = await accomplish.validateApiKeyForProvider(providerId, apiKey.trim());
+      const validation = await accomplish.validateApiKeyForProvider(
+        providerId,
+        apiKey.trim()
+      );
 
       if (!validation.valid) {
         setError(validation.error || 'Invalid API key');
@@ -114,9 +130,11 @@ export function ClassicProviderForm({
         selectedModelId: defaultModel, // Auto-select default model for main providers
         credentials: {
           type: 'api_key',
-          keyPrefix: trimmedKey.length > 40
-            ? trimmedKey.substring(0, 40) + '...'
-            : trimmedKey.substring(0, Math.min(trimmedKey.length, 20)) + '...',
+          keyPrefix:
+            trimmedKey.length > 40
+              ? trimmedKey.substring(0, 40) + '...'
+              : trimmedKey.substring(0, Math.min(trimmedKey.length, 20)) +
+                '...',
         } as ApiKeyCredentials,
         lastConnectedAt: new Date().toISOString(),
       };
@@ -161,7 +179,10 @@ export function ClassicProviderForm({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
+    <div
+      className="rounded-xl border border-border bg-card p-5"
+      data-testid="provider-settings-panel"
+    >
       <ProviderFormHeader logoSrc={logoSrc} providerName={meta.name} />
 
       {/* OpenAI: Linear OAuth + API Key interface */}
@@ -189,7 +210,9 @@ export function ClassicProviderForm({
           {/* API Key section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground">API Key</label>
+              <label className="text-sm font-medium text-foreground">
+                API Key
+              </label>
               {meta.helpUrl && (
                 <a
                   href={meta.helpUrl}
@@ -217,8 +240,18 @@ export function ClassicProviderForm({
                 type="button"
                 disabled={!apiKey}
               >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               </button>
             </div>
@@ -226,7 +259,9 @@ export function ClassicProviderForm({
 
           {/* Base URL section */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Base URL (optional)</label>
+            <label className="text-sm font-medium text-foreground">
+              Base URL (optional)
+            </label>
             <input
               type="text"
               value={openAiBaseUrl}
@@ -240,7 +275,11 @@ export function ClassicProviderForm({
           </div>
 
           <FormError error={error} />
-          <ConnectButton onClick={handleConnect} connecting={connecting} disabled={!apiKey.trim()} />
+          <ConnectButton
+            onClick={handleConnect}
+            connecting={connecting}
+            disabled={!apiKey.trim()}
+          />
         </div>
       )}
 
@@ -248,7 +287,9 @@ export function ClassicProviderForm({
       {!isOpenAI && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-foreground">API Key</label>
+            <label className="text-sm font-medium text-foreground">
+              API Key
+            </label>
             {meta.helpUrl && (
               <a
                 href={meta.helpUrl}
@@ -288,14 +329,28 @@ export function ClassicProviderForm({
                     type="button"
                     disabled={!apiKey}
                   >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
                     </svg>
                   </button>
                 </div>
 
                 <FormError error={error} />
-                <ConnectButton onClick={handleConnect} connecting={connecting} disabled={!apiKey.trim()} />
+                <ConnectButton
+                  onClick={handleConnect}
+                  connecting={connecting}
+                  disabled={!apiKey.trim()}
+                />
               </motion.div>
             ) : (
               <motion.div
@@ -310,7 +365,9 @@ export function ClassicProviderForm({
                 <input
                   type="text"
                   value={(() => {
-                    const creds = connectedProvider?.credentials as ApiKeyCredentials | undefined;
+                    const creds = connectedProvider?.credentials as
+                      | ApiKeyCredentials
+                      | undefined;
                     if (creds?.keyPrefix) return creds.keyPrefix;
                     return 'API key saved (reconnect to see prefix)';
                   })()}

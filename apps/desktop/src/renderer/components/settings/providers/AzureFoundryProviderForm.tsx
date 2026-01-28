@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import { getAccomplish } from '@/lib/accomplish';
-import type { ConnectedProvider, AzureFoundryCredentials } from '@accomplish/shared';
+import type {
+  ConnectedProvider,
+  AzureFoundryCredentials,
+} from '@accomplish/shared';
 import {
   ModelSelector,
   ConnectButton,
@@ -90,7 +93,9 @@ export function AzureFoundryProviderForm({
           authMethod: authType,
           endpoint: endpoint.trim(),
           deploymentName: deploymentName.trim(),
-          ...(authType === 'api-key' && apiKey ? { keyPrefix: apiKey.substring(0, 8) + '...' } : {}),
+          ...(authType === 'api-key' && apiKey
+            ? { keyPrefix: apiKey.substring(0, 8) + '...' }
+            : {}),
         } as AzureFoundryCredentials,
         lastConnectedAt: new Date().toISOString(),
         availableModels: models,
@@ -108,7 +113,10 @@ export function AzureFoundryProviderForm({
   const models = connectedProvider?.availableModels || [];
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
+    <div
+      className="rounded-xl border border-border bg-card p-5"
+      data-testid="provider-settings-panel"
+    >
       <ProviderFormHeader logoSrc={azureLogo} providerName="Azure AI Foundry" />
 
       <div className="space-y-3">
@@ -142,7 +150,8 @@ export function AzureFoundryProviderForm({
 
             {authType === 'entra-id' && (
               <p className="text-xs text-muted-foreground">
-                Uses your Azure CLI credentials. Run <code className="bg-muted px-1 rounded">az login</code> first.
+                Uses your Azure CLI credentials. Run{' '}
+                <code className="bg-muted px-1 rounded">az login</code> first.
               </p>
             )}
 
@@ -201,28 +210,45 @@ export function AzureFoundryProviderForm({
             {/* Display saved credentials info */}
             <div className="space-y-3">
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Endpoint</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">
+                  Endpoint
+                </label>
                 <input
                   type="text"
-                  value={(connectedProvider?.credentials as AzureFoundryCredentials)?.endpoint || ''}
+                  value={
+                    (connectedProvider?.credentials as AzureFoundryCredentials)
+                      ?.endpoint || ''
+                  }
                   disabled
                   className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Deployment</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">
+                  Deployment
+                </label>
                 <input
                   type="text"
-                  value={(connectedProvider?.credentials as AzureFoundryCredentials)?.deploymentName || ''}
+                  value={
+                    (connectedProvider?.credentials as AzureFoundryCredentials)
+                      ?.deploymentName || ''
+                  }
                   disabled
                   className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Authentication</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">
+                  Authentication
+                </label>
                 <input
                   type="text"
-                  value={(connectedProvider?.credentials as AzureFoundryCredentials)?.authMethod === 'entra-id' ? 'Entra ID (Azure CLI)' : 'API Key'}
+                  value={
+                    (connectedProvider?.credentials as AzureFoundryCredentials)
+                      ?.authMethod === 'entra-id'
+                      ? 'Entra ID (Azure CLI)'
+                      : 'API Key'
+                  }
                   disabled
                   className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />

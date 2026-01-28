@@ -33,7 +33,7 @@ function runCommand(command, description) {
       env: {
         ...process.env,
         OPENWORK_POSTINSTALL_RUNNING: '1',
-      }
+      },
     });
   } catch (error) {
     console.error(`Failed: ${description}`);
@@ -44,11 +44,14 @@ function runCommand(command, description) {
 if (isWindows) {
   // On Windows, we need to install Electron-compatible prebuilt binaries for better-sqlite3
   // node-pty has working prebuilt binaries, so we skip it
-  console.log('\n> Windows: Installing Electron-compatible better-sqlite3 prebuild...');
+  console.log(
+    '\n> Windows: Installing Electron-compatible better-sqlite3 prebuild...'
+  );
 
   // Get the Electron version from package.json
   const packageJson = require('../package.json');
-  const electronVersion = packageJson.devDependencies?.electron?.replace('^', '') || '35.0.0';
+  const electronVersion =
+    packageJson.devDependencies?.electron?.replace('^', '') || '35.0.0';
   console.log(`> Electron version: ${electronVersion}`);
 
   // Find better-sqlite3 in pnpm store and install Electron prebuild
@@ -63,19 +66,27 @@ if (isWindows) {
       }
 
       // Use prebuild-install to get Electron-compatible binary
-      execSync(`npx prebuild-install --runtime electron --target ${electronVersion}`, {
-        stdio: 'inherit',
-        cwd: betterSqlite3Path,
-        shell: true
-      });
+      execSync(
+        `npx prebuild-install --runtime electron --target ${electronVersion}`,
+        {
+          stdio: 'inherit',
+          cwd: betterSqlite3Path,
+          shell: true,
+        }
+      );
       console.log('> better-sqlite3 Electron prebuild installed successfully');
     } catch (error) {
-      console.error('> Failed to install better-sqlite3 prebuild:', error.message);
+      console.error(
+        '> Failed to install better-sqlite3 prebuild:',
+        error.message
+      );
       console.error('> The app may not work correctly in packaged mode.');
       // Don't exit - the app might still work in development
     }
   } else {
-    console.warn('> Warning: better-sqlite3 not found, skipping prebuild installation');
+    console.warn(
+      '> Warning: better-sqlite3 not found, skipping prebuild installation'
+    );
   }
 
   // Verify node-pty prebuilds exist
@@ -86,7 +97,9 @@ if (isWindows) {
       console.log('> node-pty prebuilds found, setup complete');
     } else {
       console.error('> Error: node-pty prebuilds not found at', prebuildsPath);
-      console.error('> The app will not work correctly without prebuilds on Windows.');
+      console.error(
+        '> The app will not work correctly without prebuilds on Windows.'
+      );
       process.exit(1);
     }
   }
@@ -95,20 +108,33 @@ if (isWindows) {
   runCommand('npx electron-rebuild', 'Running electron-rebuild');
 }
 
-const useBundledSkills = process.env.OPENWORK_BUNDLED_SKILLS === '1' || process.env.CI === 'true';
+const useBundledSkills =
+  process.env.OPENWORK_BUNDLED_SKILLS === '1' || process.env.CI === 'true';
 
 // Install shared skills runtime dependencies (Playwright) at skills/ root
 if (useBundledSkills) {
-  runCommand('npm --prefix skills install --omit=dev', 'Installing shared skills runtime dependencies');
+  runCommand(
+    'npm --prefix skills install --omit=dev',
+    'Installing shared skills runtime dependencies'
+  );
 }
 
 // Install per-skill dependencies for dev/tsx workflows
 if (!useBundledSkills) {
   // Use --omit=dev to exclude devDependencies (vitest, @types/*) - not needed at runtime
   // This significantly reduces installer size and build time
-  const skills = ['dev-browser', 'dev-browser-mcp', 'file-permission', 'ask-user-question', 'complete-task'];
+  const skills = [
+    'dev-browser',
+    'dev-browser-mcp',
+    'file-permission',
+    'ask-user-question',
+    'complete-task',
+  ];
   for (const skill of skills) {
-    runCommand(`npm --prefix skills/${skill} install --omit=dev`, `Installing ${skill} dependencies`);
+    runCommand(
+      `npm --prefix skills/${skill} install --omit=dev`,
+      `Installing ${skill} dependencies`
+    );
   }
 }
 
@@ -132,12 +158,24 @@ function findPackage(packageName) {
   }
 
   // Look in pnpm's .pnpm directory
-  const pnpmPath = path.join(__dirname, '..', '..', '..', 'node_modules', '.pnpm');
+  const pnpmPath = path.join(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    'node_modules',
+    '.pnpm'
+  );
   if (fs.existsSync(pnpmPath)) {
     const entries = fs.readdirSync(pnpmPath);
     for (const entry of entries) {
       if (entry.startsWith(`${packageName}@`)) {
-        const packageDir = path.join(pnpmPath, entry, 'node_modules', packageName);
+        const packageDir = path.join(
+          pnpmPath,
+          entry,
+          'node_modules',
+          packageName
+        );
         if (fs.existsSync(packageDir)) {
           return packageDir;
         }

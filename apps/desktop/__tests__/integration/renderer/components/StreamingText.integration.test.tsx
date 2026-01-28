@@ -8,7 +8,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { renderHook } from '@testing-library/react';
-import { StreamingText, useStreamingState } from '@/components/ui/streaming-text';
+import {
+  StreamingText,
+  useStreamingState,
+} from '@/components/ui/streaming-text';
 
 describe('StreamingText Integration', () => {
   describe('basic rendering', () => {
@@ -86,7 +89,9 @@ describe('StreamingText Integration', () => {
       );
 
       // Assert
-      expect(screen.getByTestId('content')).toHaveTextContent('Immediate complete');
+      expect(screen.getByTestId('content')).toHaveTextContent(
+        'Immediate complete'
+      );
     });
 
     it('should stop streaming when isComplete changes to true', () => {
@@ -114,7 +119,11 @@ describe('StreamingText Integration', () => {
 
       // Act
       render(
-        <StreamingText text="Already done" isComplete={true} onComplete={onComplete}>
+        <StreamingText
+          text="Already done"
+          isComplete={true}
+          onComplete={onComplete}
+        >
           {(text) => <span>{text}</span>}
         </StreamingText>
       );
@@ -174,7 +183,9 @@ describe('StreamingText Integration', () => {
       );
 
       // Assert
-      expect(screen.getByTestId('content')).toHaveTextContent('**Bold** and *italic* text');
+      expect(screen.getByTestId('content')).toHaveTextContent(
+        '**Bold** and *italic* text'
+      );
     });
 
     it('should handle code content', () => {
@@ -229,7 +240,9 @@ Line 3`;
       );
 
       // Assert
-      expect(screen.getByTestId('content')).toHaveTextContent('Special chars: @#$%^&*()');
+      expect(screen.getByTestId('content')).toHaveTextContent(
+        'Special chars: @#$%^&*()'
+      );
     });
 
     it('should handle unicode characters', () => {
@@ -241,7 +254,9 @@ Line 3`;
       );
 
       // Assert
-      expect(screen.getByTestId('content')).toHaveTextContent('Unicode: Hello World');
+      expect(screen.getByTestId('content')).toHaveTextContent(
+        'Unicode: Hello World'
+      );
     });
 
     it('should handle long text content', () => {
@@ -476,9 +491,7 @@ describe('useStreamingState Hook', () => {
 
     it('should handle empty message ID', () => {
       // Arrange & Act
-      const { result } = renderHook(() =>
-        useStreamingState('', true, true)
-      );
+      const { result } = renderHook(() => useStreamingState('', true, true));
 
       // Assert - Should still work
       expect(result.current.shouldStream).toBe(true);

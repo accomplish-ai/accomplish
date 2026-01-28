@@ -17,7 +17,9 @@ function getOpenCodeDataHome(): string {
   if (process.platform === 'win32') {
     return process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
   }
-  return process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
+  return (
+    process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share')
+  );
 }
 
 export function getOpenCodeAuthJsonPath(): string {
@@ -35,7 +37,10 @@ function readOpenCodeAuthJson(): Record<string, unknown> | null {
   }
 }
 
-export function getOpenAiOauthStatus(): { connected: boolean; expires?: number } {
+export function getOpenAiOauthStatus(): {
+  connected: boolean;
+  expires?: number;
+} {
   const authJson = readOpenCodeAuthJson();
   if (!authJson) return { connected: false };
 
@@ -89,7 +94,9 @@ function getShellArgs(command: string): string[] {
   return ['-c', command];
 }
 
-export async function loginOpenAiWithChatGpt(): Promise<{ openedUrl?: string }> {
+export async function loginOpenAiWithChatGpt(): Promise<{
+  openedUrl?: string;
+}> {
   await generateOpenCodeConfig();
 
   const { command, args: baseArgs } = getOpenCodeCliPath();
@@ -149,7 +156,11 @@ export async function loginOpenAiWithChatGpt(): Promise<{ openedUrl?: string }> 
       }
 
       // Login method selection: default is ChatGPT Pro/Plus (first entry)
-      if (hasSelectedProvider && !hasSelectedLoginMethod && buffer.includes('Login method')) {
+      if (
+        hasSelectedProvider &&
+        !hasSelectedLoginMethod &&
+        buffer.includes('Login method')
+      ) {
         hasSelectedLoginMethod = true;
         proc.write('\r');
       }

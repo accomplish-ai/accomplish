@@ -108,10 +108,7 @@ describe('System PATH Utilities', () => {
       it('should include common Node.js paths', async () => {
         // Arrange
         mockFs.existsSync.mockImplementation((p: string) => {
-          const existingPaths = [
-            '/opt/homebrew/bin',
-            '/usr/local/bin',
-          ];
+          const existingPaths = ['/opt/homebrew/bin', '/usr/local/bin'];
           return existingPaths.includes(p);
         });
         mockFs.readdirSync.mockReturnValue([]);
@@ -157,7 +154,8 @@ describe('System PATH Utilities', () => {
 
       it('should include fnm paths when available', async () => {
         // Arrange
-        const fnmPath = '/Users/testuser/.fnm/node-versions/v20.10.0/installation/bin';
+        const fnmPath =
+          '/Users/testuser/.fnm/node-versions/v20.10.0/installation/bin';
 
         mockFs.existsSync.mockImplementation((p: string) => {
           if (p === '/Users/testuser/.fnm/node-versions') return true;
@@ -217,7 +215,9 @@ describe('System PATH Utilities', () => {
         // Arrange
         mockFs.existsSync.mockReturnValue(false);
         mockFs.readdirSync.mockReturnValue([]);
-        mockExecSync.mockReturnValue('PATH="/custom/path:/another/path"; export PATH;');
+        mockExecSync.mockReturnValue(
+          'PATH="/custom/path:/another/path"; export PATH;'
+        );
 
         // Re-import
         vi.resetModules();
@@ -259,7 +259,9 @@ describe('System PATH Utilities', () => {
           return p === '/usr/local/bin';
         });
         mockFs.readdirSync.mockReturnValue([]);
-        mockExecSync.mockReturnValue('PATH="/usr/local/bin:/usr/bin"; export PATH;');
+        mockExecSync.mockReturnValue(
+          'PATH="/usr/local/bin:/usr/bin"; export PATH;'
+        );
 
         // Re-import
         vi.resetModules();
@@ -270,7 +272,9 @@ describe('System PATH Utilities', () => {
 
         // Assert - /usr/local/bin should appear only once
         const pathParts = result.split(':');
-        const localBinCount = pathParts.filter((p) => p === '/usr/local/bin').length;
+        const localBinCount = pathParts.filter(
+          (p) => p === '/usr/local/bin'
+        ).length;
         expect(localBinCount).toBe(1);
       });
 

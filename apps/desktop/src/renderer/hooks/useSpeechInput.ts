@@ -86,7 +86,9 @@ export interface UseSpeechInputState {
   isConfigured: boolean;
 }
 
-export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechInputState & {
+export function useSpeechInput(
+  options: UseSpeechInputOptions = {}
+): UseSpeechInputState & {
   startRecording: () => Promise<void>;
   stopRecording: () => Promise<void>;
   cancelRecording: () => void;
@@ -245,7 +247,10 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
           'Microphone access denied. Please allow microphone access in settings.',
           error
         );
-      } else if (error instanceof DOMException && error.name === 'NotFoundError') {
+      } else if (
+        error instanceof DOMException &&
+        error.name === 'NotFoundError'
+      ) {
         speechError = new SpeechRecognitionError(
           'NO_MICROPHONE',
           'No microphone found. Please check your audio devices.',
@@ -262,7 +267,15 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
       setState((prev) => ({ ...prev, error: speechError, isRecording: false }));
       onError?.(speechError);
     }
-  }, [state.isRecording, state.isTranscribing, state.isConfigured, maxDuration, onRecordingStateChange, onError, cleanup]);
+  }, [
+    state.isRecording,
+    state.isTranscribing,
+    state.isConfigured,
+    maxDuration,
+    onRecordingStateChange,
+    onError,
+    cleanup,
+  ]);
 
   /**
    * Stop recording and transcribe via IPC
@@ -348,7 +361,15 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
       }));
       onError?.(speechError);
     }
-  }, [state.isRecording, onRecordingStateChange, onTranscriptionComplete, onError, cleanup, accomplish, formatErrorMessage]);
+  }, [
+    state.isRecording,
+    onRecordingStateChange,
+    onTranscriptionComplete,
+    onError,
+    cleanup,
+    accomplish,
+    formatErrorMessage,
+  ]);
 
   /**
    * Cancel recording without transcribing
@@ -377,14 +398,21 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
    * Retry transcription of last recording
    */
   const retry = useCallback(async () => {
-    if (!lastAudioDataRef.current || state.isTranscribing || state.isRecording) {
+    if (
+      !lastAudioDataRef.current ||
+      state.isTranscribing ||
+      state.isRecording
+    ) {
       return;
     }
 
     try {
       setState((prev) => ({ ...prev, isTranscribing: true, error: null }));
 
-      const result = await accomplish.speechTranscribe(lastAudioDataRef.current, 'audio/webm');
+      const result = await accomplish.speechTranscribe(
+        lastAudioDataRef.current,
+        'audio/webm'
+      );
 
       if (result.success) {
         setState((prev) => ({
@@ -407,10 +435,21 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
         'TRANSCRIPTION_FAILED',
         error instanceof Error ? error.message : 'Failed to transcribe audio'
       );
-      setState((prev) => ({ ...prev, isTranscribing: false, error: speechError }));
+      setState((prev) => ({
+        ...prev,
+        isTranscribing: false,
+        error: speechError,
+      }));
       onError?.(speechError);
     }
-  }, [state.isTranscribing, state.isRecording, onTranscriptionComplete, onError, accomplish, formatErrorMessage]);
+  }, [
+    state.isTranscribing,
+    state.isRecording,
+    onTranscriptionComplete,
+    onError,
+    accomplish,
+    formatErrorMessage,
+  ]);
 
   /**
    * Clear the current error
@@ -430,7 +469,11 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
       }
 
       // Push-to-talk
-      if (event.key === pushToTalkKey && !state.isRecording && !state.isTranscribing) {
+      if (
+        event.key === pushToTalkKey &&
+        !state.isRecording &&
+        !state.isTranscribing
+      ) {
         event.preventDefault();
         void startRecording();
       }
@@ -450,7 +493,14 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [state.isRecording, state.isTranscribing, pushToTalkKey, startRecording, stopRecording, cancelRecording]);
+  }, [
+    state.isRecording,
+    state.isTranscribing,
+    pushToTalkKey,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+  ]);
 
   return {
     ...state,

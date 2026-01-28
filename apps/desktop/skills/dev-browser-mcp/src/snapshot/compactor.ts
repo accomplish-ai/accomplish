@@ -10,16 +10,15 @@ import type { SnapshotElement, SessionHistoryEntry } from './types';
  * If nav/footer is identical to previous page, can be skipped.
  */
 export function hashNavigationPattern(elements: SnapshotElement[]): string {
-  const navElements = elements.filter(e =>
-    e.role === 'navigation' ||
-    e.role === 'banner' ||
-    e.role === 'contentinfo'
+  const navElements = elements.filter(
+    (e) =>
+      e.role === 'navigation' || e.role === 'banner' || e.role === 'contentinfo'
   );
 
   if (navElements.length === 0) return '';
 
   const signature = navElements
-    .map(e => `${e.role}:${e.name ?? ''}`)
+    .map((e) => `${e.role}:${e.name ?? ''}`)
     .sort()
     .join('|');
 
@@ -31,10 +30,11 @@ export function hashNavigationPattern(elements: SnapshotElement[]): string {
  */
 export function summarizeSession(history: SessionHistoryEntry[]): string {
   if (history.length === 0) return '';
-  if (history.length === 1) return `Currently on: ${history[0].title || 'Page'}`;
+  if (history.length === 1)
+    return `Currently on: ${history[0].title || 'Page'}`;
 
   const recent = history.slice(-5);
-  return `Navigation: ${recent.map(h => h.title || 'Page').join(' → ')}`;
+  return `Navigation: ${recent.map((h) => h.title || 'Page').join(' → ')}`;
 }
 
 /**

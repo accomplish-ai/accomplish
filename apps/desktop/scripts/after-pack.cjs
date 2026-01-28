@@ -18,10 +18,10 @@ const NODE_VERSION = '20.18.1';
  * @see https://github.com/electron-userland/electron-builder/blob/master/packages/builder-util/src/arch.ts
  */
 const ARCH_MAP = {
-  0: 'ia32',   // Arch.ia32
-  1: 'x64',    // Arch.x64
+  0: 'ia32', // Arch.ia32
+  1: 'x64', // Arch.x64
   2: 'armv7l', // Arch.armv7l
-  3: 'arm64',  // Arch.arm64
+  3: 'arm64', // Arch.arm64
   4: 'universal', // Arch.universal (macOS only)
 };
 
@@ -75,7 +75,9 @@ exports.default = async function afterPack(context) {
   // For macOS universal builds, we need BOTH architectures in EACH build
   // so that electron-builder can merge them (it requires identical file structures)
   if (platformName === 'mac' && isUniversalBuild) {
-    console.log('[after-pack] macOS universal build - copying both x64 and arm64 Node.js binaries');
+    console.log(
+      '[after-pack] macOS universal build - copying both x64 and arm64 Node.js binaries'
+    );
     await copyNodeBinary(context, nodePlatform, 'x64');
     await copyNodeBinary(context, nodePlatform, 'arm64');
     await resignMacApp(context);
@@ -107,12 +109,20 @@ exports.default = async function afterPack(context) {
 async function copyNodePtyPrebuilds(context, arch) {
   const { appOutDir } = context;
 
-  const nodePtyBase = path.join(appOutDir, 'resources', 'app.asar.unpacked', 'node_modules', 'node-pty');
+  const nodePtyBase = path.join(
+    appOutDir,
+    'resources',
+    'app.asar.unpacked',
+    'node_modules',
+    'node-pty'
+  );
   const prebuildsDir = path.join(nodePtyBase, 'prebuilds', `win32-${arch}`);
   const buildReleaseDir = path.join(nodePtyBase, 'build', 'Release');
 
   if (!fs.existsSync(prebuildsDir)) {
-    console.log(`[after-pack] node-pty prebuilds not found at ${prebuildsDir}, skipping`);
+    console.log(
+      `[after-pack] node-pty prebuilds not found at ${prebuildsDir}, skipping`
+    );
     return;
   }
 
@@ -140,13 +150,18 @@ async function copyNodePtyPrebuilds(context, arch) {
       }
       const subFiles = fs.readdirSync(srcPath);
       for (const subFile of subFiles) {
-        fs.copyFileSync(path.join(srcPath, subFile), path.join(destPath, subFile));
+        fs.copyFileSync(
+          path.join(srcPath, subFile),
+          path.join(destPath, subFile)
+        );
         console.log(`[after-pack]   Copied: ${file}/${subFile}`);
       }
     }
   }
 
-  console.log(`[after-pack] Successfully copied node-pty prebuilds to ${buildReleaseDir}`);
+  console.log(
+    `[after-pack] Successfully copied node-pty prebuilds to ${buildReleaseDir}`
+  );
 }
 
 /**
@@ -158,7 +173,13 @@ async function pruneNodePtyArm64(context, arch) {
   }
 
   const { appOutDir } = context;
-  const nodePtyBase = path.join(appOutDir, 'resources', 'app.asar.unpacked', 'node_modules', 'node-pty');
+  const nodePtyBase = path.join(
+    appOutDir,
+    'resources',
+    'app.asar.unpacked',
+    'node_modules',
+    'node-pty'
+  );
   const arm64Prebuilds = path.join(nodePtyBase, 'prebuilds', 'win32-arm64');
   const conptyRoot = path.join(nodePtyBase, 'third_party', 'conpty');
 
@@ -177,12 +198,13 @@ async function pruneNodePtyArm64(context, arch) {
       const arm64Dir = path.join(versionDir, 'win10-arm64');
       if (fs.existsSync(arm64Dir)) {
         fs.rmSync(arm64Dir, { recursive: true, force: true });
-        console.log(`[after-pack] Removed node-pty conpty arm64 binaries: ${arm64Dir}`);
+        console.log(
+          `[after-pack] Removed node-pty conpty arm64 binaries: ${arm64Dir}`
+        );
       }
     }
   }
 }
-
 
 /**
  * Copy Node.js binary for a specific platform/arch combination
@@ -205,7 +227,8 @@ async function copyNodeBinary(context, platform, arch) {
 
   // Check if source exists - fail the build if missing
   if (!fs.existsSync(sourceDir)) {
-    const errorMsg = `[after-pack] ERROR: Node.js binary not found at ${sourceDir}\n` +
+    const errorMsg =
+      `[after-pack] ERROR: Node.js binary not found at ${sourceDir}\n` +
       `Run "pnpm -F @accomplish/desktop download:nodejs" first to download the binaries.`;
     console.error(errorMsg);
     throw new Error(errorMsg);
@@ -217,13 +240,22 @@ async function copyNodeBinary(context, platform, arch) {
     // For universal builds, we need to include the arch in the path
     // macOS app bundle structure: <AppName>.app/Contents/Resources/
     const appName = packager.appInfo.productFilename;
-    destDir = path.join(appOutDir, `${appName}.app`, 'Contents', 'Resources', 'nodejs', arch);
+    destDir = path.join(
+      appOutDir,
+      `${appName}.app`,
+      'Contents',
+      'Resources',
+      'nodejs',
+      arch
+    );
   } else {
     // Windows/Linux: <app>/resources/
     destDir = path.join(appOutDir, 'resources', 'nodejs', arch);
   }
 
-  console.log(`[after-pack] Copying Node.js ${arch}: ${sourceDir} -> ${destDir}`);
+  console.log(
+    `[after-pack] Copying Node.js ${arch}: ${sourceDir} -> ${destDir}`
+  );
 
   // Create destination directory
   if (!fs.existsSync(destDir)) {
@@ -279,7 +311,9 @@ function copyDirRecursive(src, dest, rootDest = dest, excludeDirs = []) {
     if (entry.isDirectory()) {
       // Skip excluded directories
       if (excludeDirs.includes(entry.name)) {
-        console.log(`[after-pack] Skipping excluded directory: ${entry.name} (saves ~53MB)`);
+        console.log(
+          `[after-pack] Skipping excluded directory: ${entry.name} (saves ~53MB)`
+        );
         continue;
       }
       if (!fs.existsSync(destPath)) {
@@ -293,7 +327,9 @@ function copyDirRecursive(src, dest, rootDest = dest, excludeDirs = []) {
       // Security: Validate symlink doesn't escape the root destination directory
       // Only allow relative symlinks that stay within the directory tree
       if (path.isAbsolute(linkTarget)) {
-        console.warn(`[after-pack] Skipping absolute symlink: ${srcPath} -> ${linkTarget}`);
+        console.warn(
+          `[after-pack] Skipping absolute symlink: ${srcPath} -> ${linkTarget}`
+        );
         continue;
       }
 
@@ -301,7 +337,9 @@ function copyDirRecursive(src, dest, rootDest = dest, excludeDirs = []) {
       // e.g., bin/npm -> ../lib/node_modules/npm/bin/npm-cli.js is valid
       const resolvedPath = path.resolve(path.dirname(destPath), linkTarget);
       if (!resolvedPath.startsWith(rootDest)) {
-        console.warn(`[after-pack] Skipping symlink that escapes directory: ${srcPath} -> ${linkTarget}`);
+        console.warn(
+          `[after-pack] Skipping symlink that escapes directory: ${srcPath} -> ${linkTarget}`
+        );
         continue;
       }
 
@@ -314,7 +352,6 @@ function copyDirRecursive(src, dest, rootDest = dest, excludeDirs = []) {
     }
   }
 }
-
 
 /**
  * Re-sign macOS app after modifying the bundle.

@@ -78,7 +78,10 @@ export default function TaskInputBar({
     if (!autoSubmitOnTranscription || isDisabled) {
       return;
     }
-    if (pendingAutoSubmitRef.current && value === pendingAutoSubmitRef.current) {
+    if (
+      pendingAutoSubmitRef.current &&
+      value === pendingAutoSubmitRef.current
+    ) {
       pendingAutoSubmitRef.current = null;
       onSubmit();
     }

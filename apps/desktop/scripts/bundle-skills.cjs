@@ -50,7 +50,13 @@ function ensureDir(dirPath) {
   }
 }
 
-async function bundleSkill({ name, entry, outfile, external = [], banner: needsBanner }) {
+async function bundleSkill({
+  name,
+  entry,
+  outfile,
+  external = [],
+  banner: needsBanner,
+}) {
   const skillDir = path.join(skillsDir, name);
   const absEntry = path.join(skillDir, entry);
   const absOutfile = path.join(skillDir, outfile);
@@ -103,9 +109,12 @@ async function main() {
     await bundleSkill(bundle);
   }
 
-  const shouldPrune = process.env.CI === 'true' || process.env.OPENWORK_BUNDLED_SKILLS === '1';
+  const shouldPrune =
+    process.env.CI === 'true' || process.env.OPENWORK_BUNDLED_SKILLS === '1';
   if (shouldPrune) {
-    console.log('[bundle-skills] Pruning per-skill node_modules for packaged build');
+    console.log(
+      '[bundle-skills] Pruning per-skill node_modules for packaged build'
+    );
     prunePerSkillNodeModules();
   }
 

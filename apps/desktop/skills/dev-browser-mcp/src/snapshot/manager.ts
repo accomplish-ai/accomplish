@@ -1,6 +1,11 @@
 // apps/desktop/skills/dev-browser-mcp/src/snapshot/manager.ts
 
-import type { ParsedSnapshot, SnapshotResult, SessionHistoryEntry, SessionSummary } from './types.js';
+import type {
+  ParsedSnapshot,
+  SnapshotResult,
+  SessionHistoryEntry,
+  SessionSummary,
+} from './types.js';
 import { parseSnapshot } from './parser.js';
 import { diffSnapshots, formatDiff } from './differ.js';
 
@@ -150,7 +155,7 @@ export class SnapshotManager {
     }
 
     const history = this.sessionHistory
-      .map(h => h.title || new URL(h.url).pathname)
+      .map((h) => h.title || new URL(h.url).pathname)
       .join(' → ');
 
     return {

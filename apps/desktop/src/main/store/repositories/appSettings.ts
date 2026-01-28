@@ -1,6 +1,12 @@
 // apps/desktop/src/main/store/repositories/appSettings.ts
 
-import type { SelectedModel, OllamaConfig, LiteLLMConfig, AzureFoundryConfig, LMStudioConfig } from '@accomplish/shared';
+import type {
+  SelectedModel,
+  OllamaConfig,
+  LiteLLMConfig,
+  AzureFoundryConfig,
+  LMStudioConfig,
+} from '@accomplish/shared';
 import { getDatabase } from '../db';
 
 interface AppSettingsRow {
@@ -28,7 +34,9 @@ interface AppSettings {
 
 function getRow(): AppSettingsRow {
   const db = getDatabase();
-  return db.prepare('SELECT * FROM app_settings WHERE id = 1').get() as AppSettingsRow;
+  return db
+    .prepare('SELECT * FROM app_settings WHERE id = 1')
+    .get() as AppSettingsRow;
 }
 
 export function getDebugMode(): boolean {
@@ -37,7 +45,9 @@ export function getDebugMode(): boolean {
 
 export function setDebugMode(enabled: boolean): void {
   const db = getDatabase();
-  db.prepare('UPDATE app_settings SET debug_mode = ? WHERE id = 1').run(enabled ? 1 : 0);
+  db.prepare('UPDATE app_settings SET debug_mode = ? WHERE id = 1').run(
+    enabled ? 1 : 0
+  );
 }
 
 export function getOnboardingComplete(): boolean {
@@ -46,9 +56,9 @@ export function getOnboardingComplete(): boolean {
 
 export function setOnboardingComplete(complete: boolean): void {
   const db = getDatabase();
-  db.prepare('UPDATE app_settings SET onboarding_complete = ? WHERE id = 1').run(
-    complete ? 1 : 0
-  );
+  db.prepare(
+    'UPDATE app_settings SET onboarding_complete = ? WHERE id = 1'
+  ).run(complete ? 1 : 0);
 }
 
 export function getSelectedModel(): SelectedModel | null {
@@ -114,9 +124,9 @@ export function getAzureFoundryConfig(): AzureFoundryConfig | null {
 
 export function setAzureFoundryConfig(config: AzureFoundryConfig | null): void {
   const db = getDatabase();
-  db.prepare('UPDATE app_settings SET azure_foundry_config = ? WHERE id = 1').run(
-    config ? JSON.stringify(config) : null
-  );
+  db.prepare(
+    'UPDATE app_settings SET azure_foundry_config = ? WHERE id = 1'
+  ).run(config ? JSON.stringify(config) : null);
 }
 
 export function getLMStudioConfig(): LMStudioConfig | null {
@@ -149,7 +159,9 @@ export function getOpenAiBaseUrl(): string {
  */
 export function setOpenAiBaseUrl(baseUrl: string): void {
   const db = getDatabase();
-  db.prepare('UPDATE app_settings SET openai_base_url = ? WHERE id = 1').run(baseUrl || '');
+  db.prepare('UPDATE app_settings SET openai_base_url = ? WHERE id = 1').run(
+    baseUrl || ''
+  );
 }
 
 function safeParseJson<T>(json: string | null): T | null {
@@ -169,7 +181,9 @@ export function getAppSettings(): AppSettings {
     selectedModel: safeParseJson<SelectedModel>(row.selected_model),
     ollamaConfig: safeParseJson<OllamaConfig>(row.ollama_config),
     litellmConfig: safeParseJson<LiteLLMConfig>(row.litellm_config),
-    azureFoundryConfig: safeParseJson<AzureFoundryConfig>(row.azure_foundry_config),
+    azureFoundryConfig: safeParseJson<AzureFoundryConfig>(
+      row.azure_foundry_config
+    ),
     lmstudioConfig: safeParseJson<LMStudioConfig>(row.lmstudio_config),
     openaiBaseUrl: row.openai_base_url || '',
   };

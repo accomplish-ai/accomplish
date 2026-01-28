@@ -24,7 +24,9 @@ interface RegionSelectorProps {
 export function RegionSelector({ value, onChange }: RegionSelectorProps) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-foreground">Region</label>
+      <label className="mb-2 block text-sm font-medium text-foreground">
+        Region
+      </label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}

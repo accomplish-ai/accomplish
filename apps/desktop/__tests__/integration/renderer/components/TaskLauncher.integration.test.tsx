@@ -34,7 +34,9 @@ function createMockTask(
 // Mock accomplish API
 const mockAccomplish = {
   hasAnyApiKey: mockHasAnyApiKey,
-  getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
+  getSelectedModel: vi
+    .fn()
+    .mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
   getOllamaConfig: vi.fn().mockResolvedValue(null),
   isE2EMode: vi.fn().mockResolvedValue(false),
   getProviderSettings: vi.fn().mockResolvedValue({
@@ -80,11 +82,17 @@ vi.mock('@/stores/taskStore', () => ({
 // Mock framer-motion to simplify testing animations
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-      <div {...props}>{children}</div>
-    ),
+    div: ({
+      children,
+      ...props
+    }: {
+      children: React.ReactNode;
+      [key: string]: unknown;
+    }) => <div {...props}>{children}</div>,
   },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
 }));
 
 // Need to import after mocks are set up
@@ -104,7 +112,13 @@ describe('TaskLauncherItem', () => {
       const task = createMockTask('task-1', 'Check my email inbox');
 
       // Act
-      render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
 
       // Assert
       expect(screen.getByText('Check my email inbox')).toBeInTheDocument();
@@ -112,11 +126,18 @@ describe('TaskLauncherItem', () => {
 
     it('should render task with truncated long prompt', () => {
       // Arrange
-      const longPrompt = 'This is a very long task prompt that should be truncated when displayed in the UI to prevent overflow';
+      const longPrompt =
+        'This is a very long task prompt that should be truncated when displayed in the UI to prevent overflow';
       const task = createMockTask('task-1', longPrompt);
 
       // Act
-      render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
 
       // Assert
       const promptElement = screen.getByText(longPrompt);
@@ -130,7 +151,13 @@ describe('TaskLauncherItem', () => {
       const task = createMockTask('task-1', 'Running task', 'running');
 
       // Act
-      const { container } = render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      const { container } = render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
 
       // Assert - Check for spinning loader icon
       const spinner = container.querySelector('.animate-spin');
@@ -143,7 +170,13 @@ describe('TaskLauncherItem', () => {
       const task = createMockTask('task-1', 'Completed task', 'completed');
 
       // Act
-      const { container } = render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      const { container } = render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
 
       // Assert - CheckCircle2 icon should have green color
       const icon = container.querySelector('.text-green-500');
@@ -155,7 +188,13 @@ describe('TaskLauncherItem', () => {
       const task = createMockTask('task-1', 'Failed task', 'failed');
 
       // Act
-      const { container } = render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      const { container } = render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
 
       // Assert - XCircle icon should have destructive color
       const icon = container.querySelector('.text-destructive');
@@ -167,7 +206,13 @@ describe('TaskLauncherItem', () => {
       const task = createMockTask('task-1', 'Cancelled task', 'cancelled');
 
       // Act
-      const { container } = render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      const { container } = render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
 
       // Assert - AlertCircle icon should have yellow color
       const icon = container.querySelector('.text-yellow-500');
@@ -179,7 +224,13 @@ describe('TaskLauncherItem', () => {
       const task = createMockTask('task-1', 'Interrupted task', 'interrupted');
 
       // Act
-      const { container } = render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      const { container } = render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
 
       // Assert - AlertCircle icon should have yellow color
       const icon = container.querySelector('.text-yellow-500');
@@ -191,10 +242,21 @@ describe('TaskLauncherItem', () => {
     it('should show "Today" for tasks created today', () => {
       // Arrange
       const today = new Date();
-      const task = createMockTask('task-1', 'Today task', 'completed', today.toISOString());
+      const task = createMockTask(
+        'task-1',
+        'Today task',
+        'completed',
+        today.toISOString()
+      );
 
       // Act
-      render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
 
       // Assert
       expect(screen.getByText('Today')).toBeInTheDocument();
@@ -204,10 +266,21 @@ describe('TaskLauncherItem', () => {
       // Arrange
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      const task = createMockTask('task-1', 'Yesterday task', 'completed', yesterday.toISOString());
+      const task = createMockTask(
+        'task-1',
+        'Yesterday task',
+        'completed',
+        yesterday.toISOString()
+      );
 
       // Act
-      render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
 
       // Assert
       expect(screen.getByText('Yesterday')).toBeInTheDocument();
@@ -217,13 +290,32 @@ describe('TaskLauncherItem', () => {
       // Arrange
       const twoDaysAgo = new Date();
       twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-      const task = createMockTask('task-1', 'Recent task', 'completed', twoDaysAgo.toISOString());
+      const task = createMockTask(
+        'task-1',
+        'Recent task',
+        'completed',
+        twoDaysAgo.toISOString()
+      );
 
       // Act
-      render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
 
       // Assert - Should show weekday name (e.g., "Monday", "Tuesday")
-      const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const weekdays = [
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+      ];
       const expectedWeekday = weekdays[twoDaysAgo.getDay()];
       expect(screen.getByText(expectedWeekday)).toBeInTheDocument();
     });
@@ -232,13 +324,27 @@ describe('TaskLauncherItem', () => {
       // Arrange
       const tenDaysAgo = new Date();
       tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
-      const task = createMockTask('task-1', 'Old task', 'completed', tenDaysAgo.toISOString());
+      const task = createMockTask(
+        'task-1',
+        'Old task',
+        'completed',
+        tenDaysAgo.toISOString()
+      );
 
       // Act
-      render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
 
       // Assert - Should show format like "Jan 5"
-      const expectedDate = tenDaysAgo.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const expectedDate = tenDaysAgo.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      });
       expect(screen.getByText(expectedDate)).toBeInTheDocument();
     });
   });
@@ -249,7 +355,9 @@ describe('TaskLauncherItem', () => {
       const task = createMockTask('task-1', 'Selected task');
 
       // Act
-      const { container } = render(<TaskLauncherItem task={task} isSelected={true} onClick={mockOnClick} />);
+      const { container } = render(
+        <TaskLauncherItem task={task} isSelected={true} onClick={mockOnClick} />
+      );
 
       // Assert
       const button = container.querySelector('button');
@@ -262,7 +370,13 @@ describe('TaskLauncherItem', () => {
       const task = createMockTask('task-1', 'Unselected task');
 
       // Act
-      const { container } = render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      const { container } = render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
 
       // Assert
       const button = container.querySelector('button');
@@ -275,10 +389,14 @@ describe('TaskLauncherItem', () => {
       const task = createMockTask('task-1', 'Task');
 
       // Act
-      const { container } = render(<TaskLauncherItem task={task} isSelected={true} onClick={mockOnClick} />);
+      const { container } = render(
+        <TaskLauncherItem task={task} isSelected={true} onClick={mockOnClick} />
+      );
 
       // Assert - Date text should use primary-foreground opacity
-      const dateElement = container.querySelector('.text-primary-foreground\\/70');
+      const dateElement = container.querySelector(
+        '.text-primary-foreground\\/70'
+      );
       expect(dateElement).toBeInTheDocument();
     });
 
@@ -287,7 +405,13 @@ describe('TaskLauncherItem', () => {
       const task = createMockTask('task-1', 'Task');
 
       // Act
-      const { container } = render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      const { container } = render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
 
       // Assert - Date text should use muted foreground
       const dateElement = container.querySelector('.text-muted-foreground');
@@ -301,7 +425,13 @@ describe('TaskLauncherItem', () => {
       const task = createMockTask('task-1', 'Clickable task');
 
       // Act
-      render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
       const button = screen.getByRole('button');
       fireEvent.click(button);
 
@@ -314,7 +444,13 @@ describe('TaskLauncherItem', () => {
       const task = createMockTask('task-1', 'Task');
 
       // Act
-      render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
+      render(
+        <TaskLauncherItem
+          task={task}
+          isSelected={false}
+          onClick={mockOnClick}
+        />
+      );
 
       // Assert
       const button = screen.getByRole('button');
@@ -361,7 +497,9 @@ describe('TaskLauncher', () => {
       );
 
       // Assert
-      expect(screen.queryByPlaceholderText('Search tasks...')).not.toBeInTheDocument();
+      expect(
+        screen.queryByPlaceholderText('Search tasks...')
+      ).not.toBeInTheDocument();
     });
 
     it('should render when isLauncherOpen is true', () => {
@@ -376,7 +514,9 @@ describe('TaskLauncher', () => {
       );
 
       // Assert
-      expect(screen.getByPlaceholderText('Search tasks...')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText('Search tasks...')
+      ).toBeInTheDocument();
     });
 
     it('should show search input when open', () => {
@@ -522,7 +662,12 @@ describe('TaskLauncher', () => {
       const today = new Date();
       mockStoreState.isLauncherOpen = true;
       mockStoreState.tasks = [
-        createMockTask('task-1', 'Recent task', 'completed', today.toISOString()),
+        createMockTask(
+          'task-1',
+          'Recent task',
+          'completed',
+          today.toISOString()
+        ),
       ];
 
       // Act
@@ -539,9 +684,7 @@ describe('TaskLauncher', () => {
     it('should show "Results" section when searching', () => {
       // Arrange
       mockStoreState.isLauncherOpen = true;
-      mockStoreState.tasks = [
-        createMockTask('task-1', 'Check email'),
-      ];
+      mockStoreState.tasks = [createMockTask('task-1', 'Check email')];
 
       // Act
       render(
@@ -585,9 +728,7 @@ describe('TaskLauncher', () => {
     it('should be case-insensitive when filtering', () => {
       // Arrange
       mockStoreState.isLauncherOpen = true;
-      mockStoreState.tasks = [
-        createMockTask('task-1', 'Check my EMAIL inbox'),
-      ];
+      mockStoreState.tasks = [createMockTask('task-1', 'Check my EMAIL inbox')];
 
       // Act
       render(
@@ -606,9 +747,7 @@ describe('TaskLauncher', () => {
     it('should show "No tasks found" when search has no results', () => {
       // Arrange
       mockStoreState.isLauncherOpen = true;
-      mockStoreState.tasks = [
-        createMockTask('task-1', 'Check email'),
-      ];
+      mockStoreState.tasks = [createMockTask('task-1', 'Check email')];
 
       // Act
       render(
@@ -634,8 +773,18 @@ describe('TaskLauncher', () => {
 
       mockStoreState.isLauncherOpen = true;
       mockStoreState.tasks = [
-        createMockTask('task-1', 'Recent task', 'completed', fiveDaysAgo.toISOString()),
-        createMockTask('task-2', 'Old task', 'completed', tenDaysAgo.toISOString()),
+        createMockTask(
+          'task-1',
+          'Recent task',
+          'completed',
+          fiveDaysAgo.toISOString()
+        ),
+        createMockTask(
+          'task-2',
+          'Old task',
+          'completed',
+          tenDaysAgo.toISOString()
+        ),
       ];
 
       // Act
@@ -657,7 +806,12 @@ describe('TaskLauncher', () => {
 
       mockStoreState.isLauncherOpen = true;
       mockStoreState.tasks = [
-        createMockTask('task-1', 'Old email task', 'completed', tenDaysAgo.toISOString()),
+        createMockTask(
+          'task-1',
+          'Old email task',
+          'completed',
+          tenDaysAgo.toISOString()
+        ),
       ];
 
       // Act
@@ -679,7 +833,12 @@ describe('TaskLauncher', () => {
       const today = new Date();
       mockStoreState.isLauncherOpen = true;
       mockStoreState.tasks = Array.from({ length: 15 }, (_, i) =>
-        createMockTask(`task-${i}`, `Task ${i}`, 'completed', today.toISOString())
+        createMockTask(
+          `task-${i}`,
+          `Task ${i}`,
+          'completed',
+          today.toISOString()
+        )
       );
 
       // Act
@@ -717,9 +876,7 @@ describe('TaskLauncher', () => {
     it('should move selection down with ArrowDown', () => {
       // Arrange
       mockStoreState.isLauncherOpen = true;
-      mockStoreState.tasks = [
-        createMockTask('task-1', 'First task'),
-      ];
+      mockStoreState.tasks = [createMockTask('task-1', 'First task')];
 
       // Act
       render(
@@ -739,9 +896,7 @@ describe('TaskLauncher', () => {
     it('should move selection up with ArrowUp', () => {
       // Arrange
       mockStoreState.isLauncherOpen = true;
-      mockStoreState.tasks = [
-        createMockTask('task-1', 'First task'),
-      ];
+      mockStoreState.tasks = [createMockTask('task-1', 'First task')];
 
       // Act
       render(
@@ -781,9 +936,7 @@ describe('TaskLauncher', () => {
     it('should not move selection below last item', () => {
       // Arrange
       mockStoreState.isLauncherOpen = true;
-      mockStoreState.tasks = [
-        createMockTask('task-1', 'Only task'),
-      ];
+      mockStoreState.tasks = [createMockTask('task-1', 'Only task')];
 
       // Act
       render(
@@ -804,9 +957,7 @@ describe('TaskLauncher', () => {
     it('should reset selection when reopened', () => {
       // Arrange
       mockStoreState.isLauncherOpen = true;
-      mockStoreState.tasks = [
-        createMockTask('task-1', 'Task'),
-      ];
+      mockStoreState.tasks = [createMockTask('task-1', 'Task')];
 
       // Act
       const { rerender } = render(
@@ -930,9 +1081,7 @@ describe('TaskLauncher', () => {
     it('should navigate to task when task item is clicked', async () => {
       // Arrange
       mockStoreState.isLauncherOpen = true;
-      mockStoreState.tasks = [
-        createMockTask('task-123', 'Existing task'),
-      ];
+      mockStoreState.tasks = [createMockTask('task-123', 'Existing task')];
 
       // Act
       render(
@@ -955,9 +1104,7 @@ describe('TaskLauncher', () => {
     it('should navigate to task when Enter is pressed on selected task', async () => {
       // Arrange
       mockStoreState.isLauncherOpen = true;
-      mockStoreState.tasks = [
-        createMockTask('task-123', 'Keyboard task'),
-      ];
+      mockStoreState.tasks = [createMockTask('task-123', 'Keyboard task')];
 
       // Act
       render(
@@ -1024,7 +1171,9 @@ describe('TaskLauncher', () => {
       );
 
       // Assert - When open, the dialog content should be visible
-      expect(screen.getByPlaceholderText('Search tasks...')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText('Search tasks...')
+      ).toBeInTheDocument();
       expect(screen.getByText('New task')).toBeInTheDocument();
     });
   });
@@ -1061,7 +1210,9 @@ describe('TaskLauncher', () => {
       );
 
       const searchInput = screen.getByPlaceholderText('Search tasks...');
-      fireEvent.change(searchInput, { target: { value: '  Trimmed prompt  ' } });
+      fireEvent.change(searchInput, {
+        target: { value: '  Trimmed prompt  ' },
+      });
 
       const newTaskButton = screen.getByText('New task').closest('button');
       if (newTaskButton) {

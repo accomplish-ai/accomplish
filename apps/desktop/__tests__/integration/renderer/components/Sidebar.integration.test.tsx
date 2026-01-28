@@ -38,7 +38,9 @@ const mockAccomplish = {
   listTasks: mockListTasks.mockResolvedValue([]),
   onTaskStatusChange: mockOnTaskStatusChange.mockReturnValue(() => {}),
   onTaskUpdate: mockOnTaskUpdate.mockReturnValue(() => {}),
-  getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
+  getSelectedModel: vi
+    .fn()
+    .mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
   getOllamaConfig: vi.fn().mockResolvedValue(null),
   isE2EMode: vi.fn().mockResolvedValue(false),
   getProviderSettings: vi.fn().mockResolvedValue({
@@ -83,26 +85,41 @@ vi.mock('@/stores/taskStore', () => ({
 
 // Mock the SettingsDialog to simplify testing
 vi.mock('@/components/layout/SettingsDialog', () => ({
-  default: ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => (
+  default: ({
+    open,
+    onOpenChange,
+  }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+  }) =>
     open ? (
       <div data-testid="settings-dialog">
         <button onClick={() => onOpenChange(false)}>Close Settings</button>
       </div>
-    ) : null
-  ),
+    ) : null,
 }));
 
 // Mock framer-motion to simplify testing animations
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-      <div {...props}>{children}</div>
-    ),
-    button: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-      <button {...props}>{children}</button>
-    ),
+    div: ({
+      children,
+      ...props
+    }: {
+      children: React.ReactNode;
+      [key: string]: unknown;
+    }) => <div {...props}>{children}</div>,
+    button: ({
+      children,
+      ...props
+    }: {
+      children: React.ReactNode;
+      [key: string]: unknown;
+    }) => <button {...props}>{children}</button>,
   },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
 }));
 
 // Need to import after mocks are set up
@@ -231,7 +248,9 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert
-      expect(screen.queryByText(/no conversations yet/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/no conversations yet/i)
+      ).not.toBeInTheDocument();
     });
 
     it('should render all tasks in the list', () => {
@@ -258,9 +277,7 @@ describe('Sidebar Integration', () => {
 
     it('should show running indicator for running tasks', () => {
       // Arrange
-      const tasks = [
-        createMockTask('task-1', 'Running task', 'running'),
-      ];
+      const tasks = [createMockTask('task-1', 'Running task', 'running')];
       mockStoreState.tasks = tasks;
 
       // Act
@@ -271,16 +288,16 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert - Check for spinning loader icon
-      const taskItem = screen.getByText('Running task').closest('[role="button"]');
+      const taskItem = screen
+        .getByText('Running task')
+        .closest('[role="button"]');
       const spinner = taskItem?.querySelector('.animate-spin-ccw');
       expect(spinner).toBeInTheDocument();
     });
 
     it('should show completed indicator for completed tasks', () => {
       // Arrange
-      const tasks = [
-        createMockTask('task-1', 'Completed task', 'completed'),
-      ];
+      const tasks = [createMockTask('task-1', 'Completed task', 'completed')];
       mockStoreState.tasks = tasks;
 
       // Act
@@ -291,7 +308,9 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert - Check for checkmark icon (CheckCircle2)
-      const taskItem = screen.getByText('Completed task').closest('[role="button"]');
+      const taskItem = screen
+        .getByText('Completed task')
+        .closest('[role="button"]');
       const checkIcon = taskItem?.querySelector('svg');
       expect(checkIcon).toBeInTheDocument();
     });
@@ -310,7 +329,9 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert - element is a div with role="button" for accessibility
-      const taskItem = screen.getByText('Clickable task').closest('[role="button"]');
+      const taskItem = screen
+        .getByText('Clickable task')
+        .closest('[role="button"]');
       expect(taskItem).toBeInTheDocument();
       expect(taskItem?.getAttribute('role')).toBe('button');
     });
@@ -326,7 +347,9 @@ describe('Sidebar Integration', () => {
         </MemoryRouter>
       );
 
-      const taskItem = screen.getByText('Navigate task').closest('[role="button"]');
+      const taskItem = screen
+        .getByText('Navigate task')
+        .closest('[role="button"]');
       if (taskItem) {
         fireEvent.click(taskItem);
       }
@@ -350,7 +373,9 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert
-      const taskItem = screen.getByText('Active task').closest('[role="button"]');
+      const taskItem = screen
+        .getByText('Active task')
+        .closest('[role="button"]');
       expect(taskItem?.className).toContain('bg-accent');
     });
 
@@ -370,10 +395,12 @@ describe('Sidebar Integration', () => {
 
       // Assert - Second task should not be highlighted with the active class
       // The component uses 'bg-accent' class for active state, while hover state uses 'hover:bg-accent'
-      const secondTaskItem = screen.getByText('Second task').closest('[role="button"]');
+      const secondTaskItem = screen
+        .getByText('Second task')
+        .closest('[role="button"]');
       const classNames = (secondTaskItem?.className || '').split(' ');
       // Filter to find only exact 'bg-accent' class, not 'hover:bg-accent'
-      const hasBgAccent = classNames.some(c => c === 'bg-accent');
+      const hasBgAccent = classNames.some((c) => c === 'bg-accent');
       expect(hasBgAccent).toBe(false);
     });
   });
@@ -448,7 +475,9 @@ describe('Sidebar Integration', () => {
       });
 
       // Act - Close dialog
-      const closeButton = screen.getByRole('button', { name: /close settings/i });
+      const closeButton = screen.getByRole('button', {
+        name: /close settings/i,
+      });
       fireEvent.click(closeButton);
 
       // Assert

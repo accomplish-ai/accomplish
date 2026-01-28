@@ -1,0 +1,8 @@
+dist
+dist-electron
+release
+node_modules
+coverage
+playwright-report
+e2e/html-report
+e2e/.cache

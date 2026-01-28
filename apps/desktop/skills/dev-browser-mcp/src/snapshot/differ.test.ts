@@ -46,7 +46,7 @@ describe('diffSnapshots', () => {
     const diff = diffSnapshots(prev, curr);
 
     expect(diff!.addedRefs).toContain('e2');
-    expect(diff!.changes.find(c => c.ref === 'e2')?.changeType).toBe('added');
+    expect(diff!.changes.find((c) => c.ref === 'e2')?.changeType).toBe('added');
   });
 
   it('detects removed elements', () => {
@@ -67,7 +67,9 @@ describe('diffSnapshots', () => {
 
     expect(diff).not.toBeNull();
     expect(diff!.removedRefs).toContain('e2');
-    expect(diff!.changes.find(c => c.ref === 'e2')?.changeType).toBe('removed');
+    expect(diff!.changes.find((c) => c.ref === 'e2')?.changeType).toBe(
+      'removed'
+    );
   });
 
   it('detects value changes', () => {
@@ -136,7 +138,9 @@ describe('diffSnapshots', () => {
 
 describe('compressRefList', () => {
   it('compresses consecutive refs into ranges', () => {
-    expect(compressRefList(['e1', 'e2', 'e3', 'e5', 'e6', 'e10'])).toBe('e1-e3, e5-e6, e10');
+    expect(compressRefList(['e1', 'e2', 'e3', 'e5', 'e6', 'e10'])).toBe(
+      'e1-e3, e5-e6, e10'
+    );
   });
 
   it('handles single refs', () => {
@@ -159,7 +163,12 @@ describe('formatDiff', () => {
       changes: [
         {
           ref: 'e4',
-          element: { ref: 'e4', role: 'textbox', name: 'Email', value: 'test@example.com' },
+          element: {
+            ref: 'e4',
+            role: 'textbox',
+            name: 'Email',
+            value: 'test@example.com',
+          },
           previousValue: '',
           changeType: 'modified' as const,
         },

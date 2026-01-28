@@ -28,7 +28,9 @@ export function StreamingText({
   className,
   children,
 }: StreamingTextProps) {
-  const [displayedLength, setDisplayedLength] = useState(isComplete ? text.length : 0);
+  const [displayedLength, setDisplayedLength] = useState(
+    isComplete ? text.length : 0
+  );
   const [isStreaming, setIsStreaming] = useState(!isComplete);
   const rafRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
@@ -127,7 +129,8 @@ export function useStreamingState(
   const wasStreamingRef = useRef(false);
 
   // Determine if this message should stream
-  const shouldStream = isLatestAssistantMessage && isTaskRunning && !hasFinishedStreaming;
+  const shouldStream =
+    isLatestAssistantMessage && isTaskRunning && !hasFinishedStreaming;
 
   // Track when streaming completes
   useEffect(() => {

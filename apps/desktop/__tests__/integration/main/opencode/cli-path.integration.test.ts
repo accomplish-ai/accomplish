@@ -62,7 +62,12 @@ describe('OpenCode CLI Path Module', () => {
         // Arrange
         mockApp.isPackaged = false;
         const nvmVersionsDir = '/Users/testuser/.nvm/versions/node';
-        const expectedPath = path.join(nvmVersionsDir, 'v20.10.0', 'bin', 'opencode');
+        const expectedPath = path.join(
+          nvmVersionsDir,
+          'v20.10.0',
+          'bin',
+          'opencode'
+        );
 
         mockFs.existsSync.mockImplementation((p: string) => {
           if (p === nvmVersionsDir) return true;
@@ -127,7 +132,12 @@ describe('OpenCode CLI Path Module', () => {
         // Arrange
         mockApp.isPackaged = false;
         const appPath = '/mock/app/path';
-        const bundledPath = path.join(appPath, 'node_modules', '.bin', 'opencode');
+        const bundledPath = path.join(
+          appPath,
+          'node_modules',
+          '.bin',
+          'opencode'
+        );
 
         mockApp.getAppPath.mockReturnValue(appPath);
         mockFs.existsSync.mockImplementation((p: string) => {
@@ -175,7 +185,8 @@ describe('OpenCode CLI Path Module', () => {
         // Arrange
         mockApp.isPackaged = true;
         const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+          resourcesPath;
 
         const { pkg, binary } = getPlatformInfo();
         const expectedPath = path.join(
@@ -205,7 +216,8 @@ describe('OpenCode CLI Path Module', () => {
         // Arrange
         mockApp.isPackaged = true;
         const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+          resourcesPath;
 
         mockFs.existsSync.mockReturnValue(false);
 
@@ -222,7 +234,12 @@ describe('OpenCode CLI Path Module', () => {
         // Arrange
         mockApp.isPackaged = false;
         const nvmVersionsDir = '/Users/testuser/.nvm/versions/node';
-        const opencodePath = path.join(nvmVersionsDir, 'v20.10.0', 'bin', 'opencode');
+        const opencodePath = path.join(
+          nvmVersionsDir,
+          'v20.10.0',
+          'bin',
+          'opencode'
+        );
 
         mockFs.existsSync.mockImplementation((p: string) => {
           if (p === nvmVersionsDir) return true;
@@ -246,7 +263,12 @@ describe('OpenCode CLI Path Module', () => {
         // Arrange
         mockApp.isPackaged = false;
         const appPath = '/mock/app/path';
-        const bundledPath = path.join(appPath, 'node_modules', '.bin', 'opencode');
+        const bundledPath = path.join(
+          appPath,
+          'node_modules',
+          '.bin',
+          'opencode'
+        );
 
         mockApp.getAppPath.mockReturnValue(appPath);
         mockFs.existsSync.mockImplementation((p: string) => {
@@ -310,7 +332,8 @@ describe('OpenCode CLI Path Module', () => {
         // Arrange
         mockApp.isPackaged = true;
         const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+          resourcesPath;
 
         const { pkg, binary } = getPlatformInfo();
         const cliPath = path.join(
@@ -339,7 +362,8 @@ describe('OpenCode CLI Path Module', () => {
         // Arrange
         mockApp.isPackaged = true;
         const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+          resourcesPath;
 
         mockFs.existsSync.mockReturnValue(false);
 
@@ -362,7 +386,8 @@ describe('OpenCode CLI Path Module', () => {
         // Arrange
         mockApp.isPackaged = true;
         const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+          resourcesPath;
 
         const packageJsonPath = path.join(
           resourcesPath,
@@ -372,7 +397,9 @@ describe('OpenCode CLI Path Module', () => {
           'package.json'
         );
 
-        mockFs.existsSync.mockImplementation((p: string) => p === packageJsonPath);
+        mockFs.existsSync.mockImplementation(
+          (p: string) => p === packageJsonPath
+        );
         mockFs.readFileSync.mockImplementation((p: string) => {
           if (p === packageJsonPath) {
             return JSON.stringify({ version: '1.2.3' });
@@ -381,7 +408,8 @@ describe('OpenCode CLI Path Module', () => {
         });
 
         // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/cli-path');
+        const { getBundledOpenCodeVersion } =
+          await import('@main/opencode/cli-path');
         const result = getBundledOpenCodeVersion();
 
         // Assert
@@ -392,12 +420,14 @@ describe('OpenCode CLI Path Module', () => {
         // Arrange
         mockApp.isPackaged = true;
         const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+          resourcesPath;
 
         mockFs.existsSync.mockReturnValue(false);
 
         // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/cli-path');
+        const { getBundledOpenCodeVersion } =
+          await import('@main/opencode/cli-path');
         const result = getBundledOpenCodeVersion();
 
         // Assert
@@ -410,7 +440,12 @@ describe('OpenCode CLI Path Module', () => {
         // Arrange
         mockApp.isPackaged = false;
         const appPath = '/mock/app/path';
-        const bundledPath = path.join(appPath, 'node_modules', '.bin', 'opencode');
+        const bundledPath = path.join(
+          appPath,
+          'node_modules',
+          '.bin',
+          'opencode'
+        );
 
         mockApp.getAppPath.mockReturnValue(appPath);
         mockFs.existsSync.mockImplementation((p: string) => {
@@ -421,7 +456,8 @@ describe('OpenCode CLI Path Module', () => {
         mockExecSync.mockReturnValue('opencode 1.5.0\n');
 
         // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/cli-path');
+        const { getBundledOpenCodeVersion } =
+          await import('@main/opencode/cli-path');
         const result = getBundledOpenCodeVersion();
 
         // Assert
@@ -432,7 +468,12 @@ describe('OpenCode CLI Path Module', () => {
         // Arrange
         mockApp.isPackaged = false;
         const appPath = '/mock/app/path';
-        const bundledPath = path.join(appPath, 'node_modules', '.bin', 'opencode');
+        const bundledPath = path.join(
+          appPath,
+          'node_modules',
+          '.bin',
+          'opencode'
+        );
 
         mockApp.getAppPath.mockReturnValue(appPath);
         mockFs.existsSync.mockImplementation((p: string) => {
@@ -443,7 +484,8 @@ describe('OpenCode CLI Path Module', () => {
         mockExecSync.mockReturnValue('2.0.1');
 
         // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/cli-path');
+        const { getBundledOpenCodeVersion } =
+          await import('@main/opencode/cli-path');
         const result = getBundledOpenCodeVersion();
 
         // Assert
@@ -454,7 +496,12 @@ describe('OpenCode CLI Path Module', () => {
         // Arrange
         mockApp.isPackaged = false;
         const appPath = '/mock/app/path';
-        const bundledPath = path.join(appPath, 'node_modules', '.bin', 'opencode');
+        const bundledPath = path.join(
+          appPath,
+          'node_modules',
+          '.bin',
+          'opencode'
+        );
 
         mockApp.getAppPath.mockReturnValue(appPath);
         mockFs.existsSync.mockImplementation((p: string) => {
@@ -467,7 +514,8 @@ describe('OpenCode CLI Path Module', () => {
         });
 
         // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/cli-path');
+        const { getBundledOpenCodeVersion } =
+          await import('@main/opencode/cli-path');
         const result = getBundledOpenCodeVersion();
 
         // Assert

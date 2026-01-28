@@ -1,6 +1,11 @@
 // apps/desktop/src/main/store/repositories/taskHistory.ts
 
-import type { Task, TaskMessage, TaskStatus, TaskAttachment } from '@accomplish/shared';
+import type {
+  Task,
+  TaskMessage,
+  TaskStatus,
+  TaskAttachment,
+} from '@accomplish/shared';
 import { getDatabase } from '../db';
 
 export interface StoredTask {
@@ -111,9 +116,9 @@ export function getTasks(): StoredTask[] {
 
 export function getTask(taskId: string): StoredTask | undefined {
   const db = getDatabase();
-  const row = db
-    .prepare('SELECT * FROM tasks WHERE id = ?')
-    .get(taskId) as TaskRow | undefined;
+  const row = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId) as
+    | TaskRow
+    | undefined;
 
   return row ? rowToTask(row) : undefined;
 }
@@ -189,11 +194,9 @@ export function updateTaskStatus(
   const db = getDatabase();
 
   if (completedAt) {
-    db.prepare('UPDATE tasks SET status = ?, completed_at = ? WHERE id = ?').run(
-      status,
-      completedAt,
-      taskId
-    );
+    db.prepare(
+      'UPDATE tasks SET status = ?, completed_at = ? WHERE id = ?'
+    ).run(status, completedAt, taskId);
   } else {
     db.prepare('UPDATE tasks SET status = ? WHERE id = ?').run(status, taskId);
   }
@@ -205,7 +208,9 @@ export function addTaskMessage(taskId: string, message: TaskMessage): void {
   db.transaction(() => {
     // Get the next sort_order
     const maxOrder = db
-      .prepare('SELECT MAX(sort_order) as max FROM task_messages WHERE task_id = ?')
+      .prepare(
+        'SELECT MAX(sort_order) as max FROM task_messages WHERE task_id = ?'
+      )
       .get(taskId) as { max: number | null };
 
     const sortOrder = (maxOrder.max ?? -1) + 1;
@@ -239,7 +244,10 @@ export function addTaskMessage(taskId: string, message: TaskMessage): void {
 
 export function updateTaskSessionId(taskId: string, sessionId: string): void {
   const db = getDatabase();
-  db.prepare('UPDATE tasks SET session_id = ? WHERE id = ?').run(sessionId, taskId);
+  db.prepare('UPDATE tasks SET session_id = ? WHERE id = ?').run(
+    sessionId,
+    taskId
+  );
 }
 
 export function updateTaskSummary(taskId: string, summary: string): void {
@@ -260,7 +268,9 @@ export function clearHistory(): void {
 export function setMaxHistoryItems(_max: number): void {
   // Note: MAX_HISTORY_ITEMS is a constant now, but we keep this function
   // for API compatibility. In the future, this could be stored in a settings table.
-  console.log('[TaskHistory] setMaxHistoryItems is deprecated, using constant limit');
+  console.log(
+    '[TaskHistory] setMaxHistoryItems is deprecated, using constant limit'
+  );
 }
 
 export function clearTaskHistoryStore(): void {

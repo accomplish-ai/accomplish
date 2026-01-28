@@ -4,11 +4,20 @@ import fs from 'fs';
 import { PERMISSION_API_PORT, QUESTION_API_PORT } from '../permission-api';
 import { getOllamaConfig, getLMStudioConfig } from '../store/appSettings';
 import { getApiKey } from '../store/secureStorage';
-import { getProviderSettings, getActiveProviderModel, getConnectedProviderIds } from '../store/providerSettings';
+import {
+  getProviderSettings,
+  getActiveProviderModel,
+  getConnectedProviderIds,
+} from '../store/providerSettings';
 import { ensureAzureFoundryProxy } from './azure-foundry-proxy';
 import { ensureMoonshotProxy } from './moonshot-proxy';
 import { getNodePath } from '../utils/bundled-node';
-import type { BedrockCredentials, ProviderId, ZaiCredentials, AzureFoundryCredentials } from '@accomplish/shared';
+import type {
+  BedrockCredentials,
+  ProviderId,
+  ZaiCredentials,
+  AzureFoundryCredentials,
+} from '@accomplish/shared';
 
 /**
  * Agent name used by Accomplish
@@ -66,7 +75,9 @@ function resolveBundledTsxCommand(skillsPath: string): string[] {
     }
   }
 
-  console.log('[OpenCode Config] Bundled tsx not found; falling back to npx tsx');
+  console.log(
+    '[OpenCode Config] Bundled tsx not found; falling back to npx tsx'
+  );
   return ['npx', 'tsx'];
 }
 
@@ -80,7 +91,10 @@ function resolveSkillCommand(
   const skillDir = path.join(skillsPath, skillName);
   const distPath = path.join(skillDir, distRelPath);
 
-  if ((app.isPackaged || process.env.OPENWORK_BUNDLED_SKILLS === '1') && fs.existsSync(distPath)) {
+  if (
+    (app.isPackaged || process.env.OPENWORK_BUNDLED_SKILLS === '1') &&
+    fs.existsSync(distPath)
+  ) {
     const nodePath = getNodePath();
     console.log('[OpenCode Config] Using bundled skill entry:', distPath);
     return [nodePath, distPath];
@@ -109,7 +123,6 @@ You are running on ${process.platform === 'darwin' ? 'macOS' : 'Linux'}.
 </environment>`;
   }
 }
-
 
 const ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE = `<identity>
 You are Accomplish, a browser automation assistant.
@@ -422,7 +435,15 @@ interface LMStudioProviderConfig {
   models: Record<string, LMStudioProviderModelConfig>;
 }
 
-type ProviderConfig = OllamaProviderConfig | BedrockProviderConfig | AzureFoundryProviderConfig | OpenRouterProviderConfig | MoonshotProviderConfig | LiteLLMProviderConfig | ZaiProviderConfig | LMStudioProviderConfig;
+type ProviderConfig =
+  | OllamaProviderConfig
+  | BedrockProviderConfig
+  | AzureFoundryProviderConfig
+  | OpenRouterProviderConfig
+  | MoonshotProviderConfig
+  | LiteLLMProviderConfig
+  | ZaiProviderConfig
+  | LMStudioProviderConfig;
 
 interface OpenCodeConfig {
   $schema?: string;
@@ -465,7 +486,7 @@ async function buildAzureFoundryProviderConfig(
   } else if (authMethod === 'entra-id' && azureFoundryToken) {
     azureOptions.apiKey = '';
     azureOptions.headers = {
-      'Authorization': `Bearer ${azureFoundryToken}`,
+      Authorization: `Bearer ${azureFoundryToken}`,
     };
   }
 
@@ -494,7 +515,9 @@ async function buildAzureFoundryProviderConfig(
  * from ~/.config/opencode/opencode.json
  * @param azureFoundryToken - Optional Entra ID token for Azure Foundry authentication
  */
-export async function generateOpenCodeConfig(azureFoundryToken?: string): Promise<string> {
+export async function generateOpenCodeConfig(
+  azureFoundryToken?: string
+): Promise<string> {
   const configDir = path.join(app.getPath('userData'), 'opencode');
   const configPath = path.join(configDir, 'opencode.json');
 
@@ -507,8 +530,10 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
   const skillsPath = getSkillsPath();
 
   // Build platform-specific system prompt by replacing placeholders
-  const systemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE
-    .replace(/\{\{ENVIRONMENT_INSTRUCTIONS\}\}/g, getPlatformEnvironmentInstructions());
+  const systemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE.replace(
+    /\{\{ENVIRONMENT_INSTRUCTIONS\}\}/g,
+    getPlatformEnvironmentInstructions()
+  );
 
   // Get OpenCode config directory (parent of skills/) for OPENCODE_CONFIG_DIR
   const openCodeConfigDir = getOpenCodeConfigDir();
@@ -542,15 +567,29 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
   };
 
   // Build enabled providers list from new settings or fall back to base providers
-  const baseProviders = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'moonshot', 'zai-coding-plan', 'amazon-bedrock', 'minimax'];
+  const baseProviders = [
+    'anthropic',
+    'openai',
+    'openrouter',
+    'google',
+    'xai',
+    'deepseek',
+    'moonshot',
+    'zai-coding-plan',
+    'amazon-bedrock',
+    'minimax',
+  ];
   let enabledProviders = baseProviders;
 
   // If we have connected providers in the new settings, use those
   if (connectedIds.length > 0) {
-    const mappedProviders = connectedIds.map(id => providerIdToOpenCode[id]);
+    const mappedProviders = connectedIds.map((id) => providerIdToOpenCode[id]);
     // Always include base providers to allow switching
     enabledProviders = [...new Set([...baseProviders, ...mappedProviders])];
-    console.log('[OpenCode Config] Using connected providers from new settings:', mappedProviders);
+    console.log(
+      '[OpenCode Config] Using connected providers from new settings:',
+      mappedProviders
+    );
   } else {
     // Legacy fallback: add ollama if configured in old settings
     const ollamaConfig = getOllamaConfig();
@@ -564,7 +603,10 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
 
   // Configure Ollama if connected (check new settings first, then legacy)
   const ollamaProvider = providerSettings.connectedProviders.ollama;
-  if (ollamaProvider?.connectionStatus === 'connected' && ollamaProvider.credentials.type === 'ollama') {
+  if (
+    ollamaProvider?.connectionStatus === 'connected' &&
+    ollamaProvider.credentials.type === 'ollama'
+  ) {
     // New provider settings: Ollama is connected
     if (ollamaProvider.selectedModelId) {
       // OpenCode CLI splits "ollama/model" into provider="ollama" and modelID="model"
@@ -583,12 +625,19 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
           },
         },
       };
-      console.log('[OpenCode Config] Ollama configured from new settings:', modelId);
+      console.log(
+        '[OpenCode Config] Ollama configured from new settings:',
+        modelId
+      );
     }
   } else {
     // Legacy fallback: use old Ollama config
     const ollamaConfig = getOllamaConfig();
-    if (ollamaConfig?.enabled && ollamaConfig.models && ollamaConfig.models.length > 0) {
+    if (
+      ollamaConfig?.enabled &&
+      ollamaConfig.models &&
+      ollamaConfig.models.length > 0
+    ) {
       const ollamaModels: Record<string, ProviderModelConfig> = {};
       for (const model of ollamaConfig.models) {
         ollamaModels[model.id] = {
@@ -606,13 +655,19 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
         models: ollamaModels,
       };
 
-      console.log('[OpenCode Config] Ollama configured from legacy settings:', Object.keys(ollamaModels));
+      console.log(
+        '[OpenCode Config] Ollama configured from legacy settings:',
+        Object.keys(ollamaModels)
+      );
     }
   }
 
   // Configure OpenRouter if connected (check new settings first, then legacy)
   const openrouterProvider = providerSettings.connectedProviders.openrouter;
-  if (openrouterProvider?.connectionStatus === 'connected' && activeModel?.provider === 'openrouter') {
+  if (
+    openrouterProvider?.connectionStatus === 'connected' &&
+    activeModel?.provider === 'openrouter'
+  ) {
     // New provider settings: OpenRouter is connected and active
     const modelId = activeModel.model.replace('openrouter/', '');
     providerConfig.openrouter = {
@@ -628,7 +683,10 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
         },
       },
     };
-    console.log('[OpenCode Config] OpenRouter configured from new settings:', modelId);
+    console.log(
+      '[OpenCode Config] OpenRouter configured from new settings:',
+      modelId
+    );
   } else {
     // Legacy fallback: use old OpenRouter config
     const openrouterKey = getApiKey('openrouter');
@@ -636,7 +694,8 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
       const { getSelectedModel } = await import('../store/appSettings');
       const selectedModel = getSelectedModel();
 
-      const openrouterModels: Record<string, OpenRouterProviderModelConfig> = {};
+      const openrouterModels: Record<string, OpenRouterProviderModelConfig> =
+        {};
 
       if (selectedModel?.provider === 'openrouter' && selectedModel.model) {
         const modelId = selectedModel.model.replace('openrouter/', '');
@@ -655,7 +714,10 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
           },
           models: openrouterModels,
         };
-        console.log('[OpenCode Config] OpenRouter configured from legacy settings:', Object.keys(openrouterModels));
+        console.log(
+          '[OpenCode Config] OpenRouter configured from legacy settings:',
+          Object.keys(openrouterModels)
+        );
       }
     }
   }
@@ -664,7 +726,10 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
   const moonshotProvider = providerSettings.connectedProviders.moonshot;
   if (moonshotProvider?.connectionStatus === 'connected') {
     if (moonshotProvider.selectedModelId) {
-      const modelId = moonshotProvider.selectedModelId.replace(/^moonshot\//, '');
+      const modelId = moonshotProvider.selectedModelId.replace(
+        /^moonshot\//,
+        ''
+      );
       const moonshotApiKey = getApiKey('moonshot');
       const proxyInfo = await ensureMoonshotProxy('https://api.moonshot.ai/v1');
       providerConfig.moonshot = {
@@ -687,7 +752,10 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
 
   // Configure Bedrock if connected (check new settings first, then legacy)
   const bedrockProvider = providerSettings.connectedProviders.bedrock;
-  if (bedrockProvider?.connectionStatus === 'connected' && bedrockProvider.credentials.type === 'bedrock') {
+  if (
+    bedrockProvider?.connectionStatus === 'connected' &&
+    bedrockProvider.credentials.type === 'bedrock'
+  ) {
     // New provider settings: Bedrock is connected
     const creds = bedrockProvider.credentials;
     const bedrockOptions: BedrockProviderConfig['options'] = {
@@ -699,7 +767,10 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     providerConfig['amazon-bedrock'] = {
       options: bedrockOptions,
     };
-    console.log('[OpenCode Config] Bedrock configured from new settings:', bedrockOptions);
+    console.log(
+      '[OpenCode Config] Bedrock configured from new settings:',
+      bedrockOptions
+    );
   } else {
     // Legacy fallback: use old Bedrock config
     const bedrockCredsJson = getApiKey('bedrock');
@@ -719,16 +790,25 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
           options: bedrockOptions,
         };
 
-        console.log('[OpenCode Config] Bedrock configured from legacy settings:', bedrockOptions);
+        console.log(
+          '[OpenCode Config] Bedrock configured from legacy settings:',
+          bedrockOptions
+        );
       } catch (e) {
-        console.warn('[OpenCode Config] Failed to parse Bedrock credentials:', e);
+        console.warn(
+          '[OpenCode Config] Failed to parse Bedrock credentials:',
+          e
+        );
       }
     }
   }
 
   // Configure LiteLLM if connected
   const litellmProvider = providerSettings.connectedProviders.litellm;
-  if (litellmProvider?.connectionStatus === 'connected' && litellmProvider.credentials.type === 'litellm') {
+  if (
+    litellmProvider?.connectionStatus === 'connected' &&
+    litellmProvider.credentials.type === 'litellm'
+  ) {
     if (litellmProvider.selectedModelId) {
       // Get API key if available
       const litellmApiKey = getApiKey('litellm');
@@ -749,23 +829,34 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
           },
         },
       };
-      console.log('[OpenCode Config] LiteLLM configured:', litellmProvider.selectedModelId, litellmApiKey ? '(with API key)' : '(no API key)');
+      console.log(
+        '[OpenCode Config] LiteLLM configured:',
+        litellmProvider.selectedModelId,
+        litellmApiKey ? '(with API key)' : '(no API key)'
+      );
     }
   }
 
   // Configure LM Studio if connected
   const lmstudioProvider = providerSettings.connectedProviders.lmstudio;
-  if (lmstudioProvider?.connectionStatus === 'connected' && lmstudioProvider.credentials.type === 'lmstudio') {
+  if (
+    lmstudioProvider?.connectionStatus === 'connected' &&
+    lmstudioProvider.credentials.type === 'lmstudio'
+  ) {
     if (lmstudioProvider.selectedModelId) {
       // OpenCode CLI splits "lmstudio/model" into provider="lmstudio" and modelID="model"
       // So we need to register the model without the "lmstudio/" prefix
-      const modelId = lmstudioProvider.selectedModelId.replace(/^lmstudio\//, '');
+      const modelId = lmstudioProvider.selectedModelId.replace(
+        /^lmstudio\//,
+        ''
+      );
 
       // Check if the model supports tools from the availableModels metadata
       const modelInfo = lmstudioProvider.availableModels?.find(
-        m => m.id === lmstudioProvider.selectedModelId || m.id === modelId
+        (m) => m.id === lmstudioProvider.selectedModelId || m.id === modelId
       );
-      const supportsTools = (modelInfo as { toolSupport?: string })?.toolSupport === 'supported';
+      const supportsTools =
+        (modelInfo as { toolSupport?: string })?.toolSupport === 'supported';
 
       providerConfig.lmstudio = {
         npm: '@ai-sdk/openai-compatible',
@@ -780,12 +871,18 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
           },
         },
       };
-      console.log(`[OpenCode Config] LM Studio configured: ${modelId} (tools: ${supportsTools})`);
+      console.log(
+        `[OpenCode Config] LM Studio configured: ${modelId} (tools: ${supportsTools})`
+      );
     }
   } else {
     // Legacy fallback: use old LM Studio config if it exists
     const lmstudioConfig = getLMStudioConfig();
-    if (lmstudioConfig?.enabled && lmstudioConfig.models && lmstudioConfig.models.length > 0) {
+    if (
+      lmstudioConfig?.enabled &&
+      lmstudioConfig.models &&
+      lmstudioConfig.models.length > 0
+    ) {
       const lmstudioModels: Record<string, LMStudioProviderModelConfig> = {};
       for (const model of lmstudioConfig.models) {
         lmstudioModels[model.id] = {
@@ -803,13 +900,20 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
         models: lmstudioModels,
       };
 
-      console.log('[OpenCode Config] LM Studio configured from legacy settings:', Object.keys(lmstudioModels));
+      console.log(
+        '[OpenCode Config] LM Studio configured from legacy settings:',
+        Object.keys(lmstudioModels)
+      );
     }
   }
 
   // Configure Azure Foundry if connected (check new settings first, then legacy)
-  const azureFoundryProvider = providerSettings.connectedProviders['azure-foundry'];
-  if (azureFoundryProvider?.connectionStatus === 'connected' && azureFoundryProvider.credentials.type === 'azure-foundry') {
+  const azureFoundryProvider =
+    providerSettings.connectedProviders['azure-foundry'];
+  if (
+    azureFoundryProvider?.connectionStatus === 'connected' &&
+    azureFoundryProvider.credentials.type === 'azure-foundry'
+  ) {
     const creds = azureFoundryProvider.credentials;
     const config = await buildAzureFoundryProviderConfig(
       creds.endpoint,
@@ -825,17 +929,23 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
         enabledProviders.push('azure-foundry');
       }
 
-      console.log('[OpenCode Config] Azure Foundry configured from new settings:', {
-        deployment: creds.deploymentName,
-        authMethod: creds.authMethod,
-      });
+      console.log(
+        '[OpenCode Config] Azure Foundry configured from new settings:',
+        {
+          deployment: creds.deploymentName,
+          authMethod: creds.authMethod,
+        }
+      );
     }
   } else {
     // TODO: Remove legacy Azure Foundry config support in v0.4.0
     // Legacy fallback: use old Azure Foundry config
     const { getAzureFoundryConfig } = await import('../store/appSettings');
     const azureFoundryConfig = getAzureFoundryConfig();
-    if (azureFoundryConfig?.enabled && activeModel?.provider === 'azure-foundry') {
+    if (
+      azureFoundryConfig?.enabled &&
+      activeModel?.provider === 'azure-foundry'
+    ) {
       const config = await buildAzureFoundryProviderConfig(
         azureFoundryConfig.baseUrl,
         azureFoundryConfig.deploymentName || 'default',
@@ -850,10 +960,13 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
           enabledProviders.push('azure-foundry');
         }
 
-        console.log('[OpenCode Config] Azure Foundry configured from legacy settings:', {
-          deployment: azureFoundryConfig.deploymentName,
-          authType: azureFoundryConfig.authType,
-        });
+        console.log(
+          '[OpenCode Config] Azure Foundry configured from legacy settings:',
+          {
+            deployment: azureFoundryConfig.deploymentName,
+            authType: azureFoundryConfig.authType,
+          }
+        );
       }
     }
   }
@@ -871,11 +984,13 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     };
 
     // Z.AI - use endpoint based on stored region
-    const zaiCredentials = providerSettings.connectedProviders.zai?.credentials as ZaiCredentials | undefined;
+    const zaiCredentials = providerSettings.connectedProviders.zai
+      ?.credentials as ZaiCredentials | undefined;
     const zaiRegion = zaiCredentials?.region || 'international';
-    const zaiEndpoint = zaiRegion === 'china'
-      ? 'https://open.bigmodel.cn/api/paas/v4'
-      : 'https://api.z.ai/api/coding/paas/v4';
+    const zaiEndpoint =
+      zaiRegion === 'china'
+        ? 'https://open.bigmodel.cn/api/paas/v4'
+        : 'https://api.z.ai/api/coding/paas/v4';
 
     providerConfig['zai-coding-plan'] = {
       npm: '@ai-sdk/openai-compatible',
@@ -885,7 +1000,14 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
       },
       models: zaiModels,
     };
-    console.log('[OpenCode Config] Z.AI Coding Plan provider configured with models:', Object.keys(zaiModels), 'region:', zaiRegion, 'endpoint:', zaiEndpoint);
+    console.log(
+      '[OpenCode Config] Z.AI Coding Plan provider configured with models:',
+      Object.keys(zaiModels),
+      'region:',
+      zaiRegion,
+      'endpoint:',
+      zaiEndpoint
+    );
   }
 
   const tsxCommand = resolveBundledTsxCommand(skillsPath);
@@ -895,15 +1017,16 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     default_agent: ACCOMPLISH_AGENT_NAME,
     // Enable all supported providers - providers auto-configure when API keys are set via env vars
     enabled_providers: enabledProviders,
-  // Auto-allow all tool permissions - the system prompt instructs the agent to use
-  // AskUserQuestion for user confirmations, which shows in the UI as an interactive modal.
+    // Auto-allow all tool permissions - the system prompt instructs the agent to use
+    // AskUserQuestion for user confirmations, which shows in the UI as an interactive modal.
     // CLI-level permission prompts don't show in the UI and would block task execution.
     // Note: todowrite is disabled by default and must be explicitly enabled.
     permission: {
       '*': 'allow',
       todowrite: 'allow',
     },
-    provider: Object.keys(providerConfig).length > 0 ? providerConfig : undefined,
+    provider:
+      Object.keys(providerConfig).length > 0 ? providerConfig : undefined,
     // Dynamic Context Pruning plugin - prunes obsolete tool outputs from conversation
     // history to reduce token usage (deduplication, supersede writes, purge errors)
     plugin: ['@tarquinen/opencode-dcp@^1.2.7'],
@@ -990,8 +1113,14 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
 
   console.log('[OpenCode Config] Generated config at:', configPath);
   console.log('[OpenCode Config] Full config:', configJson);
-  console.log('[OpenCode Config] OPENCODE_CONFIG env set to:', process.env.OPENCODE_CONFIG);
-  console.log('[OpenCode Config] OPENCODE_CONFIG_DIR env set to:', process.env.OPENCODE_CONFIG_DIR);
+  console.log(
+    '[OpenCode Config] OPENCODE_CONFIG env set to:',
+    process.env.OPENCODE_CONFIG
+  );
+  console.log(
+    '[OpenCode Config] OPENCODE_CONFIG_DIR env set to:',
+    process.env.OPENCODE_CONFIG_DIR
+  );
 
   return configPath;
 }
@@ -1037,7 +1166,9 @@ export async function syncApiKeysToOpenCodeAuth(): Promise<void> {
     try {
       auth = JSON.parse(fs.readFileSync(authPath, 'utf-8'));
     } catch (e) {
-      console.warn('[OpenCode Auth] Failed to parse existing auth.json, creating new one');
+      console.warn(
+        '[OpenCode Auth] Failed to parse existing auth.json, creating new one'
+      );
       auth = {};
     }
   }
@@ -1055,7 +1186,10 @@ export async function syncApiKeysToOpenCodeAuth(): Promise<void> {
 
   // Sync Z.AI Coding Plan API key (maps to 'zai-coding-plan' provider in OpenCode CLI)
   if (apiKeys.zai) {
-    if (!auth['zai-coding-plan'] || auth['zai-coding-plan'].key !== apiKeys.zai) {
+    if (
+      !auth['zai-coding-plan'] ||
+      auth['zai-coding-plan'].key !== apiKeys.zai
+    ) {
       auth['zai-coding-plan'] = { type: 'api', key: apiKeys.zai };
       updated = true;
       console.log('[OpenCode Auth] Synced Z.AI Coding Plan API key');

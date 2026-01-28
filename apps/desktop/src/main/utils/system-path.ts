@@ -28,8 +28,9 @@ function getNvmNodePaths(): string[] {
   }
 
   try {
-    const versions = fs.readdirSync(nvmVersionsDir)
-      .filter(name => name.startsWith('v'))
+    const versions = fs
+      .readdirSync(nvmVersionsDir)
+      .filter((name) => name.startsWith('v'))
       .sort((a, b) => {
         // Sort by version number (descending - newest first)
         const parseVersion = (v: string) => {
@@ -39,7 +40,7 @@ function getNvmNodePaths(): string[] {
         return parseVersion(b) - parseVersion(a);
       });
 
-    return versions.map(v => path.join(nvmVersionsDir, v, 'bin'));
+    return versions.map((v) => path.join(nvmVersionsDir, v, 'bin'));
   } catch {
     return [];
   }
@@ -58,8 +59,9 @@ function getFnmNodePaths(): string[] {
   }
 
   try {
-    const versions = fs.readdirSync(fnmVersionsDir)
-      .filter(name => name.startsWith('v'))
+    const versions = fs
+      .readdirSync(fnmVersionsDir)
+      .filter((name) => name.startsWith('v'))
       .sort((a, b) => {
         const parseVersion = (v: string) => {
           const parts = v.replace('v', '').split('.').map(Number);
@@ -68,7 +70,9 @@ function getFnmNodePaths(): string[] {
         return parseVersion(b) - parseVersion(a);
       });
 
-    return versions.map(v => path.join(fnmVersionsDir, v, 'installation', 'bin'));
+    return versions.map((v) =>
+      path.join(fnmVersionsDir, v, 'installation', 'bin')
+    );
   } catch {
     return [];
   }
@@ -91,21 +95,21 @@ function getCommonNodePaths(): string[] {
     ...fnmPaths,
 
     // Homebrew (very common)
-    '/opt/homebrew/bin',              // Apple Silicon
-    '/usr/local/bin',                 // Intel Mac
+    '/opt/homebrew/bin', // Apple Silicon
+    '/usr/local/bin', // Intel Mac
 
     // Version managers (static fallbacks)
-    `${home}/.nvm/current/bin`,       // NVM with 'current' symlink (optional)
-    `${home}/.volta/bin`,             // Volta
-    `${home}/.asdf/shims`,            // asdf
-    `${home}/.fnm/current/bin`,       // fnm current symlink (optional)
-    `${home}/.nodenv/shims`,          // nodenv
+    `${home}/.nvm/current/bin`, // NVM with 'current' symlink (optional)
+    `${home}/.volta/bin`, // Volta
+    `${home}/.asdf/shims`, // asdf
+    `${home}/.fnm/current/bin`, // fnm current symlink (optional)
+    `${home}/.nodenv/shims`, // nodenv
 
     // Less common but valid paths
-    '/usr/local/opt/node/bin',        // Homebrew node formula
-    '/opt/local/bin',                 // MacPorts
-    `${home}/.local/bin`,             // pip/pipx style installations
-  ].filter(p => p && !p.includes('undefined'));
+    '/usr/local/opt/node/bin', // Homebrew node formula
+    '/opt/local/bin', // MacPorts
+    `${home}/.local/bin`, // pip/pipx style installations
+  ].filter((p) => p && !p.includes('undefined'));
 }
 
 /**
@@ -203,7 +207,10 @@ export function getExtendedNodePath(basePath?: string): string {
  * @param searchPath - The PATH to search in
  * @returns The full path to the command if found, null otherwise
  */
-export function findCommandInPath(command: string, searchPath: string): string | null {
+export function findCommandInPath(
+  command: string,
+  searchPath: string
+): string | null {
   for (const dir of searchPath.split(':')) {
     if (!dir) continue;
 

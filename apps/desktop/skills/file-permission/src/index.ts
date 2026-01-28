@@ -53,7 +53,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           filePaths: {
             type: 'array',
             items: { type: 'string' },
-            description: 'Array of absolute paths for batch operations (e.g., deleting multiple files)',
+            description:
+              'Array of absolute paths for batch operations (e.g., deleting multiple files)',
           },
           targetPath: {
             type: 'string',
@@ -61,7 +62,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           },
           contentPreview: {
             type: 'string',
-            description: 'Preview of file content for create/modify operations (first ~500 chars)',
+            description:
+              'Preview of file content for create/modify operations (first ~500 chars)',
           },
         },
         required: ['operation'],
@@ -71,59 +73,82 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 }));
 
 // Handle tool calls
-server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
-  if (request.params.name !== 'request_file_permission') {
-    return {
-      content: [{ type: 'text', text: `Error: Unknown tool: ${request.params.name}` }],
-      isError: true,
-    };
-  }
-
-  const args = request.params.arguments as FilePermissionInput;
-  const { operation, filePath, filePaths, targetPath, contentPreview } = args;
-
-  // Validate required fields
-  if (!operation || (!filePath && (!filePaths || filePaths.length === 0))) {
-    return {
-      content: [{ type: 'text', text: 'Error: operation and either filePath or filePaths are required' }],
-      isError: true,
-    };
-  }
-
-  try {
-    // Call Electron main process HTTP endpoint
-    const response = await fetch(PERMISSION_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        operation,
-        filePath,
-        filePaths,
-        targetPath,
-        contentPreview: contentPreview?.substring(0, 500), // Truncate preview
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
+server.setRequestHandler(
+  CallToolRequestSchema,
+  async (request): Promise<CallToolResult> => {
+    if (request.params.name !== 'request_file_permission') {
       return {
-        content: [{ type: 'text', text: `Error: Permission API returned ${response.status}: ${errorText}` }],
+        content: [
+          { type: 'text', text: `Error: Unknown tool: ${request.params.name}` },
+        ],
         isError: true,
       };
     }
 
-    const result = (await response.json()) as { allowed: boolean };
-    return {
-      content: [{ type: 'text', text: result.allowed ? 'allowed' : 'denied' }],
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return {
-      content: [{ type: 'text', text: `Error: Failed to request permission: ${errorMessage}` }],
-      isError: true,
-    };
+    const args = request.params.arguments as FilePermissionInput;
+    const { operation, filePath, filePaths, targetPath, contentPreview } = args;
+
+    // Validate required fields
+    if (!operation || (!filePath && (!filePaths || filePaths.length === 0))) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'Error: operation and either filePath or filePaths are required',
+          },
+        ],
+        isError: true,
+      };
+    }
+
+    try {
+      // Call Electron main process HTTP endpoint
+      const response = await fetch(PERMISSION_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operation,
+          filePath,
+          filePaths,
+          targetPath,
+          contentPreview: contentPreview?.substring(0, 500), // Truncate preview
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: Permission API returned ${response.status}: ${errorText}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      const result = (await response.json()) as { allowed: boolean };
+      return {
+        content: [
+          { type: 'text', text: result.allowed ? 'allowed' : 'denied' },
+        ],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error: Failed to request permission: ${errorMessage}`,
+          },
+        ],
+        isError: true,
+      };
+    }
   }
-});
+);
 
 // Start the MCP server
 async function main() {

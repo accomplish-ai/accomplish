@@ -29,7 +29,8 @@ const ERROR_PATTERNS: Array<{
 }> = [
   {
     // OpenAI OAuth token expired/invalid
-    pattern: /openai.*(?:invalid_api_key|invalid_token|token.*expired|oauth.*invalid|Incorrect API key)/i,
+    pattern:
+      /openai.*(?:invalid_api_key|invalid_token|token.*expired|oauth.*invalid|Incorrect API key)/i,
     extract: () => ({
       errorName: 'OAuthExpiredError',
       statusCode: 401,
@@ -40,7 +41,8 @@ const ERROR_PATTERNS: Array<{
   },
   {
     // OpenAI 401 Unauthorized
-    pattern: /openai.*"status":\s*401|"status":\s*401.*openai|providerID=openai.*statusCode.*401/i,
+    pattern:
+      /openai.*"status":\s*401|"status":\s*401.*openai|providerID=openai.*statusCode.*401/i,
     extract: () => ({
       errorName: 'OAuthUnauthorizedError',
       statusCode: 401,
@@ -66,12 +68,14 @@ const ERROR_PATTERNS: Array<{
     extract: (match) => ({
       errorName: 'ThrottlingException',
       statusCode: 429,
-      message: match[1] || 'Rate limit exceeded. Please wait before trying again.',
+      message:
+        match[1] || 'Rate limit exceeded. Please wait before trying again.',
     }),
   },
   {
     // Generic AI_APICallError with status code
-    pattern: /"name":"AI_APICallError".*?"statusCode":(\d+).*?"message":"([^"]+)"/,
+    pattern:
+      /"name":"AI_APICallError".*?"statusCode":(\d+).*?"message":"([^"]+)"/,
     extract: (match) => ({
       errorName: 'AI_APICallError',
       statusCode: parseInt(match[1], 10),
@@ -89,7 +93,8 @@ const ERROR_PATTERNS: Array<{
   },
   {
     // Access denied / authentication errors
-    pattern: /AccessDeniedException|UnauthorizedException|InvalidSignatureException/,
+    pattern:
+      /AccessDeniedException|UnauthorizedException|InvalidSignatureException/,
     extract: () => ({
       errorName: 'AuthenticationError',
       statusCode: 403,
@@ -102,7 +107,8 @@ const ERROR_PATTERNS: Array<{
     extract: () => ({
       errorName: 'ModelNotFoundError',
       statusCode: 404,
-      message: 'The requested model was not found or is not available in your region.',
+      message:
+        'The requested model was not found or is not available in your region.',
     }),
   },
   {
@@ -323,7 +329,11 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
           raw: line,
         };
 
-        console.log('[LogWatcher] Detected error:', error.errorName, error.message);
+        console.log(
+          '[LogWatcher] Detected error:',
+          error.errorName,
+          error.message
+        );
         this.emit('error', error);
         return;
       }
@@ -338,7 +348,9 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
       case 'OAuthExpiredError':
       case 'OAuthUnauthorizedError':
       case 'OAuthAuthenticationError':
-        return error.message || 'Your session has expired. Please re-authenticate.';
+        return (
+          error.message || 'Your session has expired. Please re-authenticate.'
+        );
       case 'ThrottlingException':
         return `Rate limit exceeded: ${error.message || 'Please wait before trying again.'}`;
       case 'AuthenticationError':

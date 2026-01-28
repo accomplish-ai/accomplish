@@ -91,7 +91,9 @@ export function getNodePath(): string {
   }
   // Warn if falling back to system node in packaged app (unexpected)
   if (app.isPackaged) {
-    console.warn('[Bundled Node] WARNING: Bundled Node.js not found, falling back to system node');
+    console.warn(
+      '[Bundled Node] WARNING: Bundled Node.js not found, falling back to system node'
+    );
   }
   return 'node'; // Fallback to system node
 }
@@ -107,7 +109,9 @@ export function getNpmPath(): string {
     return bundled.npmPath;
   }
   if (app.isPackaged) {
-    console.warn('[Bundled Node] WARNING: Bundled npm not found, falling back to system npm');
+    console.warn(
+      '[Bundled Node] WARNING: Bundled npm not found, falling back to system npm'
+    );
   }
   return 'npm'; // Fallback to system npm
 }
@@ -123,7 +127,9 @@ export function getNpxPath(): string {
     return bundled.npxPath;
   }
   if (app.isPackaged) {
-    console.warn('[Bundled Node] WARNING: Bundled npx not found, falling back to system npx');
+    console.warn(
+      '[Bundled Node] WARNING: Bundled npx not found, falling back to system npx'
+    );
   }
   return 'npx'; // Fallback to system npx
 }

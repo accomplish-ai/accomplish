@@ -3,10 +3,7 @@ import { z } from 'zod';
 const PRODUCTION_API_URL = 'https://lite.accomplish.ai';
 
 const desktopConfigSchema = z.object({
-  apiUrl: z
-    .string()
-    .url()
-    .default(PRODUCTION_API_URL),
+  apiUrl: z.string().url().default(PRODUCTION_API_URL),
 });
 
 type DesktopConfig = z.infer<typeof desktopConfigSchema>;
@@ -21,7 +18,9 @@ export function getDesktopConfig(): DesktopConfig {
   });
 
   if (!parsed.success) {
-    const message = parsed.error.issues.map((issue: z.ZodIssue) => issue.message).join('; ');
+    const message = parsed.error.issues
+      .map((issue: z.ZodIssue) => issue.message)
+      .join('; ');
     throw new Error(`Invalid desktop configuration: ${message}`);
   }
 

@@ -57,57 +57,69 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 }));
 
 // Handle tool calls
-server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
-  if (request.params.name !== 'report_thought') {
-    return {
-      content: [{ type: 'text', text: `Error: Unknown tool: ${request.params.name}` }],
-      isError: true,
-    };
-  }
-
-  const args = request.params.arguments as unknown as ReportThoughtInput;
-  const { content, category } = args;
-
-  // Validate required fields
-  if (!content || !category) {
-    return {
-      content: [{ type: 'text', text: 'Error: content and category are required' }],
-      isError: true,
-    };
-  }
-
-  // Log to stderr for debugging
-  console.error(`[report-thought] [${category}] ${content}`);
-
-  // Fire-and-forget POST to thought stream API
-  if (THOUGHT_STREAM_TASK_ID) {
-    try {
-      const response = await fetch(THOUGHT_STREAM_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          taskId: THOUGHT_STREAM_TASK_ID,
-          content,
-          category,
-          agentName: process.env.ACCOMPLISH_AGENT_NAME || 'agent',
-          timestamp: Date.now(),
-        }),
-        signal: AbortSignal.timeout(1000),
-      });
-
-      if (!response.ok) {
-        console.error(`[report-thought] HTTP error (non-fatal): ${response.status}`);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`[report-thought] HTTP error (non-fatal): ${errorMessage}`);
+server.setRequestHandler(
+  CallToolRequestSchema,
+  async (request): Promise<CallToolResult> => {
+    if (request.params.name !== 'report_thought') {
+      return {
+        content: [
+          { type: 'text', text: `Error: Unknown tool: ${request.params.name}` },
+        ],
+        isError: true,
+      };
     }
-  }
 
-  return {
-    content: [{ type: 'text', text: 'Thought recorded.' }],
-  };
-});
+    const args = request.params.arguments as unknown as ReportThoughtInput;
+    const { content, category } = args;
+
+    // Validate required fields
+    if (!content || !category) {
+      return {
+        content: [
+          { type: 'text', text: 'Error: content and category are required' },
+        ],
+        isError: true,
+      };
+    }
+
+    // Log to stderr for debugging
+    console.error(`[report-thought] [${category}] ${content}`);
+
+    // Fire-and-forget POST to thought stream API
+    if (THOUGHT_STREAM_TASK_ID) {
+      try {
+        const response = await fetch(THOUGHT_STREAM_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            taskId: THOUGHT_STREAM_TASK_ID,
+            content,
+            category,
+            agentName: process.env.ACCOMPLISH_AGENT_NAME || 'agent',
+            timestamp: Date.now(),
+          }),
+          signal: AbortSignal.timeout(1000),
+        });
+
+        if (!response.ok) {
+          console.error(
+            `[report-thought] HTTP error (non-fatal): ${response.status}`
+          );
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error(
+          `[report-thought] HTTP error (non-fatal): ${errorMessage}`
+        );
+      }
+    }
+
+    return {
+      content: [{ type: 'text', text: 'Thought recorded.' }],
+    };
+  }
+);
 
 // Start the MCP server
 async function main() {

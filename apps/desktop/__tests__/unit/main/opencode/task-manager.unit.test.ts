@@ -19,7 +19,12 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
-import type { TaskConfig, TaskResult, OpenCodeMessage, PermissionRequest } from '@accomplish/shared';
+import type {
+  TaskConfig,
+  TaskResult,
+  OpenCodeMessage,
+  PermissionRequest,
+} from '@accomplish/shared';
 
 // Mock electron module
 const mockApp = {
@@ -61,7 +66,13 @@ class MockOpenCodeAdapter extends EventEmitter {
   private taskId: string | null = null;
   private sessionId: string | null = null;
   private disposed = false;
-  private startTaskFn: (config: TaskConfig) => Promise<{ id: string; prompt: string; status: string; messages: never[]; createdAt: string }>;
+  private startTaskFn: (config: TaskConfig) => Promise<{
+    id: string;
+    prompt: string;
+    status: string;
+    messages: never[];
+    createdAt: string;
+  }>;
 
   constructor(taskId?: string) {
     super();
@@ -267,9 +278,21 @@ describe('Task Manager Module', () => {
         const manager = new TaskManager({ maxConcurrentTasks: 3 });
 
         // Act
-        await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
-        await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
-        await manager.startTask('task-3', { prompt: 'Task 3' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Task 1' },
+          createMockCallbacks()
+        );
+        await manager.startTask(
+          'task-2',
+          { prompt: 'Task 2' },
+          createMockCallbacks()
+        );
+        await manager.startTask(
+          'task-3',
+          { prompt: 'Task 3' },
+          createMockCallbacks()
+        );
 
         // Assert
         expect(manager.getActiveTaskCount()).toBe(3);
@@ -284,9 +307,21 @@ describe('Task Manager Module', () => {
         const manager = new TaskManager({ maxConcurrentTasks: 2 });
 
         // Act
-        await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
-        await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
-        const task3 = await manager.startTask('task-3', { prompt: 'Task 3' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Task 1' },
+          createMockCallbacks()
+        );
+        await manager.startTask(
+          'task-2',
+          { prompt: 'Task 2' },
+          createMockCallbacks()
+        );
+        const task3 = await manager.startTask(
+          'task-3',
+          { prompt: 'Task 3' },
+          createMockCallbacks()
+        );
 
         // Assert
         expect(manager.getActiveTaskCount()).toBe(2);
@@ -299,12 +334,24 @@ describe('Task Manager Module', () => {
         // Arrange
         const manager = new TaskManager({ maxConcurrentTasks: 1 });
 
-        await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
-        await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Task 1' },
+          createMockCallbacks()
+        );
+        await manager.startTask(
+          'task-2',
+          { prompt: 'Task 2' },
+          createMockCallbacks()
+        );
 
         // Act & Assert
         await expect(
-          manager.startTask('task-3', { prompt: 'Task 3' }, createMockCallbacks())
+          manager.startTask(
+            'task-3',
+            { prompt: 'Task 3' },
+            createMockCallbacks()
+          )
         ).rejects.toThrow('Maximum queued tasks');
       });
 
@@ -312,8 +359,16 @@ describe('Task Manager Module', () => {
         // Arrange
         const manager = new TaskManager({ maxConcurrentTasks: 1 });
 
-        await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
-        await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Task 1' },
+          createMockCallbacks()
+        );
+        await manager.startTask(
+          'task-2',
+          { prompt: 'Task 2' },
+          createMockCallbacks()
+        );
 
         // Act
         const position = manager.getQueuePosition('task-2');
@@ -325,7 +380,11 @@ describe('Task Manager Module', () => {
       it('should return 0 for non-queued task position', async () => {
         // Arrange
         const manager = new TaskManager();
-        await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Task 1' },
+          createMockCallbacks()
+        );
 
         // Act
         const position = manager.getQueuePosition('task-1');
@@ -412,8 +471,16 @@ describe('Task Manager Module', () => {
       it('should cancel a queued task', async () => {
         // Arrange
         const manager = new TaskManager({ maxConcurrentTasks: 1 });
-        await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
-        await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Task 1' },
+          createMockCallbacks()
+        );
+        await manager.startTask(
+          'task-2',
+          { prompt: 'Task 2' },
+          createMockCallbacks()
+        );
 
         expect(manager.isTaskQueued('task-2')).toBe(true);
 
@@ -438,7 +505,11 @@ describe('Task Manager Module', () => {
         const manager = new TaskManager({ maxConcurrentTasks: 1 });
         const callbacks2 = createMockCallbacks();
 
-        await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Task 1' },
+          createMockCallbacks()
+        );
         await manager.startTask('task-2', { prompt: 'Task 2' }, callbacks2);
 
         // Act
@@ -456,7 +527,11 @@ describe('Task Manager Module', () => {
       it('should interrupt a running task', async () => {
         // Arrange
         const manager = new TaskManager();
-        await manager.startTask('task-1', { prompt: 'Test' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Test' },
+          createMockCallbacks()
+        );
 
         // Act & Assert - should not throw
         await manager.interruptTask('task-1');
@@ -475,8 +550,16 @@ describe('Task Manager Module', () => {
       it('should remove task from queue and return true', async () => {
         // Arrange
         const manager = new TaskManager({ maxConcurrentTasks: 1 });
-        await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
-        await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Task 1' },
+          createMockCallbacks()
+        );
+        await manager.startTask(
+          'task-2',
+          { prompt: 'Task 2' },
+          createMockCallbacks()
+        );
 
         // Act
         const result = manager.cancelQueuedTask('task-2');
@@ -489,7 +572,11 @@ describe('Task Manager Module', () => {
       it('should return false for non-queued task', async () => {
         // Arrange
         const manager = new TaskManager();
-        await manager.startTask('task-1', { prompt: 'Test' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Test' },
+          createMockCallbacks()
+        );
 
         // Act
         const result = manager.cancelQueuedTask('task-1');
@@ -503,7 +590,11 @@ describe('Task Manager Module', () => {
       it('should send response to active task', async () => {
         // Arrange
         const manager = new TaskManager();
-        await manager.startTask('task-1', { prompt: 'Test' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Test' },
+          createMockCallbacks()
+        );
 
         // Act & Assert - should not throw
         await manager.sendResponse('task-1', 'user response');
@@ -514,9 +605,9 @@ describe('Task Manager Module', () => {
         const manager = new TaskManager();
 
         // Act & Assert
-        await expect(manager.sendResponse('non-existent', 'response')).rejects.toThrow(
-          'not found or not active'
-        );
+        await expect(
+          manager.sendResponse('non-existent', 'response')
+        ).rejects.toThrow('not found or not active');
       });
     });
 
@@ -524,7 +615,11 @@ describe('Task Manager Module', () => {
       it('should return session ID for active task after adapter starts', async () => {
         // Arrange
         const manager = new TaskManager();
-        await manager.startTask('task-1', { prompt: 'Test' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Test' },
+          createMockCallbacks()
+        );
 
         // Wait for async adapter initialization
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -558,7 +653,11 @@ describe('Task Manager Module', () => {
         expect(manager.hasRunningTask()).toBe(false);
 
         // Act
-        await manager.startTask('task-1', { prompt: 'Test' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Test' },
+          createMockCallbacks()
+        );
 
         // Assert
         expect(manager.hasRunningTask()).toBe(true);
@@ -567,8 +666,16 @@ describe('Task Manager Module', () => {
       it('should return all active task IDs', async () => {
         // Arrange
         const manager = new TaskManager({ maxConcurrentTasks: 3 });
-        await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
-        await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Task 1' },
+          createMockCallbacks()
+        );
+        await manager.startTask(
+          'task-2',
+          { prompt: 'Task 2' },
+          createMockCallbacks()
+        );
 
         // Act
         const activeIds = manager.getActiveTaskIds();
@@ -582,7 +689,11 @@ describe('Task Manager Module', () => {
       it('should return first active task ID', async () => {
         // Arrange
         const manager = new TaskManager();
-        await manager.startTask('task-1', { prompt: 'Test' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Test' },
+          createMockCallbacks()
+        );
 
         // Act
         const activeId = manager.getActiveTaskId();
@@ -607,8 +718,16 @@ describe('Task Manager Module', () => {
       it('should dispose all active tasks', async () => {
         // Arrange
         const manager = new TaskManager();
-        await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
-        await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Task 1' },
+          createMockCallbacks()
+        );
+        await manager.startTask(
+          'task-2',
+          { prompt: 'Task 2' },
+          createMockCallbacks()
+        );
 
         // Act
         manager.dispose();
@@ -621,8 +740,16 @@ describe('Task Manager Module', () => {
       it('should clear the task queue', async () => {
         // Arrange
         const manager = new TaskManager({ maxConcurrentTasks: 1 });
-        await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
-        await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
+        await manager.startTask(
+          'task-1',
+          { prompt: 'Task 1' },
+          createMockCallbacks()
+        );
+        await manager.startTask(
+          'task-2',
+          { prompt: 'Task 2' },
+          createMockCallbacks()
+        );
 
         expect(manager.getQueueLength()).toBe(1);
 
@@ -706,10 +833,26 @@ describe('Task Manager Module', () => {
       const manager = new TaskManager({ maxConcurrentTasks: 2 });
 
       // Add multiple tasks
-      await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
-      await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
-      await manager.startTask('task-3', { prompt: 'Task 3' }, createMockCallbacks());
-      await manager.startTask('task-4', { prompt: 'Task 4' }, createMockCallbacks());
+      await manager.startTask(
+        'task-1',
+        { prompt: 'Task 1' },
+        createMockCallbacks()
+      );
+      await manager.startTask(
+        'task-2',
+        { prompt: 'Task 2' },
+        createMockCallbacks()
+      );
+      await manager.startTask(
+        'task-3',
+        { prompt: 'Task 3' },
+        createMockCallbacks()
+      );
+      await manager.startTask(
+        'task-4',
+        { prompt: 'Task 4' },
+        createMockCallbacks()
+      );
 
       // Assert
       expect(manager.getActiveTaskCount()).toBe(2);

@@ -99,9 +99,11 @@ export const ProviderCard = memo(function ProviderCard({
           >
             <img
               src={connectedKeyIcon}
-              alt={providerReady ? "Ready" : "Connected"}
+              alt={providerReady ? 'Ready' : 'Connected'}
               className="h-5 w-5"
-              title={providerReady ? undefined : "Select a model to complete setup"}
+              title={
+                providerReady ? undefined : 'Select a model to complete setup'
+              }
             />
           </motion.div>
         )}
@@ -117,14 +119,10 @@ export const ProviderCard = memo(function ProviderCard({
       </div>
 
       {/* Name */}
-      <span className="text-sm font-medium text-foreground">
-        {meta.name}
-      </span>
+      <span className="text-sm font-medium text-foreground">{meta.name}</span>
 
       {/* Label */}
-      <span className="text-xs text-muted-foreground">
-        {meta.label}
-      </span>
+      <span className="text-xs text-muted-foreground">{meta.label}</span>
     </button>
   );
 });

@@ -131,7 +131,13 @@ describe('Animation Library', () => {
   describe('Export Structure', () => {
     it('should export all required animations', () => {
       expect(Object.keys(springs)).toEqual(['bouncy', 'gentle', 'snappy']);
-      expect(Object.keys(variants)).toEqual(['fadeUp', 'fadeIn', 'scaleIn', 'slideInRight', 'slideInLeft']);
+      expect(Object.keys(variants)).toEqual([
+        'fadeUp',
+        'fadeIn',
+        'scaleIn',
+        'slideInRight',
+        'slideInLeft',
+      ]);
       expect(staggerContainer).toBeDefined();
       expect(staggerItem).toBeDefined();
       expect(cardHover).toBeDefined();

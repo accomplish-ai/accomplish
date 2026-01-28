@@ -5,7 +5,13 @@
  * to log structured events.
  */
 
-import { getLogFileWriter, initializeLogFileWriter, shutdownLogFileWriter, type LogLevel, type LogSource } from './log-file-writer';
+import {
+  getLogFileWriter,
+  initializeLogFileWriter,
+  shutdownLogFileWriter,
+  type LogLevel,
+  type LogSource,
+} from './log-file-writer';
 
 // Store original console methods
 const originalConsole = {
@@ -75,7 +81,12 @@ class LogCollector {
   /**
    * Log a message with structured metadata
    */
-  log(level: LogLevel, source: LogSource, message: string, data?: unknown): void {
+  log(
+    level: LogLevel,
+    source: LogSource,
+    message: string,
+    data?: unknown
+  ): void {
     const writer = getLogFileWriter();
 
     let fullMessage = message;
@@ -169,20 +180,28 @@ class LogCollector {
    */
   private captureConsole(level: LogLevel, args: unknown[]): void {
     // Detect source from message prefix like [Main], [TaskManager], etc.
-    const message = args.map(arg => {
-      if (typeof arg === 'string') return arg;
-      try {
-        return JSON.stringify(arg);
-      } catch {
-        return String(arg);
-      }
-    }).join(' ');
+    const message = args
+      .map((arg) => {
+        if (typeof arg === 'string') return arg;
+        try {
+          return JSON.stringify(arg);
+        } catch {
+          return String(arg);
+        }
+      })
+      .join(' ');
 
     // Detect source from common prefixes
     let source: LogSource = 'main';
-    if (message.startsWith('[TaskManager]') || message.startsWith('[OpenCode')) {
+    if (
+      message.startsWith('[TaskManager]') ||
+      message.startsWith('[OpenCode')
+    ) {
       source = 'opencode';
-    } else if (message.startsWith('[DevBrowser') || message.startsWith('[Playwright')) {
+    } else if (
+      message.startsWith('[DevBrowser') ||
+      message.startsWith('[Playwright')
+    ) {
       source = 'browser';
     } else if (message.startsWith('[MCP]') || message.includes('MCP server')) {
       source = 'mcp';

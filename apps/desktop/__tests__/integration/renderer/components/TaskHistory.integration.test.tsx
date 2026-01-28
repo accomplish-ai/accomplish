@@ -89,7 +89,9 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(screen.getByText(/start by describing what you want to accomplish/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/start by describing what you want to accomplish/i)
+      ).toBeInTheDocument();
     });
 
     it('should not render task list in empty state', () => {
@@ -170,7 +172,9 @@ describe('TaskHistory Integration', () => {
 
     it('should render task status indicator', () => {
       // Arrange
-      mockStoreState.tasks = [createMockTask('task-1', 'My test task', 'completed')];
+      mockStoreState.tasks = [
+        createMockTask('task-1', 'My test task', 'completed'),
+      ];
 
       // Act
       render(
@@ -186,7 +190,15 @@ describe('TaskHistory Integration', () => {
 
     it('should render message count for each task', () => {
       // Arrange
-      mockStoreState.tasks = [createMockTask('task-1', 'Task with messages', 'completed', undefined, 5)];
+      mockStoreState.tasks = [
+        createMockTask(
+          'task-1',
+          'Task with messages',
+          'completed',
+          undefined,
+          5
+        ),
+      ];
 
       // Act
       render(
@@ -215,7 +227,9 @@ describe('TaskHistory Integration', () => {
   describe('task status indicators', () => {
     it('should show green indicator for completed tasks', () => {
       // Arrange
-      mockStoreState.tasks = [createMockTask('task-1', 'Completed task', 'completed')];
+      mockStoreState.tasks = [
+        createMockTask('task-1', 'Completed task', 'completed'),
+      ];
 
       // Act
       render(
@@ -231,7 +245,9 @@ describe('TaskHistory Integration', () => {
 
     it('should show blue indicator for running tasks', () => {
       // Arrange
-      mockStoreState.tasks = [createMockTask('task-1', 'Running task', 'running')];
+      mockStoreState.tasks = [
+        createMockTask('task-1', 'Running task', 'running'),
+      ];
 
       // Act
       render(
@@ -247,7 +263,9 @@ describe('TaskHistory Integration', () => {
 
     it('should show red indicator for failed tasks', () => {
       // Arrange
-      mockStoreState.tasks = [createMockTask('task-1', 'Failed task', 'failed')];
+      mockStoreState.tasks = [
+        createMockTask('task-1', 'Failed task', 'failed'),
+      ];
 
       // Act
       render(
@@ -263,7 +281,9 @@ describe('TaskHistory Integration', () => {
 
     it('should show grey indicator for cancelled tasks', () => {
       // Arrange
-      mockStoreState.tasks = [createMockTask('task-1', 'Cancelled task', 'cancelled')];
+      mockStoreState.tasks = [
+        createMockTask('task-1', 'Cancelled task', 'cancelled'),
+      ];
 
       // Act
       render(
@@ -279,7 +299,9 @@ describe('TaskHistory Integration', () => {
 
     it('should show yellow indicator for pending tasks', () => {
       // Arrange
-      mockStoreState.tasks = [createMockTask('task-1', 'Pending task', 'pending')];
+      mockStoreState.tasks = [
+        createMockTask('task-1', 'Pending task', 'pending'),
+      ];
 
       // Act
       render(
@@ -295,7 +317,9 @@ describe('TaskHistory Integration', () => {
 
     it('should show yellow indicator for waiting permission tasks', () => {
       // Arrange
-      mockStoreState.tasks = [createMockTask('task-1', 'My test task', 'waiting_permission')];
+      mockStoreState.tasks = [
+        createMockTask('task-1', 'My test task', 'waiting_permission'),
+      ];
 
       // Act
       render(
@@ -504,7 +528,9 @@ describe('TaskHistory Integration', () => {
       fireEvent.click(screen.getByText(/clear all/i));
 
       // Assert
-      expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to clear all task history?');
+      expect(confirmSpy).toHaveBeenCalledWith(
+        'Are you sure you want to clear all task history?'
+      );
     });
 
     it('should call clearHistory when confirmation is accepted', () => {
@@ -658,7 +684,9 @@ describe('TaskHistory Integration', () => {
     it('should show "just now" for recent tasks', () => {
       // Arrange
       const now = new Date().toISOString();
-      mockStoreState.tasks = [createMockTask('task-1', 'Recent task', 'completed', now)];
+      mockStoreState.tasks = [
+        createMockTask('task-1', 'Recent task', 'completed', now),
+      ];
 
       // Act
       render(
@@ -673,8 +701,12 @@ describe('TaskHistory Integration', () => {
 
     it('should show minutes ago for tasks within an hour', () => {
       // Arrange
-      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-      mockStoreState.tasks = [createMockTask('task-1', 'Old task', 'completed', thirtyMinutesAgo)];
+      const thirtyMinutesAgo = new Date(
+        Date.now() - 30 * 60 * 1000
+      ).toISOString();
+      mockStoreState.tasks = [
+        createMockTask('task-1', 'Old task', 'completed', thirtyMinutesAgo),
+      ];
 
       // Act
       render(
@@ -689,8 +721,12 @@ describe('TaskHistory Integration', () => {
 
     it('should show hours ago for tasks within a day', () => {
       // Arrange
-      const fiveHoursAgo = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString();
-      mockStoreState.tasks = [createMockTask('task-1', 'Older task', 'completed', fiveHoursAgo)];
+      const fiveHoursAgo = new Date(
+        Date.now() - 5 * 60 * 60 * 1000
+      ).toISOString();
+      mockStoreState.tasks = [
+        createMockTask('task-1', 'Older task', 'completed', fiveHoursAgo),
+      ];
 
       // Act
       render(
@@ -705,8 +741,12 @@ describe('TaskHistory Integration', () => {
 
     it('should show days ago for tasks older than a day', () => {
       // Arrange
-      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
-      mockStoreState.tasks = [createMockTask('task-1', 'Very old task', 'completed', threeDaysAgo)];
+      const threeDaysAgo = new Date(
+        Date.now() - 3 * 24 * 60 * 60 * 1000
+      ).toISOString();
+      mockStoreState.tasks = [
+        createMockTask('task-1', 'Very old task', 'completed', threeDaysAgo),
+      ];
 
       // Act
       render(
@@ -755,7 +795,12 @@ describe('TaskHistory Integration', () => {
 
     it('should truncate long task prompts', () => {
       // Arrange
-      mockStoreState.tasks = [createMockTask('task-1', 'This is a very long task prompt that should be truncated')];
+      mockStoreState.tasks = [
+        createMockTask(
+          'task-1',
+          'This is a very long task prompt that should be truncated'
+        ),
+      ];
 
       // Act
       render(
@@ -765,7 +810,9 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      const promptElement = screen.getByText(/this is a very long task prompt/i);
+      const promptElement = screen.getByText(
+        /this is a very long task prompt/i
+      );
       expect(promptElement.className).toContain('truncate');
     });
 

@@ -19,7 +19,10 @@ const electronPath = path.join(
 );
 
 if (!fs.existsSync(electronPath)) {
-  console.error('[patch-electron-name] Electron Info.plist not found:', electronPath);
+  console.error(
+    '[patch-electron-name] Electron Info.plist not found:',
+    electronPath
+  );
   process.exit(1);
 }
 

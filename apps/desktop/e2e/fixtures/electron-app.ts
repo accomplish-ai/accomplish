@@ -1,4 +1,9 @@
-import { test as base, _electron as electron, ElectronApplication, Page } from '@playwright/test';
+import {
+  test as base,
+  _electron as electron,
+  ElectronApplication,
+  Page,
+} from '@playwright/test';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import { TEST_TIMEOUTS } from '../config';
@@ -30,7 +35,9 @@ export const test = base.extend<ElectronFixtures>({
         '--e2e-skip-auth',
         '--e2e-mock-tasks',
         // Disable sandbox in Docker (required for containerized Electron)
-        ...(process.env.DOCKER_ENV === '1' ? ['--no-sandbox', '--disable-gpu'] : []),
+        ...(process.env.DOCKER_ENV === '1'
+          ? ['--no-sandbox', '--disable-gpu']
+          : []),
       ],
       env: {
         ...process.env,
@@ -44,7 +51,9 @@ export const test = base.extend<ElectronFixtures>({
 
     // Close app and wait for single-instance lock release
     await app.close();
-    await new Promise(resolve => setTimeout(resolve, TEST_TIMEOUTS.APP_RESTART));
+    await new Promise((resolve) =>
+      setTimeout(resolve, TEST_TIMEOUTS.APP_RESTART)
+    );
   },
 
   window: async ({ electronApp }, use) => {

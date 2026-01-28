@@ -13,7 +13,10 @@ export default defineConfig({
       '@main': path.resolve(__dirname, 'src/main'),
       '@renderer': path.resolve(__dirname, 'src/renderer'),
       '@shared': path.resolve(__dirname, '../../packages/shared/src'),
-      '@accomplish/shared': path.resolve(__dirname, '../../packages/shared/src'),
+      '@accomplish/shared': path.resolve(
+        __dirname,
+        '../../packages/shared/src'
+      ),
     },
   },
   test: {
@@ -21,7 +24,12 @@ export default defineConfig({
     globals: true,
     root: __dirname,
     include: ['__tests__/**/*.unit.test.{ts,tsx}'],
-    exclude: ['**/node_modules/**', '**/dist/**', '**/dist-electron/**', '**/release/**'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/dist-electron/**',
+      '**/release/**',
+    ],
     setupFiles: ['__tests__/setup.ts'],
     environment: 'node',
     environmentMatchGlobs: [

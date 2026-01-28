@@ -20,7 +20,9 @@ const MAX_NAME_TOKENS = 50;
 /**
  * Estimate tokens for a single element.
  */
-export function estimateElementTokens(element: Partial<SnapshotElement>): number {
+export function estimateElementTokens(
+  element: Partial<SnapshotElement>
+): number {
   let tokens = YAML_OVERHEAD;
 
   // Role: usually 1-2 tokens

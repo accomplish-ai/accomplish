@@ -103,20 +103,23 @@ class LogFileWriter {
     }
 
     // Format entries
-    const lines = this.buffer.map((entry) =>
-      `[${entry.timestamp}] [${entry.level}] [${entry.source}] ${entry.message}`
+    const lines = this.buffer.map(
+      (entry) =>
+        `[${entry.timestamp}] [${entry.level}] [${entry.source}] ${entry.message}`
     );
 
     // Append to file
     try {
       fs.appendFileSync(this.currentFilePath, lines.join('\n') + '\n');
-      this.buffer = [];  // Only clear on success
+      this.buffer = []; // Only clear on success
     } catch (error) {
       console.error('[LogFileWriter] Failed to write logs:', error);
       // Don't clear buffer - retry on next flush
       // But prevent unbounded growth
       if (this.buffer.length > BUFFER_MAX_ENTRIES * 10) {
-        console.error('[LogFileWriter] Buffer overflow - dropping oldest entries');
+        console.error(
+          '[LogFileWriter] Buffer overflow - dropping oldest entries'
+        );
         this.buffer = this.buffer.slice(-BUFFER_MAX_ENTRIES);
       }
     }
@@ -153,14 +156,18 @@ class LogFileWriter {
     if (today !== this.currentDate) {
       // Write any buffered entries to old file directly (don't call flush to avoid recursion)
       if (this.currentDate && this.buffer.length > 0 && this.currentFilePath) {
-        const lines = this.buffer.map((entry) =>
-          `[${entry.timestamp}] [${entry.level}] [${entry.source}] ${entry.message}`
+        const lines = this.buffer.map(
+          (entry) =>
+            `[${entry.timestamp}] [${entry.level}] [${entry.source}] ${entry.message}`
         );
         try {
           fs.appendFileSync(this.currentFilePath, lines.join('\n') + '\n');
-          this.buffer = [];  // Only clear on success
+          this.buffer = []; // Only clear on success
         } catch (error) {
-          console.error('[LogFileWriter] Failed to write logs on date change:', error);
+          console.error(
+            '[LogFileWriter] Failed to write logs on date change:',
+            error
+          );
           // Don't clear buffer - entries will be written to new file
         }
       }

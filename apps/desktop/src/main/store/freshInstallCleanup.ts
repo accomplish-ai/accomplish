@@ -64,7 +64,10 @@ function getAppBundleMtime(): Date | null {
   // Find the .app bundle path
   const appBundleMatch = execPath.match(/^(.+\.app)/);
   if (!appBundleMatch) {
-    console.log('[FreshInstall] Could not determine app bundle path from:', execPath);
+    console.log(
+      '[FreshInstall] Could not determine app bundle path from:',
+      execPath
+    );
     return null;
   }
 
@@ -168,8 +171,15 @@ function clearPreviousInstallData(): void {
   }
 
   // Remove legacy data files from known previous locations
-  const legacyDirs = getKnownUserDataDirs().filter((dir) => dir !== userDataPath);
-  const legacyFiles = ['app-settings.json', 'task-history.json', 'config.json', '.install-marker.json'];
+  const legacyDirs = getKnownUserDataDirs().filter(
+    (dir) => dir !== userDataPath
+  );
+  const legacyFiles = [
+    'app-settings.json',
+    'task-history.json',
+    'config.json',
+    '.install-marker.json',
+  ];
   for (const dir of legacyDirs) {
     for (const file of legacyFiles) {
       const filePath = path.join(dir, file);
@@ -179,7 +189,10 @@ function clearPreviousInstallData(): void {
           console.log(`[FreshInstall]   - Removed legacy ${file} from ${dir}`);
         }
       } catch (err) {
-        console.error(`[FreshInstall]   - Failed to remove legacy ${file} from ${dir}:`, err);
+        console.error(
+          `[FreshInstall]   - Failed to remove legacy ${file} from ${dir}:`,
+          err
+        );
       }
     }
   }
@@ -207,7 +220,9 @@ export async function checkAndCleanupFreshInstall(): Promise<boolean> {
 
   const bundleMtime = getAppBundleMtime();
   if (!bundleMtime) {
-    console.log('[FreshInstall] Could not determine bundle mtime, skipping check');
+    console.log(
+      '[FreshInstall] Could not determine bundle mtime, skipping check'
+    );
     return false;
   }
 
@@ -220,7 +235,9 @@ export async function checkAndCleanupFreshInstall(): Promise<boolean> {
     // Check if there's existing user data (from a previous install)
     const hadExistingData = hasExistingUserData();
     if (hadExistingData) {
-      console.log('[FreshInstall] Found existing data but no install marker - this is a reinstall');
+      console.log(
+        '[FreshInstall] Found existing data but no install marker - this is a reinstall'
+      );
       clearPreviousInstallData();
     } else {
       console.log('[FreshInstall] First time install (no previous data)');

@@ -8,7 +8,10 @@ interface TaskHistoryProps {
   showTitle?: boolean;
 }
 
-export default function TaskHistory({ limit, showTitle = true }: TaskHistoryProps) {
+export default function TaskHistory({
+  limit,
+  showTitle = true,
+}: TaskHistoryProps) {
   const { tasks, loadTasks, deleteTask, clearHistory } = useTaskStore();
 
   useEffect(() => {
@@ -20,7 +23,9 @@ export default function TaskHistory({ limit, showTitle = true }: TaskHistoryProp
   if (displayedTasks.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-text-muted">No tasks yet. Start by describing what you want to accomplish.</p>
+        <p className="text-text-muted">
+          No tasks yet. Start by describing what you want to accomplish.
+        </p>
       </div>
     );
   }
@@ -33,7 +38,9 @@ export default function TaskHistory({ limit, showTitle = true }: TaskHistoryProp
           {tasks.length > 0 && !limit && (
             <button
               onClick={() => {
-                if (confirm('Are you sure you want to clear all task history?')) {
+                if (
+                  confirm('Are you sure you want to clear all task history?')
+                ) {
                   clearHistory();
                 }
               }}
@@ -93,7 +100,10 @@ function TaskHistoryItem({
     >
       <div className={`w-2 h-2 rounded-full ${config.color}`} />
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-text truncate" title={task.summary || task.prompt}>
+        <p
+          className="text-sm text-text truncate"
+          title={task.summary || task.prompt}
+        >
           {task.summary || task.prompt}
         </p>
         <p className="text-xs text-text-muted mt-1">
@@ -110,8 +120,18 @@ function TaskHistoryItem({
         }}
         className="p-2 text-text-muted hover:text-danger transition-colors"
       >
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        <svg
+          className="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+          />
         </svg>
       </button>
     </Link>

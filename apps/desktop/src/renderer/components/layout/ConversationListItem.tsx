@@ -3,14 +3,24 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { Task } from '@accomplish/shared';
 import { cn } from '@/lib/utils';
-import { Loader2, CheckCircle2, XCircle, Clock, Square, PauseCircle, X } from 'lucide-react';
+import {
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Square,
+  PauseCircle,
+  X,
+} from 'lucide-react';
 import { useTaskStore } from '@/stores/taskStore';
 
 interface ConversationListItemProps {
   task: Task;
 }
 
-export default function ConversationListItem({ task }: ConversationListItemProps) {
+export default function ConversationListItem({
+  task,
+}: ConversationListItemProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isActive = location.pathname === `/execution/${task.id}`;
@@ -38,7 +48,9 @@ export default function ConversationListItem({ task }: ConversationListItemProps
   const getStatusIcon = () => {
     switch (task.status) {
       case 'running':
-        return <Loader2 className="h-3 w-3 animate-spin-ccw text-primary shrink-0" />;
+        return (
+          <Loader2 className="h-3 w-3 animate-spin-ccw text-primary shrink-0" />
+        );
       case 'completed':
         return <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />;
       case 'failed':
@@ -74,7 +86,9 @@ export default function ConversationListItem({ task }: ConversationListItemProps
       )}
     >
       {getStatusIcon()}
-      <span className="block truncate flex-1">{task.summary || task.prompt}</span>
+      <span className="block truncate flex-1">
+        {task.summary || task.prompt}
+      </span>
       <button
         onClick={handleDelete}
         className={cn(

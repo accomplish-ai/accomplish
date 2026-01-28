@@ -18,7 +18,8 @@ import * as os from 'os';
  */
 
 // Use different store names for dev vs production to avoid conflicts
-const getStoreName = () => (app.isPackaged ? 'secure-storage' : 'secure-storage-dev');
+const getStoreName = () =>
+  app.isPackaged ? 'secure-storage' : 'secure-storage-dev';
 
 interface SecureStorageSchema {
   /** Encrypted values stored as base64 strings (format: iv:authTag:ciphertext) */
@@ -187,13 +188,40 @@ export function deleteApiKey(provider: string): boolean {
 /**
  * Supported API key providers
  */
-export type ApiKeyProvider = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'moonshot' | 'zai' | 'custom' | 'bedrock' | 'litellm' | 'minimax';
+export type ApiKeyProvider =
+  | 'anthropic'
+  | 'openai'
+  | 'openrouter'
+  | 'google'
+  | 'xai'
+  | 'deepseek'
+  | 'moonshot'
+  | 'zai'
+  | 'custom'
+  | 'bedrock'
+  | 'litellm'
+  | 'minimax';
 
 /**
  * Get all API keys for all providers
  */
-export async function getAllApiKeys(): Promise<Record<ApiKeyProvider, string | null>> {
-  const [anthropic, openai, openrouter, google, xai, deepseek, moonshot, zai, custom, bedrock, litellm, minimax] = await Promise.all([
+export async function getAllApiKeys(): Promise<
+  Record<ApiKeyProvider, string | null>
+> {
+  const [
+    anthropic,
+    openai,
+    openrouter,
+    google,
+    xai,
+    deepseek,
+    moonshot,
+    zai,
+    custom,
+    bedrock,
+    litellm,
+    minimax,
+  ] = await Promise.all([
     getApiKey('anthropic'),
     getApiKey('openai'),
     getApiKey('openrouter'),
@@ -208,7 +236,20 @@ export async function getAllApiKeys(): Promise<Record<ApiKeyProvider, string | n
     getApiKey('minimax'),
   ]);
 
-  return { anthropic, openai, openrouter, google, xai, deepseek, moonshot, zai, custom, bedrock, litellm, minimax };
+  return {
+    anthropic,
+    openai,
+    openrouter,
+    google,
+    xai,
+    deepseek,
+    moonshot,
+    zai,
+    custom,
+    bedrock,
+    litellm,
+    minimax,
+  };
 }
 
 /**
@@ -243,7 +284,10 @@ export async function hasAnyApiKey(): Promise<boolean> {
  * List all stored credentials for this service
  * Returns key names with their (decrypted) values
  */
-export function listStoredCredentials(): Array<{ account: string; password: string }> {
+export function listStoredCredentials(): Array<{
+  account: string;
+  password: string;
+}> {
   const store = getSecureStore();
   const values = store.get('values');
   const credentials: Array<{ account: string; password: string }> = [];

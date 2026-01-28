@@ -100,7 +100,9 @@ describe('config.ts', () => {
 
         // Act & Assert
         const { getDesktopConfig } = await import('../../src/main/config');
-        expect(() => getDesktopConfig()).toThrow('Invalid desktop configuration');
+        expect(() => getDesktopConfig()).toThrow(
+          'Invalid desktop configuration'
+        );
       });
 
       it('should throw error for URL without protocol', async () => {
@@ -109,7 +111,9 @@ describe('config.ts', () => {
 
         // Act & Assert
         const { getDesktopConfig } = await import('../../src/main/config');
-        expect(() => getDesktopConfig()).toThrow('Invalid desktop configuration');
+        expect(() => getDesktopConfig()).toThrow(
+          'Invalid desktop configuration'
+        );
       });
 
       it('should throw error for empty string URL (invalid url)', async () => {
@@ -119,7 +123,9 @@ describe('config.ts', () => {
         // Act & Assert
         // Empty string is an invalid URL and throws an error
         const { getDesktopConfig } = await import('../../src/main/config');
-        expect(() => getDesktopConfig()).toThrow('Invalid desktop configuration');
+        expect(() => getDesktopConfig()).toThrow(
+          'Invalid desktop configuration'
+        );
       });
     });
 

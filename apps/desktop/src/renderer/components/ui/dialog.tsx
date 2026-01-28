@@ -8,7 +8,9 @@ import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Context to share animation state with content
-const DialogAnimationContext = React.createContext<{ isOpen: boolean }>({ isOpen: false });
+const DialogAnimationContext = React.createContext<{ isOpen: boolean }>({
+  isOpen: false,
+});
 
 // Animation duration for exit (keep in sync with motion transitions below)
 const EXIT_ANIMATION_DURATION = 100;
@@ -27,7 +29,10 @@ function Dialog({
       setShouldShow(true);
     } else if (shouldShow) {
       // Only delay if we were previously showing
-      const timer = setTimeout(() => setShouldShow(false), EXIT_ANIMATION_DURATION);
+      const timer = setTimeout(
+        () => setShouldShow(false),
+        EXIT_ANIMATION_DURATION
+      );
       return () => clearTimeout(timer);
     }
   }, [open, shouldShow]);
@@ -47,25 +52,19 @@ function Dialog({
 function DialogTrigger({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
-  return (
-    <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
-  );
+  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
 }
 
 function DialogPortal({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
-  return (
-    <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
-  );
+  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
 }
 
 function DialogClose({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Close>) {
-  return (
-    <DialogPrimitive.Close data-slot="dialog-close" {...props} />
-  );
+  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
 // DialogOverlay is handled inline in DialogContent for animation coordination
@@ -99,7 +98,10 @@ const DialogContent = React.forwardRef<
             scale: isOpen ? 1 : 0.95,
             y: isOpen ? 0 : -10,
           }}
-          transition={{ duration: EXIT_ANIMATION_DURATION / 1000, ease: 'easeOut' }}
+          transition={{
+            duration: EXIT_ANIMATION_DURATION / 1000,
+            ease: 'easeOut',
+          }}
           className={cn(
             'relative grid w-full max-w-lg gap-4 border bg-background p-6 shadow-lg sm:rounded-lg',
             className
@@ -117,23 +119,20 @@ const DialogContent = React.forwardRef<
 });
 DialogContent.displayName = 'DialogContent';
 
-function DialogHeader({
-  className,
-  ...props
-}: React.ComponentProps<'div'>) {
+function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn('flex flex-col space-y-1.5 text-center sm:text-left', className)}
+      className={cn(
+        'flex flex-col space-y-1.5 text-center sm:text-left',
+        className
+      )}
       {...props}
     />
   );
 }
 
-function DialogFooter({
-  className,
-  ...props
-}: React.ComponentProps<'div'>) {
+function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="dialog-footer"
@@ -153,7 +152,10 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn('text-lg font-semibold leading-none tracking-tight', className)}
+      className={cn(
+        'text-lg font-semibold leading-none tracking-tight',
+        className
+      )}
       {...props}
     />
   );

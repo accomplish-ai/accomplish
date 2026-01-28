@@ -6,10 +6,10 @@
 // Patterns for sensitive data
 const REDACTION_PATTERNS = [
   // API keys - various formats
-  /sk-[a-zA-Z0-9]{20,}/g,  // OpenAI/Anthropic style
-  /xai-[a-zA-Z0-9]{20,}/g,  // xAI
-  /AIza[a-zA-Z0-9_-]{35}/g,  // Google API keys
-  /AKIA[A-Z0-9]{16}/g,  // AWS Access Key ID
+  /sk-[a-zA-Z0-9]{20,}/g, // OpenAI/Anthropic style
+  /xai-[a-zA-Z0-9]{20,}/g, // xAI
+  /AIza[a-zA-Z0-9_-]{35}/g, // Google API keys
+  /AKIA[A-Z0-9]{16}/g, // AWS Access Key ID
 
   // Generic patterns
   /(?:api[_-]?key|apikey|secret|token|password|credential)['":\s]*[=:]\s*['"]?([a-zA-Z0-9_-]{16,})['"]?/gi,

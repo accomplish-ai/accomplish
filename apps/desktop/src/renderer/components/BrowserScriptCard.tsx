@@ -81,7 +81,8 @@ function formatActionLabel(action: BrowserAction): string {
     case 'clickByRef': {
       const target = action.ref || action.selector || 'element';
       // Simplify selector for display
-      const simplified = target.length > 15 ? target.slice(0, 12) + '...' : target;
+      const simplified =
+        target.length > 15 ? target.slice(0, 12) + '...' : target;
       label = `Click ${simplified}`;
       break;
     }
@@ -199,7 +200,9 @@ export const BrowserScriptCard = memo(function BrowserScriptCard({
       {/* Header */}
       <div className="flex items-center gap-2 mb-2">
         <Globe className="h-4 w-4 text-primary" />
-        <span className="text-sm font-medium text-primary">Browser Actions</span>
+        <span className="text-sm font-medium text-primary">
+          Browser Actions
+        </span>
         {isRunning && <SpinningIcon className="h-3.5 w-3.5 ml-auto" />}
       </div>
 
@@ -228,7 +231,11 @@ export const BrowserScriptCard = memo(function BrowserScriptCard({
             <button
               onClick={() => setExpanded(!expanded)}
               aria-expanded={expanded}
-              aria-label={expanded ? 'Show fewer actions' : `Show ${hiddenCount} more actions`}
+              aria-label={
+                expanded
+                  ? 'Show fewer actions'
+                  : `Show ${hiddenCount} more actions`
+              }
               className={cn(
                 'inline-flex items-center px-2 py-1 rounded-md text-xs font-medium',
                 'bg-primary/10 text-primary cursor-pointer',

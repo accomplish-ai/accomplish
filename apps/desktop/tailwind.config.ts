@@ -3,10 +3,7 @@ import tailwindcssAnimate from 'tailwindcss-animate';
 import tailwindcssTypography from '@tailwindcss/typography';
 
 const config: Config = {
-  content: [
-    './index.html',
-    './src/renderer/**/*.{js,ts,jsx,tsx}',
-  ],
+  content: ['./index.html', './src/renderer/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -50,7 +47,7 @@ const config: Config = {
         'background-card': 'hsl(var(--card))',
         'background-subtle': 'hsl(var(--muted))',
         'background-muted': 'hsl(var(--muted))',
-        'text': 'hsl(var(--foreground))',
+        text: 'hsl(var(--foreground))',
         'text-secondary': 'hsl(var(--foreground))',
         'text-muted': 'hsl(var(--muted-foreground))',
         'text-subtle': 'hsl(var(--muted-foreground))',
@@ -72,7 +69,8 @@ const config: Config = {
       },
       boxShadow: {
         sm: '0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10)',
-        DEFAULT: '0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10)',
+        DEFAULT:
+          '0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10)',
         md: '0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 2px 4px -1px hsl(0 0% 0% / 0.10)',
         lg: '0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10)',
         xl: '0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 8px 10px -1px hsl(0 0% 0% / 0.10)',
@@ -81,7 +79,8 @@ const config: Config = {
         input: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
         'input-focus': '0 0 0 2px hsl(var(--ring) / 0.2)',
         card: '0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10)',
-        'card-hover': '0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10)',
+        'card-hover':
+          '0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10)',
       },
       borderRadius: {
         sm: 'calc(var(--radius) - 4px)',
@@ -110,13 +109,13 @@ const config: Config = {
         ],
       },
       transitionTimingFunction: {
-        'accomplish': 'cubic-bezier(0.64, 0, 0.78, 0)',
+        accomplish: 'cubic-bezier(0.64, 0, 0.78, 0)',
       },
       animation: {
         'fade-in': 'fadeIn 0.2s ease-out',
         'slide-up': 'slideUp 0.3s ease-out',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'shimmer': 'shimmer 2s infinite',
+        shimmer: 'shimmer 2s infinite',
         'spin-ccw': 'spinCcw 1s linear infinite',
       },
       keyframes: {

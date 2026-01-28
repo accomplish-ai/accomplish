@@ -47,13 +47,15 @@ vi.mock('@main/store/taskHistory', () => ({
     mockTaskStore.set(task.id, stored);
   }),
 
-  updateTaskStatus: vi.fn((taskId: string, status: TaskStatus, completedAt?: string) => {
-    const task = mockTaskStore.get(taskId);
-    if (task) {
-      task.status = status;
-      if (completedAt) task.completedAt = completedAt;
+  updateTaskStatus: vi.fn(
+    (taskId: string, status: TaskStatus, completedAt?: string) => {
+      const task = mockTaskStore.get(taskId);
+      if (task) {
+        task.status = status;
+        if (completedAt) task.completedAt = completedAt;
+      }
     }
-  }),
+  ),
 
   addTaskMessage: vi.fn((taskId: string, message: TaskMessage) => {
     const task = mockTaskStore.get(taskId);
@@ -214,7 +216,8 @@ describe('taskHistory Integration', () => {
   describe('updateTaskStatus', () => {
     it('should update task status', async () => {
       // Arrange
-      const { saveTask, getTask, updateTaskStatus } = await import('@main/store/taskHistory');
+      const { saveTask, getTask, updateTaskStatus } =
+        await import('@main/store/taskHistory');
       saveTask(createMockTask('task-1'));
 
       // Act
@@ -227,7 +230,8 @@ describe('taskHistory Integration', () => {
 
     it('should update task status with completedAt', async () => {
       // Arrange
-      const { saveTask, getTask, updateTaskStatus } = await import('@main/store/taskHistory');
+      const { saveTask, getTask, updateTaskStatus } =
+        await import('@main/store/taskHistory');
       saveTask(createMockTask('task-1'));
       const completedAt = new Date().toISOString();
 
@@ -244,7 +248,8 @@ describe('taskHistory Integration', () => {
   describe('updateTaskSessionId', () => {
     it('should update session ID for existing task', async () => {
       // Arrange
-      const { saveTask, getTask, updateTaskSessionId } = await import('@main/store/taskHistory');
+      const { saveTask, getTask, updateTaskSessionId } =
+        await import('@main/store/taskHistory');
       saveTask(createMockTask('task-1'));
 
       // Act
@@ -259,7 +264,8 @@ describe('taskHistory Integration', () => {
   describe('updateTaskSummary', () => {
     it('should update task summary', async () => {
       // Arrange
-      const { saveTask, getTask, updateTaskSummary } = await import('@main/store/taskHistory');
+      const { saveTask, getTask, updateTaskSummary } =
+        await import('@main/store/taskHistory');
       saveTask(createMockTask('task-1'));
 
       // Act
@@ -274,7 +280,8 @@ describe('taskHistory Integration', () => {
   describe('addTaskMessage', () => {
     it('should add message to existing task', async () => {
       // Arrange
-      const { saveTask, getTask, addTaskMessage } = await import('@main/store/taskHistory');
+      const { saveTask, getTask, addTaskMessage } =
+        await import('@main/store/taskHistory');
       saveTask(createMockTask('task-1'));
       const message = createMockMessage('msg-1', 'assistant', 'New message');
 
@@ -289,12 +296,16 @@ describe('taskHistory Integration', () => {
 
     it('should add multiple messages in order', async () => {
       // Arrange
-      const { saveTask, getTask, addTaskMessage } = await import('@main/store/taskHistory');
+      const { saveTask, getTask, addTaskMessage } =
+        await import('@main/store/taskHistory');
       saveTask(createMockTask('task-1'));
 
       // Act
       addTaskMessage('task-1', createMockMessage('msg-1', 'user', 'First'));
-      addTaskMessage('task-1', createMockMessage('msg-2', 'assistant', 'Second'));
+      addTaskMessage(
+        'task-1',
+        createMockMessage('msg-2', 'assistant', 'Second')
+      );
       addTaskMessage('task-1', createMockMessage('msg-3', 'user', 'Third'));
       const result = getTask('task-1');
 
@@ -309,7 +320,8 @@ describe('taskHistory Integration', () => {
   describe('deleteTask', () => {
     it('should delete task by ID', async () => {
       // Arrange
-      const { saveTask, getTask, deleteTask } = await import('@main/store/taskHistory');
+      const { saveTask, getTask, deleteTask } =
+        await import('@main/store/taskHistory');
       saveTask(createMockTask('task-1'));
       expect(getTask('task-1')).toBeDefined();
 
@@ -333,7 +345,8 @@ describe('taskHistory Integration', () => {
   describe('clearHistory', () => {
     it('should remove all tasks', async () => {
       // Arrange
-      const { saveTask, getTasks, clearHistory } = await import('@main/store/taskHistory');
+      const { saveTask, getTasks, clearHistory } =
+        await import('@main/store/taskHistory');
       saveTask(createMockTask('task-1'));
       saveTask(createMockTask('task-2'));
       saveTask(createMockTask('task-3'));

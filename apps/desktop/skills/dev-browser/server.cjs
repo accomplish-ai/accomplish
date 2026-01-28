@@ -32,12 +32,19 @@ log('  PATH (first 500 chars):', (process.env.PATH || '').substring(0, 500));
 // Find the node executable
 let nodeExe = 'node';
 if (process.env.NODE_BIN_PATH) {
-  const bundledNode = path.join(process.env.NODE_BIN_PATH, isWindows ? 'node.exe' : 'node');
+  const bundledNode = path.join(
+    process.env.NODE_BIN_PATH,
+    isWindows ? 'node.exe' : 'node'
+  );
   if (fs.existsSync(bundledNode)) {
     nodeExe = bundledNode;
     log('  Using bundled node:', nodeExe);
   } else {
-    log('  Bundled node not found at:', bundledNode, '- falling back to system node');
+    log(
+      '  Bundled node not found at:',
+      bundledNode,
+      '- falling back to system node'
+    );
   }
 } else {
   log('  Using system node');
@@ -56,8 +63,19 @@ if (fs.existsSync(bundledServer)) {
 } else {
   // Find tsx - on Windows, ALWAYS prefer cli.mjs over tsx.cmd to avoid shell quoting issues
   // with paths containing spaces (e.g., "C:\\Program Files\\...")
-  const localTsxJs = path.join(skillDir, 'node_modules', 'tsx', 'dist', 'cli.mjs');
-  const localTsxBin = path.join(skillDir, 'node_modules', '.bin', isWindows ? 'tsx.cmd' : 'tsx');
+  const localTsxJs = path.join(
+    skillDir,
+    'node_modules',
+    'tsx',
+    'dist',
+    'cli.mjs'
+  );
+  const localTsxBin = path.join(
+    skillDir,
+    'node_modules',
+    '.bin',
+    isWindows ? 'tsx.cmd' : 'tsx'
+  );
 
   // On Windows: prefer cli.mjs (run via node.exe, no shell needed, no path quoting issues)
   // On Unix: prefer the tsx binary (simpler)
@@ -89,7 +107,10 @@ if (fs.existsSync(bundledServer)) {
 
     let npxCommand = isWindows ? 'npx.cmd' : 'npx';
     if (process.env.NODE_BIN_PATH) {
-      npxCommand = path.join(process.env.NODE_BIN_PATH, isWindows ? 'npx.cmd' : 'npx');
+      npxCommand = path.join(
+        process.env.NODE_BIN_PATH,
+        isWindows ? 'npx.cmd' : 'npx'
+      );
     }
     tsxCommand = npxCommand;
     tsxArgs = ['tsx', path.join('scripts', 'start-server.ts')];

@@ -25,11 +25,13 @@ export default function App() {
   const [status, setStatus] = useState<AppStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authSettingsOpen, setAuthSettingsOpen] = useState(false);
-  const [authSettingsProvider, setAuthSettingsProvider] = useState<ProviderId | undefined>(undefined);
+  const [authSettingsProvider, setAuthSettingsProvider] = useState<
+    ProviderId | undefined
+  >(undefined);
   const location = useLocation();
 
   // Get store state and actions
-const { openLauncher, authError, clearAuthError } = useTaskStore();
+  const { openLauncher, authError, clearAuthError } = useTaskStore();
 
   // Handle re-login from auth error toast
   const handleAuthReLogin = useCallback(() => {
@@ -40,13 +42,16 @@ const { openLauncher, authError, clearAuthError } = useTaskStore();
   }, [authError]);
 
   // Handle auth settings dialog close
-  const handleAuthSettingsClose = useCallback((open: boolean) => {
-    setAuthSettingsOpen(open);
-    if (!open) {
-      setAuthSettingsProvider(undefined);
-      clearAuthError();
-    }
-  }, [clearAuthError]);
+  const handleAuthSettingsClose = useCallback(
+    (open: boolean) => {
+      setAuthSettingsOpen(open);
+      if (!open) {
+        setAuthSettingsProvider(undefined);
+        clearAuthError();
+      }
+    },
+    [clearAuthError]
+  );
 
   // Cmd+K keyboard shortcut
   useEffect(() => {
@@ -65,7 +70,9 @@ const { openLauncher, authError, clearAuthError } = useTaskStore();
     const checkStatus = async () => {
       // Check if running in Electron
       if (!isRunningInElectron()) {
-        setErrorMessage('This application must be run inside the Openwork desktop app.');
+        setErrorMessage(
+          'This application must be run inside the Openwork desktop app.'
+        );
         setStatus('error');
         return;
       }
@@ -104,7 +111,9 @@ const { openLauncher, authError, clearAuthError } = useTaskStore();
               <AlertTriangle className="h-8 w-8 text-destructive" />
             </div>
           </div>
-          <h1 className="mb-2 text-xl font-semibold text-foreground">Unable to Start</h1>
+          <h1 className="mb-2 text-xl font-semibold text-foreground">
+            Unable to Start
+          </h1>
           <p className="text-muted-foreground">{errorMessage}</p>
         </div>
       </div>

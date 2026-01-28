@@ -16,12 +16,7 @@ import { migration as v003 } from './v003-lmstudio';
 import { migration as v004 } from './v004-openai-base-url';
 
 // Migrations array
-const migrations: Migration[] = [
-  v001,
-  v002,
-  v003,
-  v004,
-];
+const migrations: Migration[] = [v001, v002, v003, v004];
 
 /**
  * Register a migration. Called by migration files.
@@ -119,4 +114,8 @@ export function runMigrations(db: Database): void {
 }
 
 // Re-export errors for convenience
-export { FutureSchemaError, MigrationError, CorruptDatabaseError } from './errors';
+export {
+  FutureSchemaError,
+  MigrationError,
+  CorruptDatabaseError,
+} from './errors';

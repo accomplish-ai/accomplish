@@ -76,13 +76,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     throw new Error(`Unknown tool: ${request.params.name}`);
   }
 
-  const { status, summary, original_request_summary, remaining_work } =
-    request.params.arguments as {
-      status: 'success' | 'blocked' | 'partial';
-      summary: string;
-      original_request_summary: string;
-      remaining_work?: string;
-    };
+  const { status, summary, original_request_summary, remaining_work } = request
+    .params.arguments as {
+    status: 'success' | 'blocked' | 'partial';
+    summary: string;
+    original_request_summary: string;
+    remaining_work?: string;
+  };
 
   // Log for debugging
   console.error(`[complete-task] status=${status}`);

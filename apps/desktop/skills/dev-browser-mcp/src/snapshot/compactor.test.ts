@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { hashNavigationPattern, summarizeSession, isSameNavigation } from './compactor';
+import {
+  hashNavigationPattern,
+  summarizeSession,
+  isSameNavigation,
+} from './compactor';
 import type { SnapshotElement, SessionHistoryEntry } from './types';
 
 describe('compactor', () => {
@@ -32,7 +36,9 @@ describe('compactor', () => {
         { ref: 'e99', role: 'navigation', name: 'Main Nav' },
       ];
 
-      expect(hashNavigationPattern(elements1)).toBe(hashNavigationPattern(elements2));
+      expect(hashNavigationPattern(elements1)).toBe(
+        hashNavigationPattern(elements2)
+      );
     });
   });
 
@@ -43,26 +49,44 @@ describe('compactor', () => {
 
     it('should format single page', () => {
       const history: SessionHistoryEntry[] = [
-        { url: 'https://example.com', title: 'Home', timestamp: Date.now(), actionsTaken: [] },
+        {
+          url: 'https://example.com',
+          title: 'Home',
+          timestamp: Date.now(),
+          actionsTaken: [],
+        },
       ];
       expect(summarizeSession(history)).toBe('Currently on: Home');
     });
 
     it('should format multiple pages with arrows', () => {
       const history: SessionHistoryEntry[] = [
-        { url: 'https://example.com', title: 'Home', timestamp: Date.now(), actionsTaken: [] },
-        { url: 'https://example.com/about', title: 'About', timestamp: Date.now(), actionsTaken: [] },
+        {
+          url: 'https://example.com',
+          title: 'Home',
+          timestamp: Date.now(),
+          actionsTaken: [],
+        },
+        {
+          url: 'https://example.com/about',
+          title: 'About',
+          timestamp: Date.now(),
+          actionsTaken: [],
+        },
       ];
       expect(summarizeSession(history)).toBe('Navigation: Home → About');
     });
 
     it('should limit to 5 most recent', () => {
-      const history: SessionHistoryEntry[] = Array.from({ length: 10 }, (_, i) => ({
-        url: `https://example.com/page${i}`,
-        title: `Page ${i}`,
-        timestamp: Date.now(),
-        actionsTaken: [],
-      }));
+      const history: SessionHistoryEntry[] = Array.from(
+        { length: 10 },
+        (_, i) => ({
+          url: `https://example.com/page${i}`,
+          title: `Page ${i}`,
+          timestamp: Date.now(),
+          actionsTaken: [],
+        })
+      );
 
       const summary = summarizeSession(history);
       expect(summary).not.toContain('Page 0');

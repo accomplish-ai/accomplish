@@ -19,7 +19,11 @@ interface PendingPermission {
 }
 
 interface PendingQuestion {
-  resolveWithData: (data: { selectedOptions?: string[]; customText?: string; denied?: boolean }) => void;
+  resolveWithData: (data: {
+    selectedOptions?: string[];
+    customText?: string;
+    denied?: boolean;
+  }) => void;
   timeoutId: NodeJS.Timeout;
 }
 
@@ -48,7 +52,10 @@ export function initPermissionApi(
  * Resolve a pending permission request from the MCP server
  * Called when user responds via the UI
  */
-export function resolvePermission(requestId: string, allowed: boolean): boolean {
+export function resolvePermission(
+  requestId: string,
+  allowed: boolean
+): boolean {
   const pending = pendingPermissions.get(requestId);
   if (!pending) {
     return false;
@@ -66,7 +73,11 @@ export function resolvePermission(requestId: string, allowed: boolean): boolean 
  */
 export function resolveQuestion(
   requestId: string,
-  response: { selectedOptions?: string[]; customText?: string; denied?: boolean }
+  response: {
+    selectedOptions?: string[];
+    customText?: string;
+    denied?: boolean;
+  }
 ): boolean {
   const pending = pendingQuestions.get(requestId);
   if (!pending) {
@@ -140,17 +151,35 @@ export function startPermissionApiServer(): http.Server {
     }
 
     // Validate required fields
-    if (!data.operation || (!data.filePath && (!data.filePaths || data.filePaths.length === 0))) {
+    if (
+      !data.operation ||
+      (!data.filePath && (!data.filePaths || data.filePaths.length === 0))
+    ) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'operation and either filePath or filePaths are required' }));
+      res.end(
+        JSON.stringify({
+          error: 'operation and either filePath or filePaths are required',
+        })
+      );
       return;
     }
 
     // Validate operation type
-    const validOperations = ['create', 'delete', 'rename', 'move', 'modify', 'overwrite'];
+    const validOperations = [
+      'create',
+      'delete',
+      'rename',
+      'move',
+      'modify',
+      'overwrite',
+    ];
     if (!validOperations.includes(data.operation)) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: `Invalid operation. Must be one of: ${validOperations.join(', ')}` }));
+      res.end(
+        JSON.stringify({
+          error: `Invalid operation. Must be one of: ${validOperations.join(', ')}`,
+        })
+      );
       return;
     }
 
@@ -208,12 +237,16 @@ export function startPermissionApiServer(): http.Server {
   });
 
   server.listen(PERMISSION_API_PORT, '127.0.0.1', () => {
-    console.log(`[Permission API] Server listening on port ${PERMISSION_API_PORT}`);
+    console.log(
+      `[Permission API] Server listening on port ${PERMISSION_API_PORT}`
+    );
   });
 
   server.on('error', (error: NodeJS.ErrnoException) => {
     if (error.code === 'EADDRINUSE') {
-      console.warn(`[Permission API] Port ${PERMISSION_API_PORT} already in use, skipping server start`);
+      console.warn(
+        `[Permission API] Port ${PERMISSION_API_PORT} already in use, skipping server start`
+      );
     } else {
       console.error('[Permission API] Server error:', error);
     }
@@ -309,13 +342,20 @@ export function startQuestionApiServer(): http.Server {
     const QUESTION_TIMEOUT_MS = 5 * 60 * 1000;
 
     try {
-      const response = await new Promise<{ selectedOptions?: string[]; customText?: string; denied?: boolean }>((resolve, reject) => {
+      const response = await new Promise<{
+        selectedOptions?: string[];
+        customText?: string;
+        denied?: boolean;
+      }>((resolve, reject) => {
         const timeoutId = setTimeout(() => {
           pendingQuestions.delete(requestId);
           reject(new Error('Question request timed out'));
         }, QUESTION_TIMEOUT_MS);
 
-        pendingQuestions.set(requestId, { resolveWithData: resolve, timeoutId });
+        pendingQuestions.set(requestId, {
+          resolveWithData: resolve,
+          timeoutId,
+        });
       });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -332,7 +372,9 @@ export function startQuestionApiServer(): http.Server {
 
   server.on('error', (error: NodeJS.ErrnoException) => {
     if (error.code === 'EADDRINUSE') {
-      console.warn(`[Question API] Port ${QUESTION_API_PORT} already in use, skipping server start`);
+      console.warn(
+        `[Question API] Port ${QUESTION_API_PORT} already in use, skipping server start`
+      );
     } else {
       console.error('[Question API] Server error:', error);
     }

@@ -86,7 +86,9 @@ export async function captureForAI(
     return { success: true, path: screenshotPath };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.warn(`[Screenshot] Failed to capture "${testName}/${stateName}": ${errorMessage}`);
+    console.warn(
+      `[Screenshot] Failed to capture "${testName}/${stateName}": ${errorMessage}`
+    );
     return { success: false, path: '', error: errorMessage };
   }
 }

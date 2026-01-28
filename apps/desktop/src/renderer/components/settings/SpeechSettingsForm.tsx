@@ -8,7 +8,13 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -27,7 +33,10 @@ interface SpeechSettingsFormProps {
   onChange?: (config: { apiKey: string; enabled: boolean }) => void;
 }
 
-export function SpeechSettingsForm({ onSave, onChange }: SpeechSettingsFormProps) {
+export function SpeechSettingsForm({
+  onSave,
+  onChange,
+}: SpeechSettingsFormProps) {
   const accomplish = getAccomplish();
 
   const [apiKey, setApiKey] = useState('');
@@ -40,7 +49,10 @@ export function SpeechSettingsForm({ onSave, onChange }: SpeechSettingsFormProps
     });
   }, [accomplish]);
   const [isLoading, setIsLoading] = useState(false);
-  const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [saveResult, setSaveResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
 
   const handleSaveApiKey = async () => {
     if (!apiKey.trim()) {
@@ -53,14 +65,19 @@ export function SpeechSettingsForm({ onSave, onChange }: SpeechSettingsFormProps
 
     try {
       // Save the API key
-      await accomplish.addApiKey('elevenlabs', apiKey, 'ElevenLabs Speech-to-Text');
+      await accomplish.addApiKey(
+        'elevenlabs',
+        apiKey,
+        'ElevenLabs Speech-to-Text'
+      );
       setSaveResult({ success: true, message: 'API key saved successfully' });
       setIsConfigured(true);
       setApiKey(''); // Clear the input after saving
       onChange?.({ apiKey, enabled: true });
       onSave?.();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to save API key';
+      const message =
+        error instanceof Error ? error.message : 'Failed to save API key';
       setSaveResult({ success: false, message });
     } finally {
       setIsLoading(false);
@@ -115,7 +132,8 @@ export function SpeechSettingsForm({ onSave, onChange }: SpeechSettingsFormProps
           <Alert>
             <CheckCircle2 className="h-4 w-4 text-green-500" />
             <AlertDescription className="text-xs">
-              ElevenLabs API key is configured. Enter a new key below to replace it.
+              ElevenLabs API key is configured. Enter a new key below to replace
+              it.
             </AlertDescription>
           </Alert>
         )}
@@ -142,8 +160,18 @@ export function SpeechSettingsForm({ onSave, onChange }: SpeechSettingsFormProps
                 size="icon"
                 disabled={isLoading}
               >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               </Button>
             )}
@@ -173,16 +201,26 @@ export function SpeechSettingsForm({ onSave, onChange }: SpeechSettingsFormProps
             ) : (
               <AlertCircle className="h-4 w-4" />
             )}
-            <AlertDescription className="text-xs">{saveResult.message}</AlertDescription>
+            <AlertDescription className="text-xs">
+              {saveResult.message}
+            </AlertDescription>
           </Alert>
         )}
 
         {/* Usage Instructions */}
         <div className="rounded-lg bg-blue-50 dark:bg-blue-950 p-3 text-sm">
-          <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">How to use:</p>
+          <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+            How to use:
+          </p>
           <ul className="text-blue-800 dark:text-blue-200 space-y-1 text-xs">
-            <li>• <strong>Click the microphone button</strong> to start recording, click again to stop</li>
-            <li>• <strong>Hold Alt key</strong> to record voice input (push-to-talk mode)</li>
+            <li>
+              • <strong>Click the microphone button</strong> to start recording,
+              click again to stop
+            </li>
+            <li>
+              • <strong>Hold Alt key</strong> to record voice input
+              (push-to-talk mode)
+            </li>
           </ul>
         </div>
       </CardContent>

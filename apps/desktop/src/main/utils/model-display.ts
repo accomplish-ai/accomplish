@@ -14,7 +14,7 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
   'gpt-4o': 'GPT-4o',
   'gpt-4o-mini': 'GPT-4o Mini',
   'gpt-4-turbo': 'GPT-4 Turbo',
-  'o1': 'o1',
+  o1: 'o1',
   'o1-mini': 'o1 Mini',
   'o1-preview': 'o1 Preview',
   'o3-mini': 'o3 Mini',
@@ -91,15 +91,17 @@ export function getModelDisplayName(modelId: string): string {
   }
 
   // Fallback: capitalize and clean up the model ID
-  return cleanId
-    .split('-')
-    .map(part => {
-      // Keep version numbers as-is
-      if (/^\d/.test(part)) return part;
-      // Capitalize first letter
-      return part.charAt(0).toUpperCase() + part.slice(1);
-    })
-    .join(' ')
-    .replace(/\s+/g, ' ')
-    .trim() || 'AI';
+  return (
+    cleanId
+      .split('-')
+      .map((part) => {
+        // Keep version numbers as-is
+        if (/^\d/.test(part)) return part;
+        // Capitalize first letter
+        return part.charAt(0).toUpperCase() + part.slice(1);
+      })
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim() || 'AI'
+  );
 }

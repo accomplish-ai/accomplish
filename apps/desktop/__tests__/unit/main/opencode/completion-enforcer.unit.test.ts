@@ -6,7 +6,10 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { CompletionEnforcer, CompletionEnforcerCallbacks } from '@main/opencode/completion/completion-enforcer';
+import {
+  CompletionEnforcer,
+  CompletionEnforcerCallbacks,
+} from '@main/opencode/completion/completion-enforcer';
 
 function createMockCallbacks(): CompletionEnforcerCallbacks {
   return {
@@ -38,7 +41,7 @@ describe('CompletionEnforcer', () => {
 
       expect(callbacks.onDebug).toHaveBeenCalledWith(
         'skip_continuation',
-        expect.stringContaining('No tools used'),
+        expect.stringContaining('No tools used')
       );
     });
 
@@ -52,7 +55,11 @@ describe('CompletionEnforcer', () => {
 
     it('should return complete when complete_task was called regardless of tools', () => {
       // Simulate: agent called complete_task with success
-      enforcer.handleCompleteTaskDetection({ status: 'success', summary: 'Done', original_request_summary: 'hey' });
+      enforcer.handleCompleteTaskDetection({
+        status: 'success',
+        summary: 'Done',
+        original_request_summary: 'hey',
+      });
       const action = enforcer.handleStepFinish('stop');
 
       expect(action).toBe('complete');

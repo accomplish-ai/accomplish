@@ -77,7 +77,12 @@ class MockPty extends EventEmitter {
   // Helper to simulate exit
   simulateExit(exitCode: number, signal?: number) {
     const callbacks = this.listeners('exit');
-    callbacks.forEach((cb) => (cb as (params: { exitCode: number; signal?: number }) => void)({ exitCode, signal }));
+    callbacks.forEach((cb) =>
+      (cb as (params: { exitCode: number; signal?: number }) => void)({
+        exitCode,
+        signal,
+      })
+    );
   }
 
   // Override on to use onData/onExit interface
@@ -107,10 +112,12 @@ vi.mock('child_process', () => ({
 
 // Mock secure storage
 vi.mock('@main/store/secureStorage', () => ({
-  getAllApiKeys: vi.fn(() => Promise.resolve({
-    anthropic: 'test-anthropic-key',
-    openai: 'test-openai-key',
-  })),
+  getAllApiKeys: vi.fn(() =>
+    Promise.resolve({
+      anthropic: 'test-anthropic-key',
+      openai: 'test-openai-key',
+    })
+  ),
   getBedrockCredentials: vi.fn(() => null),
 }));
 
@@ -353,7 +360,9 @@ describe('OpenCode Adapter Module', () => {
         const adapter = new OpenCodeAdapter();
         const toolUseEvents: Array<[string, unknown]> = [];
         const toolResultEvents: string[] = [];
-        adapter.on('tool-use', (name, input) => toolUseEvents.push([name, input]));
+        adapter.on('tool-use', (name, input) =>
+          toolUseEvents.push([name, input])
+        );
         adapter.on('tool-result', (output) => toolResultEvents.push(output));
 
         await adapter.startTask({ prompt: 'Test' });
@@ -387,7 +396,8 @@ describe('OpenCode Adapter Module', () => {
       it('should emit complete event on step_finish with stop reason when complete_task was called', async () => {
         // Arrange
         const adapter = new OpenCodeAdapter();
-        const completeEvents: Array<{ status: string; sessionId?: string }> = [];
+        const completeEvents: Array<{ status: string; sessionId?: string }> =
+          [];
         adapter.on('complete', (result) => completeEvents.push(result));
 
         await adapter.startTask({ prompt: 'Test' });
@@ -398,7 +408,11 @@ describe('OpenCode Adapter Module', () => {
           type: 'tool_call',
           part: {
             tool: 'complete_task',
-            input: { status: 'blocked', summary: 'Done', original_request_summary: 'Test' },
+            input: {
+              status: 'blocked',
+              summary: 'Done',
+              original_request_summary: 'Test',
+            },
           },
         };
         mockPtyInstance.simulateData(JSON.stringify(toolCallMessage) + '\n');
@@ -425,7 +439,8 @@ describe('OpenCode Adapter Module', () => {
       it('should schedule continuation on step_finish when complete_task was not called', async () => {
         // Arrange
         const adapter = new OpenCodeAdapter();
-        const completeEvents: Array<{ status: string; sessionId?: string }> = [];
+        const completeEvents: Array<{ status: string; sessionId?: string }> =
+          [];
         const debugEvents: Array<{ type: string; message: string }> = [];
         adapter.on('complete', (result) => completeEvents.push(result));
         adapter.on('debug', (event) => debugEvents.push(event));
@@ -472,13 +487,14 @@ describe('OpenCode Adapter Module', () => {
         // Assert - should NOT emit complete yet (continuation scheduled)
         expect(completeEvents.length).toBe(0);
         // Should have emitted debug event about scheduled continuation
-        expect(debugEvents.some(e => e.type === 'continuation')).toBe(true);
+        expect(debugEvents.some((e) => e.type === 'continuation')).toBe(true);
       });
 
       it('should emit complete after max continuation attempts without complete_task', async () => {
         // Arrange
         const adapter = new OpenCodeAdapter();
-        const completeEvents: Array<{ status: string; sessionId?: string }> = [];
+        const completeEvents: Array<{ status: string; sessionId?: string }> =
+          [];
         adapter.on('complete', (result) => completeEvents.push(result));
 
         await adapter.startTask({ prompt: 'Test' });
@@ -513,7 +529,9 @@ describe('OpenCode Adapter Module', () => {
         // but for unit testing we simulate multiple step_finish messages
         // The CompletionEnforcer defaults to maxContinuationAttempts=20
         for (let i = 0; i < 21; i++) {
-          mockPtyInstance.simulateData(JSON.stringify(stepFinishMessage) + '\n');
+          mockPtyInstance.simulateData(
+            JSON.stringify(stepFinishMessage) + '\n'
+          );
         }
 
         // Assert - should emit complete after exhausting retries
@@ -604,7 +622,10 @@ describe('OpenCode Adapter Module', () => {
 
         // Assert
         expect(permissionRequests.length).toBe(1);
-        const req = permissionRequests[0] as { question: string; options: Array<{ label: string }> };
+        const req = permissionRequests[0] as {
+          question: string;
+          options: Array<{ label: string }>;
+        };
         expect(req.question).toBe('Do you want to proceed?');
         expect(req.options).toHaveLength(2);
       });
@@ -683,11 +704,23 @@ describe('OpenCode Adapter Module', () => {
 
         const message1: OpenCodeTextMessage = {
           type: 'text',
-          part: { id: '1', sessionID: 's', messageID: 'm', type: 'text', text: 'First' },
+          part: {
+            id: '1',
+            sessionID: 's',
+            messageID: 'm',
+            type: 'text',
+            text: 'First',
+          },
         };
         const message2: OpenCodeTextMessage = {
           type: 'text',
-          part: { id: '2', sessionID: 's', messageID: 'm', type: 'text', text: 'Second' },
+          part: {
+            id: '2',
+            sessionID: 's',
+            messageID: 'm',
+            type: 'text',
+            text: 'Second',
+          },
         };
 
         // Act
@@ -709,7 +742,13 @@ describe('OpenCode Adapter Module', () => {
 
         const fullMessage: OpenCodeTextMessage = {
           type: 'text',
-          part: { id: '1', sessionID: 's', messageID: 'm', type: 'text', text: 'Complete message' },
+          part: {
+            id: '1',
+            sessionID: 's',
+            messageID: 'm',
+            type: 'text',
+            text: 'Complete message',
+          },
         };
         const jsonStr = JSON.stringify(fullMessage);
         const splitPoint = Math.floor(jsonStr.length / 2);
@@ -734,7 +773,13 @@ describe('OpenCode Adapter Module', () => {
 
         const validMessage: OpenCodeTextMessage = {
           type: 'text',
-          part: { id: '1', sessionID: 's', messageID: 'm', type: 'text', text: 'Valid' },
+          part: {
+            id: '1',
+            sessionID: 's',
+            messageID: 'm',
+            type: 'text',
+            text: 'Valid',
+          },
         };
 
         // Act - send non-JSON followed by valid JSON
@@ -755,11 +800,18 @@ describe('OpenCode Adapter Module', () => {
 
         const validMessage: OpenCodeTextMessage = {
           type: 'text',
-          part: { id: '1', sessionID: 's', messageID: 'm', type: 'text', text: 'Valid' },
+          part: {
+            id: '1',
+            sessionID: 's',
+            messageID: 'm',
+            type: 'text',
+            text: 'Valid',
+          },
         };
 
         // Act - send JSON with ANSI codes
-        const ansiWrapped = '\x1B[32m' + JSON.stringify(validMessage) + '\x1B[0m\n';
+        const ansiWrapped =
+          '\x1B[32m' + JSON.stringify(validMessage) + '\x1B[0m\n';
         mockPtyInstance.simulateData(ansiWrapped);
 
         // Assert
@@ -831,7 +883,11 @@ describe('OpenCode Adapter Module', () => {
           type: 'tool_call',
           part: {
             tool: 'complete_task',
-            input: { status: 'blocked', summary: 'Done', original_request_summary: 'Test' },
+            input: {
+              status: 'blocked',
+              summary: 'Done',
+              original_request_summary: 'Test',
+            },
           },
         };
         mockPtyInstance.simulateData(JSON.stringify(toolCallMessage) + '\n');
@@ -876,7 +932,9 @@ describe('OpenCode Adapter Module', () => {
         // Don't start a task
 
         // Act & Assert
-        await expect(adapter.sendResponse('input')).rejects.toThrow('No active process');
+        await expect(adapter.sendResponse('input')).rejects.toThrow(
+          'No active process'
+        );
       });
     });
 
@@ -993,7 +1051,10 @@ describe('OpenCode Adapter Module', () => {
         const adapter = new OpenCodeAdapter();
 
         // Act
-        const task = await adapter.resumeSession('existing-session', 'Continue task');
+        const task = await adapter.resumeSession(
+          'existing-session',
+          'Continue task'
+        );
 
         // Assert
         expect(task.prompt).toBe('Continue task');
@@ -1013,11 +1074,18 @@ describe('OpenCode Adapter Module', () => {
 
         const validMessage: OpenCodeTextMessage = {
           type: 'text',
-          part: { id: '1', sessionID: 's', messageID: 'm', type: 'text', text: 'Resumed' },
+          part: {
+            id: '1',
+            sessionID: 's',
+            messageID: 'm',
+            type: 'text',
+            text: 'Resumed',
+          },
         };
 
         // Act - send JSON with ANSI codes (simulating PTY output in resumed session)
-        const ansiWrapped = '\x1B[32m' + JSON.stringify(validMessage) + '\x1B[0m\n';
+        const ansiWrapped =
+          '\x1B[32m' + JSON.stringify(validMessage) + '\x1B[0m\n';
         mockPtyInstance.simulateData(ansiWrapped);
 
         // Assert - message should be parsed despite ANSI codes
@@ -1035,14 +1103,20 @@ describe('OpenCode Adapter Module', () => {
 
         const validMessage: OpenCodeTextMessage = {
           type: 'text',
-          part: { id: '1', sessionID: 's', messageID: 'm', type: 'text', text: 'Test' },
+          part: {
+            id: '1',
+            sessionID: 's',
+            messageID: 'm',
+            type: 'text',
+            text: 'Test',
+          },
         };
 
         // Act
         mockPtyInstance.simulateData(JSON.stringify(validMessage) + '\n');
 
         // Assert - should have stdout debug events
-        expect(debugEvents.some(e => e.type === 'stdout')).toBe(true);
+        expect(debugEvents.some((e) => e.type === 'stdout')).toBe(true);
       });
 
       it('should handle Windows PowerShell ANSI sequences in resumed session', async () => {
@@ -1055,11 +1129,20 @@ describe('OpenCode Adapter Module', () => {
 
         const validMessage: OpenCodeTextMessage = {
           type: 'text',
-          part: { id: '1', sessionID: 's', messageID: 'm', type: 'text', text: 'Windows' },
+          part: {
+            id: '1',
+            sessionID: 's',
+            messageID: 'm',
+            type: 'text',
+            text: 'Windows',
+          },
         };
 
         // Act - send JSON with DEC mode sequences (cursor visibility) and OSC sequences (window titles)
-        const windowsAnsi = '\x1B[?25l\x1B]0;PowerShell\x07' + JSON.stringify(validMessage) + '\x1B[?25h\n';
+        const windowsAnsi =
+          '\x1B[?25l\x1B]0;PowerShell\x07' +
+          JSON.stringify(validMessage) +
+          '\x1B[?25h\n';
         mockPtyInstance.simulateData(windowsAnsi);
 
         // Assert - message should be parsed

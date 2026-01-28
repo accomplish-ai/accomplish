@@ -16,7 +16,8 @@ import logoImage from '/assets/logo-1.png';
 export default function Sidebar() {
   const navigate = useNavigate();
   const [showSettings, setShowSettings] = useState(false);
-  const { tasks, loadTasks, updateTaskStatus, addTaskUpdate, openLauncher } = useTaskStore();
+  const { tasks, loadTasks, updateTaskStatus, addTaskUpdate, openLauncher } =
+    useTaskStore();
   const accomplish = getAccomplish();
 
   useEffect(() => {

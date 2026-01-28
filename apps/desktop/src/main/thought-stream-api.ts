@@ -117,12 +117,16 @@ export function startThoughtStreamServer(): http.Server {
   });
 
   server.listen(THOUGHT_STREAM_PORT, '127.0.0.1', () => {
-    console.log(`[Thought Stream API] Server listening on port ${THOUGHT_STREAM_PORT}`);
+    console.log(
+      `[Thought Stream API] Server listening on port ${THOUGHT_STREAM_PORT}`
+    );
   });
 
   server.on('error', (error: NodeJS.ErrnoException) => {
     if (error.code === 'EADDRINUSE') {
-      console.warn(`[Thought Stream API] Port ${THOUGHT_STREAM_PORT} already in use, skipping server start`);
+      console.warn(
+        `[Thought Stream API] Port ${THOUGHT_STREAM_PORT} already in use, skipping server start`
+      );
     } else {
       console.error('[Thought Stream API] Server error:', error);
     }
@@ -142,7 +146,10 @@ function handleThought(event: ThoughtEvent, res: http.ServerResponse): void {
   res.end();
 }
 
-function handleCheckpoint(event: CheckpointEvent, res: http.ServerResponse): void {
+function handleCheckpoint(
+  event: CheckpointEvent,
+  res: http.ServerResponse
+): void {
   // Forward to renderer via IPC
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('task:checkpoint', event);

@@ -71,7 +71,13 @@ interface TaskState {
   // Actions
   startTask: (config: TaskConfig) => Promise<Task | null>;
   setSetupProgress: (taskId: string | null, message: string | null) => void;
-  setStartupStage: (taskId: string | null, stage: string | null, message?: string, modelName?: string, isFirstTask?: boolean) => void;
+  setStartupStage: (
+    taskId: string | null,
+    stage: string | null,
+    message?: string,
+    modelName?: string,
+    isFirstTask?: boolean
+  ) => void;
   clearStartupStage: (taskId: string) => void;
   sendFollowUp: (message: string) => Promise<void>;
   cancelTask: () => Promise<void>;
@@ -126,10 +132,20 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         step = 1;
       }
     }
-    set({ setupProgress: message, setupProgressTaskId: taskId, setupDownloadStep: step });
+    set({
+      setupProgress: message,
+      setupProgressTaskId: taskId,
+      setupDownloadStep: step,
+    });
   },
 
-  setStartupStage: (taskId: string | null, stage: string | null, message?: string, modelName?: string, isFirstTask?: boolean) => {
+  setStartupStage: (
+    taskId: string | null,
+    stage: string | null,
+    message?: string,
+    modelName?: string,
+    isFirstTask?: boolean
+  ) => {
     if (!taskId || !stage) {
       set({ startupStage: null, startupStageTaskId: null });
       return;
@@ -137,9 +153,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     const currentState = get();
     // Preserve startTime if this is the same task, otherwise start fresh
-    const startTime = currentState.startupStageTaskId === taskId && currentState.startupStage
-      ? currentState.startupStage.startTime
-      : Date.now();
+    const startTime =
+      currentState.startupStageTaskId === taskId && currentState.startupStage
+        ? currentState.startupStage.startTime
+        : Date.now();
 
     set({
       startupStage: {
@@ -181,7 +198,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       });
       void accomplish.logEvent({
         level: 'info',
-        message: task.status === 'queued' ? 'UI task queued' : 'UI task started',
+        message:
+          task.status === 'queued' ? 'UI task queued' : 'UI task started',
         context: { taskId: task.id, status: task.status },
       });
       return task;
@@ -217,7 +235,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     if (!sessionId && currentTask.status === 'interrupted') {
       void accomplish.logEvent({
         level: 'info',
-        message: 'UI follow-up: starting fresh task (no session from interrupted task)',
+        message:
+          'UI follow-up: starting fresh task (no session from interrupted task)',
         context: { taskId: currentTask.id },
       });
       await startTask({ prompt: message });
@@ -265,7 +284,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         message: 'UI follow-up sent',
         context: { taskId: currentTask.id, message },
       });
-      const task = await accomplish.resumeSession(sessionId, message, currentTask.id);
+      const task = await accomplish.resumeSession(
+        sessionId,
+        message,
+        currentTask.id
+      );
 
       // Update status based on response (could be 'running' or 'queued')
       set((state) => ({
@@ -291,7 +314,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       void accomplish.logEvent({
         level: 'error',
         message: 'UI follow-up failed',
-        context: { taskId: currentTask.id, error: err instanceof Error ? err.message : String(err) },
+        context: {
+          taskId: currentTask.id,
+          error: err instanceof Error ? err.message : String(err),
+        },
       });
     }
   },
@@ -311,7 +337,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           ? { ...state.currentTask, status: 'cancelled' }
           : null,
         tasks: state.tasks.map((t) =>
-          t.id === currentTask.id ? { ...t, status: 'cancelled' as TaskStatus } : t
+          t.id === currentTask.id
+            ? { ...t, status: 'cancelled' as TaskStatus }
+            : t
         ),
       }));
     }
@@ -363,7 +391,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       let newStatus: TaskStatus | null = null;
 
       // Handle message events - only if viewing this task
-      if (event.type === 'message' && event.message && isCurrentTask && state.currentTask) {
+      if (
+        event.type === 'message' &&
+        event.message &&
+        isCurrentTask &&
+        state.currentTask
+      ) {
         updatedCurrentTask = {
           ...state.currentTask,
           messages: [...state.currentTask.messages, event.message],
@@ -388,7 +421,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             status: newStatus,
             result: event.result,
             // Don't set completedAt for interrupted tasks - they can continue
-            completedAt: newStatus === 'interrupted' ? undefined : new Date().toISOString(),
+            completedAt:
+              newStatus === 'interrupted'
+                ? undefined
+                : new Date().toISOString(),
             sessionId: event.result.sessionId || state.currentTask.sessionId,
           };
         }
@@ -421,8 +457,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       // 1. They belong to this task
       // 2. Task is fully completed (not interrupted - user can still continue)
       let shouldClearTodos = false;
-      if ((event.type === 'complete' || event.type === 'error') && state.todosTaskId === event.taskId) {
-        const isInterrupted = event.type === 'complete' && event.result?.status === 'interrupted';
+      if (
+        (event.type === 'complete' || event.type === 'error') &&
+        state.todosTaskId === event.taskId
+      ) {
+        const isInterrupted =
+          event.type === 'complete' && event.result?.status === 'interrupted';
         shouldClearTodos = !isInterrupted;
       }
 
@@ -471,7 +511,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       // Update currentTask if it matches
       const updatedCurrentTask =
         state.currentTask?.id === taskId
-          ? { ...state.currentTask, status, updatedAt: new Date().toISOString() }
+          ? {
+              ...state.currentTask,
+              status,
+              updatedAt: new Date().toISOString(),
+            }
           : state.currentTask;
 
       return {
@@ -567,7 +611,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 }));
 
 // Startup stages that should be tracked (before first tool runs)
-const STARTUP_STAGES = ['starting', 'browser', 'environment', 'loading', 'connecting', 'waiting'];
+const STARTUP_STAGES = [
+  'starting',
+  'browser',
+  'environment',
+  'loading',
+  'connecting',
+  'waiting',
+];
 
 // Global subscription to setup progress events (browser download, startup stages, etc.)
 // This runs when the module is loaded to catch early progress events
@@ -578,7 +629,13 @@ if (typeof window !== 'undefined' && window.accomplish) {
 
     // Handle startup stages
     if (STARTUP_STAGES.includes(event.stage)) {
-      state.setStartupStage(event.taskId, event.stage, event.message, event.modelName, event.isFirstTask);
+      state.setStartupStage(
+        event.taskId,
+        event.stage,
+        event.message,
+        event.modelName,
+        event.isFirstTask
+      );
       return;
     }
 
@@ -623,17 +680,23 @@ if (typeof window !== 'undefined' && window.accomplish) {
   });
 
   // Subscribe to task summary updates
-  window.accomplish.onTaskSummary?.(( data: { taskId: string; summary: string }) => {
-    useTaskStore.getState().setTaskSummary(data.taskId, data.summary);
-  });
+  window.accomplish.onTaskSummary?.(
+    (data: { taskId: string; summary: string }) => {
+      useTaskStore.getState().setTaskSummary(data.taskId, data.summary);
+    }
+  );
 
   // Subscribe to todo updates
-  window.accomplish.onTodoUpdate?.((data: { taskId: string; todos: TodoItem[] }) => {
-    useTaskStore.getState().setTodos(data.taskId, data.todos);
-  });
+  window.accomplish.onTodoUpdate?.(
+    (data: { taskId: string; todos: TodoItem[] }) => {
+      useTaskStore.getState().setTodos(data.taskId, data.todos);
+    }
+  );
 
   // Subscribe to auth error events (e.g., OAuth token expired)
-  window.accomplish.onAuthError?.((data: { providerId: string; message: string }) => {
-    useTaskStore.getState().setAuthError(data);
-  });
+  window.accomplish.onAuthError?.(
+    (data: { providerId: string; message: string }) => {
+      useTaskStore.getState().setAuthError(data);
+    }
+  );
 }

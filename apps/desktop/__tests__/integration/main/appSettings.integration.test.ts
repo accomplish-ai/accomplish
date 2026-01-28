@@ -68,7 +68,9 @@ vi.mock('@main/store/db', () => ({
               mockAppSettingsData.litellm_config = args[0] as string | null;
             }
             if (sql.includes('azure_foundry_config = ?')) {
-              mockAppSettingsData.azure_foundry_config = args[0] as string | null;
+              mockAppSettingsData.azure_foundry_config = args[0] as
+                | string
+                | null;
             }
             if (sql.includes('lmstudio_config = ?')) {
               mockAppSettingsData.lmstudio_config = args[0] as string | null;
@@ -77,7 +79,10 @@ vi.mock('@main/store/db', () => ({
               mockAppSettingsData.openai_base_url = args[0] as string | null;
             }
             // Handle clearAppSettings - reset all fields
-            if (sql.includes('debug_mode = 0') && sql.includes('onboarding_complete = 0')) {
+            if (
+              sql.includes('debug_mode = 0') &&
+              sql.includes('onboarding_complete = 0')
+            ) {
               resetMockData();
             }
           }),
@@ -115,7 +120,8 @@ describe('appSettings Integration', () => {
 
     it('should persist debugMode after setting to true', async () => {
       // Arrange
-      const { getDebugMode, setDebugMode } = await import('@main/store/appSettings');
+      const { getDebugMode, setDebugMode } =
+        await import('@main/store/appSettings');
 
       // Act
       setDebugMode(true);
@@ -127,7 +133,8 @@ describe('appSettings Integration', () => {
 
     it('should persist debugMode after setting to false', async () => {
       // Arrange
-      const { getDebugMode, setDebugMode } = await import('@main/store/appSettings');
+      const { getDebugMode, setDebugMode } =
+        await import('@main/store/appSettings');
 
       // Act - set to true first, then false
       setDebugMode(true);
@@ -140,7 +147,8 @@ describe('appSettings Integration', () => {
 
     it('should round-trip debugMode value correctly', async () => {
       // Arrange
-      const { getDebugMode, setDebugMode } = await import('@main/store/appSettings');
+      const { getDebugMode, setDebugMode } =
+        await import('@main/store/appSettings');
 
       // Act & Assert - multiple round trips
       setDebugMode(true);
@@ -168,7 +176,8 @@ describe('appSettings Integration', () => {
 
     it('should persist onboardingComplete after setting to true', async () => {
       // Arrange
-      const { getOnboardingComplete, setOnboardingComplete } = await import('@main/store/appSettings');
+      const { getOnboardingComplete, setOnboardingComplete } =
+        await import('@main/store/appSettings');
 
       // Act
       setOnboardingComplete(true);
@@ -180,7 +189,8 @@ describe('appSettings Integration', () => {
 
     it('should persist onboardingComplete after setting to false', async () => {
       // Arrange
-      const { getOnboardingComplete, setOnboardingComplete } = await import('@main/store/appSettings');
+      const { getOnboardingComplete, setOnboardingComplete } =
+        await import('@main/store/appSettings');
 
       // Act
       setOnboardingComplete(true);
@@ -206,7 +216,8 @@ describe('appSettings Integration', () => {
 
     it('should persist selectedModel after setting', async () => {
       // Arrange
-      const { getSelectedModel, setSelectedModel } = await import('@main/store/appSettings');
+      const { getSelectedModel, setSelectedModel } =
+        await import('@main/store/appSettings');
       const model = { provider: 'anthropic' as const, model: 'claude-3-opus' };
 
       // Act
@@ -219,7 +230,8 @@ describe('appSettings Integration', () => {
 
     it('should handle complex model objects', async () => {
       // Arrange
-      const { getSelectedModel, setSelectedModel } = await import('@main/store/appSettings');
+      const { getSelectedModel, setSelectedModel } =
+        await import('@main/store/appSettings');
       const model = {
         provider: 'ollama' as const,
         model: 'llama2',
@@ -249,7 +261,8 @@ describe('appSettings Integration', () => {
 
     it('should persist ollamaConfig after setting', async () => {
       // Arrange
-      const { getOllamaConfig, setOllamaConfig } = await import('@main/store/appSettings');
+      const { getOllamaConfig, setOllamaConfig } =
+        await import('@main/store/appSettings');
       const config = { baseUrl: 'http://localhost:11434', enabled: true };
 
       // Act
@@ -262,7 +275,8 @@ describe('appSettings Integration', () => {
 
     it('should allow setting ollamaConfig to null', async () => {
       // Arrange
-      const { getOllamaConfig, setOllamaConfig } = await import('@main/store/appSettings');
+      const { getOllamaConfig, setOllamaConfig } =
+        await import('@main/store/appSettings');
       const config = { baseUrl: 'http://localhost:11434', enabled: true };
 
       // Act
@@ -289,7 +303,8 @@ describe('appSettings Integration', () => {
 
     it('should persist litellmConfig after setting', async () => {
       // Arrange
-      const { getLiteLLMConfig, setLiteLLMConfig } = await import('@main/store/appSettings');
+      const { getLiteLLMConfig, setLiteLLMConfig } =
+        await import('@main/store/appSettings');
       const config = { baseUrl: 'http://localhost:4000', enabled: true };
 
       // Act
@@ -302,7 +317,8 @@ describe('appSettings Integration', () => {
 
     it('should allow setting litellmConfig to null', async () => {
       // Arrange
-      const { getLiteLLMConfig, setLiteLLMConfig } = await import('@main/store/appSettings');
+      const { getLiteLLMConfig, setLiteLLMConfig } =
+        await import('@main/store/appSettings');
       const config = { baseUrl: 'http://localhost:4000', enabled: true };
 
       // Act
@@ -354,7 +370,10 @@ describe('appSettings Integration', () => {
       // Assert
       expect(result.debugMode).toBe(true);
       expect(result.onboardingComplete).toBe(true);
-      expect(result.selectedModel).toEqual({ provider: 'google', model: 'gemini-pro' });
+      expect(result.selectedModel).toEqual({
+        provider: 'google',
+        model: 'gemini-pro',
+      });
     });
   });
 
@@ -406,7 +425,8 @@ describe('appSettings Integration', () => {
 
     it('should store and retrieve azure foundry config', async () => {
       // Arrange
-      const { getAzureFoundryConfig, setAzureFoundryConfig } = await import('@main/store/appSettings');
+      const { getAzureFoundryConfig, setAzureFoundryConfig } =
+        await import('@main/store/appSettings');
 
       const config = {
         baseUrl: 'https://myendpoint.openai.azure.com',
@@ -425,7 +445,8 @@ describe('appSettings Integration', () => {
 
     it('should handle entra-id auth type', async () => {
       // Arrange
-      const { getAzureFoundryConfig, setAzureFoundryConfig } = await import('@main/store/appSettings');
+      const { getAzureFoundryConfig, setAzureFoundryConfig } =
+        await import('@main/store/appSettings');
 
       const config = {
         baseUrl: 'https://test.openai.azure.com',
@@ -445,7 +466,8 @@ describe('appSettings Integration', () => {
 
     it('should allow setting azure foundry config to null', async () => {
       // Arrange
-      const { getAzureFoundryConfig, setAzureFoundryConfig } = await import('@main/store/appSettings');
+      const { getAzureFoundryConfig, setAzureFoundryConfig } =
+        await import('@main/store/appSettings');
 
       const config = {
         baseUrl: 'https://test.openai.azure.com',
@@ -479,7 +501,8 @@ describe('appSettings Integration', () => {
 
     it('should clear azure foundry config with clearAppSettings', async () => {
       // Arrange
-      const { setAzureFoundryConfig, clearAppSettings, getAzureFoundryConfig } = await import('@main/store/appSettings');
+      const { setAzureFoundryConfig, clearAppSettings, getAzureFoundryConfig } =
+        await import('@main/store/appSettings');
 
       setAzureFoundryConfig({
         baseUrl: 'https://test.openai.azure.com',

@@ -37,7 +37,9 @@ function createMockTask(
 // Mock accomplish API
 const mockAccomplish = {
   hasAnyApiKey: mockHasAnyApiKey,
-  getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
+  getSelectedModel: vi
+    .fn()
+    .mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
   getOllamaConfig: vi.fn().mockResolvedValue(null),
   onTaskUpdate: mockOnTaskUpdate.mockReturnValue(() => {}),
   onPermissionRequest: mockOnPermissionRequest.mockReturnValue(() => {}),
@@ -87,50 +89,89 @@ vi.mock('@/stores/taskStore', () => ({
 // Mock framer-motion for simpler testing
 vi.mock('framer-motion', () => ({
   motion: {
-    h1: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-      <h1 {...props}>{children}</h1>
-    ),
-    div: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-      <div {...props}>{children}</div>
-    ),
-    button: ({ children, onClick, ...props }: { children: React.ReactNode; onClick?: () => void; [key: string]: unknown }) => (
-      <button onClick={onClick} {...props}>{children}</button>
+    h1: ({
+      children,
+      ...props
+    }: {
+      children: React.ReactNode;
+      [key: string]: unknown;
+    }) => <h1 {...props}>{children}</h1>,
+    div: ({
+      children,
+      ...props
+    }: {
+      children: React.ReactNode;
+      [key: string]: unknown;
+    }) => <div {...props}>{children}</div>,
+    button: ({
+      children,
+      onClick,
+      ...props
+    }: {
+      children: React.ReactNode;
+      onClick?: () => void;
+      [key: string]: unknown;
+    }) => (
+      <button onClick={onClick} {...props}>
+        {children}
+      </button>
     ),
   },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
 }));
 
 // Mock SettingsDialog
 vi.mock('@/components/layout/SettingsDialog', () => ({
-  default: ({ open, onOpenChange, onApiKeySaved }: {
+  default: ({
+    open,
+    onOpenChange,
+    onApiKeySaved,
+  }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onApiKeySaved?: () => void;
-  }) => (
+  }) =>
     open ? (
       <div data-testid="settings-dialog" role="dialog">
         <button onClick={() => onOpenChange(false)}>Close</button>
-        {onApiKeySaved && (
-          <button onClick={onApiKeySaved}>Save API Key</button>
-        )}
+        {onApiKeySaved && <button onClick={onApiKeySaved}>Save API Key</button>}
       </div>
-    ) : null
-  ),
+    ) : null,
 }));
 
 // Import after mocks
 import HomePage from '@/pages/Home';
 
 // Mock images
-vi.mock('/assets/usecases/calendar-prep-notes.png', () => ({ default: 'calendar.png' }));
-vi.mock('/assets/usecases/inbox-promo-cleanup.png', () => ({ default: 'inbox.png' }));
-vi.mock('/assets/usecases/competitor-pricing-deck.png', () => ({ default: 'competitor.png' }));
-vi.mock('/assets/usecases/notion-api-audit.png', () => ({ default: 'notion.png' }));
-vi.mock('/assets/usecases/staging-vs-prod-visual.png', () => ({ default: 'staging.png' }));
-vi.mock('/assets/usecases/prod-broken-links.png', () => ({ default: 'broken-links.png' }));
-vi.mock('/assets/usecases/stock-portfolio-alerts.png', () => ({ default: 'stock.png' }));
-vi.mock('/assets/usecases/job-application-automation.png', () => ({ default: 'job.png' }));
-vi.mock('/assets/usecases/event-calendar-builder.png', () => ({ default: 'event.png' }));
+vi.mock('/assets/usecases/calendar-prep-notes.png', () => ({
+  default: 'calendar.png',
+}));
+vi.mock('/assets/usecases/inbox-promo-cleanup.png', () => ({
+  default: 'inbox.png',
+}));
+vi.mock('/assets/usecases/competitor-pricing-deck.png', () => ({
+  default: 'competitor.png',
+}));
+vi.mock('/assets/usecases/notion-api-audit.png', () => ({
+  default: 'notion.png',
+}));
+vi.mock('/assets/usecases/staging-vs-prod-visual.png', () => ({
+  default: 'staging.png',
+}));
+vi.mock('/assets/usecases/prod-broken-links.png', () => ({
+  default: 'broken-links.png',
+}));
+vi.mock('/assets/usecases/stock-portfolio-alerts.png', () => ({
+  default: 'stock.png',
+}));
+vi.mock('/assets/usecases/job-application-automation.png', () => ({
+  default: 'job.png',
+}));
+vi.mock('/assets/usecases/event-calendar-builder.png', () => ({
+  default: 'event.png',
+}));
 
 describe('Home Page Integration', () => {
   beforeEach(() => {
@@ -169,7 +210,9 @@ describe('Home Page Integration', () => {
       );
 
       // Assert
-      expect(screen.getByRole('heading', { name: /what will you accomplish today/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /what will you accomplish today/i })
+      ).toBeInTheDocument();
     });
 
     it('should render the task input bar', () => {
@@ -181,7 +224,9 @@ describe('Home Page Integration', () => {
       );
 
       // Assert
-      const textarea = screen.getByPlaceholderText(/describe a task and let ai handle the rest/i);
+      const textarea = screen.getByPlaceholderText(
+        /describe a task and let ai handle the rest/i
+      );
       expect(textarea).toBeInTheDocument();
     });
 
@@ -293,7 +338,9 @@ describe('Home Page Integration', () => {
 
       // Act
       const textarea = screen.getByPlaceholderText(/describe a task/i);
-      fireEvent.change(textarea, { target: { value: 'Submit without provider' } });
+      fireEvent.change(textarea, {
+        target: { value: 'Submit without provider' },
+      });
 
       const submitButton = screen.getByTitle('Submit');
       fireEvent.click(submitButton);
@@ -476,13 +523,17 @@ describe('Home Page Integration', () => {
       await waitFor(() => {
         expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
       });
-      const exampleButton = screen.getByText('Calendar Prep Notes').closest('button');
+      const exampleButton = screen
+        .getByText('Calendar Prep Notes')
+        .closest('button');
       expect(exampleButton).toBeInTheDocument();
       fireEvent.click(exampleButton!);
 
       // Assert - The textarea should now contain text related to the example
       await waitFor(() => {
-        const textarea = screen.getByPlaceholderText(/describe a task/i) as HTMLTextAreaElement;
+        const textarea = screen.getByPlaceholderText(
+          /describe a task/i
+        ) as HTMLTextAreaElement;
         expect(textarea.value.length).toBeGreaterThan(0);
         expect(textarea.value.toLowerCase()).toContain('calendar');
       });
@@ -502,12 +553,16 @@ describe('Home Page Integration', () => {
       });
 
       // Act - Toggle examples off
-      const toggleButton = screen.getByText(/example prompts/i).closest('button');
+      const toggleButton = screen
+        .getByText(/example prompts/i)
+        .closest('button');
       fireEvent.click(toggleButton!);
 
       // Assert - Examples should be hidden now
       await waitFor(() => {
-        expect(screen.queryByText('Calendar Prep Notes')).not.toBeInTheDocument();
+        expect(
+          screen.queryByText('Calendar Prep Notes')
+        ).not.toBeInTheDocument();
       });
 
       // Act - Toggle examples on again
@@ -541,7 +596,7 @@ describe('Home Page Integration', () => {
       ];
 
       await waitFor(() => {
-        expectedExamples.forEach(example => {
+        expectedExamples.forEach((example) => {
           expect(screen.getByText(example)).toBeInTheDocument();
         });
       });

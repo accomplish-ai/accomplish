@@ -5,6 +5,7 @@ This tool signals task completion. The agent MUST call this tool to finish any t
 ## Usage
 
 Call `complete_task` with:
+
 - `status`: "success", "blocked", or "partial"
 - `original_request_summary`: Restate what was asked (forces review)
 - `summary`: What you accomplished

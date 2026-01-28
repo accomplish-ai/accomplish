@@ -6,7 +6,11 @@
  * isolated PTY process, state, and event handling.
  */
 
-import { OpenCodeAdapter, isOpenCodeCliInstalled, OpenCodeCliNotFoundError } from './adapter';
+import {
+  OpenCodeAdapter,
+  isOpenCodeCliInstalled,
+  OpenCodeCliNotFoundError,
+} from './adapter';
 import { getSkillsPath } from './config-generator';
 import { getNpxPath, getBundledNodePaths } from '../utils/bundled-node';
 import { spawn } from 'child_process';
@@ -33,14 +37,28 @@ function isSystemChromeInstalled(): boolean {
   } else if (process.platform === 'win32') {
     // Check common Windows Chrome locations
     const programFiles = process.env['PROGRAMFILES'] || 'C:\\Program Files';
-    const programFilesX86 = process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)';
+    const programFilesX86 =
+      process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)';
     return (
-      fs.existsSync(path.join(programFiles, 'Google', 'Chrome', 'Application', 'chrome.exe')) ||
-      fs.existsSync(path.join(programFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'))
+      fs.existsSync(
+        path.join(programFiles, 'Google', 'Chrome', 'Application', 'chrome.exe')
+      ) ||
+      fs.existsSync(
+        path.join(
+          programFilesX86,
+          'Google',
+          'Chrome',
+          'Application',
+          'chrome.exe'
+        )
+      )
     );
   }
   // Linux - check common paths
-  return fs.existsSync('/usr/bin/google-chrome') || fs.existsSync('/usr/bin/chromium-browser');
+  return (
+    fs.existsSync('/usr/bin/google-chrome') ||
+    fs.existsSync('/usr/bin/chromium-browser')
+  );
 }
 
 /**
@@ -88,7 +106,9 @@ async function installPlaywrightChromium(
     const npxPath = getNpxPath();
     const bundledPaths = getBundledNodePaths();
 
-    console.log(`[TaskManager] Installing Playwright Chromium using bundled npx: ${npxPath}`);
+    console.log(
+      `[TaskManager] Installing Playwright Chromium using bundled npx: ${npxPath}`
+    );
     onProgress?.('Downloading browser...');
 
     // Build environment with bundled node in PATH
@@ -117,7 +137,10 @@ async function installPlaywrightChromium(
       if (line) {
         console.log(`[Playwright Install] ${line}`);
         // Send progress info: percentage updates and "Downloading X" messages
-        if (line.includes('%') || line.toLowerCase().startsWith('downloading')) {
+        if (
+          line.includes('%') ||
+          line.toLowerCase().startsWith('downloading')
+        ) {
           onProgress?.(line);
         }
       }
@@ -168,18 +191,25 @@ async function isDevBrowserServerReady(): Promise<boolean> {
 /**
  * Wait for the dev-browser server to be ready with polling
  */
-async function waitForDevBrowserServer(maxWaitMs = 15000, pollIntervalMs = 500): Promise<boolean> {
+async function waitForDevBrowserServer(
+  maxWaitMs = 15000,
+  pollIntervalMs = 500
+): Promise<boolean> {
   const startTime = Date.now();
   let attempts = 0;
   while (Date.now() - startTime < maxWaitMs) {
     attempts++;
     if (await isDevBrowserServerReady()) {
-      console.log(`[TaskManager] Dev-browser server ready after ${attempts} attempts (${Date.now() - startTime}ms)`);
+      console.log(
+        `[TaskManager] Dev-browser server ready after ${attempts} attempts (${Date.now() - startTime}ms)`
+      );
       return true;
     }
-    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
   }
-  console.log(`[TaskManager] Dev-browser server not ready after ${attempts} attempts (${maxWaitMs}ms timeout)`);
+  console.log(
+    `[TaskManager] Dev-browser server not ready after ${attempts} attempts (${maxWaitMs}ms timeout)`
+  );
   return false;
 }
 
@@ -196,14 +226,19 @@ async function ensureDevBrowserServer(
   const hasChrome = isSystemChromeInstalled();
   const hasPlaywright = isPlaywrightInstalled();
 
-  console.log(`[TaskManager] Browser check: Chrome=${hasChrome}, Playwright=${hasPlaywright}`);
+  console.log(
+    `[TaskManager] Browser check: Chrome=${hasChrome}, Playwright=${hasPlaywright}`
+  );
 
   // If no browser available, install Playwright first
   if (!hasChrome && !hasPlaywright) {
-    console.log('[TaskManager] No browser available, installing Playwright Chromium...');
+    console.log(
+      '[TaskManager] No browser available, installing Playwright Chromium...'
+    );
     onProgress?.({
       stage: 'setup',
-      message: 'Chrome not found. Downloading browser (one-time setup, ~2 min)...',
+      message:
+        'Chrome not found. Downloading browser (one-time setup, ~2 min)...',
     });
 
     try {
@@ -249,17 +284,30 @@ async function ensureDevBrowserServer(
     // Get node executable path
     const nodeExe = bundledPaths?.nodePath || 'node';
 
-    console.log('[TaskManager] ========== DEV-BROWSER SERVER STARTUP ==========');
+    console.log(
+      '[TaskManager] ========== DEV-BROWSER SERVER STARTUP =========='
+    );
     console.log('[TaskManager] Node executable:', nodeExe);
     console.log('[TaskManager] Server script:', serverScript);
     console.log('[TaskManager] Working directory:', serverCwd);
-    console.log('[TaskManager] NODE_BIN_PATH:', spawnEnv.NODE_BIN_PATH || '(not set)');
+    console.log(
+      '[TaskManager] NODE_BIN_PATH:',
+      spawnEnv.NODE_BIN_PATH || '(not set)'
+    );
     console.log('[TaskManager] Script exists:', fs.existsSync(serverScript));
     console.log('[TaskManager] CWD exists:', fs.existsSync(serverCwd));
 
     // Check if local tsx exists (for debugging)
-    const localTsxBin = path.join(serverCwd, 'node_modules', '.bin', process.platform === 'win32' ? 'tsx.cmd' : 'tsx');
-    console.log('[TaskManager] Local tsx.cmd exists:', fs.existsSync(localTsxBin));
+    const localTsxBin = path.join(
+      serverCwd,
+      'node_modules',
+      '.bin',
+      process.platform === 'win32' ? 'tsx.cmd' : 'tsx'
+    );
+    console.log(
+      '[TaskManager] Local tsx.cmd exists:',
+      fs.existsSync(localTsxBin)
+    );
 
     // Spawn server in background (detached, unref to not block)
     // windowsHide: true prevents a console window from appearing on Windows
@@ -277,7 +325,10 @@ async function ensureDevBrowserServer(
 
     // Capture and log stdout/stderr for debugging
     child.stdout?.on('data', (data: Buffer) => {
-      const lines = data.toString().split('\n').filter(l => l.trim());
+      const lines = data
+        .toString()
+        .split('\n')
+        .filter((l) => l.trim());
       for (const line of lines) {
         serverLogs.push(`[stdout] ${line}`);
         console.log('[DevBrowser stdout]', line);
@@ -285,7 +336,10 @@ async function ensureDevBrowserServer(
     });
 
     child.stderr?.on('data', (data: Buffer) => {
-      const lines = data.toString().split('\n').filter(l => l.trim());
+      const lines = data
+        .toString()
+        .split('\n')
+        .filter((l) => l.trim());
       for (const line of lines) {
         serverLogs.push(`[stderr] ${line}`);
         console.log('[DevBrowser stderr]', line);
@@ -316,17 +370,25 @@ async function ensureDevBrowserServer(
 
     child.unref();
 
-    console.log('[TaskManager] Dev-browser server spawn initiated (PID:', child.pid, ')');
+    console.log(
+      '[TaskManager] Dev-browser server spawn initiated (PID:',
+      child.pid,
+      ')'
+    );
 
     // Wait for the server to be ready (longer timeout on Windows)
     const maxWaitMs = process.platform === 'win32' ? 30000 : 15000;
-    console.log(`[TaskManager] Waiting for dev-browser server to be ready (max ${maxWaitMs}ms)...`);
+    console.log(
+      `[TaskManager] Waiting for dev-browser server to be ready (max ${maxWaitMs}ms)...`
+    );
 
     const serverReady = await waitForDevBrowserServer(maxWaitMs);
     if (serverReady) {
       console.log('[TaskManager] Dev-browser server is ready!');
     } else {
-      console.error('[TaskManager] Dev-browser server did NOT become ready within timeout');
+      console.error(
+        '[TaskManager] Dev-browser server did NOT become ready within timeout'
+      );
       console.error('[TaskManager] Captured logs:');
       for (const log of serverLogs) {
         console.error('[TaskManager]  ', log);
@@ -335,7 +397,9 @@ async function ensureDevBrowserServer(
       (global as Record<string, unknown>).__devBrowserLogs = serverLogs;
     }
 
-    console.log('[TaskManager] ========== END DEV-BROWSER SERVER STARTUP ==========');
+    console.log(
+      '[TaskManager] ========== END DEV-BROWSER SERVER STARTUP =========='
+    );
   } catch (error) {
     console.error('[TaskManager] Failed to start dev-browser server:', error);
   }
@@ -409,7 +473,8 @@ export class TaskManager {
   private isFirstTask: boolean = true;
 
   constructor(options?: { maxConcurrentTasks?: number }) {
-    this.maxConcurrentTasks = options?.maxConcurrentTasks ?? DEFAULT_MAX_CONCURRENT_TASKS;
+    this.maxConcurrentTasks =
+      options?.maxConcurrentTasks ?? DEFAULT_MAX_CONCURRENT_TASKS;
   }
 
   /**
@@ -435,13 +500,18 @@ export class TaskManager {
     }
 
     // Check if task already exists (either running or queued)
-    if (this.activeTasks.has(taskId) || this.taskQueue.some(q => q.taskId === taskId)) {
+    if (
+      this.activeTasks.has(taskId) ||
+      this.taskQueue.some((q) => q.taskId === taskId)
+    ) {
       throw new Error(`Task ${taskId} is already running or queued`);
     }
 
     // If at max concurrent tasks, queue this one
     if (this.activeTasks.size >= this.maxConcurrentTasks) {
-      console.log(`[TaskManager] At max concurrent tasks (${this.maxConcurrentTasks}). Queueing task ${taskId}`);
+      console.log(
+        `[TaskManager] At max concurrent tasks (${this.maxConcurrentTasks}). Queueing task ${taskId}`
+      );
       return this.queueTask(taskId, config, callbacks);
     }
 
@@ -472,7 +542,9 @@ export class TaskManager {
     };
 
     this.taskQueue.push(queuedTask);
-    console.log(`[TaskManager] Task ${taskId} queued. Queue length: ${this.taskQueue.length}`);
+    console.log(
+      `[TaskManager] Task ${taskId} queued. Queue length: ${this.taskQueue.length}`
+    );
 
     // Return a task object with 'queued' status
     return {
@@ -522,7 +594,11 @@ export class TaskManager {
       this.processQueue();
     };
 
-    const onDebug = (log: { type: string; message: string; data?: unknown }) => {
+    const onDebug = (log: {
+      type: string;
+      message: string;
+      data?: unknown;
+    }) => {
       callbacks.onDebug?.(log);
     };
 
@@ -567,7 +643,9 @@ export class TaskManager {
     };
     this.activeTasks.set(taskId, managedTask);
 
-    console.log(`[TaskManager] Executing task ${taskId}. Active tasks: ${this.activeTasks.size}`);
+    console.log(
+      `[TaskManager] Executing task ${taskId}. Active tasks: ${this.activeTasks.size}`
+    );
 
     // Create task object immediately so UI can navigate
     const task: Task = {
@@ -584,11 +662,19 @@ export class TaskManager {
     (async () => {
       try {
         // Emit starting stage immediately
-        callbacks.onProgress({ stage: 'starting', message: 'Starting task...', isFirstTask });
+        callbacks.onProgress({
+          stage: 'starting',
+          message: 'Starting task...',
+          isFirstTask,
+        });
 
         // Emit browser stage only on cold start (first task)
         if (isFirstTask) {
-          callbacks.onProgress({ stage: 'browser', message: 'Preparing browser...', isFirstTask });
+          callbacks.onProgress({
+            stage: 'browser',
+            message: 'Preparing browser...',
+            isFirstTask,
+          });
         }
 
         // Ensure browser is available (may download Playwright if needed)
@@ -600,13 +686,19 @@ export class TaskManager {
         }
 
         // Emit environment setup stage
-        callbacks.onProgress({ stage: 'environment', message: 'Setting up environment...', isFirstTask });
+        callbacks.onProgress({
+          stage: 'environment',
+          message: 'Setting up environment...',
+          isFirstTask,
+        });
 
         // Now start the agent
         await adapter.startTask({ ...config, taskId });
       } catch (error) {
         // Cleanup on failure and process queue
-        callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+        callbacks.onError(
+          error instanceof Error ? error : new Error(String(error))
+        );
         this.cleanupTask(taskId);
         this.processQueue();
       }
@@ -620,18 +712,32 @@ export class TaskManager {
    */
   private async processQueue(): Promise<void> {
     // Start queued tasks while we have capacity
-    while (this.taskQueue.length > 0 && this.activeTasks.size < this.maxConcurrentTasks) {
+    while (
+      this.taskQueue.length > 0 &&
+      this.activeTasks.size < this.maxConcurrentTasks
+    ) {
       const nextTask = this.taskQueue.shift()!;
-      console.log(`[TaskManager] Processing queue. Starting task ${nextTask.taskId}. Active: ${this.activeTasks.size}, Remaining in queue: ${this.taskQueue.length}`);
+      console.log(
+        `[TaskManager] Processing queue. Starting task ${nextTask.taskId}. Active: ${this.activeTasks.size}, Remaining in queue: ${this.taskQueue.length}`
+      );
 
       // Notify that task is now running
       nextTask.callbacks.onStatusChange?.('running');
 
       try {
-        await this.executeTask(nextTask.taskId, nextTask.config, nextTask.callbacks);
+        await this.executeTask(
+          nextTask.taskId,
+          nextTask.config,
+          nextTask.callbacks
+        );
       } catch (error) {
-        console.error(`[TaskManager] Error starting queued task ${nextTask.taskId}:`, error);
-        nextTask.callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+        console.error(
+          `[TaskManager] Error starting queued task ${nextTask.taskId}:`,
+          error
+        );
+        nextTask.callbacks.onError(
+          error instanceof Error ? error : new Error(String(error))
+        );
       }
     }
 
@@ -645,7 +751,7 @@ export class TaskManager {
    */
   async cancelTask(taskId: string): Promise<void> {
     // Check if it's a queued task
-    const queueIndex = this.taskQueue.findIndex(q => q.taskId === taskId);
+    const queueIndex = this.taskQueue.findIndex((q) => q.taskId === taskId);
     if (queueIndex !== -1) {
       console.log(`[TaskManager] Cancelling queued task ${taskId}`);
       this.taskQueue.splice(queueIndex, 1);
@@ -691,7 +797,7 @@ export class TaskManager {
    * Used for cancelling follow-ups on completed tasks
    */
   cancelQueuedTask(taskId: string): boolean {
-    const queueIndex = this.taskQueue.findIndex(q => q.taskId === taskId);
+    const queueIndex = this.taskQueue.findIndex((q) => q.taskId === taskId);
     if (queueIndex === -1) {
       return false;
     }
@@ -712,14 +818,14 @@ export class TaskManager {
    * Check if a specific task is queued
    */
   isTaskQueued(taskId: string): boolean {
-    return this.taskQueue.some(q => q.taskId === taskId);
+    return this.taskQueue.some((q) => q.taskId === taskId);
   }
 
   /**
    * Get queue position (1-based) for a task, or 0 if not queued
    */
   getQueuePosition(taskId: string): number {
-    const index = this.taskQueue.findIndex(q => q.taskId === taskId);
+    const index = this.taskQueue.findIndex((q) => q.taskId === taskId);
     return index === -1 ? 0 : index + 1;
   }
 
@@ -789,7 +895,9 @@ export class TaskManager {
       console.log(`[TaskManager] Cleaning up task ${taskId}`);
       managedTask.cleanup();
       this.activeTasks.delete(taskId);
-      console.log(`[TaskManager] Task ${taskId} cleaned up. Active tasks: ${this.activeTasks.size}`);
+      console.log(
+        `[TaskManager] Task ${taskId} cleaned up. Active tasks: ${this.activeTasks.size}`
+      );
     }
   }
 
@@ -798,7 +906,9 @@ export class TaskManager {
    * Called on app quit
    */
   dispose(): void {
-    console.log(`[TaskManager] Disposing all tasks (${this.activeTasks.size} active, ${this.taskQueue.length} queued)`);
+    console.log(
+      `[TaskManager] Disposing all tasks (${this.activeTasks.size} active, ${this.taskQueue.length} queued)`
+    );
 
     // Clear the queue
     this.taskQueue = [];

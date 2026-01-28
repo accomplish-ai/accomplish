@@ -10,8 +10,8 @@ interface TodoSidebarProps {
 export function TodoSidebar({ todos }: TodoSidebarProps) {
   if (todos.length === 0) return null;
 
-  const completed = todos.filter(t => t.status === 'completed').length;
-  const cancelled = todos.filter(t => t.status === 'cancelled').length;
+  const completed = todos.filter((t) => t.status === 'completed').length;
+  const cancelled = todos.filter((t) => t.status === 'cancelled').length;
   const total = todos.length;
   const progress = ((completed + cancelled) / total) * 100;
 
@@ -79,13 +79,21 @@ function TodoListItem({ todo }: { todo: TodoItem }) {
 function StatusIcon({ status }: { status: TodoItem['status'] }) {
   switch (status) {
     case 'completed':
-      return <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />;
+      return (
+        <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+      );
     case 'in_progress':
-      return <Loader2 className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5 animate-spin" />;
+      return (
+        <Loader2 className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5 animate-spin" />
+      );
     case 'cancelled':
-      return <XCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />;
+      return (
+        <XCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+      );
     case 'pending':
     default:
-      return <Circle className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />;
+      return (
+        <Circle className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+      );
   }
 }

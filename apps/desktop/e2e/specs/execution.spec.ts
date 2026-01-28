@@ -4,7 +4,9 @@ import { captureForAI } from '../utils';
 import { TEST_TIMEOUTS, TEST_SCENARIOS } from '../config';
 
 test.describe('Execution Page', () => {
-  test('should display running state with thinking indicator', async ({ window }) => {
+  test('should display running state with thinking indicator', async ({
+    window,
+  }) => {
     const homePage = new HomePage(window);
     const executionPage = new ExecutionPage(window);
 
@@ -15,26 +17,29 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation to execution page
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Wait for either thinking indicator or status badge to appear
     await Promise.race([
-      executionPage.thinkingIndicator.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION }),
-      executionPage.statusBadge.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION }),
+      executionPage.thinkingIndicator.waitFor({
+        state: 'visible',
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      }),
+      executionPage.statusBadge.waitFor({
+        state: 'visible',
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      }),
     ]);
 
     // Capture running state
-    await captureForAI(
-      window,
-      'execution-running',
-      'thinking-indicator',
-      [
-        'Execution page is loaded',
-        'Thinking indicator is visible',
-        'Task is in running state',
-        'UI shows active processing'
-      ]
-    );
+    await captureForAI(window, 'execution-running', 'thinking-indicator', [
+      'Execution page is loaded',
+      'Thinking indicator is visible',
+      'Task is in running state',
+      'UI shows active processing',
+    ]);
 
     // Assert thinking indicator or status badge is visible
     // Note: It might complete quickly in mock mode
@@ -45,7 +50,9 @@ test.describe('Execution Page', () => {
     expect(thinkingVisible || statusVisible).toBe(true);
   });
 
-  test('should display completed state with success badge', async ({ window }) => {
+  test('should display completed state with success badge', async ({
+    window,
+  }) => {
     const homePage = new HomePage(window);
     const executionPage = new ExecutionPage(window);
 
@@ -56,23 +63,20 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Wait for completion
     await executionPage.waitForComplete();
 
     // Capture completed state
-    await captureForAI(
-      window,
-      'execution-completed',
-      'success-badge',
-      [
-        'Status badge shows completed state',
-        'Task completed successfully',
-        'Success indicator is visible',
-        'No error messages displayed'
-      ]
-    );
+    await captureForAI(window, 'execution-completed', 'success-badge', [
+      'Status badge shows completed state',
+      'Task completed successfully',
+      'Success indicator is visible',
+      'No error messages displayed',
+    ]);
 
     // Assert status badge is visible
     await expect(executionPage.statusBadge).toBeVisible();
@@ -93,26 +97,29 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Wait for either thinking indicator or status badge to appear (tool execution started)
     await Promise.race([
-      executionPage.thinkingIndicator.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION }),
-      executionPage.statusBadge.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION }),
+      executionPage.thinkingIndicator.waitFor({
+        state: 'visible',
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      }),
+      executionPage.statusBadge.waitFor({
+        state: 'visible',
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      }),
     ]);
 
     // Capture tool usage state
-    await captureForAI(
-      window,
-      'execution-tool-usage',
-      'tool-display',
-      [
-        'Tool usage is displayed',
-        'Tool name or icon is visible',
-        'Tool execution is shown to user',
-        'UI clearly indicates tool interaction'
-      ]
-    );
+    await captureForAI(window, 'execution-tool-usage', 'tool-display', [
+      'Tool usage is displayed',
+      'Tool name or icon is visible',
+      'Tool execution is shown to user',
+      'UI clearly indicates tool interaction',
+    ]);
 
     // Look for tool-related UI elements
     const pageContent = await window.textContent('body');
@@ -121,22 +128,19 @@ test.describe('Execution Page', () => {
     await executionPage.waitForComplete();
 
     // Capture final state with tools
-    await captureForAI(
-      window,
-      'execution-tool-usage',
-      'tools-complete',
-      [
-        'Tools were executed during task',
-        'Tool results are displayed',
-        'Complete history of tool usage visible'
-      ]
-    );
+    await captureForAI(window, 'execution-tool-usage', 'tools-complete', [
+      'Tools were executed during task',
+      'Tool results are displayed',
+      'Complete history of tool usage visible',
+    ]);
 
     // Assert page contains tool-related content
     expect(pageContent).toBeTruthy();
   });
 
-  test('should display permission modal with allow/deny buttons', async ({ window }) => {
+  test('should display permission modal with allow/deny buttons', async ({
+    window,
+  }) => {
     const homePage = new HomePage(window);
     const executionPage = new ExecutionPage(window);
 
@@ -147,24 +151,24 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Wait for permission modal to appear
-    await executionPage.permissionModal.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.PERMISSION_MODAL });
+    await executionPage.permissionModal.waitFor({
+      state: 'visible',
+      timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
+    });
 
     // Capture permission modal
-    await captureForAI(
-      window,
-      'execution-permission',
-      'modal-visible',
-      [
-        'Permission modal is displayed',
-        'Allow button is visible and clickable',
-        'Deny button is visible and clickable',
-        'Modal clearly shows what permission is being requested',
-        'User can make a choice'
-      ]
-    );
+    await captureForAI(window, 'execution-permission', 'modal-visible', [
+      'Permission modal is displayed',
+      'Allow button is visible and clickable',
+      'Deny button is visible and clickable',
+      'Modal clearly shows what permission is being requested',
+      'User can make a choice',
+    ]);
 
     // Assert permission modal and buttons are visible
     await expect(executionPage.permissionModal).toBeVisible();
@@ -187,29 +191,34 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Wait for permission modal and allow button to be ready
-    await executionPage.permissionModal.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.PERMISSION_MODAL });
-    await executionPage.allowButton.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
+    await executionPage.permissionModal.waitFor({
+      state: 'visible',
+      timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
+    });
+    await executionPage.allowButton.waitFor({
+      state: 'visible',
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Click allow button
     await executionPage.allowButton.click();
 
     // Capture state after allowing
-    await captureForAI(
-      window,
-      'execution-permission',
-      'after-allow',
-      [
-        'Permission modal is dismissed',
-        'Task continues execution',
-        'Permission was granted successfully'
-      ]
-    );
+    await captureForAI(window, 'execution-permission', 'after-allow', [
+      'Permission modal is dismissed',
+      'Task continues execution',
+      'Permission was granted successfully',
+    ]);
 
     // Modal should disappear after clicking allow
-    await expect(executionPage.permissionModal).not.toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(executionPage.permissionModal).not.toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Note: Mock flow doesn't simulate continuation after permission grant,
     // so we just verify the modal dismissed (the core allow functionality).
@@ -227,44 +236,47 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Wait for permission modal and deny button to be ready
-    await executionPage.permissionModal.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.PERMISSION_MODAL });
-    await executionPage.denyButton.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
+    await executionPage.permissionModal.waitFor({
+      state: 'visible',
+      timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
+    });
+    await executionPage.denyButton.waitFor({
+      state: 'visible',
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Click deny button
     await executionPage.denyButton.click();
 
     // Capture state after denying
-    await captureForAI(
-      window,
-      'execution-permission',
-      'after-deny',
-      [
-        'Permission modal is dismissed',
-        'Task handles denied permission gracefully',
-        'Appropriate message shown to user'
-      ]
-    );
+    await captureForAI(window, 'execution-permission', 'after-deny', [
+      'Permission modal is dismissed',
+      'Task handles denied permission gracefully',
+      'Appropriate message shown to user',
+    ]);
 
     // Modal should disappear
-    await expect(executionPage.permissionModal).not.toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(executionPage.permissionModal).not.toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Wait for status badge to show any state after denial (not necessarily completion)
-    await executionPage.statusBadge.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.PERMISSION_MODAL });
+    await executionPage.statusBadge.waitFor({
+      state: 'visible',
+      timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
+    });
 
     // Capture final state after denial
-    await captureForAI(
-      window,
-      'execution-permission',
-      'deny-result',
-      [
-        'Task responded to permission denial',
-        'No crashes or errors',
-        'User feedback is clear'
-      ]
-    );
+    await captureForAI(window, 'execution-permission', 'deny-result', [
+      'Task responded to permission denial',
+      'No crashes or errors',
+      'User feedback is clear',
+    ]);
   });
 
   test('should display error state when task fails', async ({ window }) => {
@@ -278,23 +290,20 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Wait for task to complete with error state
     await executionPage.waitForComplete();
 
     // Capture error state
-    await captureForAI(
-      window,
-      'execution-error',
-      'error-displayed',
-      [
-        'Error state is clearly visible',
-        'Error message or indicator is shown',
-        'User understands task failed',
-        'Error handling is graceful'
-      ]
-    );
+    await captureForAI(window, 'execution-error', 'error-displayed', [
+      'Error state is clearly visible',
+      'Error message or indicator is shown',
+      'User understands task failed',
+      'Error handling is graceful',
+    ]);
 
     // Look for error indicators in the UI
     const pageContent = await window.textContent('body');
@@ -303,22 +312,19 @@ test.describe('Execution Page', () => {
     // Check if status badge shows error state
     if (statusBadgeVisible) {
       const badgeText = await executionPage.statusBadge.textContent();
-      await captureForAI(
-        window,
-        'execution-error',
-        'error-badge',
-        [
-          'Status badge indicates error/failure',
-          `Badge shows: ${badgeText}`
-        ]
-      );
+      await captureForAI(window, 'execution-error', 'error-badge', [
+        'Status badge indicates error/failure',
+        `Badge shows: ${badgeText}`,
+      ]);
     }
 
     // Assert some error indication exists
     expect(pageContent).toBeTruthy();
   });
 
-  test('should display interrupted state when task is stopped', async ({ window }) => {
+  test('should display interrupted state when task is stopped', async ({
+    window,
+  }) => {
     const homePage = new HomePage(window);
     const executionPage = new ExecutionPage(window);
 
@@ -329,7 +335,9 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Wait for task to reach interrupted state
     await executionPage.waitForComplete();
@@ -343,7 +351,7 @@ test.describe('Execution Page', () => {
         'Interrupted state is visible',
         'Task shows it was stopped',
         'UI clearly indicates interruption',
-        'User understands task did not complete normally'
+        'User understands task did not complete normally',
       ]
     );
 
@@ -352,15 +360,10 @@ test.describe('Execution Page', () => {
 
     if (statusBadgeVisible) {
       const badgeText = await executionPage.statusBadge.textContent();
-      await captureForAI(
-        window,
-        'execution-interrupted',
-        'interrupted-badge',
-        [
-          'Status badge shows interrupted/stopped state',
-          `Badge shows: ${badgeText}`
-        ]
-      );
+      await captureForAI(window, 'execution-interrupted', 'interrupted-badge', [
+        'Status badge shows interrupted/stopped state',
+        `Badge shows: ${badgeText}`,
+      ]);
     }
   });
 
@@ -375,28 +378,31 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Wait for either cancel or stop button to be available
     try {
       await Promise.race([
-        executionPage.cancelButton.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION }),
-        executionPage.stopButton.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION }),
+        executionPage.cancelButton.waitFor({
+          state: 'visible',
+          timeout: TEST_TIMEOUTS.NAVIGATION,
+        }),
+        executionPage.stopButton.waitFor({
+          state: 'visible',
+          timeout: TEST_TIMEOUTS.NAVIGATION,
+        }),
       ]);
 
       const cancelVisible = await executionPage.cancelButton.isVisible();
       const stopVisible = await executionPage.stopButton.isVisible();
 
       // Capture before cancel
-      await captureForAI(
-        window,
-        'execution-cancel',
-        'before-cancel',
-        [
-          'Cancel/Stop button is visible',
-          'Task is running and can be cancelled'
-        ]
-      );
+      await captureForAI(window, 'execution-cancel', 'before-cancel', [
+        'Cancel/Stop button is visible',
+        'Task is running and can be cancelled',
+      ]);
 
       // Click the cancel or stop button
       if (cancelVisible) {
@@ -409,16 +415,11 @@ test.describe('Execution Page', () => {
       await executionPage.waitForComplete();
 
       // Capture after cancel
-      await captureForAI(
-        window,
-        'execution-cancel',
-        'after-cancel',
-        [
-          'Task was cancelled/stopped',
-          'UI reflects cancelled state',
-          'Cancellation was successful'
-        ]
-      );
+      await captureForAI(window, 'execution-cancel', 'after-cancel', [
+        'Task was cancelled/stopped',
+        'UI reflects cancelled state',
+        'Cancellation was successful',
+      ]);
     } catch {
       // Task may have completed before we could cancel - that's acceptable
     }
@@ -435,41 +436,39 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Wait for task execution to start (either thinking indicator or status badge)
     await Promise.race([
-      executionPage.thinkingIndicator.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION }),
-      executionPage.statusBadge.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION }),
+      executionPage.thinkingIndicator.waitFor({
+        state: 'visible',
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      }),
+      executionPage.statusBadge.waitFor({
+        state: 'visible',
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      }),
     ]);
 
     // Capture task output
-    await captureForAI(
-      window,
-      'execution-output',
-      'task-messages',
-      [
-        'Task output is visible',
-        'Messages from task execution are displayed',
-        'Output format is clear and readable',
-        'User can follow task progress'
-      ]
-    );
+    await captureForAI(window, 'execution-output', 'task-messages', [
+      'Task output is visible',
+      'Messages from task execution are displayed',
+      'Output format is clear and readable',
+      'User can follow task progress',
+    ]);
 
     // Wait for completion
     await executionPage.waitForComplete();
 
     // Capture final output
-    await captureForAI(
-      window,
-      'execution-output',
-      'final-output',
-      [
-        'Complete task output is visible',
-        'All messages and results are displayed',
-        'Output is well-formatted'
-      ]
-    );
+    await captureForAI(window, 'execution-output', 'final-output', [
+      'Complete task output is visible',
+      'All messages and results are displayed',
+      'Output is well-formatted',
+    ]);
 
     // Assert page has content
     const pageContent = await window.textContent('body');
@@ -477,7 +476,9 @@ test.describe('Execution Page', () => {
     expect(pageContent.length).toBeGreaterThan(0);
   });
 
-  test('should handle follow-up input after task completion', async ({ window }) => {
+  test('should handle follow-up input after task completion', async ({
+    window,
+  }) => {
     const homePage = new HomePage(window);
     const executionPage = new ExecutionPage(window);
 
@@ -486,39 +487,34 @@ test.describe('Execution Page', () => {
     // Start and complete a task with explicit success keyword
     await homePage.enterTask(TEST_SCENARIOS.SUCCESS.keyword);
     await homePage.submitTask();
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
     await executionPage.waitForComplete();
 
     // Wait for follow-up input to be ready (may not appear in all mock scenarios)
     try {
-      await executionPage.followUpInput.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
+      await executionPage.followUpInput.waitFor({
+        state: 'visible',
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      });
 
       // Capture follow-up input state
-      await captureForAI(
-        window,
-        'execution-follow-up',
-        'follow-up-visible',
-        [
-          'Follow-up input is visible after task completion',
-          'User can enter additional instructions',
-          'Follow-up feature is accessible'
-        ]
-      );
+      await captureForAI(window, 'execution-follow-up', 'follow-up-visible', [
+        'Follow-up input is visible after task completion',
+        'User can enter additional instructions',
+        'Follow-up feature is accessible',
+      ]);
 
       // Try typing in follow-up input
       await executionPage.followUpInput.fill('Follow up task');
 
       // Capture with follow-up text
-      await captureForAI(
-        window,
-        'execution-follow-up',
-        'follow-up-filled',
-        [
-          'Follow-up text is entered',
-          'Input is ready to submit',
-          'User can continue conversation'
-        ]
-      );
+      await captureForAI(window, 'execution-follow-up', 'follow-up-filled', [
+        'Follow-up text is entered',
+        'Input is ready to submit',
+        'User can continue conversation',
+      ]);
 
       await expect(executionPage.followUpInput).toHaveValue('Follow up task');
     } catch {
@@ -526,7 +522,9 @@ test.describe('Execution Page', () => {
     }
   });
 
-  test('should show scroll-to-bottom button when scrolled up', async ({ window }) => {
+  test('should show scroll-to-bottom button when scrolled up', async ({
+    window,
+  }) => {
     const homePage = new HomePage(window);
     const executionPage = new ExecutionPage(window);
 
@@ -537,12 +535,17 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation and task completion
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
     await executionPage.waitForComplete();
 
     // Get the scroll container
     const scrollContainer = executionPage.messagesScrollContainer;
-    await scrollContainer.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
+    await scrollContainer.waitFor({
+      state: 'visible',
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Scroll to top to simulate user scrolling up
     await scrollContainer.evaluate((el) => {
@@ -559,23 +562,22 @@ test.describe('Execution Page', () => {
 
     if (isScrollable) {
       // Scroll-to-bottom button should be visible when scrolled up
-      await expect(executionPage.scrollToBottomButton).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+      await expect(executionPage.scrollToBottomButton).toBeVisible({
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      });
 
       // Capture screenshot
-      await captureForAI(
-        window,
-        'execution-scroll',
-        'scroll-button-visible',
-        [
-          'Scroll-to-bottom button is visible',
-          'User is scrolled up from bottom',
-          'Button appears inline after messages',
-        ]
-      );
+      await captureForAI(window, 'execution-scroll', 'scroll-button-visible', [
+        'Scroll-to-bottom button is visible',
+        'User is scrolled up from bottom',
+        'Button appears inline after messages',
+      ]);
     }
   });
 
-  test('should hide scroll-to-bottom button when at bottom', async ({ window }) => {
+  test('should hide scroll-to-bottom button when at bottom', async ({
+    window,
+  }) => {
     const homePage = new HomePage(window);
     const executionPage = new ExecutionPage(window);
 
@@ -586,12 +588,17 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation and task completion
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
     await executionPage.waitForComplete();
 
     // Get the scroll container
     const scrollContainer = executionPage.messagesScrollContainer;
-    await scrollContainer.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
+    await scrollContainer.waitFor({
+      state: 'visible',
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Scroll to bottom
     await scrollContainer.evaluate((el) => {
@@ -602,22 +609,21 @@ test.describe('Execution Page', () => {
     await window.waitForTimeout(TEST_TIMEOUTS.STATE_UPDATE);
 
     // Scroll-to-bottom button should NOT be visible when at bottom
-    await expect(executionPage.scrollToBottomButton).not.toBeVisible({ timeout: TEST_TIMEOUTS.STATE_UPDATE });
+    await expect(executionPage.scrollToBottomButton).not.toBeVisible({
+      timeout: TEST_TIMEOUTS.STATE_UPDATE,
+    });
 
     // Capture screenshot
-    await captureForAI(
-      window,
-      'execution-scroll',
-      'scroll-button-hidden',
-      [
-        'Scroll-to-bottom button is hidden',
-        'User is at bottom of messages',
-        'Normal message view without scroll indicator',
-      ]
-    );
+    await captureForAI(window, 'execution-scroll', 'scroll-button-hidden', [
+      'Scroll-to-bottom button is hidden',
+      'User is at bottom of messages',
+      'Normal message view without scroll indicator',
+    ]);
   });
 
-  test('should scroll to bottom when clicking scroll-to-bottom button', async ({ window }) => {
+  test('should scroll to bottom when clicking scroll-to-bottom button', async ({
+    window,
+  }) => {
     const homePage = new HomePage(window);
     const executionPage = new ExecutionPage(window);
 
@@ -628,12 +634,17 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation and task completion
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
     await executionPage.waitForComplete();
 
     // Get the scroll container
     const scrollContainer = executionPage.messagesScrollContainer;
-    await scrollContainer.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
+    await scrollContainer.waitFor({
+      state: 'visible',
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Check if the container is scrollable
     const isScrollable = await scrollContainer.evaluate((el) => {
@@ -648,7 +659,9 @@ test.describe('Execution Page', () => {
       await window.waitForTimeout(TEST_TIMEOUTS.STATE_UPDATE);
 
       // Verify button is visible
-      await expect(executionPage.scrollToBottomButton).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+      await expect(executionPage.scrollToBottomButton).toBeVisible({
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      });
 
       // Click the scroll-to-bottom button
       await executionPage.scrollToBottomButton.click();
@@ -657,7 +670,9 @@ test.describe('Execution Page', () => {
       await window.waitForTimeout(TEST_TIMEOUTS.ANIMATION + 200);
 
       // Button should disappear after scrolling to bottom
-      await expect(executionPage.scrollToBottomButton).not.toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+      await expect(executionPage.scrollToBottomButton).not.toBeVisible({
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      });
 
       // Verify we're at the bottom
       const isAtBottom = await scrollContainer.evaluate((el) => {
@@ -667,20 +682,17 @@ test.describe('Execution Page', () => {
       expect(isAtBottom).toBe(true);
 
       // Capture screenshot
-      await captureForAI(
-        window,
-        'execution-scroll',
-        'after-scroll-click',
-        [
-          'Scrolled to bottom after clicking button',
-          'Scroll-to-bottom button is now hidden',
-          'Latest messages are visible',
-        ]
-      );
+      await captureForAI(window, 'execution-scroll', 'after-scroll-click', [
+        'Scrolled to bottom after clicking button',
+        'Scroll-to-bottom button is now hidden',
+        'Latest messages are visible',
+      ]);
     }
   });
 
-  test('should display question modal with selectable options', async ({ window }) => {
+  test('should display question modal with selectable options', async ({
+    window,
+  }) => {
     const homePage = new HomePage(window);
     const executionPage = new ExecutionPage(window);
 
@@ -691,23 +703,23 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Wait for question modal to appear
-    await executionPage.permissionModal.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.PERMISSION_MODAL });
+    await executionPage.permissionModal.waitFor({
+      state: 'visible',
+      timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
+    });
 
     // Capture question modal
-    await captureForAI(
-      window,
-      'execution-question',
-      'modal-visible',
-      [
-        'Question modal is displayed',
-        'Question text is shown',
-        'Option buttons are visible',
-        'Submit button is visible but disabled until option selected',
-      ]
-    );
+    await captureForAI(window, 'execution-question', 'modal-visible', [
+      'Question modal is displayed',
+      'Question text is shown',
+      'Option buttons are visible',
+      'Submit button is visible but disabled until option selected',
+    ]);
 
     // Assert modal is visible with options (Other option is replaced by always-visible text input)
     await expect(executionPage.permissionModal).toBeVisible();
@@ -718,7 +730,9 @@ test.describe('Execution Page', () => {
     await expect(executionPage.denyButton).toBeVisible();
   });
 
-  test('should handle question option selection and submit', async ({ window }) => {
+  test('should handle question option selection and submit', async ({
+    window,
+  }) => {
     const homePage = new HomePage(window);
     const executionPage = new ExecutionPage(window);
 
@@ -729,25 +743,25 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Wait for question modal to appear
-    await executionPage.permissionModal.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.PERMISSION_MODAL });
+    await executionPage.permissionModal.waitFor({
+      state: 'visible',
+      timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
+    });
 
     // Select first option (Option A)
     await executionPage.selectQuestionOption(0);
 
     // Capture after selection
-    await captureForAI(
-      window,
-      'execution-question',
-      'option-selected',
-      [
-        'Option A is selected',
-        'Submit button is now enabled',
-        'Selected option is highlighted',
-      ]
-    );
+    await captureForAI(window, 'execution-question', 'option-selected', [
+      'Option A is selected',
+      'Submit button is now enabled',
+      'Selected option is highlighted',
+    ]);
 
     // Submit button should now be enabled
     await expect(executionPage.allowButton).toBeEnabled();
@@ -756,18 +770,15 @@ test.describe('Execution Page', () => {
     await executionPage.allowButton.click();
 
     // Modal should disappear
-    await expect(executionPage.permissionModal).not.toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(executionPage.permissionModal).not.toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Capture after submission
-    await captureForAI(
-      window,
-      'execution-question',
-      'after-submit',
-      [
-        'Question modal is dismissed',
-        'Response was submitted successfully',
-      ]
-    );
+    await captureForAI(window, 'execution-question', 'after-submit', [
+      'Question modal is dismissed',
+      'Response was submitted successfully',
+    ]);
   });
 
   test('should copy message content to clipboard', async ({ window }) => {
@@ -781,22 +792,19 @@ test.describe('Execution Page', () => {
     await homePage.submitTask();
 
     // Wait for navigation to execution page
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Wait for task to complete
     await executionPage.waitForComplete();
 
     // Capture state before copy
-    await captureForAI(
-      window,
-      'execution-copy',
-      'before-copy',
-      [
-        'Task is completed',
-        'Copy buttons are present on messages',
-        'Ready to test copy functionality'
-      ]
-    );
+    await captureForAI(window, 'execution-copy', 'before-copy', [
+      'Task is completed',
+      'Copy buttons are present on messages',
+      'Ready to test copy functionality',
+    ]);
 
     // Get all copy buttons (should be at least one for completed messages)
     const copyButtonsCount = await executionPage.copyButtons.count();
@@ -810,7 +818,10 @@ test.describe('Execution Page', () => {
     const buttonBox = await firstCopyButton.boundingBox();
     if (buttonBox) {
       // Hover slightly above the button (on the message bubble) to trigger group-hover
-      await window.mouse.move(buttonBox.x + buttonBox.width / 2, buttonBox.y - 10);
+      await window.mouse.move(
+        buttonBox.x + buttonBox.width / 2,
+        buttonBox.y - 10
+      );
     }
 
     // Wait for the button to become visible
@@ -820,17 +831,12 @@ test.describe('Execution Page', () => {
     await firstCopyButton.click();
 
     // Capture state after copy
-    await captureForAI(
-      window,
-      'execution-copy',
-      'after-copy',
-      [
-        'Copy button was clicked',
-        'Icon should change to checkmark',
-        'Background should turn green',
-        'Content was copied to clipboard'
-      ]
-    );
+    await captureForAI(window, 'execution-copy', 'after-copy', [
+      'Copy button was clicked',
+      'Icon should change to checkmark',
+      'Background should turn green',
+      'Content was copied to clipboard',
+    ]);
 
     // Verify clipboard contains content
     const clipboardText = await window.evaluate(async () => {

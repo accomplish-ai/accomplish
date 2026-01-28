@@ -30,7 +30,10 @@ export async function getAzureEntraToken(): Promise<
   const now = new Date();
 
   // Check if we have a valid cached token (with buffer time)
-  if (tokenCache && tokenCache.expiresAt > new Date(now.getTime() + REFRESH_BUFFER_MS)) {
+  if (
+    tokenCache &&
+    tokenCache.expiresAt > new Date(now.getTime() + REFRESH_BUFFER_MS)
+  ) {
     return { success: true, token: tokenCache.token };
   }
 
@@ -38,7 +41,9 @@ export async function getAzureEntraToken(): Promise<
   try {
     const { DefaultAzureCredential } = await import('@azure/identity');
     const credential = new DefaultAzureCredential();
-    const tokenResponse = await credential.getToken('https://cognitiveservices.azure.com/.default');
+    const tokenResponse = await credential.getToken(
+      'https://cognitiveservices.azure.com/.default'
+    );
 
     // Calculate expiry time
     let expiresAt: Date;
@@ -68,7 +73,8 @@ export async function getAzureEntraToken(): Promise<
     if (message.includes('AADSTS')) {
       hint = ' Check your Azure AD configuration.';
     } else if (message.includes('DefaultAzureCredential')) {
-      hint = " Ensure you're logged in with 'az login' or have valid Azure credentials configured.";
+      hint =
+        " Ensure you're logged in with 'az login' or have valid Azure credentials configured.";
     } else if (message.includes('network') || message.includes('ENOTFOUND')) {
       hint = ' Check your network connectivity.';
     }

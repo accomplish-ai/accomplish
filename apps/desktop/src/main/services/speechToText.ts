@@ -38,7 +38,10 @@ async function fetchWithTimeout(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
     return response;
   } finally {
     clearTimeout(timeoutId);
@@ -63,7 +66,9 @@ export function isElevenLabsConfigured(): boolean {
 /**
  * Validate ElevenLabs API key by making a test request
  */
-export async function validateElevenLabsApiKey(apiKey?: string): Promise<{ valid: boolean; error?: string }> {
+export async function validateElevenLabsApiKey(
+  apiKey?: string
+): Promise<{ valid: boolean; error?: string }> {
   const key = apiKey || getElevenLabsApiKey();
 
   if (!key || !key.trim()) {
@@ -87,15 +92,23 @@ export async function validateElevenLabsApiKey(apiKey?: string): Promise<{ valid
     }
 
     if (response.status === 401 || response.status === 403) {
-      return { valid: false, error: 'Invalid API key. Please check your ElevenLabs API key.' };
+      return {
+        valid: false,
+        error: 'Invalid API key. Please check your ElevenLabs API key.',
+      };
     }
 
     const errorData = await response.json().catch(() => ({}));
-    const errorMessage = (errorData as { error?: { message?: string } })?.error?.message || `API returned status ${response.status}`;
+    const errorMessage =
+      (errorData as { error?: { message?: string } })?.error?.message ||
+      `API returned status ${response.status}`;
     return { valid: false, error: `API error: ${errorMessage}` };
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      return { valid: false, error: 'Request timed out. Please check your internet connection.' };
+      return {
+        valid: false,
+        error: 'Request timed out. Please check your internet connection.',
+      };
     }
     const message = error instanceof Error ? error.message : 'Unknown error';
     return { valid: false, error: `Network error: ${message}` };
@@ -112,16 +125,22 @@ export async function validateElevenLabsApiKey(apiKey?: string): Promise<{ valid
 export async function transcribeAudio(
   audioData: Buffer,
   mimeType: string = 'audio/webm'
-): Promise<{ success: true; result: TranscriptionResult } | { success: false; error: TranscriptionError }> {
+): Promise<
+  | { success: true; result: TranscriptionResult }
+  | { success: false; error: TranscriptionError }
+> {
   const apiKey = getElevenLabsApiKey();
-  const modelId = process.env.ELEVENLABS_STT_MODEL_ID?.trim() || DEFAULT_ELEVENLABS_STT_MODEL_ID;
+  const modelId =
+    process.env.ELEVENLABS_STT_MODEL_ID?.trim() ||
+    DEFAULT_ELEVENLABS_STT_MODEL_ID;
 
   if (!apiKey) {
     return {
       success: false,
       error: {
         code: 'MISSING_API_KEY',
-        message: 'ElevenLabs API key is not configured. Please add it in settings.',
+        message:
+          'ElevenLabs API key is not configured. Please add it in settings.',
       },
     };
   }
@@ -140,7 +159,10 @@ export async function transcribeAudio(
     const uint8Array = new Uint8Array(audioData);
     const blob = new Blob([uint8Array], { type: mimeType });
 
-    console.log('[ElevenLabs] Created blob:', { blobSize: blob.size, blobType: blob.type });
+    console.log('[ElevenLabs] Created blob:', {
+      blobSize: blob.size,
+      blobType: blob.type,
+    });
 
     // Create FormData for multipart upload
     const formData = new FormData();
@@ -182,7 +204,8 @@ export async function transcribeAudio(
           success: false,
           error: {
             code: 'INVALID_API_KEY',
-            message: 'Invalid or expired ElevenLabs API key. Please check your settings.',
+            message:
+              'Invalid or expired ElevenLabs API key. Please check your settings.',
           },
         };
       }
@@ -215,12 +238,21 @@ export async function transcribeAudio(
         } else {
           errorMessage = JSON.stringify(detail);
         }
-      } else if ((errorData as { error?: { message?: unknown } })?.error?.message) {
-        const nestedMessage = (errorData as { error: { message: unknown } }).error.message;
-        errorMessage = typeof nestedMessage === 'string' ? nestedMessage : JSON.stringify(nestedMessage);
+      } else if (
+        (errorData as { error?: { message?: unknown } })?.error?.message
+      ) {
+        const nestedMessage = (errorData as { error: { message: unknown } })
+          .error.message;
+        errorMessage =
+          typeof nestedMessage === 'string'
+            ? nestedMessage
+            : JSON.stringify(nestedMessage);
       } else if ((errorData as { message?: unknown })?.message) {
         const rootMessage = (errorData as { message: unknown }).message;
-        errorMessage = typeof rootMessage === 'string' ? rootMessage : JSON.stringify(rootMessage);
+        errorMessage =
+          typeof rootMessage === 'string'
+            ? rootMessage
+            : JSON.stringify(rootMessage);
       } else if (errorText) {
         errorMessage = errorText.substring(0, 200);
       } else {

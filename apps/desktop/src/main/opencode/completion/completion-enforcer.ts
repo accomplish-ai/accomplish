@@ -25,7 +25,11 @@
  * - onDebug: adapter emits debug info for the UI debug panel
  */
 
-import { CompletionState, CompletionFlowState, CompleteTaskArgs } from './completion-state';
+import {
+  CompletionState,
+  CompletionFlowState,
+  CompleteTaskArgs,
+} from './completion-state';
 import { getContinuationPrompt, getPartialContinuationPrompt } from './prompts';
 import type { TodoItem } from '@accomplish/shared';
 
@@ -43,7 +47,10 @@ export class CompletionEnforcer {
   private currentTodos: TodoItem[] = [];
   private toolsWereUsed: boolean = false;
 
-  constructor(callbacks: CompletionEnforcerCallbacks, maxContinuationAttempts: number = 20) {
+  constructor(
+    callbacks: CompletionEnforcerCallbacks,
+    maxContinuationAttempts: number = 20
+  ) {
     this.callbacks = callbacks;
     this.state = new CompletionState(maxContinuationAttempts);
   }
@@ -110,7 +117,10 @@ export class CompletionEnforcer {
     this.callbacks.onDebug(
       'complete_task',
       `complete_task detected with status: ${completeTaskArgs.status}`,
-      { args: completeTaskArgs, state: CompletionFlowState[this.state.getState()] }
+      {
+        args: completeTaskArgs,
+        state: CompletionFlowState[this.state.getState()],
+      }
     );
 
     return true;
@@ -161,7 +171,9 @@ export class CompletionEnforcer {
       }
 
       // Max retries reached or invalid state
-      console.warn(`[CompletionEnforcer] Agent stopped without complete_task. State: ${CompletionFlowState[this.state.getState()]}, attempts: ${this.state.getContinuationAttempts()}/${this.state.getMaxContinuationAttempts()}`);
+      console.warn(
+        `[CompletionEnforcer] Agent stopped without complete_task. State: ${CompletionFlowState[this.state.getState()]}, attempts: ${this.state.getContinuationAttempts()}/${this.state.getMaxContinuationAttempts()}`
+      );
     }
 
     // Task is complete (either complete_task called and verified, or max retries)
@@ -185,7 +197,9 @@ export class CompletionEnforcer {
       const canContinue = this.state.startPartialContinuation();
 
       if (!canContinue) {
-        console.warn('[CompletionEnforcer] Max partial continuation attempts reached');
+        console.warn(
+          '[CompletionEnforcer] Max partial continuation attempts reached'
+        );
         this.callbacks.onComplete();
         return;
       }
@@ -232,9 +246,11 @@ export class CompletionEnforcer {
    * Check if state indicates task should be marked complete.
    */
   shouldComplete(): boolean {
-    return this.state.isDone() ||
-           this.state.getState() === CompletionFlowState.BLOCKED ||
-           this.state.getState() === CompletionFlowState.MAX_RETRIES_REACHED;
+    return (
+      this.state.isDone() ||
+      this.state.getState() === CompletionFlowState.BLOCKED ||
+      this.state.getState() === CompletionFlowState.MAX_RETRIES_REACHED
+    );
   }
 
   /**
@@ -248,15 +264,15 @@ export class CompletionEnforcer {
 
   private hasIncompleteTodos(): boolean {
     return this.currentTodos.some(
-      t => t.status === 'pending' || t.status === 'in_progress'
+      (t) => t.status === 'pending' || t.status === 'in_progress'
     );
   }
 
   private getIncompleteTodosSummary(): string {
     const incomplete = this.currentTodos.filter(
-      t => t.status === 'pending' || t.status === 'in_progress'
+      (t) => t.status === 'pending' || t.status === 'in_progress'
     );
-    return incomplete.map(t => `- ${t.content}`).join('\n');
+    return incomplete.map((t) => `- ${t.content}`).join('\n');
   }
 
   /**

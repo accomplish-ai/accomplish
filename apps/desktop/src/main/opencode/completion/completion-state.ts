@@ -32,12 +32,12 @@
  */
 
 export enum CompletionFlowState {
-  IDLE,                           // Initial state, no complete_task called
-  BLOCKED,                        // Agent called complete_task with blocked status
-  PARTIAL_CONTINUATION_PENDING,   // Agent called complete_task(partial), continuation pending
-  CONTINUATION_PENDING,           // Agent stopped without complete_task, continuation pending
-  MAX_RETRIES_REACHED,            // Exhausted continuation attempts
-  DONE                            // Task complete
+  IDLE, // Initial state, no complete_task called
+  BLOCKED, // Agent called complete_task with blocked status
+  PARTIAL_CONTINUATION_PENDING, // Agent called complete_task(partial), continuation pending
+  CONTINUATION_PENDING, // Agent stopped without complete_task, continuation pending
+  MAX_RETRIES_REACHED, // Exhausted continuation attempts
+  DONE, // Task complete
 }
 
 export interface CompleteTaskArgs {
@@ -75,9 +75,11 @@ export class CompletionState {
   }
 
   isCompleteTaskCalled(): boolean {
-    return this.state !== CompletionFlowState.IDLE &&
-           this.state !== CompletionFlowState.CONTINUATION_PENDING &&
-           this.state !== CompletionFlowState.PARTIAL_CONTINUATION_PENDING;
+    return (
+      this.state !== CompletionFlowState.IDLE &&
+      this.state !== CompletionFlowState.CONTINUATION_PENDING &&
+      this.state !== CompletionFlowState.PARTIAL_CONTINUATION_PENDING
+    );
   }
 
   isPendingContinuation(): boolean {
@@ -89,8 +91,10 @@ export class CompletionState {
   }
 
   isDone(): boolean {
-    return this.state === CompletionFlowState.DONE ||
-           this.state === CompletionFlowState.MAX_RETRIES_REACHED;
+    return (
+      this.state === CompletionFlowState.DONE ||
+      this.state === CompletionFlowState.MAX_RETRIES_REACHED
+    );
   }
 
   // State transitions
@@ -112,8 +116,10 @@ export class CompletionState {
     // - CONTINUATION_PENDING: previous continuation was scheduled but process didn't exit
     //   (OpenCode CLI's auto-continue keeps process alive, so handleProcessExit/startContinuation
     //   is never called to reset state to IDLE)
-    if (this.state !== CompletionFlowState.IDLE &&
-        this.state !== CompletionFlowState.CONTINUATION_PENDING) {
+    if (
+      this.state !== CompletionFlowState.IDLE &&
+      this.state !== CompletionFlowState.CONTINUATION_PENDING
+    ) {
       return false;
     }
 
@@ -129,7 +135,9 @@ export class CompletionState {
 
   startContinuation(): void {
     if (this.state !== CompletionFlowState.CONTINUATION_PENDING) {
-      throw new Error(`Cannot start continuation from state ${CompletionFlowState[this.state]}`);
+      throw new Error(
+        `Cannot start continuation from state ${CompletionFlowState[this.state]}`
+      );
     }
     // Reset to IDLE so we can track next complete_task call
     this.state = CompletionFlowState.IDLE;
@@ -137,7 +145,9 @@ export class CompletionState {
 
   startPartialContinuation(): boolean {
     if (this.state !== CompletionFlowState.PARTIAL_CONTINUATION_PENDING) {
-      throw new Error(`Cannot start partial continuation from state ${CompletionFlowState[this.state]}`);
+      throw new Error(
+        `Cannot start partial continuation from state ${CompletionFlowState[this.state]}`
+      );
     }
 
     this.continuationAttempts++;

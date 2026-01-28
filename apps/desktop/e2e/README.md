@@ -23,6 +23,7 @@ Provides Electron app launch fixture with E2E configuration:
 - **window**: Returns the first window (main app window)
 
 Environment variables automatically set:
+
 - `E2E_SKIP_AUTH=1` - Skip onboarding flow
 - `E2E_MOCK_TASK_EVENTS=1` - Mock task execution events
 
@@ -31,6 +32,7 @@ Environment variables automatically set:
 ### HomePage
 
 Methods for interacting with the home page:
+
 - `title` - Home page title
 - `taskInput` - Task input textarea
 - `submitButton` - Submit button
@@ -41,6 +43,7 @@ Methods for interacting with the home page:
 ### ExecutionPage
 
 Methods for interacting with the task execution page:
+
 - `statusBadge` - Status badge
 - `cancelButton` - Cancel button
 - `thinkingIndicator` - Thinking indicator
@@ -54,6 +57,7 @@ Methods for interacting with the task execution page:
 ### SettingsPage
 
 Methods for interacting with the settings page:
+
 - `title` - Settings page title
 - `debugModeToggle` - Debug mode toggle
 - `modelSection` - Model section
@@ -74,19 +78,15 @@ Provides AI-friendly screenshot capture with metadata:
 ```typescript
 import { captureForAI } from '../utils';
 
-await captureForAI(
-  page,
-  'task-execution',
-  'running',
-  [
-    'Task is actively running',
-    'Status badge shows "Running"',
-    'Cancel button is visible'
-  ]
-);
+await captureForAI(page, 'task-execution', 'running', [
+  'Task is actively running',
+  'Status badge shows "Running"',
+  'Cancel button is visible',
+]);
 ```
 
 The utility creates:
+
 - `{testName}-{stateName}-{timestamp}.png` - Screenshot
 - `{testName}-{stateName}-{timestamp}.json` - Metadata (viewport, route, criteria)
 
@@ -109,12 +109,10 @@ test('should submit a task and navigate to execution', async ({ window }) => {
   await executionPage.statusBadge.waitFor({ state: 'visible' });
 
   // Capture screenshot for AI evaluation
-  await captureForAI(
-    window,
-    'task-submission',
-    'execution-started',
-    ['Task execution page loaded', 'Status badge visible']
-  );
+  await captureForAI(window, 'task-submission', 'execution-started', [
+    'Task execution page loaded',
+    'Status badge visible',
+  ]);
 
   // Assert
   await expect(executionPage.statusBadge).toBeVisible();
@@ -176,6 +174,7 @@ pnpm test:e2e:native:integration
 ### Concurrent Worktree Testing
 
 Each worktree can run `pnpm test:e2e` simultaneously because:
+
 - Each container has its own isolated filesystem
 - Each container has its own virtual display
 - Electron's single-instance lock is per-container, not per-host
@@ -183,26 +182,31 @@ Each worktree can run `pnpm test:e2e` simultaneously because:
 ### Troubleshooting
 
 **Tests fail with "cannot open display"**
+
 - Ensure Xvfb is starting (check Docker logs)
 - Verify `DISPLAY=:99` is set
 
 **Tests fail with sandbox errors**
+
 - The `--no-sandbox` flag is automatically added in Docker
 - Ensure `DOCKER_ENV=1` is in the environment
 
 **Out of memory errors**
+
 - Increase Docker's memory allocation in Docker Desktop settings
 - The compose file sets `shm_size: 2gb` for Chromium
 
 ## Writing Tests
 
 1. Import fixtures and page objects:
+
    ```typescript
    import { test, expect } from '../fixtures';
    import { HomePage } from '../pages';
    ```
 
 2. Use page objects instead of direct selectors:
+
    ```typescript
    // Good
    await homePage.submitTask();
@@ -212,18 +216,17 @@ Each worktree can run `pnpm test:e2e` simultaneously because:
    ```
 
 3. Add test IDs to new UI elements in renderer:
+
    ```tsx
    <button data-testid="my-button">Click me</button>
    ```
 
 4. Use `captureForAI` for screenshots with evaluation criteria:
    ```typescript
-   await captureForAI(
-     window,
-     'my-test',
-     'some-state',
-     ['Criterion 1', 'Criterion 2']
-   );
+   await captureForAI(window, 'my-test', 'some-state', [
+     'Criterion 1',
+     'Criterion 2',
+   ]);
    ```
 
 ## Best Practices

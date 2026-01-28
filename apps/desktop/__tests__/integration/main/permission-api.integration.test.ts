@@ -49,7 +49,9 @@ describe('Permission API Integration', () => {
     it('should return true for IDs starting with filereq_', () => {
       expect(isFilePermissionRequest('filereq_123')).toBe(true);
       expect(isFilePermissionRequest('filereq_abc_def')).toBe(true);
-      expect(isFilePermissionRequest('filereq_1234567890_abcdefghi')).toBe(true);
+      expect(isFilePermissionRequest('filereq_1234567890_abcdefghi')).toBe(
+        true
+      );
       expect(isFilePermissionRequest('filereq_')).toBe(true);
     });
 

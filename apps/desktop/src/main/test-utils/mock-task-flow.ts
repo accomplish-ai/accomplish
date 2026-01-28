@@ -77,7 +77,9 @@ export function detectScenarioFromPrompt(prompt: string): MockScenario {
 
   for (const scenario of priorityOrder) {
     const keywords = SCENARIO_KEYWORDS[scenario];
-    if (keywords.some(keyword => promptLower.includes(keyword.toLowerCase()))) {
+    if (
+      keywords.some((keyword) => promptLower.includes(keyword.toLowerCase()))
+    ) {
       return scenario;
     }
   }
@@ -95,7 +97,7 @@ function createMessageId(): string {
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ============================================================================

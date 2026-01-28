@@ -35,7 +35,10 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
     // (e.g., a single JSON line > 10MB, likely corrupted or malicious).
     // We must discard it to prevent memory exhaustion.
     if (this.buffer.length > MAX_BUFFER_SIZE) {
-      this.emit('error', new Error('Stream buffer size exceeded maximum limit'));
+      this.emit(
+        'error',
+        new Error('Stream buffer size exceeded maximum limit')
+      );
       this.buffer = '';
     }
   }
@@ -63,9 +66,25 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
   private isTerminalDecoration(line: string): boolean {
     const trimmed = line.trim();
     // Box-drawing and UI characters used by the CLI's interactive prompts
-    const terminalChars = ['│', '┌', '┐', '└', '┘', '├', '┤', '┬', '┴', '┼', '─', '◆', '●', '○', '◇'];
+    const terminalChars = [
+      '│',
+      '┌',
+      '┐',
+      '└',
+      '┘',
+      '├',
+      '┤',
+      '┬',
+      '┴',
+      '┼',
+      '─',
+      '◆',
+      '●',
+      '○',
+      '◇',
+    ];
     // Check if line starts with a terminal decoration character
-    if (terminalChars.some(char => trimmed.startsWith(char))) {
+    if (terminalChars.some((char) => trimmed.startsWith(char))) {
       return true;
     }
     // Also skip ANSI escape sequences and other control characters
@@ -110,7 +129,10 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
       // Try to parse the combined JSON
       const message = this.tryParseJson(this.incompleteJson);
       if (message) {
-        console.log('[StreamParser] Parsed fragmented message type:', message.type);
+        console.log(
+          '[StreamParser] Parsed fragmented message type:',
+          message.type
+        );
         this.incompleteJson = '';
         this.emitMessage(message);
         return;
@@ -124,7 +146,9 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
     // If current line starts with { but we have incomplete JSON,
     // the previous incomplete JSON was corrupted - discard it
     if (this.incompleteJson && trimmed.startsWith('{')) {
-      console.log('[StreamParser] Discarding incomplete JSON, new JSON started');
+      console.log(
+        '[StreamParser] Discarding incomplete JSON, new JSON started'
+      );
       this.incompleteJson = '';
     }
 
@@ -132,7 +156,10 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
     if (!trimmed.startsWith('{')) {
       // Log non-JSON lines for debugging but don't emit errors
       // These could be CLI status messages, etc.
-      console.log('[StreamParser] Skipping non-JSON line:', trimmed.substring(0, 50));
+      console.log(
+        '[StreamParser] Skipping non-JSON line:',
+        trimmed.substring(0, 50)
+      );
       return;
     }
 
@@ -147,7 +174,9 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
     // JSON parse failed - this line might be fragmented (Windows PTY issue)
     // Save it and try to append the next line(s)
     this.incompleteJson = trimmed;
-    console.log('[StreamParser] Buffering incomplete JSON (Windows PTY fragmentation)');
+    console.log(
+      '[StreamParser] Buffering incomplete JSON (Windows PTY fragmentation)'
+    );
   }
 
   /**
@@ -167,13 +196,18 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
       // Check if it's a dev-browser tool
       const toolName = String(part?.tool || '').toLowerCase();
       const output = String(part?.output || '').toLowerCase();
-      if (toolName.includes('dev-browser') ||
-          toolName.includes('browser') ||
-          toolName.includes('mcp') ||
-          output.includes('dev-browser') ||
-          output.includes('browser')) {
+      if (
+        toolName.includes('dev-browser') ||
+        toolName.includes('browser') ||
+        toolName.includes('mcp') ||
+        output.includes('dev-browser') ||
+        output.includes('browser')
+      ) {
         console.log('[StreamParser] >>> DEV-BROWSER MESSAGE <<<');
-        console.log('[StreamParser] Full message:', JSON.stringify(message, null, 2));
+        console.log(
+          '[StreamParser] Full message:',
+          JSON.stringify(message, null, 2)
+        );
       }
     }
 
@@ -195,7 +229,9 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
         console.log('[StreamParser] Parsed remaining incomplete JSON on flush');
         this.emitMessage(message);
       } else {
-        console.log('[StreamParser] Discarding unparseable incomplete JSON on flush');
+        console.log(
+          '[StreamParser] Discarding unparseable incomplete JSON on flush'
+        );
       }
       this.incompleteJson = '';
     }

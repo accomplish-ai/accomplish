@@ -34,7 +34,9 @@ const mockAccomplish = {
   onTaskStatusChange: mockOnTaskStatusChange.mockReturnValue(() => {}),
   onTaskUpdate: mockOnTaskUpdate.mockReturnValue(() => {}),
   getTask: mockGetTask.mockResolvedValue(null),
-  getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
+  getSelectedModel: vi
+    .fn()
+    .mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
   getOllamaConfig: vi.fn().mockResolvedValue(null),
   isE2EMode: vi.fn().mockResolvedValue(false),
   getProviderSettings: vi.fn().mockResolvedValue({
@@ -68,20 +70,75 @@ vi.mock('@/lib/accomplish', () => ({
 // Mock framer-motion to simplify testing animations
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: unknown }) => {
-      const { initial, animate, exit, transition, variants, whileHover, ...domProps } = props;
-      return <div className={className} {...domProps}>{children}</div>;
+    div: ({
+      children,
+      className,
+      ...props
+    }: {
+      children: React.ReactNode;
+      className?: string;
+      [key: string]: unknown;
+    }) => {
+      const {
+        initial,
+        animate,
+        exit,
+        transition,
+        variants,
+        whileHover,
+        ...domProps
+      } = props;
+      return (
+        <div className={className} {...domProps}>
+          {children}
+        </div>
+      );
     },
-    p: ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: unknown }) => {
-      const { initial, animate, exit, transition, variants, ...domProps } = props;
-      return <p className={className} {...domProps}>{children}</p>;
+    p: ({
+      children,
+      className,
+      ...props
+    }: {
+      children: React.ReactNode;
+      className?: string;
+      [key: string]: unknown;
+    }) => {
+      const { initial, animate, exit, transition, variants, ...domProps } =
+        props;
+      return (
+        <p className={className} {...domProps}>
+          {children}
+        </p>
+      );
     },
-    button: ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: unknown }) => {
-      const { initial, animate, exit, transition, variants, whileHover, ...domProps } = props;
-      return <button className={className} {...domProps}>{children}</button>;
+    button: ({
+      children,
+      className,
+      ...props
+    }: {
+      children: React.ReactNode;
+      className?: string;
+      [key: string]: unknown;
+    }) => {
+      const {
+        initial,
+        animate,
+        exit,
+        transition,
+        variants,
+        whileHover,
+        ...domProps
+      } = props;
+      return (
+        <button className={className} {...domProps}>
+          {children}
+        </button>
+      );
     },
   },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
 }));
 
 // Mock animation utilities

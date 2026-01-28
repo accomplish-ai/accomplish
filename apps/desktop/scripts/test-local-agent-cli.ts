@@ -119,7 +119,13 @@ Set it with:
  */
 function findOpenCodeCli(): string {
   // Check node_modules/.bin first
-  const localBin = path.resolve(__dirname, '..', 'node_modules', '.bin', 'opencode');
+  const localBin = path.resolve(
+    __dirname,
+    '..',
+    'node_modules',
+    '.bin',
+    'opencode'
+  );
   if (fs.existsSync(localBin)) {
     return localBin;
   }
@@ -158,7 +164,10 @@ async function startDevBrowserServer(): Promise<ChildProcess> {
   const devBrowserDir = path.resolve(__dirname, '..', 'skills', 'dev-browser');
   const serverScript = path.join(devBrowserDir, 'scripts', 'start-server.ts');
 
-  log('test-local-agent', `Starting dev-browser server on port ${TEST_LOCAL_AGENT_HTTP_PORT}...`);
+  log(
+    'test-local-agent',
+    `Starting dev-browser server on port ${TEST_LOCAL_AGENT_HTTP_PORT}...`
+  );
 
   // Run from dev-browser directory so tsconfig paths resolve correctly
   const serverProcess = spawn('npx', ['tsx', serverScript], {
@@ -195,7 +204,9 @@ async function startDevBrowserServer(): Promise<ChildProcess> {
     const pollInterval = 500;
     const poll = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:${TEST_LOCAL_AGENT_HTTP_PORT}/`);
+        const response = await fetch(
+          `http://127.0.0.1:${TEST_LOCAL_AGENT_HTTP_PORT}/`
+        );
         if (response.ok) {
           clearTimeout(timeout);
           resolve();
@@ -267,10 +278,14 @@ async function runOpenCode(
   return new Promise((resolve, reject) => {
     cliProcess.on('exit', (code) => {
       if (code === 0) {
-        console.log(`\n${colors.green}[test-local-agent] Task completed successfully${colors.reset}`);
+        console.log(
+          `\n${colors.green}[test-local-agent] Task completed successfully${colors.reset}`
+        );
         resolve();
       } else {
-        console.log(`\n${colors.red}[test-local-agent] Task failed with exit code ${code}${colors.reset}`);
+        console.log(
+          `\n${colors.red}[test-local-agent] Task failed with exit code ${code}${colors.reset}`
+        );
         reject(new Error(`Exit code ${code}`));
       }
     });
@@ -282,19 +297,28 @@ async function runOpenCode(
 /**
  * Format OpenCode JSON output for readability
  */
-function formatOutput(message: { type: string; part?: { text?: string; tool?: string; input?: unknown; output?: string } }): void {
+function formatOutput(message: {
+  type: string;
+  part?: { text?: string; tool?: string; input?: unknown; output?: string };
+}): void {
   switch (message.type) {
     case 'text':
       if (message.part?.text) {
-        console.log(`${colors.blue}[assistant]${colors.reset} ${message.part.text}`);
+        console.log(
+          `${colors.blue}[assistant]${colors.reset} ${message.part.text}`
+        );
       }
       break;
 
     case 'tool_call':
     case 'tool_use':
       if (message.part?.tool) {
-        const input = message.part.input ? JSON.stringify(message.part.input, null, 2) : '';
-        console.log(`${colors.yellow}[tool:${message.part.tool}]${colors.reset}`);
+        const input = message.part.input
+          ? JSON.stringify(message.part.input, null, 2)
+          : '';
+        console.log(
+          `${colors.yellow}[tool:${message.part.tool}]${colors.reset}`
+        );
         if (input && input !== '{}') {
           console.log(colors.dim + input + colors.reset);
         }
@@ -304,7 +328,9 @@ function formatOutput(message: { type: string; part?: { text?: string; tool?: st
     case 'tool_result':
       if (message.part?.output) {
         const output = message.part.output.substring(0, 500);
-        console.log(`${colors.green}[result]${colors.reset} ${output}${message.part.output.length > 500 ? '...' : ''}`);
+        console.log(
+          `${colors.green}[result]${colors.reset} ${output}${message.part.output.length > 500 ? '...' : ''}`
+        );
       }
       break;
 

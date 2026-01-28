@@ -29,7 +29,9 @@ export async function generateTaskSummary(prompt: string): Promise<string> {
     try {
       const summary = await callProvider(provider, apiKey, prompt);
       if (summary) {
-        console.log(`[Summarizer] Generated summary using ${provider}: "${summary}"`);
+        console.log(
+          `[Summarizer] Generated summary using ${provider}: "${summary}"`
+        );
         return summary;
       }
     } catch (error) {

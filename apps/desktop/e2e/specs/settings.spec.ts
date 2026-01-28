@@ -4,7 +4,9 @@ import { captureForAI } from '../utils';
 import { TEST_TIMEOUTS, TEST_SCENARIOS } from '../config';
 
 test.describe('Settings Dialog', () => {
-  test('should open settings dialog when clicking settings button', async ({ window }) => {
+  test('should open settings dialog when clicking settings button', async ({
+    window,
+  }) => {
     const settingsPage = new SettingsPage(window);
 
     // Fixture already handles hydration, just ensure DOM is ready
@@ -14,19 +16,16 @@ test.describe('Settings Dialog', () => {
     await settingsPage.navigateToSettings();
 
     // Capture settings dialog
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'dialog-open',
-      [
-        'Settings dialog is visible',
-        'Dialog contains provider grid',
-        'User can interact with settings'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'dialog-open', [
+      'Settings dialog is visible',
+      'Dialog contains provider grid',
+      'User can interact with settings',
+    ]);
 
     // Verify dialog opened by checking for provider grid
-    await expect(settingsPage.providerGrid).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.providerGrid).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
   });
 
   test('should display provider grid with cards', async ({ window }) => {
@@ -36,29 +35,30 @@ test.describe('Settings Dialog', () => {
     await settingsPage.navigateToSettings();
 
     // Verify provider grid is visible
-    await expect(settingsPage.providerGrid).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.providerGrid).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Capture provider grid
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'provider-grid',
-      [
-        'Provider grid is visible',
-        'Provider cards are displayed',
-        'User can select a provider'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'provider-grid', [
+      'Provider grid is visible',
+      'Provider cards are displayed',
+      'User can select a provider',
+    ]);
   });
 
-  test('should use 4-column grid layout without horizontal scroll', async ({ window }) => {
+  test('should use 4-column grid layout without horizontal scroll', async ({
+    window,
+  }) => {
     const settingsPage = new SettingsPage(window);
 
     await window.waitForLoadState('domcontentloaded');
     await settingsPage.navigateToSettings();
 
     // Wait for provider grid to be visible
-    await expect(settingsPage.providerGrid).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.providerGrid).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Get the settings dialog element
     const settingsDialog = window.getByTestId('settings-dialog');
@@ -89,19 +89,16 @@ test.describe('Settings Dialog', () => {
     await expect(settingsPage.getProviderCard('moonshot')).not.toBeVisible();
 
     // Capture for verification
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'grid-layout',
-      [
-        'Settings dialog uses 4-column grid layout',
-        'First 4 providers visible in collapsed view',
-        'No horizontal scroll needed'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'grid-layout', [
+      'Settings dialog uses 4-column grid layout',
+      'First 4 providers visible in collapsed view',
+      'No horizontal scroll needed',
+    ]);
   });
 
-  test('should display API key input when selecting a classic provider', async ({ window }) => {
+  test('should display API key input when selecting a classic provider', async ({
+    window,
+  }) => {
     const settingsPage = new SettingsPage(window);
 
     await window.waitForLoadState('domcontentloaded');
@@ -114,19 +111,16 @@ test.describe('Settings Dialog', () => {
     await settingsPage.apiKeyInput.scrollIntoViewIfNeeded();
 
     // Verify API key input is visible
-    await expect(settingsPage.apiKeyInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.apiKeyInput).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Capture API key section
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'api-key-section',
-      [
-        'API key input is visible',
-        'User can enter an API key',
-        'Input is accessible'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'api-key-section', [
+      'API key input is visible',
+      'User can enter an API key',
+      'Input is accessible',
+    ]);
   });
 
   test('should allow typing in API key input', async ({ window }) => {
@@ -149,16 +143,11 @@ test.describe('Settings Dialog', () => {
     await expect(settingsPage.apiKeyInput).toHaveValue(testKey);
 
     // Capture filled state
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'api-key-filled',
-      [
-        'API key input has value',
-        'Input accepts text entry',
-        'Value is correctly displayed'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'api-key-filled', [
+      'API key input has value',
+      'Input accepts text entry',
+      'Value is correctly displayed',
+    ]);
   });
 
   test('should display debug mode toggle', async ({ window }) => {
@@ -174,19 +163,16 @@ test.describe('Settings Dialog', () => {
     await settingsPage.debugModeToggle.scrollIntoViewIfNeeded();
 
     // Verify debug toggle is visible
-    await expect(settingsPage.debugModeToggle).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.debugModeToggle).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Capture debug section
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'debug-section',
-      [
-        'Debug mode toggle is visible',
-        'Toggle is clickable',
-        'Developer settings are accessible'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'debug-section', [
+      'Debug mode toggle is visible',
+      'Toggle is clickable',
+      'Developer settings are accessible',
+    ]);
   });
 
   test('should allow toggling debug mode', async ({ window }) => {
@@ -202,29 +188,19 @@ test.describe('Settings Dialog', () => {
     await settingsPage.debugModeToggle.scrollIntoViewIfNeeded();
 
     // Capture initial state
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'debug-before-toggle',
-      [
-        'Debug toggle in initial state',
-        'Toggle is ready to click'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'debug-before-toggle', [
+      'Debug toggle in initial state',
+      'Toggle is ready to click',
+    ]);
 
     // Click toggle - state change is immediate in React
     await settingsPage.toggleDebugMode();
 
     // Capture toggled state
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'debug-after-toggle',
-      [
-        'Debug toggle state changed',
-        'UI reflects new state'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'debug-after-toggle', [
+      'Debug toggle state changed',
+      'UI reflects new state',
+    ]);
   });
 
   test('should close dialog when pressing Escape', async ({ window }) => {
@@ -234,31 +210,32 @@ test.describe('Settings Dialog', () => {
     await settingsPage.navigateToSettings();
 
     // Verify dialog is open
-    await expect(settingsPage.providerGrid).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.providerGrid).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Press Escape to close dialog
     await window.keyboard.press('Escape');
 
     // Dialog might show warning if no provider is ready, click Close Anyway if visible
-    const closeAnywayVisible = await settingsPage.closeAnywayButton.isVisible().catch(() => false);
+    const closeAnywayVisible = await settingsPage.closeAnywayButton
+      .isVisible()
+      .catch(() => false);
     if (closeAnywayVisible) {
       await settingsPage.closeAnywayButton.click();
     }
 
     // Verify dialog closed (provider grid should not be visible)
-    await expect(settingsPage.providerGrid).not.toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.providerGrid).not.toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Capture closed state
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'dialog-closed',
-      [
-        'Dialog is closed',
-        'Main app is visible again',
-        'Settings are no longer shown'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'dialog-closed', [
+      'Dialog is closed',
+      'Main app is visible again',
+      'Settings are no longer shown',
+    ]);
   });
 
   test('should display DeepSeek provider card', async ({ window }) => {
@@ -272,22 +249,21 @@ test.describe('Settings Dialog', () => {
 
     // Verify DeepSeek provider card is visible
     const deepseekCard = settingsPage.getProviderCard('deepseek');
-    await expect(deepseekCard).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(deepseekCard).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Capture provider selection area
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'deepseek-provider-visible',
-      [
-        'DeepSeek provider card is visible in settings',
-        'Provider card can be clicked',
-        'User can select DeepSeek as their provider'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'deepseek-provider-visible', [
+      'DeepSeek provider card is visible in settings',
+      'Provider card can be clicked',
+      'User can select DeepSeek as their provider',
+    ]);
   });
 
-  test('should allow selecting DeepSeek provider and entering API key', async ({ window }) => {
+  test('should allow selecting DeepSeek provider and entering API key', async ({
+    window,
+  }) => {
     const settingsPage = new SettingsPage(window);
 
     await window.waitForLoadState('domcontentloaded');
@@ -307,16 +283,11 @@ test.describe('Settings Dialog', () => {
     await expect(settingsPage.apiKeyInput).toHaveValue(testKey);
 
     // Capture filled state
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'deepseek-api-key-filled',
-      [
-        'DeepSeek provider is selected',
-        'API key input accepts DeepSeek key format',
-        'Value is correctly displayed'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'deepseek-api-key-filled', [
+      'DeepSeek provider is selected',
+      'API key input accepts DeepSeek key format',
+      'Value is correctly displayed',
+    ]);
   });
 
   test('should display Z.AI provider card', async ({ window }) => {
@@ -333,19 +304,16 @@ test.describe('Settings Dialog', () => {
     await expect(zaiCard).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Capture provider selection area
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'zai-provider-visible',
-      [
-        'Z.AI provider card is visible in settings',
-        'Provider card can be clicked',
-        'User can select Z.AI as their provider'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'zai-provider-visible', [
+      'Z.AI provider card is visible in settings',
+      'Provider card can be clicked',
+      'User can select Z.AI as their provider',
+    ]);
   });
 
-  test('should allow selecting Z.AI provider and entering API key', async ({ window }) => {
+  test('should allow selecting Z.AI provider and entering API key', async ({
+    window,
+  }) => {
     const settingsPage = new SettingsPage(window);
 
     await window.waitForLoadState('domcontentloaded');
@@ -365,19 +333,16 @@ test.describe('Settings Dialog', () => {
     await expect(settingsPage.apiKeyInput).toHaveValue(testKey);
 
     // Capture filled state
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'zai-api-key-filled',
-      [
-        'Z.AI provider is selected',
-        'API key input accepts Z.AI key format',
-        'Value is correctly displayed'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'zai-api-key-filled', [
+      'Z.AI provider is selected',
+      'API key input accepts Z.AI key format',
+      'Value is correctly displayed',
+    ]);
   });
 
-  test('should display all provider cards when Show All is clicked', async ({ window }) => {
+  test('should display all provider cards when Show All is clicked', async ({
+    window,
+  }) => {
     const settingsPage = new SettingsPage(window);
 
     await window.waitForLoadState('domcontentloaded');
@@ -388,10 +353,20 @@ test.describe('Settings Dialog', () => {
 
     // Verify provider cards are visible (using provider IDs)
     const providerIds = [
-      'openai', 'anthropic', 'google', 'bedrock',
-      'moonshot', 'azure-foundry', 'deepseek', 'zai',
-      'ollama', 'lmstudio', 'xai', 'openrouter',
-      'litellm', 'minimax',
+      'openai',
+      'anthropic',
+      'google',
+      'bedrock',
+      'moonshot',
+      'azure-foundry',
+      'deepseek',
+      'zai',
+      'ollama',
+      'lmstudio',
+      'xai',
+      'openrouter',
+      'litellm',
+      'minimax',
     ];
 
     for (const providerId of providerIds) {
@@ -400,16 +375,11 @@ test.describe('Settings Dialog', () => {
     }
 
     // Capture all providers
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'all-providers-visible',
-      [
-        'All provider cards are visible',
-        'Provider grid shows complete selection',
-        'User can select any provider'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'all-providers-visible', [
+      'All provider cards are visible',
+      'Provider grid shows complete selection',
+      'User can select any provider',
+    ]);
   });
 
   test('should display OpenRouter provider card', async ({ window }) => {
@@ -423,7 +393,9 @@ test.describe('Settings Dialog', () => {
 
     // Verify OpenRouter provider card is visible
     const openrouterCard = settingsPage.getProviderCard('openrouter');
-    await expect(openrouterCard).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(openrouterCard).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Capture provider selection area
     await captureForAI(
@@ -433,12 +405,14 @@ test.describe('Settings Dialog', () => {
       [
         'OpenRouter provider card is visible in settings',
         'Provider card can be clicked',
-        'User can select OpenRouter as their provider'
+        'User can select OpenRouter as their provider',
       ]
     );
   });
 
-  test('should allow selecting OpenRouter provider and entering API key', async ({ window }) => {
+  test('should allow selecting OpenRouter provider and entering API key', async ({
+    window,
+  }) => {
     const settingsPage = new SettingsPage(window);
 
     await window.waitForLoadState('domcontentloaded');
@@ -458,16 +432,11 @@ test.describe('Settings Dialog', () => {
     await expect(settingsPage.apiKeyInput).toHaveValue(testKey);
 
     // Capture filled state
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'openrouter-api-key-filled',
-      [
-        'OpenRouter provider is selected',
-        'API key input accepts OpenRouter key format',
-        'Value is correctly displayed'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'openrouter-api-key-filled', [
+      'OpenRouter provider is selected',
+      'API key input accepts OpenRouter key format',
+      'Value is correctly displayed',
+    ]);
   });
 
   test('should show LiteLLM provider card and settings', async ({ window }) => {
@@ -483,19 +452,16 @@ test.describe('Settings Dialog', () => {
     await settingsPage.selectProvider('litellm');
 
     // Verify LiteLLM server URL input is visible
-    await expect(settingsPage.litellmServerUrlInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.litellmServerUrlInput).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Capture LiteLLM settings
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'litellm-settings',
-      [
-        'LiteLLM provider is selected',
-        'Server URL input is visible',
-        'User can configure LiteLLM connection'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'litellm-settings', [
+      'LiteLLM provider is selected',
+      'Server URL input is visible',
+      'User can configure LiteLLM connection',
+    ]);
   });
 
   test('should show Ollama provider card and settings', async ({ window }) => {
@@ -511,19 +477,16 @@ test.describe('Settings Dialog', () => {
     await settingsPage.selectProvider('ollama');
 
     // Verify Ollama server URL input is visible
-    await expect(settingsPage.ollamaServerUrlInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.ollamaServerUrlInput).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Capture Ollama settings
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'ollama-settings',
-      [
-        'Ollama provider is selected',
-        'Server URL input is visible',
-        'User can configure Ollama connection'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'ollama-settings', [
+      'Ollama provider is selected',
+      'Server URL input is visible',
+      'User can configure Ollama connection',
+    ]);
   });
 
   test('should filter providers with search', async ({ window }) => {
@@ -539,28 +502,27 @@ test.describe('Settings Dialog', () => {
     await settingsPage.searchProvider('anthropic');
 
     // Anthropic should be visible
-    await expect(settingsPage.getProviderCard('anthropic')).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.getProviderCard('anthropic')).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Other providers should not be visible
     await expect(settingsPage.getProviderCard('openai')).not.toBeVisible();
 
     // Capture filtered state
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'provider-search',
-      [
-        'Search filters provider cards',
-        'Only matching providers visible',
-        'Search functionality works'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'provider-search', [
+      'Search filters provider cards',
+      'Only matching providers visible',
+      'Search functionality works',
+    ]);
 
     // Clear search
     await settingsPage.clearSearch();
 
     // All providers should be visible again
-    await expect(settingsPage.getProviderCard('openai')).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.getProviderCard('openai')).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
   });
 
   /**
@@ -572,7 +534,9 @@ test.describe('Settings Dialog', () => {
    *
    * This test verifies Settings dialog opens correctly after a task completes.
    */
-  test('should open settings dialog after task completes without crashing', async ({ window }) => {
+  test('should open settings dialog after task completes without crashing', async ({
+    window,
+  }) => {
     const homePage = new HomePage(window);
     const executionPage = new ExecutionPage(window);
     const settingsPage = new SettingsPage(window);
@@ -584,7 +548,9 @@ test.describe('Settings Dialog', () => {
     await homePage.submitTask();
 
     // Step 2: Wait for navigation to execution page
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Step 3: Wait for task to complete
     await executionPage.waitForComplete();
@@ -597,23 +563,22 @@ test.describe('Settings Dialog', () => {
     await settingsPage.navigateToSettings();
 
     // Step 5: Verify settings dialog opened successfully (no crash/freeze)
-    await expect(settingsPage.providerGrid).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.providerGrid).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Additional verification: can interact with the dialog
-    const dialogTitle = window.getByRole('heading', { name: 'Set up Openwork' });
+    const dialogTitle = window.getByRole('heading', {
+      name: 'Set up Openwork',
+    });
     await expect(dialogTitle).toBeVisible();
 
     // Capture successful state
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'after-task-completion',
-      [
-        'Settings dialog opened successfully after task completion',
-        'No infinite loop or crash occurred',
-        'Dialog is fully functional'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'after-task-completion', [
+      'Settings dialog opened successfully after task completion',
+      'No infinite loop or crash occurred',
+      'Dialog is fully functional',
+    ]);
   });
 
   /**
@@ -627,7 +592,9 @@ test.describe('Settings Dialog', () => {
    * In the E2E test environment, no provider is connected/ready, so we test that
    * clicking to select a provider does NOT give it the green background.
    */
-  test('should only show green background on active ready provider, not on selected provider', async ({ window }) => {
+  test('should only show green background on active ready provider, not on selected provider', async ({
+    window,
+  }) => {
     const settingsPage = new SettingsPage(window);
 
     await window.waitForLoadState('domcontentloaded');
@@ -642,7 +609,9 @@ test.describe('Settings Dialog', () => {
 
     // Get the Anthropic card
     const anthropicCard = settingsPage.getProviderCard('anthropic');
-    await expect(anthropicCard).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(anthropicCard).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // In E2E test environment, no provider is active+ready, so Anthropic should have default bg
     const anthropicBgBefore = await anthropicCard.evaluate((el) => {
@@ -676,19 +645,16 @@ test.describe('Settings Dialog', () => {
     expect(zaiBgAfter).toBe(DEFAULT_BACKGROUND);
 
     // Capture for verification
-    await captureForAI(
-      window,
-      'settings-dialog',
-      'green-background-bug-test',
-      [
-        'Selected but non-ready provider does not have green background',
-        'Bug is fixed - isSelected does not trigger green background',
-        'Only active+ready providers should have green background'
-      ]
-    );
+    await captureForAI(window, 'settings-dialog', 'green-background-bug-test', [
+      'Selected but non-ready provider does not have green background',
+      'Bug is fixed - isSelected does not trigger green background',
+      'Only active+ready providers should have green background',
+    ]);
   });
 
-  test('should enable debug mode and show debug panel on execution page', async ({ window }) => {
+  test('should enable debug mode and show debug panel on execution page', async ({
+    window,
+  }) => {
     const homePage = new HomePage(window);
     const settingsPage = new SettingsPage(window);
 
@@ -699,7 +665,9 @@ test.describe('Settings Dialog', () => {
 
     // Debug toggle only shows when a provider is selected - select one first
     await settingsPage.getProviderCard('anthropic').click();
-    await expect(settingsPage.debugModeToggle).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.debugModeToggle).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     const toggleButton = settingsPage.debugModeToggle;
 
@@ -728,14 +696,18 @@ test.describe('Settings Dialog', () => {
     }
 
     // Wait for dialog to fully close (including animation)
-    await expect(settingsPage.settingsDialog).not.toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.settingsDialog).not.toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Step 3: Start a task
     await homePage.enterTask(TEST_SCENARIOS.SUCCESS.keyword);
     await homePage.submitTask();
 
     // Step 4: Wait for navigation to execution page
-    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await window.waitForURL(/.*#\/execution.*/, {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Step 5: Verify debug panel is visible on execution page
     // This is the key assertion - debug mode toggle in settings should affect execution page
@@ -743,16 +715,10 @@ test.describe('Settings Dialog', () => {
     await expect(debugPanel).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Capture the debug panel
-    await captureForAI(
-      window,
-      'execution-page',
-      'debug-panel-enabled',
-      [
-        'Debug panel is visible at bottom of execution page',
-        'Debug mode was successfully enabled in settings',
-        'Panel shows Debug Logs header'
-      ]
-    );
+    await captureForAI(window, 'execution-page', 'debug-panel-enabled', [
+      'Debug panel is visible at bottom of execution page',
+      'Debug mode was successfully enabled in settings',
+      'Panel shows Debug Logs header',
+    ]);
   });
-
 });

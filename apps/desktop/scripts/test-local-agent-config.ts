@@ -23,7 +23,10 @@ const __dirname = path.dirname(__filename);
 // Isolated ports for test local agent (avoid conflict with pnpm dev on 9224/9225)
 const TEST_LOCAL_AGENT_HTTP_PORT = 9226;
 const TEST_LOCAL_AGENT_CDP_PORT = 9227;
-const TEST_LOCAL_AGENT_CHROME_PROFILE = path.join(os.homedir(), '.accomplish-test-local-agent-chrome');
+const TEST_LOCAL_AGENT_CHROME_PROFILE = path.join(
+  os.homedir(),
+  '.accomplish-test-local-agent-chrome'
+);
 
 // Permission API ports (same as main app - these don't conflict)
 const PERMISSION_API_PORT = 3847;
@@ -43,7 +46,10 @@ interface OpenCodeConfig {
   default_agent?: string;
   enabled_providers?: string[];
   permission?: string;
-  agent?: Record<string, { description?: string; prompt?: string; mode?: string }>;
+  agent?: Record<
+    string,
+    { description?: string; prompt?: string; mode?: string }
+  >;
   mcp?: Record<string, McpServerConfig>;
   provider?: Record<string, unknown>;
 }
@@ -61,11 +67,12 @@ function getSkillsPath(): string {
  * Generate the system prompt for the Accomplish agent
  */
 function getSystemPrompt(): string {
-  const platformInstructions = process.platform === 'darwin'
-    ? 'You are running on macOS.'
-    : process.platform === 'win32'
-    ? 'You are running on Windows. Use PowerShell syntax.'
-    : 'You are running on Linux.';
+  const platformInstructions =
+    process.platform === 'darwin'
+      ? 'You are running on macOS.'
+      : process.platform === 'win32'
+        ? 'You are running on Windows. Use PowerShell syntax.'
+        : 'You are running on Linux.';
 
   return `<identity>
 You are Accomplish, a browser automation assistant.
@@ -124,7 +131,11 @@ export function generateTestLocalAgentConfig(): string {
     mcp: {
       'file-permission': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'file-permission', 'src', 'index.ts')],
+        command: [
+          'npx',
+          'tsx',
+          path.join(skillsPath, 'file-permission', 'src', 'index.ts'),
+        ],
         enabled: true,
         environment: {
           PERMISSION_API_PORT: String(PERMISSION_API_PORT),
@@ -133,7 +144,11 @@ export function generateTestLocalAgentConfig(): string {
       },
       'ask-user-question': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'ask-user-question', 'src', 'index.ts')],
+        command: [
+          'npx',
+          'tsx',
+          path.join(skillsPath, 'ask-user-question', 'src', 'index.ts'),
+        ],
         enabled: true,
         environment: {
           QUESTION_API_PORT: String(QUESTION_API_PORT),
@@ -142,7 +157,11 @@ export function generateTestLocalAgentConfig(): string {
       },
       'dev-browser-mcp': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts')],
+        command: [
+          'npx',
+          'tsx',
+          path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts'),
+        ],
         enabled: true,
         environment: {
           // Override ports for isolation
@@ -154,7 +173,11 @@ export function generateTestLocalAgentConfig(): string {
       },
       'complete-task': {
         type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'complete-task', 'src', 'index.ts')],
+        command: [
+          'npx',
+          'tsx',
+          path.join(skillsPath, 'complete-task', 'src', 'index.ts'),
+        ],
         enabled: true,
         timeout: 5000,
       },
@@ -165,14 +188,24 @@ export function generateTestLocalAgentConfig(): string {
   fs.writeFileSync(configPath, configJson);
 
   console.log('[test-local-agent] Config generated at:', configPath);
-  console.log('[test-local-agent] Using ports:', { http: TEST_LOCAL_AGENT_HTTP_PORT, cdp: TEST_LOCAL_AGENT_CDP_PORT });
-  console.log('[test-local-agent] Chrome profile:', TEST_LOCAL_AGENT_CHROME_PROFILE);
+  console.log('[test-local-agent] Using ports:', {
+    http: TEST_LOCAL_AGENT_HTTP_PORT,
+    cdp: TEST_LOCAL_AGENT_CDP_PORT,
+  });
+  console.log(
+    '[test-local-agent] Chrome profile:',
+    TEST_LOCAL_AGENT_CHROME_PROFILE
+  );
 
   return configPath;
 }
 
 // Export constants for use by CLI script
-export { TEST_LOCAL_AGENT_HTTP_PORT, TEST_LOCAL_AGENT_CDP_PORT, TEST_LOCAL_AGENT_CHROME_PROFILE };
+export {
+  TEST_LOCAL_AGENT_HTTP_PORT,
+  TEST_LOCAL_AGENT_CDP_PORT,
+  TEST_LOCAL_AGENT_CHROME_PROFILE,
+};
 
 // Allow running directly (ES module check)
 const isMainModule = import.meta.url === `file://${process.argv[1]}`;

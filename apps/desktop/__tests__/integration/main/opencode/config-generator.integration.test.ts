@@ -106,14 +106,23 @@ describe('OpenCode Config Generator Integration', () => {
     mockApp.isPackaged = false;
 
     // Create real temp directories for each test
-    tempUserDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opencode-config-test-userData-'));
-    tempAppDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opencode-config-test-app-'));
+    tempUserDataDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'opencode-config-test-userData-')
+    );
+    tempAppDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'opencode-config-test-app-')
+    );
 
     // Create skills directory structure in temp app dir
     const skillsDir = path.join(tempAppDir, 'skills');
     fs.mkdirSync(skillsDir, { recursive: true });
-    fs.mkdirSync(path.join(skillsDir, 'file-permission', 'src'), { recursive: true });
-    fs.writeFileSync(path.join(skillsDir, 'file-permission', 'src', 'index.ts'), '// mock file');
+    fs.mkdirSync(path.join(skillsDir, 'file-permission', 'src'), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(skillsDir, 'file-permission', 'src', 'index.ts'),
+      '// mock file'
+    );
 
     // Update mock to use temp directories
     mockApp.getAppPath.mockReturnValue(tempAppDir);
@@ -143,7 +152,8 @@ describe('OpenCode Config Generator Integration', () => {
         mockApp.isPackaged = false;
 
         // Act
-        const { getSkillsPath } = await import('@main/opencode/config-generator');
+        const { getSkillsPath } =
+          await import('@main/opencode/config-generator');
         const result = getSkillsPath();
 
         // Assert
@@ -157,10 +167,12 @@ describe('OpenCode Config Generator Integration', () => {
         mockApp.isPackaged = true;
         const resourcesPath = path.join(tempAppDir, 'Resources');
         fs.mkdirSync(resourcesPath, { recursive: true });
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+          resourcesPath;
 
         // Act
-        const { getSkillsPath } = await import('@main/opencode/config-generator');
+        const { getSkillsPath } =
+          await import('@main/opencode/config-generator');
         const result = getSkillsPath();
 
         // Assert
@@ -174,7 +186,8 @@ describe('OpenCode Config Generator Integration', () => {
       // Arrange - config dir does not exist initially
 
       // Act
-      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      const { generateOpenCodeConfig } =
+        await import('@main/opencode/config-generator');
       await generateOpenCodeConfig();
 
       // Assert - verify directory was created using real fs
@@ -189,7 +202,8 @@ describe('OpenCode Config Generator Integration', () => {
       const statBefore = fs.statSync(configDir);
 
       // Act
-      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      const { generateOpenCodeConfig } =
+        await import('@main/opencode/config-generator');
       await generateOpenCodeConfig();
 
       // Assert - directory still exists, no error
@@ -198,7 +212,8 @@ describe('OpenCode Config Generator Integration', () => {
 
     it('should write config file with correct structure', async () => {
       // Act
-      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      const { generateOpenCodeConfig } =
+        await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
 
       // Assert - read the real file
@@ -216,7 +231,8 @@ describe('OpenCode Config Generator Integration', () => {
 
     it('should include accomplish agent configuration', async () => {
       // Act
-      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      const { generateOpenCodeConfig } =
+        await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
 
       // Assert
@@ -224,7 +240,9 @@ describe('OpenCode Config Generator Integration', () => {
       const agent = config.agent['accomplish'];
 
       expect(agent).toBeDefined();
-      expect(agent.description).toBe('Browser automation assistant using dev-browser');
+      expect(agent.description).toBe(
+        'Browser automation assistant using dev-browser'
+      );
       expect(agent.mode).toBe('primary');
       expect(typeof agent.prompt).toBe('string');
       expect(agent.prompt.length).toBeGreaterThan(0);
@@ -232,7 +250,8 @@ describe('OpenCode Config Generator Integration', () => {
 
     it('should include MCP server configuration for file-permission', async () => {
       // Act
-      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      const { generateOpenCodeConfig } =
+        await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
 
       // Assert
@@ -249,7 +268,8 @@ describe('OpenCode Config Generator Integration', () => {
 
     it('should include platform-specific environment instructions', async () => {
       // Act
-      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      const { generateOpenCodeConfig } =
+        await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
 
       // Assert
@@ -264,21 +284,27 @@ describe('OpenCode Config Generator Integration', () => {
 
     it('should set OPENCODE_CONFIG environment variable after generation', async () => {
       // Act
-      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      const { generateOpenCodeConfig } =
+        await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
 
       // Assert
       expect(process.env.OPENCODE_CONFIG).toBe(configPath);
-      expect(configPath).toBe(path.join(tempUserDataDir, 'opencode', 'opencode.json'));
+      expect(configPath).toBe(
+        path.join(tempUserDataDir, 'opencode', 'opencode.json')
+      );
     });
 
     it('should return the config file path', async () => {
       // Act
-      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      const { generateOpenCodeConfig } =
+        await import('@main/opencode/config-generator');
       const result = await generateOpenCodeConfig();
 
       // Assert
-      expect(result).toBe(path.join(tempUserDataDir, 'opencode', 'opencode.json'));
+      expect(result).toBe(
+        path.join(tempUserDataDir, 'opencode', 'opencode.json')
+      );
       expect(fs.existsSync(result)).toBe(true);
     });
   });
@@ -286,18 +312,22 @@ describe('OpenCode Config Generator Integration', () => {
   describe('getOpenCodeConfigPath()', () => {
     it('should return config path in userData directory', async () => {
       // Act
-      const { getOpenCodeConfigPath } = await import('@main/opencode/config-generator');
+      const { getOpenCodeConfigPath } =
+        await import('@main/opencode/config-generator');
       const result = getOpenCodeConfigPath();
 
       // Assert
-      expect(result).toBe(path.join(tempUserDataDir, 'opencode', 'opencode.json'));
+      expect(result).toBe(
+        path.join(tempUserDataDir, 'opencode', 'opencode.json')
+      );
     });
   });
 
   describe('System Prompt Content', () => {
     it('should include browser automation guidance', async () => {
       // Act
-      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      const { generateOpenCodeConfig } =
+        await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
 
       // Assert
@@ -312,7 +342,8 @@ describe('OpenCode Config Generator Integration', () => {
 
     it('should include file permission rules', async () => {
       // Act
-      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      const { generateOpenCodeConfig } =
+        await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
 
       // Assert
@@ -325,7 +356,8 @@ describe('OpenCode Config Generator Integration', () => {
 
     it('should include user communication guidance', async () => {
       // Act
-      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      const { generateOpenCodeConfig } =
+        await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
 
       // Assert
@@ -340,7 +372,8 @@ describe('OpenCode Config Generator Integration', () => {
   describe('ACCOMPLISH_AGENT_NAME Export', () => {
     it('should export the agent name constant', async () => {
       // Act
-      const { ACCOMPLISH_AGENT_NAME } = await import('@main/opencode/config-generator');
+      const { ACCOMPLISH_AGENT_NAME } =
+        await import('@main/opencode/config-generator');
 
       // Assert
       expect(ACCOMPLISH_AGENT_NAME).toBe('accomplish');
@@ -350,7 +383,8 @@ describe('OpenCode Config Generator Integration', () => {
   describe('Config File Persistence', () => {
     it('should overwrite existing config file on regeneration', async () => {
       // Arrange - generate config first time
-      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      const { generateOpenCodeConfig } =
+        await import('@main/opencode/config-generator');
       const firstPath = await generateOpenCodeConfig();
       const firstContent = fs.readFileSync(firstPath, 'utf-8');
 
@@ -358,18 +392,22 @@ describe('OpenCode Config Generator Integration', () => {
       vi.resetModules();
 
       // Act - generate again
-      const { generateOpenCodeConfig: regenerate } = await import('@main/opencode/config-generator');
+      const { generateOpenCodeConfig: regenerate } =
+        await import('@main/opencode/config-generator');
       const secondPath = await regenerate();
       const secondContent = fs.readFileSync(secondPath, 'utf-8');
 
       // Assert - same path, same content structure
       expect(firstPath).toBe(secondPath);
-      expect(JSON.parse(firstContent).$schema).toBe(JSON.parse(secondContent).$schema);
+      expect(JSON.parse(firstContent).$schema).toBe(
+        JSON.parse(secondContent).$schema
+      );
     });
 
     it('should create valid JSON that can be parsed', async () => {
       // Act
-      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      const { generateOpenCodeConfig } =
+        await import('@main/opencode/config-generator');
       const configPath = await generateOpenCodeConfig();
 
       // Assert - should not throw when parsing

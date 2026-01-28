@@ -38,7 +38,9 @@ export class ExecutionPage {
 
   /** Get all question option buttons inside the permission modal */
   get questionOptions() {
-    return this.permissionModal.locator('button').filter({ hasText: /Option|Other/ });
+    return this.permissionModal
+      .locator('button')
+      .filter({ hasText: /Option|Other/ });
   }
 
   /** Get the custom response textarea (always visible below options) */
@@ -70,10 +72,17 @@ export class ExecutionPage {
     // Wait for status badge to show a completed state (not running)
     await this.page.waitForFunction(
       () => {
-        const badge = document.querySelector('[data-testid="execution-status-badge"]');
+        const badge = document.querySelector(
+          '[data-testid="execution-status-badge"]'
+        );
         if (!badge) return false;
         const text = badge.textContent?.toLowerCase() || '';
-        return text.includes('completed') || text.includes('failed') || text.includes('stopped') || text.includes('cancelled');
+        return (
+          text.includes('completed') ||
+          text.includes('failed') ||
+          text.includes('stopped') ||
+          text.includes('cancelled')
+        );
       },
       { timeout: TEST_TIMEOUTS.TASK_COMPLETE_WAIT }
     );

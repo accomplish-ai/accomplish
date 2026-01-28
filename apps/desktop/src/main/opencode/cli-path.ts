@@ -9,7 +9,10 @@ import { execSync } from 'child_process';
  * On Windows: The binary is in a platform-specific package (opencode-windows-x64)
  * On macOS/Linux: The binary is in the main opencode-ai package
  */
-function getOpenCodePlatformInfo(): { packageName: string; binaryName: string } {
+function getOpenCodePlatformInfo(): {
+  packageName: string;
+  binaryName: string;
+} {
   if (process.platform === 'win32') {
     // On Windows, use the platform-specific package
     return {
@@ -35,7 +38,12 @@ function getNvmOpenCodePaths(): string[] {
     if (fs.existsSync(nvmVersionsDir)) {
       const versions = fs.readdirSync(nvmVersionsDir);
       for (const version of versions) {
-        const opencodePath = path.join(nvmVersionsDir, version, 'bin', 'opencode');
+        const opencodePath = path.join(
+          nvmVersionsDir,
+          version,
+          'bin',
+          'opencode'
+        );
         if (fs.existsSync(opencodePath)) {
           paths.push(opencodePath);
         }
@@ -88,7 +96,12 @@ export function getOpenCodeCliPath(): { command: string; args: string[] } {
     // Try bundled CLI in node_modules first (unless preferGlobal)
     // Use app.getAppPath() instead of process.cwd() as cwd is unpredictable in Electron IPC handlers
     const binName = process.platform === 'win32' ? 'opencode.cmd' : 'opencode';
-    const devCliPath = path.join(app.getAppPath(), 'node_modules', '.bin', binName);
+    const devCliPath = path.join(
+      app.getAppPath(),
+      'node_modules',
+      '.bin',
+      binName
+    );
     if (!preferGlobal && fs.existsSync(devCliPath)) {
       console.log('[CLI Path] Using bundled CLI:', devCliPath);
       return { command: devCliPath, args: [] };
@@ -102,18 +115,19 @@ export function getOpenCodeCliPath(): { command: string; args: string[] } {
     }
 
     // Check other global installations (platform-specific)
-    const globalOpenCodePaths = process.platform === 'win32'
-      ? [
-          // Windows: npm global installs
-          path.join(process.env.APPDATA || '', 'npm', 'opencode.cmd'),
-          path.join(process.env.LOCALAPPDATA || '', 'npm', 'opencode.cmd'),
-        ]
-      : [
-          // macOS/Linux: Global npm
-          '/usr/local/bin/opencode',
-          // Homebrew
-          '/opt/homebrew/bin/opencode',
-        ];
+    const globalOpenCodePaths =
+      process.platform === 'win32'
+        ? [
+            // Windows: npm global installs
+            path.join(process.env.APPDATA || '', 'npm', 'opencode.cmd'),
+            path.join(process.env.LOCALAPPDATA || '', 'npm', 'opencode.cmd'),
+          ]
+        : [
+            // macOS/Linux: Global npm
+            '/usr/local/bin/opencode',
+            // Homebrew
+            '/opt/homebrew/bin/opencode',
+          ];
 
     for (const opencodePath of globalOpenCodePaths) {
       if (fs.existsSync(opencodePath)) {
@@ -140,7 +154,8 @@ export function getOpenCodeCliPath(): { command: string; args: string[] } {
  */
 function isOpenCodeOnPath(): boolean {
   try {
-    const command = process.platform === 'win32' ? 'where opencode' : 'which opencode';
+    const command =
+      process.platform === 'win32' ? 'where opencode' : 'which opencode';
     execSync(command, { stdio: ['pipe', 'pipe', 'pipe'] });
     return true;
   } catch {
@@ -170,8 +185,14 @@ export function isOpenCodeBundled(): boolean {
       // In dev mode, actually verify the CLI exists
 
       // Prefer bundled CLI for dev consistency.
-      const binName = process.platform === 'win32' ? 'opencode.cmd' : 'opencode';
-      const devCliPath = path.join(app.getAppPath(), 'node_modules', '.bin', binName);
+      const binName =
+        process.platform === 'win32' ? 'opencode.cmd' : 'opencode';
+      const devCliPath = path.join(
+        app.getAppPath(),
+        'node_modules',
+        '.bin',
+        binName
+      );
       if (fs.existsSync(devCliPath)) {
         return true;
       }
@@ -183,18 +204,19 @@ export function isOpenCodeBundled(): boolean {
       }
 
       // Check other global installations (platform-specific)
-      const globalOpenCodePaths = process.platform === 'win32'
-        ? [
-            // Windows: npm global installs
-            path.join(process.env.APPDATA || '', 'npm', 'opencode.cmd'),
-            path.join(process.env.LOCALAPPDATA || '', 'npm', 'opencode.cmd'),
-          ]
-        : [
-            // macOS/Linux: Global npm
-            '/usr/local/bin/opencode',
-            // Homebrew
-            '/opt/homebrew/bin/opencode',
-          ];
+      const globalOpenCodePaths =
+        process.platform === 'win32'
+          ? [
+              // Windows: npm global installs
+              path.join(process.env.APPDATA || '', 'npm', 'opencode.cmd'),
+              path.join(process.env.LOCALAPPDATA || '', 'npm', 'opencode.cmd'),
+            ]
+          : [
+              // macOS/Linux: Global npm
+              '/usr/local/bin/opencode',
+              // Homebrew
+              '/opt/homebrew/bin/opencode',
+            ];
 
       for (const opencodePath of globalOpenCodePaths) {
         if (fs.existsSync(opencodePath)) {
@@ -241,14 +263,15 @@ export function getBundledOpenCodeVersion(): string | null {
     } else {
       // In dev mode, run the CLI to get version
       const { command, args } = getOpenCodeCliPath();
-      const fullCommand = args.length > 0
-        ? `"${command}" ${args.map(a => `"${a}"`).join(' ')} --version`
-        : `"${command}" --version`;
+      const fullCommand =
+        args.length > 0
+          ? `"${command}" ${args.map((a) => `"${a}"`).join(' ')} --version`
+          : `"${command}" --version`;
 
       const output = execSync(fullCommand, {
         encoding: 'utf-8',
         timeout: 5000,
-        stdio: ['pipe', 'pipe', 'pipe']
+        stdio: ['pipe', 'pipe', 'pipe'],
       }).trim();
 
       // Parse version from output (e.g., "opencode 1.0.0" or just "1.0.0")

@@ -66,5 +66,5 @@ export function isWaitingForUser(content: string): boolean {
     /waiting for (your|the user|manual|human)/i,
   ];
 
-  return waitingPatterns.some(pattern => pattern.test(content));
+  return waitingPatterns.some((pattern) => pattern.test(content));
 }

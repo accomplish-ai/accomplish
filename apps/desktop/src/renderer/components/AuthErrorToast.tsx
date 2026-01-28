@@ -21,7 +21,11 @@ const PROVIDER_NAMES: Record<string, string> = {
   litellm: 'LiteLLM',
 };
 
-export function AuthErrorToast({ error, onReLogin, onDismiss }: AuthErrorToastProps) {
+export function AuthErrorToast({
+  error,
+  onReLogin,
+  onDismiss,
+}: AuthErrorToastProps) {
   if (!error) return null;
 
   const providerName = PROVIDER_NAMES[error.providerId] || error.providerId;

@@ -42,7 +42,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'AskUserQuestion',
       description:
-        'Ask the user a question and wait for their response. Use this for clarifications, confirmations before sensitive actions, or when you need user input to proceed. Returns the user\'s selected option(s) or custom text response.',
+        "Ask the user a question and wait for their response. Use this for clarifications, confirmations before sensitive actions, or when you need user input to proceed. Returns the user's selected option(s) or custom text response.",
       inputSchema: {
         type: 'object',
         properties: {
@@ -58,7 +58,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                 },
                 header: {
                   type: 'string',
-                  description: 'Short header/category for the question (max 12 chars)',
+                  description:
+                    'Short header/category for the question (max 12 chars)',
                 },
                 options: {
                   type: 'array',
@@ -97,91 +98,118 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 }));
 
 // Handle tool calls
-server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
-  if (request.params.name !== 'AskUserQuestion') {
-    return {
-      content: [{ type: 'text', text: `Error: Unknown tool: ${request.params.name}` }],
-      isError: true,
-    };
-  }
-
-  const args = request.params.arguments as AskUserQuestionInput;
-  const { questions } = args;
-
-  // Validate required fields
-  if (!questions || questions.length === 0) {
-    return {
-      content: [{ type: 'text', text: 'Error: At least one question is required' }],
-      isError: true,
-    };
-  }
-
-  const question = questions[0];
-  if (!question.question) {
-    return {
-      content: [{ type: 'text', text: 'Error: Question text is required' }],
-      isError: true,
-    };
-  }
-
-  try {
-    // Call Electron main process HTTP endpoint
-    const response = await fetch(QUESTION_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        question: question.question,
-        header: question.header,
-        options: question.options,
-        multiSelect: question.multiSelect,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
+server.setRequestHandler(
+  CallToolRequestSchema,
+  async (request): Promise<CallToolResult> => {
+    if (request.params.name !== 'AskUserQuestion') {
       return {
-        content: [{ type: 'text', text: `Error: Question API returned ${response.status}: ${errorText}` }],
+        content: [
+          { type: 'text', text: `Error: Unknown tool: ${request.params.name}` },
+        ],
         isError: true,
       };
     }
 
-    const result = (await response.json()) as {
-      answered: boolean;
-      selectedOptions?: string[];
-      customText?: string;
-      denied?: boolean;
-    };
+    const args = request.params.arguments as AskUserQuestionInput;
+    const { questions } = args;
 
-    if (result.denied) {
+    // Validate required fields
+    if (!questions || questions.length === 0) {
       return {
-        content: [{ type: 'text', text: 'User declined to answer the question.' }],
+        content: [
+          { type: 'text', text: 'Error: At least one question is required' },
+        ],
+        isError: true,
       };
     }
 
-    // Format response for the agent
-    if (result.selectedOptions && result.selectedOptions.length > 0) {
+    const question = questions[0];
+    if (!question.question) {
       return {
-        content: [{ type: 'text', text: `User selected: ${result.selectedOptions.join(', ')}` }],
+        content: [{ type: 'text', text: 'Error: Question text is required' }],
+        isError: true,
       };
     }
 
-    if (result.customText) {
+    try {
+      // Call Electron main process HTTP endpoint
+      const response = await fetch(QUESTION_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: question.question,
+          header: question.header,
+          options: question.options,
+          multiSelect: question.multiSelect,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: Question API returned ${response.status}: ${errorText}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      const result = (await response.json()) as {
+        answered: boolean;
+        selectedOptions?: string[];
+        customText?: string;
+        denied?: boolean;
+      };
+
+      if (result.denied) {
+        return {
+          content: [
+            { type: 'text', text: 'User declined to answer the question.' },
+          ],
+        };
+      }
+
+      // Format response for the agent
+      if (result.selectedOptions && result.selectedOptions.length > 0) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `User selected: ${result.selectedOptions.join(', ')}`,
+            },
+          ],
+        };
+      }
+
+      if (result.customText) {
+        return {
+          content: [
+            { type: 'text', text: `User responded: ${result.customText}` },
+          ],
+        };
+      }
+
       return {
-        content: [{ type: 'text', text: `User responded: ${result.customText}` }],
+        content: [{ type: 'text', text: 'User provided no response.' }],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error: Failed to ask question: ${errorMessage}`,
+          },
+        ],
+        isError: true,
       };
     }
-
-    return {
-      content: [{ type: 'text', text: 'User provided no response.' }],
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return {
-      content: [{ type: 'text', text: `Error: Failed to ask question: ${errorMessage}` }],
-      isError: true,
-    };
   }
-});
+);
 
 // Start the MCP server
 async function main() {

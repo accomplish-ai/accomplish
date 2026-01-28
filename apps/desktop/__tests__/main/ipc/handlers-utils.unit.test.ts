@@ -23,7 +23,11 @@ const MAX_TEXT_LENGTH = 8000;
 /**
  * Sanitize and validate string input
  */
-function sanitizeString(input: unknown, field: string, maxLength = MAX_TEXT_LENGTH): string {
+function sanitizeString(
+  input: unknown,
+  field: string,
+  maxLength = MAX_TEXT_LENGTH
+): string {
   if (typeof input !== 'string') {
     throw new Error(`${field} must be a string`);
   }
@@ -56,12 +60,21 @@ function createMessageId(): string {
  */
 function extractScreenshots(output: string): {
   cleanedText: string;
-  attachments: Array<{ type: 'screenshot' | 'json'; data: string; label?: string }>;
+  attachments: Array<{
+    type: 'screenshot' | 'json';
+    data: string;
+    label?: string;
+  }>;
 } {
-  const attachments: Array<{ type: 'screenshot' | 'json'; data: string; label?: string }> = [];
+  const attachments: Array<{
+    type: 'screenshot' | 'json';
+    data: string;
+    label?: string;
+  }> = [];
 
   // Match data URLs (data:image/png;base64,...)
-  const dataUrlRegex = /data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+/g;
+  const dataUrlRegex =
+    /data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+/g;
   let match;
   while ((match = dataUrlRegex.exec(output)) !== null) {
     attachments.push({
@@ -72,7 +85,8 @@ function extractScreenshots(output: string): {
   }
 
   // Also check for raw base64 PNG (starts with iVBORw0)
-  const rawBase64Regex = /(?<![;,])(?:^|["\s])?(iVBORw0[A-Za-z0-9+/=]{100,})(?:["\s]|$)/g;
+  const rawBase64Regex =
+    /(?<![;,])(?:^|["\s])?(iVBORw0[A-Za-z0-9+/=]{100,})(?:["\s]|$)/g;
   while ((match = rawBase64Regex.exec(output)) !== null) {
     const base64Data = match[1];
     if (base64Data && base64Data.length > 100) {
@@ -91,7 +105,10 @@ function extractScreenshots(output: string): {
 
   cleanedText = cleanedText
     .replace(/"[Screenshot captured]"/g, '"[Screenshot]"')
-    .replace(/\[Screenshot captured\]\[Screenshot captured\]/g, '[Screenshot captured]');
+    .replace(
+      /\[Screenshot captured\]\[Screenshot captured\]/g,
+      '[Screenshot captured]'
+    );
 
   return { cleanedText, attachments };
 }
@@ -193,32 +210,44 @@ describe('handlers-utils', () => {
     describe('invalid inputs', () => {
       it('should throw error for non-string (number)', () => {
         // Act & Assert
-        expect(() => sanitizeString(123, 'field')).toThrow('field must be a string');
+        expect(() => sanitizeString(123, 'field')).toThrow(
+          'field must be a string'
+        );
       });
 
       it('should throw error for non-string (object)', () => {
         // Act & Assert
-        expect(() => sanitizeString({}, 'field')).toThrow('field must be a string');
+        expect(() => sanitizeString({}, 'field')).toThrow(
+          'field must be a string'
+        );
       });
 
       it('should throw error for non-string (array)', () => {
         // Act & Assert
-        expect(() => sanitizeString(['a', 'b'], 'field')).toThrow('field must be a string');
+        expect(() => sanitizeString(['a', 'b'], 'field')).toThrow(
+          'field must be a string'
+        );
       });
 
       it('should throw error for non-string (null)', () => {
         // Act & Assert
-        expect(() => sanitizeString(null, 'field')).toThrow('field must be a string');
+        expect(() => sanitizeString(null, 'field')).toThrow(
+          'field must be a string'
+        );
       });
 
       it('should throw error for non-string (undefined)', () => {
         // Act & Assert
-        expect(() => sanitizeString(undefined, 'field')).toThrow('field must be a string');
+        expect(() => sanitizeString(undefined, 'field')).toThrow(
+          'field must be a string'
+        );
       });
 
       it('should throw error for non-string (boolean)', () => {
         // Act & Assert
-        expect(() => sanitizeString(true, 'field')).toThrow('field must be a string');
+        expect(() => sanitizeString(true, 'field')).toThrow(
+          'field must be a string'
+        );
       });
 
       it('should throw error for empty string', () => {
@@ -228,7 +257,9 @@ describe('handlers-utils', () => {
 
       it('should throw error for whitespace-only string', () => {
         // Act & Assert
-        expect(() => sanitizeString('   \t\n  ', 'field')).toThrow('field is required');
+        expect(() => sanitizeString('   \t\n  ', 'field')).toThrow(
+          'field is required'
+        );
       });
 
       it('should throw error for string exceeding max length', () => {
@@ -243,8 +274,12 @@ describe('handlers-utils', () => {
 
       it('should use field name in error message', () => {
         // Act & Assert
-        expect(() => sanitizeString(123, 'customField')).toThrow('customField must be a string');
-        expect(() => sanitizeString('', 'anotherField')).toThrow('anotherField is required');
+        expect(() => sanitizeString(123, 'customField')).toThrow(
+          'customField must be a string'
+        );
+        expect(() => sanitizeString('', 'anotherField')).toThrow(
+          'anotherField is required'
+        );
         expect(() => sanitizeString('abc', 'lengthField', 2)).toThrow(
           'lengthField exceeds maximum length'
         );
@@ -391,7 +426,8 @@ describe('handlers-utils', () => {
     describe('data URL extraction', () => {
       it('should extract PNG data URL', () => {
         // Arrange
-        const output = 'Here is the screenshot: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg== done';
+        const output =
+          'Here is the screenshot: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg== done';
 
         // Act
         const result = extractScreenshots(output);
@@ -405,7 +441,8 @@ describe('handlers-utils', () => {
 
       it('should extract JPEG data URL', () => {
         // Arrange
-        const output = 'Image: data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD end';
+        const output =
+          'Image: data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD end';
 
         // Act
         const result = extractScreenshots(output);
@@ -417,7 +454,8 @@ describe('handlers-utils', () => {
 
       it('should extract WebP data URL', () => {
         // Arrange
-        const output = 'data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAQAcJaQAA3AA/v3AgAA=';
+        const output =
+          'data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAQAcJaQAA3AA/v3AgAA=';
 
         // Act
         const result = extractScreenshots(output);
@@ -429,7 +467,8 @@ describe('handlers-utils', () => {
 
       it('should extract multiple data URLs', () => {
         // Arrange
-        const output = 'First: data:image/png;base64,AAAA Second: data:image/jpeg;base64,BBBB end';
+        const output =
+          'First: data:image/png;base64,AAAA Second: data:image/jpeg;base64,BBBB end';
 
         // Act
         const result = extractScreenshots(output);
@@ -462,7 +501,9 @@ describe('handlers-utils', () => {
 
         // Assert
         expect(result.attachments.length).toBeGreaterThanOrEqual(1);
-        const pngAttachment = result.attachments.find((a) => a.data.includes('iVBORw0'));
+        const pngAttachment = result.attachments.find((a) =>
+          a.data.includes('iVBORw0')
+        );
         expect(pngAttachment).toBeDefined();
         expect(pngAttachment?.data).toContain('data:image/png;base64,');
       });
@@ -488,7 +529,9 @@ describe('handlers-utils', () => {
         const result = extractScreenshots(output);
 
         // Assert
-        expect(result.cleanedText).not.toContain('[Screenshot captured][Screenshot captured]');
+        expect(result.cleanedText).not.toContain(
+          '[Screenshot captured][Screenshot captured]'
+        );
       });
 
       it('should handle JSON-wrapped screenshots', () => {
@@ -518,7 +561,8 @@ describe('handlers-utils', () => {
 
       it('should preserve non-image content', () => {
         // Arrange
-        const output = 'Start data:image/png;base64,AAA middle data:image/jpeg;base64,BBB end';
+        const output =
+          'Start data:image/png;base64,AAA middle data:image/jpeg;base64,BBB end';
 
         // Act
         const result = extractScreenshots(output);
@@ -569,7 +613,8 @@ describe('handlers-utils', () => {
 
       it('should handle multiple ANSI sequences', () => {
         // Arrange
-        const output = '\x1b[31mRed\x1b[0m \x1b[32mGreen\x1b[0m \x1b[34mBlue\x1b[0m';
+        const output =
+          '\x1b[31mRed\x1b[0m \x1b[32mGreen\x1b[0m \x1b[34mBlue\x1b[0m';
 
         // Act
         const result = sanitizeToolOutput(output, false);
@@ -582,7 +627,8 @@ describe('handlers-utils', () => {
     describe('WebSocket URL removal', () => {
       it('should replace WebSocket URLs with [connection]', () => {
         // Arrange
-        const output = 'Connected to ws://localhost:9222/devtools/browser/abc123';
+        const output =
+          'Connected to ws://localhost:9222/devtools/browser/abc123';
 
         // Act
         const result = sanitizeToolOutput(output, false);
@@ -608,7 +654,8 @@ describe('handlers-utils', () => {
     describe('Call log removal', () => {
       it('should remove Call log section and everything after', () => {
         // Arrange
-        const output = 'Important output\nCall log:\n- step 1\n- step 2\n- step 3';
+        const output =
+          'Important output\nCall log:\n- step 1\n- step 2\n- step 3';
 
         // Act
         const result = sanitizeToolOutput(output, false);
@@ -634,7 +681,8 @@ describe('handlers-utils', () => {
     describe('error mode processing', () => {
       it('should simplify timeout errors', () => {
         // Arrange
-        const output = 'TimeoutError: Operation timed out after 30000ms waiting for selector';
+        const output =
+          'TimeoutError: Operation timed out after 30000ms waiting for selector';
 
         // Act
         const result = sanitizeToolOutput(output, true);
@@ -659,7 +707,8 @@ describe('handlers-utils', () => {
 
       it('should extract message from Protocol error', () => {
         // Arrange
-        const output = 'Protocol error (Runtime.callFunctionOn): Target closed.';
+        const output =
+          'Protocol error (Runtime.callFunctionOn): Target closed.';
 
         // Act
         const result = sanitizeToolOutput(output, true);
@@ -693,7 +742,8 @@ describe('handlers-utils', () => {
 
       it('should remove stack traces', () => {
         // Arrange
-        const output = 'Error message\n    at Function.run (/path/to/file.js:10:5)\n    at async Context.<anonymous>';
+        const output =
+          'Error message\n    at Function.run (/path/to/file.js:10:5)\n    at async Context.<anonymous>';
 
         // Act
         const result = sanitizeToolOutput(output, true);
@@ -760,7 +810,8 @@ describe('handlers-utils', () => {
     describe('complex scenarios', () => {
       it('should handle combined ANSI codes, URLs, and call logs', () => {
         // Arrange
-        const output = '\x1b[32mConnected to ws://localhost:9222/debug\x1b[0m\nDoing work...\nCall log:\n- internal step';
+        const output =
+          '\x1b[32mConnected to ws://localhost:9222/debug\x1b[0m\nDoing work...\nCall log:\n- internal step';
 
         // Act
         const result = sanitizeToolOutput(output, false);
@@ -771,7 +822,8 @@ describe('handlers-utils', () => {
 
       it('should handle error mode with multiple cleanup patterns', () => {
         // Arrange
-        const output = '\x1b[31mError executing code: SomeError: timed out after 5000ms\x1b[0m\n    at something\nCall log:\n- step';
+        const output =
+          '\x1b[31mError executing code: SomeError: timed out after 5000ms\x1b[0m\n    at something\nCall log:\n- step';
 
         // Act
         const result = sanitizeToolOutput(output, true);

@@ -5,10 +5,20 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { Task, TaskConfig, TaskStatus, TaskMessage, TaskResult } from '@accomplish/shared';
+import type {
+  Task,
+  TaskConfig,
+  TaskStatus,
+  TaskMessage,
+  TaskResult,
+} from '@accomplish/shared';
 
 // Helper to create a mock task
-function createMockTask(id: string, prompt: string = 'Test task', status: TaskStatus = 'pending'): Task {
+function createMockTask(
+  id: string,
+  prompt: string = 'Test task',
+  status: TaskStatus = 'pending'
+): Task {
   return {
     id,
     prompt,
@@ -44,7 +54,9 @@ const mockAccomplish = {
   deleteTask: vi.fn(),
   clearTaskHistory: vi.fn(),
   logEvent: vi.fn().mockResolvedValue(undefined),
-  getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
+  getSelectedModel: vi
+    .fn()
+    .mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
   getOllamaConfig: vi.fn().mockResolvedValue(null),
   isE2EMode: vi.fn().mockResolvedValue(false),
   getProviderSettings: vi.fn().mockResolvedValue({
@@ -223,7 +235,9 @@ describe('taskStore Integration', () => {
       mockAccomplish.startTask.mockRejectedValueOnce(new Error('API Error'));
 
       // Act
-      const result = await useTaskStore.getState().startTask({ prompt: 'Test prompt' });
+      const result = await useTaskStore
+        .getState()
+        .startTask({ prompt: 'Test prompt' });
       const state = useTaskStore.getState();
 
       // Assert
@@ -238,7 +252,9 @@ describe('taskStore Integration', () => {
       mockAccomplish.startTask.mockRejectedValueOnce('String error');
 
       // Act
-      const result = await useTaskStore.getState().startTask({ prompt: 'Test' });
+      const result = await useTaskStore
+        .getState()
+        .startTask({ prompt: 'Test' });
       const state = useTaskStore.getState();
 
       // Assert
@@ -274,7 +290,9 @@ describe('taskStore Integration', () => {
       useTaskStore.setState({ tasks: [existingTask] });
 
       // Act
-      await useTaskStore.getState().startTask({ prompt: 'New prompt', taskId: 'task-123' });
+      await useTaskStore
+        .getState()
+        .startTask({ prompt: 'New prompt', taskId: 'task-123' });
       const state = useTaskStore.getState();
 
       // Assert
@@ -299,7 +317,11 @@ describe('taskStore Integration', () => {
     it('should set error when task has no session', async () => {
       // Arrange
       const { useTaskStore } = await import('@/stores/taskStore');
-      const taskWithoutSession = createMockTask('task-123', 'Test', 'completed');
+      const taskWithoutSession = createMockTask(
+        'task-123',
+        'Test',
+        'completed'
+      );
       useTaskStore.setState({ currentTask: taskWithoutSession });
 
       // Act
@@ -307,7 +329,9 @@ describe('taskStore Integration', () => {
       const state = useTaskStore.getState();
 
       // Assert
-      expect(state.error).toBe('No session to continue - please start a new task');
+      expect(state.error).toBe(
+        'No session to continue - please start a new task'
+      );
     });
 
     it('should start fresh task for interrupted task without session', async () => {
@@ -319,7 +343,10 @@ describe('taskStore Integration', () => {
       const newTask = createMockTask('task-456', 'Fresh start', 'running');
       mockAccomplish.startTask.mockResolvedValueOnce(newTask);
 
-      useTaskStore.setState({ currentTask: interruptedTask, tasks: [interruptedTask] });
+      useTaskStore.setState({
+        currentTask: interruptedTask,
+        tasks: [interruptedTask],
+      });
 
       // Act
       await useTaskStore.getState().sendFollowUp('New message');
@@ -338,14 +365,21 @@ describe('taskStore Integration', () => {
       const resumedTask = createMockTask('task-123', 'Test', 'running');
       mockAccomplish.resumeSession.mockResolvedValueOnce(resumedTask);
 
-      useTaskStore.setState({ currentTask: taskWithSession, tasks: [taskWithSession] });
+      useTaskStore.setState({
+        currentTask: taskWithSession,
+        tasks: [taskWithSession],
+      });
 
       // Act
       await useTaskStore.getState().sendFollowUp('Continue please');
       const state = useTaskStore.getState();
 
       // Assert
-      expect(mockAccomplish.resumeSession).toHaveBeenCalledWith('session-abc', 'Continue please', 'task-123');
+      expect(mockAccomplish.resumeSession).toHaveBeenCalledWith(
+        'session-abc',
+        'Continue please',
+        'task-123'
+      );
       expect(state.currentTask?.status).toBe('running');
     });
 
@@ -359,13 +393,20 @@ describe('taskStore Integration', () => {
       const resumedTask = createMockTask('task-123', 'Test', 'running');
       mockAccomplish.resumeSession.mockResolvedValueOnce(resumedTask);
 
-      useTaskStore.setState({ currentTask: taskWithResultSession, tasks: [taskWithResultSession] });
+      useTaskStore.setState({
+        currentTask: taskWithResultSession,
+        tasks: [taskWithResultSession],
+      });
 
       // Act
       await useTaskStore.getState().sendFollowUp('More work');
 
       // Assert
-      expect(mockAccomplish.resumeSession).toHaveBeenCalledWith('result-session-xyz', 'More work', 'task-123');
+      expect(mockAccomplish.resumeSession).toHaveBeenCalledWith(
+        'result-session-xyz',
+        'More work',
+        'task-123'
+      );
     });
 
     it('should add user message optimistically', async () => {
@@ -376,9 +417,14 @@ describe('taskStore Integration', () => {
         sessionId: 'session-abc',
         messages: [],
       };
-      mockAccomplish.resumeSession.mockResolvedValueOnce(createMockTask('task-123', 'Test', 'running'));
+      mockAccomplish.resumeSession.mockResolvedValueOnce(
+        createMockTask('task-123', 'Test', 'running')
+      );
 
-      useTaskStore.setState({ currentTask: taskWithSession, tasks: [taskWithSession] });
+      useTaskStore.setState({
+        currentTask: taskWithSession,
+        tasks: [taskWithSession],
+      });
 
       // Act
       await useTaskStore.getState().sendFollowUp('User follow up');
@@ -397,9 +443,14 @@ describe('taskStore Integration', () => {
         ...createMockTask('task-123', 'Test', 'completed'),
         sessionId: 'session-abc',
       };
-      mockAccomplish.resumeSession.mockRejectedValueOnce(new Error('Resume failed'));
+      mockAccomplish.resumeSession.mockRejectedValueOnce(
+        new Error('Resume failed')
+      );
 
-      useTaskStore.setState({ currentTask: taskWithSession, tasks: [taskWithSession] });
+      useTaskStore.setState({
+        currentTask: taskWithSession,
+        tasks: [taskWithSession],
+      });
 
       // Act
       await useTaskStore.getState().sendFollowUp('Follow up');
@@ -500,7 +551,9 @@ describe('taskStore Integration', () => {
       ];
 
       // Act
-      useTaskStore.getState().addTaskUpdateBatch({ taskId: 'task-123', messages });
+      useTaskStore
+        .getState()
+        .addTaskUpdateBatch({ taskId: 'task-123', messages });
       const state = useTaskStore.getState();
 
       // Assert
@@ -571,7 +624,9 @@ describe('taskStore Integration', () => {
       useTaskStore.setState({ currentTask: task, isLoading: true });
 
       // Act
-      useTaskStore.getState().addTaskUpdateBatch({ taskId: 'task-123', messages: [] });
+      useTaskStore
+        .getState()
+        .addTaskUpdateBatch({ taskId: 'task-123', messages: [] });
       const state = useTaskStore.getState();
 
       // Assert
@@ -584,7 +639,9 @@ describe('taskStore Integration', () => {
       // Arrange
       const { useTaskStore } = await import('@/stores/taskStore');
       useTaskStore.setState({ error: 'Previous error' });
-      mockAccomplish.startTask.mockResolvedValueOnce(createMockTask('task-123'));
+      mockAccomplish.startTask.mockResolvedValueOnce(
+        createMockTask('task-123')
+      );
 
       // Act
       await useTaskStore.getState().startTask({ prompt: 'Test' });
@@ -601,8 +658,14 @@ describe('taskStore Integration', () => {
         ...createMockTask('task-123', 'Test', 'completed'),
         sessionId: 'session-abc',
       };
-      useTaskStore.setState({ currentTask: taskWithSession, tasks: [taskWithSession], error: 'Previous error' });
-      mockAccomplish.resumeSession.mockResolvedValueOnce(createMockTask('task-123', 'Test', 'running'));
+      useTaskStore.setState({
+        currentTask: taskWithSession,
+        tasks: [taskWithSession],
+        error: 'Previous error',
+      });
+      mockAccomplish.resumeSession.mockResolvedValueOnce(
+        createMockTask('task-123', 'Test', 'running')
+      );
 
       // Act
       await useTaskStore.getState().sendFollowUp('Continue');
@@ -685,7 +748,7 @@ describe('taskStore Integration', () => {
       // Assert
       expect(mockAccomplish.deleteTask).toHaveBeenCalledWith('task-2');
       expect(state.tasks).toHaveLength(2);
-      expect(state.tasks.find(t => t.id === 'task-2')).toBeUndefined();
+      expect(state.tasks.find((t) => t.id === 'task-2')).toBeUndefined();
     });
   });
 
@@ -693,7 +756,9 @@ describe('taskStore Integration', () => {
     it('should clear all tasks', async () => {
       // Arrange
       const { useTaskStore } = await import('@/stores/taskStore');
-      useTaskStore.setState({ tasks: [createMockTask('task-1'), createMockTask('task-2')] });
+      useTaskStore.setState({
+        tasks: [createMockTask('task-1'), createMockTask('task-2')],
+      });
       mockAccomplish.clearTaskHistory.mockResolvedValueOnce(undefined);
 
       // Act
@@ -716,7 +781,12 @@ describe('taskStore Integration', () => {
         isLoading: true,
         error: 'Some error',
         tasks,
-        permissionRequest: { id: 'perm-1', taskId: 'task-1', type: 'file', message: 'Allow?' },
+        permissionRequest: {
+          id: 'perm-1',
+          taskId: 'task-1',
+          type: 'file',
+          message: 'Allow?',
+        },
         setupProgress: 'Downloading...',
         setupProgressTaskId: 'task-1',
         setupDownloadStep: 2,
@@ -744,7 +814,12 @@ describe('taskStore Integration', () => {
       // Arrange
       const { useTaskStore } = await import('@/stores/taskStore');
       useTaskStore.setState({
-        permissionRequest: { id: 'perm-1', taskId: 'task-1', type: 'file', message: 'Allow?' },
+        permissionRequest: {
+          id: 'perm-1',
+          taskId: 'task-1',
+          type: 'file',
+          message: 'Allow?',
+        },
       });
       mockAccomplish.respondToPermission.mockResolvedValueOnce(undefined);
 
@@ -789,7 +864,9 @@ describe('taskStore Integration', () => {
 
       // Assert
       expect(state.currentTask?.status).toBe('running'); // Unchanged
-      expect(state.tasks.find(t => t.id === 'task-other')?.status).toBe('running');
+      expect(state.tasks.find((t) => t.id === 'task-other')?.status).toBe(
+        'running'
+      );
     });
   });
 
@@ -855,7 +932,10 @@ describe('taskStore Integration', () => {
       const task = createMockTask('task-123', 'Test', 'running');
       useTaskStore.setState({ currentTask: task, tasks: [task] });
 
-      const result: TaskResult = { status: 'success', sessionId: 'session-from-result' };
+      const result: TaskResult = {
+        status: 'success',
+        sessionId: 'session-from-result',
+      };
 
       // Act
       useTaskStore.getState().addTaskUpdate({

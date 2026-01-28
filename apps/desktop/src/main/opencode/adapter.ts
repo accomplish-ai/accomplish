@@ -3,7 +3,11 @@ import { EventEmitter } from 'events';
 import { app } from 'electron';
 import fs from 'fs';
 import { StreamParser } from './stream-parser';
-import { OpenCodeLogWatcher, createLogWatcher, OpenCodeLogError } from './log-watcher';
+import {
+  OpenCodeLogWatcher,
+  createLogWatcher,
+  OpenCodeLogError,
+} from './log-watcher';
 import { CompletionEnforcer, CompletionEnforcerCallbacks } from './completion';
 import {
   getOpenCodeCliPath,
@@ -12,13 +16,28 @@ import {
 } from './cli-path';
 import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
 // TODO: Remove getAzureFoundryConfig import in v0.4.0 when legacy support is dropped
-import { getSelectedModel, getAzureFoundryConfig, getOpenAiBaseUrl } from '../store/appSettings';
-import { getActiveProviderModel, getConnectedProvider } from '../store/providerSettings';
+import {
+  getSelectedModel,
+  getAzureFoundryConfig,
+  getOpenAiBaseUrl,
+} from '../store/appSettings';
+import {
+  getActiveProviderModel,
+  getConnectedProvider,
+} from '../store/providerSettings';
 import type { AzureFoundryCredentials } from '@accomplish/shared';
-import { generateOpenCodeConfig, ACCOMPLISH_AGENT_NAME, syncApiKeysToOpenCodeAuth } from './config-generator';
+import {
+  generateOpenCodeConfig,
+  ACCOMPLISH_AGENT_NAME,
+  syncApiKeysToOpenCodeAuth,
+} from './config-generator';
 import { getAzureEntraToken } from './azure-token-manager';
 import { getExtendedNodePath } from '../utils/system-path';
-import { getBundledNodePaths, logBundledNodeInfo, getNpxPath } from '../utils/bundled-node';
+import {
+  getBundledNodePaths,
+  logBundledNodeInfo,
+  getNpxPath,
+} from '../utils/bundled-node';
 import { getModelDisplayName } from '../utils/model-display';
 import path from 'path';
 import { spawn } from 'child_process';
@@ -136,7 +155,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.logWatcher.on('error', (error: OpenCodeLogError) => {
       // Only handle errors if we have an active task that hasn't completed
       if (!this.hasCompleted && this.ptyProcess) {
-        console.log('[OpenCode Adapter] Log watcher detected error:', error.errorName);
+        console.log(
+          '[OpenCode Adapter] Log watcher detected error:',
+          error.errorName
+        );
 
         const errorMessage = OpenCodeLogWatcher.getErrorMessage(error);
 
@@ -155,7 +177,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
         // Emit auth-error event if this is an authentication error
         if (error.isAuthError && error.providerID) {
-          console.log('[OpenCode Adapter] Emitting auth-error for provider:', error.providerID);
+          console.log(
+            '[OpenCode Adapter] Emitting auth-error for provider:',
+            error.providerID
+          );
           this.emit('auth-error', {
             providerId: error.providerID,
             message: errorMessage,
@@ -174,7 +199,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           try {
             this.ptyProcess.kill();
           } catch (err) {
-            console.warn('[OpenCode Adapter] Error killing PTY after log error:', err);
+            console.warn(
+              '[OpenCode Adapter] Error killing PTY after log error:',
+              err
+            );
           }
           this.ptyProcess = null;
         }
@@ -234,17 +262,24 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     // Check if Azure Foundry is configured via new provider settings
     const azureFoundryProvider = getConnectedProvider('azure-foundry');
-    const azureFoundryCredentials = azureFoundryProvider?.credentials as AzureFoundryCredentials | undefined;
+    const azureFoundryCredentials = azureFoundryProvider?.credentials as
+      | AzureFoundryCredentials
+      | undefined;
 
     // Determine auth type from new settings or legacy config
     const isAzureFoundryEntraId =
-      (selectedModel?.provider === 'azure-foundry' && azureFoundryCredentials?.authMethod === 'entra-id') ||
-      (selectedModel?.provider === 'azure-foundry' && azureFoundryConfig?.authType === 'entra-id');
+      (selectedModel?.provider === 'azure-foundry' &&
+        azureFoundryCredentials?.authMethod === 'entra-id') ||
+      (selectedModel?.provider === 'azure-foundry' &&
+        azureFoundryConfig?.authType === 'entra-id');
 
     if (isAzureFoundryEntraId) {
       const tokenResult = await getAzureEntraToken();
       if (!tokenResult.success) {
-        console.error('[OpenCode CLI] Failed to get Azure Entra ID token:', tokenResult.error);
+        console.error(
+          '[OpenCode CLI] Failed to get Azure Entra ID token:',
+          tokenResult.error
+        );
         throw new Error(tokenResult.error);
       }
       azureFoundryToken = tokenResult.token;
@@ -252,7 +287,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     }
 
     // Generate OpenCode config file with MCP settings and agent
-    console.log('[OpenCode CLI] Generating OpenCode config with MCP settings and agent...');
+    console.log(
+      '[OpenCode CLI] Generating OpenCode config with MCP settings and agent...'
+    );
     const configPath = await generateOpenCodeConfig(azureFoundryToken);
     console.log('[OpenCode CLI] Config generated at:', configPath);
 
@@ -284,10 +321,23 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       const dummyPackageJson = path.join(safeCwd, 'package.json');
       if (!fs.existsSync(dummyPackageJson)) {
         try {
-          fs.writeFileSync(dummyPackageJson, JSON.stringify({ name: 'opencode-workspace', private: true }, null, 2));
-          console.log('[OpenCode CLI] Created workspace package.json at:', dummyPackageJson);
+          fs.writeFileSync(
+            dummyPackageJson,
+            JSON.stringify(
+              { name: 'opencode-workspace', private: true },
+              null,
+              2
+            )
+          );
+          console.log(
+            '[OpenCode CLI] Created workspace package.json at:',
+            dummyPackageJson
+          );
         } catch (err) {
-          console.warn('[OpenCode CLI] Could not create workspace package.json:', err);
+          console.warn(
+            '[OpenCode CLI] Could not create workspace package.json:',
+            err
+          );
         }
       }
     }
@@ -297,7 +347,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     console.log('[OpenCode CLI]', cwdMsg);
 
     this.emit('debug', { type: 'info', message: cmdMsg });
-    this.emit('debug', { type: 'info', message: argsMsg, data: { args: allArgs } });
+    this.emit('debug', {
+      type: 'info',
+      message: argsMsg,
+      data: { args: allArgs },
+    });
     this.emit('debug', { type: 'info', message: cwdMsg });
 
     // Always use PTY for proper terminal emulation
@@ -335,12 +389,13 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         // Filter out ANSI escape codes and control characters for cleaner parsing
         // Enhanced to handle Windows PowerShell sequences (cursor visibility, window titles)
         const cleanData = data
-          .replace(/\x1B\[[0-9;?]*[a-zA-Z]/g, '')  // CSI sequences (added ? for DEC modes like cursor hide)
-          .replace(/\x1B\][^\x07]*\x07/g, '')       // OSC sequences with BEL terminator (window titles)
-          .replace(/\x1B\][^\x1B]*\x1B\\/g, '');    // OSC sequences with ST terminator
+          .replace(/\x1B\[[0-9;?]*[a-zA-Z]/g, '') // CSI sequences (added ? for DEC modes like cursor hide)
+          .replace(/\x1B\][^\x07]*\x07/g, '') // OSC sequences with BEL terminator (window titles)
+          .replace(/\x1B\][^\x1B]*\x1B\\/g, ''); // OSC sequences with ST terminator
         if (cleanData.trim()) {
           // Truncate for console.log to avoid flooding terminal
-          const truncated = cleanData.substring(0, 500) + (cleanData.length > 500 ? '...' : '');
+          const truncated =
+            cleanData.substring(0, 500) + (cleanData.length > 500 ? '...' : '');
           console.log('[OpenCode CLI stdout]:', truncated);
           // Send full data to debug panel
           this.emit('debug', { type: 'stdout', message: cleanData });
@@ -353,7 +408,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       this.ptyProcess.onExit(({ exitCode, signal }) => {
         const exitMsg = `PTY Process exited with code: ${exitCode}, signal: ${signal}`;
         console.log('[OpenCode CLI]', exitMsg);
-        this.emit('debug', { type: 'exit', message: exitMsg, data: { exitCode, signal } });
+        this.emit('debug', {
+          type: 'exit',
+          message: exitMsg,
+          data: { exitCode, signal },
+        });
         this.handleProcessExit(exitCode);
       });
     }
@@ -462,7 +521,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       return;
     }
 
-    console.log(`[OpenCode Adapter] Disposing adapter for task ${this.currentTaskId}`);
+    console.log(
+      `[OpenCode Adapter] Disposing adapter for task ${this.currentTaskId}`
+    );
     this.isDisposed = true;
 
     // Stop the log watcher
@@ -515,7 +576,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     console.log('[OpenCode Diagnostics] === Node.js Environment Check ===');
 
     if (!bundledPaths) {
-      console.log('[OpenCode Diagnostics] Development mode - using system Node.js');
+      console.log(
+        '[OpenCode Diagnostics] Development mode - using system Node.js'
+      );
       return;
     }
 
@@ -535,61 +598,87 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     // We test node.exe directly because on Windows, .cmd files require shell execution
     // and MCP servers now use node.exe + cli.mjs to bypass .cmd issues
     if (nodeExists) {
-      console.log(`[OpenCode Diagnostics] Testing node execution: ${bundledPaths.nodePath} --version`);
+      console.log(
+        `[OpenCode Diagnostics] Testing node execution: ${bundledPaths.nodePath} --version`
+      );
 
       try {
-        const result = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
-          const child = spawn(bundledPaths.nodePath, ['--version'], {
-            env: process.env,
-            timeout: 10000,
-            shell: false, // node.exe is a real executable, no shell needed
-          });
+        const result = await new Promise<{ stdout: string; stderr: string }>(
+          (resolve, reject) => {
+            const child = spawn(bundledPaths.nodePath, ['--version'], {
+              env: process.env,
+              timeout: 10000,
+              shell: false, // node.exe is a real executable, no shell needed
+            });
 
-          let stdout = '';
-          let stderr = '';
+            let stdout = '';
+            let stderr = '';
 
-          child.stdout?.on('data', (data) => { stdout += data.toString(); });
-          child.stderr?.on('data', (data) => { stderr += data.toString(); });
+            child.stdout?.on('data', (data) => {
+              stdout += data.toString();
+            });
+            child.stderr?.on('data', (data) => {
+              stderr += data.toString();
+            });
 
-          child.on('error', reject);
-          child.on('close', (code) => {
-            if (code === 0) {
-              resolve({ stdout, stderr });
-            } else {
-              reject(new Error(`Process exited with code ${code}`));
-            }
-          });
-        });
-        console.log(`[OpenCode Diagnostics] node --version SUCCESS: ${result.stdout.trim()}`);
+            child.on('error', reject);
+            child.on('close', (code) => {
+              if (code === 0) {
+                resolve({ stdout, stderr });
+              } else {
+                reject(new Error(`Process exited with code ${code}`));
+              }
+            });
+          }
+        );
+        console.log(
+          `[OpenCode Diagnostics] node --version SUCCESS: ${result.stdout.trim()}`
+        );
       } catch (error) {
         const err = error as Error & { code?: string; killed?: boolean };
-        console.error('[OpenCode Diagnostics] node --version FAILED:', err.message);
-        console.error(`[OpenCode Diagnostics]   Error code: ${err.code || 'none'}`);
-        console.error(`[OpenCode Diagnostics]   This WILL cause MCP server startup failures!`);
+        console.error(
+          '[OpenCode Diagnostics] node --version FAILED:',
+          err.message
+        );
+        console.error(
+          `[OpenCode Diagnostics]   Error code: ${err.code || 'none'}`
+        );
+        console.error(
+          `[OpenCode Diagnostics]   This WILL cause MCP server startup failures!`
+        );
 
         // Emit debug event so it shows in UI
         this.emit('debug', {
           type: 'error',
           message: `Bundled node test failed: ${err.message}. MCP servers will not start correctly.`,
-          data: { error: err.message, nodePath: bundledPaths.nodePath }
+          data: { error: err.message, nodePath: bundledPaths.nodePath },
         });
       }
     } else {
-      console.error('[OpenCode Diagnostics] Bundled node not found - MCP servers will likely fail!');
+      console.error(
+        '[OpenCode Diagnostics] Bundled node not found - MCP servers will likely fail!'
+      );
       this.emit('debug', {
         type: 'error',
         message: 'Bundled node.exe not found. MCP servers will not start.',
-        data: { expectedPath: bundledPaths.nodePath }
+        data: { expectedPath: bundledPaths.nodePath },
       });
     }
 
     // Check for system Node.js as fallback info
     try {
       const { execSync } = await import('child_process');
-      const systemNode = execSync('where node', { encoding: 'utf8', timeout: 5000 }).trim();
-      console.log(`[OpenCode Diagnostics] System Node.js found: ${systemNode.split('\n')[0]}`);
+      const systemNode = execSync('where node', {
+        encoding: 'utf8',
+        timeout: 5000,
+      }).trim();
+      console.log(
+        `[OpenCode Diagnostics] System Node.js found: ${systemNode.split('\n')[0]}`
+      );
     } catch {
-      console.log('[OpenCode Diagnostics] System Node.js: NOT FOUND (this is OK if bundled Node works)');
+      console.log(
+        '[OpenCode Diagnostics] System Node.js: NOT FOUND (this is OK if bundled Node works)'
+      );
     }
 
     console.log('[OpenCode Diagnostics] === End Environment Check ===');
@@ -615,9 +704,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       if (bundledNode) {
         // Prepend bundled Node.js bin directory to PATH
         const delimiter = process.platform === 'win32' ? ';' : ':';
-        const pathSource = env.PATH ? 'PATH' : (env.Path ? 'Path' : 'none');
+        const pathSource = env.PATH ? 'PATH' : env.Path ? 'Path' : 'none';
         const existingPath = env.PATH ?? env.Path ?? '';
-        console.log(`[OpenCode CLI] Existing PATH source: ${pathSource} (${existingPath ? 'present' : 'missing'})`);
+        console.log(
+          `[OpenCode CLI] Existing PATH source: ${pathSource} (${existingPath ? 'present' : 'missing'})`
+        );
         const combinedPath = existingPath
           ? `${bundledNode.binDir}${delimiter}${existingPath}`
           : bundledNode.binDir;
@@ -628,10 +719,14 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         }
         // Also expose as NODE_BIN_PATH so agent can use it in bash commands
         env.NODE_BIN_PATH = bundledNode.binDir;
-        console.log('[OpenCode CLI] Added bundled Node.js to PATH:', bundledNode.binDir);
+        console.log(
+          '[OpenCode CLI] Added bundled Node.js to PATH:',
+          bundledNode.binDir
+        );
 
         // Log the full PATH for debugging (truncated to avoid excessive log size)
-        const pathPreview = env.PATH.substring(0, 500) + (env.PATH.length > 500 ? '...' : '');
+        const pathPreview =
+          env.PATH.substring(0, 500) + (env.PATH.length > 500 ? '...' : '');
         console.log('[OpenCode CLI] Full PATH (first 500 chars):', pathPreview);
       }
 
@@ -657,7 +752,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
       if (configuredOpenAiBaseUrl) {
         env.OPENAI_BASE_URL = configuredOpenAiBaseUrl;
-        console.log('[OpenCode CLI] Using OPENAI_BASE_URL override from settings');
+        console.log(
+          '[OpenCode CLI] Using OPENAI_BASE_URL override from settings'
+        );
       }
     }
     if (apiKeys.google) {
@@ -705,11 +802,17 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         console.log('[OpenCode CLI] Using Bedrock Access Key credentials');
       } else if (bedrockCredentials.authType === 'profile') {
         env.AWS_PROFILE = bedrockCredentials.profileName;
-        console.log('[OpenCode CLI] Using Bedrock AWS Profile:', bedrockCredentials.profileName);
+        console.log(
+          '[OpenCode CLI] Using Bedrock AWS Profile:',
+          bedrockCredentials.profileName
+        );
       }
       if (bedrockCredentials.region) {
         env.AWS_REGION = bedrockCredentials.region;
-        console.log('[OpenCode CLI] Using Bedrock region:', bedrockCredentials.region);
+        console.log(
+          '[OpenCode CLI] Using Bedrock region:',
+          bedrockCredentials.region
+        );
       }
     }
 
@@ -718,22 +821,37 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     const selectedModel = getSelectedModel();
     if (activeModel?.provider === 'ollama' && activeModel.baseUrl) {
       env.OLLAMA_HOST = activeModel.baseUrl;
-      console.log('[OpenCode CLI] Using Ollama host from provider settings:', activeModel.baseUrl);
+      console.log(
+        '[OpenCode CLI] Using Ollama host from provider settings:',
+        activeModel.baseUrl
+      );
     } else if (selectedModel?.provider === 'ollama' && selectedModel.baseUrl) {
       env.OLLAMA_HOST = selectedModel.baseUrl;
-      console.log('[OpenCode CLI] Using Ollama host from legacy settings:', selectedModel.baseUrl);
+      console.log(
+        '[OpenCode CLI] Using Ollama host from legacy settings:',
+        selectedModel.baseUrl
+      );
     }
 
     // Set LiteLLM base URL if configured (for debugging/logging purposes)
     if (activeModel?.provider === 'litellm' && activeModel.baseUrl) {
-      console.log('[OpenCode CLI] LiteLLM active with base URL:', activeModel.baseUrl);
+      console.log(
+        '[OpenCode CLI] LiteLLM active with base URL:',
+        activeModel.baseUrl
+      );
     }
 
     // Log config environment variable
-    console.log('[OpenCode CLI] OPENCODE_CONFIG in env:', process.env.OPENCODE_CONFIG);
+    console.log(
+      '[OpenCode CLI] OPENCODE_CONFIG in env:',
+      process.env.OPENCODE_CONFIG
+    );
     if (process.env.OPENCODE_CONFIG) {
       env.OPENCODE_CONFIG = process.env.OPENCODE_CONFIG;
-      console.log('[OpenCode CLI] Passing OPENCODE_CONFIG to subprocess:', env.OPENCODE_CONFIG);
+      console.log(
+        '[OpenCode CLI] Passing OPENCODE_CONFIG to subprocess:',
+        env.OPENCODE_CONFIG
+      );
     }
 
     // Pass task ID to environment for task-scoped page naming in parallel execution
@@ -742,7 +860,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       console.log('[OpenCode CLI] Task ID in environment:', this.currentTaskId);
     }
 
-    this.emit('debug', { type: 'info', message: 'Environment configured with API keys' });
+    this.emit('debug', {
+      type: 'info',
+      message: 'Environment configured with API keys',
+    });
 
     return env;
   }
@@ -756,11 +877,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.currentModelId = selectedModel?.model || null;
 
     // OpenCode CLI uses: opencode run "message" --format json
-    const args = [
-      'run',
-      config.prompt,
-      '--format', 'json',
-    ];
+    const args = ['run', config.prompt, '--format', 'json'];
 
     // Add model selection if specified
     if (selectedModel?.model) {
@@ -836,7 +953,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         }
         this.waitingTransitionTimer = setTimeout(() => {
           if (!this.hasReceivedFirstTool && !this.hasCompleted) {
-            this.emit('progress', { stage: 'waiting', message: 'Waiting for response...' });
+            this.emit('progress', {
+              stage: 'waiting',
+              message: 'Waiting for response...',
+            });
           }
         }, 500);
         break;
@@ -881,7 +1001,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         // COMPLETION ENFORCEMENT: Track complete_task tool calls
         // Tool name may be prefixed with MCP server name (e.g., "complete-task_complete_task")
         // so we use endsWith() for fuzzy matching
-        if (toolName === 'complete_task' || toolName.endsWith('_complete_task')) {
+        if (
+          toolName === 'complete_task' ||
+          toolName.endsWith('_complete_task')
+        ) {
           this.completionEnforcer.handleCompleteTaskDetection(toolInput);
         }
 
@@ -890,7 +1013,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         if (toolName === 'todowrite' || toolName.endsWith('_todowrite')) {
           const input = toolInput as { todos?: TodoItem[] };
           // Only emit if we have actual todos (ignore empty arrays to prevent accidental clearing)
-          if (input?.todos && Array.isArray(input.todos) && input.todos.length > 0) {
+          if (
+            input?.todos &&
+            Array.isArray(input.todos) &&
+            input.todos.length > 0
+          ) {
             this.emit('todo:update', input.todos);
             // Also update completion enforcer
             this.completionEnforcer.updateTodos(input.todos);
@@ -911,7 +1038,8 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
       // Tool use event - combined tool call and result from OpenCode CLI
       case 'tool_use':
-        const toolUseMessage = message as import('@accomplish/shared').OpenCodeToolUseMessage;
+        const toolUseMessage =
+          message as import('@accomplish/shared').OpenCodeToolUseMessage;
         const toolUseName = toolUseMessage.part.tool || 'unknown';
         const toolUseInput = toolUseMessage.part.state?.input;
         const toolUseOutput = toolUseMessage.part.state?.output || '';
@@ -929,7 +1057,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         this.completionEnforcer.markToolsUsed();
 
         // Track if complete_task was called (tool name may be prefixed with MCP server name)
-        if (toolUseName === 'complete_task' || toolUseName.endsWith('_complete_task')) {
+        if (
+          toolUseName === 'complete_task' ||
+          toolUseName.endsWith('_complete_task')
+        ) {
           this.completionEnforcer.handleCompleteTaskDetection(toolUseInput);
         }
 
@@ -938,7 +1069,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         if (toolUseName === 'todowrite' || toolUseName.endsWith('_todowrite')) {
           const input = toolUseInput as { todos?: TodoItem[] };
           // Only emit if we have actual todos (ignore empty arrays to prevent accidental clearing)
-          if (input?.todos && Array.isArray(input.todos) && input.todos.length > 0) {
+          if (
+            input?.todos &&
+            Array.isArray(input.todos) &&
+            input.todos.length > 0
+          ) {
             this.emit('todo:update', input.todos);
             // Also update completion enforcer
             this.completionEnforcer.updateTodos(input.todos);
@@ -947,7 +1082,8 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
         // For models that don't emit text messages (like Gemini), emit the tool description
         // as a thinking message so users can see what the AI is doing
-        const toolDescription = (toolUseInput as { description?: string })?.description;
+        const toolDescription = (toolUseInput as { description?: string })
+          ?.description;
         if (toolDescription) {
           // Create a synthetic text message for the description
           const syntheticTextMessage: OpenCodeMessage = {
@@ -969,7 +1105,12 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         this.emit('message', message);
         const toolUseStatus = toolUseMessage.part.state?.status;
 
-        console.log('[OpenCode Adapter] Tool use:', toolUseName, 'status:', toolUseStatus);
+        console.log(
+          '[OpenCode Adapter] Tool use:',
+          toolUseName,
+          'status:',
+          toolUseStatus
+        );
 
         // Emit tool-use event for the call
         this.emit('tool-use', toolUseName, toolUseInput);
@@ -992,7 +1133,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       // Tool result event
       case 'tool_result':
         const toolOutput = message.part.output || '';
-        console.log('[OpenCode Adapter] Tool result received, length:', toolOutput.length);
+        console.log(
+          '[OpenCode Adapter] Tool result received, length:',
+          toolOutput.length
+        );
         this.emit('tool-result', toolOutput);
         break;
 
@@ -1016,7 +1160,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         }
 
         // Delegate to completion enforcer for stop/end_turn handling
-        const action = this.completionEnforcer.handleStepFinish(message.part.reason);
+        const action = this.completionEnforcer.handleStepFinish(
+          message.part.reason
+        );
         console.log(`[OpenCode Adapter] step_finish action: ${action}`);
 
         if (action === 'complete' && !this.hasCompleted) {
@@ -1042,7 +1188,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       default:
         // Cast to unknown to safely access type property for logging
         const unknownMessage = message as unknown as { type: string };
-        console.log('[OpenCode Adapter] Unknown message type:', unknownMessage.type);
+        console.log(
+          '[OpenCode Adapter] Unknown message type:',
+          unknownMessage.type
+        );
     }
   }
 
@@ -1076,7 +1225,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       }
       return arg;
     } else {
-      const needsEscaping = ["'", ' ', '$', '`', '\\', '"', '\n'].some(c => arg.includes(c));
+      const needsEscaping = ["'", ' ', '$', '`', '\\', '"', '\n'].some((c) =>
+        arg.includes(c)
+      );
       if (needsEscaping) {
         return `'${arg.replace(/'/g, "'\\''")}'`;
       }
@@ -1090,7 +1241,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
    */
   private buildShellCommand(command: string, args: string[]): string {
     const escapedCommand = this.escapeShellArg(command);
-    const escapedArgs = args.map(arg => this.escapeShellArg(arg));
+    const escapedArgs = args.map((arg) => this.escapeShellArg(arg));
 
     // On Windows, if the command path contains spaces (and is thus quoted),
     // we need to prepend & call operator so PowerShell executes it as a command
@@ -1175,7 +1326,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       throw new Error('No session ID available for session resumption');
     }
 
-    console.log(`[OpenCode Adapter] Starting session resumption with session ${sessionId}`);
+    console.log(
+      `[OpenCode Adapter] Starting session resumption with session ${sessionId}`
+    );
 
     // Reset stream parser for new process but preserve other state
     this.streamParser.reset();
@@ -1191,7 +1344,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     // Get the bundled CLI path
     const { command, args: baseArgs } = getOpenCodeCliPath();
-    console.log('[OpenCode Adapter] Session resumption command:', command, [...baseArgs, ...cliArgs].join(' '));
+    console.log(
+      '[OpenCode Adapter] Session resumption command:',
+      command,
+      [...baseArgs, ...cliArgs].join(' ')
+    );
 
     // Build environment
     const env = await this.buildEnvironment();
@@ -1218,12 +1375,13 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       // Filter out ANSI escape codes and control characters for cleaner parsing
       // Enhanced to handle Windows PowerShell sequences (cursor visibility, window titles)
       const cleanData = data
-        .replace(/\x1B\[[0-9;?]*[a-zA-Z]/g, '')  // CSI sequences (added ? for DEC modes like cursor hide)
-        .replace(/\x1B\][^\x07]*\x07/g, '')       // OSC sequences with BEL terminator (window titles)
-        .replace(/\x1B\][^\x1B]*\x1B\\/g, '');    // OSC sequences with ST terminator
+        .replace(/\x1B\[[0-9;?]*[a-zA-Z]/g, '') // CSI sequences (added ? for DEC modes like cursor hide)
+        .replace(/\x1B\][^\x07]*\x07/g, '') // OSC sequences with BEL terminator (window titles)
+        .replace(/\x1B\][^\x1B]*\x1B\\/g, ''); // OSC sequences with ST terminator
       if (cleanData.trim()) {
         // Truncate for console.log to avoid flooding terminal
-        const truncated = cleanData.substring(0, 500) + (cleanData.length > 500 ? '...' : '');
+        const truncated =
+          cleanData.substring(0, 500) + (cleanData.length > 500 ? '...' : '');
         console.log('[OpenCode CLI stdout]:', truncated);
         // Send full data to debug panel
         this.emit('debug', { type: 'stdout', message: cleanData });

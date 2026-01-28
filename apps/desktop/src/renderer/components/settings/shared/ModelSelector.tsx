@@ -38,9 +38,10 @@ export function ModelSelector({
 
   // Filter models based on search term
   const filteredModels = search
-    ? models.filter((m) =>
-        m.name.toLowerCase().includes(search.toLowerCase()) ||
-        m.id.toLowerCase().includes(search.toLowerCase())
+    ? models.filter(
+        (m) =>
+          m.name.toLowerCase().includes(search.toLowerCase()) ||
+          m.id.toLowerCase().includes(search.toLowerCase())
       )
     : models;
 
@@ -51,7 +52,10 @@ export function ModelSelector({
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
         setSearch('');
       }
@@ -68,16 +72,16 @@ export function ModelSelector({
   }, [isOpen, showSearch]);
 
   if (loading) {
-    return (
-      <div className="h-10 animate-pulse rounded-md bg-muted" />
-    );
+    return <div className="h-10 animate-pulse rounded-md bg-muted" />;
   }
 
   // For small model lists, use simple select
   if (!showSearch) {
     return (
       <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">Model</label>
+        <label className="mb-2 block text-sm font-medium text-foreground">
+          Model
+        </label>
         <div className="relative">
           <select
             value={value || ''}
@@ -87,7 +91,9 @@ export function ModelSelector({
               error ? 'border-destructive' : 'border-input'
             }`}
           >
-            <option value="" disabled>{placeholder}</option>
+            <option value="" disabled>
+              {placeholder}
+            </option>
             {models.map((model) => (
               <option key={model.id} value={model.id}>
                 {model.name}
@@ -100,11 +106,21 @@ export function ModelSelector({
             viewBox="0 0 24 24"
             stroke="currentColor"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </div>
         {error && !value && (
-          <p className="mt-2 text-sm text-destructive" data-testid="model-selector-error">{errorMessage}</p>
+          <p
+            className="mt-2 text-sm text-destructive"
+            data-testid="model-selector-error"
+          >
+            {errorMessage}
+          </p>
         )}
       </div>
     );
@@ -113,7 +129,9 @@ export function ModelSelector({
   // For large model lists, use searchable dropdown
   return (
     <div ref={containerRef}>
-      <label className="mb-2 block text-sm font-medium text-foreground">Model</label>
+      <label className="mb-2 block text-sm font-medium text-foreground">
+        Model
+      </label>
       <div className="relative">
         <button
           type="button"
@@ -132,7 +150,12 @@ export function ModelSelector({
             viewBox="0 0 24 24"
             stroke="currentColor"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </button>
 
@@ -162,7 +185,9 @@ export function ModelSelector({
               {/* Model list */}
               <div className="max-h-60 overflow-y-auto">
                 {filteredModels.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">No models found</div>
+                  <div className="px-3 py-2 text-sm text-muted-foreground">
+                    No models found
+                  </div>
                 ) : (
                   filteredModels.map((model) => (
                     <button
@@ -187,7 +212,12 @@ export function ModelSelector({
         </AnimatePresence>
       </div>
       {error && !value && (
-        <p className="mt-2 text-sm text-destructive" data-testid="model-selector-error">{errorMessage}</p>
+        <p
+          className="mt-2 text-sm text-destructive"
+          data-testid="model-selector-error"
+        >
+          {errorMessage}
+        </p>
       )}
     </div>
   );

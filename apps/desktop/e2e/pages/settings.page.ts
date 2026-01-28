@@ -152,7 +152,10 @@ export class SettingsPage {
 
   async navigateToSettings() {
     await this.sidebarSettingsButton.click();
-    await this.settingsDialog.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
+    await this.settingsDialog.waitFor({
+      state: 'visible',
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
   }
 
   async selectProvider(providerId: string) {
@@ -215,7 +218,11 @@ export class SettingsPage {
     await this.bedrockAwsProfileTab.click();
   }
 
-  async enterBedrockAccessKeyCredentials(accessKeyId: string, secretKey: string, sessionToken?: string) {
+  async enterBedrockAccessKeyCredentials(
+    accessKeyId: string,
+    secretKey: string,
+    sessionToken?: string
+  ) {
     await this.bedrockAccessKeyIdInput.fill(accessKeyId);
     await this.bedrockSecretKeyInput.fill(secretKey);
     if (sessionToken) {

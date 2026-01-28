@@ -20,9 +20,6 @@
       "@accomplish/shared": ["../../packages/shared/src/index.ts"]
     }
   },
-  "include": [
-    "src/**/*",
-    "../../packages/shared/src/**/*"
-  ],
+  "include": ["src/**/*", "../../packages/shared/src/**/*"],
   "exclude": ["node_modules", "dist", "dist-electron", "release"]
 }

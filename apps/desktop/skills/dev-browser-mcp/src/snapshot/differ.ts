@@ -1,6 +1,11 @@
 // apps/desktop/skills/dev-browser-mcp/src/snapshot/differ.ts
 
-import type { ParsedSnapshot, SnapshotDiff, ElementChange, SnapshotElement } from './types.js';
+import type {
+  ParsedSnapshot,
+  SnapshotDiff,
+  ElementChange,
+  SnapshotElement,
+} from './types.js';
 
 /**
  * Compare two parsed snapshots and return the diff.
@@ -75,7 +80,10 @@ export function diffSnapshots(
 /**
  * Check if an element has meaningfully changed.
  */
-function hasElementChanged(previous: SnapshotElement, current: SnapshotElement): boolean {
+function hasElementChanged(
+  previous: SnapshotElement,
+  current: SnapshotElement
+): boolean {
   // Compare all relevant properties
   return (
     previous.role !== current.role ||
@@ -122,7 +130,9 @@ export function formatDiff(
   }
 
   lines.push('');
-  lines.push('[Tip: Use browser_snapshot(full_snapshot=true) if elements seem incorrect]');
+  lines.push(
+    '[Tip: Use browser_snapshot(full_snapshot=true) if elements seem incorrect]'
+  );
 
   return lines.join('\n');
 }
@@ -134,7 +144,8 @@ function formatChange(change: ElementChange): string {
   const { ref, element, changeType } = change;
   const lines: string[] = [];
 
-  const prefix = changeType === 'added' ? '+ ' : changeType === 'removed' ? '- ' : '';
+  const prefix =
+    changeType === 'added' ? '+ ' : changeType === 'removed' ? '- ' : '';
   let line = `${prefix}ref: ${ref}`;
   line += `  role: ${element.role}`;
   if (element.name) {
@@ -146,19 +157,41 @@ function formatChange(change: ElementChange): string {
   // Show value changes for modified elements
   if (changeType === 'modified') {
     if (element.value !== undefined && element.value !== change.previousValue) {
-      lines.push(`  value: "${element.value}"  # was: "${change.previousValue || ''}"`);
+      lines.push(
+        `  value: "${element.value}"  # was: "${change.previousValue || ''}"`
+      );
     }
-    if (element.disabled !== undefined && element.disabled !== change.previousDisabled) {
-      lines.push(`  disabled: ${element.disabled}  # was: ${change.previousDisabled || false}`);
+    if (
+      element.disabled !== undefined &&
+      element.disabled !== change.previousDisabled
+    ) {
+      lines.push(
+        `  disabled: ${element.disabled}  # was: ${change.previousDisabled || false}`
+      );
     }
-    if (element.checked !== undefined && element.checked !== change.previousChecked) {
-      lines.push(`  checked: ${element.checked}  # was: ${change.previousChecked || false}`);
+    if (
+      element.checked !== undefined &&
+      element.checked !== change.previousChecked
+    ) {
+      lines.push(
+        `  checked: ${element.checked}  # was: ${change.previousChecked || false}`
+      );
     }
-    if (element.expanded !== undefined && element.expanded !== change.previousExpanded) {
-      lines.push(`  expanded: ${element.expanded}  # was: ${change.previousExpanded || false}`);
+    if (
+      element.expanded !== undefined &&
+      element.expanded !== change.previousExpanded
+    ) {
+      lines.push(
+        `  expanded: ${element.expanded}  # was: ${change.previousExpanded || false}`
+      );
     }
-    if (element.selected !== undefined && element.selected !== change.previousSelected) {
-      lines.push(`  selected: ${element.selected}  # was: ${change.previousSelected || false}`);
+    if (
+      element.selected !== undefined &&
+      element.selected !== change.previousSelected
+    ) {
+      lines.push(
+        `  selected: ${element.selected}  # was: ${change.previousSelected || false}`
+      );
     }
   } else if (changeType === 'added' && element.value) {
     lines.push(`  value: "${element.value}"`);
@@ -175,7 +208,7 @@ export function compressRefList(refs: string[]): string {
 
   // Extract numbers and sort
   const numbers = refs
-    .map(ref => parseInt(ref.replace('e', ''), 10))
+    .map((ref) => parseInt(ref.replace('e', ''), 10))
     .sort((a, b) => a - b);
 
   const ranges: string[] = [];
@@ -186,12 +219,18 @@ export function compressRefList(refs: string[]): string {
     if (numbers[i] === rangeEnd + 1) {
       rangeEnd = numbers[i];
     } else {
-      ranges.push(rangeStart === rangeEnd ? `e${rangeStart}` : `e${rangeStart}-e${rangeEnd}`);
+      ranges.push(
+        rangeStart === rangeEnd
+          ? `e${rangeStart}`
+          : `e${rangeStart}-e${rangeEnd}`
+      );
       rangeStart = numbers[i];
       rangeEnd = numbers[i];
     }
   }
-  ranges.push(rangeStart === rangeEnd ? `e${rangeStart}` : `e${rangeStart}-e${rangeEnd}`);
+  ranges.push(
+    rangeStart === rangeEnd ? `e${rangeStart}` : `e${rangeStart}-e${rangeEnd}`
+  );
 
   return ranges.join(', ');
 }

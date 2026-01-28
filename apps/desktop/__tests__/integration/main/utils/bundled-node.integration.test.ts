@@ -87,7 +87,8 @@ describe('Bundled Node.js Utilities', () => {
         mockApp.isPackaged = true;
         Object.defineProperty(process, 'arch', { value: 'arm64' });
         const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+          resourcesPath;
 
         // Re-import to pick up new process values
         vi.resetModules();
@@ -96,11 +97,21 @@ describe('Bundled Node.js Utilities', () => {
 
         // Assert
         expect(paths).not.toBeNull();
-        expect(paths!.nodeDir).toBe(path.join(resourcesPath, 'nodejs', 'arm64'));
-        expect(paths!.binDir).toBe(path.join(resourcesPath, 'nodejs', 'arm64', 'bin'));
-        expect(paths!.nodePath).toBe(path.join(resourcesPath, 'nodejs', 'arm64', 'bin', 'node'));
-        expect(paths!.npmPath).toBe(path.join(resourcesPath, 'nodejs', 'arm64', 'bin', 'npm'));
-        expect(paths!.npxPath).toBe(path.join(resourcesPath, 'nodejs', 'arm64', 'bin', 'npx'));
+        expect(paths!.nodeDir).toBe(
+          path.join(resourcesPath, 'nodejs', 'arm64')
+        );
+        expect(paths!.binDir).toBe(
+          path.join(resourcesPath, 'nodejs', 'arm64', 'bin')
+        );
+        expect(paths!.nodePath).toBe(
+          path.join(resourcesPath, 'nodejs', 'arm64', 'bin', 'node')
+        );
+        expect(paths!.npmPath).toBe(
+          path.join(resourcesPath, 'nodejs', 'arm64', 'bin', 'npm')
+        );
+        expect(paths!.npxPath).toBe(
+          path.join(resourcesPath, 'nodejs', 'arm64', 'bin', 'npx')
+        );
       });
 
       it('should return correct paths for x64 architecture', async () => {
@@ -108,7 +119,8 @@ describe('Bundled Node.js Utilities', () => {
         mockApp.isPackaged = true;
         Object.defineProperty(process, 'arch', { value: 'x64' });
         const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+          resourcesPath;
 
         // Re-import to pick up new process values
         vi.resetModules();
@@ -118,7 +130,9 @@ describe('Bundled Node.js Utilities', () => {
         // Assert
         expect(paths).not.toBeNull();
         expect(paths!.nodeDir).toBe(path.join(resourcesPath, 'nodejs', 'x64'));
-        expect(paths!.binDir).toBe(path.join(resourcesPath, 'nodejs', 'x64', 'bin'));
+        expect(paths!.binDir).toBe(
+          path.join(resourcesPath, 'nodejs', 'x64', 'bin')
+        );
       });
     });
 
@@ -129,7 +143,8 @@ describe('Bundled Node.js Utilities', () => {
         Object.defineProperty(process, 'platform', { value: 'win32' });
         Object.defineProperty(process, 'arch', { value: 'x64' });
         const resourcesPath = 'C:\\Program Files\\Accomplish\\resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+          resourcesPath;
 
         // Re-import to pick up new process values
         vi.resetModules();
@@ -141,9 +156,15 @@ describe('Bundled Node.js Utilities', () => {
         expect(paths!.nodeDir).toBe(path.join(resourcesPath, 'nodejs', 'x64'));
         // Windows: binDir is same as nodeDir
         expect(paths!.binDir).toBe(path.join(resourcesPath, 'nodejs', 'x64'));
-        expect(paths!.nodePath).toBe(path.join(resourcesPath, 'nodejs', 'x64', 'node.exe'));
-        expect(paths!.npmPath).toBe(path.join(resourcesPath, 'nodejs', 'x64', 'npm.cmd'));
-        expect(paths!.npxPath).toBe(path.join(resourcesPath, 'nodejs', 'x64', 'npx.cmd'));
+        expect(paths!.nodePath).toBe(
+          path.join(resourcesPath, 'nodejs', 'x64', 'node.exe')
+        );
+        expect(paths!.npmPath).toBe(
+          path.join(resourcesPath, 'nodejs', 'x64', 'npm.cmd')
+        );
+        expect(paths!.npxPath).toBe(
+          path.join(resourcesPath, 'nodejs', 'x64', 'npx.cmd')
+        );
       });
     });
   });
@@ -164,7 +185,8 @@ describe('Bundled Node.js Utilities', () => {
       // Arrange
       mockApp.isPackaged = true;
       const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+        resourcesPath;
 
       mockFs.existsSync.mockReturnValue(true);
 
@@ -184,7 +206,8 @@ describe('Bundled Node.js Utilities', () => {
       // Arrange
       mockApp.isPackaged = true;
       const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+        resourcesPath;
 
       mockFs.existsSync.mockReturnValue(false);
 
@@ -216,7 +239,8 @@ describe('Bundled Node.js Utilities', () => {
       // Arrange
       mockApp.isPackaged = true;
       const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+        resourcesPath;
 
       mockFs.existsSync.mockReturnValue(true);
 
@@ -236,7 +260,8 @@ describe('Bundled Node.js Utilities', () => {
       // Arrange
       mockApp.isPackaged = true;
       const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+        resourcesPath;
 
       mockFs.existsSync.mockReturnValue(false);
 
@@ -276,7 +301,8 @@ describe('Bundled Node.js Utilities', () => {
       // Arrange
       mockApp.isPackaged = true;
       const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+        resourcesPath;
 
       mockFs.existsSync.mockReturnValue(true);
 
@@ -296,7 +322,8 @@ describe('Bundled Node.js Utilities', () => {
       // Arrange
       mockApp.isPackaged = true;
       const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+        resourcesPath;
 
       mockFs.existsSync.mockReturnValue(false);
 
@@ -331,7 +358,8 @@ describe('Bundled Node.js Utilities', () => {
       // Arrange
       mockApp.isPackaged = true;
       const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+        resourcesPath;
 
       mockFs.existsSync.mockReturnValue(true);
 
@@ -351,7 +379,8 @@ describe('Bundled Node.js Utilities', () => {
       // Arrange
       mockApp.isPackaged = true;
       const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+        resourcesPath;
 
       mockFs.existsSync.mockReturnValue(false);
 
@@ -391,7 +420,8 @@ describe('Bundled Node.js Utilities', () => {
       // Arrange
       mockApp.isPackaged = true;
       const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+        resourcesPath;
 
       mockFs.existsSync.mockReturnValue(true);
 
@@ -405,10 +435,16 @@ describe('Bundled Node.js Utilities', () => {
       module.logBundledNodeInfo();
 
       // Assert
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Configuration'));
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Configuration')
+      );
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Platform'));
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Architecture'));
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Node directory'));
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Architecture')
+      );
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Node directory')
+      );
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Node path'));
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Available'));
 
@@ -421,7 +457,8 @@ describe('Bundled Node.js Utilities', () => {
       // Arrange
       mockApp.isPackaged = true;
       const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath =
+        resourcesPath;
 
       // Re-import
       vi.resetModules();

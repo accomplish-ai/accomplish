@@ -39,7 +39,11 @@ describe('SnapshotManager', () => {
 
   it('returns full snapshot when URL changes', () => {
     // First call
-    manager.processSnapshot(simpleSnapshot, 'https://example.com/page1', 'Page 1');
+    manager.processSnapshot(
+      simpleSnapshot,
+      'https://example.com/page1',
+      'Page 1'
+    );
 
     // Second call - different URL
     const result = manager.processSnapshot(
@@ -68,7 +72,11 @@ describe('SnapshotManager', () => {
 
   it('normalizes URLs for same-page detection', () => {
     // First call
-    manager.processSnapshot(simpleSnapshot, 'https://example.com/page#section1', 'Test');
+    manager.processSnapshot(
+      simpleSnapshot,
+      'https://example.com/page#section1',
+      'Test'
+    );
 
     // Second call - same URL, different hash
     const result = manager.processSnapshot(
@@ -100,9 +108,21 @@ describe('SnapshotManager', () => {
   describe('session history', () => {
     it('should track navigation history', () => {
       // Process snapshots for different pages
-      manager.processSnapshot(simpleSnapshot, 'https://example.com/page1', 'Page 1');
-      manager.processSnapshot(simpleSnapshot, 'https://example.com/page2', 'Page 2');
-      manager.processSnapshot(simpleSnapshot, 'https://example.com/page3', 'Page 3');
+      manager.processSnapshot(
+        simpleSnapshot,
+        'https://example.com/page1',
+        'Page 1'
+      );
+      manager.processSnapshot(
+        simpleSnapshot,
+        'https://example.com/page2',
+        'Page 2'
+      );
+      manager.processSnapshot(
+        simpleSnapshot,
+        'https://example.com/page3',
+        'Page 3'
+      );
 
       const summary = manager.getSessionSummary();
       expect(summary.history).toContain('Page 1');
@@ -226,7 +246,12 @@ describe('SnapshotManager', () => {
       manager.processSnapshot(homeYaml, 'https://example.com/', 'Home', {});
 
       // Navigate to search
-      manager.processSnapshot(searchYaml, 'https://example.com/search', 'Search', {});
+      manager.processSnapshot(
+        searchYaml,
+        'https://example.com/search',
+        'Search',
+        {}
+      );
 
       // Update search page with results (same page, should diff)
       const resultUpdate = manager.processSnapshot(

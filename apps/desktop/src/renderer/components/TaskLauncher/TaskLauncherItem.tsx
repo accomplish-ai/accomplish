@@ -13,7 +13,9 @@ interface TaskLauncherItemProps {
 function formatRelativeDate(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor(
+    (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+  );
 
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
@@ -39,7 +41,11 @@ function getStatusIcon(status: Task['status']) {
   }
 }
 
-export default function TaskLauncherItem({ task, isSelected, onClick }: TaskLauncherItemProps) {
+export default function TaskLauncherItem({
+  task,
+  isSelected,
+  onClick,
+}: TaskLauncherItemProps) {
   return (
     <button
       onClick={onClick}
@@ -53,10 +59,12 @@ export default function TaskLauncherItem({ task, isSelected, onClick }: TaskLaun
     >
       {getStatusIcon(task.status)}
       <span className="truncate flex-1">{task.prompt}</span>
-      <span className={cn(
-        'text-xs shrink-0',
-        isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'
-      )}>
+      <span
+        className={cn(
+          'text-xs shrink-0',
+          isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'
+        )}
+      >
         {formatRelativeDate(task.createdAt)}
       </span>
     </button>

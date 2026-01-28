@@ -15,14 +15,18 @@ import { TEST_TIMEOUTS } from '../config';
 test.describe('Settings - All Providers', () => {
   // ===== GOOGLE (GEMINI) PROVIDER =====
   test.describe('Google (Gemini) Provider', () => {
-    test('should display Google provider card in first row', async ({ window }) => {
+    test('should display Google provider card in first row', async ({
+      window,
+    }) => {
       const settingsPage = new SettingsPage(window);
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
 
       // Google is in first 4, should be visible without Show All
       const googleCard = settingsPage.getProviderCard('google');
-      await expect(googleCard).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+      await expect(googleCard).toBeVisible({
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      });
 
       await captureForAI(window, 'settings-google', 'provider-card-visible', [
         'Google (Gemini) provider card is visible',
@@ -30,13 +34,17 @@ test.describe('Settings - All Providers', () => {
       ]);
     });
 
-    test('should show API key form when selecting Google', async ({ window }) => {
+    test('should show API key form when selecting Google', async ({
+      window,
+    }) => {
       const settingsPage = new SettingsPage(window);
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
 
       await settingsPage.selectProvider('google');
-      await expect(settingsPage.apiKeyInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+      await expect(settingsPage.apiKeyInput).toBeVisible({
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      });
 
       await captureForAI(window, 'settings-google', 'api-key-form', [
         'Google API key input is visible',
@@ -64,7 +72,9 @@ test.describe('Settings - All Providers', () => {
 
   // ===== XAI PROVIDER =====
   test.describe('xAI Provider', () => {
-    test('should display xAI provider card in expanded view', async ({ window }) => {
+    test('should display xAI provider card in expanded view', async ({
+      window,
+    }) => {
       const settingsPage = new SettingsPage(window);
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
@@ -89,7 +99,9 @@ test.describe('Settings - All Providers', () => {
       await settingsPage.toggleShowAll();
       await settingsPage.selectProvider('xai');
 
-      await expect(settingsPage.apiKeyInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+      await expect(settingsPage.apiKeyInput).toBeVisible({
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      });
 
       await captureForAI(window, 'settings-xai', 'api-key-form', [
         'xAI API key input is visible',
@@ -119,14 +131,18 @@ test.describe('Settings - All Providers', () => {
 
   // ===== OPENAI PROVIDER =====
   test.describe('OpenAI Provider', () => {
-    test('should display OpenAI provider card in first row', async ({ window }) => {
+    test('should display OpenAI provider card in first row', async ({
+      window,
+    }) => {
       const settingsPage = new SettingsPage(window);
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
 
       // OpenAI is in first 4
       const openaiCard = settingsPage.getProviderCard('openai');
-      await expect(openaiCard).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+      await expect(openaiCard).toBeVisible({
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      });
 
       await captureForAI(window, 'settings-openai', 'provider-card-visible', [
         'OpenAI provider card is visible',
@@ -134,13 +150,17 @@ test.describe('Settings - All Providers', () => {
       ]);
     });
 
-    test('should show API key form when selecting OpenAI', async ({ window }) => {
+    test('should show API key form when selecting OpenAI', async ({
+      window,
+    }) => {
       const settingsPage = new SettingsPage(window);
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
 
       await settingsPage.selectProvider('openai');
-      await expect(settingsPage.apiKeyInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+      await expect(settingsPage.apiKeyInput).toBeVisible({
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      });
 
       await captureForAI(window, 'settings-openai', 'api-key-form', [
         'OpenAI API key input is visible',
@@ -195,10 +215,20 @@ test.describe('Settings - All Providers', () => {
 
       // All providers should be visible
       const allProviders = [
-        'openai', 'anthropic', 'google', 'bedrock',
-        'moonshot', 'azure-foundry', 'deepseek', 'zai',
-        'ollama', 'lmstudio', 'xai', 'openrouter',
-        'litellm', 'minimax',
+        'openai',
+        'anthropic',
+        'google',
+        'bedrock',
+        'moonshot',
+        'azure-foundry',
+        'deepseek',
+        'zai',
+        'ollama',
+        'lmstudio',
+        'xai',
+        'openrouter',
+        'litellm',
+        'minimax',
       ];
 
       for (const providerId of allProviders) {
@@ -262,7 +292,9 @@ test.describe('Settings - All Providers', () => {
       ]);
     });
 
-    test('should switch from classic provider to custom provider', async ({ window }) => {
+    test('should switch from classic provider to custom provider', async ({
+      window,
+    }) => {
       const settingsPage = new SettingsPage(window);
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
@@ -279,13 +311,20 @@ test.describe('Settings - All Providers', () => {
       // API key input should not be visible for Ollama
       await expect(settingsPage.apiKeyInput).not.toBeVisible();
 
-      await captureForAI(window, 'settings-selection', 'switch-provider-types', [
-        'Can switch from API key to URL-based provider',
-        'Form updates correctly for different provider types',
-      ]);
+      await captureForAI(
+        window,
+        'settings-selection',
+        'switch-provider-types',
+        [
+          'Can switch from API key to URL-based provider',
+          'Form updates correctly for different provider types',
+        ]
+      );
     });
 
-    test('should switch from URL provider back to classic provider', async ({ window }) => {
+    test('should switch from URL provider back to classic provider', async ({
+      window,
+    }) => {
       const settingsPage = new SettingsPage(window);
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
@@ -302,16 +341,23 @@ test.describe('Settings - All Providers', () => {
       // Ollama URL should not be visible
       await expect(settingsPage.ollamaServerUrlInput).not.toBeVisible();
 
-      await captureForAI(window, 'settings-selection', 'switch-back-to-classic', [
-        'Can switch from URL provider back to classic',
-        'Form updates correctly',
-      ]);
+      await captureForAI(
+        window,
+        'settings-selection',
+        'switch-back-to-classic',
+        [
+          'Can switch from URL provider back to classic',
+          'Form updates correctly',
+        ]
+      );
     });
   });
 
   // ===== PROVIDER SETTINGS PANEL =====
   test.describe('Provider Settings Panel', () => {
-    test('should display provider header with logo and name', async ({ window }) => {
+    test('should display provider header with logo and name', async ({
+      window,
+    }) => {
       const settingsPage = new SettingsPage(window);
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();
@@ -328,7 +374,9 @@ test.describe('Settings - All Providers', () => {
       ]);
     });
 
-    test('should show Connect button when not connected', async ({ window }) => {
+    test('should show Connect button when not connected', async ({
+      window,
+    }) => {
       const settingsPage = new SettingsPage(window);
       await window.waitForLoadState('domcontentloaded');
       await settingsPage.navigateToSettings();

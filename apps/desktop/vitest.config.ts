@@ -16,7 +16,12 @@ export default defineConfig({
     globals: true,
     root: __dirname,
     include: ['__tests__/**/*.test.ts', '__tests__/**/*.test.tsx'],
-    exclude: ['**/node_modules/**', '**/dist/**', '**/dist-electron/**', '**/release/**'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/dist-electron/**',
+      '**/release/**',
+    ],
     setupFiles: ['__tests__/setup.ts'],
     // Use different environments based on test type
     // Unit tests for main process use Node environment

@@ -4,10 +4,12 @@ import { transformRequestBody } from '../../../../src/main/opencode/azure-foundr
 describe('Azure Foundry Proxy - transformRequestBody', () => {
   describe('max_tokens to max_completion_tokens conversion', () => {
     it('should convert max_tokens to max_completion_tokens', () => {
-      const input = Buffer.from(JSON.stringify({
-        messages: [{ role: 'user', content: 'test' }],
-        max_tokens: 1000,
-      }));
+      const input = Buffer.from(
+        JSON.stringify({
+          messages: [{ role: 'user', content: 'test' }],
+          max_tokens: 1000,
+        })
+      );
 
       const result = transformRequestBody(input);
       const parsed = JSON.parse(result.toString());
@@ -17,10 +19,12 @@ describe('Azure Foundry Proxy - transformRequestBody', () => {
     });
 
     it('should preserve max_completion_tokens if already present', () => {
-      const input = Buffer.from(JSON.stringify({
-        messages: [{ role: 'user', content: 'test' }],
-        max_completion_tokens: 2000,
-      }));
+      const input = Buffer.from(
+        JSON.stringify({
+          messages: [{ role: 'user', content: 'test' }],
+          max_completion_tokens: 2000,
+        })
+      );
 
       const result = transformRequestBody(input);
       const parsed = JSON.parse(result.toString());
@@ -30,11 +34,13 @@ describe('Azure Foundry Proxy - transformRequestBody', () => {
     });
 
     it('should prefer max_completion_tokens over max_tokens when both present', () => {
-      const input = Buffer.from(JSON.stringify({
-        messages: [{ role: 'user', content: 'test' }],
-        max_tokens: 1000,
-        max_completion_tokens: 2000,
-      }));
+      const input = Buffer.from(
+        JSON.stringify({
+          messages: [{ role: 'user', content: 'test' }],
+          max_tokens: 1000,
+          max_completion_tokens: 2000,
+        })
+      );
 
       const result = transformRequestBody(input);
       const parsed = JSON.parse(result.toString());
@@ -44,11 +50,13 @@ describe('Azure Foundry Proxy - transformRequestBody', () => {
     });
 
     it('should still strip reasoning_effort', () => {
-      const input = Buffer.from(JSON.stringify({
-        messages: [{ role: 'user', content: 'test' }],
-        max_tokens: 1000,
-        reasoning_effort: 'high',
-      }));
+      const input = Buffer.from(
+        JSON.stringify({
+          messages: [{ role: 'user', content: 'test' }],
+          max_tokens: 1000,
+          reasoning_effort: 'high',
+        })
+      );
 
       const result = transformRequestBody(input);
       const parsed = JSON.parse(result.toString());
@@ -67,9 +75,11 @@ describe('Azure Foundry Proxy - transformRequestBody', () => {
     });
 
     it('should return unchanged buffer when no transformation needed', () => {
-      const input = Buffer.from(JSON.stringify({
-        messages: [{ role: 'user', content: 'test' }],
-      }));
+      const input = Buffer.from(
+        JSON.stringify({
+          messages: [{ role: 'user', content: 'test' }],
+        })
+      );
 
       const result = transformRequestBody(input);
       const parsed = JSON.parse(result.toString());
@@ -82,10 +92,12 @@ describe('Azure Foundry Proxy - transformRequestBody', () => {
 
   describe('edge cases', () => {
     it('should handle max_tokens: 0', () => {
-      const input = Buffer.from(JSON.stringify({
-        messages: [{ role: 'user', content: 'test' }],
-        max_tokens: 0,
-      }));
+      const input = Buffer.from(
+        JSON.stringify({
+          messages: [{ role: 'user', content: 'test' }],
+          max_tokens: 0,
+        })
+      );
 
       const result = transformRequestBody(input);
       const parsed = JSON.parse(result.toString());
@@ -95,10 +107,12 @@ describe('Azure Foundry Proxy - transformRequestBody', () => {
     });
 
     it('should handle very large max_tokens value', () => {
-      const input = Buffer.from(JSON.stringify({
-        messages: [{ role: 'user', content: 'test' }],
-        max_tokens: 128000,
-      }));
+      const input = Buffer.from(
+        JSON.stringify({
+          messages: [{ role: 'user', content: 'test' }],
+          max_tokens: 128000,
+        })
+      );
 
       const result = transformRequestBody(input);
       const parsed = JSON.parse(result.toString());

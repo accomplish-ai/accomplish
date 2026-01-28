@@ -95,12 +95,14 @@ function importProviderSettings(db: Database): void {
       for (const [providerId, provider] of Object.entries(connectedProviders)) {
         if (!provider) continue;
 
-        const credentials = provider.credentials as Record<string, unknown> | undefined;
+        const credentials = provider.credentials as
+          | Record<string, unknown>
+          | undefined;
         insertProvider.run(
           providerId,
-          provider.connectionStatus as string || 'disconnected',
+          (provider.connectionStatus as string) || 'disconnected',
           provider.selectedModelId as string | null,
-          credentials?.type as string || 'api_key',
+          (credentials?.type as string) || 'api_key',
           JSON.stringify(credentials ?? {}),
           provider.lastConnectedAt as string | null,
           JSON.stringify(provider.availableModels ?? null)
@@ -181,7 +183,9 @@ function importTaskHistory(db: Database): void {
             sortOrder++
           );
 
-          const attachments = msg.attachments as Array<Record<string, unknown>> | null;
+          const attachments = msg.attachments as Array<
+            Record<string, unknown>
+          > | null;
           if (attachments) {
             for (const att of attachments) {
               insertAttachment.run(

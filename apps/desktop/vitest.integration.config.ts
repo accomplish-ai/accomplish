@@ -20,7 +20,12 @@ export default defineConfig({
     globals: true,
     root: __dirname,
     include: ['__tests__/**/*.integration.test.{ts,tsx}'],
-    exclude: ['**/node_modules/**', '**/dist/**', '**/dist-electron/**', '**/release/**'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/dist-electron/**',
+      '**/release/**',
+    ],
     setupFiles: ['__tests__/setup.ts'],
     environment: 'node',
     environmentMatchGlobs: [

@@ -50,46 +50,50 @@ function downloadFile(url, destPath) {
 
     const file = fs.createWriteStream(destPath);
 
-    https.get(url, (response) => {
-      // Handle redirects
-      if (response.statusCode === 302 || response.statusCode === 301) {
-        file.close();
-        fs.unlinkSync(destPath);
-        return downloadFile(response.headers.location, destPath).then(resolve).catch(reject);
-      }
-
-      if (response.statusCode !== 200) {
-        file.close();
-        fs.unlinkSync(destPath);
-        reject(new Error(`Failed to download: HTTP ${response.statusCode}`));
-        return;
-      }
-
-      const totalSize = parseInt(response.headers['content-length'], 10);
-      let downloadedSize = 0;
-      let lastPercent = 0;
-
-      response.on('data', (chunk) => {
-        downloadedSize += chunk.length;
-        const percent = Math.floor((downloadedSize / totalSize) * 100);
-        if (percent >= lastPercent + 10) {
-          process.stdout.write(`  ${percent}%`);
-          lastPercent = percent;
+    https
+      .get(url, (response) => {
+        // Handle redirects
+        if (response.statusCode === 302 || response.statusCode === 301) {
+          file.close();
+          fs.unlinkSync(destPath);
+          return downloadFile(response.headers.location, destPath)
+            .then(resolve)
+            .catch(reject);
         }
-      });
 
-      response.pipe(file);
+        if (response.statusCode !== 200) {
+          file.close();
+          fs.unlinkSync(destPath);
+          reject(new Error(`Failed to download: HTTP ${response.statusCode}`));
+          return;
+        }
 
-      file.on('finish', () => {
+        const totalSize = parseInt(response.headers['content-length'], 10);
+        let downloadedSize = 0;
+        let lastPercent = 0;
+
+        response.on('data', (chunk) => {
+          downloadedSize += chunk.length;
+          const percent = Math.floor((downloadedSize / totalSize) * 100);
+          if (percent >= lastPercent + 10) {
+            process.stdout.write(`  ${percent}%`);
+            lastPercent = percent;
+          }
+        });
+
+        response.pipe(file);
+
+        file.on('finish', () => {
+          file.close();
+          console.log(' Done');
+          resolve();
+        });
+      })
+      .on('error', (err) => {
         file.close();
-        console.log(' Done');
-        resolve();
+        fs.unlinkSync(destPath);
+        reject(err);
       });
-    }).on('error', (err) => {
-      file.close();
-      fs.unlinkSync(destPath);
-      reject(err);
-    });
   });
 }
 
@@ -104,7 +108,9 @@ function verifyChecksum(filePath, expectedHash) {
   const actualHash = hashSum.digest('hex');
 
   if (actualHash !== expectedHash) {
-    throw new Error(`Checksum mismatch!\n  Expected: ${expectedHash}\n  Got: ${actualHash}`);
+    throw new Error(
+      `Checksum mismatch!\n  Expected: ${expectedHash}\n  Got: ${actualHash}`
+    );
   }
   console.log('  Checksum verified');
 }
@@ -124,17 +130,25 @@ function extractArchive(archivePath, destDir, type) {
 
   if (type === 'tar') {
     // Use execFileSync with array args to avoid shell injection
-    execFileSync('tar', ['-xzf', archivePath, '-C', destDir], { stdio: 'inherit' });
+    execFileSync('tar', ['-xzf', archivePath, '-C', destDir], {
+      stdio: 'inherit',
+    });
   } else if (type === 'zip') {
     if (process.platform === 'win32') {
       // PowerShell requires -Command with a script block
-      execFileSync('powershell', [
-        '-NoProfile',
-        '-Command',
-        `Expand-Archive -Path "${archivePath}" -DestinationPath "${destDir}" -Force`
-      ], { stdio: 'inherit' });
+      execFileSync(
+        'powershell',
+        [
+          '-NoProfile',
+          '-Command',
+          `Expand-Archive -Path "${archivePath}" -DestinationPath "${destDir}" -Force`,
+        ],
+        { stdio: 'inherit' }
+      );
     } else {
-      execFileSync('unzip', ['-o', archivePath, '-d', destDir], { stdio: 'inherit' });
+      execFileSync('unzip', ['-o', archivePath, '-d', destDir], {
+        stdio: 'inherit',
+      });
     }
   }
 
@@ -166,7 +180,10 @@ async function main() {
     const destDir = path.join(RESOURCES_DIR, platform.name);
 
     // Check if already extracted
-    const extractedDir = path.join(destDir, platform.file.replace(/\.(tar\.gz|zip)$/, ''));
+    const extractedDir = path.join(
+      destDir,
+      platform.file.replace(/\.(tar\.gz|zip)$/, '')
+    );
     if (fs.existsSync(extractedDir)) {
       console.log(`  Already exists: ${extractedDir}`);
       continue;
@@ -201,7 +218,7 @@ async function main() {
     if (fs.existsSync(destDir)) {
       const contents = fs.readdirSync(destDir);
       console.log(`  ${platform.name}/`);
-      contents.forEach(item => console.log(`    ${item}/`));
+      contents.forEach((item) => console.log(`    ${item}/`));
     }
   }
 }

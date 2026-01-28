@@ -1,5 +1,12 @@
 import { config } from 'dotenv';
-import { app, BrowserWindow, shell, ipcMain, nativeImage, dialog } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  shell,
+  ipcMain,
+  nativeImage,
+  dialog,
+} from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -11,7 +18,11 @@ import { initializeDatabase, closeDatabase } from './store/db';
 import { FutureSchemaError } from './store/migrations/errors';
 import { stopAzureFoundryProxy } from './opencode/azure-foundry-proxy';
 import { stopMoonshotProxy } from './opencode/moonshot-proxy';
-import { initializeLogCollector, shutdownLogCollector, getLogCollector } from './logging';
+import {
+  initializeLogCollector,
+  shutdownLogCollector,
+  getLogCollector,
+} from './logging';
 
 // Local UI - no longer uses remote URL
 
@@ -20,7 +31,10 @@ import { initializeLogCollector, shutdownLogCollector, getLogCollector } from '.
 if (process.argv.includes('--e2e-skip-auth')) {
   (global as Record<string, unknown>).E2E_SKIP_AUTH = true;
 }
-if (process.argv.includes('--e2e-mock-tasks') || process.env.E2E_MOCK_TASK_EVENTS === '1') {
+if (
+  process.argv.includes('--e2e-mock-tasks') ||
+  process.env.E2E_MOCK_TASK_EVENTS === '1'
+) {
   (global as Record<string, unknown>).E2E_MOCK_TASK_EVENTS = true;
 }
 
@@ -175,7 +189,9 @@ if (!gotTheLock) {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
-      console.log('[Main] Focused existing instance after second-instance event');
+      console.log(
+        '[Main] Focused existing instance after second-instance event'
+      );
     }
   });
 
@@ -286,6 +302,8 @@ ipcMain.handle('app:platform', () => {
 });
 
 ipcMain.handle('app:is-e2e-mode', () => {
-  return (global as Record<string, unknown>).E2E_MOCK_TASK_EVENTS === true ||
-    process.env.E2E_MOCK_TASK_EVENTS === '1';
+  return (
+    (global as Record<string, unknown>).E2E_MOCK_TASK_EVENTS === true ||
+    process.env.E2E_MOCK_TASK_EVENTS === '1'
+  );
 });

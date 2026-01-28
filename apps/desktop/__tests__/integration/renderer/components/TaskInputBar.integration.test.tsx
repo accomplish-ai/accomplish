@@ -12,7 +12,9 @@ import TaskInputBar from '@/components/landing/TaskInputBar';
 // Mock accomplish API
 const mockAccomplish = {
   logEvent: vi.fn().mockResolvedValue(undefined),
-  getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
+  getSelectedModel: vi
+    .fn()
+    .mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
   getOllamaConfig: vi.fn().mockResolvedValue(null),
   isE2EMode: vi.fn().mockResolvedValue(false),
   getProviderSettings: vi.fn().mockResolvedValue({
@@ -55,13 +57,7 @@ describe('TaskInputBar Integration', () => {
       const onSubmit = vi.fn();
 
       // Act
-      render(
-        <TaskInputBar
-          value=""
-          onChange={onChange}
-          onSubmit={onSubmit}
-        />
-      );
+      render(<TaskInputBar value="" onChange={onChange} onSubmit={onSubmit} />);
 
       // Assert
       const textarea = screen.getByRole('textbox');
@@ -75,16 +71,12 @@ describe('TaskInputBar Integration', () => {
       const onSubmit = vi.fn();
 
       // Act
-      render(
-        <TaskInputBar
-          value=""
-          onChange={onChange}
-          onSubmit={onSubmit}
-        />
-      );
+      render(<TaskInputBar value="" onChange={onChange} onSubmit={onSubmit} />);
 
       // Assert
-      const textarea = screen.getByPlaceholderText('Assign a task or ask anything');
+      const textarea = screen.getByPlaceholderText(
+        'Assign a task or ask anything'
+      );
       expect(textarea).toBeInTheDocument();
     });
 
@@ -135,13 +127,7 @@ describe('TaskInputBar Integration', () => {
       const onSubmit = vi.fn();
 
       // Act
-      render(
-        <TaskInputBar
-          value=""
-          onChange={onChange}
-          onSubmit={onSubmit}
-        />
-      );
+      render(<TaskInputBar value="" onChange={onChange} onSubmit={onSubmit} />);
 
       // Assert
       const submitButton = screen.getByRole('button', { name: /submit/i });
@@ -155,13 +141,7 @@ describe('TaskInputBar Integration', () => {
       const onChange = vi.fn();
       const onSubmit = vi.fn();
 
-      render(
-        <TaskInputBar
-          value=""
-          onChange={onChange}
-          onSubmit={onSubmit}
-        />
-      );
+      render(<TaskInputBar value="" onChange={onChange} onSubmit={onSubmit} />);
 
       // Act
       const textarea = screen.getByRole('textbox');
@@ -177,11 +157,7 @@ describe('TaskInputBar Integration', () => {
       const onSubmit = vi.fn();
 
       const { rerender } = render(
-        <TaskInputBar
-          value=""
-          onChange={onChange}
-          onSubmit={onSubmit}
-        />
+        <TaskInputBar value="" onChange={onChange} onSubmit={onSubmit} />
       );
 
       // Act - First change
@@ -190,11 +166,7 @@ describe('TaskInputBar Integration', () => {
 
       // Rerender with updated value
       rerender(
-        <TaskInputBar
-          value="First"
-          onChange={onChange}
-          onSubmit={onSubmit}
-        />
+        <TaskInputBar value="First" onChange={onChange} onSubmit={onSubmit} />
       );
 
       // Act - Second change
@@ -214,13 +186,7 @@ describe('TaskInputBar Integration', () => {
       const onSubmit = vi.fn();
 
       // Act
-      render(
-        <TaskInputBar
-          value=""
-          onChange={onChange}
-          onSubmit={onSubmit}
-        />
-      );
+      render(<TaskInputBar value="" onChange={onChange} onSubmit={onSubmit} />);
 
       // Assert
       const submitButton = screen.getByRole('button', { name: /submit/i });
@@ -234,11 +200,7 @@ describe('TaskInputBar Integration', () => {
 
       // Act
       render(
-        <TaskInputBar
-          value="   "
-          onChange={onChange}
-          onSubmit={onSubmit}
-        />
+        <TaskInputBar value="   " onChange={onChange} onSubmit={onSubmit} />
       );
 
       // Assert
@@ -333,13 +295,7 @@ describe('TaskInputBar Integration', () => {
       const onChange = vi.fn();
       const onSubmit = vi.fn();
 
-      render(
-        <TaskInputBar
-          value=""
-          onChange={onChange}
-          onSubmit={onSubmit}
-        />
-      );
+      render(<TaskInputBar value="" onChange={onChange} onSubmit={onSubmit} />);
 
       // Act
       const submitButton = screen.getByRole('button', { name: /submit/i });

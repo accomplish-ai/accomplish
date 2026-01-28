@@ -1,19 +1,24 @@
-import express, { type Express, type Request, type Response } from "express";
+import express, { type Express, type Request, type Response } from 'express';
 // Using rebrowser-playwright (via npm alias) for better anti-detection
 // Rebrowser patches fix CDP-level detection leaks (Runtime.Enable) that stealth plugins can't fix
-import { chromium, type BrowserContext, type Page } from "playwright";
-import { mkdirSync } from "fs";
-import { join } from "path";
-import type { Socket } from "net";
+import { chromium, type BrowserContext, type Page } from 'playwright';
+import { mkdirSync } from 'fs';
+import { join } from 'path';
+import type { Socket } from 'net';
 import type {
   ServeOptions,
   GetPageRequest,
   GetPageResponse,
   ListPagesResponse,
   ServerInfoResponse,
-} from "./types";
+} from './types';
 
-export type { ServeOptions, GetPageResponse, ListPagesResponse, ServerInfoResponse };
+export type {
+  ServeOptions,
+  GetPageResponse,
+  ListPagesResponse,
+  ServerInfoResponse,
+};
 
 export interface DevBrowserServer {
   wsEndpoint: string;
@@ -44,7 +49,11 @@ async function fetchWithRetry(
 }
 
 // Helper to add timeout to promises
-function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  message: string
+): Promise<T> {
   return Promise.race([
     promise,
     new Promise<never>((_, reject) =>
@@ -53,27 +62,35 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
   ]);
 }
 
-export async function serve(options: ServeOptions = {}): Promise<DevBrowserServer> {
+export async function serve(
+  options: ServeOptions = {}
+): Promise<DevBrowserServer> {
   // Ports can be overridden via environment variable for isolated testing
-  const port = options.port ?? parseInt(process.env.DEV_BROWSER_PORT || '9224', 10);
+  const port =
+    options.port ?? parseInt(process.env.DEV_BROWSER_PORT || '9224', 10);
   const headless = options.headless ?? false;
-  const cdpPort = options.cdpPort ?? parseInt(process.env.DEV_BROWSER_CDP_PORT || '9225', 10);
+  const cdpPort =
+    options.cdpPort ?? parseInt(process.env.DEV_BROWSER_CDP_PORT || '9225', 10);
   const profileDir = options.profileDir ?? process.env.DEV_BROWSER_PROFILE;
   const useSystemChrome = options.useSystemChrome ?? true; // Default to trying system Chrome
 
   // Validate port numbers (Number.isFinite catches NaN from invalid env var values)
   if (!Number.isFinite(port) || port < 1 || port > 65535) {
-    throw new Error(`Invalid port: ${port}. Must be a number between 1 and 65535`);
+    throw new Error(
+      `Invalid port: ${port}. Must be a number between 1 and 65535`
+    );
   }
   if (!Number.isFinite(cdpPort) || cdpPort < 1 || cdpPort > 65535) {
-    throw new Error(`Invalid cdpPort: ${cdpPort}. Must be a number between 1 and 65535`);
+    throw new Error(
+      `Invalid cdpPort: ${cdpPort}. Must be a number between 1 and 65535`
+    );
   }
   if (port === cdpPort) {
-    throw new Error("port and cdpPort must be different");
+    throw new Error('port and cdpPort must be different');
   }
 
   // Base profile directory
-  const baseProfileDir = profileDir ?? join(process.cwd(), ".browser-data");
+  const baseProfileDir = profileDir ?? join(process.cwd(), '.browser-data');
 
   let context: BrowserContext;
   let usedSystemChrome = false;
@@ -81,9 +98,9 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
   // Try system Chrome first if enabled (much faster - no download needed)
   if (useSystemChrome) {
     try {
-      console.log("Trying to use system Chrome...");
+      console.log('Trying to use system Chrome...');
       // Use separate profile directory for system Chrome to avoid compatibility issues
-      const chromeUserDataDir = join(baseProfileDir, "chrome-profile");
+      const chromeUserDataDir = join(baseProfileDir, 'chrome-profile');
       mkdirSync(chromeUserDataDir, { recursive: true });
 
       context = await chromium.launchPersistentContext(chromeUserDataDir, {
@@ -96,9 +113,11 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
         ],
       });
       usedSystemChrome = true;
-      console.log("Using system Chrome (fast startup!)");
+      console.log('Using system Chrome (fast startup!)');
     } catch (chromeError) {
-      console.log("System Chrome not available, falling back to Playwright Chromium...");
+      console.log(
+        'System Chrome not available, falling back to Playwright Chromium...'
+      );
       // Fall through to Playwright Chromium below
     }
   }
@@ -106,10 +125,10 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
   // Fall back to Playwright's bundled Chromium
   if (!usedSystemChrome) {
     // Use separate profile directory for Playwright Chromium to avoid compatibility issues
-    const playwrightUserDataDir = join(baseProfileDir, "playwright-profile");
+    const playwrightUserDataDir = join(baseProfileDir, 'playwright-profile');
     mkdirSync(playwrightUserDataDir, { recursive: true });
 
-    console.log("Launching browser with Playwright Chromium...");
+    console.log('Launching browser with Playwright Chromium...');
     context = await chromium.launchPersistentContext(playwrightUserDataDir, {
       headless,
       ignoreDefaultArgs: ['--enable-automation'], // Remove automation flag
@@ -118,21 +137,27 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
         '--disable-blink-features=AutomationControlled', // Hide navigator.webdriver
       ],
     });
-    console.log("Browser launched with Playwright Chromium");
+    console.log('Browser launched with Playwright Chromium');
   }
 
-  console.log("Browser launched with persistent profile...");
+  console.log('Browser launched with persistent profile...');
 
   // Listen for browser context close (e.g., user closes Chrome window)
   // When this happens, exit the server so it can be restarted with a fresh browser
   context.on('close', () => {
-    console.log('Browser context closed (user may have closed Chrome). Exiting server...');
+    console.log(
+      'Browser context closed (user may have closed Chrome). Exiting server...'
+    );
     process.exit(0);
   });
 
   // Get the CDP WebSocket endpoint from Chrome's JSON API (with retry for slow startup)
-  const cdpResponse = await fetchWithRetry(`http://127.0.0.1:${cdpPort}/json/version`);
-  const cdpInfo = (await cdpResponse.json()) as { webSocketDebuggerUrl: string };
+  const cdpResponse = await fetchWithRetry(
+    `http://127.0.0.1:${cdpPort}/json/version`
+  );
+  const cdpInfo = (await cdpResponse.json()) as {
+    webSocketDebuggerUrl: string;
+  };
   const wsEndpoint = cdpInfo.webSocketDebuggerUrl;
   console.log(`CDP WebSocket endpoint: ${wsEndpoint}`);
 
@@ -149,7 +174,7 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
   async function getTargetId(page: Page): Promise<string> {
     const cdpSession = await context.newCDPSession(page);
     try {
-      const { targetInfo } = await cdpSession.send("Target.getTargetInfo");
+      const { targetInfo } = await cdpSession.send('Target.getTargetInfo');
       return targetInfo.targetId;
     } finally {
       await cdpSession.detach();
@@ -161,13 +186,13 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
   app.use(express.json());
 
   // GET / - server info
-  app.get("/", (_req: Request, res: Response) => {
+  app.get('/', (_req: Request, res: Response) => {
     const response: ServerInfoResponse = { wsEndpoint };
     res.json(response);
   });
 
   // GET /pages - list all pages
-  app.get("/pages", (_req: Request, res: Response) => {
+  app.get('/pages', (_req: Request, res: Response) => {
     const response: ListPagesResponse = {
       pages: Array.from(registry.keys()),
     };
@@ -175,22 +200,22 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
   });
 
   // POST /pages - get or create page
-  app.post("/pages", async (req: Request, res: Response) => {
+  app.post('/pages', async (req: Request, res: Response) => {
     const body = req.body as GetPageRequest;
     const { name, viewport } = body;
 
-    if (!name || typeof name !== "string") {
-      res.status(400).json({ error: "name is required and must be a string" });
+    if (!name || typeof name !== 'string') {
+      res.status(400).json({ error: 'name is required and must be a string' });
       return;
     }
 
     if (name.length === 0) {
-      res.status(400).json({ error: "name cannot be empty" });
+      res.status(400).json({ error: 'name cannot be empty' });
       return;
     }
 
     if (name.length > 256) {
-      res.status(400).json({ error: "name must be 256 characters or less" });
+      res.status(400).json({ error: 'name must be 256 characters or less' });
       return;
     }
 
@@ -198,7 +223,11 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     let entry = registry.get(name);
     if (!entry) {
       // Create new page in the persistent context (with timeout to prevent hangs)
-      const page = await withTimeout(context.newPage(), 30000, "Page creation timed out after 30s");
+      const page = await withTimeout(
+        context.newPage(),
+        30000,
+        'Page creation timed out after 30s'
+      );
 
       // Apply viewport if provided
       if (viewport) {
@@ -210,29 +239,36 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
       registry.set(name, entry);
 
       // Clean up registry when page is closed (e.g., user clicks X)
-      page.on("close", () => {
+      page.on('close', () => {
         registry.delete(name);
       });
     }
 
-    const response: GetPageResponse = { wsEndpoint, name, targetId: entry.targetId };
+    const response: GetPageResponse = {
+      wsEndpoint,
+      name,
+      targetId: entry.targetId,
+    };
     res.json(response);
   });
 
   // DELETE /pages/:name - close a page
-  app.delete("/pages/:name", async (req: Request<{ name: string }>, res: Response) => {
-    const name = decodeURIComponent(req.params.name);
-    const entry = registry.get(name);
+  app.delete(
+    '/pages/:name',
+    async (req: Request<{ name: string }>, res: Response) => {
+      const name = decodeURIComponent(req.params.name);
+      const entry = registry.get(name);
 
-    if (entry) {
-      await entry.page.close();
-      registry.delete(name);
-      res.json({ success: true });
-      return;
+      if (entry) {
+        await entry.page.close();
+        registry.delete(name);
+        res.json({ success: true });
+        return;
+      }
+
+      res.status(404).json({ error: 'page not found' });
     }
-
-    res.status(404).json({ error: "page not found" });
-  });
+  );
 
   // Start the server
   const server = app.listen(port, () => {
@@ -241,9 +277,9 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
 
   // Track active connections for clean shutdown
   const connections = new Set<Socket>();
-  server.on("connection", (socket: Socket) => {
+  server.on('connection', (socket: Socket) => {
     connections.add(socket);
-    socket.on("close", () => connections.delete(socket));
+    socket.on('close', () => connections.delete(socket));
   });
 
   // Track if cleanup has been called to avoid double cleanup
@@ -254,7 +290,7 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     if (cleaningUp) return;
     cleaningUp = true;
 
-    console.log("\nShutting down...");
+    console.log('\nShutting down...');
 
     // Close all active HTTP connections
     for (const socket of connections) {
@@ -280,7 +316,7 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     }
 
     server.close();
-    console.log("Server stopped.");
+    console.log('Server stopped.');
   };
 
   // Synchronous cleanup for forced exits
@@ -293,7 +329,7 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
   };
 
   // Signal handlers (consolidated to reduce duplication)
-  const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const;
+  const signals = ['SIGINT', 'SIGTERM', 'SIGHUP'] as const;
 
   const signalHandler = async () => {
     await cleanup();
@@ -301,23 +337,23 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
   };
 
   const errorHandler = async (err: unknown) => {
-    console.error("Unhandled error:", err);
+    console.error('Unhandled error:', err);
     await cleanup();
     process.exit(1);
   };
 
   // Register handlers
   signals.forEach((sig) => process.on(sig, signalHandler));
-  process.on("uncaughtException", errorHandler);
-  process.on("unhandledRejection", errorHandler);
-  process.on("exit", syncCleanup);
+  process.on('uncaughtException', errorHandler);
+  process.on('unhandledRejection', errorHandler);
+  process.on('exit', syncCleanup);
 
   // Helper to remove all handlers
   const removeHandlers = () => {
     signals.forEach((sig) => process.off(sig, signalHandler));
-    process.off("uncaughtException", errorHandler);
-    process.off("unhandledRejection", errorHandler);
-    process.off("exit", syncCleanup);
+    process.off('uncaughtException', errorHandler);
+    process.off('unhandledRejection', errorHandler);
+    process.off('exit', syncCleanup);
   };
 
   return {

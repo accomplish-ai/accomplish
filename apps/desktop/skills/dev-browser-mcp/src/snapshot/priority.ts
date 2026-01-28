@@ -107,14 +107,14 @@ export function truncateElements<T extends TruncatableElement>(
   }
 
   // Score and sort elements by priority (descending)
-  const scored = elements.map(element => ({
+  const scored = elements.map((element) => ({
     element,
     score: getElementPriority(element.role, element.inViewport),
   }));
 
   scored.sort((a, b) => b.score - a.score);
 
-  const truncatedElements = scored.slice(0, maxElements).map(s => s.element);
+  const truncatedElements = scored.slice(0, maxElements).map((s) => s.element);
 
   return {
     elements: truncatedElements,

@@ -69,7 +69,9 @@ describe('StreamParser', () => {
       };
 
       // Act
-      parser.feed(JSON.stringify(message1) + '\n' + JSON.stringify(message2) + '\n');
+      parser.feed(
+        JSON.stringify(message1) + '\n' + JSON.stringify(message2) + '\n'
+      );
 
       // Assert
       expect(messageHandler).toHaveBeenCalledTimes(2);
@@ -516,7 +518,8 @@ describe('StreamParser', () => {
       // Create a large but valid NDJSON stream with complete messages
       // followed by a large incomplete line
       const maxBufferSize = 10 * 1024 * 1024;
-      const validMessages = JSON.stringify(message1) + '\n' + JSON.stringify(message2) + '\n';
+      const validMessages =
+        JSON.stringify(message1) + '\n' + JSON.stringify(message2) + '\n';
       const largeIncompleteLine = 'x'.repeat(maxBufferSize + 100); // No newline = incomplete
 
       // Act - Feed valid messages followed by oversized incomplete line
@@ -550,7 +553,11 @@ describe('StreamParser', () => {
       for (let i = 0; i < 15000; i++) {
         const msg = {
           ...messageTemplate,
-          part: { ...messageTemplate.part, id: `msg_${i}`, messageID: `msg_${i}` },
+          part: {
+            ...messageTemplate.part,
+            id: `msg_${i}`,
+            messageID: `msg_${i}`,
+          },
         };
         messages.push(msg);
         ndjson += JSON.stringify(msg) + '\n';
@@ -571,15 +578,32 @@ describe('StreamParser', () => {
       const messages: OpenCodeMessage[] = [
         {
           type: 'step_start',
-          part: { id: 's1', sessionID: 'sess', messageID: 'm1', type: 'step-start' },
+          part: {
+            id: 's1',
+            sessionID: 'sess',
+            messageID: 'm1',
+            type: 'step-start',
+          },
         },
         {
           type: 'text',
-          part: { id: 't1', sessionID: 'sess', messageID: 'm1', type: 'text', text: 'Hello' },
+          part: {
+            id: 't1',
+            sessionID: 'sess',
+            messageID: 'm1',
+            type: 'text',
+            text: 'Hello',
+          },
         },
         {
           type: 'step_finish',
-          part: { id: 's1', sessionID: 'sess', messageID: 'm1', type: 'step-finish', reason: 'stop' },
+          part: {
+            id: 's1',
+            sessionID: 'sess',
+            messageID: 'm1',
+            type: 'step-finish',
+            reason: 'stop',
+          },
         },
       ];
 

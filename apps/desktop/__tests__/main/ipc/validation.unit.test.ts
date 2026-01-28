@@ -64,7 +64,9 @@ describe('validation.ts', () => {
 
         // Act & Assert
         // Note: Zod returns "Required" for missing fields by default
-        expect(() => validate(testSchema, payload)).toThrow('Invalid payload: Required');
+        expect(() => validate(testSchema, payload)).toThrow(
+          'Invalid payload: Required'
+        );
       });
 
       it('should throw an error for wrong types', () => {
@@ -80,7 +82,9 @@ describe('validation.ts', () => {
         const payload = { name: 'Alice', age: -5 };
 
         // Act & Assert
-        expect(() => validate(testSchema, payload)).toThrow('Invalid payload: Age must be positive');
+        expect(() => validate(testSchema, payload)).toThrow(
+          'Invalid payload: Age must be positive'
+        );
       });
 
       it('should concatenate multiple error messages with semicolons', () => {
@@ -103,7 +107,9 @@ describe('validation.ts', () => {
 
       it('should throw for undefined payload', () => {
         // Act & Assert
-        expect(() => validate(testSchema, undefined)).toThrow('Invalid payload:');
+        expect(() => validate(testSchema, undefined)).toThrow(
+          'Invalid payload:'
+        );
       });
     });
   });

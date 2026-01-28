@@ -123,7 +123,7 @@ export interface SessionHistoryEntry {
  * Compact session summary for context.
  */
 export interface SessionSummary {
-  history: string;  // "Page A → Page B → Page C"
+  history: string; // "Page A → Page B → Page C"
   pagesVisited: number;
   navigationPatternHash?: string;
 }

@@ -11,19 +11,14 @@ import { cn } from '@/lib/utils';
 import { springs } from '@/lib/animations';
 import TaskLauncherItem from './TaskLauncherItem';
 import { hasAnyReadyProvider } from '@accomplish/shared';
-import {Input} from "@/components/ui/input";
+import { Input } from '@/components/ui/input';
 
 export default function TaskLauncher() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const {
-    isLauncherOpen,
-    closeLauncher,
-    tasks,
-    startTask
-  } = useTaskStore();
+  const { isLauncherOpen, closeLauncher, tasks, startTask } = useTaskStore();
   const accomplish = getAccomplish();
 
   // Filter tasks by search query (title only)
@@ -31,10 +26,12 @@ export default function TaskLauncher() {
     if (!searchQuery.trim()) {
       // Show last 7 days when no search
       const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      return tasks.filter(t => new Date(t.createdAt).getTime() > sevenDaysAgo);
+      return tasks.filter(
+        (t) => new Date(t.createdAt).getTime() > sevenDaysAgo
+      );
     }
     const query = searchQuery.toLowerCase();
-    return tasks.filter(t => t.prompt.toLowerCase().includes(query));
+    return tasks.filter((t) => t.prompt.toLowerCase().includes(query));
   }, [tasks, searchQuery]);
 
   // Total items: "New task" + filtered tasks
@@ -42,7 +39,7 @@ export default function TaskLauncher() {
 
   // Clamp selected index when results change
   useEffect(() => {
-    setSelectedIndex(i => Math.min(i, Math.max(0, totalItems - 1)));
+    setSelectedIndex((i) => Math.min(i, Math.max(0, totalItems - 1)));
   }, [totalItems]);
 
   // Reset state when launcher opens
@@ -53,69 +50,78 @@ export default function TaskLauncher() {
     }
   }, [isLauncherOpen]);
 
-  const handleOpenChange = useCallback((open: boolean) => {
-    if (!open && isLauncherOpen) {
-      closeLauncher();
-      setSearchQuery('');
-      setSelectedIndex(0);
-    }
-  }, [isLauncherOpen, closeLauncher])
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open && isLauncherOpen) {
+        closeLauncher();
+        setSearchQuery('');
+        setSelectedIndex(0);
+      }
+    },
+    [isLauncherOpen, closeLauncher]
+  );
 
-  const handleSelect = useCallback(async (index: number) => {
-    if (index === 0) {
-      // "New task" selected
-      if (searchQuery.trim()) {
-        // Check if any provider is ready before starting task
-        const settings = await accomplish.getProviderSettings();
-        if (!hasAnyReadyProvider(settings)) {
-          // No ready provider - navigate to home which will show settings
+  const handleSelect = useCallback(
+    async (index: number) => {
+      if (index === 0) {
+        // "New task" selected
+        if (searchQuery.trim()) {
+          // Check if any provider is ready before starting task
+          const settings = await accomplish.getProviderSettings();
+          if (!hasAnyReadyProvider(settings)) {
+            // No ready provider - navigate to home which will show settings
+            closeLauncher();
+            navigate('/');
+            return;
+          }
+          closeLauncher();
+          const taskId = `task_${Date.now()}`;
+          const task = await startTask({ prompt: searchQuery.trim(), taskId });
+          if (task) {
+            navigate(`/execution/${task.id}`);
+          }
+        } else {
+          // Navigate to home for empty input
           closeLauncher();
           navigate('/');
-          return;
-        }
-        closeLauncher();
-        const taskId = `task_${Date.now()}`;
-        const task = await startTask({ prompt: searchQuery.trim(), taskId });
-        if (task) {
-          navigate(`/execution/${task.id}`);
         }
       } else {
-        // Navigate to home for empty input
-        closeLauncher();
-        navigate('/');
+        // Task selected - navigate to it
+        const task = filteredTasks[index - 1];
+        if (task) {
+          closeLauncher();
+          navigate(`/execution/${task.id}`);
+        }
       }
-    } else {
-      // Task selected - navigate to it
-      const task = filteredTasks[index - 1];
-      if (task) {
-        closeLauncher();
-        navigate(`/execution/${task.id}`);
-      }
-    }
-  }, [searchQuery, filteredTasks, closeLauncher, navigate, startTask, accomplish]);
+    },
+    [searchQuery, filteredTasks, closeLauncher, navigate, startTask, accomplish]
+  );
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // Ignore Enter during IME composition (Chinese/Japanese input)
-    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex(i => Math.min(i + 1, totalItems - 1));
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex(i => Math.max(i - 1, 0));
-        break;
-      case 'Enter':
-        e.preventDefault();
-        handleSelect(selectedIndex);
-        break;
-      case 'Escape':
-        e.preventDefault();
-        closeLauncher();
-        break;
-    }
-  }, [totalItems, selectedIndex, handleSelect, closeLauncher]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      // Ignore Enter during IME composition (Chinese/Japanese input)
+      if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setSelectedIndex((i) => Math.min(i + 1, totalItems - 1));
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setSelectedIndex((i) => Math.max(i - 1, 0));
+          break;
+        case 'Enter':
+          e.preventDefault();
+          handleSelect(selectedIndex);
+          break;
+        case 'Escape':
+          e.preventDefault();
+          closeLauncher();
+          break;
+      }
+    },
+    [totalItems, selectedIndex, handleSelect, closeLauncher]
+  );
 
   return (
     <DialogPrimitive.Root open={isLauncherOpen} onOpenChange={handleOpenChange}>
@@ -149,13 +155,17 @@ export default function TaskLauncher() {
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
                   <Search className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search tasks..."
-                      className="border-0 px-0 py-1 h-full focus:outline-none focus-visible:ring-0" />
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search tasks..."
+                    className="border-0 px-0 py-1 h-full focus:outline-none focus-visible:ring-0"
+                  />
                   <DialogPrimitive.Close asChild>
-                    <button className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Close">
+                    <button
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label="Close"
+                    >
                       <X className="h-4 w-4" />
                     </button>
                   </DialogPrimitive.Close>
@@ -177,10 +187,14 @@ export default function TaskLauncher() {
                     <Plus className="h-4 w-4 shrink-0" />
                     <span>New task</span>
                     {searchQuery.trim() && (
-                      <span className={cn(
-                        'text-xs truncate',
-                        selectedIndex === 0 ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                      )}>
+                      <span
+                        className={cn(
+                          'text-xs truncate',
+                          selectedIndex === 0
+                            ? 'text-primary-foreground/70'
+                            : 'text-muted-foreground'
+                        )}
+                      >
                         — "{searchQuery}"
                       </span>
                     )}
@@ -213,9 +227,24 @@ export default function TaskLauncher() {
 
                 {/* Footer hint */}
                 <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground flex items-center gap-4">
-                  <span><kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">↑↓</kbd> Navigate</span>
-                  <span><kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">↵</kbd> Select</span>
-                  <span><kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Esc</kbd> Close</span>
+                  <span>
+                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
+                      ↑↓
+                    </kbd>{' '}
+                    Navigate
+                  </span>
+                  <span>
+                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
+                      ↵
+                    </kbd>{' '}
+                    Select
+                  </span>
+                  <span>
+                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
+                      Esc
+                    </kbd>{' '}
+                    Close
+                  </span>
                 </div>
               </motion.div>
             </DialogPrimitive.Content>

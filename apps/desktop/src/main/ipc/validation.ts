@@ -33,7 +33,9 @@ export function validate<TSchema extends z.ZodTypeAny>(
 ): z.infer<TSchema> {
   const result = schema.safeParse(payload);
   if (!result.success) {
-    const message = result.error.issues.map((issue: z.ZodIssue) => issue.message).join('; ');
+    const message = result.error.issues
+      .map((issue: z.ZodIssue) => issue.message)
+      .join('; ');
     throw new Error(`Invalid payload: ${message}`);
   }
   return result.data;
