@@ -13,40 +13,35 @@ The `sync-translations.ts` script automatically translates missing UI strings fr
 
 ## Setup
 
-### Option 1: Using .env File (Recommended)
+To run the translation sync scripts, you need an **Anthropic API key**. Get one from: https://console.anthropic.com/
 
-This is the most secure and convenient method:
+### Using a .env File (Recommended)
 
-1. Copy the example file:
-   ```bash
-   cp .env.example .env
-   ```
+Create a `.env` file in the project root (already in `.gitignore`):
 
-2. Edit `.env` and add your Anthropic API key:
-   ```bash
-   ANTHROPIC_API_KEY=sk-ant-api03-your-actual-key-here
-   ```
+```bash
+# Create .env file
+echo "ANTHROPIC_API_KEY=sk-ant-api03-your-actual-key-here" > .env
+```
 
-3. The `.env` file is already in `.gitignore` so your key won't be committed
+The script will automatically load the key from `.env`.
 
-### Option 2: Environment Variable
+### Using an Environment Variable
 
-Pass the key directly (useful for CI/CD):
+Pass the key directly when running the command:
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-... pnpm i18n:sync
 ```
 
-### Option 3: Use Your Existing Openwork API Key
+### Using Your Existing Openwork API Key
 
-If you're already using Openwork with an Anthropic API key, you can retrieve it from the app's keychain:
+If you're already using Openwork with an Anthropic API key, retrieve it from the app's keychain:
 
 ```bash
 # macOS
-security find-generic-password -s "openwork-api-key" -w
+ANTHROPIC_API_KEY=$(security find-generic-password -s "openwork-api-key" -w) pnpm i18n:sync
 ```
-
-Then use that key with Option 1 or 2.
 
 ## Usage
 
