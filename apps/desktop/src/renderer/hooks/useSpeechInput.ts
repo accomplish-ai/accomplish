@@ -4,7 +4,6 @@
  * Handles:
  * - Recording audio from microphone (in renderer process)
  * - Button click toggle (start/stop recording)
- * - Push-to-talk via keyboard shortcut (hold to record, release to transcribe)
  * - Sending audio to main process for transcription via IPC
  * - State management (recording, transcribing, error)
  * - Automatic retry on failure
@@ -47,11 +46,6 @@ export interface UseSpeechInputOptions {
    * Maximum recording duration in milliseconds (default 120000 = 2 minutes)
    */
   maxDuration?: number;
-
-  /**
-   * Keyboard shortcut for push-to-talk (e.g., 'Alt', 'Control', 'Shift', or specific key code)
-   */
-  pushToTalkKey?: string;
 }
 
 export interface UseSpeechInputState {
@@ -98,7 +92,6 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     onRecordingStateChange,
     onError,
     maxDuration = 120000,
-    pushToTalkKey = 'Alt',
   } = options;
 
   const accomplish = getAccomplish();
@@ -419,38 +412,22 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     setState((prev) => ({ ...prev, error: null }));
   }, []);
 
-  // Handle push-to-talk keyboard shortcuts and Escape to cancel
+  // Handle Escape key to cancel recording
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Escape to cancel recording
       if (event.key === 'Escape' && state.isRecording) {
         event.preventDefault();
         cancelRecording();
-        return;
-      }
-
-      // Push-to-talk
-      if (event.key === pushToTalkKey && !state.isRecording && !state.isTranscribing) {
-        event.preventDefault();
-        void startRecording();
-      }
-    };
-
-    const handleKeyUp = (event: KeyboardEvent) => {
-      if (event.key === pushToTalkKey && state.isRecording) {
-        event.preventDefault();
-        void stopRecording();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [state.isRecording, state.isTranscribing, pushToTalkKey, startRecording, stopRecording, cancelRecording]);
+  }, [state.isRecording, cancelRecording]);
 
   return {
     ...state,
