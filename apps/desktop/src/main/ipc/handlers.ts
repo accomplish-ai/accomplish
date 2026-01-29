@@ -2531,6 +2531,14 @@ export function registerIPCHandlers(): void {
     await skillsManager.resync();
     return skillsManager.getAll();
   });
+
+  ipcMain.handle('skills:open-in-editor', async (_, filePath: string) => {
+    await shell.openPath(filePath);
+  });
+
+  ipcMain.handle('skills:show-in-folder', async (_, filePath: string) => {
+    shell.showItemInFolder(filePath);
+  });
 }
 
 function createTaskId(): string {

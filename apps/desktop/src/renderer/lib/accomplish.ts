@@ -201,6 +201,8 @@ interface AccomplishAPI {
   addSkillFromGitHub(rawUrl: string): Promise<Skill>;
   deleteSkill(id: string): Promise<void>;
   resyncSkills(): Promise<Skill[]>;
+  openSkillInEditor(filePath: string): Promise<void>;
+  showSkillInFolder(filePath: string): Promise<void>;
 }
 
 interface AccomplishShell {

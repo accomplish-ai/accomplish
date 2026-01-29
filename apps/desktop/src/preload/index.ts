@@ -314,6 +314,8 @@ const accomplishAPI = {
     ipcRenderer.invoke('skills:add-from-github', rawUrl),
   deleteSkill: (id: string): Promise<void> => ipcRenderer.invoke('skills:delete', id),
   resyncSkills: (): Promise<Skill[]> => ipcRenderer.invoke('skills:resync'),
+  openSkillInEditor: (filePath: string): Promise<void> => ipcRenderer.invoke('skills:open-in-editor', filePath),
+  showSkillInFolder: (filePath: string): Promise<void> => ipcRenderer.invoke('skills:show-in-folder', filePath),
 };
 
 // Expose the API to the renderer

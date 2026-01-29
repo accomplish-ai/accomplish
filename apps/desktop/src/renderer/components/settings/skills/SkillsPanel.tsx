@@ -117,6 +117,24 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
     }
   }, [skills]);
 
+  const handleEdit = useCallback(async (filePath: string) => {
+    if (!window.accomplish) return;
+    try {
+      await window.accomplish.openSkillInEditor(filePath);
+    } catch (err) {
+      console.error('Failed to open skill in editor:', err);
+    }
+  }, []);
+
+  const handleShowInFolder = useCallback(async (filePath: string) => {
+    if (!window.accomplish) return;
+    try {
+      await window.accomplish.showSkillInFolder(filePath);
+    } catch (err) {
+      console.error('Failed to show skill in folder:', err);
+    }
+  }, []);
+
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   }, []);
@@ -249,6 +267,8 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
                   skill={skill}
                   onToggle={handleToggle}
                   onDelete={handleDelete}
+                  onEdit={handleEdit}
+                  onShowInFolder={handleShowInFolder}
                 />
               </motion.div>
             ))}
