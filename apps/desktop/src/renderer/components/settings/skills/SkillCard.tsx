@@ -123,7 +123,12 @@ export const SkillCard = memo(function SkillCard({
               </svg>
               Configure
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleDelete} variant="destructive">
+            <DropdownMenuItem
+              onClick={handleDelete}
+              variant="destructive"
+              disabled={skill.source === 'official'}
+              className={skill.source === 'official' ? 'opacity-50 cursor-not-allowed' : ''}
+            >
               <svg
                 className="mr-2 h-4 w-4"
                 viewBox="0 0 24 24"
