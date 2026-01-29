@@ -440,15 +440,15 @@ export default function ExecutionPage() {
       const settings = await accomplish.getProviderSettings();
       if (!hasAnyReadyProvider(settings)) {
         // Store the pending message and open settings dialog
-        setPendingFollowUp('continue');
+        setPendingFollowUp(tCommon('buttons.continue'));
         setSettingsInitialTab('providers');
         setShowSettingsDialog(true);
         return;
       }
     }
 
-    // Send a simple "continue" message to resume the task
-    await sendFollowUp('continue');
+    // Send the "continue" message in the user's language
+    await sendFollowUp(tCommon('buttons.continue'));
   };
 
   const handleOpenSpeechSettings = useCallback(() => {
@@ -1407,6 +1407,7 @@ const COPIED_STATE_DURATION_MS = 1000
 // Memoized MessageBubble to prevent unnecessary re-renders and markdown re-parsing
 const MessageBubble = memo(function MessageBubble({ message, shouldStream = false, isLastMessage = false, isRunning = false, showContinueButton = false, continueLabel, onContinue, isLoading = false }: MessageBubbleProps) {
   const { t } = useTranslation('execution');
+  const { t: tCommon } = useTranslation('common');
   const [streamComplete, setStreamComplete] = useState(!shouldStream);
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
