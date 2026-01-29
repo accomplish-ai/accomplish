@@ -327,7 +327,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       this.emit('debug', { type: 'info', message: pidMsg });
 
       // Emit 'loading' stage after PTY spawn
-      this.emit('progress', { stage: 'loading', message: 'Loading agent...' });
+      this.emit('progress', { stage: 'loading', message: t('execution:loadingAgent') });
 
       // Handle PTY data (combines stdout/stderr)
       this.ptyProcess.onData((data: string) => {
@@ -826,7 +826,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           : 'AI';
         this.emit('progress', {
           stage: 'connecting',
-          message: `Connecting to ${modelDisplayName}...`,
+          message: t('execution:connectingToModel', { modelName: modelDisplayName }),
           modelName: modelDisplayName,
         });
         // Start timer to transition to 'waiting' stage after 500ms if no tool received
@@ -835,7 +835,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         }
         this.waitingTransitionTimer = setTimeout(() => {
           if (!this.hasReceivedFirstTool && !this.hasCompleted) {
-            this.emit('progress', { stage: 'waiting', message: 'Waiting for response...' });
+            this.emit('progress', { stage: 'waiting', message: t('execution:waitingForResponse') });
           }
         }, 500);
         break;
