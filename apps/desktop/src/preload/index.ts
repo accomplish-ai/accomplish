@@ -316,6 +316,9 @@ const accomplishAPI = {
   resyncSkills: (): Promise<Skill[]> => ipcRenderer.invoke('skills:resync'),
   openSkillInEditor: (filePath: string): Promise<void> => ipcRenderer.invoke('skills:open-in-editor', filePath),
   showSkillInFolder: (filePath: string): Promise<void> => ipcRenderer.invoke('skills:show-in-folder', filePath),
+
+  // File picker for attachments
+  openFilePicker: (): Promise<string[]> => ipcRenderer.invoke('dialog:openFiles'),
 };
 
 // Expose the API to the renderer

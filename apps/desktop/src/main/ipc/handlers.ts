@@ -2539,6 +2539,26 @@ export function registerIPCHandlers(): void {
   ipcMain.handle('skills:show-in-folder', async (_, filePath: string) => {
     shell.showItemInFolder(filePath);
   });
+
+  // File picker for attachments
+  ipcMain.handle('dialog:openFiles', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        { name: 'All Files', extensions: ['*'] },
+        { name: 'Documents', extensions: ['pdf', 'doc', 'docx', 'txt', 'md'] },
+        { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] },
+        { name: 'Data', extensions: ['csv', 'xlsx', 'xls', 'json'] },
+        { name: 'Code', extensions: ['js', 'ts', 'tsx', 'py', 'go', 'rs', 'html', 'css'] },
+      ],
+    });
+
+    if (result.canceled) {
+      return [];
+    }
+
+    return result.filePaths;
+  });
 }
 
 function createTaskId(): string {
