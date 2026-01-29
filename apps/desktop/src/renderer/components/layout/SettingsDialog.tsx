@@ -331,43 +331,43 @@ export default function SettingsDialog({
             )}
           </div>
 
+          {/* Close Warning - shown on all tabs when no provider ready */}
+          <AnimatePresence>
+            {closeWarning && (
+              <motion.div
+                className="rounded-lg border border-warning bg-warning/10 p-4 mb-6"
+                variants={settingsVariants.fadeSlide}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={settingsTransitions.enter}
+              >
+                <div className="flex items-start gap-3">
+                  <svg className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-warning">No provider ready</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      You need to connect a provider and select a model before you can run tasks.
+                    </p>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        onClick={handleForceClose}
+                        className="rounded-md px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
+                      >
+                        Close Anyway
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Providers Tab */}
           {activeTab === 'providers' && (
             <div className="space-y-6">
-              {/* Close Warning */}
-              <AnimatePresence>
-                {closeWarning && (
-                  <motion.div
-                    className="rounded-lg border border-warning bg-warning/10 p-4"
-                    variants={settingsVariants.fadeSlide}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    transition={settingsTransitions.enter}
-                  >
-                    <div className="flex items-start gap-3">
-                      <svg className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-warning">No provider ready</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          You need to connect a provider and select a model before you can run tasks.
-                        </p>
-                        <div className="mt-3 flex gap-2">
-                          <button
-                            onClick={handleForceClose}
-                            className="rounded-md px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
-                          >
-                            Close Anyway
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
               {/* Provider Grid Section */}
               <section>
                 <ProviderGrid
