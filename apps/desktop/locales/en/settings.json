@@ -90,6 +90,7 @@
     "learnMore": "Learn more"
   },
   "common": {
+    "or": "or",
     "optional": "Optional",
     "model": "Model",
     "selectModel": "Select a model...",
