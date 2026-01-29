@@ -215,6 +215,11 @@ export default function ExecutionPage() {
     todosTaskId,
   } = useTaskStore();
 
+  const handleOpenSpeechSettings = useCallback(() => {
+    setSettingsInitialTab('voice');
+    setShowSettingsDialog(true);
+  }, []);
+
   const speechInput = useSpeechInput({
     onTranscriptionComplete: (text) => {
       setFollowUp((prev) => {
@@ -231,6 +236,8 @@ export default function ExecutionPage() {
     onError: (error) => {
       console.error('[Speech] Error:', error.message);
     },
+    // Open settings when Alt key is pressed but API key is not configured
+    onNotConfigured: handleOpenSpeechSettings,
   });
 
   // Debounced scroll function
@@ -447,11 +454,6 @@ export default function ExecutionPage() {
     // Send a simple "continue" message to resume the task
     await sendFollowUp('continue');
   };
-
-  const handleOpenSpeechSettings = useCallback(() => {
-    setSettingsInitialTab('voice');
-    setShowSettingsDialog(true);
-  }, []);
 
   useEffect(() => {
     if (!pendingSpeechFollowUpRef.current) {

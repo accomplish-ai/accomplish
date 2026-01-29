@@ -64,6 +64,8 @@ export default function TaskInputBar({
       console.error('[Speech] Error:', error.message);
       // Error is stored in speechInput.error state
     },
+    // Open settings when Alt key is pressed but API key is not configured
+    onNotConfigured: onOpenSpeechSettings,
   });
 
   // Auto-focus on mount

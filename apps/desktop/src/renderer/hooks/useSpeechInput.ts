@@ -44,6 +44,12 @@ export interface UseSpeechInputOptions {
   onError?: (error: SpeechRecognitionError) => void;
 
   /**
+   * Callback when recording is attempted but speech input is not configured.
+   * Use this to open settings dialog so user can add their API key.
+   */
+  onNotConfigured?: () => void;
+
+  /**
    * Maximum recording duration in milliseconds (default 120000 = 2 minutes)
    */
   maxDuration?: number;
@@ -97,6 +103,7 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     onTranscriptionComplete,
     onRecordingStateChange,
     onError,
+    onNotConfigured,
     maxDuration = 120000,
     pushToTalkKey = 'Alt',
   } = options;
@@ -178,6 +185,12 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     }
 
     if (!state.isConfigured) {
+      // Call the onNotConfigured callback so parent can open settings
+      if (onNotConfigured) {
+        onNotConfigured();
+        return;
+      }
+      // Fallback to error state if no callback provided
       const error = new SpeechRecognitionError(
         'NOT_CONFIGURED',
         'ElevenLabs API is not configured. Please add your API key in settings.'
@@ -262,7 +275,7 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
       setState((prev) => ({ ...prev, error: speechError, isRecording: false }));
       onError?.(speechError);
     }
-  }, [state.isRecording, state.isTranscribing, state.isConfigured, maxDuration, onRecordingStateChange, onError, cleanup]);
+  }, [state.isRecording, state.isTranscribing, state.isConfigured, maxDuration, onRecordingStateChange, onError, onNotConfigured, cleanup]);
 
   /**
    * Stop recording and transcribe via IPC
