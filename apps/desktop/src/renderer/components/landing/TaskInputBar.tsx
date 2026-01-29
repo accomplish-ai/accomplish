@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { getAccomplish } from '../../lib/accomplish';
 import { CornerDownLeft, Loader2, AlertCircle } from 'lucide-react';
 import { useSpeechInput } from '../../hooks/useSpeechInput';
@@ -8,6 +8,7 @@ import { SpeechInputButton } from '../ui/SpeechInputButton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PlusMenu } from './PlusMenu';
 import { FileChipsRow } from '../ui/file-attachments';
+import { cn } from '@/lib/utils';
 import type { AttachedFile } from '../ui/file-attachments';
 import { getFileType, generateFileId } from '../../lib/file-utils';
 
@@ -62,6 +63,7 @@ export default function TaskInputBar({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingAutoSubmitRef = useRef<string | null>(null);
   const accomplish = getAccomplish();
+  const [isDragging, setIsDragging] = useState(false);
 
   // Speech input hook
   const speechInput = useSpeechInput({
@@ -162,6 +164,46 @@ export default function TaskInputBar({
     [attachedFiles, onFilesChange]
   );
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set false if leaving the container (not entering a child)
+    const relatedTarget = e.relatedTarget as Node | null;
+    if (!e.currentTarget.contains(relatedTarget)) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      const files = Array.from(e.dataTransfer.files);
+      // In Electron, File objects have a .path property with the full path
+      const paths = files
+        .filter((f) => (f as File & { path?: string }).path)
+        .map((f) => (f as File & { path?: string }).path as string);
+
+      if (paths.length > 0) {
+        handleFilesSelected(paths);
+      }
+    },
+    [handleFilesSelected]
+  );
+
   return (
     <div className="w-full space-y-2">
       {/* Error message */}
@@ -187,7 +229,18 @@ export default function TaskInputBar({
       )}
 
       {/* Input container */}
-      <div className="relative flex flex-col gap-2 rounded-xl border border-border bg-background px-3 py-2.5 shadow-sm transition-all duration-200 ease-accomplish focus-within:border-ring focus-within:ring-1 focus-within:ring-ring">
+      <div
+        className={cn(
+          'relative flex flex-col gap-2 rounded-xl border bg-background px-3 py-2.5 shadow-sm transition-all duration-200 ease-accomplish focus-within:border-ring focus-within:ring-1 focus-within:ring-ring',
+          isDragging
+            ? 'border-dashed border-2 border-primary bg-primary/5'
+            : 'border-border'
+        )}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {/* File chips row - show above input when files attached */}
         {attachedFiles.length > 0 && (
           <FileChipsRow files={attachedFiles} onRemove={handleRemoveFile} />
