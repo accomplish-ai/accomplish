@@ -9,6 +9,12 @@
 import http from 'http';
 import type { BrowserWindow } from 'electron';
 import type { PermissionRequest, FileOperation } from '@accomplish/shared';
+import {
+  getTaskLanguage,
+  isEnglish,
+  translateFromEnglish,
+  translateToEnglish,
+} from './services/translationService';
 
 export const PERMISSION_API_PORT = 9226;
 export const QUESTION_API_PORT = 9227;
@@ -91,6 +97,53 @@ function generateRequestId(): string {
  */
 function generateQuestionRequestId(): string {
   return `questionreq_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+}
+
+/**
+ * Translate question content to target language for display
+ */
+async function translateQuestionForDisplay(
+  question: string,
+  header: string | undefined,
+  options: Array<{ label: string; description?: string }> | undefined,
+  targetLang: string
+): Promise<{
+  question: string;
+  header?: string;
+  options?: Array<{ label: string; description?: string }>;
+}> {
+  try {
+    // Translate question
+    const translatedQuestion = await translateFromEnglish(question, targetLang);
+
+    // Translate header if present
+    const translatedHeader = header
+      ? await translateFromEnglish(header, targetLang)
+      : undefined;
+
+    // Translate options if present
+    let translatedOptions: Array<{ label: string; description?: string }> | undefined;
+    if (options && options.length > 0) {
+      translatedOptions = await Promise.all(
+        options.map(async (opt) => ({
+          label: await translateFromEnglish(opt.label, targetLang),
+          description: opt.description
+            ? await translateFromEnglish(opt.description, targetLang)
+            : undefined,
+        }))
+      );
+    }
+
+    return {
+      question: translatedQuestion,
+      header: translatedHeader,
+      options: translatedOptions,
+    };
+  } catch (err) {
+    console.warn('[Question API] Failed to translate question content:', err);
+    // Return original content on error
+    return { question, header, options };
+  }
 }
 
 /**
@@ -290,14 +343,47 @@ export function startQuestionApiServer(): http.Server {
 
     const requestId = generateQuestionRequestId();
 
-    // Create question request for the UI
+    // Check if task has a non-English language for translation
+    const taskLang = getTaskLanguage(taskId);
+    const needsTranslation = taskLang && !isEnglish(taskLang);
+
+    // Store original option labels for mapping translated responses back
+    const originalOptionLabels = data.options?.map((opt) => opt.label) || [];
+
+    // Translate question content if needed
+    let displayQuestion = data.question;
+    let displayHeader = data.header;
+    let displayOptions = data.options;
+    let translatedToOriginalMap: Map<string, string> | undefined;
+
+    if (needsTranslation) {
+      const translated = await translateQuestionForDisplay(
+        data.question,
+        data.header,
+        data.options,
+        taskLang
+      );
+      displayQuestion = translated.question;
+      displayHeader = translated.header;
+      displayOptions = translated.options;
+
+      // Build map from translated labels to original labels
+      if (displayOptions && originalOptionLabels.length > 0) {
+        translatedToOriginalMap = new Map();
+        for (let i = 0; i < displayOptions.length; i++) {
+          translatedToOriginalMap.set(displayOptions[i].label, originalOptionLabels[i]);
+        }
+      }
+    }
+
+    // Create question request for the UI (with translated content)
     const questionRequest: PermissionRequest = {
       id: requestId,
       taskId,
       type: 'question',
-      question: data.question,
-      header: data.header,
-      options: data.options,
+      question: displayQuestion,
+      header: displayHeader,
+      options: displayOptions,
       multiSelect: data.multiSelect,
       createdAt: new Date().toISOString(),
     };
@@ -318,8 +404,35 @@ export function startQuestionApiServer(): http.Server {
         pendingQuestions.set(requestId, { resolveWithData: resolve, timeoutId });
       });
 
+      // Translate response back to English if needed
+      let finalResponse = response;
+      if (needsTranslation && !response.denied) {
+        // Map translated option labels back to original English labels
+        if (response.selectedOptions && translatedToOriginalMap) {
+          finalResponse = {
+            ...response,
+            selectedOptions: response.selectedOptions.map(
+              (opt) => translatedToOriginalMap!.get(opt) || opt
+            ),
+          };
+        }
+
+        // Translate custom text back to English
+        if (response.customText) {
+          try {
+            const translatedCustomText = await translateToEnglish(response.customText, taskLang);
+            finalResponse = {
+              ...finalResponse,
+              customText: translatedCustomText,
+            };
+          } catch (err) {
+            console.warn('[Question API] Failed to translate custom text response:', err);
+          }
+        }
+      }
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(response));
+      res.end(JSON.stringify(finalResponse));
     } catch (error) {
       res.writeHead(408, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Request timed out', denied: true }));
