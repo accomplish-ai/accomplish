@@ -63,7 +63,9 @@
     "AskUserQuestion": "正在询问问题",
     "complete_task": "正在完成任务",
     "report_thought": "正在思考",
-    "report_checkpoint": "检查点"
+    "report_checkpoint": "检查点",
+    "todowrite": "规划任务",
+    "discard": "更新任务"
   },
   "processing": "处理中",
   "system": "系统",
@@ -87,7 +89,9 @@
       "create": "创建",
       "rename": "重命名",
       "move": "移动"
-    }
+    },
+    "enterDifferentOption": "输入其他选项...",
+    "cannotBeUndone": "此操作无法撤销。"
   },
   "browserInstall": {
     "title": "Chrome 未安装",
@@ -119,5 +123,13 @@
     "showLess": "收起",
     "showFewerActions": "显示更少操作",
     "showMoreActions": "显示 {{count}} 更多操作"
-  }
+  },
+  "loadingAgent": "正在加载代理...",
+  "waitingForResponse": "等待响应中...",
+  "connectingToModel": "正在连接到 {{modelName}}...",
+  "todos": {
+    "title": "任务",
+    "progress": "{{completed}} / {{total}}"
+  },
+  "copyToClipboard": "复制到剪贴板"
 }

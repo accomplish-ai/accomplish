@@ -63,7 +63,9 @@
     "AskUserQuestion": "שואל שאלה",
     "complete_task": "משלים משימה",
     "report_thought": "חושב",
-    "report_checkpoint": "נקודת ביקורת"
+    "report_checkpoint": "נקודת ביקורת",
+    "todowrite": "מתכנן משימות",
+    "discard": "מעדכן משימות"
   },
   "processing": "מעבד",
   "system": "מערכת",
@@ -87,7 +89,9 @@
       "create": "צור",
       "rename": "שנה שם",
       "move": "העבר"
-    }
+    },
+    "enterDifferentOption": "הזן אפשרות אחרת...",
+    "cannotBeUndone": "לא ניתן לבטל פעולה זו."
   },
   "browserInstall": {
     "title": "Chrome לא מותקן",
@@ -119,5 +123,13 @@
     "showLess": "הצג פחות",
     "showFewerActions": "הצג פחות פעולות",
     "showMoreActions": "הצג {{count}} פעולות נוספות"
-  }
+  },
+  "loadingAgent": "טוען סוכן...",
+  "waitingForResponse": "ממתין לתגובה...",
+  "connectingToModel": "מתחבר ל-{{modelName}}...",
+  "todos": {
+    "title": "משימות",
+    "progress": "{{completed}} מתוך {{total}}"
+  },
+  "copyToClipboard": "העתק ללוח"
 }

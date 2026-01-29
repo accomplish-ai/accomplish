@@ -830,11 +830,6 @@ export default function ExecutionPage() {
                             ? startupStage.message
                             : t('thinking')}
                       </span>
-                      {currentTool && !(currentToolInput as { description?: string })?.description && (
-                        <span className="text-xs text-muted-foreground/60">
-                          ({currentTool})
-                        </span>
-                      )}
                       {/* Elapsed time - only show during startup stages */}
                       {!currentTool && startupStageTaskId === id && startupStage && (
                         <span className="text-xs text-muted-foreground/60">
@@ -1007,7 +1002,7 @@ export default function ExecutionPage() {
                         {/* Delete warning text */}
                         {isDeleteOperation(permissionRequest) && (
                           <p className="text-sm text-red-600/80 mb-4">
-                            This action cannot be undone.
+                            {t('permission.cannotBeUndone')}
                           </p>
                         )}
 
@@ -1089,7 +1084,7 @@ export default function ExecutionPage() {
                               e.target.style.height = 'auto';
                               e.target.style.height = `${e.target.scrollHeight}px`;
                             }}
-                            placeholder="Enter a different option..."
+                            placeholder={t('permission.enterDifferentOption')}
                             aria-label="Custom response"
                             rows={1}
                             className="w-full resize-none overflow-hidden rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
@@ -1204,7 +1199,7 @@ export default function ExecutionPage() {
                       className="ml-2 underline hover:no-underline"
                       type="button"
                     >
-                      Retry
+                      {tCommon('buttons.retry')}
                     </button>
                   )}
                 </AlertDescription>
@@ -1567,7 +1562,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
                 className="mt-3 gap-1.5"
               >
                 <Play className="h-3 w-3" />
-                {continueLabel || 'Continue'}
+                {continueLabel || tCommon('buttons.continue')}
               </Button>
             )}
           </>
@@ -1589,14 +1584,14 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
                     ? (!copied ? 'text-primary-foreground/70 hover:text-primary-foreground' : '!bg-green-500/20 !text-green-300')
                     : (!copied ? 'text-muted-foreground hover:text-foreground' : '!bg-green-500/10 !text-green-600')
                 )}
-                aria-label={'Copy to clipboard'}
+                aria-label={t('copyToClipboard')}
               >
                 <Check className={cn("absolute h-4 w-4", !copied && 'hidden')} />
                 <Copy className={cn("absolute h-4 w-4", copied && 'hidden')} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <span>Copy to clipboard</span>
+              <span>{t('copyToClipboard')}</span>
             </TooltipContent>
           </Tooltip>
         )}

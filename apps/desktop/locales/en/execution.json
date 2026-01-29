@@ -13,6 +13,9 @@
     "followUpDescription": "Your follow-up will continue automatically"
   },
   "thinking": "Thinking...",
+  "loadingAgent": "Loading agent...",
+  "waitingForResponse": "Waiting for response...",
+  "connectingToModel": "Connecting to {{modelName}}...",
   "coldStartHint": "First task takes a bit longer...",
   "agentWorking": "Agent is working...",
   "stopAgent": "Stop agent (Ctrl+C)",
@@ -63,10 +66,13 @@
     "AskUserQuestion": "Asking question",
     "complete_task": "Completing task",
     "report_thought": "Thinking",
-    "report_checkpoint": "Checkpoint"
+    "report_checkpoint": "Checkpoint",
+    "todowrite": "Planning tasks",
+    "discard": "Updating tasks"
   },
   "processing": "Processing",
   "system": "System",
+  "copyToClipboard": "Copy to clipboard",
   "permission": {
     "title": "Permission Required",
     "fileTitle": "File Permission Required",
@@ -78,6 +84,8 @@
     "backToOptions": "← Back to options",
     "typeResponse": "Type your response...",
     "orTypeOwn": "or type your own",
+    "enterDifferentOption": "Enter a different option...",
+    "cannotBeUndone": "This action cannot be undone.",
     "deleteWarningSingle": "This file will be permanently deleted:",
     "deleteWarningMultiple": "{{count}} files will be permanently deleted:",
     "operations": {
@@ -119,5 +127,9 @@
     "showLess": "Show less",
     "showFewerActions": "Show fewer actions",
     "showMoreActions": "Show {{count}} more actions"
+  },
+  "todos": {
+    "title": "Tasks",
+    "progress": "{{completed}} of {{total}}"
   }
 }
