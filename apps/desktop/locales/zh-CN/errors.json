@@ -73,5 +73,13 @@
   "generic": {
     "unknown": "发生未知错误",
     "tryAgain": "请重试"
+  },
+  "app": {
+    "mustRunInDesktop": "此应用程序必须在 Openwork 桌面应用内运行。",
+    "unableToStart": "无法启动"
+  },
+  "auth": {
+    "sessionExpired": "{{provider}} 会话已过期",
+    "reLoginTo": "重新登录到 {{provider}}"
   }
 }

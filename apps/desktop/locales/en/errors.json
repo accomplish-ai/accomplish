@@ -73,5 +73,13 @@
   "generic": {
     "unknown": "An unknown error occurred",
     "tryAgain": "Please try again"
+  },
+  "app": {
+    "mustRunInDesktop": "This application must be run inside the Openwork desktop app.",
+    "unableToStart": "Unable to Start"
+  },
+  "auth": {
+    "sessionExpired": "{{provider}} Session Expired",
+    "reLoginTo": "Re-login to {{provider}}"
   }
 }

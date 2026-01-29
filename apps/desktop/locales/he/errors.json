@@ -73,5 +73,13 @@
   "generic": {
     "unknown": "אירעה שגיאה לא ידועה",
     "tryAgain": "אנא נסה שוב"
+  },
+  "app": {
+    "mustRunInDesktop": "יישום זה חייב לרוץ בתוך אפליקציית שולחן העבודה Openwork.",
+    "unableToStart": "אין אפשרות להתחיל"
+  },
+  "auth": {
+    "sessionExpired": "פג תוקף הפעלת {{provider}}",
+    "reLoginTo": "התחבר שוב ל-{{provider}}"
   }
 }
