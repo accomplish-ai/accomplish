@@ -97,18 +97,18 @@ if (isWindows) {
 
 const useBundledSkills = process.env.OPENWORK_BUNDLED_SKILLS === '1' || process.env.CI === 'true';
 
-// Install shared skills runtime dependencies (Playwright) at skills/ root
+// Install shared MCP tools runtime dependencies (Playwright) at mcp-tools/ root
 if (useBundledSkills) {
-  runCommand('npm --prefix skills install --omit=dev', 'Installing shared skills runtime dependencies');
+  runCommand('npm --prefix mcp-tools install --omit=dev', 'Installing shared MCP tools runtime dependencies');
 }
 
-// Install per-skill dependencies for dev/tsx workflows
+// Install per-tool dependencies for dev/tsx workflows
 if (!useBundledSkills) {
   // Use --omit=dev to exclude devDependencies (vitest, @types/*) - not needed at runtime
   // This significantly reduces installer size and build time
-  const skills = ['dev-browser', 'dev-browser-mcp', 'file-permission', 'ask-user-question', 'complete-task'];
-  for (const skill of skills) {
-    runCommand(`npm --prefix skills/${skill} install --omit=dev`, `Installing ${skill} dependencies`);
+  const tools = ['dev-browser', 'dev-browser-mcp', 'file-permission', 'ask-user-question', 'complete-task'];
+  for (const tool of tools) {
+    runCommand(`npm --prefix mcp-tools/${tool} install --omit=dev`, `Installing ${tool} dependencies`);
   }
 }
 

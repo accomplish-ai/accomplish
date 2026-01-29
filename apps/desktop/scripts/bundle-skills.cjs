@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const esbuild = require('esbuild');
 
-const skillsDir = path.join(__dirname, '..', 'skills');
+const skillsDir = path.join(__dirname, '..', 'mcp-tools');
 
 const bundles = [
   {

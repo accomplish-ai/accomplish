@@ -1,4 +1,4 @@
-// apps/desktop/skills/dev-browser-mcp/src/snapshot/differ.ts
+// apps/desktop/mcp-tools/dev-browser-mcp/src/snapshot/differ.ts
 
 import type { ParsedSnapshot, SnapshotDiff, ElementChange, SnapshotElement } from './types.js';
 

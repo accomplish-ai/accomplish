@@ -1,5 +1,5 @@
 {
-  "name": "openwork-skills-runtime",
+  "name": "openwork-mcp-tools",
   "private": true,
   "type": "module",
   "dependencies": {

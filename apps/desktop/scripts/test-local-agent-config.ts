@@ -53,7 +53,7 @@ interface OpenCodeConfig {
  */
 function getSkillsPath(): string {
   // Script is at apps/desktop/scripts/test-local-agent-config.ts
-  // Skills are at apps/desktop/skills/
+  // MCP tools are at apps/desktop/mcp-tools/
   return path.resolve(__dirname, '..', 'skills');
 }
 

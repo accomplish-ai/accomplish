@@ -1,4 +1,4 @@
-// apps/desktop/skills/dev-browser-mcp/src/snapshot/parser.test.ts
+// apps/desktop/mcp-tools/dev-browser-mcp/src/snapshot/parser.test.ts
 
 import { describe, it, expect } from 'vitest';
 import { parseSnapshot, extractTitleFromSnapshot } from './parser.js';

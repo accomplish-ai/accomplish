@@ -1,4 +1,4 @@
-// apps/desktop/skills/dev-browser-mcp/src/snapshot/parser.ts
+// apps/desktop/mcp-tools/dev-browser-mcp/src/snapshot/parser.ts
 
 import type { SnapshotElement, ParsedSnapshot } from './types.js';
 

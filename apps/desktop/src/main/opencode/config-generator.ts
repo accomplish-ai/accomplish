@@ -24,24 +24,24 @@ export const ACCOMPLISH_AGENT_NAME = 'accomplish';
  * @see https://github.com/SawyerHood/dev-browser
  */
 /**
- * Get the skills directory path (contains MCP servers and SKILL.md files)
- * In dev: apps/desktop/skills
- * In packaged: resources/skills (unpacked from asar)
+ * Get the MCP tools directory path (contains MCP servers)
+ * In dev: apps/desktop/mcp-tools
+ * In packaged: resources/mcp-tools (unpacked from asar)
  */
 export function getSkillsPath(): string {
   if (app.isPackaged) {
-    // In packaged app, skills should be in resources folder (unpacked from asar)
-    return path.join(process.resourcesPath, 'skills');
+    // In packaged app, mcp-tools should be in resources folder (unpacked from asar)
+    return path.join(process.resourcesPath, 'mcp-tools');
   } else {
     // In development, use app.getAppPath() which returns the desktop app directory
     // app.getAppPath() returns apps/desktop in dev mode
-    return path.join(app.getAppPath(), 'skills');
+    return path.join(app.getAppPath(), 'mcp-tools');
   }
 }
 
 /**
- * Get the OpenCode config directory path (parent of skills/ for OPENCODE_CONFIG_DIR)
- * OpenCode looks for skills at $OPENCODE_CONFIG_DIR/skills/<name>/SKILL.md
+ * Get the OpenCode config directory path (parent of mcp-tools/ for OPENCODE_CONFIG_DIR)
+ * OpenCode looks for skills at $OPENCODE_CONFIG_DIR/mcp-tools/<name>/SKILL.md
  */
 export function getOpenCodeConfigDir(): string {
   if (app.isPackaged) {

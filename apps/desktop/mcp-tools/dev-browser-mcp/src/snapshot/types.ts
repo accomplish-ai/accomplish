@@ -1,4 +1,4 @@
-// apps/desktop/skills/dev-browser-mcp/src/snapshot/types.ts
+// apps/desktop/mcp-tools/dev-browser-mcp/src/snapshot/types.ts
 
 /**
  * Represents a parsed element from the ARIA snapshot

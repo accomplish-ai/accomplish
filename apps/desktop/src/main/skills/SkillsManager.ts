@@ -18,16 +18,16 @@ export class SkillsManager {
   private initialized = false;
 
   /**
-   * Get the official skills directory path.
+   * Get the bundled skills directory path.
    * These are user-facing skills bundled with the app.
-   * In dev: apps/desktop/official-skills
-   * In packaged: resources/official-skills
+   * In dev: apps/desktop/bundled-skills
+   * In packaged: resources/bundled-skills
    */
   getBundledSkillsPath(): string {
     if (app.isPackaged) {
-      return path.join(process.resourcesPath, 'official-skills');
+      return path.join(process.resourcesPath, 'bundled-skills');
     }
-    return path.join(app.getAppPath(), 'official-skills');
+    return path.join(app.getAppPath(), 'bundled-skills');
   }
 
   getUserSkillsPath(): string {

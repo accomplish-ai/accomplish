@@ -145,8 +145,8 @@
         "to": "icon.png"
       },
       {
-        "from": "skills",
-        "to": "skills",
+        "from": "mcp-tools",
+        "to": "mcp-tools",
         "filter": [
           "**/*",
           "!**/profiles/**",
@@ -160,8 +160,8 @@
         ]
       },
       {
-        "from": "official-skills",
-        "to": "official-skills",
+        "from": "bundled-skills",
+        "to": "bundled-skills",
         "filter": [
           "**/*"
         ]

@@ -1,4 +1,4 @@
-// apps/desktop/skills/dev-browser-mcp/src/snapshot/index.ts
+// apps/desktop/mcp-tools/dev-browser-mcp/src/snapshot/index.ts
 
 export type {
   SnapshotElement,
