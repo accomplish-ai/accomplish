@@ -25,7 +25,10 @@
     "clear": "נקה",
     "clearAll": "נקה הכל",
     "yes": "כן",
-    "no": "לא"
+    "no": "לא",
+    "retry": "נסה שוב",
+    "saveApiKey": "שמור מפתח API",
+    "copyToClipboard": "העתק ללוח"
   },
   "status": {
     "running": "רץ",

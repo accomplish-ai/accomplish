@@ -25,7 +25,10 @@
     "clear": "清除",
     "clearAll": "清除全部",
     "yes": "是",
-    "no": "否"
+    "no": "否",
+    "retry": "重试",
+    "saveApiKey": "保存 API 密钥",
+    "copyToClipboard": "复制到剪贴板"
   },
   "status": {
     "running": "运行中",

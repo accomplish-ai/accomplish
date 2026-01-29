@@ -25,7 +25,10 @@
     "clear": "Clear",
     "clearAll": "Clear all",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "retry": "Retry",
+    "saveApiKey": "Save API Key",
+    "copyToClipboard": "Copy to clipboard"
   },
   "status": {
     "running": "Running",
