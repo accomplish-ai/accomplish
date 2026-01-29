@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, shell, app, dialog } from 'electron';
+import { ipcMain, BrowserWindow, shell, dialog } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import { URL } from 'url';
 import fs from 'fs';
@@ -10,7 +10,6 @@ import { getLogCollector } from '../logging';
 import { getAzureEntraToken } from '../opencode/azure-token-manager';
 import {
   getTaskManager,
-  disposeTaskManager,
   type TaskCallbacks,
 } from '../opencode/task-manager';
 import {
@@ -65,7 +64,7 @@ import {
 } from '../store/providerSettings';
 import { getOpenAiOauthStatus, loginOpenAiWithChatGpt } from '../opencode/auth';
 import type { ProviderId, ConnectedProvider, BedrockCredentials } from '@accomplish/shared';
-import { getDesktopConfig } from '../config';
+
 import {
   startPermissionApiServer,
   startQuestionApiServer,
@@ -90,12 +89,10 @@ import type {
   ToolSupportStatus,
   TodoItem,
 } from '@accomplish/shared';
-import { DEFAULT_PROVIDERS } from '@accomplish/shared';
 import {
   normalizeIpcError,
   permissionResponseSchema,
-  resumeSessionSchema,
-  taskConfigSchema,
+
   validate,
 } from './validation';
 import { BedrockClient, ListFoundationModelsCommand } from '@aws-sdk/client-bedrock';

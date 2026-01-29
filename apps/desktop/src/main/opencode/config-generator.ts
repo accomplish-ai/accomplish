@@ -293,6 +293,7 @@ interface BedrockProviderConfig {
     region: string;
     profile?: string;
   };
+  models?: Record<string, ProviderModelConfig>;
 }
 
 interface AzureFoundryProviderConfig {
@@ -369,6 +370,7 @@ type ProviderConfig = OllamaProviderConfig | BedrockProviderConfig | AzureFoundr
 interface OpenCodeConfig {
   $schema?: string;
   model?: string;
+  small_model?: string;
   default_agent?: string;
   enabled_providers?: string[];
   permission?: string | Record<string, string | Record<string, string>>;
@@ -612,9 +614,30 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     if (creds.authMethod === 'profile' && creds.profileName) {
       bedrockOptions.profile = creds.profileName;
     }
-    providerConfig['amazon-bedrock'] = {
+
+    // Get the selected model - either from the provider's selection or from activeModel if Bedrock is active
+    const bedrockSelectedModelId = bedrockProvider.selectedModelId ||
+      (activeModel?.provider === 'bedrock' ? activeModel.model : null);
+
+    // Build the provider config with models section
+    const bedrockConfig: BedrockProviderConfig = {
       options: bedrockOptions,
     };
+
+    // Register the selected model in the models section so OpenCode CLI uses it
+    if (bedrockSelectedModelId) {
+      // Extract the model ID (strip 'amazon-bedrock/' prefix if present)
+      const modelId = bedrockSelectedModelId.replace(/^amazon-bedrock\//, '');
+      bedrockConfig.models = {
+        [modelId]: {
+          name: modelId,
+          tools: true,
+        },
+      };
+      console.log('[OpenCode Config] Bedrock configured with model:', modelId);
+    }
+
+    providerConfig['amazon-bedrock'] = bedrockConfig;
     console.log('[OpenCode Config] Bedrock configured from new settings:', bedrockOptions);
   } else {
     // Legacy fallback: use old Bedrock config
@@ -631,9 +654,24 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
           bedrockOptions.profile = creds.profileName;
         }
 
-        providerConfig['amazon-bedrock'] = {
+        // Build the provider config with models section for legacy settings
+        const bedrockConfig: BedrockProviderConfig = {
           options: bedrockOptions,
         };
+
+        // If activeModel is Bedrock, register it in the models section
+        if (activeModel?.provider === 'bedrock' && activeModel.model) {
+          const modelId = activeModel.model.replace(/^amazon-bedrock\//, '');
+          bedrockConfig.models = {
+            [modelId]: {
+              name: modelId,
+              tools: true,
+            },
+          };
+          console.log('[OpenCode Config] Bedrock legacy configured with model:', modelId);
+        }
+
+        providerConfig['amazon-bedrock'] = bedrockConfig;
 
         console.log('[OpenCode Config] Bedrock configured from legacy settings:', bedrockOptions);
       } catch (e) {
@@ -804,8 +842,27 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     console.log('[OpenCode Config] Z.AI Coding Plan provider configured with models:', Object.keys(zaiModels), 'region:', zaiRegion, 'endpoint:', zaiEndpoint);
   }
 
+  // Build the model string for the config
+  // This ensures the model is set in both CLI args and config file as a workaround
+  // for OpenCode CLI sometimes ignoring the --model flag
+  let configModel: string | undefined;
+  let configSmallModel: string | undefined;
+  if (activeModel?.model) {
+    configModel = activeModel.model;
+    // Set small_model to the same as the main model for Bedrock
+    // This prevents OpenCode from using its default small model (Haiku) for title generation,
+    // which may not be available to the user (requires Anthropic use case approval)
+    if (activeModel.provider === 'bedrock') {
+      configSmallModel = activeModel.model;
+      console.log('[OpenCode Config] Setting small_model for Bedrock:', configSmallModel);
+    }
+    console.log('[OpenCode Config] Setting model in config:', configModel);
+  }
+
   const config: OpenCodeConfig = {
     $schema: 'https://opencode.ai/config.json',
+    model: configModel,
+    small_model: configSmallModel,
     default_agent: ACCOMPLISH_AGENT_NAME,
     // Enable all supported providers - providers auto-configure when API keys are set via env vars
     enabled_providers: enabledProviders,

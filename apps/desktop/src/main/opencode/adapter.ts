@@ -10,7 +10,9 @@ import {
   isOpenCodeBundled,
   getBundledOpenCodeVersion,
 } from './cli-path';
-import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
+import { getAllApiKeys } from '../store/secureStorage';
+import { EnvProviderFactory } from './env-providers';
+import type { EnvContext } from './env-providers';
 // TODO: Remove getAzureFoundryConfig import in v0.4.0 when legacy support is dropped
 import { getSelectedModel, getAzureFoundryConfig, getOpenAiBaseUrl } from '../store/appSettings';
 import { getActiveProviderModel, getConnectedProvider } from '../store/providerSettings';
@@ -636,86 +638,17 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       }
     }
 
-    // Load all API keys
-    const apiKeys = await getAllApiKeys();
+    // Build context for environment providers
+    const context: EnvContext = {
+      apiKeys: await getAllApiKeys(),
+      activeModel: getActiveProviderModel(),
+      selectedModel: getSelectedModel(),
+      openAiBaseUrl: getOpenAiBaseUrl().trim(),
+    };
 
-    if (apiKeys.anthropic) {
-      env.ANTHROPIC_API_KEY = apiKeys.anthropic;
-      console.log('[OpenCode CLI] Using Anthropic API key from settings');
-    }
-    const configuredOpenAiBaseUrl = getOpenAiBaseUrl().trim();
-    if (apiKeys.openai) {
-      env.OPENAI_API_KEY = apiKeys.openai;
-      console.log('[OpenCode CLI] Using OpenAI API key from settings');
-
-      if (configuredOpenAiBaseUrl) {
-        env.OPENAI_BASE_URL = configuredOpenAiBaseUrl;
-        console.log('[OpenCode CLI] Using OPENAI_BASE_URL override from settings');
-      }
-    }
-    if (apiKeys.google) {
-      env.GOOGLE_GENERATIVE_AI_API_KEY = apiKeys.google;
-      console.log('[OpenCode CLI] Using Google API key from settings');
-    }
-    if (apiKeys.xai) {
-      env.XAI_API_KEY = apiKeys.xai;
-      console.log('[OpenCode CLI] Using xAI API key from settings');
-    }
-    if (apiKeys.deepseek) {
-      env.DEEPSEEK_API_KEY = apiKeys.deepseek;
-      console.log('[OpenCode CLI] Using DeepSeek API key from settings');
-    }
-    if (apiKeys.zai) {
-      env.ZAI_API_KEY = apiKeys.zai;
-      console.log('[OpenCode CLI] Using Z.AI API key from settings');
-    }
-    if (apiKeys.openrouter) {
-      env.OPENROUTER_API_KEY = apiKeys.openrouter;
-      console.log('[OpenCode CLI] Using OpenRouter API key from settings');
-    }
-    if (apiKeys.litellm) {
-      env.LITELLM_API_KEY = apiKeys.litellm;
-      console.log('[OpenCode CLI] Using LiteLLM API key from settings');
-    }
-    if (apiKeys.minimax) {
-      env.MINIMAX_API_KEY = apiKeys.minimax;
-      console.log('[OpenCode CLI] Using MiniMax API key from settings');
-    }
-
-    // Set Bedrock credentials if configured
-    const bedrockCredentials = getBedrockCredentials();
-    if (bedrockCredentials) {
-      if (bedrockCredentials.authType === 'accessKeys') {
-        env.AWS_ACCESS_KEY_ID = bedrockCredentials.accessKeyId;
-        env.AWS_SECRET_ACCESS_KEY = bedrockCredentials.secretAccessKey;
-        if (bedrockCredentials.sessionToken) {
-          env.AWS_SESSION_TOKEN = bedrockCredentials.sessionToken;
-        }
-        console.log('[OpenCode CLI] Using Bedrock Access Key credentials');
-      } else if (bedrockCredentials.authType === 'profile') {
-        env.AWS_PROFILE = bedrockCredentials.profileName;
-        console.log('[OpenCode CLI] Using Bedrock AWS Profile:', bedrockCredentials.profileName);
-      }
-      if (bedrockCredentials.region) {
-        env.AWS_REGION = bedrockCredentials.region;
-        console.log('[OpenCode CLI] Using Bedrock region:', bedrockCredentials.region);
-      }
-    }
-
-    // Set Ollama host if configured (check new settings first, then legacy)
-    const activeModel = getActiveProviderModel();
-    const selectedModel = getSelectedModel();
-    if (activeModel?.provider === 'ollama' && activeModel.baseUrl) {
-      env.OLLAMA_HOST = activeModel.baseUrl;
-      console.log('[OpenCode CLI] Using Ollama host from provider settings:', activeModel.baseUrl);
-    } else if (selectedModel?.provider === 'ollama' && selectedModel.baseUrl) {
-      env.OLLAMA_HOST = selectedModel.baseUrl;
-      console.log('[OpenCode CLI] Using Ollama host from legacy settings:', selectedModel.baseUrl);
-    }
-
-    // Set LiteLLM base URL if configured (for debugging/logging purposes)
-    if (activeModel?.provider === 'litellm' && activeModel.baseUrl) {
-      console.log('[OpenCode CLI] LiteLLM active with base URL:', activeModel.baseUrl);
+    // Apply all provider-specific environment variables
+    for (const provider of EnvProviderFactory.getAll()) {
+      provider.setEnv(env, context);
     }
 
     // Log config environment variable
@@ -740,6 +673,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     // Try new provider settings first, fall back to legacy settings
     const activeModel = getActiveProviderModel();
     const selectedModel = activeModel || getSelectedModel();
+
+    // Debug: Log which model is being used
+    console.log('[OpenCode CLI] buildCliArgs - activeModel:', JSON.stringify(activeModel));
+    console.log('[OpenCode CLI] buildCliArgs - selectedModel (final):', JSON.stringify(selectedModel));
 
     // Store the model ID for display name in progress events
     this.currentModelId = selectedModel?.model || null;

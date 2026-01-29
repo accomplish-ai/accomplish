@@ -78,6 +78,7 @@ Renderer
 - Shared types go in `packages/shared/src/types/`
 - Renderer state via Zustand store actions
 - IPC handlers in `src/main/ipc/handlers.ts` must match `window.accomplish` API in preload
+- **No nested ternaries** - Use `switch`, `Maps`, `if/else`, or helper functions instead of chaining ternary operators
 
 ### Image Assets in Renderer
 
@@ -161,6 +162,45 @@ environment: {
 - API key validation via test request to respective provider API
 - OpenCode CLI permissions are bridged to UI via IPC `permission:request` / `permission:respond`
 - Task output streams through `task:update` and `task:progress` IPC events
+
+## OpenCode CLI Configuration
+
+The app generates an `opencode.json` config file at runtime for the OpenCode CLI. Key file: `src/main/opencode/config-generator.ts`.
+
+### Model Configuration
+
+OpenCode CLI uses two model settings:
+- `model` - Main model for task execution
+- `small_model` - Lightweight model for auxiliary tasks (title generation, summaries)
+
+### AWS Bedrock Model Registration
+
+**IMPORTANT:** When configuring Bedrock, models must be registered in two places:
+
+1. **Provider's `models` section** - Required for OpenCode to recognize the model:
+```typescript
+providerConfig['amazon-bedrock'] = {
+  options: { region: 'us-east-1' },
+  models: {
+    'deepseek.v3-v1:0': {  // Model ID without provider prefix
+      name: 'deepseek.v3-v1:0',
+      tools: true,
+    },
+  },
+};
+```
+
+2. **Top-level `model` and `small_model`** - Sets which model to use:
+```typescript
+const config = {
+  model: 'amazon-bedrock/deepseek.v3-v1:0',
+  small_model: 'amazon-bedrock/deepseek.v3-v1:0',  // Same as main for Bedrock
+  // ...
+};
+```
+
+**Why `small_model` matters for Bedrock:** OpenCode defaults to `anthropic.claude-haiku` for auxiliary tasks. If a user hasn't submitted Anthropic use case details to AWS, this causes 404 errors. Setting `small_model` to the user's selected model avoids this.
+
 
 ## SQLite Storage
 

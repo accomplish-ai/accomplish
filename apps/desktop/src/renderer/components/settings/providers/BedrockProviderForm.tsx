@@ -33,7 +33,8 @@ export function BedrockProviderForm({
   onModelChange,
   showModelError,
 }: BedrockProviderFormProps) {
-  const [authTab, setAuthTab] = useState<'accessKey' | 'profile'>('accessKey');
+  const [authTab, setAuthTab] = useState<'apiKey' | 'accessKey' | 'profile'>('apiKey');
+  const [apiKey, setApiKey] = useState('');
   const [accessKeyId, setAccessKeyId] = useState('');
   const [secretKey, setSecretKey] = useState('');
   const [sessionToken, setSessionToken] = useState('');
@@ -52,19 +53,26 @@ export function BedrockProviderForm({
     try {
       const accomplish = getAccomplish();
 
-      const credentials = authTab === 'accessKey'
-        ? {
-            authType: 'accessKeys' as const,
-            accessKeyId: accessKeyId.trim(),
-            secretAccessKey: secretKey.trim(),
-            sessionToken: sessionToken.trim() || undefined,
-            region,
-          }
-        : {
-            authType: 'profile' as const,
-            profileName: profileName.trim() || 'default',
-            region,
-          };
+      const credentialsByAuthType = {
+        apiKey: {
+          authType: 'apiKey' as const,
+          apiKey: apiKey.trim(),
+          region,
+        },
+        accessKey: {
+          authType: 'accessKeys' as const,
+          accessKeyId: accessKeyId.trim(),
+          secretAccessKey: secretKey.trim(),
+          sessionToken: sessionToken.trim() || undefined,
+          region,
+        },
+        profile: {
+          authType: 'profile' as const,
+          profileName: profileName.trim() || 'default',
+          region,
+        },
+      };
+      const credentials = credentialsByAuthType[authTab];
 
       const validation = await accomplish.validateBedrockCredentials(credentials);
 
@@ -95,9 +103,11 @@ export function BedrockProviderForm({
           type: 'bedrock',
           authMethod: authTab,
           region,
-          ...(authTab === 'accessKey'
-            ? { accessKeyIdPrefix: accessKeyId.substring(0, 8) + '...' }
-            : { profileName: profileName.trim() || 'default' }
+          ...(authTab === 'apiKey'
+            ? { keyPrefix: apiKey.substring(0, 12) + '...' }
+            : authTab === 'accessKey'
+              ? { accessKeyIdPrefix: accessKeyId.substring(0, 8) + '...' }
+              : { profileName: profileName.trim() || 'default' }
           ),
         } as BedrockProviderCredentials,
         lastConnectedAt: new Date().toISOString(),
@@ -135,6 +145,16 @@ export function BedrockProviderForm({
               {/* Auth tabs */}
               <div className="flex gap-2">
                 <button
+                  onClick={() => setAuthTab('apiKey')}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    authTab === 'apiKey'
+                      ? 'bg-[#4A7C59] text-white'
+                      : 'bg-muted text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  API Key
+                </button>
+                <button
                   onClick={() => setAuthTab('accessKey')}
                   className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     authTab === 'accessKey'
@@ -156,10 +176,44 @@ export function BedrockProviderForm({
                 </button>
               </div>
 
-              {authTab === 'accessKey' ? (
+              {authTab === 'apiKey' ? (
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="text-sm font-medium text-foreground">
+                      Bedrock API Key
+                    </label>
+                    <a
+                      href={`https://${region}.console.aws.amazon.com/bedrock/home?region=${region}#/api-keys?tab=short-term`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-muted-foreground hover:text-primary underline"
+                    >
+                      How can I find it?
+                    </a>
+                  </div>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="bedrock-api-key-..."
+                    data-testid="bedrock-api-key"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+              ) : authTab === 'accessKey' ? (
                 <>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground">Access Key ID</label>
+                    <div className="mb-2 flex items-center justify-between">
+                      <label className="text-sm font-medium text-foreground">Access Key ID</label>
+                      <a
+                        href="https://console.aws.amazon.com/iam/home#/security_credentials"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-muted-foreground hover:text-primary underline"
+                      >
+                        How can I find it?
+                      </a>
+                    </div>
                     <input
                       type="text"
                       value={accessKeyId}
@@ -196,7 +250,17 @@ export function BedrockProviderForm({
                 </>
               ) : (
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">Profile Name</label>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="text-sm font-medium text-foreground">Profile Name</label>
+                    <a
+                      href="https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-muted-foreground hover:text-primary underline"
+                    >
+                      How can I find it?
+                    </a>
+                  </div>
                   <input
                     type="text"
                     value={profileName}
@@ -225,7 +289,17 @@ export function BedrockProviderForm({
             >
               {/* Display saved credentials info */}
               <div className="space-y-3">
-                {(connectedProvider?.credentials as BedrockProviderCredentials)?.authMethod === 'accessKey' ? (
+                {(connectedProvider?.credentials as BedrockProviderCredentials)?.authMethod === 'apiKey' ? (
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground">API Key</label>
+                    <input
+                      type="text"
+                      value={(connectedProvider?.credentials as BedrockProviderCredentials)?.keyPrefix || 'bedrock-api-...'}
+                      disabled
+                      className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+                    />
+                  </div>
+                ) : (connectedProvider?.credentials as BedrockProviderCredentials)?.authMethod === 'accessKey' ? (
                   <div>
                     <label className="mb-2 block text-sm font-medium text-foreground">Access Key ID</label>
                     <input

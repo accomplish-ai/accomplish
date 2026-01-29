@@ -51,8 +51,9 @@ export interface ApiKeyCredentials {
 
 export interface BedrockProviderCredentials {
   type: 'bedrock';
-  authMethod: 'accessKey' | 'profile';
+  authMethod: 'apiKey' | 'accessKey' | 'profile';
   region: string;
+  keyPrefix?: string;           // For API key display
   accessKeyIdPrefix?: string;
   profileName?: string;
 }

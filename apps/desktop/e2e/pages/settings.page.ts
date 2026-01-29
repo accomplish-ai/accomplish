@@ -66,12 +66,20 @@ export class SettingsPage {
 
   // ===== Bedrock Specific =====
 
+  get bedrockApiKeyTab() {
+    return this.page.getByRole('button', { name: 'API Key' });
+  }
+
   get bedrockAccessKeyTab() {
     return this.page.getByRole('button', { name: 'Access Key' });
   }
 
   get bedrockAwsProfileTab() {
     return this.page.getByRole('button', { name: 'AWS Profile' });
+  }
+
+  get bedrockApiKeyInput() {
+    return this.page.getByTestId('bedrock-api-key');
   }
 
   get bedrockAccessKeyIdInput() {
@@ -207,12 +215,20 @@ export class SettingsPage {
   }
 
   // Bedrock specific actions
+  async selectBedrockApiKeyTab() {
+    await this.bedrockApiKeyTab.click();
+  }
+
   async selectBedrockAccessKeyTab() {
     await this.bedrockAccessKeyTab.click();
   }
 
   async selectBedrockAwsProfileTab() {
     await this.bedrockAwsProfileTab.click();
+  }
+
+  async enterBedrockApiKey(apiKey: string) {
+    await this.bedrockApiKeyInput.fill(apiKey);
   }
 
   async enterBedrockAccessKeyCredentials(accessKeyId: string, secretKey: string, sessionToken?: string) {

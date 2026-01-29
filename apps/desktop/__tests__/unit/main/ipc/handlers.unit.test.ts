@@ -210,6 +210,8 @@ vi.mock('@main/store/appSettings', () => ({
 }));
 
 // Mock provider settings
+const mockUpdateProviderModel = vi.fn();
+
 vi.mock('@main/store/providerSettings', () => ({
   getProviderSettings: vi.fn(() => ({
     activeProviderId: 'anthropic',
@@ -239,6 +241,7 @@ vi.mock('@main/store/providerSettings', () => ({
   })),
   saveConnectedProvider: vi.fn(),
   removeConnectedProvider: vi.fn(),
+  updateProviderModel: (...args: unknown[]) => mockUpdateProviderModel(...args),
   getActiveProviderModel: vi.fn(() => ({ provider: 'anthropic', model: 'anthropic/claude-3-5-sonnet-20241022' })),
   getConnectedProviderIds: vi.fn(() => ['anthropic']),
   setProviderDebugMode: vi.fn(),
@@ -1959,4 +1962,84 @@ describe('IPC Handlers Integration', () => {
   // The callback logic is exercised through the task lifecycle tests above.
   // The utility functions (extractScreenshots, sanitizeToolOutput, toTaskMessage)
   // are tested in handlers-utils.unit.test.ts as pure function tests.
+
+  describe('Provider Model Update Handlers', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      registerIPCHandlers();
+    });
+
+    it('provider-settings:update-model should call updateProviderModel with correct arguments', async () => {
+      // Arrange
+      const providerId = 'bedrock';
+      const modelId = 'amazon-bedrock/anthropic.claude-opus-4-5-20251022-v1:0';
+
+      // Act
+      await invokeHandler('provider-settings:update-model', providerId, modelId);
+
+      // Assert
+      expect(mockUpdateProviderModel).toHaveBeenCalledWith(providerId, modelId);
+      expect(mockUpdateProviderModel).toHaveBeenCalledTimes(1);
+    });
+
+    it('provider-settings:update-model should handle null modelId', async () => {
+      // Arrange
+      const providerId = 'anthropic';
+      const modelId = null;
+
+      // Act
+      await invokeHandler('provider-settings:update-model', providerId, modelId);
+
+      // Assert
+      expect(mockUpdateProviderModel).toHaveBeenCalledWith(providerId, null);
+    });
+
+    it('provider-settings:update-model should handle different provider IDs', async () => {
+      // Arrange & Act
+      await invokeHandler('provider-settings:update-model', 'bedrock', 'model-1');
+      await invokeHandler('provider-settings:update-model', 'anthropic', 'model-2');
+      await invokeHandler('provider-settings:update-model', 'openai', 'model-3');
+
+      // Assert
+      expect(mockUpdateProviderModel).toHaveBeenCalledTimes(3);
+      expect(mockUpdateProviderModel).toHaveBeenNthCalledWith(1, 'bedrock', 'model-1');
+      expect(mockUpdateProviderModel).toHaveBeenNthCalledWith(2, 'anthropic', 'model-2');
+      expect(mockUpdateProviderModel).toHaveBeenNthCalledWith(3, 'openai', 'model-3');
+    });
+
+    it('provider-settings:update-model should handle Bedrock model IDs with special characters', async () => {
+      // Arrange - Bedrock model IDs contain dots and colons
+      const providerId = 'bedrock';
+      const modelId = 'amazon-bedrock/anthropic.claude-haiku-4-5-20251001-v1:0';
+
+      // Act
+      await invokeHandler('provider-settings:update-model', providerId, modelId);
+
+      // Assert
+      expect(mockUpdateProviderModel).toHaveBeenCalledWith(providerId, modelId);
+    });
+
+    it('provider-settings:update-model should be callable multiple times for same provider', async () => {
+      // Arrange - Simulate changing model multiple times
+      const providerId = 'bedrock';
+      const models = [
+        'amazon-bedrock/anthropic.claude-haiku-4-5-20251001-v1:0',
+        'amazon-bedrock/anthropic.claude-sonnet-4-5-20251022-v1:0',
+        'amazon-bedrock/anthropic.claude-opus-4-5-20251022-v1:0',
+      ];
+
+      // Act
+      for (const modelId of models) {
+        await invokeHandler('provider-settings:update-model', providerId, modelId);
+      }
+
+      // Assert
+      expect(mockUpdateProviderModel).toHaveBeenCalledTimes(3);
+      // Final call should be with Opus
+      expect(mockUpdateProviderModel).toHaveBeenLastCalledWith(
+        providerId,
+        'amazon-bedrock/anthropic.claude-opus-4-5-20251022-v1:0'
+      );
+    });
+  });
 });

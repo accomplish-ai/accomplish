@@ -50,7 +50,16 @@ export interface BedrockProfileCredentials {
   region: string;
 }
 
-export type BedrockCredentials = BedrockAccessKeyCredentials | BedrockProfileCredentials;
+export interface BedrockApiKeyCredentials {
+  authType: 'apiKey';
+  apiKey: string;
+  region: string;
+}
+
+export type BedrockCredentials =
+  | BedrockApiKeyCredentials
+  | BedrockAccessKeyCredentials
+  | BedrockProfileCredentials;
 
 export interface QuotaStatus {
   callsUsed: number;
