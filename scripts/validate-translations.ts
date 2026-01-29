@@ -7,6 +7,7 @@
  * 2. Have matching keys with the English source
  * 3. No missing translations
  * 4. Proper structure
+ * 5. All tools in TOOL_ICON_MAP have translations
  *
  * Usage:
  *   pnpm tsx scripts/validate-translations.ts
@@ -21,6 +22,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const LOCALES_DIR = path.join(__dirname, '../apps/desktop/locales');
+const EXECUTION_TSX_PATH = path.join(__dirname, '../apps/desktop/src/renderer/pages/Execution.tsx');
 const SOURCE_LANG = 'en';
 const TARGET_LANGS = ['zh-CN', 'he'];
 
@@ -110,6 +112,58 @@ function validateJSON(filePath: string): { valid: boolean; error?: string } {
 }
 
 /**
+ * Extract tool names from TOOL_ICON_MAP in Execution.tsx
+ */
+function extractToolNames(): string[] {
+  try {
+    const content = fs.readFileSync(EXECUTION_TSX_PATH, 'utf-8');
+
+    // Find TOOL_ICON_MAP definition
+    const mapMatch = content.match(/const TOOL_ICON_MAP[^{]*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}/s);
+    if (!mapMatch) {
+      console.warn('  ⚠️  Could not find TOOL_ICON_MAP in Execution.tsx');
+      return [];
+    }
+
+    // Extract tool names (keys before the colon)
+    const mapContent = mapMatch[1];
+    const toolNames: string[] = [];
+    const keyPattern = /^\s*(\w+):/gm;
+    let match;
+
+    while ((match = keyPattern.exec(mapContent)) !== null) {
+      toolNames.push(match[1]);
+    }
+
+    return toolNames;
+  } catch (error) {
+    console.warn('  ⚠️  Could not read Execution.tsx:', error);
+    return [];
+  }
+}
+
+/**
+ * Validate that all tools have translations
+ */
+function validateToolTranslations(executionData: any): { missing: string[]; valid: boolean } {
+  const toolNames = extractToolNames();
+  if (toolNames.length === 0) {
+    return { missing: [], valid: true };
+  }
+
+  const toolsTranslations = executionData?.tools || {};
+  const translatedTools = Object.keys(toolsTranslations);
+
+  // Find tools without translations
+  const missingTranslations = toolNames.filter(tool => !translatedTools.includes(tool));
+
+  return {
+    missing: missingTranslations,
+    valid: missingTranslations.length === 0,
+  };
+}
+
+/**
  * Main validation
  */
 function main() {
@@ -133,6 +187,25 @@ function main() {
       totalErrors++;
     } else {
       console.log(`  ✓ ${file}: Valid JSON`);
+    }
+  }
+
+  // Validate tool translations
+  console.log(`\n🔧 Tool translations:`);
+  const executionPath = path.join(sourceDir, 'execution.json');
+  if (fs.existsSync(executionPath)) {
+    const executionData = JSON.parse(fs.readFileSync(executionPath, 'utf-8'));
+    const toolValidation = validateToolTranslations(executionData);
+
+    if (!toolValidation.valid) {
+      console.log(`  ❌ Missing translations for ${toolValidation.missing.length} tool(s):`);
+      toolValidation.missing.forEach(tool => console.log(`     • ${tool}`));
+      console.log(`\n     Add these to locales/en/execution.json under "tools":`);
+      toolValidation.missing.forEach(tool => console.log(`       "${tool}": "Description for ${tool}"`));
+      hasErrors = true;
+      totalErrors += toolValidation.missing.length;
+    } else {
+      console.log(`  ✓ All tools in TOOL_ICON_MAP have translations`);
     }
   }
 
