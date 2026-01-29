@@ -143,6 +143,22 @@
       "ap-south-1": "Asia Pacific (Mumbai)"
     }
   },
+  "openai": {
+    "baseUrl": "Base URL",
+    "baseUrlDescription": "Optional: Override the default OpenAI API endpoint",
+    "loginWithOpenAI": "Login with OpenAI",
+    "signingIn": "Signing in..."
+  },
+  "tabs": {
+    "providers": "Providers",
+    "voiceInput": "Voice Input"
+  },
+  "zai": {
+    "region": "Region",
+    "china": "China",
+    "international": "International",
+    "apiKeySaved": "API key saved"
+  },
   "openrouter": {
     "description": "Access 200+ AI models through OpenRouter's unified API.",
     "fetchModelsFailed": "Failed to fetch models"

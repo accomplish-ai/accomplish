@@ -143,6 +143,22 @@
       "ap-south-1": "אסיה פסיפיק (מומבאי)"
     }
   },
+  "openai": {
+    "baseUrl": "כתובת בסיס",
+    "baseUrlDescription": "אופציונלי: דריסת נקודת הקצה של OpenAI API",
+    "loginWithOpenAI": "התחברות עם OpenAI",
+    "signingIn": "מתחבר..."
+  },
+  "tabs": {
+    "providers": "ספקים",
+    "voiceInput": "קלט קולי"
+  },
+  "zai": {
+    "region": "אזור",
+    "china": "סין",
+    "international": "בינלאומי",
+    "apiKeySaved": "מפתח API נשמר"
+  },
   "openrouter": {
     "description": "גישה ל-200+ מודלי בינה מלאכותית דרך API מאוחד של OpenRouter.",
     "fetchModelsFailed": "נכשל בטעינת מודלים"

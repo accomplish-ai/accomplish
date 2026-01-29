@@ -143,6 +143,22 @@
       "ap-south-1": "亚太地区（孟买）"
     }
   },
+  "openai": {
+    "baseUrl": "基础 URL",
+    "baseUrlDescription": "可选：覆盖默认的 OpenAI API 端点",
+    "loginWithOpenAI": "使用 OpenAI 登录",
+    "signingIn": "登录中..."
+  },
+  "tabs": {
+    "providers": "服务商",
+    "voiceInput": "语音输入"
+  },
+  "zai": {
+    "region": "地区",
+    "china": "中国",
+    "international": "国际",
+    "apiKeySaved": "API 密钥已保存"
+  },
   "openrouter": {
     "description": "通过 OpenRouter 的统一 API 访问 200+ AI 模型。",
     "fetchModelsFailed": "获取模型列表失败"
