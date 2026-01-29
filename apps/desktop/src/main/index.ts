@@ -8,6 +8,8 @@ import { flushPendingTasks } from './store/taskHistory';
 import { disposeTaskManager } from './opencode/task-manager';
 import { checkAndCleanupFreshInstall } from './store/freshInstallCleanup';
 import { initializeDatabase, closeDatabase } from './store/db';
+import { getProviderSettings, clearProviderSettings } from './store/repositories/providerSettings';
+import { getApiKey } from './store/secureStorage';
 import { FutureSchemaError } from './store/migrations/errors';
 import { stopAzureFoundryProxy } from './opencode/azure-foundry-proxy';
 import { stopMoonshotProxy } from './opencode/moonshot-proxy';
@@ -209,6 +211,25 @@ if (!gotTheLock) {
         return;
       }
       throw err;
+    }
+
+    // Validate provider settings - if DB says a provider is connected with api_key
+    // but the key doesn't exist in secure storage, clear provider settings
+    try {
+      const settings = getProviderSettings();
+      for (const [providerId, provider] of Object.entries(settings.connectedProviders)) {
+        if (provider?.credentials?.type === 'api_key') {
+          const key = getApiKey(providerId);
+          if (!key) {
+            console.warn(`[Main] Provider ${providerId} has api_key auth but key not found in secure storage`);
+            clearProviderSettings();
+            console.log('[Main] Cleared provider settings due to missing API keys');
+            break;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Main] Provider validation failed:', err);
     }
 
     // Set dock icon on macOS
