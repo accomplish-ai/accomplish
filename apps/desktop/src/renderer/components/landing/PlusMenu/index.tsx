@@ -1,7 +1,7 @@
 // apps/desktop/src/renderer/components/landing/PlusMenu/index.tsx
 
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Paperclip } from 'lucide-react';
 import type { Skill } from '@accomplish/shared';
 import {
   DropdownMenu,
@@ -10,16 +10,19 @@ import {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { SkillsSubmenu } from './SkillsSubmenu';
 
 interface PlusMenuProps {
   onSkillSelect: (command: string) => void;
   onOpenSettings: (tab: 'skills') => void;
+  onFilesSelected: (paths: string[]) => void;
   disabled?: boolean;
 }
 
-export function PlusMenu({ onSkillSelect, onOpenSettings, disabled }: PlusMenuProps) {
+export function PlusMenu({ onSkillSelect, onOpenSettings, onFilesSelected, disabled }: PlusMenuProps) {
   const [open, setOpen] = useState(false);
   const [skills, setSkills] = useState<Skill[]>([]);
 
@@ -43,6 +46,16 @@ export function PlusMenu({ onSkillSelect, onOpenSettings, disabled }: PlusMenuPr
     onOpenSettings('skills');
   };
 
+  const handleAttachFiles = async () => {
+    setOpen(false);
+    if (window.accomplish?.openFilePicker) {
+      const paths = await window.accomplish.openFilePicker();
+      if (paths.length > 0) {
+        onFilesSelected(paths);
+      }
+    }
+  };
+
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
@@ -55,6 +68,13 @@ export function PlusMenu({ onSkillSelect, onOpenSettings, disabled }: PlusMenuPr
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[200px]">
+        <DropdownMenuItem onClick={handleAttachFiles}>
+          <Paperclip className="h-4 w-4 mr-2" />
+          Attach Files
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <svg
