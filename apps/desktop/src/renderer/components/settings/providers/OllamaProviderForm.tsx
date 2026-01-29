@@ -88,6 +88,7 @@ function OllamaModelSelector({
   onChange: (modelId: string) => void;
   error: boolean;
 }) {
+  const { t } = useTranslation('settings');
   // Sort models: supported first, then unknown, then unsupported
   const sortedModels = [...models].sort((a, b) => {
     const order: Record<ToolSupportStatus, number> = { supported: 0, unknown: 1, unsupported: 2 };
@@ -102,7 +103,7 @@ function OllamaModelSelector({
 
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-foreground">Model</label>
+      <label className="mb-2 block text-sm font-medium text-foreground">{t('common.model')}</label>
       <select
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
@@ -110,7 +111,7 @@ function OllamaModelSelector({
           error ? 'border-destructive' : 'border-input'
         }`}
       >
-        <option value="">Select a model...</option>
+        <option value="">{t('common.selectModel')}</option>
         {sortedModels.map((model) => (
           <option key={model.id} value={model.id}>
             {model.name} {model.toolSupport === 'supported' ? '✓' : model.toolSupport === 'unsupported' ? '✗' : '?'}
@@ -125,8 +126,8 @@ function OllamaModelSelector({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div>
-            <p className="font-medium">This model does not support tool/function calling</p>
-            <p className="text-red-400/80 mt-1">Tasks requiring browser automation or file operations will not work correctly.</p>
+            <p className="font-medium">{t('common.toolUnsupported')}</p>
+            <p className="text-red-400/80 mt-1">{t('common.toolUnsupportedDetail')}</p>
           </div>
         </div>
       )}
@@ -137,14 +138,14 @@ function OllamaModelSelector({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <p className="font-medium">Tool support could not be verified</p>
-            <p className="text-yellow-400/80 mt-1">This model may or may not support tool/function calling. Test it to confirm.</p>
+            <p className="font-medium">{t('common.toolUnknown')}</p>
+            <p className="text-yellow-400/80 mt-1">{t('common.toolUnknownDetail')}</p>
           </div>
         </div>
       )}
 
       {error && !value && (
-        <p className="mt-1 text-sm text-destructive">Please select a model</p>
+        <p className="mt-1 text-sm text-destructive">{t('common.pleaseSelectModel')}</p>
       )}
     </div>
   );
@@ -283,7 +284,7 @@ export function OllamaProviderForm({
               <div className="flex items-center gap-3 pt-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <ToolSupportBadge status="supported" />
-                  <span>Function calling verified</span>
+                  <span>{t('common.functionCallingVerified')}</span>
                 </span>
               </div>
             </motion.div>
