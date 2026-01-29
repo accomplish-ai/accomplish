@@ -6,6 +6,7 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
+import type { Skill } from '@accomplish/shared';
 
 // Expose the accomplish API to the renderer
 const accomplishAPI = {
@@ -297,6 +298,19 @@ const accomplishAPI = {
     success: false;
     error: { code: string; message: string };
   }> => ipcRenderer.invoke('speech:transcribe', audioData, mimeType),
+
+  // Skills management
+  getSkills: (): Promise<Skill[]> => ipcRenderer.invoke('skills:list'),
+  getEnabledSkills: (): Promise<Skill[]> => ipcRenderer.invoke('skills:list-enabled'),
+  setSkillEnabled: (id: string, enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('skills:set-enabled', id, enabled),
+  getSkillContent: (id: string): Promise<string | null> =>
+    ipcRenderer.invoke('skills:get-content', id),
+  addSkillFromFile: (filePath: string): Promise<Skill> =>
+    ipcRenderer.invoke('skills:add-from-file', filePath),
+  addSkillFromGitHub: (rawUrl: string): Promise<Skill> =>
+    ipcRenderer.invoke('skills:add-from-github', rawUrl),
+  deleteSkill: (id: string): Promise<void> => ipcRenderer.invoke('skills:delete', id),
 };
 
 // Expose the API to the renderer
