@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import openworkIcon from '/assets/openwork-icon.png';
+import openworkFavicon from '/assets/openwork-favicon.png';
 
 interface SkillCardProps {
   skill: Skill;
@@ -89,7 +89,7 @@ export const SkillCard = memo(function SkillCard({
           <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-secondary-foreground">
             {skill.source === 'official' && (
               <>
-                <img src={openworkIcon} alt="" className="h-2.5 w-2.5" />
+                <img src={openworkFavicon} alt="" className="h-2.5 w-2.5" />
                 By Openwork
               </>
             )}
