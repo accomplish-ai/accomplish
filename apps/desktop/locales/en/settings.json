@@ -179,6 +179,11 @@
       "description": "Ensure your model is loaded with a large enough context length (max available recommended) in LM Studio settings."
     }
   },
+  "zai": {
+    "region": "Region",
+    "china": "China",
+    "international": "International"
+  },
   "speech": {
     "title": "Speech-to-Text",
     "description": "Enable voice input using ElevenLabs Speech-to-Text API",
@@ -194,7 +199,14 @@
     "instruction1": "Click the microphone button",
     "instruction1Detail": "to start recording, click again to stop",
     "instruction2": "Hold Alt key",
-    "instruction2Detail": "to record voice input (push-to-talk mode)"
+    "instruction2Detail": "to record voice input (push-to-talk mode)",
+    "tooltipSetup": "Click to set up voice input",
+    "tooltipRecording": "Recording - Click to stop",
+    "tooltipTranscribing": "Transcribing...",
+    "tooltipError": "Error during transcription - Click to retry",
+    "tooltipDefault": "Click to record or hold Alt to record voice input",
+    "statusProcessing": "Processing...",
+    "statusRetry": "Retry"
   },
   "developer": {
     "title": "Developer",

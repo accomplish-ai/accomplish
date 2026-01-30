@@ -51,7 +51,7 @@ export function LiteLLMProviderForm({
       // Test connection and fetch models
       const result = await accomplish.testLiteLLMConnection(serverUrl, trimmedKey);
       if (!result.success) {
-        setError(result.error || 'Connection failed');
+        setError(result.error || t('status.connectionFailed'));
         setConnecting(false);
         return;
       }
