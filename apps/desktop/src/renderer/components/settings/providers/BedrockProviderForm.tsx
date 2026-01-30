@@ -54,25 +54,26 @@ export function BedrockProviderForm({
     try {
       const accomplish = getAccomplish();
 
-      const credentials = authTab === 'apiKey'
-        ? {
-            authType: 'apiKey' as const,
-            apiKey: bedrockApiKey.trim(),
-            region,
-          }
-        : authTab === 'accessKey'
-          ? {
-              authType: 'accessKeys' as const,
-              accessKeyId: accessKeyId.trim(),
-              secretAccessKey: secretKey.trim(),
-              sessionToken: sessionToken.trim() || undefined,
-              region,
-            }
-          : {
-              authType: 'profile' as const,
-              profileName: profileName.trim() || 'default',
-              region,
-            };
+      const credentialsMap = {
+        apiKey: {
+          authType: 'apiKey' as const,
+          apiKey: bedrockApiKey.trim(),
+          region,
+        },
+        accessKey: {
+          authType: 'accessKeys' as const,
+          accessKeyId: accessKeyId.trim(),
+          secretAccessKey: secretKey.trim(),
+          sessionToken: sessionToken.trim() || undefined,
+          region,
+        },
+        profile: {
+          authType: 'profile' as const,
+          profileName: profileName.trim() || 'default',
+          region,
+        },
+      };
+      const credentials = credentialsMap[authTab];
 
       const validation = await accomplish.validateBedrockCredentials(credentials);
 
