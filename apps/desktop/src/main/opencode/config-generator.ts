@@ -892,8 +892,8 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
   const tsxCommand = resolveBundledTsxCommand(skillsPath);
   console.log('[OpenCode Config] MCP build marker: edited by codex');
 
-  // For Bedrock, set model and small_model to the same value
-  // This ensures consistent behavior for both regular tasks and lightweight tasks (like title generation)
+  // For Bedrock, set model and small_model to the same value in order to prevent the model from using 
+  // Haiku by default since anthropic via bedrock require an approval form to use it: https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html
   const bedrockModelConfig: { model?: string; small_model?: string } = {};
   if (activeModel?.provider === 'bedrock' && activeModel.model) {
     bedrockModelConfig.model = activeModel.model;
