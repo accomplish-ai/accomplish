@@ -161,7 +161,40 @@
   "lmstudio": {
     "description": "连接 LM Studio 以使用本地模型推理。",
     "serverUrl": "LM Studio 服务器地址",
-    "helpText": "请确保已安装 <link>LM Studio</link> 并启动服务器，然后点击测试连接。"
+    "helpText": "启动 LM Studio 并在开发者设置中启用本地服务器",
+    "toolSupport": {
+      "tools": "工具",
+      "noTools": "无工具",
+      "unknown": "未知",
+      "verified": "已验证函数调用支持"
+    },
+    "warnings": {
+      "noToolSupport": "此模型不支持工具/函数调用",
+      "noToolSupportDetail": "需要浏览器自动化或文件操作的任务将无法正常工作。",
+      "unknownSupport": "无法验证工具支持",
+      "unknownSupportDetail": "此模型可能支持也可能不支持工具/函数调用。请测试确认。"
+    },
+    "contextLength": {
+      "title": "上下文长度要求",
+      "description": "请确保在 LM Studio 设置中为模型加载足够大的上下文长度（建议使用最大可用值）。"
+    }
+  },
+  "speech": {
+    "title": "语音转文字",
+    "description": "使用 ElevenLabs 语音转文字 API 启用语音输入",
+    "apiKeyLabel": "ElevenLabs API 密钥",
+    "apiKeyRequired": "请输入 API 密钥",
+    "apiKeySaved": "API 密钥保存成功",
+    "apiKeySaveFailed": "保存 API 密钥失败",
+    "apiKeyConfigured": "ElevenLabs API 密钥已配置。在下方输入新密钥以替换。",
+    "apiKeyHint": "您的 API 密钥安全存储在系统钥匙串中。",
+    "saveApiKey": "保存 API 密钥",
+    "getApiKeyInfo": "要使用语音输入，您需要 ElevenLabs API 密钥。请前往以下网址获取：",
+    "howToUse": "使用方法：",
+    "instruction1": "点击麦克风按钮",
+    "instruction1Detail": "开始录音，再次点击停止",
+    "instruction2": "按住 Alt 键",
+    "instruction2Detail": "进行语音输入（按住说话模式）"
   },
   "developer": {
     "title": "开发者",

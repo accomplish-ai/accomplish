@@ -161,7 +161,40 @@
   "lmstudio": {
     "description": "Connect to LM Studio for local model inference.",
     "serverUrl": "LM Studio Server URL",
-    "helpText": "Make sure <link>LM Studio</link> is installed and the server is running, then click Test to connect."
+    "helpText": "Start LM Studio and enable the local server in Developer settings",
+    "toolSupport": {
+      "tools": "Tools",
+      "noTools": "No Tools",
+      "unknown": "Unknown",
+      "verified": "Function calling verified"
+    },
+    "warnings": {
+      "noToolSupport": "This model does not support tool/function calling",
+      "noToolSupportDetail": "Tasks requiring browser automation or file operations will not work correctly.",
+      "unknownSupport": "Tool support could not be verified",
+      "unknownSupportDetail": "This model may or may not support tool/function calling. Test it to confirm."
+    },
+    "contextLength": {
+      "title": "Context length requirement",
+      "description": "Ensure your model is loaded with a large enough context length (max available recommended) in LM Studio settings."
+    }
+  },
+  "speech": {
+    "title": "Speech-to-Text",
+    "description": "Enable voice input using ElevenLabs Speech-to-Text API",
+    "apiKeyLabel": "ElevenLabs API Key",
+    "apiKeyRequired": "API key is required",
+    "apiKeySaved": "API key saved successfully",
+    "apiKeySaveFailed": "Failed to save API key",
+    "apiKeyConfigured": "ElevenLabs API key is configured. Enter a new key below to replace it.",
+    "apiKeyHint": "Your API key is stored securely in your system keychain.",
+    "saveApiKey": "Save API Key",
+    "getApiKeyInfo": "To use speech input, you need an ElevenLabs API key. Get one at",
+    "howToUse": "How to use:",
+    "instruction1": "Click the microphone button",
+    "instruction1Detail": "to start recording, click again to stop",
+    "instruction2": "Hold Alt key",
+    "instruction2Detail": "to record voice input (push-to-talk mode)"
   },
   "developer": {
     "title": "Developer",
