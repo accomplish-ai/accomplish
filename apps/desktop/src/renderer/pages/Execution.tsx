@@ -1013,7 +1013,7 @@ export default function ExecutionPage() {
                         {/* Delete warning text */}
                         {isDeleteOperation(permissionRequest) && (
                           <p className="text-sm text-red-600/80 mb-4">
-                            This action cannot be undone.
+                            {t('actions.deleteCannotUndo')}
                           </p>
                         )}
 
@@ -1210,7 +1210,7 @@ export default function ExecutionPage() {
                       className="ml-2 underline hover:no-underline"
                       type="button"
                     >
-                      Retry
+                      {tCommon('buttons.retry')}
                     </button>
                   )}
                 </AlertDescription>
@@ -1418,6 +1418,7 @@ const COPIED_STATE_DURATION_MS = 1000
 // Memoized MessageBubble to prevent unnecessary re-renders and markdown re-parsing
 const MessageBubble = memo(function MessageBubble({ message, shouldStream = false, isLastMessage = false, isRunning = false, showContinueButton = false, continueLabel, onContinue, isLoading = false }: MessageBubbleProps) {
   const { t } = useTranslation('execution');
+  const { t: tCommon } = useTranslation('common');
   const [streamComplete, setStreamComplete] = useState(!shouldStream);
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1573,7 +1574,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
                 className="mt-3 gap-1.5"
               >
                 <Play className="h-3 w-3" />
-                {continueLabel || 'Continue'}
+                {continueLabel || tCommon('buttons.continue')}
               </Button>
             )}
           </>
