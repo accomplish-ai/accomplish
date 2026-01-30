@@ -120,6 +120,11 @@
     "copyToClipboard": "Copy to clipboard",
     "scrollToBottom": "Scroll to bottom",
     "deleteCannotUndo": "This action cannot be undone.",
-    "enterDifferentOption": "Enter a different option..."
+    "enterDifferentOption": "Enter a different option...",
+    "customResponse": "Custom response"
+  },
+  "todoSidebar": {
+    "tasks": "Tasks",
+    "progress": "{{completed}} of {{total}}"
   }
 }

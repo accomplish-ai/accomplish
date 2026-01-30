@@ -56,7 +56,8 @@
     "litellm": "LiteLLM",
     "vertex": "Vertex AI",
     "lmstudio": "LM Studio",
-    "moonshot": "月之暗面"
+    "moonshot": "月之暗面",
+    "azureFoundry": "Azure AI Foundry"
   },
   "providerLabels": {
     "anthropic": "Claude 系列模型",
@@ -71,7 +72,8 @@
     "litellm": "统一代理",
     "vertex": "Google Cloud",
     "lmstudio": "本地推理",
-    "moonshot": "月之暗面模型"
+    "moonshot": "月之暗面模型",
+    "azureFoundry": "Azure 部署"
   },
   "status": {
     "connected": "已连接",
@@ -183,6 +185,24 @@
     "region": "区域",
     "china": "中国大陆",
     "international": "国际"
+  },
+  "azureFoundry": {
+    "authApiKey": "API 密钥",
+    "authEntraId": "Entra ID",
+    "entraIdHint": "使用您的 Azure CLI 凭据。请先运行 <code>az login</code>。",
+    "endpointLabel": "Azure OpenAI 端点",
+    "endpointPlaceholder": "https://your-resource.openai.azure.com",
+    "deploymentLabel": "部署名称",
+    "deploymentPlaceholder": "例如：gpt-4o, gpt-5",
+    "apiKeyLabel": "API 密钥",
+    "apiKeyPlaceholder": "输入您的 Azure API 密钥",
+    "endpointDisplayLabel": "端点",
+    "deploymentDisplayLabel": "部署",
+    "authDisplayLabel": "身份验证",
+    "entraIdDisplay": "Entra ID（Azure CLI）",
+    "apiKeyDisplay": "API 密钥",
+    "endpointRequired": "端点 URL 和部署名称为必填项",
+    "apiKeyRequired": "使用 API 密钥认证时必须填写 API 密钥"
   },
   "speech": {
     "title": "语音转文字",

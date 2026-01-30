@@ -120,6 +120,11 @@
     "copyToClipboard": "复制到剪贴板",
     "scrollToBottom": "滚动到底部",
     "deleteCannotUndo": "此操作无法撤销。",
-    "enterDifferentOption": "输入其他选项..."
+    "enterDifferentOption": "输入其他选项...",
+    "customResponse": "自定义回复"
+  },
+  "todoSidebar": {
+    "tasks": "任务",
+    "progress": "{{completed}} / {{total}}"
   }
 }

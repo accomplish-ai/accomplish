@@ -56,7 +56,8 @@
     "litellm": "LiteLLM",
     "vertex": "Vertex AI",
     "lmstudio": "LM Studio",
-    "moonshot": "Moonshot"
+    "moonshot": "Moonshot",
+    "azureFoundry": "Azure AI Foundry"
   },
   "providerLabels": {
     "anthropic": "Claude models",
@@ -71,7 +72,8 @@
     "litellm": "Unified proxy",
     "vertex": "Google Cloud",
     "lmstudio": "Local inference",
-    "moonshot": "Moonshot models"
+    "moonshot": "Moonshot models",
+    "azureFoundry": "Azure deployment"
   },
   "status": {
     "connected": "Connected",
@@ -183,6 +185,24 @@
     "region": "Region",
     "china": "China",
     "international": "International"
+  },
+  "azureFoundry": {
+    "authApiKey": "API Key",
+    "authEntraId": "Entra ID",
+    "entraIdHint": "Uses your Azure CLI credentials. Run <code>az login</code> first.",
+    "endpointLabel": "Azure OpenAI Endpoint",
+    "endpointPlaceholder": "https://your-resource.openai.azure.com",
+    "deploymentLabel": "Deployment Name",
+    "deploymentPlaceholder": "e.g., gpt-4o, gpt-5",
+    "apiKeyLabel": "API Key",
+    "apiKeyPlaceholder": "Enter your Azure API key",
+    "endpointDisplayLabel": "Endpoint",
+    "deploymentDisplayLabel": "Deployment",
+    "authDisplayLabel": "Authentication",
+    "entraIdDisplay": "Entra ID (Azure CLI)",
+    "apiKeyDisplay": "API Key",
+    "endpointRequired": "Endpoint URL and Deployment Name are required",
+    "apiKeyRequired": "API Key is required for API Key authentication"
   },
   "speech": {
     "title": "Speech-to-Text",

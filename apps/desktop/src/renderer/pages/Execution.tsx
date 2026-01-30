@@ -874,7 +874,7 @@ export default function ExecutionPage() {
                   <button
                     onClick={scrollToBottom}
                     className="h-8 w-8 rounded-full bg-muted hover:bg-muted/80 border border-border shadow-md flex items-center justify-center transition-colors pointer-events-auto"
-                    aria-label="Scroll to bottom"
+                    aria-label={t('actions.scrollToBottom')}
                     data-testid="scroll-to-bottom-button"
                   >
                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -1095,8 +1095,8 @@ export default function ExecutionPage() {
                               e.target.style.height = 'auto';
                               e.target.style.height = `${e.target.scrollHeight}px`;
                             }}
-                            placeholder="Enter a different option..."
-                            aria-label="Custom response"
+                            placeholder={t('actions.enterDifferentOption')}
+                            aria-label={t('actions.customResponse')}
                             rows={1}
                             className="w-full resize-none overflow-hidden rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                             style={{ minHeight: '38px', maxHeight: '150px' }}
@@ -1595,14 +1595,14 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
                     ? (!copied ? 'text-primary-foreground/70 hover:text-primary-foreground' : '!bg-green-500/20 !text-green-300')
                     : (!copied ? 'text-muted-foreground hover:text-foreground' : '!bg-green-500/10 !text-green-600')
                 )}
-                aria-label={'Copy to clipboard'}
+                aria-label={t('actions.copyToClipboard')}
               >
                 <Check className={cn("absolute h-4 w-4", !copied && 'hidden')} />
                 <Copy className={cn("absolute h-4 w-4", copied && 'hidden')} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <span>Copy to clipboard</span>
+              <span>{t('actions.copyToClipboard')}</span>
             </TooltipContent>
           </Tooltip>
         )}
