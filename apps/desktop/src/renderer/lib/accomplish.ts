@@ -20,6 +20,7 @@ import type {
   ProviderId,
   ConnectedProvider,
   TodoItem,
+  ToolSupportStatus,
 } from '@accomplish/shared';
 
 // Define the API interface
@@ -48,11 +49,15 @@ interface AccomplishAPI {
 
   // Settings
   getApiKeys(): Promise<ApiKeyConfig[]>;
-  addApiKey(provider: 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm', key: string, label?: string): Promise<ApiKeyConfig>;
+  addApiKey(provider: 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'lmstudio' | 'elevenlabs', key: string, label?: string): Promise<ApiKeyConfig>;
   removeApiKey(id: string): Promise<void>;
   getDebugMode(): Promise<boolean>;
   setDebugMode(enabled: boolean): Promise<void>;
   getAppSettings(): Promise<{ debugMode: boolean; onboardingComplete: boolean }>;
+  getOpenAiBaseUrl(): Promise<string>;
+  setOpenAiBaseUrl(baseUrl: string): Promise<void>;
+  getOpenAiOauthStatus(): Promise<{ connected: boolean; expires?: number }>;
+  loginOpenAiWithChatGpt(): Promise<{ ok: boolean; openedUrl?: string }>;
 
   // API Key management
   hasApiKey(): Promise<boolean>;
@@ -81,11 +86,11 @@ interface AccomplishAPI {
   // Ollama configuration
   testOllamaConnection(url: string): Promise<{
     success: boolean;
-    models?: Array<{ id: string; displayName: string; size: number }>;
+    models?: Array<{ id: string; displayName: string; size: number; toolSupport?: ToolSupportStatus }>;
     error?: string;
   }>;
-  getOllamaConfig(): Promise<{ baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; displayName: string; size: number }> } | null>;
-  setOllamaConfig(config: { baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; displayName: string; size: number }> } | null): Promise<void>;
+  getOllamaConfig(): Promise<{ baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; displayName: string; size: number; toolSupport?: ToolSupportStatus }> } | null>;
+  setOllamaConfig(config: { baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; displayName: string; size: number; toolSupport?: ToolSupportStatus }> } | null): Promise<void>;
 
   // Azure Foundry configuration
   getAzureFoundryConfig(): Promise<{ baseUrl: string; deploymentName: string; authType: 'api-key' | 'entra-id'; enabled: boolean; lastValidated?: number } | null>;
@@ -113,6 +118,30 @@ interface AccomplishAPI {
   }>;
   getLiteLLMConfig(): Promise<{ baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; name: string; provider: string; contextLength: number }> } | null>;
   setLiteLLMConfig(config: { baseUrl: string; enabled: boolean; lastValidated?: number; models?: Array<{ id: string; name: string; provider: string; contextLength: number }> } | null): Promise<void>;
+
+  // LM Studio configuration
+  testLMStudioConnection(url: string): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; toolSupport: ToolSupportStatus }>;
+    error?: string;
+  }>;
+  fetchLMStudioModels(): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; toolSupport: ToolSupportStatus }>;
+    error?: string;
+  }>;
+  getLMStudioConfig(): Promise<{
+    baseUrl: string;
+    enabled: boolean;
+    lastValidated?: number;
+    models?: Array<{ id: string; name: string; toolSupport: ToolSupportStatus }>;
+  } | null>;
+  setLMStudioConfig(config: {
+    baseUrl: string;
+    enabled: boolean;
+    lastValidated?: number;
+    models?: Array<{ id: string; name: string; toolSupport: ToolSupportStatus }>;
+  } | null): Promise<void>;
 
   // Bedrock configuration
   validateBedrockCredentials(credentials: string): Promise<{ valid: boolean; error?: string }>;
@@ -143,6 +172,19 @@ interface AccomplishAPI {
   onTaskStatusChange?(callback: (data: { taskId: string; status: TaskStatus }) => void): () => void;
   onTaskSummary?(callback: (data: { taskId: string; summary: string }) => void): () => void;
   onTodoUpdate?(callback: (data: { taskId: string; todos: TodoItem[] }) => void): () => void;
+  onAuthError?(callback: (data: { providerId: string; message: string }) => void): () => void;
+
+  // Speech-to-Text
+  speechIsConfigured(): Promise<boolean>;
+  speechGetConfig(): Promise<{ enabled: boolean; hasApiKey: boolean; apiKeyPrefix?: string }>;
+  speechValidate(apiKey?: string): Promise<{ valid: boolean; error?: string }>;
+  speechTranscribe(audioData: ArrayBuffer, mimeType?: string): Promise<{
+    success: true;
+    result: { text: string; confidence?: number; duration: number; timestamp: number };
+  } | {
+    success: false;
+    error: { code: string; message: string };
+  }>;
 
   // Logging
   logEvent(payload: { level?: string; message: string; context?: Record<string, unknown> }): Promise<unknown>;

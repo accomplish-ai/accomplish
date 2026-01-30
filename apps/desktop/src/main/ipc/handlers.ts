@@ -41,6 +41,8 @@ import {
   setOnboardingComplete,
   getSelectedModel,
   setSelectedModel,
+  getOpenAiBaseUrl,
+  setOpenAiBaseUrl,
   getOllamaConfig,
   setOllamaConfig,
   getLanguage,
@@ -50,6 +52,8 @@ import {
   setAzureFoundryConfig,
   getLiteLLMConfig,
   setLiteLLMConfig,
+  getLMStudioConfig,
+  setLMStudioConfig,
 } from '../store/appSettings';
 import {
   getProviderSettings,
@@ -62,6 +66,7 @@ import {
   getProviderDebugMode,
   hasReadyProvider,
 } from '../store/providerSettings';
+import { getOpenAiOauthStatus, loginOpenAiWithChatGpt } from '../opencode/auth';
 import type { ProviderId, ConnectedProvider, BedrockCredentials } from '@accomplish/shared';
 import { getDesktopConfig } from '../config';
 import {
@@ -73,6 +78,11 @@ import {
   isFilePermissionRequest,
   isQuestionRequest,
 } from '../permission-api';
+import {
+  validateElevenLabsApiKey,
+  transcribeAudio,
+  isElevenLabsConfigured,
+} from '../services/speechToText';
 import type {
   TaskConfig,
   PermissionResponse,
@@ -84,6 +94,8 @@ import type {
   OllamaConfig,
   AzureFoundryConfig,
   LiteLLMConfig,
+  LMStudioConfig,
+  ToolSupportStatus,
   TodoItem,
 } from '@accomplish/shared';
 import { DEFAULT_PROVIDERS } from '@accomplish/shared';
@@ -113,13 +125,14 @@ import {
 } from '../i18n';
 
 const MAX_TEXT_LENGTH = 8000;
-const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'zai', 'azure-foundry', 'custom', 'bedrock', 'litellm', 'minimax']);
+const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'moonshot', 'zai', 'azure-foundry', 'custom', 'bedrock', 'litellm', 'minimax', 'lmstudio', 'elevenlabs']);
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
 
 interface OllamaModel {
   id: string;
   displayName: string;
   size: number;
+  toolSupport?: ToolSupportStatus;
 }
 
 /**
@@ -453,6 +466,11 @@ export function registerIPCHandlers(): void {
 
       onTodoUpdate: (todos: TodoItem[]) => {
         forwardToRenderer('todo:update', { taskId, todos });
+      },
+
+      onAuthError: (error: { providerId: string; message: string }) => {
+        // Forward auth error to renderer so it can show re-login toast
+        forwardToRenderer('auth:error', error);
       },
     };
 
@@ -929,9 +947,11 @@ export function registerIPCHandlers(): void {
           );
           break;
 
-        case 'openai':
+        case 'openai': {
+          const configuredBaseUrl = getOpenAiBaseUrl().trim();
+          const baseUrl = (configuredBaseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '');
           response = await fetchWithTimeout(
-            'https://api.openai.com/v1/models',
+            `${baseUrl}/models`,
             {
               method: 'GET',
               headers: {
@@ -941,6 +961,7 @@ export function registerIPCHandlers(): void {
             API_KEY_VALIDATION_TIMEOUT_MS
           );
           break;
+        }
 
         case 'openrouter':
           response = await fetchWithTimeout(
@@ -991,10 +1012,34 @@ export function registerIPCHandlers(): void {
           );
           break;
 
-        // Z.AI Coding Plan uses the same validation as standard API
-        case 'zai':
+        case 'moonshot':
           response = await fetchWithTimeout(
-            'https://open.bigmodel.cn/api/paas/v4/models',
+            'https://api.moonshot.ai/v1/chat/completions',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sanitizedKey}`,
+              },
+              body: JSON.stringify({
+                model: 'kimi-latest',
+                max_tokens: 1,
+                messages: [{ role: 'user', content: 'test' }],
+              }),
+            },
+            API_KEY_VALIDATION_TIMEOUT_MS
+          );
+          break;
+
+        // Z.AI Coding Plan uses the same validation as standard API
+        case 'zai': {
+          const zaiRegion = (options?.region as string) || 'international';
+          const zaiEndpoint = zaiRegion === 'china'
+            ? 'https://open.bigmodel.cn/api/paas/v4/models'
+            : 'https://api.z.ai/api/coding/paas/v4/models';
+
+          response = await fetchWithTimeout(
+            zaiEndpoint,
             {
               method: 'GET',
               headers: {
@@ -1004,6 +1049,7 @@ export function registerIPCHandlers(): void {
             API_KEY_VALIDATION_TIMEOUT_MS
           );
           break;
+        }
 
         case 'azure-foundry':
           // Prioritize options passed in (from settings dialog setup)
@@ -1330,6 +1376,111 @@ export function registerIPCHandlers(): void {
   });
 
   // Ollama: Test connection and get models
+  /**
+   * Test tool support for a single Ollama model by making a function call request.
+   * Ollama supports OpenAI-compatible API at /v1/chat/completions
+   */
+  async function testOllamaModelToolSupport(
+    baseUrl: string,
+    modelId: string
+  ): Promise<ToolSupportStatus> {
+    // Use a time-based tool that the model cannot answer without calling
+    // Combined with tool_choice: 'required' to force tool usage if supported
+    const testPayload = {
+      model: modelId,
+      messages: [
+        { role: 'user', content: 'What is the current time? You must use the get_current_time tool.' }
+      ],
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'get_current_time',
+            description: 'Gets the current time. Must be called to know what time it is.',
+            parameters: {
+              type: 'object',
+              properties: {
+                timezone: {
+                  type: 'string',
+                  description: 'Timezone (e.g., UTC, America/New_York)'
+                }
+              },
+              required: []
+            }
+          }
+        }
+      ],
+      tool_choice: 'required',
+      max_tokens: 100,
+    };
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testPayload),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        // Check if error indicates tools aren't supported
+        const errorText = await response.text();
+        if (errorText.includes('tool') || errorText.includes('function') || errorText.includes('does not support')) {
+          console.log(`[Ollama] Model ${modelId} does not support tools (error response)`);
+          return 'unsupported';
+        }
+        console.warn(`[Ollama] Tool test failed for ${modelId}: ${response.status}`);
+        return 'unknown';
+      }
+
+      const data = await response.json() as {
+        choices?: Array<{
+          message?: {
+            tool_calls?: Array<{ function?: { name: string } }>;
+          };
+          finish_reason?: string;
+        }>;
+      };
+
+      // Check if the response contains tool calls
+      const choice = data.choices?.[0];
+      if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
+        console.log(`[Ollama] Model ${modelId} supports tools (made tool call)`);
+        return 'supported';
+      }
+
+      // Check finish_reason - 'tool_calls' indicates tool support even if not used
+      if (choice?.finish_reason === 'tool_calls') {
+        console.log(`[Ollama] Model ${modelId} supports tools (finish_reason)`);
+        return 'supported';
+      }
+
+      // Model responded but didn't use tools despite tool_choice: 'required'
+      // This likely means the model doesn't actually support tools (just ignored the param)
+      console.log(`[Ollama] Model ${modelId} did not make tool call despite required - marking as unknown`);
+      return 'unknown';
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.warn(`[Ollama] Tool test timed out for ${modelId}`);
+          return 'unknown';
+        }
+        // Check for tool-related errors in the message
+        if (error.message.includes('tool') || error.message.includes('function')) {
+          console.log(`[Ollama] Model ${modelId} does not support tools (exception)`);
+          return 'unsupported';
+        }
+      }
+      console.warn(`[Ollama] Tool test error for ${modelId}:`, error);
+      return 'unknown';
+    }
+  }
+
   handle('ollama:test-connection', async (_event: IpcMainInvokeEvent, url: string) => {
     const sanitizedUrl = sanitizeString(url, 'ollamaUrl', 256);
 
@@ -1355,11 +1506,26 @@ export function registerIPCHandlers(): void {
       }
 
       const data = await response.json() as { models?: Array<{ name: string; size: number }> };
-      const models: OllamaModel[] = (data.models || []).map((m) => ({
-        id: m.name,
-        displayName: m.name,
-        size: m.size,
-      }));
+      const rawModels = data.models || [];
+
+      if (rawModels.length === 0) {
+        return { success: true, models: [] };
+      }
+
+      console.log(`[Ollama] Found ${rawModels.length} models, testing tool support...`);
+
+      // Test tool support for each model
+      const models: OllamaModel[] = [];
+      for (const m of rawModels) {
+        const toolSupport = await testOllamaModelToolSupport(sanitizedUrl, m.name);
+        models.push({
+          id: m.name,
+          displayName: m.name,
+          size: m.size,
+          toolSupport,
+        });
+        console.log(`[Ollama] Model ${m.name}: toolSupport=${toolSupport}`);
+      }
 
       console.log(`[Ollama] Connection successful, found ${models.length} models`);
       return { success: true, models };
@@ -1793,6 +1959,282 @@ export function registerIPCHandlers(): void {
     console.log('[LiteLLM] Config saved:', config);
   });
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // LM Studio Handlers
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Test tool support for a single LM Studio model by making a function call request.
+   * Returns 'supported', 'unsupported', or 'unknown' based on the response.
+   */
+  async function testLMStudioModelToolSupport(
+    baseUrl: string,
+    modelId: string
+  ): Promise<ToolSupportStatus> {
+    // Use a time-based tool that the model cannot answer without calling
+    // Combined with tool_choice: 'required' to force tool usage if supported
+    const testPayload = {
+      model: modelId,
+      messages: [
+        { role: 'user', content: 'What is the current time? You must use the get_current_time tool.' }
+      ],
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'get_current_time',
+            description: 'Gets the current time. Must be called to know what time it is.',
+            parameters: {
+              type: 'object',
+              properties: {
+                timezone: {
+                  type: 'string',
+                  description: 'Timezone (e.g., UTC, America/New_York)'
+                }
+              },
+              required: []
+            }
+          }
+        }
+      ],
+      tool_choice: 'required',
+      max_tokens: 100,
+    };
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testPayload),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        // Check if error indicates tools aren't supported
+        const errorText = await response.text();
+        if (errorText.includes('tool') || errorText.includes('function')) {
+          console.log(`[LM Studio] Model ${modelId} does not support tools (error response)`);
+          return 'unsupported';
+        }
+        console.warn(`[LM Studio] Tool test failed for ${modelId}: ${response.status}`);
+        return 'unknown';
+      }
+
+      const data = await response.json() as {
+        choices?: Array<{
+          message?: {
+            tool_calls?: Array<{ function?: { name: string } }>;
+          };
+          finish_reason?: string;
+        }>;
+      };
+
+      // Check if the response contains tool calls
+      const choice = data.choices?.[0];
+      if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
+        console.log(`[LM Studio] Model ${modelId} supports tools (made tool call)`);
+        return 'supported';
+      }
+
+      // Check finish_reason - 'tool_calls' indicates tool support even if not used
+      if (choice?.finish_reason === 'tool_calls') {
+        console.log(`[LM Studio] Model ${modelId} supports tools (finish_reason)`);
+        return 'supported';
+      }
+
+      // Model responded but didn't use tools despite tool_choice: 'required'
+      // This likely means the model doesn't actually support tools (just ignored the param)
+      console.log(`[LM Studio] Model ${modelId} did not make tool call despite required - marking as unknown`);
+      return 'unknown';
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.warn(`[LM Studio] Tool test timed out for ${modelId}`);
+          return 'unknown';
+        }
+        // Check for tool-related errors in the message
+        if (error.message.includes('tool') || error.message.includes('function')) {
+          console.log(`[LM Studio] Model ${modelId} does not support tools (exception)`);
+          return 'unsupported';
+        }
+      }
+      console.warn(`[LM Studio] Tool test error for ${modelId}:`, error);
+      return 'unknown';
+    }
+  }
+
+  // LM Studio: Test connection and fetch models with tool support detection
+  handle('lmstudio:test-connection', async (_event: IpcMainInvokeEvent, url: string) => {
+    const sanitizedUrl = sanitizeString(url, 'lmstudioUrl', 256);
+
+    // Validate URL format and protocol
+    try {
+      const parsed = new URL(sanitizedUrl);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return { success: false, error: 'Only http and https URLs are allowed' };
+      }
+    } catch {
+      return { success: false, error: 'Invalid URL format' };
+    }
+
+    try {
+      // First, fetch available models
+      const response = await fetchWithTimeout(
+        `${sanitizedUrl}/v1/models`,
+        { method: 'GET' },
+        API_KEY_VALIDATION_TIMEOUT_MS
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = (errorData as { error?: { message?: string } })?.error?.message || `API returned status ${response.status}`;
+        return { success: false, error: errorMessage };
+      }
+
+      const data = await response.json() as { data?: Array<{ id: string; object: string; owned_by?: string }> };
+      const rawModels = data.data || [];
+
+      if (rawModels.length === 0) {
+        return { success: false, error: 'No models loaded in LM Studio. Please load a model first.' };
+      }
+
+      console.log(`[LM Studio] Found ${rawModels.length} models, testing tool support...`);
+
+      // Test tool support for each model
+      const models: Array<{ id: string; name: string; toolSupport: ToolSupportStatus }> = [];
+
+      for (const m of rawModels) {
+        // Format display name from model ID
+        const displayName = m.id
+          .replace(/-/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+
+        // Test tool support
+        const toolSupport = await testLMStudioModelToolSupport(sanitizedUrl, m.id);
+
+        models.push({
+          id: m.id,
+          name: displayName,
+          toolSupport,
+        });
+
+        console.log(`[LM Studio] Model ${m.id}: toolSupport=${toolSupport}`);
+      }
+
+      console.log(`[LM Studio] Connection successful, found ${models.length} models`);
+      return { success: true, models };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Connection failed';
+      console.warn('[LM Studio] Connection failed:', message);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        return { success: false, error: 'Connection timed out. Make sure LM Studio is running.' };
+      }
+      return { success: false, error: `Cannot connect to LM Studio: ${message}` };
+    }
+  });
+
+  // LM Studio: Fetch models from configured instance
+  handle('lmstudio:fetch-models', async (_event: IpcMainInvokeEvent) => {
+    const config = getLMStudioConfig();
+    if (!config || !config.baseUrl) {
+      return { success: false, error: 'No LM Studio configured' };
+    }
+
+    try {
+      const response = await fetchWithTimeout(
+        `${config.baseUrl}/v1/models`,
+        { method: 'GET' },
+        API_KEY_VALIDATION_TIMEOUT_MS
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = (errorData as { error?: { message?: string } })?.error?.message || `API returned status ${response.status}`;
+        return { success: false, error: errorMessage };
+      }
+
+      const data = await response.json() as { data?: Array<{ id: string; object: string; owned_by?: string }> };
+      const rawModels = data.data || [];
+
+      // Test tool support for each model
+      const models: Array<{ id: string; name: string; toolSupport: ToolSupportStatus }> = [];
+
+      for (const m of rawModels) {
+        const displayName = m.id
+          .replace(/-/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+
+        const toolSupport = await testLMStudioModelToolSupport(config.baseUrl, m.id);
+
+        models.push({
+          id: m.id,
+          name: displayName,
+          toolSupport,
+        });
+      }
+
+      console.log(`[LM Studio] Fetched ${models.length} models`);
+      return { success: true, models };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch models';
+      console.warn('[LM Studio] Fetch failed:', message);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        return { success: false, error: 'Request timed out. Check your LM Studio server.' };
+      }
+      return { success: false, error: `Failed to fetch models: ${message}` };
+    }
+  });
+
+  // LM Studio: Get stored config
+  handle('lmstudio:get-config', async (_event: IpcMainInvokeEvent) => {
+    return getLMStudioConfig();
+  });
+
+  // LM Studio: Set config
+  handle('lmstudio:set-config', async (_event: IpcMainInvokeEvent, config: LMStudioConfig | null) => {
+    if (config !== null) {
+      if (typeof config.baseUrl !== 'string' || typeof config.enabled !== 'boolean') {
+        throw new Error('Invalid LM Studio configuration');
+      }
+      // Validate URL format and protocol
+      try {
+        const parsed = new URL(config.baseUrl);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          throw new Error('Only http and https URLs are allowed');
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message.includes('http')) {
+          throw e; // Re-throw our protocol error
+        }
+        throw new Error('Invalid base URL format');
+      }
+      // Validate optional lastValidated if present
+      if (config.lastValidated !== undefined && typeof config.lastValidated !== 'number') {
+        throw new Error('Invalid LM Studio configuration');
+      }
+      // Validate optional models array if present
+      if (config.models !== undefined) {
+        if (!Array.isArray(config.models)) {
+          throw new Error('Invalid LM Studio configuration: models must be an array');
+        }
+        for (const model of config.models) {
+          if (typeof model.id !== 'string' || typeof model.name !== 'string') {
+            throw new Error('Invalid LM Studio configuration: invalid model format');
+          }
+        }
+      }
+    }
+    setLMStudioConfig(config);
+    console.log('[LM Studio] Config saved:', config);
+  });
+
   // API Keys: Get all API keys (with masked values)
   handle('api-keys:all', async (_event: IpcMainInvokeEvent) => {
     const keys = await getAllApiKeys();
@@ -1813,7 +2255,9 @@ export function registerIPCHandlers(): void {
     if (isMockTaskEventsEnabled()) {
       return true;
     }
-    return hasAnyApiKey();
+    const hasKey = await hasAnyApiKey();
+    if (hasKey) return true;
+    return getOpenAiOauthStatus().connected;
   });
 
   // Settings: Get debug mode setting
@@ -1836,6 +2280,49 @@ export function registerIPCHandlers(): void {
   // Settings: Get all app settings
   handle('settings:app-settings', async (_event: IpcMainInvokeEvent) => {
     return getAppSettings();
+  });
+
+  // Settings: Get OpenAI base URL override
+  handle('settings:openai-base-url:get', async (_event: IpcMainInvokeEvent) => {
+    return getOpenAiBaseUrl();
+  });
+
+  // Settings: Set OpenAI base URL override
+  handle('settings:openai-base-url:set', async (_event: IpcMainInvokeEvent, baseUrl: string) => {
+    if (typeof baseUrl !== 'string') {
+      throw new Error('Invalid base URL');
+    }
+
+    const trimmed = baseUrl.trim();
+    if (!trimmed) {
+      setOpenAiBaseUrl('');
+      return;
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(trimmed);
+    } catch {
+      throw new Error('Invalid URL');
+    }
+
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error('Only http and https URLs are allowed');
+    }
+
+    // Store without trailing slashes for consistent downstream URL joining.
+    setOpenAiBaseUrl(trimmed.replace(/\/+$/, ''));
+  });
+
+  // OpenAI OAuth (ChatGPT) status
+  handle('opencode:auth:openai:status', async (_event: IpcMainInvokeEvent) => {
+    return getOpenAiOauthStatus();
+  });
+
+  // OpenAI OAuth (ChatGPT) login
+  handle('opencode:auth:openai:login', async (_event: IpcMainInvokeEvent) => {
+    const result = await loginOpenAiWithChatGpt();
+    return { ok: true, ...result };
   });
 
   // Onboarding: Get onboarding complete status
@@ -1957,6 +2444,38 @@ export function registerIPCHandlers(): void {
     }
   );
 
+  // Speech-to-Text: Check if ElevenLabs is configured
+  handle('speech:is-configured', async (_event: IpcMainInvokeEvent) => {
+    return isElevenLabsConfigured();
+  });
+
+  // Speech-to-Text: Get configuration status
+  handle('speech:get-config', async (_event: IpcMainInvokeEvent) => {
+    const apiKey = getApiKey('elevenlabs');
+    return {
+      enabled: Boolean(apiKey && apiKey.trim()),
+      hasApiKey: Boolean(apiKey),
+      apiKeyPrefix: apiKey ? apiKey.substring(0, 8) + '...' : undefined,
+    };
+  });
+
+  // Speech-to-Text: Validate API key (makes actual API call to ElevenLabs)
+  handle('speech:validate', async (_event: IpcMainInvokeEvent, apiKey?: string) => {
+    return validateElevenLabsApiKey(apiKey);
+  });
+
+  // Speech-to-Text: Transcribe audio (receives audio data from renderer, calls ElevenLabs API)
+  handle('speech:transcribe', async (_event: IpcMainInvokeEvent, audioData: ArrayBuffer, mimeType?: string) => {
+    console.log('[IPC] speech:transcribe received:', {
+      audioDataType: typeof audioData,
+      audioDataByteLength: audioData?.byteLength,
+      mimeType,
+    });
+    // Convert ArrayBuffer to Buffer for the service
+    const buffer = Buffer.from(audioData);
+    console.log('[IPC] Converted to buffer:', { bufferLength: buffer.length });
+    return transcribeAudio(buffer, mimeType);
+  });
   // Provider Settings
   handle('provider-settings:get', async () => {
     return getProviderSettings();

@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useTaskStore } from '@/stores/taskStore';
 import { getAccomplish } from '@/lib/accomplish';
-import { analytics } from '@/lib/analytics';
 import { staggerContainer } from '@/lib/animations';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -44,7 +43,6 @@ export default function Sidebar() {
   }, [updateTaskStatus, addTaskUpdate, accomplish]);
 
   const handleNewConversation = () => {
-    analytics.trackNewTask();
     navigate('/');
   };
 
@@ -122,10 +120,7 @@ export default function Sidebar() {
             data-testid="sidebar-settings-button"
             variant="ghost"
             size="icon"
-            onClick={() => {
-              analytics.trackOpenSettings();
-              setShowSettings(true);
-            }}
+            onClick={() => setShowSettings(true)}
             title={t('settings')}
           >
             <Settings className="h-4 w-4" />

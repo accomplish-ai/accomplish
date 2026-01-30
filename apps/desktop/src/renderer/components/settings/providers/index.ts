@@ -6,3 +6,4 @@ export { AzureFoundryProviderForm } from './AzureFoundryProviderForm';
 export { OllamaProviderForm } from './OllamaProviderForm';
 export { OpenRouterProviderForm } from './OpenRouterProviderForm';
 export { LiteLLMProviderForm } from './LiteLLMProviderForm';
+export { LMStudioProviderForm } from './LMStudioProviderForm';

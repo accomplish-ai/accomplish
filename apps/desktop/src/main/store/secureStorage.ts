@@ -71,11 +71,12 @@ function getDerivedKey(): Buffer {
   }
 
   // Combine machine-specific values to create a unique identifier
+  // Note: We intentionally exclude userData path so encryption keys remain stable
+  // across userData directory version changes (e.g., desktop -> desktop-v2 -> Openwork)
   const machineData = [
     os.platform(),
     os.homedir(),
     os.userInfo().username,
-    app.getPath('userData'),
     'ai.accomplish.desktop', // App identifier
   ].join(':');
 
@@ -187,19 +188,20 @@ export function deleteApiKey(provider: string): boolean {
 /**
  * Supported API key providers
  */
-export type ApiKeyProvider = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'zai' | 'custom' | 'bedrock' | 'litellm' | 'minimax';
+export type ApiKeyProvider = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'moonshot' | 'zai' | 'custom' | 'bedrock' | 'litellm' | 'minimax';
 
 /**
  * Get all API keys for all providers
  */
 export async function getAllApiKeys(): Promise<Record<ApiKeyProvider, string | null>> {
-  const [anthropic, openai, openrouter, google, xai, deepseek, zai, custom, bedrock, litellm, minimax] = await Promise.all([
+  const [anthropic, openai, openrouter, google, xai, deepseek, moonshot, zai, custom, bedrock, litellm, minimax] = await Promise.all([
     getApiKey('anthropic'),
     getApiKey('openai'),
     getApiKey('openrouter'),
     getApiKey('google'),
     getApiKey('xai'),
     getApiKey('deepseek'),
+    getApiKey('moonshot'),
     getApiKey('zai'),
     getApiKey('custom'),
     getApiKey('bedrock'),
@@ -207,7 +209,7 @@ export async function getAllApiKeys(): Promise<Record<ApiKeyProvider, string | n
     getApiKey('minimax'),
   ]);
 
-  return { anthropic, openai, openrouter, google, xai, deepseek, zai, custom, bedrock, litellm, minimax };
+  return { anthropic, openai, openrouter, google, xai, deepseek, moonshot, zai, custom, bedrock, litellm, minimax };
 }
 
 /**

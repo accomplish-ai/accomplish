@@ -25,7 +25,8 @@
     "clear": "Clear",
     "clearAll": "Clear all",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "retry": "Retry"
   },
   "status": {
     "running": "Running",

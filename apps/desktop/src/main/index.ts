@@ -3,13 +3,22 @@ import { app, BrowserWindow, shell, ipcMain, nativeImage, dialog } from 'electro
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+
+// Hardcode userData path to 'Openwork' regardless of package.json name
+// This ensures consistent data location across all versions
+const APP_DATA_NAME = 'Openwork';
+app.setPath('userData', path.join(app.getPath('appData'), APP_DATA_NAME));
+
 import { registerIPCHandlers } from './ipc/handlers';
 import { flushPendingTasks } from './store/taskHistory';
 import { disposeTaskManager } from './opencode/task-manager';
-import { checkAndCleanupFreshInstall } from './store/freshInstallCleanup';
+import { migrateLegacyData } from './store/legacyMigration';
 import { initializeDatabase, closeDatabase } from './store/db';
+import { getProviderSettings, clearProviderSettings } from './store/repositories/providerSettings';
+import { getApiKey } from './store/secureStorage';
 import { FutureSchemaError } from './store/migrations/errors';
 import { stopAzureFoundryProxy } from './opencode/azure-foundry-proxy';
+import { stopMoonshotProxy } from './opencode/moonshot-proxy';
 import { initializeLogCollector, shutdownLogCollector, getLogCollector } from './logging';
 
 // Local UI - no longer uses remote URL
@@ -130,6 +139,30 @@ function createWindow() {
   }
 }
 
+// Global error handlers to prevent crashes from uncaught errors
+// These commonly occur when stdout is unavailable (terminal closed, app shutdown)
+process.on('uncaughtException', (error) => {
+  // Only log to file (not console) to avoid recursive EIO errors
+  try {
+    const collector = getLogCollector();
+    collector.log('ERROR', 'main', `Uncaught exception: ${error.message}`, {
+      name: error.name,
+      stack: error.stack,
+    });
+  } catch {
+    // Ignore errors during error handling
+  }
+});
+
+process.on('unhandledRejection', (reason) => {
+  try {
+    const collector = getLogCollector();
+    collector.log('ERROR', 'main', 'Unhandled promise rejection', { reason });
+  } catch {
+    // Ignore errors during error handling
+  }
+});
+
 // Single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -157,15 +190,14 @@ if (!gotTheLock) {
   app.whenReady().then(async () => {
     console.log('[Main] Electron app ready, version:', app.getVersion());
 
-    // Check for fresh install and cleanup old data BEFORE initializing stores
-    // This ensures users get a clean slate after reinstalling from DMG
+    // Migrate data from legacy userData paths if needed (one-time migration)
     try {
-      const didCleanup = await checkAndCleanupFreshInstall();
-      if (didCleanup) {
-        console.log('[Main] Cleaned up data from previous installation');
+      const didMigrate = migrateLegacyData();
+      if (didMigrate) {
+        console.log('[Main] Migrated data from legacy userData path');
       }
     } catch (err) {
-      console.error('[Main] Fresh install cleanup failed:', err);
+      console.error('[Main] Legacy data migration failed:', err);
     }
 
     // Initialize database and run migrations
@@ -184,6 +216,25 @@ if (!gotTheLock) {
         return;
       }
       throw err;
+    }
+
+    // Validate provider settings - if DB says a provider is connected with api_key
+    // but the key doesn't exist in secure storage, clear provider settings
+    try {
+      const settings = getProviderSettings();
+      for (const [providerId, provider] of Object.entries(settings.connectedProviders)) {
+        if (provider?.credentials?.type === 'api_key') {
+          const key = getApiKey(providerId);
+          if (!key) {
+            console.warn(`[Main] Provider ${providerId} has api_key auth but key not found in secure storage`);
+            clearProviderSettings();
+            console.log('[Main] Cleared provider settings due to missing API keys');
+            break;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Main] Provider validation failed:', err);
     }
 
     // Set dock icon on macOS
@@ -228,6 +279,10 @@ app.on('before-quit', () => {
   // Stop Azure Foundry proxy server if running
   stopAzureFoundryProxy().catch((err) => {
     console.error('[Main] Failed to stop Azure Foundry proxy:', err);
+  });
+  // Stop Moonshot proxy server if running
+  stopMoonshotProxy().catch((err) => {
+    console.error('[Main] Failed to stop Moonshot proxy:', err);
   });
   // Close database connection
   closeDatabase();

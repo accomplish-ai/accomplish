@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
-import { analytics } from '@/lib/analytics';
 import { getAccomplish } from '@/lib/accomplish';
 import { changeLanguage, getLanguagePreference } from '@/i18n';
 import {
@@ -18,23 +17,36 @@ import { hasAnyReadyProvider, isProviderReady } from '@accomplish/shared';
 import { useProviderSettings } from '@/components/settings/hooks/useProviderSettings';
 import { ProviderGrid } from '@/components/settings/ProviderGrid';
 import { ProviderSettingsPanel } from '@/components/settings/ProviderSettingsPanel';
+import { SpeechSettingsForm } from '@/components/settings/SpeechSettingsForm';
 
 // First 4 providers shown in collapsed view (matches PROVIDER_ORDER in ProviderGrid)
-const FIRST_FOUR_PROVIDERS: ProviderId[] = ['anthropic', 'openai', 'google', 'bedrock'];
+const FIRST_FOUR_PROVIDERS: ProviderId[] = ['openai', 'anthropic', 'google', 'bedrock'];
 
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onApiKeySaved?: () => void;
+  initialProvider?: ProviderId;
+  /**
+   * Initial tab to show when dialog opens ('providers' or 'voice')
+   */
+  initialTab?: 'providers' | 'voice';
 }
 
-export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: SettingsDialogProps) {
+export default function SettingsDialog({
+  open,
+  onOpenChange,
+  onApiKeySaved,
+  initialProvider,
+  initialTab = 'providers',
+}: SettingsDialogProps) {
   const { t } = useTranslation('settings');
   const [selectedProvider, setSelectedProvider] = useState<ProviderId | null>(null);
   const [gridExpanded, setGridExpanded] = useState(false);
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
   const [language, setLanguageState] = useState<'en' | 'zh-CN' | 'auto'>('auto');
+  const [activeTab, setActiveTab] = useState<'providers' | 'voice'>(initialTab);
 
   const {
     settings,
@@ -61,28 +73,35 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
     getLanguagePreference().then(setLanguageState);
   }, [open, refetch, accomplish]);
 
-  // Auto-select active provider and expand grid if needed when dialog opens
+  // Auto-select active provider (or initialProvider) and expand grid if needed when dialog opens
   useEffect(() => {
-    if (!open || loading || !settings?.activeProviderId) return;
+    if (!open || loading) return;
 
-    // Auto-select the active provider to show its connection details immediately
-    setSelectedProvider(settings.activeProviderId);
+    // Use initialProvider if provided, otherwise fall back to activeProviderId
+    const providerToSelect = initialProvider || settings?.activeProviderId;
+    if (!providerToSelect) return;
 
-    // Auto-expand grid if active provider is not in the first 4 visible providers
-    if (!FIRST_FOUR_PROVIDERS.includes(settings.activeProviderId)) {
+    // Auto-select the provider to show its connection details immediately
+    setSelectedProvider(providerToSelect);
+
+    // Auto-expand grid if selected provider is not in the first 4 visible providers
+    if (!FIRST_FOUR_PROVIDERS.includes(providerToSelect)) {
       setGridExpanded(true);
     }
-  }, [open, loading, settings?.activeProviderId]);
+  }, [open, loading, initialProvider, settings?.activeProviderId]);
 
-  // Reset state when dialog closes
+  // Reset state when dialog closes, set initial tab when it opens
   useEffect(() => {
     if (!open) {
       setSelectedProvider(null);
       setGridExpanded(false);
       setCloseWarning(false);
       setShowModelError(false);
+    } else {
+      // Set the tab when dialog opens based on initialTab prop
+      setActiveTab(initialTab);
     }
-  }, [open]);
+  }, [open, initialTab]);
 
   // Handle close attempt
   const handleOpenChange = useCallback((newOpen: boolean) => {
@@ -114,7 +133,6 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   // Handle provider connection
   const handleConnect = useCallback(async (provider: ConnectedProvider) => {
     await connectProvider(provider.providerId, provider);
-    analytics.trackSaveApiKey(provider.providerId);
 
     // Auto-set as active if the new provider is ready (connected + has model selected)
     // This ensures newly connected ready providers become active, regardless of
@@ -147,7 +165,6 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   const handleModelChange = useCallback(async (modelId: string) => {
     if (!selectedProvider) return;
     await updateModel(selectedProvider, modelId);
-    analytics.trackSelectModel(modelId);
 
     // Auto-set as active if this provider is now ready
     const provider = settings?.connectedProviders[selectedProvider];
@@ -166,7 +183,6 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
     const newValue = !debugMode;
     await accomplish.setDebugMode(newValue);
     setDebugModeState(newValue);
-    analytics.trackToggleDebugMode(newValue);
   }, [debugMode, accomplish]);
 
   // Handle language change
@@ -213,6 +229,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
 
     // Check if any provider is ready
     if (!hasAnyReadyProvider(settings)) {
+      setActiveTab('providers'); // Switch to providers tab to show warning
       setCloseWarning(true);
       return;
     }
@@ -252,7 +269,11 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   if (loading || !settings) {
     return (
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="settings-dialog">
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          data-testid="settings-dialog"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>{t('setupTitle')}</DialogTitle>
           </DialogHeader>
@@ -266,157 +287,192 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="settings-dialog">
+      <DialogContent
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        data-testid="settings-dialog"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>{t('setupTitle')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
-          {/* Close Warning */}
-          <AnimatePresence>
-            {closeWarning && (
-              <motion.div
-                className="rounded-lg border border-warning bg-warning/10 p-4"
-                variants={settingsVariants.fadeSlide}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                transition={settingsTransitions.enter}
-              >
-                <div className="flex items-start gap-3">
-                  <svg className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-warning">{t('warnings.noProviderReady')}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {t('warnings.noProviderReadyDescription')}
-                    </p>
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        onClick={handleForceClose}
-                        className="rounded-md px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
-                      >
-                        {t('warnings.closeAnyway')}
-                      </button>
+          {/* Tab Navigation */}
+          <div className="flex gap-4 border-b border-border">
+            <button
+              onClick={() => setActiveTab('providers')}
+              className={`pb-3 px-1 font-medium text-sm transition-colors ${
+                activeTab === 'providers'
+                  ? 'text-foreground border-b-2 border-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('tabs.providers')}
+            </button>
+            <button
+              onClick={() => setActiveTab('voice')}
+              className={`pb-3 px-1 font-medium text-sm transition-colors ${
+                activeTab === 'voice'
+                  ? 'text-foreground border-b-2 border-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('tabs.voiceInput')}
+            </button>
+          </div>
+
+          {/* Providers Tab */}
+          {activeTab === 'providers' && (
+            <div className="space-y-6">
+              {/* Close Warning */}
+              <AnimatePresence>
+                {closeWarning && (
+                  <motion.div
+                    className="rounded-lg border border-warning bg-warning/10 p-4"
+                    variants={settingsVariants.fadeSlide}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={settingsTransitions.enter}
+                  >
+                    <div className="flex items-start gap-3">
+                      <svg className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-warning">{t('warnings.noProviderReady')}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {t('warnings.noProviderReadyDescription')}
+                        </p>
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            onClick={handleForceClose}
+                            className="rounded-md px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
+                          >
+                            {t('warnings.closeAnyway')}
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-          {/* Provider Grid Section */}
-          <section>
-            <ProviderGrid
-              settings={settings}
-              selectedProvider={selectedProvider}
-              onSelectProvider={handleSelectProvider}
-              expanded={gridExpanded}
-              onToggleExpanded={() => setGridExpanded(!gridExpanded)}
-            />
-          </section>
-
-          {/* Provider Settings Panel (shown when a provider is selected) */}
-          <AnimatePresence>
-            {selectedProvider && (
-              <motion.section
-                variants={settingsVariants.slideDown}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                transition={settingsTransitions.enter}
-              >
-                <ProviderSettingsPanel
-                  key={selectedProvider}
-                  providerId={selectedProvider}
-                  connectedProvider={settings?.connectedProviders?.[selectedProvider]}
-                  onConnect={handleConnect}
-                  onDisconnect={handleDisconnect}
-                  onModelChange={handleModelChange}
-                  showModelError={showModelError}
+              {/* Provider Grid Section */}
+              <section>
+                <ProviderGrid
+                  settings={settings}
+                  selectedProvider={selectedProvider}
+                  onSelectProvider={handleSelectProvider}
+                  expanded={gridExpanded}
+                  onToggleExpanded={() => setGridExpanded(!gridExpanded)}
                 />
-              </motion.section>
-            )}
-          </AnimatePresence>
+              </section>
 
-          {/* Debug Mode Section - only shown when a provider is selected */}
-          <AnimatePresence>
-            {selectedProvider && (
-              <motion.section
-                variants={settingsVariants.slideDown}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                transition={{ ...settingsTransitions.enter, delay: 0.05 }}
-              >
-                <div className="rounded-lg border border-border bg-card p-5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="font-medium text-foreground">{t('developer.debugMode')}</div>
-                      <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-                        {t('developer.debugDescription')}
-                      </p>
-                    </div>
-                    <div className="ml-4 flex items-center gap-3">
-                      {/* Export Logs Button */}
-                      <button
-                        onClick={handleExportLogs}
-                        disabled={exportStatus === 'exporting'}
-                        className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                          exportStatus === 'success'
-                            ? 'bg-green-500/20 text-green-500'
-                            : exportStatus === 'error'
-                            ? 'bg-destructive/20 text-destructive'
-                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                        }`}
-                      >
-                        {exportStatus === 'exporting' ? (
-                          <span className="flex items-center gap-1.5">
-                            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                            {t('developer.exporting')}
-                          </span>
-                        ) : exportStatus === 'success' ? (
-                          <span className="flex items-center gap-1.5">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            {t('developer.exported')}
-                          </span>
-                        ) : exportStatus === 'error' ? (
-                          t('developer.exportFailed')
-                        ) : (
-                          t('developer.exportLogs')
-                        )}
-                      </button>
-                      {/* Debug Toggle */}
-                      <button
-                        data-testid="settings-debug-toggle"
-                        onClick={handleDebugToggle}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-accomplish ${debugMode ? 'bg-primary' : 'bg-muted'
-                          }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-accomplish ${debugMode ? 'translate-x-6' : 'translate-x-1'
+              {/* Provider Settings Panel (shown when a provider is selected) */}
+              <AnimatePresence>
+                {selectedProvider && (
+                  <motion.section
+                    variants={settingsVariants.slideDown}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={settingsTransitions.enter}
+                  >
+                    <ProviderSettingsPanel
+                      key={selectedProvider}
+                      providerId={selectedProvider}
+                      connectedProvider={settings?.connectedProviders?.[selectedProvider]}
+                      onConnect={handleConnect}
+                      onDisconnect={handleDisconnect}
+                      onModelChange={handleModelChange}
+                      showModelError={showModelError}
+                    />
+                  </motion.section>
+                )}
+              </AnimatePresence>
+
+              {/* Debug Mode Section - only shown when a provider is selected */}
+              <AnimatePresence>
+                {selectedProvider && (
+                  <motion.section
+                    variants={settingsVariants.slideDown}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={{ ...settingsTransitions.enter, delay: 0.05 }}
+                  >
+                    <div className="rounded-lg border border-border bg-card p-5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium text-foreground">{t('developer.debugMode')}</div>
+                          <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                            {t('developer.debugDescription')}
+                          </p>
+                        </div>
+                        <div className="ml-4 flex items-center gap-3">
+                          {/* Debug Toggle */}
+                          <button
+                            data-testid="settings-debug-toggle"
+                            onClick={handleDebugToggle}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-accomplish ${debugMode ? 'bg-primary' : 'bg-muted'
+                              }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-accomplish ${debugMode ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                            />
+                          </button>
+                          {/* Export Logs Button */}
+                          <button
+                            onClick={handleExportLogs}
+                            disabled={exportStatus === 'exporting'}
+                            title={t('developer.exportLogs')}
+                            className={`rounded-md p-1.5 transition-colors ${
+                              exportStatus === 'success'
+                                ? 'text-green-500'
+                                : exportStatus === 'error'
+                                ? 'text-destructive'
+                                : 'text-muted-foreground hover:text-foreground'
                             }`}
-                        />
-                      </button>
+                          >
+                            {exportStatus === 'exporting' ? (
+                              <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                            ) : exportStatus === 'success' ? (
+                              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      {debugMode && (
+                        <div className="mt-4 rounded-xl bg-warning/10 p-3.5">
+                          <p className="text-sm text-warning">
+                            {t('developer.debugEnabled')}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  {debugMode && (
-                    <div className="mt-4 rounded-xl bg-warning/10 p-3.5">
-                      <p className="text-sm text-warning">
-                        {t('developer.debugEnabled')}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </motion.section>
-            )}
-          </AnimatePresence>
+                  </motion.section>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Voice Input Tab */}
+          {activeTab === 'voice' && (
+            <div className="space-y-6">
+              <SpeechSettingsForm onSave={() => {}} onChange={() => {}} />
+            </div>
+          )}
 
           {/* Language Settings Section - always visible */}
           <section>

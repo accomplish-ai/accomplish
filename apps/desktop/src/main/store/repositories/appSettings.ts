@@ -1,6 +1,6 @@
 // apps/desktop/src/main/store/repositories/appSettings.ts
 
-import type { SelectedModel, OllamaConfig, LiteLLMConfig, AzureFoundryConfig } from '@accomplish/shared';
+import type { SelectedModel, OllamaConfig, LiteLLMConfig, AzureFoundryConfig, LMStudioConfig } from '@accomplish/shared';
 import { getDatabase } from '../db';
 
 /** Supported UI languages */
@@ -14,6 +14,8 @@ interface AppSettingsRow {
   ollama_config: string | null;
   litellm_config: string | null;
   azure_foundry_config: string | null;
+  lmstudio_config: string | null;
+  openai_base_url: string | null;
   language: string;
 }
 
@@ -24,6 +26,8 @@ interface AppSettings {
   ollamaConfig: OllamaConfig | null;
   litellmConfig: LiteLLMConfig | null;
   azureFoundryConfig: AzureFoundryConfig | null;
+  lmstudioConfig: LMStudioConfig | null;
+  openaiBaseUrl: string;
   language: UILanguage;
 }
 
@@ -120,6 +124,39 @@ export function setAzureFoundryConfig(config: AzureFoundryConfig | null): void {
   );
 }
 
+export function getLMStudioConfig(): LMStudioConfig | null {
+  const row = getRow();
+  if (!row.lmstudio_config) return null;
+  try {
+    return JSON.parse(row.lmstudio_config) as LMStudioConfig;
+  } catch {
+    return null;
+  }
+}
+
+export function setLMStudioConfig(config: LMStudioConfig | null): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET lmstudio_config = ? WHERE id = 1').run(
+    config ? JSON.stringify(config) : null
+  );
+}
+
+/**
+ * Get OpenAI base URL override (empty string means default).
+ */
+export function getOpenAiBaseUrl(): string {
+  const row = getRow();
+  return row.openai_base_url || '';
+}
+
+/**
+ * Set OpenAI base URL override (empty string clears override).
+ */
+export function setOpenAiBaseUrl(baseUrl: string): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET openai_base_url = ? WHERE id = 1').run(baseUrl || '');
+}
+
 export function getLanguage(): UILanguage {
   const row = getRow();
   const lang = row.language;
@@ -155,6 +192,8 @@ export function getAppSettings(): AppSettings {
     ollamaConfig: safeParseJson<OllamaConfig>(row.ollama_config),
     litellmConfig: safeParseJson<LiteLLMConfig>(row.litellm_config),
     azureFoundryConfig: safeParseJson<AzureFoundryConfig>(row.azure_foundry_config),
+    lmstudioConfig: safeParseJson<LMStudioConfig>(row.lmstudio_config),
+    openaiBaseUrl: row.openai_base_url || '',
     language: validLang,
   };
 }
@@ -169,6 +208,8 @@ export function clearAppSettings(): void {
       ollama_config = NULL,
       litellm_config = NULL,
       azure_foundry_config = NULL,
+      lmstudio_config = NULL,
+      openai_base_url = '',
       language = 'auto'
     WHERE id = 1`
   ).run();

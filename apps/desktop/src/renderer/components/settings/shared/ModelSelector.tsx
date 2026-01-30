@@ -84,21 +84,31 @@ export function ModelSelector({
     return (
       <div>
         <label className="mb-2 block text-sm font-medium text-foreground">{t('model.title')}</label>
-        <select
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          data-testid="model-selector"
-          className={`w-full rounded-md border bg-background px-3 py-2.5 text-sm ${
-            error ? 'border-destructive' : 'border-input'
-          }`}
-        >
-          <option value="" disabled>{displayPlaceholder}</option>
-          {models.map((model) => (
-            <option key={model.id} value={model.id}>
-              {model.name}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            data-testid="model-selector"
+            className={`w-full appearance-none rounded-md border bg-background pl-3 pr-10 py-2.5 text-sm ${
+              error ? 'border-destructive' : 'border-input'
+            }`}
+          >
+            <option value="" disabled>{displayPlaceholder}</option>
+            {models.map((model) => (
+              <option key={model.id} value={model.id}>
+                {model.name}
+              </option>
+            ))}
+          </select>
+          <svg
+            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
         {error && !value && (
           <p className="mt-2 text-sm text-destructive" data-testid="model-selector-error">{displayErrorMessage}</p>
         )}

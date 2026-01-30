@@ -16,6 +16,8 @@ export interface OpenCodeLogError {
   statusCode?: number;
   message?: string;
   raw: string;
+  /** True if this is an authentication error that requires re-login */
+  isAuthError?: boolean;
 }
 
 /**
@@ -25,6 +27,39 @@ const ERROR_PATTERNS: Array<{
   pattern: RegExp;
   extract: (match: RegExpMatchArray, line: string) => Partial<OpenCodeLogError>;
 }> = [
+  {
+    // OpenAI OAuth token expired/invalid
+    pattern: /openai.*(?:invalid_api_key|invalid_token|token.*expired|oauth.*invalid|Incorrect API key)/i,
+    extract: () => ({
+      errorName: 'OAuthExpiredError',
+      statusCode: 401,
+      message: 'Your OpenAI session has expired. Please re-authenticate.',
+      providerID: 'openai',
+      isAuthError: true,
+    }),
+  },
+  {
+    // OpenAI 401 Unauthorized
+    pattern: /openai.*"status":\s*401|"status":\s*401.*openai|providerID=openai.*statusCode.*401/i,
+    extract: () => ({
+      errorName: 'OAuthUnauthorizedError',
+      statusCode: 401,
+      message: 'Your OpenAI session has expired. Please re-authenticate.',
+      providerID: 'openai',
+      isAuthError: true,
+    }),
+  },
+  {
+    // OpenAI authentication failed
+    pattern: /openai.*authentication.*failed|authentication.*failed.*openai/i,
+    extract: () => ({
+      errorName: 'OAuthAuthenticationError',
+      statusCode: 401,
+      message: 'OpenAI authentication failed. Please re-authenticate.',
+      providerID: 'openai',
+      isAuthError: true,
+    }),
+  },
   {
     // AWS Bedrock throttling error
     pattern: /ThrottlingException.*?"message":"([^"]+)"/,
@@ -300,6 +335,10 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
    */
   static getErrorMessage(error: OpenCodeLogError): string {
     switch (error.errorName) {
+      case 'OAuthExpiredError':
+      case 'OAuthUnauthorizedError':
+      case 'OAuthAuthenticationError':
+        return error.message || 'Your session has expired. Please re-authenticate.';
       case 'ThrottlingException':
         return `Rate limit exceeded: ${error.message || 'Please wait before trying again.'}`;
       case 'AuthenticationError':

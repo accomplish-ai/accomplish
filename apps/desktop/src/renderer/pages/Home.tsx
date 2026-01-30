@@ -41,6 +41,7 @@ export default function HomePage() {
   const [prompt, setPrompt] = useState('');
   const [showExamples, setShowExamples] = useState(true);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'providers' | 'voice'>('providers');
   const { startTask, isLoading, addTaskUpdate, setPermissionRequest } = useTaskStore();
   const navigate = useNavigate();
   const accomplish = getAccomplish();
@@ -90,6 +91,7 @@ export default function HomePage() {
     if (!isE2EMode) {
       const settings = await accomplish.getProviderSettings();
       if (!hasAnyReadyProvider(settings)) {
+        setSettingsInitialTab('providers');
         setShowSettingsDialog(true);
         return;
       }
@@ -100,7 +102,16 @@ export default function HomePage() {
 
   const handleSettingsDialogChange = (open: boolean) => {
     setShowSettingsDialog(open);
+    // Reset to providers tab when dialog closes
+    if (!open) {
+      setSettingsInitialTab('providers');
+    }
   };
+
+  const handleOpenSpeechSettings = useCallback(() => {
+    setSettingsInitialTab('voice');
+    setShowSettingsDialog(true);
+  }, []);
 
   const handleApiKeySaved = async () => {
     // API key was saved - close dialog and execute the task
@@ -120,6 +131,7 @@ export default function HomePage() {
         open={showSettingsDialog}
         onOpenChange={handleSettingsDialogChange}
         onApiKeySaved={handleApiKeySaved}
+        initialTab={settingsInitialTab}
       />
       <div
         className="h-full flex items-center justify-center p-6 overflow-y-auto bg-accent"
@@ -153,6 +165,7 @@ export default function HomePage() {
                 placeholder={t('inputPlaceholder')}
                 large={true}
                 autoFocus={true}
+                onOpenSpeechSettings={handleOpenSpeechSettings}
               />
             </CardContent>
 

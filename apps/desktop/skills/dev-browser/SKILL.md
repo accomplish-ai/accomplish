@@ -133,6 +133,13 @@ Note: No need to add `snapshot` at the end - it's automatic!
 - **USE THIS for speed** - finds elements at runtime, no refs needed beforehand
 - Actions: goto, waitForLoad, waitForSelector, waitForNavigation, findAndFill, findAndClick, fillByRef, clickByRef, snapshot, screenshot, keyboard, evaluate
 
+**browser_batch_actions(urls, extractScript, waitForSelector?, page_name?)** - Extract data from multiple URLs in ONE call
+- **USE THIS for multi-page data collection** - visits each URL, runs your JS, returns compact JSON
+- Provide up to 20 URLs and a JS extraction script
+- Returns JSON only (no snapshots/screenshots) to minimize token usage
+- Errors are skipped per-URL — one failed page won't stop the batch
+- 30-second timeout per page
+
 **browser_sequence(actions, page_name?)** - Simpler batching (requires refs beforehand)
 - Use when you already have refs from a snapshot
 - Supported actions: click, type, snapshot, screenshot, wait
@@ -311,6 +318,29 @@ browser_script(actions=[
 ])
 ```
 Returns: step results + final page snapshot (automatic)
+
+### Batch Data Extraction (ONE call with browser_batch_actions)
+
+When you need data from multiple pages (e.g. search results, listings, product comparisons), first collect the URLs, then extract data in bulk:
+
+**Step 1:** Use browser_evaluate or browser_script to collect URLs from a search results page:
+```json
+browser_evaluate(script="return [...document.querySelectorAll('a.listing-link')].map(a => a.href)")
+```
+
+**Step 2:** Extract data from all URLs in one call:
+```json
+browser_batch_actions({
+  urls: ["https://example.com/listing/1", "https://example.com/listing/2", "..."],
+  extractScript: "return { title: document.querySelector('h1')?.textContent, price: document.querySelector('.price')?.textContent, details: document.querySelector('.details')?.textContent?.slice(0, 300) }",
+  waitForSelector: "h1"
+})
+```
+Returns: compact JSON with results for each URL — no snapshots, no screenshots, minimal tokens.
+
+**When to use browser_batch_actions vs browser_script:**
+- `browser_batch_actions`: Visiting **multiple URLs** to **extract data** from each. No interaction needed per page.
+- `browser_script`: Performing a **workflow** on a **single page** (fill forms, click buttons, navigate).
 
 ### Google Docs
 

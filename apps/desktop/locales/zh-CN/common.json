@@ -25,7 +25,8 @@
     "clear": "清除",
     "clearAll": "清除全部",
     "yes": "是",
-    "no": "否"
+    "no": "否",
+    "retry": "重试"
   },
   "status": {
     "running": "运行中",

@@ -2,7 +2,14 @@
  * Provider and model configuration types for multi-provider support
  */
 
-export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'minimax';
+import type { ZaiRegion } from './providerSettings';
+
+export const ZAI_ENDPOINTS: Record<ZaiRegion, string> = {
+  china: 'https://open.bigmodel.cn/api/paas/v4',
+  international: 'https://api.z.ai/api/coding/paas/v4',
+};
+
+export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'minimax' | 'lmstudio';
 
 export interface ProviderConfig {
   id: ProviderType;
@@ -100,6 +107,25 @@ export interface LiteLLMConfig {
 }
 
 /**
+ * LM Studio model info from API
+ */
+export interface LMStudioModel {
+  id: string;                     // e.g., "qwen2.5-7b-instruct"
+  name: string;                   // Display name
+  toolSupport: 'supported' | 'unsupported' | 'unknown'; // Whether model supports function calling
+}
+
+/**
+ * LM Studio configuration
+ */
+export interface LMStudioConfig {
+  baseUrl: string;      // e.g., "http://localhost:1234"
+  enabled: boolean;
+  lastValidated?: number;
+  models?: LMStudioModel[];
+}
+
+/**
  * Default providers and models
  */
 export const DEFAULT_PROVIDERS: ProviderConfig[] = [
@@ -142,11 +168,35 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     apiKeyEnvVar: 'OPENAI_API_KEY',
     models: [
       {
-        id: 'gpt-5-codex',
-        displayName: 'GPT 5 Codex',
+        id: 'gpt-5.2',
+        displayName: 'GPT 5.2',
         provider: 'openai',
-        fullId: 'openai/gpt-5-codex',
-        contextWindow: 1000000,
+        fullId: 'openai/gpt-5.2',
+        contextWindow: 400000,
+        supportsVision: true,
+      },
+      {
+        id: 'gpt-5.2-codex',
+        displayName: 'GPT 5.2 Codex',
+        provider: 'openai',
+        fullId: 'openai/gpt-5.2-codex',
+        contextWindow: 400000,
+        supportsVision: true,
+      },
+      {
+        id: 'gpt-5.1-codex-max',
+        displayName: 'GPT 5.1 Codex Max',
+        provider: 'openai',
+        fullId: 'openai/gpt-5.1-codex-max',
+        contextWindow: 272000,
+        supportsVision: true,
+      },
+      {
+        id: 'gpt-5.1-codex-mini',
+        displayName: 'GPT 5.1 Codex Mini',
+        provider: 'openai',
+        fullId: 'openai/gpt-5.1-codex-mini',
+        contextWindow: 400000,
         supportsVision: true,
       },
     ],
@@ -222,6 +272,36 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
         fullId: 'deepseek/deepseek-reasoner',
         contextWindow: 64000,
         supportsVision: false,
+      },
+    ],
+  },
+  {
+    id: 'moonshot',
+    name: 'Moonshot AI',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'MOONSHOT_API_KEY',
+    baseUrl: 'https://api.moonshot.ai/v1',
+    models: [
+      {
+        id: 'kimi-k2.5',
+        displayName: 'Kimi K2.5',
+        provider: 'moonshot',
+        fullId: 'moonshot/kimi-k2.5',
+        contextWindow: 256000,
+        supportsVision: true,
+      },
+      {
+        id: 'kimi-k2-turbo-preview',
+        displayName: 'Kimi K2 Turbo (Preview)',
+        provider: 'moonshot',
+        fullId: 'moonshot/kimi-k2-turbo-preview',
+        contextWindow: 256000,
+      },
+      {
+        id: 'kimi-latest',
+        displayName: 'Kimi Latest',
+        provider: 'moonshot',
+        fullId: 'moonshot/kimi-latest',
       },
     ],
   },

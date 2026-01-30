@@ -87,6 +87,12 @@ vi.mock('@main/opencode/adapter', () => ({
   getOpenCodeCliVersion: vi.fn(() => Promise.resolve('1.0.0')),
 }));
 
+// Mock OpenCode auth (ChatGPT OAuth)
+vi.mock('@main/opencode/auth', () => ({
+  getOpenAiOauthStatus: vi.fn(() => ({ connected: false })),
+  loginOpenAiWithChatGpt: vi.fn(() => Promise.resolve({ openedUrl: undefined })),
+}));
+
 // Mock task manager
 const mockTaskManager = {
   startTask: vi.fn(),
@@ -174,6 +180,7 @@ vi.mock('@main/store/secureStorage', () => ({
 let mockDebugMode = false;
 let mockOnboardingComplete = false;
 let mockSelectedModel: { provider: string; model: string } | null = null;
+let mockOpenAiBaseUrl = '';
 
 vi.mock('@main/store/appSettings', () => ({
   getDebugMode: vi.fn(() => mockDebugMode),
@@ -184,6 +191,7 @@ vi.mock('@main/store/appSettings', () => ({
     debugMode: mockDebugMode,
     onboardingComplete: mockOnboardingComplete,
     selectedModel: mockSelectedModel,
+    openaiBaseUrl: mockOpenAiBaseUrl,
   })),
   getOnboardingComplete: vi.fn(() => mockOnboardingComplete),
   setOnboardingComplete: vi.fn((complete: boolean) => {
@@ -195,6 +203,10 @@ vi.mock('@main/store/appSettings', () => ({
   }),
   getAzureFoundryConfig: vi.fn(() => null),
   setAzureFoundryConfig: vi.fn(),
+  getOpenAiBaseUrl: vi.fn(() => mockOpenAiBaseUrl),
+  setOpenAiBaseUrl: vi.fn((baseUrl: string) => {
+    mockOpenAiBaseUrl = baseUrl;
+  }),
 }));
 
 // Mock provider settings
@@ -496,6 +508,7 @@ describe('IPC Handlers Integration', () => {
       mockDebugMode = true;
       mockOnboardingComplete = true;
       mockSelectedModel = { provider: 'anthropic', model: 'claude-3-opus' };
+      mockOpenAiBaseUrl = '';
 
       // Act
       const result = await invokeHandler('settings:app-settings');
@@ -505,6 +518,7 @@ describe('IPC Handlers Integration', () => {
         debugMode: true,
         onboardingComplete: true,
         selectedModel: { provider: 'anthropic', model: 'claude-3-opus' },
+        openaiBaseUrl: '',
       });
     });
 

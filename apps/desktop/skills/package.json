@@ -1,0 +1,13 @@
+{
+  "name": "openwork-skills-runtime",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@hono/node-server": "^1.19.7",
+    "@hono/node-ws": "^1.2.0",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "express": "^4.21.0",
+    "hono": "^4.11.1",
+    "playwright": "npm:rebrowser-playwright@^1.52.0"
+  }
+}

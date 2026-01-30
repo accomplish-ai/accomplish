@@ -88,6 +88,7 @@ exports.default = async function afterPack(context) {
   // On Windows, copy node-pty prebuilds to build/Release (required for packaged app)
   if (platformName === 'windows') {
     await copyNodePtyPrebuilds(context, archName);
+    await pruneNodePtyArm64(context, archName);
   }
 
   // Re-sign macOS apps after modifying the bundle
@@ -147,6 +148,41 @@ async function copyNodePtyPrebuilds(context, arch) {
 
   console.log(`[after-pack] Successfully copied node-pty prebuilds to ${buildReleaseDir}`);
 }
+
+/**
+ * Remove arm64 node-pty binaries from x64 Windows builds to reduce size/time.
+ */
+async function pruneNodePtyArm64(context, arch) {
+  if (arch !== 'x64') {
+    return;
+  }
+
+  const { appOutDir } = context;
+  const nodePtyBase = path.join(appOutDir, 'resources', 'app.asar.unpacked', 'node_modules', 'node-pty');
+  const arm64Prebuilds = path.join(nodePtyBase, 'prebuilds', 'win32-arm64');
+  const conptyRoot = path.join(nodePtyBase, 'third_party', 'conpty');
+
+  // Remove win32-arm64 prebuilds
+  if (fs.existsSync(arm64Prebuilds)) {
+    fs.rmSync(arm64Prebuilds, { recursive: true, force: true });
+    console.log('[after-pack] Removed node-pty arm64 prebuilds (win32-arm64)');
+  }
+
+  // Remove win10-arm64 conpty binaries
+  if (fs.existsSync(conptyRoot)) {
+    const entries = fs.readdirSync(conptyRoot, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const versionDir = path.join(conptyRoot, entry.name);
+      const arm64Dir = path.join(versionDir, 'win10-arm64');
+      if (fs.existsSync(arm64Dir)) {
+        fs.rmSync(arm64Dir, { recursive: true, force: true });
+        console.log(`[after-pack] Removed node-pty conpty arm64 binaries: ${arm64Dir}`);
+      }
+    }
+  }
+}
+
 
 /**
  * Copy Node.js binary for a specific platform/arch combination
@@ -278,6 +314,7 @@ function copyDirRecursive(src, dest, rootDest = dest, excludeDirs = []) {
     }
   }
 }
+
 
 /**
  * Re-sign macOS app after modifying the bundle.

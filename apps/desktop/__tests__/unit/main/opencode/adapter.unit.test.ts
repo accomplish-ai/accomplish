@@ -118,6 +118,7 @@ vi.mock('@main/store/secureStorage', () => ({
 vi.mock('@main/store/appSettings', () => ({
   getSelectedModel: vi.fn(() => ({ model: 'claude-3-opus-20240229' })),
   getAzureFoundryConfig: vi.fn(() => null),
+  getOpenAiBaseUrl: vi.fn(() => ''),
 }));
 
 // Mock provider settings (uses SQLite which isn't available in tests)
@@ -440,6 +441,20 @@ describe('OpenCode Adapter Module', () => {
         };
         mockPtyInstance.simulateData(JSON.stringify(stepStartMessage) + '\n');
 
+        // Simulate a tool call so the tool-use guard doesn't skip continuation
+        const toolCallMessage: OpenCodeToolCallMessage = {
+          type: 'tool_call',
+          part: {
+            id: 'tool-1',
+            sessionID: 'session-123',
+            messageID: 'message-123',
+            type: 'tool-call',
+            tool: 'Bash',
+            input: { command: 'ls' },
+          },
+        };
+        mockPtyInstance.simulateData(JSON.stringify(toolCallMessage) + '\n');
+
         const stepFinishMessage: OpenCodeStepFinishMessage = {
           type: 'step_finish',
           part: {
@@ -467,6 +482,20 @@ describe('OpenCode Adapter Module', () => {
         adapter.on('complete', (result) => completeEvents.push(result));
 
         await adapter.startTask({ prompt: 'Test' });
+
+        // Simulate a tool call so the tool-use guard doesn't skip continuation
+        const toolCallMessage: OpenCodeToolCallMessage = {
+          type: 'tool_call',
+          part: {
+            id: 'tool-1',
+            sessionID: 'session-123',
+            messageID: 'message-123',
+            type: 'tool-call',
+            tool: 'Bash',
+            input: { command: 'ls' },
+          },
+        };
+        mockPtyInstance.simulateData(JSON.stringify(toolCallMessage) + '\n');
 
         const stepFinishMessage: OpenCodeStepFinishMessage = {
           type: 'step_finish',

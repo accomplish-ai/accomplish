@@ -10,6 +10,7 @@ import { springs } from '../lib/animations';
 import type { TaskMessage } from '@accomplish/shared';
 import { hasAnyReadyProvider } from '@accomplish/shared';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
@@ -23,6 +24,8 @@ import { BrowserScriptCard } from '../components/BrowserScriptCard';
 import loadingSymbol from '/assets/loading-symbol.svg';
 import SettingsDialog from '../components/layout/SettingsDialog';
 import { TodoSidebar } from '../components/TodoSidebar';
+import { useSpeechInput } from '../hooks/useSpeechInput';
+import { SpeechInputButton } from '../components/ui/SpeechInputButton';
 
 // Debug log entry type
 interface DebugLogEntry {
@@ -182,7 +185,9 @@ export default function ExecutionPage() {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [customResponse, setCustomResponse] = useState('');
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'providers' | 'voice'>('providers');
   const [pendingFollowUp, setPendingFollowUp] = useState<string | null>(null);
+  const pendingSpeechFollowUpRef = useRef<string | null>(null);
 
   // Scroll behavior state
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -213,6 +218,24 @@ export default function ExecutionPage() {
     todosTaskId,
   } = useTaskStore();
 
+  const speechInput = useSpeechInput({
+    onTranscriptionComplete: (text) => {
+      setFollowUp((prev) => {
+        const newValue = prev.trim() ? `${prev} ${text}` : text;
+        pendingSpeechFollowUpRef.current = newValue.trim() ? newValue : null;
+        return newValue;
+      });
+
+      // Auto-focus input
+      setTimeout(() => {
+        followUpInputRef.current?.focus();
+      }, 0);
+    },
+    onError: (error) => {
+      console.error('[Speech] Error:', error.message);
+    },
+  });
+
   // Debounced scroll function
   const scrollToBottom = useMemo(
     () =>
@@ -230,7 +253,7 @@ export default function ExecutionPage() {
     const threshold = 150; // pixels from bottom to consider "at bottom" - larger value means button only appears after scrolling up more
     const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
     setIsAtBottom(atBottom);
-  }, []);
+  }, [setIsAtBottom]);
 
   // Load debug mode setting on mount and subscribe to changes
   useEffect(() => {
@@ -382,6 +405,7 @@ export default function ExecutionPage() {
       if (!hasAnyReadyProvider(settings)) {
         // Store the pending message and open settings dialog
         setPendingFollowUp(followUp);
+        setSettingsInitialTab('providers');
         setShowSettingsDialog(true);
         return;
       }
@@ -395,6 +419,7 @@ export default function ExecutionPage() {
     setShowSettingsDialog(open);
     if (!open) {
       setPendingFollowUp(null);
+      setSettingsInitialTab('providers');
     }
   };
 
@@ -416,6 +441,7 @@ export default function ExecutionPage() {
       if (!hasAnyReadyProvider(settings)) {
         // Store the pending message and open settings dialog
         setPendingFollowUp('continue');
+        setSettingsInitialTab('providers');
         setShowSettingsDialog(true);
         return;
       }
@@ -424,6 +450,26 @@ export default function ExecutionPage() {
     // Send a simple "continue" message to resume the task
     await sendFollowUp('continue');
   };
+
+  const handleOpenSpeechSettings = useCallback(() => {
+    setSettingsInitialTab('voice');
+    setShowSettingsDialog(true);
+  }, []);
+
+  useEffect(() => {
+    if (!pendingSpeechFollowUpRef.current) {
+      return;
+    }
+    if (!canFollowUp || isLoading) {
+      return;
+    }
+    if (followUp !== pendingSpeechFollowUpRef.current) {
+      return;
+    }
+
+    pendingSpeechFollowUpRef.current = null;
+    void handleFollowUp();
+  }, [canFollowUp, followUp, handleFollowUp, isLoading]);
 
   const handleExportDebugLogs = useCallback(() => {
     const text = debugLogs
@@ -557,6 +603,7 @@ export default function ExecutionPage() {
         open={showSettingsDialog}
         onOpenChange={handleSettingsDialogClose}
         onApiKeySaved={handleApiKeySaved}
+        initialTab={settingsInitialTab}
       />
 
     <div className="h-full flex flex-col bg-background relative">
@@ -854,8 +901,8 @@ export default function ExecutionPage() {
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={springs.bouncy}
             >
-              <Card className="w-full max-w-lg p-6 mx-4">
-                <div className="flex items-start gap-4">
+              <Card className="w-full max-w-lg p-6 mx-4 max-h-[80vh] flex flex-col">
+                <div className="flex items-start gap-4 min-h-0 flex-1 overflow-hidden">
                   <div className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full shrink-0",
                     isDeleteOperation(permissionRequest) ? "bg-red-500/10" :
@@ -872,7 +919,7 @@ export default function ExecutionPage() {
                       <AlertCircle className="h-5 w-5 text-warning" />
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 overflow-y-auto">
                     <h3 className={cn(
                       "text-lg font-semibold mb-2",
                       isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
@@ -1140,6 +1187,26 @@ export default function ExecutionPage() {
       {canFollowUp && (
         <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4">
           <div className="max-w-4xl mx-auto">
+            {speechInput.error && (
+              <Alert
+                variant="destructive"
+                className="mb-2 py-2 px-3 flex items-center gap-2 [&>svg]:static [&>svg~*]:pl-0"
+              >
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-xs leading-tight">
+                  {speechInput.error.message}
+                  {speechInput.error.code === 'EMPTY_RESULT' && (
+                    <button
+                      onClick={() => speechInput.retry()}
+                      className="ml-2 underline hover:no-underline"
+                      type="button"
+                    >
+                      Retry
+                    </button>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
             {/* Input field with Send button */}
             <div className="flex gap-3">
               <Input
@@ -1161,13 +1228,26 @@ export default function ExecutionPage() {
                       ? t('followUp.completedPlaceholder')
                       : t('followUp.defaultPlaceholder')
                 }
-                disabled={isLoading}
+                disabled={isLoading || speechInput.isRecording}
                 className="flex-1"
                 data-testid="execution-follow-up-input"
               />
+              <SpeechInputButton
+                isRecording={speechInput.isRecording}
+                isTranscribing={speechInput.isTranscribing}
+                recordingDuration={speechInput.recordingDuration}
+                error={speechInput.error}
+                isConfigured={speechInput.isConfigured}
+                disabled={isLoading}
+                onStartRecording={() => speechInput.startRecording()}
+                onStopRecording={() => speechInput.stopRecording()}
+                onRetry={() => speechInput.retry()}
+                onOpenSettings={handleOpenSpeechSettings}
+                size="md"
+              />
               <Button
                 onClick={handleFollowUp}
-                disabled={!followUp.trim() || isLoading}
+                disabled={!followUp.trim() || isLoading || speechInput.isRecording}
                 variant="outline"
               >
                 <CornerDownLeft className="h-4 w-4 mr-1.5" />
@@ -1194,9 +1274,17 @@ export default function ExecutionPage() {
       {debugModeEnabled && (
         <div className="flex-shrink-0 border-t border-border" data-testid="debug-panel">
           {/* Toggle header */}
-          <button
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => setDebugPanelOpen(!debugPanelOpen)}
-            className="w-full flex items-center justify-between px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 transition-colors"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setDebugPanelOpen(!debugPanelOpen);
+              }
+            }}
+            className="w-full flex items-center justify-between px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2 text-sm text-zinc-400">
               <Bug className="h-4 w-4" />
@@ -1246,7 +1334,7 @@ export default function ExecutionPage() {
                 <ChevronUp className="h-4 w-4 text-zinc-500" />
               )}
             </div>
-          </button>
+          </div>
 
           {/* Collapsible panel content */}
           <AnimatePresence>
@@ -1405,7 +1493,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
       ) : (
       <div
         className={cn(
-          'max-w-[85%] rounded-2xl px-4 py-3 transition-all duration-150',
+          'max-w-[85%] rounded-2xl px-4 py-3 transition-all duration-150 relative',
           isUser
             ? 'bg-primary text-primary-foreground'
             : isTool
@@ -1481,35 +1569,35 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
             )}
           </>
         )}
+        {showCopyButton && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={handleCopy}
+                data-testid="message-copy-button"
+                className={cn(
+                  'absolute bottom-2 right-2',
+                  'opacity-0 group-hover:opacity-100 transition-all duration-200',
+                  'p-1 rounded',
+                  isUser ? 'hover:bg-primary-foreground/20' : 'hover:bg-accent',
+                  isUser
+                    ? (!copied ? 'text-primary-foreground/70 hover:text-primary-foreground' : '!bg-green-500/20 !text-green-300')
+                    : (!copied ? 'text-muted-foreground hover:text-foreground' : '!bg-green-500/10 !text-green-600')
+                )}
+                aria-label={'Copy to clipboard'}
+              >
+                <Check className={cn("absolute h-4 w-4", !copied && 'hidden')} />
+                <Copy className={cn("absolute h-4 w-4", copied && 'hidden')} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>Copy to clipboard</span>
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
-      )}
-
-      {showCopyButton && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={handleCopy}
-              data-testid="message-copy-button"
-              className={cn(
-                'opacity-0 group-hover:opacity-100 transition-all duration-200 relative',
-                'p-1 rounded hover:bg-accent',
-                'shrink-0 mt-1',
-                isAssistant ? 'self-start' : 'self-end',
-                !copied && 'text-muted-foreground hover:text-foreground',
-                copied && '!bg-green-500/10 !text-green-600 !hover:bg-green-500/20'
-              )}
-              aria-label={'Copy to clipboard'}
-            >
-              <Check className={cn("absolute h-4 w-4", !copied && 'hidden')} />
-              <Copy className={cn("absolute h-4 w-4", copied && 'hidden')} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <span>Copy to clipboard</span>
-          </TooltipContent>
-        </Tooltip>
       )}
     </motion.div>
   );

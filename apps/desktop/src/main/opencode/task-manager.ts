@@ -95,7 +95,14 @@ async function installPlaywrightChromium(
     let spawnEnv: NodeJS.ProcessEnv = { ...process.env };
     if (bundledPaths) {
       const delimiter = process.platform === 'win32' ? ';' : ':';
-      spawnEnv.PATH = `${bundledPaths.binDir}${delimiter}${process.env.PATH || ''}`;
+      const existingPath = process.env.PATH ?? process.env.Path ?? '';
+      const combinedPath = existingPath
+        ? `${bundledPaths.binDir}${delimiter}${existingPath}`
+        : bundledPaths.binDir;
+      spawnEnv.PATH = combinedPath;
+      if (process.platform === 'win32') {
+        spawnEnv.Path = combinedPath;
+      }
     }
 
     const child = spawn(npxPath, ['playwright', 'install', 'chromium'], {
@@ -228,7 +235,14 @@ async function ensureDevBrowserServer(
     let spawnEnv: NodeJS.ProcessEnv = { ...process.env };
     if (bundledPaths) {
       const delimiter = process.platform === 'win32' ? ';' : ':';
-      spawnEnv.PATH = `${bundledPaths.binDir}${delimiter}${process.env.PATH || ''}`;
+      const existingPath = process.env.PATH ?? process.env.Path ?? '';
+      const combinedPath = existingPath
+        ? `${bundledPaths.binDir}${delimiter}${existingPath}`
+        : bundledPaths.binDir;
+      spawnEnv.PATH = combinedPath;
+      if (process.platform === 'win32') {
+        spawnEnv.Path = combinedPath;
+      }
       spawnEnv.NODE_BIN_PATH = bundledPaths.binDir;
     }
 
@@ -351,6 +365,7 @@ export interface TaskCallbacks {
   onStatusChange?: (status: TaskStatus) => void;
   onDebug?: (log: { type: string; message: string; data?: unknown }) => void;
   onTodoUpdate?: (todos: TodoItem[]) => void;
+  onAuthError?: (error: { providerId: string; message: string }) => void;
 }
 
 /**
@@ -515,6 +530,10 @@ export class TaskManager {
       callbacks.onTodoUpdate?.(todos);
     };
 
+    const onAuthError = (error: { providerId: string; message: string }) => {
+      callbacks.onAuthError?.(error);
+    };
+
     // Attach listeners
     adapter.on('message', onMessage);
     adapter.on('progress', onProgress);
@@ -523,6 +542,7 @@ export class TaskManager {
     adapter.on('error', onError);
     adapter.on('debug', onDebug);
     adapter.on('todo:update', onTodoUpdate);
+    adapter.on('auth-error', onAuthError);
 
     // Create cleanup function
     const cleanup = () => {
@@ -533,6 +553,7 @@ export class TaskManager {
       adapter.off('error', onError);
       adapter.off('debug', onDebug);
       adapter.off('todo:update', onTodoUpdate);
+      adapter.off('auth-error', onAuthError);
       adapter.dispose();
     };
 

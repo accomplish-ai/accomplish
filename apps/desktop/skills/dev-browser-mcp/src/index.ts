@@ -2441,6 +2441,42 @@ Actions: goto, waitForLoad, waitForSelector, waitForNavigation, findAndFill, fin
       },
     },
     {
+      name: 'browser_batch_actions',
+      description: `Extract data from multiple URLs in ONE call. Visits each URL, runs your JS extraction script, returns compact JSON results.
+
+Use this when you need to collect data from many pages (e.g. scrape listings, compare products, gather info from search results). Instead of clicking into each page individually, provide all URLs upfront and get structured data back.
+
+Example - extract price and address from 10 Zillow listings:
+{"urls": ["https://zillow.com/homedetails/.../1_zpid/", "https://zillow.com/homedetails/.../2_zpid/"], "extractScript": "return { price: document.querySelector('[data-testid=\\"price\\"]')?.textContent, address: document.querySelector('h1')?.textContent }", "waitForSelector": "[data-testid='price']"}
+
+Returns JSON only (no snapshots/screenshots) to minimize token usage. Max 20 URLs per call.`,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          urls: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Array of URLs to visit and extract data from (1-20 URLs)',
+            maxItems: 20,
+            minItems: 1,
+          },
+          extractScript: {
+            type: 'string',
+            description: 'JavaScript code that extracts data from each page. Must return an object. Runs via page.evaluate(). Example: "return { title: document.title, price: document.querySelector(\'.price\')?.textContent }"',
+          },
+          waitForSelector: {
+            type: 'string',
+            description: 'Optional CSS selector to wait for before running extractScript (e.g. "[data-testid=\'price\']"). Ensures page content has loaded.',
+          },
+          page_name: {
+            type: 'string',
+            description: 'Optional page name (default: "main")',
+          },
+        },
+        required: ['urls', 'extractScript'],
+      },
+    },
+    {
       name: 'browser_highlight',
       description: 'Toggle the visual highlight glow on the current tab. Use to indicate when automation is active on a tab, and turn off when done.',
       inputSchema: {
@@ -3137,67 +3173,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           content.push(screenshotData);
         }
         return { content };
-      }
-
-      case 'browser_keyboard': {
-        const { action, key, text, typing_delay, page_name } = args as BrowserKeyboardInput;
-        const page = await getPage(page_name);
-
-        switch (action) {
-          case 'press': {
-            if (!key) {
-              return {
-                content: [{ type: 'text', text: 'Error: "key" is required for press action' }],
-                isError: true,
-              };
-            }
-            await page.keyboard.press(key);
-            return {
-              content: [{ type: 'text', text: `Pressed key: ${key}` }],
-            };
-          }
-          case 'type': {
-            if (!text) {
-              return {
-                content: [{ type: 'text', text: 'Error: "text" is required for type action' }],
-                isError: true,
-              };
-            }
-            await page.keyboard.type(text, { delay: typing_delay ?? 20 });
-            return {
-              content: [{ type: 'text', text: `Typed text: "${text}"` }],
-            };
-          }
-          case 'down': {
-            if (!key) {
-              return {
-                content: [{ type: 'text', text: 'Error: "key" is required for down action' }],
-                isError: true,
-              };
-            }
-            await page.keyboard.down(key);
-            return {
-              content: [{ type: 'text', text: `Key down: ${key}` }],
-            };
-          }
-          case 'up': {
-            if (!key) {
-              return {
-                content: [{ type: 'text', text: 'Error: "key" is required for up action' }],
-                isError: true,
-              };
-            }
-            await page.keyboard.up(key);
-            return {
-              content: [{ type: 'text', text: `Key up: ${key}` }],
-            };
-          }
-          default:
-            return {
-              content: [{ type: 'text', text: `Error: Unknown keyboard action "${action}"` }],
-              isError: true,
-            };
-        }
       }
 
       case 'browser_scroll': {
@@ -3997,6 +3972,118 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             content: [{ type: 'text', text: 'Highlight disabled - glow removed from tab' }],
           };
         }
+      }
+
+      case 'browser_batch_actions': {
+        const { urls, extractScript, waitForSelector, page_name } = args as {
+          urls: string[];
+          extractScript: string;
+          waitForSelector?: string;
+          page_name?: string;
+        };
+
+        // Validate inputs
+        if (!urls || urls.length === 0) {
+          return {
+            content: [{ type: 'text', text: 'Error: urls array is required and must not be empty' }],
+            isError: true,
+          };
+        }
+        if (urls.length > 20) {
+          return {
+            content: [{ type: 'text', text: 'Error: Maximum 20 URLs per batch call' }],
+            isError: true,
+          };
+        }
+        if (!extractScript) {
+          return {
+            content: [{ type: 'text', text: 'Error: extractScript is required' }],
+            isError: true,
+          };
+        }
+
+        const BATCH_TIMEOUT_MS = 120_000; // 2-minute aggregate timeout for entire batch
+        const MAX_RESULT_SIZE_BYTES = 1_048_576; // 1MB per result
+
+        const page = await getPage(page_name);
+        const batchResults: Array<{
+          url: string;
+          status: 'success' | 'failed';
+          data?: Record<string, unknown>;
+          error?: string;
+        }> = [];
+
+        const batchStart = Date.now();
+
+        for (const url of urls) {
+          // Check aggregate timeout
+          if (Date.now() - batchStart > BATCH_TIMEOUT_MS) {
+            batchResults.push({ url, status: 'failed', error: 'Batch timeout exceeded (2 min limit)' });
+            continue;
+          }
+
+          let fullUrl = url;
+          if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+            fullUrl = 'https://' + fullUrl;
+          }
+
+          const remainingTime = BATCH_TIMEOUT_MS - (Date.now() - batchStart);
+          const effectiveTimeout = Math.min(30000, remainingTime);
+
+          try {
+            // Navigate to the URL
+            await page.goto(fullUrl, { waitUntil: 'domcontentloaded', timeout: effectiveTimeout });
+
+            // Wait for specific selector if provided
+            if (waitForSelector) {
+              await page.waitForSelector(waitForSelector, { timeout: Math.min(10000, remainingTime) }).catch(() => {
+                // Continue even if selector not found — extractScript may still work
+              });
+            }
+
+            // Run extraction script
+            const data = await page.evaluate((script: string) => {
+              // Wrap in function body so 'return' works
+              const fn = new Function(script);
+              return fn();
+            }, extractScript);
+
+            // Guard against oversized results
+            const serialized = JSON.stringify(data);
+            if (serialized.length > MAX_RESULT_SIZE_BYTES) {
+              batchResults.push({
+                url: fullUrl,
+                status: 'failed',
+                error: `Result too large: ${serialized.length} bytes (max ${MAX_RESULT_SIZE_BYTES})`,
+              });
+              continue;
+            }
+
+            batchResults.push({ url: fullUrl, status: 'success', data });
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            batchResults.push({ url: fullUrl, status: 'failed', error: errMsg });
+          }
+        }
+
+        // Reset snapshot manager since we navigated through multiple pages
+        resetSnapshotManager();
+
+        const succeeded = batchResults.filter(r => r.status === 'success').length;
+        const failed = batchResults.filter(r => r.status === 'failed').length;
+
+        const output = {
+          results: batchResults,
+          summary: {
+            total: urls.length,
+            succeeded,
+            failed,
+          },
+        };
+
+        return {
+          content: [{ type: 'text', text: JSON.stringify(output, null, 2) }],
+        };
       }
 
       default:

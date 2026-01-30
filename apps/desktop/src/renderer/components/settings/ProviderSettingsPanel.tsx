@@ -11,7 +11,9 @@ import {
   OllamaProviderForm,
   OpenRouterProviderForm,
   LiteLLMProviderForm,
+  LMStudioProviderForm,
 } from './providers';
+import { ZaiProviderForm } from './providers/ZaiProviderForm';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 
 interface ProviderSettingsPanelProps {
@@ -36,6 +38,20 @@ export function ProviderSettingsPanel({
 
   // Render form content based on provider category
   const renderForm = () => {
+    // Handle Z.AI separately (has region selector)
+    if (providerId === 'zai') {
+      return (
+        <ZaiProviderForm
+          connectedProvider={connectedProvider}
+          onConnect={onConnect}
+          onDisconnect={onDisconnect}
+          onModelChange={onModelChange}
+          showModelError={showModelError}
+        />
+      );
+    }
+
+    // Then continue with switch for other providers
     switch (meta.category) {
       case 'classic':
         return (
@@ -72,6 +88,19 @@ export function ProviderSettingsPanel({
         );
 
       case 'local':
+        // Handle different local providers
+        if (providerId === 'lmstudio') {
+          return (
+            <LMStudioProviderForm
+              connectedProvider={connectedProvider}
+              onConnect={onConnect}
+              onDisconnect={onDisconnect}
+              onModelChange={onModelChange}
+              showModelError={showModelError}
+            />
+          );
+        }
+        // Default to Ollama for other local providers
         return (
           <OllamaProviderForm
             connectedProvider={connectedProvider}

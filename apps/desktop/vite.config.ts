@@ -72,5 +72,15 @@ export default defineConfig(() => ({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    rollupOptions: {
+      external: ['electron', 'electron-store', 'keytar', 'node-pty', 'better-sqlite3'],
+    },
+  },
+  optimizeDeps: {
+    exclude: ['electron', 'electron-store', 'keytar', 'node-pty', 'better-sqlite3'],
+    // Force exclude in development
+    esbuildOptions: {
+      external: ['electron', 'electron-store', 'keytar', 'node-pty', 'better-sqlite3'],
+    },
   },
 }));

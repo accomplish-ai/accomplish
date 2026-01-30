@@ -28,23 +28,41 @@ class LogCollector {
     initializeLogFileWriter();
 
     // Override console methods to capture all logs
+    // Wrap original console calls in try-catch to handle EIO errors when stdout is unavailable
+    // (e.g., when terminal is closed or during app shutdown)
     console.log = (...args: unknown[]) => {
-      originalConsole.log(...args);
+      try {
+        originalConsole.log(...args);
+      } catch {
+        // Ignore EIO errors when stdout is unavailable
+      }
       this.captureConsole('INFO', args);
     };
 
     console.warn = (...args: unknown[]) => {
-      originalConsole.warn(...args);
+      try {
+        originalConsole.warn(...args);
+      } catch {
+        // Ignore EIO errors when stdout is unavailable
+      }
       this.captureConsole('WARN', args);
     };
 
     console.error = (...args: unknown[]) => {
-      originalConsole.error(...args);
+      try {
+        originalConsole.error(...args);
+      } catch {
+        // Ignore EIO errors when stdout is unavailable
+      }
       this.captureConsole('ERROR', args);
     };
 
     console.debug = (...args: unknown[]) => {
-      originalConsole.debug(...args);
+      try {
+        originalConsole.debug(...args);
+      } catch {
+        // Ignore EIO errors when stdout is unavailable
+      }
       this.captureConsole('DEBUG', args);
     };
 

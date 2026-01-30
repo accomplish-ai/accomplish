@@ -82,6 +82,8 @@ vi.mock('@main/store/appSettings', () => ({
   setLiteLLMConfig: vi.fn(),
   getAzureFoundryConfig: vi.fn(() => null),
   setAzureFoundryConfig: vi.fn(),
+  getLMStudioConfig: vi.fn(() => null),
+  setLMStudioConfig: vi.fn(),
   getAppSettings: vi.fn(() => ({
     debugMode: false,
     onboardingComplete: false,
@@ -89,6 +91,7 @@ vi.mock('@main/store/appSettings', () => ({
     ollamaConfig: null,
     litellmConfig: null,
     azureFoundryConfig: null,
+    lmstudioConfig: null,
   })),
   clearAppSettings: vi.fn(),
 }));

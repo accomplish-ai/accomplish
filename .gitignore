@@ -50,6 +50,9 @@ coverage/
 prisma/*.db
 prisma/*.db-journal
 
+# Docs
+docs/plans/
+
 # Misc
 *.pem
 .turbo/

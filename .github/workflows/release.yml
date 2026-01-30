@@ -19,7 +19,6 @@ on:
         type: choice
         options:
           - all
-          - windows-only
           - macos-only
         default: all
       dry_run:
@@ -109,13 +108,62 @@ jobs:
           cd apps/desktop
           npm version ${{ steps.bump.outputs.new_version }} --no-git-tag-version
 
+      - name: Validate no previous release artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.bump.outputs.new_version }}"
+          echo "=== Validating no stale artifacts exist for v${VERSION} ==="
+
+          CONFLICTS=""
+
+          # Check for existing tag
+          if git ls-remote --tags origin | grep -q "refs/tags/v${VERSION}$"; then
+            CONFLICTS="${CONFLICTS}\n  - Tag: v${VERSION} (delete with: git push origin --delete v${VERSION})"
+          fi
+
+          # Check for existing branch
+          if git ls-remote --heads origin | grep -q "refs/heads/release/v${VERSION}$"; then
+            CONFLICTS="${CONFLICTS}\n  - Branch: release/v${VERSION} (delete with: git push origin --delete release/v${VERSION})"
+          fi
+
+          # Check for existing GitHub release
+          if gh release view "v${VERSION}" &>/dev/null; then
+            CONFLICTS="${CONFLICTS}\n  - GitHub Release: v${VERSION} (delete with: gh release delete v${VERSION} --yes --cleanup-tag)"
+          fi
+
+          if [ -n "$CONFLICTS" ]; then
+            echo ""
+            echo "============================================"
+            echo "ERROR: Found existing release artifacts for v${VERSION}"
+            echo "============================================"
+            echo ""
+            echo "The following resources must be manually deleted before re-running:"
+            echo -e "$CONFLICTS"
+            echo ""
+            echo "This usually happens when a previous release attempt or dry run"
+            echo "partially completed. Clean up the resources above and re-run."
+            echo "============================================"
+            exit 1
+          fi
+
+          echo "No conflicts found, safe to proceed"
+
       - name: Create release PR and merge
+        if: steps.inputs.outputs.dry_run != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.bump.outputs.new_version }}"
           BRANCH="release/v${VERSION}"
-          DRY_RUN="${{ steps.inputs.outputs.dry_run }}"
+
+          # Check if version bump is already on main (PR merged in a previous run)
+          git fetch origin main
+          MAIN_VERSION=$(git show origin/main:apps/desktop/package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).version")
+          if [ "$MAIN_VERSION" == "$VERSION" ]; then
+            echo "Version ${VERSION} already on main — PR was merged in a previous run, skipping"
+            exit 0
+          fi
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -124,51 +172,56 @@ jobs:
           git checkout -b "$BRANCH"
           git add apps/desktop/package.json
           git commit -m "chore(release): bump version to ${VERSION}"
+          git push origin "$BRANCH"
+
+          # Create PR
+          PR_URL=$(gh pr create \
+            --title "chore(release): bump version to ${VERSION}" \
+            --body "Automated release PR for v${VERSION}" \
+            --base main \
+            --head "$BRANCH")
+          echo "Created PR: $PR_URL"
+
+          # PR will be approved by Cloudflare Worker (private infrastructure)
+          # Enable auto-merge (squash)
+          gh pr merge "$BRANCH" --squash --auto --delete-branch
+
+          # Wait for PR to be merged (max 3 minutes)
+          echo "Waiting for auto-merge..."
+          for i in {1..36}; do
+            sleep 5
+            STATE=$(gh pr view "$BRANCH" --json state --jq '.state')
+            echo "PR state: $STATE"
+            if [ "$STATE" == "MERGED" ]; then
+              echo "PR merged successfully"
+              break
+            fi
+            if [ "$STATE" == "CLOSED" ]; then
+              echo "Error: PR was closed without merging"
+              exit 1
+            fi
+          done
+
+          # Verify merge happened
+          FINAL_STATE=$(gh pr view "$BRANCH" --json state --jq '.state')
+          if [ "$FINAL_STATE" != "MERGED" ]; then
+            echo "Error: PR did not merge within timeout"
+            exit 1
+          fi
+
+      - name: Create and push release tag
+        run: |
+          VERSION="${{ steps.bump.outputs.new_version }}"
+          DRY_RUN="${{ steps.inputs.outputs.dry_run }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
           if [ "$DRY_RUN" == "true" ]; then
             echo "DRY RUN: Creating test tag without PR"
             git tag "v${VERSION}"
             git push origin "v${VERSION}" --force
           else
-            # Push branch
-            git push origin "$BRANCH"
-
-            # Create PR
-            PR_URL=$(gh pr create \
-              --title "chore(release): bump version to ${VERSION}" \
-              --body "Automated release PR for v${VERSION}" \
-              --base main \
-              --head "$BRANCH")
-            echo "Created PR: $PR_URL"
-
-            # PR will be approved by Cloudflare Worker (private infrastructure)
-            # Enable auto-merge (squash)
-            gh pr merge "$BRANCH" --squash --auto --delete-branch
-
-            # Wait for PR to be merged (max 3 minutes)
-            echo "Waiting for auto-merge..."
-            for i in {1..36}; do
-              sleep 5
-              STATE=$(gh pr view "$BRANCH" --json state --jq '.state')
-              echo "PR state: $STATE"
-              if [ "$STATE" == "MERGED" ]; then
-                echo "PR merged successfully"
-                break
-              fi
-              if [ "$STATE" == "CLOSED" ]; then
-                echo "Error: PR was closed without merging"
-                exit 1
-              fi
-            done
-
-            # Verify merge happened
-            FINAL_STATE=$(gh pr view "$BRANCH" --json state --jq '.state')
-            if [ "$FINAL_STATE" != "MERGED" ]; then
-              echo "Error: PR did not merge within timeout"
-              exit 1
-            fi
-
-            # Fetch latest main and create tag
             git fetch origin main
             git checkout main
             git pull origin main
@@ -278,52 +331,52 @@ jobs:
             apps/desktop/release/*-x64.zip
           retention-days: 30
 
-  build-windows-x64:
-    name: Build Windows (x64)
-    needs: version-bump
-    if: needs.version-bump.outputs.platforms == 'all' || needs.version-bump.outputs.platforms == 'windows-only'
-    runs-on: windows-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: v${{ needs.version-bump.outputs.new_version }}
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Download Node.js binaries
-        run: pnpm -F @accomplish/desktop download:nodejs
-
-      - name: Build desktop app
-        run: pnpm -F @accomplish/desktop build
-
-      - name: Package (unsigned)
-        run: node scripts/package.cjs --win --x64 --publish never
-        working-directory: apps/desktop
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Openwork-Windows-x64
-          path: apps/desktop/release/*.exe
-          retention-days: 30
+  # build-windows-x64:
+  #   name: Build Windows (x64)
+  #   needs: version-bump
+  #   if: needs.version-bump.outputs.platforms == 'all' || needs.version-bump.outputs.platforms == 'windows-only'
+  #   runs-on: windows-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #       with:
+  #         ref: v${{ needs.version-bump.outputs.new_version }}
+  #
+  #     - name: Setup pnpm
+  #       uses: pnpm/action-setup@v4
+  #
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20'
+  #         cache: 'pnpm'
+  #
+  #     - name: Install dependencies
+  #       run: pnpm install --frozen-lockfile
+  #
+  #     - name: Download Node.js binaries
+  #       run: pnpm -F @accomplish/desktop download:nodejs
+  #
+  #     - name: Build desktop app
+  #       run: pnpm -F @accomplish/desktop build
+  #
+  #     - name: Package (unsigned)
+  #       run: node scripts/package.cjs --win --x64 --publish never
+  #       working-directory: apps/desktop
+  #       env:
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         CSC_IDENTITY_AUTO_DISCOVERY: false
+  #
+  #     - name: Upload artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: Openwork-Windows-x64
+  #         path: apps/desktop/release/*.exe
+  #         retention-days: 30
 
   create-release:
     name: Create GitHub Release
-    needs: [version-bump, build-mac-arm64, build-mac-x64, build-windows-x64]
+    needs: [version-bump, build-mac-arm64, build-mac-x64]
     if: always() && needs.version-bump.result == 'success'
     runs-on: ubuntu-latest
     steps:
@@ -332,10 +385,9 @@ jobs:
           PLATFORMS="${{ needs.version-bump.outputs.platforms }}"
           MAC_ARM64="${{ needs.build-mac-arm64.result }}"
           MAC_X64="${{ needs.build-mac-x64.result }}"
-          WIN_X64="${{ needs.build-windows-x64.result }}"
 
           echo "Requested platforms: $PLATFORMS"
-          echo "Build results: macOS-arm64=$MAC_ARM64, macOS-x64=$MAC_X64, Windows-x64=$WIN_X64"
+          echo "Build results: macOS-arm64=$MAC_ARM64, macOS-x64=$MAC_X64"
 
           # Validate all requested platform builds succeeded
           FAILED=0
@@ -347,13 +399,6 @@ jobs:
             fi
             if [ "$MAC_X64" != "success" ]; then
               echo "Error: macOS x64 build failed (result: $MAC_X64)"
-              FAILED=1
-            fi
-          fi
-
-          if [ "$PLATFORMS" == "all" ] || [ "$PLATFORMS" == "windows-only" ]; then
-            if [ "$WIN_X64" != "success" ]; then
-              echo "Error: Windows x64 build failed (result: $WIN_X64)"
               FAILED=1
             fi
           fi
@@ -393,12 +438,12 @@ jobs:
           name: Openwork-macOS-x64
           path: ./release/x64
 
-      - name: Download Windows x64 artifacts
-        if: needs.build-windows-x64.result == 'success'
-        uses: actions/download-artifact@v4
-        with:
-          name: Openwork-Windows-x64
-          path: ./release/win-x64
+      # - name: Download Windows x64 artifacts
+      #   if: needs.build-windows-x64.result == 'success'
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: Openwork-Windows-x64
+      #     path: ./release/win-x64
 
       - name: List release artifacts
         run: |
@@ -416,7 +461,6 @@ jobs:
           files: |
             ./release/arm64/*
             ./release/x64/*
-            ./release/win-x64/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

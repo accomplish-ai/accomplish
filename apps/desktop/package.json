@@ -1,6 +1,6 @@
 {
   "name": "@accomplish/desktop",
-  "version": "0.3.2",
+  "version": "0.3.5",
   "private": true,
   "type": "module",
   "description": "Accomplish Desktop App",
@@ -9,7 +9,7 @@
     "postinstall": "node scripts/postinstall.cjs",
     "dev": "node scripts/patch-electron-name.cjs && node -e \"require('fs').rmSync('dist-electron',{recursive:true,force:true})\" && vite",
     "dev:clean": "CLEAN_START=1 vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && node scripts/bundle-skills.cjs",
     "build:electron": "tsc && vite build && node scripts/package.cjs",
     "build:unpack": "tsc && vite build && node scripts/package.cjs --dir",
     "package": "pnpm build && node scripts/package.cjs --mac --publish never",
@@ -87,6 +87,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^4.0.17",
     "autoprefixer": "^10.4.20",
+    "esbuild": "^0.24.2",
     "electron": "^35.2.1",
     "electron-builder": "^25.1.8",
     "happy-dom": "^20.1.0",
@@ -100,6 +101,8 @@
     "vitest": "^4.0.17"
   },
   "build": {
+    "npmRebuild": false,
+    "compression": "store",
     "appId": "ai.accomplish.desktop",
     "productName": "Openwork",
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
@@ -156,6 +159,7 @@
           "!**/tmp/**",
           "!**/.git/**",
           "!**/.browser-data/**",
+          "!**/.ignored_*/**",
           "!**/bun.lock",
           "!**/*.test.ts",
           "!**/vitest.config.ts"

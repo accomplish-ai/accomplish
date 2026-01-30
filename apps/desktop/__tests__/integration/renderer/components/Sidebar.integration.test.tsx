@@ -10,14 +10,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { Task, TaskStatus } from '@accomplish/shared';
 
-// Mock analytics to prevent tracking calls
-vi.mock('@/lib/analytics', () => ({
-  analytics: {
-    trackNewTask: vi.fn(),
-    trackOpenSettings: vi.fn(),
-  },
-}));
-
 // Create mock functions outside of mock factory
 const mockLoadTasks = vi.fn();
 const mockUpdateTaskStatus = vi.fn();

@@ -1,6 +1,10 @@
 {
   "title": "Settings",
   "setupTitle": "Set up Openwork",
+  "tabs": {
+    "providers": "Providers",
+    "voiceInput": "Voice Input"
+  },
   "model": {
     "title": "Model",
     "cloudProviders": "Cloud Providers",
@@ -50,7 +54,9 @@
     "ollama": "Ollama",
     "openrouter": "OpenRouter",
     "litellm": "LiteLLM",
-    "vertex": "Vertex AI"
+    "vertex": "Vertex AI",
+    "lmstudio": "LM Studio",
+    "moonshot": "Moonshot"
   },
   "providerLabels": {
     "anthropic": "Claude models",
@@ -63,7 +69,9 @@
     "ollama": "Local inference",
     "openrouter": "200+ models",
     "litellm": "Unified proxy",
-    "vertex": "Google Cloud"
+    "vertex": "Google Cloud",
+    "lmstudio": "Local inference",
+    "moonshot": "Moonshot models"
   },
   "status": {
     "connected": "Connected",
@@ -140,6 +148,20 @@
     "description": "Connect to your LiteLLM proxy server for unified model access.",
     "serverUrl": "Server URL",
     "optionalApiKey": "Optional API key"
+  },
+  "oauth": {
+    "signingIn": "Signing in...",
+    "loginWithOpenAI": "Login with OpenAI",
+    "or": "or"
+  },
+  "openai": {
+    "baseUrl": "Base URL (optional)",
+    "baseUrlHint": "Leave blank for OpenAI. Set to use an OpenAI-compatible endpoint."
+  },
+  "lmstudio": {
+    "description": "Connect to LM Studio for local model inference.",
+    "serverUrl": "LM Studio Server URL",
+    "helpText": "Make sure <link>LM Studio</link> is installed and the server is running, then click Test to connect."
   },
   "developer": {
     "title": "Developer",

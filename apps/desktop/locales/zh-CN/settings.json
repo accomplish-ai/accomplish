@@ -1,6 +1,10 @@
 {
   "title": "设置",
   "setupTitle": "设置 Openwork",
+  "tabs": {
+    "providers": "服务商",
+    "voiceInput": "语音输入"
+  },
   "model": {
     "title": "模型",
     "cloudProviders": "云服务商",
@@ -50,7 +54,9 @@
     "ollama": "Ollama",
     "openrouter": "OpenRouter",
     "litellm": "LiteLLM",
-    "vertex": "Vertex AI"
+    "vertex": "Vertex AI",
+    "lmstudio": "LM Studio",
+    "moonshot": "月之暗面"
   },
   "providerLabels": {
     "anthropic": "Claude 系列模型",
@@ -63,7 +69,9 @@
     "ollama": "本地推理",
     "openrouter": "200+ 模型",
     "litellm": "统一代理",
-    "vertex": "Google Cloud"
+    "vertex": "Google Cloud",
+    "lmstudio": "本地推理",
+    "moonshot": "月之暗面模型"
   },
   "status": {
     "connected": "已连接",
@@ -140,6 +148,20 @@
     "description": "连接到您的 LiteLLM 代理服务器，实现统一的模型访问。",
     "serverUrl": "服务器地址",
     "optionalApiKey": "API 密钥（可选）"
+  },
+  "oauth": {
+    "signingIn": "登录中...",
+    "loginWithOpenAI": "使用 OpenAI 登录",
+    "or": "或"
+  },
+  "openai": {
+    "baseUrl": "Base URL（可选）",
+    "baseUrlHint": "留空使用 OpenAI 官方接口。如需使用 OpenAI 兼容接口，请填写自定义地址。"
+  },
+  "lmstudio": {
+    "description": "连接 LM Studio 以使用本地模型推理。",
+    "serverUrl": "LM Studio 服务器地址",
+    "helpText": "请确保已安装 <link>LM Studio</link> 并启动服务器，然后点击测试连接。"
   },
   "developer": {
     "title": "开发者",

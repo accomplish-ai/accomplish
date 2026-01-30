@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { isRunningInElectron, getAccomplish } from './lib/accomplish';
 import { springs, variants } from './lib/animations';
-import { analytics } from './lib/analytics';
+import type { ProviderId } from '@accomplish/shared';
 
 // Pages
 import HomePage from './pages/Home';
@@ -14,6 +14,8 @@ import ExecutionPage from './pages/Execution';
 // Components
 import Sidebar from './components/layout/Sidebar';
 import { TaskLauncher } from './components/TaskLauncher';
+import { AuthErrorToast } from './components/AuthErrorToast';
+import SettingsDialog from './components/layout/SettingsDialog';
 import { useTaskStore } from './stores/taskStore';
 import { Loader2, AlertTriangle } from 'lucide-react';
 
@@ -22,15 +24,29 @@ type AppStatus = 'loading' | 'ready' | 'error';
 export default function App() {
   const [status, setStatus] = useState<AppStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [authSettingsOpen, setAuthSettingsOpen] = useState(false);
+  const [authSettingsProvider, setAuthSettingsProvider] = useState<ProviderId | undefined>(undefined);
   const location = useLocation();
 
-  // Get launcher actions
-  const { openLauncher } = useTaskStore();
+  // Get store state and actions
+const { openLauncher, authError, clearAuthError } = useTaskStore();
 
-  // Track page views on route changes
-  useEffect(() => {
-    analytics.trackPageView(location.pathname);
-  }, [location.pathname]);
+  // Handle re-login from auth error toast
+  const handleAuthReLogin = useCallback(() => {
+    if (authError) {
+      setAuthSettingsProvider(authError.providerId as ProviderId);
+      setAuthSettingsOpen(true);
+    }
+  }, [authError]);
+
+  // Handle auth settings dialog close
+  const handleAuthSettingsClose = useCallback((open: boolean) => {
+    setAuthSettingsOpen(open);
+    if (!open) {
+      setAuthSettingsProvider(undefined);
+      clearAuthError();
+    }
+  }, [clearAuthError]);
 
   // Cmd+K keyboard shortcut
   useEffect(() => {
@@ -139,6 +155,24 @@ export default function App() {
         </AnimatePresence>
       </main>
       <TaskLauncher />
+
+      {/* Auth Error Toast - shown when OAuth session expires */}
+      <AuthErrorToast
+        error={authError}
+        onReLogin={handleAuthReLogin}
+        onDismiss={clearAuthError}
+      />
+
+      {/* Settings Dialog for re-authentication */}
+      <SettingsDialog
+        open={authSettingsOpen}
+        onOpenChange={handleAuthSettingsClose}
+        initialProvider={authSettingsProvider}
+        onApiKeySaved={() => {
+          clearAuthError();
+          setAuthSettingsOpen(false);
+        }}
+      />
     </div>
   );
 }

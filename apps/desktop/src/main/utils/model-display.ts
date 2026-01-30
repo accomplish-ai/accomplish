@@ -28,6 +28,10 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
   // DeepSeek
   'deepseek-chat': 'DeepSeek Chat',
   'deepseek-reasoner': 'DeepSeek Reasoner',
+  // Moonshot
+  'kimi-k2.5': 'Kimi K2.5',
+  'kimi-k2-turbo-preview': 'Kimi K2 Turbo (Preview)',
+  'kimi-latest': 'Kimi Latest',
 };
 
 /**
@@ -39,6 +43,7 @@ const PROVIDER_PREFIXES = [
   'google/',
   'xai/',
   'deepseek/',
+  'moonshot/',
   'ollama/',
   'openrouter/',
   'litellm/',

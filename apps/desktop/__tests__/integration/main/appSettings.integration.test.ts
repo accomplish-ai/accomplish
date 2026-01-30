@@ -14,6 +14,8 @@ let mockAppSettingsData = {
   ollama_config: null as string | null,
   litellm_config: null as string | null,
   azure_foundry_config: null as string | null,
+  lmstudio_config: null as string | null,
+  openai_base_url: '' as string | null,
 };
 
 // Reset mock data
@@ -25,6 +27,8 @@ function resetMockData() {
     ollama_config: null,
     litellm_config: null,
     azure_foundry_config: null,
+    lmstudio_config: null,
+    openai_base_url: '',
   };
 }
 
@@ -65,6 +69,12 @@ vi.mock('@main/store/db', () => ({
             }
             if (sql.includes('azure_foundry_config = ?')) {
               mockAppSettingsData.azure_foundry_config = args[0] as string | null;
+            }
+            if (sql.includes('lmstudio_config = ?')) {
+              mockAppSettingsData.lmstudio_config = args[0] as string | null;
+            }
+            if (sql.includes('openai_base_url = ?')) {
+              mockAppSettingsData.openai_base_url = args[0] as string | null;
             }
             // Handle clearAppSettings - reset all fields
             if (sql.includes('debug_mode = 0') && sql.includes('onboarding_complete = 0')) {
@@ -321,6 +331,8 @@ describe('appSettings Integration', () => {
         ollamaConfig: null,
         litellmConfig: null,
         azureFoundryConfig: null,
+        lmstudioConfig: null,
+        openaiBaseUrl: '',
       });
     });
 
@@ -374,6 +386,8 @@ describe('appSettings Integration', () => {
         ollamaConfig: null,
         litellmConfig: null,
         azureFoundryConfig: null,
+        lmstudioConfig: null,
+        openaiBaseUrl: '',
       });
     });
   });
