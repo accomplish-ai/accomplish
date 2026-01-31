@@ -1,5 +1,6 @@
 import { AlertTriangle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
 
 interface AuthErrorToastProps {
@@ -22,6 +23,7 @@ const PROVIDER_NAMES: Record<string, string> = {
 };
 
 export function AuthErrorToast({ error, onReLogin, onDismiss }: AuthErrorToastProps) {
+  const { t } = useTranslation('common');
   if (!error) return null;
 
   const providerName = PROVIDER_NAMES[error.providerId] || error.providerId;
@@ -45,13 +47,13 @@ export function AuthErrorToast({ error, onReLogin, onDismiss }: AuthErrorToastPr
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <h4 className="font-medium text-foreground">
-                    {providerName} Session Expired
+                    {t('auth.sessionExpired', { provider: providerName })}
                   </h4>
                   <button
                     onClick={onDismiss}
                     className="flex-shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     data-testid="auth-error-toast-dismiss"
-                    aria-label="Dismiss"
+                    aria-label={t('auth.dismiss')}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -65,7 +67,7 @@ export function AuthErrorToast({ error, onReLogin, onDismiss }: AuthErrorToastPr
                     onClick={onReLogin}
                     data-testid="auth-error-toast-relogin"
                   >
-                    Re-login to {providerName}
+                    {t('auth.reLogin', { provider: providerName })}
                   </Button>
                 </div>
               </div>

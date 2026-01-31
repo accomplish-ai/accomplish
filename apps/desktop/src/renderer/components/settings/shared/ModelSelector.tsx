@@ -1,6 +1,7 @@
 // apps/desktop/src/renderer/components/settings/shared/ModelSelector.tsx
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 
@@ -25,13 +26,18 @@ export function ModelSelector({
   onChange,
   loading,
   error,
-  errorMessage = 'Please select a model',
-  placeholder = 'Select model...',
+  errorMessage,
+  placeholder,
 }: ModelSelectorProps) {
+  const { t } = useTranslation('settings');
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Use translated defaults if not provided
+  const displayPlaceholder = placeholder || t('model.selectModel');
+  const displayErrorMessage = errorMessage || t('model.required');
 
   // Show search functionality when there are many models (e.g., OpenRouter)
   const showSearch = models.length > 10;
@@ -77,7 +83,7 @@ export function ModelSelector({
   if (!showSearch) {
     return (
       <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">Model</label>
+        <label className="mb-2 block text-sm font-medium text-foreground">{t('model.title')}</label>
         <div className="relative">
           <select
             value={value || ''}
@@ -87,7 +93,7 @@ export function ModelSelector({
               error ? 'border-destructive' : 'border-input'
             }`}
           >
-            <option value="" disabled>{placeholder}</option>
+            <option value="" disabled>{displayPlaceholder}</option>
             {models.map((model) => (
               <option key={model.id} value={model.id}>
                 {model.name}
@@ -104,7 +110,7 @@ export function ModelSelector({
           </svg>
         </div>
         {error && !value && (
-          <p className="mt-2 text-sm text-destructive" data-testid="model-selector-error">{errorMessage}</p>
+          <p className="mt-2 text-sm text-destructive" data-testid="model-selector-error">{displayErrorMessage}</p>
         )}
       </div>
     );
@@ -113,7 +119,7 @@ export function ModelSelector({
   // For large model lists, use searchable dropdown
   return (
     <div ref={containerRef}>
-      <label className="mb-2 block text-sm font-medium text-foreground">Model</label>
+      <label className="mb-2 block text-sm font-medium text-foreground">{t('model.title')}</label>
       <div className="relative">
         <button
           type="button"
@@ -124,7 +130,7 @@ export function ModelSelector({
           }`}
         >
           <span className={value ? 'text-foreground' : 'text-muted-foreground'}>
-            {displayValue || placeholder}
+            {displayValue || displayPlaceholder}
           </span>
           <svg
             className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -154,7 +160,7 @@ export function ModelSelector({
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search models..."
+                  placeholder={t('model.searchModels')}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
               </div>
@@ -162,7 +168,7 @@ export function ModelSelector({
               {/* Model list */}
               <div className="max-h-60 overflow-y-auto">
                 {filteredModels.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">No models found</div>
+                  <div className="px-3 py-2 text-sm text-muted-foreground">{t('model.noModelsFound')}</div>
                 ) : (
                   filteredModels.map((model) => (
                     <button
@@ -187,7 +193,7 @@ export function ModelSelector({
         </AnimatePresence>
       </div>
       {error && !value && (
-        <p className="mt-2 text-sm text-destructive" data-testid="model-selector-error">{errorMessage}</p>
+        <p className="mt-2 text-sm text-destructive" data-testid="model-selector-error">{displayErrorMessage}</p>
       )}
     </div>
   );

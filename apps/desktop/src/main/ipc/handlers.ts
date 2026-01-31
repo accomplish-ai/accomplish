@@ -45,6 +45,9 @@ import {
   setOpenAiBaseUrl,
   getOllamaConfig,
   setOllamaConfig,
+  getLanguage,
+  setLanguage,
+  type UILanguage,
   getAzureFoundryConfig,
   setAzureFoundryConfig,
   getLiteLLMConfig,
@@ -111,6 +114,15 @@ import {
   executeMockTaskFlow,
   detectScenarioFromPrompt,
 } from '../test-utils/mock-task-flow';
+import {
+  initializeI18n,
+  getLanguage as getI18nLanguage,
+  setLanguage as setI18nLanguage,
+  getAllTranslations,
+  SUPPORTED_LANGUAGES,
+  t,
+  type SupportedLanguage,
+} from '../i18n';
 
 const MAX_TEXT_LENGTH = 8000;
 const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'moonshot', 'zai', 'azure-foundry', 'custom', 'bedrock', 'litellm', 'minimax', 'lmstudio', 'elevenlabs']);
@@ -223,12 +235,12 @@ function flushAndCleanupBatcher(taskId: string): void {
 
 function assertTrustedWindow(window: BrowserWindow | null): BrowserWindow {
   if (!window || window.isDestroyed()) {
-    throw new Error('Untrusted window');
+    throw new Error(t('errors:validation.untrustedWindow'));
   }
 
   const focused = BrowserWindow.getFocusedWindow();
   if (BrowserWindow.getAllWindows().length > 1 && focused && focused.id !== window.id) {
-    throw new Error('IPC request must originate from the focused window');
+    throw new Error(t('errors:validation.focusedWindowRequired'));
   }
 
   return window;
@@ -236,14 +248,14 @@ function assertTrustedWindow(window: BrowserWindow | null): BrowserWindow {
 
 function sanitizeString(input: unknown, field: string, maxLength = MAX_TEXT_LENGTH): string {
   if (typeof input !== 'string') {
-    throw new Error(`${field} must be a string`);
+    throw new Error(t('errors:validation.mustBeString', { field }));
   }
   const trimmed = input.trim();
   if (!trimmed) {
-    throw new Error(`${field} is required`);
+    throw new Error(t('errors:validation.required', { field }));
   }
   if (trimmed.length > maxLength) {
-    throw new Error(`${field} exceeds maximum length`);
+    throw new Error(t('errors:validation.exceedsLength', { field }));
   }
   return trimmed;
 }
@@ -798,7 +810,7 @@ export function registerIPCHandlers(): void {
     'settings:add-api-key',
     async (_event: IpcMainInvokeEvent, provider: string, key: string, label?: string) => {
       if (!ALLOWED_API_KEY_PROVIDERS.has(provider)) {
-        throw new Error('Unsupported API key provider');
+        throw new Error(t('errors:validation.unsupportedProvider'));
       }
       const sanitizedKey = sanitizeString(key, 'apiKey', 256);
       const sanitizedLabel = label ? sanitizeString(label, 'label', 128) : undefined;
@@ -882,16 +894,16 @@ export function registerIPCHandlers(): void {
     } catch (error) {
       console.error('[API Key] Validation error', { error: error instanceof Error ? error.message : String(error) });
       if (error instanceof Error && error.name === 'AbortError') {
-        return { valid: false, error: 'Request timed out. Please check your internet connection and try again.' };
+        return { valid: false, error: t('errors:api.timeoutRetry') };
       }
-      return { valid: false, error: 'Failed to validate API key. Check your internet connection.' };
+      return { valid: false, error: t('errors:api.connectionFailed') };
     }
   });
 
   // API Key: Validate API key for any provider
   handle('api-key:validate-provider', async (_event: IpcMainInvokeEvent, provider: string, key: string, options?: Record<string, any>) => {
     if (!ALLOWED_API_KEY_PROVIDERS.has(provider)) {
-      return { valid: false, error: 'Unsupported provider' };
+      return { valid: false, error: t('errors:api.unsupportedProvider') };
     }
 
     // Special handling for Azure Foundry with Entra ID - skip strict key validation
@@ -1205,7 +1217,7 @@ export function registerIPCHandlers(): void {
           credentials: fromIni({ profile: parsed.profileName || 'default' }),
         });
       } else {
-        return { valid: false, error: 'Invalid authentication type' };
+        return { valid: false, error: t('errors:bedrock.invalidAuthType') };
       }
 
       // Test by listing foundation models
@@ -1220,13 +1232,13 @@ export function registerIPCHandlers(): void {
 
       // Provide user-friendly error messages
       if (message.includes('UnrecognizedClientException') || message.includes('InvalidSignatureException')) {
-        return { valid: false, error: 'Invalid AWS credentials. Please check your Access Key ID and Secret Access Key.' };
+        return { valid: false, error: t('errors:bedrock.invalidAwsCredentials') };
       }
       if (message.includes('AccessDeniedException')) {
-        return { valid: false, error: 'Access denied. Ensure your AWS credentials have Bedrock permissions.' };
+        return { valid: false, error: t('errors:bedrock.accessDenied') };
       }
       if (message.includes('could not be found')) {
-        return { valid: false, error: 'AWS profile not found. Check your ~/.aws/credentials file.' };
+        return { valid: false, error: t('errors:bedrock.profileNotFound') };
       }
 
       return { valid: false, error: message };
@@ -1285,14 +1297,14 @@ export function registerIPCHandlers(): void {
     // Validate structure
     if (parsed.authType === 'accessKeys') {
       if (!parsed.accessKeyId || !parsed.secretAccessKey) {
-        throw new Error('Access Key ID and Secret Access Key are required');
+        throw new Error(t('errors:bedrock.accessKeyRequired'));
       }
     } else if (parsed.authType === 'profile') {
       if (!parsed.profileName) {
-        throw new Error('Profile name is required');
+        throw new Error(t('errors:bedrock.profileNameRequired'));
       }
     } else {
-      throw new Error('Invalid authentication type');
+      throw new Error(t('errors:bedrock.invalidAuthType'));
     }
 
     // Store the credentials
@@ -1358,7 +1370,7 @@ export function registerIPCHandlers(): void {
   // Model: Set selected model
   handle('model:set', async (_event: IpcMainInvokeEvent, model: SelectedModel) => {
     if (!model || typeof model.provider !== 'string' || typeof model.model !== 'string') {
-      throw new Error('Invalid model configuration');
+      throw new Error(t('errors:model.invalidConfig'));
     }
     setSelectedModel(model);
   });
@@ -1476,10 +1488,10 @@ export function registerIPCHandlers(): void {
     try {
       const parsed = new URL(sanitizedUrl);
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        return { success: false, error: 'Only http and https URLs are allowed' };
+        return { success: false, error: t('errors:ollama.protocolNotAllowed') };
       }
     } catch {
-      return { success: false, error: 'Invalid URL format' };
+      return { success: false, error: t('errors:ollama.invalidUrl') };
     }
 
     try {
@@ -1522,9 +1534,9 @@ export function registerIPCHandlers(): void {
       console.warn('[Ollama] Connection failed:', message);
 
       if (error instanceof Error && error.name === 'AbortError') {
-        return { success: false, error: 'Connection timed out. Make sure Ollama is running.' };
+        return { success: false, error: t('errors:ollama.connectionTimeout') };
       }
-      return { success: false, error: `Cannot connect to Ollama: ${message}` };
+      return { success: false, error: t('errors:ollama.cannotConnect', { message }) };
     }
   });
 
@@ -1537,32 +1549,32 @@ export function registerIPCHandlers(): void {
   handle('ollama:set-config', async (_event: IpcMainInvokeEvent, config: OllamaConfig | null) => {
     if (config !== null) {
       if (typeof config.baseUrl !== 'string' || typeof config.enabled !== 'boolean') {
-        throw new Error('Invalid Ollama configuration');
+        throw new Error(t('errors:ollama.invalidConfig'));
       }
       // Validate URL format and protocol
       try {
         const parsed = new URL(config.baseUrl);
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-          throw new Error('Only http and https URLs are allowed');
+          throw new Error(t('errors:ollama.protocolNotAllowed'));
         }
       } catch (e) {
         if (e instanceof Error && e.message.includes('http')) {
           throw e; // Re-throw our protocol error
         }
-        throw new Error('Invalid base URL format');
+        throw new Error(t('errors:ollama.invalidUrl'));
       }
       // Validate optional lastValidated if present
       if (config.lastValidated !== undefined && typeof config.lastValidated !== 'number') {
-        throw new Error('Invalid Ollama configuration');
+        throw new Error(t('errors:ollama.invalidConfig'));
       }
       // Validate optional models array if present
       if (config.models !== undefined) {
         if (!Array.isArray(config.models)) {
-          throw new Error('Invalid Ollama configuration: models must be an array');
+          throw new Error(t('errors:ollama.modelsArray'));
         }
         for (const model of config.models) {
           if (typeof model.id !== 'string' || typeof model.displayName !== 'string' || typeof model.size !== 'number') {
-            throw new Error('Invalid Ollama configuration: invalid model format');
+            throw new Error(t('errors:ollama.invalidModelFormat'));
           }
         }
       }
@@ -2256,7 +2268,7 @@ export function registerIPCHandlers(): void {
   // Settings: Set debug mode setting
   handle('settings:set-debug-mode', async (_event: IpcMainInvokeEvent, enabled: boolean) => {
     if (typeof enabled !== 'boolean') {
-      throw new Error('Invalid debug mode flag');
+      throw new Error(t('errors:settings.invalidDebugFlag'));
     }
     setDebugMode(enabled);
     // Broadcast the change to all renderer windows
@@ -2348,7 +2360,7 @@ export function registerIPCHandlers(): void {
     try {
       const parsed = new URL(url);
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        throw new Error('Only http and https URLs are allowed');
+        throw new Error(t('errors:url.protocolNotAllowed'));
       }
       await shell.openExternal(url);
     } catch (error) {
@@ -2356,6 +2368,72 @@ export function registerIPCHandlers(): void {
       throw error;
     }
   });
+
+  // ==================== i18n Handlers ====================
+
+  // Initialize i18n with stored language preference
+  const storedLanguagePref = getLanguage();
+  initializeI18n(storedLanguagePref === 'auto' ? null : storedLanguagePref);
+
+  // i18n: Get current language
+  handle('i18n:get-language', async (_event: IpcMainInvokeEvent) => {
+    return getLanguage();
+  });
+
+  // i18n: Set language
+  handle('i18n:set-language', async (_event: IpcMainInvokeEvent, language: UILanguage) => {
+    if (language !== 'auto' && !SUPPORTED_LANGUAGES.includes(language as SupportedLanguage)) {
+      throw new Error(t('errors:i18n.unsupportedLanguage'));
+    }
+    setLanguage(language);
+
+    // Update i18n module
+    if (language === 'auto') {
+      initializeI18n(null);
+    } else {
+      setI18nLanguage(language as SupportedLanguage);
+    }
+
+    // Broadcast language change to all renderer windows
+    const resolvedLanguage = getI18nLanguage();
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.send('i18n:language-changed', {
+        language,
+        resolvedLanguage,
+      });
+    }
+
+    console.log(`[i18n] Language set to: ${language} (resolved: ${resolvedLanguage})`);
+  });
+
+  // i18n: Get all translations for a language
+  handle('i18n:get-translations', async (_event: IpcMainInvokeEvent, language?: string) => {
+    let targetLanguage: SupportedLanguage;
+
+    if (language && SUPPORTED_LANGUAGES.includes(language as SupportedLanguage)) {
+      targetLanguage = language as SupportedLanguage;
+    } else {
+      // Use the currently resolved language
+      targetLanguage = getI18nLanguage();
+    }
+
+    return {
+      language: targetLanguage,
+      translations: getAllTranslations(targetLanguage),
+    };
+  });
+
+  // i18n: Get supported languages list
+  handle('i18n:get-supported-languages', async (_event: IpcMainInvokeEvent) => {
+    return SUPPORTED_LANGUAGES;
+  });
+
+  // i18n: Get resolved language (actual language being used)
+  handle('i18n:get-resolved-language', async (_event: IpcMainInvokeEvent) => {
+    return getI18nLanguage();
+  });
+
+  // ==================== End i18n Handlers ====================
 
   // Log event handler - now just returns ok (no external logging)
   handle(

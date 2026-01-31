@@ -10,6 +10,7 @@ import type {
   TodoItem,
 } from '@accomplish/shared';
 import { getAccomplish } from '../lib/accomplish';
+import i18n from '../i18n';
 
 // Batch update event type for performance optimization
 interface TaskUpdateBatchEvent {
@@ -187,7 +188,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return task;
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : 'Failed to start task',
+        error: err instanceof Error ? err.message : i18n.t('errors:task.startFailed'),
         isLoading: false,
       });
       void accomplish.logEvent({
@@ -203,7 +204,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const accomplish = getAccomplish();
     const { currentTask, startTask } = get();
     if (!currentTask) {
-      set({ error: 'No active task to continue' });
+      set({ error: i18n.t('errors:task.noActiveTask') });
       void accomplish.logEvent({
         level: 'warn',
         message: 'UI follow-up failed: no active task',
@@ -225,7 +226,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
 
     if (!sessionId) {
-      set({ error: 'No session to continue - please start a new task' });
+      set({ error: i18n.t('errors:task.noSession') });
       void accomplish.logEvent({
         level: 'warn',
         message: 'UI follow-up failed: missing session',
@@ -279,7 +280,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }));
     } catch (err) {
       set((state) => ({
-        error: err instanceof Error ? err.message : 'Failed to send message',
+        error: err instanceof Error ? err.message : i18n.t('errors:task.sendMessageFailed'),
         isLoading: false,
         currentTask: state.currentTask
           ? { ...state.currentTask, status: 'failed' }
@@ -511,7 +512,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   loadTaskById: async (taskId: string) => {
     const accomplish = getAccomplish();
     const task = await accomplish.getTask(taskId);
-    set({ currentTask: task, error: task ? null : 'Task not found' });
+    set({ currentTask: task, error: task ? null : i18n.t('errors:task.notFound') });
   },
 
   deleteTask: async (taskId: string) => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import { isRunningInElectron, getAccomplish } from './lib/accomplish';
 import { springs, variants } from './lib/animations';
@@ -22,6 +23,7 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 type AppStatus = 'loading' | 'ready' | 'error';
 
 export default function App() {
+  const { t } = useTranslation('errors');
   const [status, setStatus] = useState<AppStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authSettingsOpen, setAuthSettingsOpen] = useState(false);
@@ -65,7 +67,7 @@ const { openLauncher, authError, clearAuthError } = useTaskStore();
     const checkStatus = async () => {
       // Check if running in Electron
       if (!isRunningInElectron()) {
-        setErrorMessage('This application must be run inside the Openwork desktop app.');
+        setErrorMessage(t('app.notInElectron'));
         setStatus('error');
         return;
       }
@@ -104,7 +106,7 @@ const { openLauncher, authError, clearAuthError } = useTaskStore();
               <AlertTriangle className="h-8 w-8 text-destructive" />
             </div>
           </div>
-          <h1 className="mb-2 text-xl font-semibold text-foreground">Unable to Start</h1>
+          <h1 className="mb-2 text-xl font-semibold text-foreground">{t('app.unableToStart')}</h1>
           <p className="text-muted-foreground">{errorMessage}</p>
         </div>
       </div>

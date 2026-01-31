@@ -2,8 +2,10 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { getAccomplish } from '@/lib/accomplish';
+import { changeLanguage, getLanguagePreference } from '@/i18n';
 import {
   Dialog,
   DialogContent,
@@ -38,10 +40,12 @@ export default function SettingsDialog({
   initialProvider,
   initialTab = 'providers',
 }: SettingsDialogProps) {
+  const { t } = useTranslation('settings');
   const [selectedProvider, setSelectedProvider] = useState<ProviderId | null>(null);
   const [gridExpanded, setGridExpanded] = useState(false);
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
+  const [language, setLanguageState] = useState<'en' | 'zh-CN' | 'auto'>('auto');
   const [activeTab, setActiveTab] = useState<'providers' | 'voice'>(initialTab);
 
   const {
@@ -65,6 +69,8 @@ export default function SettingsDialog({
     refetch();
     // Load debug mode from appSettings (correct store)
     accomplish.getDebugMode().then(setDebugModeState);
+    // Load language preference
+    getLanguagePreference().then(setLanguageState);
   }, [open, refetch, accomplish]);
 
   // Auto-select active provider (or initialProvider) and expand grid if needed when dialog opens
@@ -179,6 +185,12 @@ export default function SettingsDialog({
     setDebugModeState(newValue);
   }, [debugMode, accomplish]);
 
+  // Handle language change
+  const handleLanguageChange = useCallback(async (newLanguage: 'en' | 'zh-CN' | 'auto') => {
+    setLanguageState(newLanguage);
+    await changeLanguage(newLanguage);
+  }, []);
+
   // Handle log export
   const handleExportLogs = useCallback(async () => {
     setExportStatus('exporting');
@@ -263,7 +275,7 @@ export default function SettingsDialog({
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle>Set up Openwork</DialogTitle>
+            <DialogTitle>{t('setupTitle')}</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center py-12">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -281,7 +293,7 @@ export default function SettingsDialog({
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Set up Openwork</DialogTitle>
+          <DialogTitle>{t('setupTitle')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
@@ -295,7 +307,7 @@ export default function SettingsDialog({
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              Providers
+              {t('tabs.providers')}
             </button>
             <button
               onClick={() => setActiveTab('voice')}
@@ -305,7 +317,7 @@ export default function SettingsDialog({
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              Voice Input
+              {t('tabs.voiceInput')}
             </button>
           </div>
 
@@ -328,16 +340,16 @@ export default function SettingsDialog({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-warning">No provider ready</p>
+                        <p className="text-sm font-medium text-warning">{t('warnings.noProviderReady')}</p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          You need to connect a provider and select a model before you can run tasks.
+                          {t('warnings.noProviderReadyDescription')}
                         </p>
                         <div className="mt-3 flex gap-2">
                           <button
                             onClick={handleForceClose}
                             className="rounded-md px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
                           >
-                            Close Anyway
+                            {t('warnings.closeAnyway')}
                           </button>
                         </div>
                       </div>
@@ -393,9 +405,9 @@ export default function SettingsDialog({
                     <div className="rounded-lg border border-border bg-card p-5">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="font-medium text-foreground">Debug Mode</div>
+                          <div className="font-medium text-foreground">{t('developer.debugMode')}</div>
                           <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-                            Show detailed backend logs in the task view.
+                            {t('developer.debugDescription')}
                           </p>
                         </div>
                         <div className="ml-4 flex items-center gap-3">
@@ -415,7 +427,7 @@ export default function SettingsDialog({
                           <button
                             onClick={handleExportLogs}
                             disabled={exportStatus === 'exporting'}
-                            title="Export Logs"
+                            title={t('developer.exportLogs')}
                             className={`rounded-md p-1.5 transition-colors ${
                               exportStatus === 'success'
                                 ? 'text-green-500'
@@ -444,8 +456,7 @@ export default function SettingsDialog({
                       {debugMode && (
                         <div className="mt-4 rounded-xl bg-warning/10 p-3.5">
                           <p className="text-sm text-warning">
-                            Debug mode is enabled. Backend logs will appear in the task view
-                            when running tasks.
+                            {t('developer.debugEnabled')}
                           </p>
                         </div>
                       )}
@@ -463,6 +474,32 @@ export default function SettingsDialog({
             </div>
           )}
 
+          {/* Language Settings Section - always visible */}
+          <section>
+            <div className="rounded-lg border border-border bg-card p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="font-medium text-foreground">{t('language.title')}</div>
+                  <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                    {t('language.description')}
+                  </p>
+                </div>
+                <div className="ml-4">
+                  <select
+                    value={language}
+                    onChange={(e) => handleLanguageChange(e.target.value as 'en' | 'zh-CN' | 'auto')}
+                    className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    data-testid="language-select"
+                  >
+                    <option value="auto">{t('language.auto')}</option>
+                    <option value="en">{t('language.en')}</option>
+                    <option value="zh-CN">{t('language.zhCN')}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* Done Button */}
           <div className="flex justify-end">
             <button
@@ -473,7 +510,7 @@ export default function SettingsDialog({
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              Done
+              {t('buttons.done')}
             </button>
           </div>
         </div>

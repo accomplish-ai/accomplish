@@ -1,5 +1,6 @@
 // apps/desktop/src/renderer/components/settings/ProviderSettingsPanel.tsx
 
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ProviderId, ConnectedProvider } from '@accomplish/shared';
 import { PROVIDER_META } from '@accomplish/shared';
@@ -32,6 +33,7 @@ export function ProviderSettingsPanel({
   onModelChange,
   showModelError,
 }: ProviderSettingsPanelProps) {
+  const { t } = useTranslation('settings');
   const meta = PROVIDER_META[providerId];
 
   // Render form content based on provider category
@@ -132,7 +134,7 @@ export function ProviderSettingsPanel({
         );
 
       default:
-        return <div>Unknown provider type</div>;
+        return <div>{t('providers.unknownType')}</div>;
     }
   };
 

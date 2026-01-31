@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getAccomplish } from '../../lib/accomplish';
 import { CornerDownLeft, Loader2, AlertCircle } from 'lucide-react';
 import { useSpeechInput } from '../../hooks/useSpeechInput';
@@ -31,7 +32,7 @@ export default function TaskInputBar({
   value,
   onChange,
   onSubmit,
-  placeholder = 'Assign a task or ask anything',
+  placeholder,
   isLoading = false,
   disabled = false,
   large = false,
@@ -39,6 +40,7 @@ export default function TaskInputBar({
   onOpenSpeechSettings,
   autoSubmitOnTranscription = true,
 }: TaskInputBarProps) {
+  const { t } = useTranslation('common');
   const isDisabled = disabled || isLoading;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingAutoSubmitRef = useRef<string | null>(null);
@@ -119,7 +121,7 @@ export default function TaskInputBar({
                 className="ml-2 underline hover:no-underline"
                 type="button"
               >
-                Retry
+                {t('buttons.retry')}
               </button>
             )}
           </AlertDescription>
@@ -171,7 +173,7 @@ export default function TaskInputBar({
           }}
           disabled={!value.trim() || isDisabled || speechInput.isRecording}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all duration-200 ease-accomplish hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
-          title="Submit"
+          title={t('buttons.submit')}
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />

@@ -1,0 +1,130 @@
+{
+  "status": {
+    "queued": "排队中",
+    "running": "运行中",
+    "completed": "已完成",
+    "failed": "失败",
+    "cancelled": "已取消",
+    "stopped": "已停止"
+  },
+  "waiting": {
+    "title": "等待其他任务完成",
+    "description": "您的任务已排队，将在当前任务完成后自动开始。",
+    "followUpDescription": "您的后续操作将自动继续"
+  },
+  "thinking": "思考中...",
+  "coldStartHint": "首次任务需要更长时间...",
+  "agentWorking": "智能体工作中...",
+  "stopAgent": "停止智能体 (Ctrl+C)",
+  "followUp": {
+    "interruptedPlaceholder": "输入新指令...",
+    "noSessionPlaceholder": "发送新指令重试...",
+    "completedPlaceholder": "输入新指令...",
+    "defaultPlaceholder": "输入内容..."
+  },
+  "taskStatus": "任务{{status}}",
+  "tools": {
+    "invalid": "重试中...",
+    "Read": "读取文件",
+    "Glob": "查找文件",
+    "Grep": "搜索代码",
+    "Bash": "执行命令",
+    "Write": "写入文件",
+    "Edit": "编辑文件",
+    "Task": "运行智能体",
+    "WebFetch": "获取网页",
+    "WebSearch": "搜索网络",
+    "dev_browser_execute": "执行浏览器操作",
+    "browser_navigate": "导航中",
+    "browser_snapshot": "读取页面",
+    "browser_click": "点击",
+    "browser_type": "输入",
+    "browser_screenshot": "截图",
+    "browser_evaluate": "执行脚本",
+    "browser_keyboard": "按键",
+    "browser_scroll": "滚动",
+    "browser_hover": "悬停",
+    "browser_select": "选择选项",
+    "browser_wait": "等待",
+    "browser_tabs": "管理标签页",
+    "browser_pages": "获取页面",
+    "browser_highlight": "高亮",
+    "browser_sequence": "浏览器序列",
+    "browser_file_upload": "上传文件",
+    "browser_drag": "拖拽",
+    "browser_get_text": "获取文本",
+    "browser_is_visible": "检查可见性",
+    "browser_is_enabled": "检查状态",
+    "browser_is_checked": "检查状态",
+    "browser_iframe": "切换框架",
+    "browser_canvas_type": "画布输入",
+    "browser_script": "浏览器操作",
+    "request_file_permission": "请求权限",
+    "AskUserQuestion": "询问用户",
+    "complete_task": "完成任务",
+    "report_thought": "思考中",
+    "report_checkpoint": "检查点"
+  },
+  "browserActions": {
+    "title": "浏览器操作",
+    "navigate": "导航至 {{hostname}}",
+    "navigateDefault": "导航",
+    "fill": "填写 \"{{text}}\"",
+    "fillDefault": "填写字段",
+    "click": "点击 {{target}}",
+    "press": "按下 {{key}}",
+    "capture": "捕获页面",
+    "screenshot": "截图",
+    "waitElement": "等待元素",
+    "waitPage": "等待页面",
+    "waitNavigation": "等待导航",
+    "runScript": "执行脚本",
+    "showLess": "收起",
+    "showMore": "+{{count}} 更多"
+  },
+  "processing": "处理中",
+  "system": "系统",
+  "permission": {
+    "title": "需要权限",
+    "fileTitle": "需要文件权限",
+    "fileDeleteTitle": "文件删除警告",
+    "questionTitle": "问题",
+    "toolQuestion": "允许 {{toolName}}？",
+    "tool": "工具",
+    "previewContent": "预览内容",
+    "backToOptions": "← 返回选项",
+    "typeResponse": "输入您的回复...",
+    "orTypeOwn": "或输入自定义内容",
+    "deleteWarningSingle": "此文件将被永久删除：",
+    "deleteWarningMultiple": "{{count}} 个文件将被永久删除：",
+    "operations": {
+      "delete": "删除",
+      "overwrite": "覆盖",
+      "modify": "修改",
+      "create": "创建",
+      "rename": "重命名",
+      "move": "移动"
+    }
+  },
+  "browserInstall": {
+    "title": "Chrome 未安装",
+    "description": "正在安装自动化浏览器...",
+    "downloading": "下载中...",
+    "oneTimeSetup": "一次性安装（约 250 MB）"
+  },
+  "debug": {
+    "title": "调试日志",
+    "noLogs": "暂无调试日志。运行任务后将显示日志。"
+  },
+  "actions": {
+    "copyToClipboard": "复制到剪贴板",
+    "scrollToBottom": "滚动到底部",
+    "deleteCannotUndo": "此操作无法撤销。",
+    "enterDifferentOption": "输入其他选项...",
+    "customResponse": "自定义回复"
+  },
+  "todoSidebar": {
+    "tasks": "任务",
+    "progress": "{{completed}} / {{total}}"
+  }
+}

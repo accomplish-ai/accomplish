@@ -1,0 +1,61 @@
+{
+  "app": {
+    "name": "Openwork"
+  },
+  "auth": {
+    "sessionExpired": "{{provider}} 会话已过期",
+    "reLogin": "重新登录 {{provider}}",
+    "dismiss": "关闭"
+  },
+  "buttons": {
+    "send": "发送",
+    "submit": "提交",
+    "cancel": "取消",
+    "close": "关闭",
+    "save": "保存",
+    "delete": "删除",
+    "deleteAll": "全部删除",
+    "allow": "允许",
+    "deny": "拒绝",
+    "continue": "继续",
+    "doneContinue": "完成，继续",
+    "goHome": "返回首页",
+    "startNewTask": "开始新任务",
+    "test": "测试",
+    "testing": "测试中...",
+    "saving": "保存中...",
+    "validating": "验证中...",
+    "export": "导出",
+    "exported": "已导出",
+    "clear": "清除",
+    "clearAll": "清除全部",
+    "yes": "是",
+    "no": "否",
+    "retry": "重试"
+  },
+  "status": {
+    "running": "运行中",
+    "completed": "已完成",
+    "failed": "失败",
+    "cancelled": "已取消",
+    "queued": "排队中",
+    "pending": "等待中",
+    "waiting": "等待中",
+    "stopped": "已停止",
+    "interrupted": "已中断"
+  },
+  "time": {
+    "justNow": "刚刚",
+    "minutesAgo": "{{count}}分钟前",
+    "hoursAgo": "{{count}}小时前",
+    "daysAgo": "{{count}}天前",
+    "today": "今天",
+    "yesterday": "昨天"
+  },
+  "nav": {
+    "home": "首页",
+    "history": "历史",
+    "settings": "设置"
+  },
+  "messages": "{{count}} 条消息"
+}

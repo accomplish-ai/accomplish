@@ -1,6 +1,7 @@
 // apps/desktop/src/renderer/components/settings/providers/LiteLLMProviderForm.tsx
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ConnectedProvider, LiteLLMCredentials } from '@accomplish/shared';
 import {
@@ -31,6 +32,7 @@ export function LiteLLMProviderForm({
   onModelChange,
   showModelError,
 }: LiteLLMProviderFormProps) {
+  const { t } = useTranslation('settings');
   const [serverUrl, setServerUrl] = useState('http://localhost:4000');
   const [apiKey, setApiKey] = useState('');
   const [connecting, setConnecting] = useState(false);
@@ -49,7 +51,7 @@ export function LiteLLMProviderForm({
       // Test connection and fetch models
       const result = await accomplish.testLiteLLMConnection(serverUrl, trimmedKey);
       if (!result.success) {
-        setError(result.error || 'Connection failed');
+        setError(result.error || t('status.connectionFailed'));
         setConnecting(false);
         return;
       }
@@ -85,7 +87,7 @@ export function LiteLLMProviderForm({
       onConnect(provider);
       setApiKey('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connection failed');
+      setError(err instanceof Error ? err.message : t('status.connectionFailed'));
     } finally {
       setConnecting(false);
     }
@@ -95,7 +97,7 @@ export function LiteLLMProviderForm({
 
   return (
     <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
-      <ProviderFormHeader logoSrc={litellmLogo} providerName="LiteLLM" />
+      <ProviderFormHeader logoSrc={litellmLogo} providerName={t('providers.litellm')} />
 
       <div className="space-y-3">
         <AnimatePresence mode="wait">
@@ -110,7 +112,7 @@ export function LiteLLMProviderForm({
               className="space-y-3"
             >
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Server URL</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">{t('litellm.serverUrl')}</label>
                 <input
                   type="text"
                   value={serverUrl}
@@ -123,14 +125,14 @@ export function LiteLLMProviderForm({
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-foreground">
-                  API Key <span className="text-muted-foreground">(Optional)</span>
+                  {t('apiKey.title')} <span className="text-muted-foreground">({t('common.optional')})</span>
                 </label>
                 <div className="flex gap-2">
                   <input
                     type="password"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Optional API key"
+                    placeholder={t('litellm.optionalApiKey')}
                     data-testid="litellm-api-key"
                     className="flex-1 rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                   />
@@ -163,7 +165,7 @@ export function LiteLLMProviderForm({
               {/* Display saved connection details */}
               <div className="space-y-3">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">Server URL</label>
+                  <label className="mb-2 block text-sm font-medium text-foreground">{t('litellm.serverUrl')}</label>
                   <input
                     type="text"
                     value={(connectedProvider?.credentials as LiteLLMCredentials)?.serverUrl || 'http://localhost:4000'}
@@ -173,10 +175,10 @@ export function LiteLLMProviderForm({
                 </div>
                 {(connectedProvider?.credentials as LiteLLMCredentials)?.hasApiKey && (
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground">API Key</label>
+                    <label className="mb-2 block text-sm font-medium text-foreground">{t('apiKey.title')}</label>
                     <input
                       type="text"
-                      value={(connectedProvider?.credentials as LiteLLMCredentials)?.keyPrefix || 'API key saved'}
+                      value={(connectedProvider?.credentials as LiteLLMCredentials)?.keyPrefix || t('apiKey.saved')}
                       disabled
                       className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                     />

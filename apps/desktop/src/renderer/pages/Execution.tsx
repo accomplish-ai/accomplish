@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo, useCallback, memo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../stores/taskStore';
 import { getAccomplish } from '../lib/accomplish';
@@ -44,53 +45,53 @@ const SpinningIcon = ({ className }: { className?: string }) => (
   />
 );
 
-// Tool name to human-readable progress mapping
-const TOOL_PROGRESS_MAP: Record<string, { label: string; icon: typeof FileText }> = {
+// Tool name to icon mapping (labels come from i18n)
+const TOOL_ICON_MAP: Record<string, typeof FileText> = {
   // Special error case - OpenCode returns "invalid" when LLM makes invalid tool call
-  invalid: { label: 'Retrying...', icon: AlertCircle },
+  invalid: AlertCircle,
   // Standard Claude Code tools
-  Read: { label: 'Reading files', icon: FileText },
-  Glob: { label: 'Finding files', icon: Search },
-  Grep: { label: 'Searching code', icon: Search },
-  Bash: { label: 'Running command', icon: Terminal },
-  Write: { label: 'Writing file', icon: FileText },
-  Edit: { label: 'Editing file', icon: FileText },
-  Task: { label: 'Running agent', icon: Brain },
-  WebFetch: { label: 'Fetching web page', icon: Search },
-  WebSearch: { label: 'Searching web', icon: Search },
+  Read: FileText,
+  Glob: Search,
+  Grep: Search,
+  Bash: Terminal,
+  Write: FileText,
+  Edit: FileText,
+  Task: Brain,
+  WebFetch: Search,
+  WebSearch: Search,
   // Dev Browser tools (legacy)
-  dev_browser_execute: { label: 'Executing browser action', icon: Terminal },
+  dev_browser_execute: Terminal,
   // Browser MCP tools
-  browser_navigate: { label: 'Navigating', icon: Globe },
-  browser_snapshot: { label: 'Reading page', icon: Search },
-  browser_click: { label: 'Clicking', icon: MousePointer2 },
-  browser_type: { label: 'Typing', icon: Type },
-  browser_screenshot: { label: 'Taking screenshot', icon: Image },
-  browser_evaluate: { label: 'Running script', icon: Code },
-  browser_keyboard: { label: 'Pressing keys', icon: Keyboard },
-  browser_scroll: { label: 'Scrolling', icon: ArrowUpDown },
-  browser_hover: { label: 'Hovering', icon: MousePointer2 },
-  browser_select: { label: 'Selecting option', icon: ListChecks },
-  browser_wait: { label: 'Waiting', icon: Clock },
-  browser_tabs: { label: 'Managing tabs', icon: Layers },
-  browser_pages: { label: 'Getting pages', icon: Layers },
-  browser_highlight: { label: 'Highlighting', icon: Highlighter },
-  browser_sequence: { label: 'Browser sequence', icon: ListOrdered },
-  browser_file_upload: { label: 'Uploading file', icon: Upload },
-  browser_drag: { label: 'Dragging', icon: Move },
-  browser_get_text: { label: 'Getting text', icon: FileText },
-  browser_is_visible: { label: 'Checking visibility', icon: Search },
-  browser_is_enabled: { label: 'Checking state', icon: Search },
-  browser_is_checked: { label: 'Checking state', icon: Search },
-  browser_iframe: { label: 'Switching frame', icon: Frame },
-  browser_canvas_type: { label: 'Typing in canvas', icon: Type },
-  browser_script: { label: 'Browser Actions', icon: Globe },
+  browser_navigate: Globe,
+  browser_snapshot: Search,
+  browser_click: MousePointer2,
+  browser_type: Type,
+  browser_screenshot: Image,
+  browser_evaluate: Code,
+  browser_keyboard: Keyboard,
+  browser_scroll: ArrowUpDown,
+  browser_hover: MousePointer2,
+  browser_select: ListChecks,
+  browser_wait: Clock,
+  browser_tabs: Layers,
+  browser_pages: Layers,
+  browser_highlight: Highlighter,
+  browser_sequence: ListOrdered,
+  browser_file_upload: Upload,
+  browser_drag: Move,
+  browser_get_text: FileText,
+  browser_is_visible: Search,
+  browser_is_enabled: Search,
+  browser_is_checked: Search,
+  browser_iframe: Frame,
+  browser_canvas_type: Type,
+  browser_script: Globe,
   // Utility MCP tools
-  request_file_permission: { label: 'Requesting permission', icon: ShieldCheck },
-  AskUserQuestion: { label: 'Asking question', icon: MessageCircleQuestion },
-  complete_task: { label: 'Completing task', icon: CheckCircle },
-  report_thought: { label: 'Thinking', icon: Lightbulb },
-  report_checkpoint: { label: 'Checkpoint', icon: Flag },
+  request_file_permission: ShieldCheck,
+  AskUserQuestion: MessageCircleQuestion,
+  complete_task: CheckCircle,
+  report_thought: Lightbulb,
+  report_checkpoint: Flag,
 };
 
 // Extract base tool name from MCP-prefixed tool names
@@ -106,7 +107,7 @@ function getBaseToolName(toolName: string): string {
   let idx = 0;
   while ((idx = toolName.indexOf('_', idx)) !== -1) {
     const candidate = toolName.substring(idx + 1);
-    if (TOOL_PROGRESS_MAP[candidate]) {
+    if (TOOL_ICON_MAP[candidate]) {
       return candidate;
     }
     idx += 1;
@@ -114,15 +115,24 @@ function getBaseToolName(toolName: string): string {
   return toolName;
 }
 
-// Get tool display info (label and icon) from tool name
-function getToolDisplayInfo(toolName: string): { label: string; icon: typeof FileText } | undefined {
+// Get tool icon from tool name
+function getToolIcon(toolName: string): typeof FileText | undefined {
   // First try direct lookup
-  if (TOOL_PROGRESS_MAP[toolName]) {
-    return TOOL_PROGRESS_MAP[toolName];
+  if (TOOL_ICON_MAP[toolName]) {
+    return TOOL_ICON_MAP[toolName];
   }
   // Then try extracting base name from MCP-prefixed name
   const baseName = getBaseToolName(toolName);
-  return TOOL_PROGRESS_MAP[baseName];
+  return TOOL_ICON_MAP[baseName];
+}
+
+// Get tool label from translation (used inside components with useTranslation)
+function getToolLabel(toolName: string, t: (key: string) => string): string {
+  const baseName = TOOL_ICON_MAP[toolName] ? toolName : getBaseToolName(toolName);
+  const translationKey = `tools.${baseName}`;
+  const translated = t(translationKey);
+  // If translation returns the key itself, return the raw tool name
+  return translated === translationKey ? toolName : translated;
 }
 
 
@@ -168,6 +178,8 @@ export default function ExecutionPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const accomplish = getAccomplish();
+  const { t } = useTranslation('execution');
+  const { t: tCommon } = useTranslation('common');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [followUp, setFollowUp] = useState('');
   const followUpInputRef = useRef<HTMLInputElement>(null);
@@ -523,7 +535,7 @@ export default function ExecutionPage() {
         <Card className="max-w-md w-full p-6 text-center">
           <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
           <p className="text-destructive mb-4">{error}</p>
-          <Button onClick={() => navigate('/')}>Go Home</Button>
+          <Button onClick={() => navigate('/')}>{tCommon('buttons.goHome')}</Button>
         </Card>
       </div>
     );
@@ -543,7 +555,7 @@ export default function ExecutionPage() {
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 shrink-0">
             <Clock className="h-3 w-3" />
-            Queued
+            {t('status.queued')}
           </span>
         );
       case 'running':
@@ -552,7 +564,7 @@ export default function ExecutionPage() {
             <span
               className="animate-shimmer bg-gradient-to-r from-primary via-primary/50 to-primary bg-[length:200%_100%] bg-clip-text text-transparent"
             >
-              Running
+              {t('status.running')}
             </span>
           </span>
         );
@@ -560,28 +572,28 @@ export default function ExecutionPage() {
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-600 shrink-0">
             <CheckCircle2 className="h-3 w-3" />
-            Completed
+            {t('status.completed')}
           </span>
         );
       case 'failed':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive shrink-0">
             <XCircle className="h-3 w-3" />
-            Failed
+            {t('status.failed')}
           </span>
         );
       case 'cancelled':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground shrink-0">
             <XCircle className="h-3 w-3" />
-            Cancelled
+            {t('status.cancelled')}
           </span>
         );
       case 'interrupted':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 shrink-0">
             <Square className="h-3 w-3" />
-            Stopped
+            {t('status.stopped')}
           </span>
         );
       default:
@@ -655,10 +667,10 @@ export default function ExecutionPage() {
                   </div>
                   <div className="w-full">
                     <h3 className="text-lg font-semibold text-foreground mb-1">
-                      Chrome not installed
+                      {t('browserInstall.title')}
                     </h3>
                     <p className="text-muted-foreground mb-4">
-                      Installing browser for automation...
+                      {t('browserInstall.description')}
                     </p>
                     {/* Progress bar - combines all downloads into single 0-100% */}
                     {(() => {
@@ -679,7 +691,7 @@ export default function ExecutionPage() {
                       return (
                         <div className="w-full">
                           <div className="flex justify-between text-sm mb-2">
-                            <span className="text-muted-foreground">Downloading...</span>
+                            <span className="text-muted-foreground">{t('browserInstall.downloading')}</span>
                             <span className="text-foreground font-medium">{overallPercent}%</span>
                           </div>
                           <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
@@ -694,7 +706,7 @@ export default function ExecutionPage() {
                       );
                     })()}
                     <p className="text-xs text-muted-foreground mt-4 text-center">
-                      One-time setup (~250 MB total)
+                      {t('browserInstall.oneTimeSetup')}
                     </p>
                   </div>
                 </div>
@@ -717,10 +729,10 @@ export default function ExecutionPage() {
           </div>
           <div className="text-center max-w-md">
             <h2 className="text-xl font-semibold text-foreground mb-2">
-              Waiting for another task
+              {t('waiting.title')}
             </h2>
             <p className="text-muted-foreground">
-              Your task is queued and will start automatically when the current task completes.
+              {t('waiting.description')}
             </p>
           </div>
         </motion.div>
@@ -748,10 +760,10 @@ export default function ExecutionPage() {
               </div>
               <div className="text-center">
                 <p className="text-sm font-medium text-foreground">
-                  Waiting for another task
+                  {t('waiting.title')}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Your follow-up will continue automatically
+                  {t('waiting.followUpDescription')}
                 </p>
               </div>
             </motion.div>
@@ -796,7 +808,7 @@ export default function ExecutionPage() {
                   isLastMessage={isLastMessage}
                   isRunning={currentTask.status === 'running'}
                   showContinueButton={showContinue}
-                  continueLabel={currentTask.status === 'interrupted' ? 'Continue' : 'Done, Continue'}
+                  continueLabel={currentTask.status === 'interrupted' ? tCommon('buttons.continue') : tCommon('buttons.doneContinue')}
                   onContinue={handleContinue}
                   isLoading={isLoading}
                 />
@@ -819,10 +831,10 @@ export default function ExecutionPage() {
                       <SpinningIcon className="h-4 w-4" />
                       <span className="text-sm">
                         {currentTool
-                          ? ((currentToolInput as { description?: string })?.description || getToolDisplayInfo(currentTool)?.label || currentTool)
+                          ? ((currentToolInput as { description?: string })?.description || getToolLabel(currentTool, t))
                           : (startupStageTaskId === id && startupStage)
                             ? startupStage.message
-                            : 'Thinking...'}
+                            : t('thinking')}
                       </span>
                       {currentTool && !(currentToolInput as { description?: string })?.description && (
                         <span className="text-xs text-muted-foreground/60">
@@ -839,7 +851,7 @@ export default function ExecutionPage() {
                     {/* Cold start hint */}
                     {!currentTool && startupStageTaskId === id && startupStage?.isFirstTask && startupStage.stage === 'browser' && (
                       <span className="text-xs text-muted-foreground/50 ml-6">
-                        First task takes a bit longer...
+                        {t('coldStartHint')}
                       </span>
                     )}
                   </motion.div>
@@ -862,7 +874,7 @@ export default function ExecutionPage() {
                   <button
                     onClick={scrollToBottom}
                     className="h-8 w-8 rounded-full bg-muted hover:bg-muted/80 border border-border shadow-md flex items-center justify-center transition-colors pointer-events-auto"
-                    aria-label="Scroll to bottom"
+                    aria-label={t('actions.scrollToBottom')}
                     data-testid="scroll-to-bottom-button"
                   >
                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -922,12 +934,12 @@ export default function ExecutionPage() {
                       isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
                     )}>
                       {isDeleteOperation(permissionRequest)
-                        ? 'File Deletion Warning'
+                        ? t('permission.fileDeleteTitle')
                         : permissionRequest.type === 'file'
-                          ? 'File Permission Required'
+                          ? t('permission.fileTitle')
                           : permissionRequest.type === 'question'
-                            ? (permissionRequest.header || 'Question')
-                            : 'Permission Required'}
+                            ? (permissionRequest.header || t('permission.questionTitle'))
+                            : t('permission.title')}
                     </h3>
 
                     {/* File permission specific UI */}
@@ -940,8 +952,8 @@ export default function ExecutionPage() {
                               {(() => {
                                 const paths = getDisplayFilePaths(permissionRequest);
                                 return paths.length > 1
-                                  ? `${paths.length} files will be permanently deleted:`
-                                  : 'This file will be permanently deleted:';
+                                  ? t('permission.deleteWarningMultiple', { count: paths.length })
+                                  : t('permission.deleteWarningSingle');
                               })()}
                             </p>
                           </div>
@@ -954,7 +966,7 @@ export default function ExecutionPage() {
                               "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
                               getOperationBadgeClasses(permissionRequest.fileOperation)
                             )}>
-                              {permissionRequest.fileOperation?.toUpperCase()}
+                              {t(`permission.operations.${permissionRequest.fileOperation}`, { defaultValue: permissionRequest.fileOperation?.toUpperCase() })}
                             </span>
                           </div>
                         )}
@@ -1001,14 +1013,14 @@ export default function ExecutionPage() {
                         {/* Delete warning text */}
                         {isDeleteOperation(permissionRequest) && (
                           <p className="text-sm text-red-600/80 mb-4">
-                            This action cannot be undone.
+                            {t('actions.deleteCannotUndo')}
                           </p>
                         )}
 
                         {permissionRequest.contentPreview && (
                           <details className="mb-4">
                             <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-                              Preview content
+                              {t('permission.previewContent')}
                             </summary>
                             <pre className="mt-2 p-2 rounded bg-muted text-xs overflow-x-auto max-h-32 overflow-y-auto">
                               {permissionRequest.contentPreview}
@@ -1067,7 +1079,7 @@ export default function ExecutionPage() {
                         {permissionRequest.options && permissionRequest.options.length > 0 && (
                           <div className="flex items-center gap-3 mb-4">
                             <div className="flex-1 h-px bg-border" />
-                            <span className="text-xs text-muted-foreground">or type your own</span>
+                            <span className="text-xs text-muted-foreground">{t('permission.orTypeOwn')}</span>
                             <div className="flex-1 h-px bg-border" />
                           </div>
                         )}
@@ -1083,8 +1095,8 @@ export default function ExecutionPage() {
                               e.target.style.height = 'auto';
                               e.target.style.height = `${e.target.scrollHeight}px`;
                             }}
-                            placeholder="Enter a different option..."
-                            aria-label="Custom response"
+                            placeholder={t('actions.enterDifferentOption')}
+                            aria-label={t('actions.customResponse')}
                             rows={1}
                             className="w-full resize-none overflow-hidden rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                             style={{ minHeight: '38px', maxHeight: '150px' }}
@@ -1105,11 +1117,11 @@ export default function ExecutionPage() {
                     {permissionRequest.type === 'tool' && (
                       <>
                         <p className="text-sm text-muted-foreground mb-4">
-                          Allow {permissionRequest.toolName}?
+                          {permissionRequest.question || t('permission.toolQuestion', { toolName: permissionRequest.toolName })}
                         </p>
                         {permissionRequest.toolName && (
                           <div className="mb-4 p-3 rounded-lg bg-muted text-xs font-mono overflow-x-auto">
-                            <p className="text-muted-foreground mb-1">Tool: {permissionRequest.toolName}</p>
+                            <p className="text-muted-foreground mb-1">{t('permission.tool')}: {permissionRequest.toolName}</p>
                             <pre className="text-foreground">
                               {JSON.stringify(permissionRequest.toolInput, null, 2)}
                             </pre>
@@ -1125,7 +1137,7 @@ export default function ExecutionPage() {
                         className="flex-1"
                         data-testid="permission-deny-button"
                       >
-                        {permissionRequest.type === 'question' ? 'Cancel' : 'Deny'}
+                        {permissionRequest.type === 'question' ? tCommon('buttons.cancel') : tCommon('buttons.deny')}
                       </Button>
                       <Button
                         onClick={() => handlePermissionResponse(true)}
@@ -1142,11 +1154,11 @@ export default function ExecutionPage() {
                       >
                         {isDeleteOperation(permissionRequest)
                           ? getDisplayFilePaths(permissionRequest).length > 1
-                            ? 'Delete All'
-                            : 'Delete'
+                            ? tCommon('buttons.deleteAll')
+                            : tCommon('buttons.delete')
                           : permissionRequest.type === 'question'
-                            ? 'Submit'
-                            : 'Allow'}
+                            ? tCommon('buttons.submit')
+                            : tCommon('buttons.allow')}
                       </Button>
                     </div>
                   </div>
@@ -1162,7 +1174,7 @@ export default function ExecutionPage() {
         <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4">
           <div className="max-w-4xl mx-auto flex gap-3">
             <Input
-              placeholder="Agent is working..."
+              placeholder={t('agentWorking')}
               disabled
               className="flex-1 opacity-50"
             />
@@ -1170,7 +1182,7 @@ export default function ExecutionPage() {
               variant="outline"
               size="icon"
               onClick={interruptTask}
-              title="Stop agent (Ctrl+C)"
+              title={t('stopAgent')}
               className="shrink-0 hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
               data-testid="execution-stop-button"
             >
@@ -1198,7 +1210,7 @@ export default function ExecutionPage() {
                       className="ml-2 underline hover:no-underline"
                       type="button"
                     >
-                      Retry
+                      {tCommon('buttons.retry')}
                     </button>
                   )}
                 </AlertDescription>
@@ -1220,10 +1232,10 @@ export default function ExecutionPage() {
                 }}
                 placeholder={
                   currentTask.status === 'interrupted'
-                    ? (hasSession ? "Give new instructions..." : "Send a new instruction to retry...")
+                    ? (hasSession ? t('followUp.interruptedPlaceholder') : t('followUp.noSessionPlaceholder'))
                     : currentTask.status === 'completed'
-                      ? "Give new instructions..."
-                      : "Ask for something..."
+                      ? t('followUp.completedPlaceholder')
+                      : t('followUp.defaultPlaceholder')
                 }
                 disabled={isLoading || speechInput.isRecording}
                 className="flex-1"
@@ -1248,7 +1260,7 @@ export default function ExecutionPage() {
                 variant="outline"
               >
                 <CornerDownLeft className="h-4 w-4 mr-1.5" />
-                Send
+                {tCommon('buttons.send')}
               </Button>
             </div>
           </div>
@@ -1259,10 +1271,10 @@ export default function ExecutionPage() {
       {isComplete && !canFollowUp && (
         <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4 text-center">
           <p className="text-sm text-muted-foreground mb-3">
-            Task {currentTask.status === 'interrupted' ? 'stopped' : currentTask.status}
+            {t('taskStatus', { status: currentTask.status === 'interrupted' ? t('status.stopped').toLowerCase() : tCommon(`status.${currentTask.status}`).toLowerCase() })}
           </p>
           <Button onClick={() => navigate('/')}>
-            Start New Task
+            {tCommon('buttons.startNewTask')}
           </Button>
         </div>
       )}
@@ -1285,7 +1297,7 @@ export default function ExecutionPage() {
           >
             <div className="flex items-center gap-2 text-sm text-zinc-400">
               <Bug className="h-4 w-4" />
-              <span className="font-medium">Debug Logs</span>
+              <span className="font-medium">{t('debug.title')}</span>
               {debugLogs.length > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full bg-zinc-700 text-zinc-300 text-xs">
                   {debugLogs.length}
@@ -1309,7 +1321,7 @@ export default function ExecutionPage() {
                     ) : (
                       <Download className="h-3 w-3 mr-1" />
                     )}
-                    {debugExported ? 'Exported' : 'Export'}
+                    {debugExported ? tCommon('buttons.exported') : tCommon('buttons.export')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -1321,7 +1333,7 @@ export default function ExecutionPage() {
                     }}
                   >
                     <Trash2 className="h-3 w-3 mr-1" />
-                    Clear
+                    {tCommon('buttons.clear')}
                   </Button>
                 </>
               )}
@@ -1349,7 +1361,7 @@ export default function ExecutionPage() {
                 >
                   {debugLogs.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-zinc-500">
-                      No debug logs yet. Run a task to see logs.
+                      {t('debug.noLogs')}
                     </div>
                   ) : (
                     <div className="space-y-1">
@@ -1405,6 +1417,8 @@ const COPIED_STATE_DURATION_MS = 1000
 
 // Memoized MessageBubble to prevent unnecessary re-renders and markdown re-parsing
 const MessageBubble = memo(function MessageBubble({ message, shouldStream = false, isLastMessage = false, isRunning = false, showContinueButton = false, continueLabel, onContinue, isLoading = false }: MessageBubbleProps) {
+  const { t } = useTranslation('execution');
+  const { t: tCommon } = useTranslation('common');
   const [streamComplete, setStreamComplete] = useState(!shouldStream);
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1418,10 +1432,10 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
     return null;
   }
 
-  // Get tool display info from mapping
+  // Get tool icon and label from mapping
   const toolName = message.toolName || message.content?.match(/Using tool: (\w+)/)?.[1];
-  const toolDisplayInfo = toolName ? getToolDisplayInfo(toolName) : undefined;
-  const ToolIcon = toolDisplayInfo?.icon;
+  const ToolIcon = toolName ? getToolIcon(toolName) : undefined;
+  const toolLabel = toolName ? getToolLabel(toolName, t) : undefined;
 
   // Mark stream as complete when shouldStream becomes false
   useEffect(() => {
@@ -1503,7 +1517,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
         {isTool ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
             {ToolIcon ? <ToolIcon className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
-            <span>{toolDisplayInfo?.label || toolName || 'Processing'}</span>
+            <span>{toolLabel || t('processing')}</span>
             {isLastMessage && isRunning && (
               <SpinningIcon className="h-3.5 w-3.5 ml-1" />
             )}
@@ -1513,7 +1527,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
             {isSystem && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5 font-medium">
                 <Terminal className="h-3.5 w-3.5" />
-                System
+                {t('system')}
               </div>
             )}
             {isUser ? (
@@ -1560,7 +1574,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
                 className="mt-3 gap-1.5"
               >
                 <Play className="h-3 w-3" />
-                {continueLabel || 'Continue'}
+                {continueLabel || tCommon('buttons.continue')}
               </Button>
             )}
           </>
@@ -1582,14 +1596,14 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
                     ? (!copied ? 'text-primary-foreground/70 hover:text-primary-foreground' : '!bg-green-500/20 !text-green-300')
                     : (!copied ? 'text-muted-foreground hover:text-foreground' : '!bg-green-500/10 !text-green-600')
                 )}
-                aria-label={'Copy to clipboard'}
+                aria-label={t('actions.copyToClipboard')}
               >
                 <Check className={cn("absolute h-4 w-4", !copied && 'hidden')} />
                 <Copy className={cn("absolute h-4 w-4", copied && 'hidden')} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <span>Copy to clipboard</span>
+              <span>{t('actions.copyToClipboard')}</span>
             </TooltipContent>
           </Tooltip>
         )}

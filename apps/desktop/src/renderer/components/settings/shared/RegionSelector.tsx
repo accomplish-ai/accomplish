@@ -1,19 +1,21 @@
 // apps/desktop/src/renderer/components/settings/shared/RegionSelector.tsx
 
-const AWS_REGIONS = [
-  { id: 'us-east-1', name: 'US East (N. Virginia)' },
-  { id: 'us-east-2', name: 'US East (Ohio)' },
-  { id: 'us-west-1', name: 'US West (N. California)' },
-  { id: 'us-west-2', name: 'US West (Oregon)' },
-  { id: 'eu-west-1', name: 'Europe (Ireland)' },
-  { id: 'eu-west-2', name: 'Europe (London)' },
-  { id: 'eu-west-3', name: 'Europe (Paris)' },
-  { id: 'eu-central-1', name: 'Europe (Frankfurt)' },
-  { id: 'ap-northeast-1', name: 'Asia Pacific (Tokyo)' },
-  { id: 'ap-northeast-2', name: 'Asia Pacific (Seoul)' },
-  { id: 'ap-southeast-1', name: 'Asia Pacific (Singapore)' },
-  { id: 'ap-southeast-2', name: 'Asia Pacific (Sydney)' },
-  { id: 'ap-south-1', name: 'Asia Pacific (Mumbai)' },
+import { useTranslation } from 'react-i18next';
+
+const AWS_REGION_IDS = [
+  'us-east-1',
+  'us-east-2',
+  'us-west-1',
+  'us-west-2',
+  'eu-west-1',
+  'eu-west-2',
+  'eu-west-3',
+  'eu-central-1',
+  'ap-northeast-1',
+  'ap-northeast-2',
+  'ap-southeast-1',
+  'ap-southeast-2',
+  'ap-south-1',
 ];
 
 interface RegionSelectorProps {
@@ -22,18 +24,20 @@ interface RegionSelectorProps {
 }
 
 export function RegionSelector({ value, onChange }: RegionSelectorProps) {
+  const { t } = useTranslation('settings');
+
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-foreground">Region</label>
+      <label className="mb-2 block text-sm font-medium text-foreground">{t('bedrock.region')}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         data-testid="bedrock-region-select"
         className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
       >
-        {AWS_REGIONS.map((region) => (
-          <option key={region.id} value={region.id}>
-            {region.id}
+        {AWS_REGION_IDS.map((regionId) => (
+          <option key={regionId} value={regionId}>
+            {t(`bedrock.regions.${regionId}`, { defaultValue: regionId })}
           </option>
         ))}
       </select>

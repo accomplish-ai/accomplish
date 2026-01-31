@@ -1,0 +1,130 @@
+{
+  "status": {
+    "queued": "Queued",
+    "running": "Running",
+    "completed": "Completed",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "stopped": "Stopped"
+  },
+  "waiting": {
+    "title": "Waiting for another task",
+    "description": "Your task is queued and will start automatically when the current task completes.",
+    "followUpDescription": "Your follow-up will continue automatically"
+  },
+  "thinking": "Thinking...",
+  "coldStartHint": "First task takes a bit longer...",
+  "agentWorking": "Agent is working...",
+  "stopAgent": "Stop agent (Ctrl+C)",
+  "followUp": {
+    "interruptedPlaceholder": "Give new instructions...",
+    "noSessionPlaceholder": "Send a new instruction to retry...",
+    "completedPlaceholder": "Give new instructions...",
+    "defaultPlaceholder": "Ask for something..."
+  },
+  "taskStatus": "Task {{status}}",
+  "tools": {
+    "invalid": "Retrying...",
+    "Read": "Reading files",
+    "Glob": "Finding files",
+    "Grep": "Searching code",
+    "Bash": "Running command",
+    "Write": "Writing file",
+    "Edit": "Editing file",
+    "Task": "Running agent",
+    "WebFetch": "Fetching web page",
+    "WebSearch": "Searching web",
+    "dev_browser_execute": "Executing browser action",
+    "browser_navigate": "Navigating",
+    "browser_snapshot": "Reading page",
+    "browser_click": "Clicking",
+    "browser_type": "Typing",
+    "browser_screenshot": "Taking screenshot",
+    "browser_evaluate": "Running script",
+    "browser_keyboard": "Pressing keys",
+    "browser_scroll": "Scrolling",
+    "browser_hover": "Hovering",
+    "browser_select": "Selecting option",
+    "browser_wait": "Waiting",
+    "browser_tabs": "Managing tabs",
+    "browser_pages": "Getting pages",
+    "browser_highlight": "Highlighting",
+    "browser_sequence": "Browser sequence",
+    "browser_file_upload": "Uploading file",
+    "browser_drag": "Dragging",
+    "browser_get_text": "Getting text",
+    "browser_is_visible": "Checking visibility",
+    "browser_is_enabled": "Checking state",
+    "browser_is_checked": "Checking state",
+    "browser_iframe": "Switching frame",
+    "browser_canvas_type": "Typing in canvas",
+    "browser_script": "Browser Actions",
+    "request_file_permission": "Requesting permission",
+    "AskUserQuestion": "Asking question",
+    "complete_task": "Completing task",
+    "report_thought": "Thinking",
+    "report_checkpoint": "Checkpoint"
+  },
+  "browserActions": {
+    "title": "Browser Actions",
+    "navigate": "Navigate to {{hostname}}",
+    "navigateDefault": "Navigate",
+    "fill": "Fill \"{{text}}\"",
+    "fillDefault": "Fill field",
+    "click": "Click {{target}}",
+    "press": "Press {{key}}",
+    "capture": "Capture page",
+    "screenshot": "Screenshot",
+    "waitElement": "Wait for element",
+    "waitPage": "Wait for page",
+    "waitNavigation": "Wait for navigation",
+    "runScript": "Run script",
+    "showLess": "Show less",
+    "showMore": "+{{count}} more"
+  },
+  "processing": "Processing",
+  "system": "System",
+  "permission": {
+    "title": "Permission Required",
+    "fileTitle": "File Permission Required",
+    "fileDeleteTitle": "File Deletion Warning",
+    "questionTitle": "Question",
+    "toolQuestion": "Allow {{toolName}}?",
+    "tool": "Tool",
+    "previewContent": "Preview content",
+    "backToOptions": "← Back to options",
+    "typeResponse": "Type your response...",
+    "orTypeOwn": "or type your own",
+    "deleteWarningSingle": "This file will be permanently deleted:",
+    "deleteWarningMultiple": "{{count}} files will be permanently deleted:",
+    "operations": {
+      "delete": "DELETE",
+      "overwrite": "OVERWRITE",
+      "modify": "MODIFY",
+      "create": "CREATE",
+      "rename": "RENAME",
+      "move": "MOVE"
+    }
+  },
+  "browserInstall": {
+    "title": "Chrome not installed",
+    "description": "Installing browser for automation...",
+    "downloading": "Downloading...",
+    "oneTimeSetup": "One-time setup (~250 MB total)"
+  },
+  "debug": {
+    "title": "Debug Logs",
+    "noLogs": "No debug logs yet. Run a task to see logs."
+  },
+  "actions": {
+    "copyToClipboard": "Copy to clipboard",
+    "scrollToBottom": "Scroll to bottom",
+    "deleteCannotUndo": "This action cannot be undone.",
+    "enterDifferentOption": "Enter a different option...",
+    "customResponse": "Custom response"
+  },
+  "todoSidebar": {
+    "tasks": "Tasks",
+    "progress": "{{completed}} of {{total}}"
+  }
+}

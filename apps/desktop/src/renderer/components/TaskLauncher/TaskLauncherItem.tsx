@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
 import type { Task } from '@accomplish/shared';
 import { cn } from '@/lib/utils';
 import { Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
@@ -8,19 +9,6 @@ interface TaskLauncherItemProps {
   task: Task;
   isSelected: boolean;
   onClick: () => void;
-}
-
-function formatRelativeDate(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) {
-    return date.toLocaleDateString('en-US', { weekday: 'long' });
-  }
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function getStatusIcon(status: Task['status']) {
@@ -40,6 +28,25 @@ function getStatusIcon(status: Task['status']) {
 }
 
 export default function TaskLauncherItem({ task, isSelected, onClick }: TaskLauncherItemProps) {
+  const { t, i18n } = useTranslation('common');
+
+  const formatRelativeDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return t('time.today');
+    if (diffDays === 1) return t('time.yesterday');
+
+    // Use the current i18n language for locale
+    const locale = i18n.language === 'zh-CN' ? 'zh-CN' : 'en-US';
+
+    if (diffDays < 7) {
+      return date.toLocaleDateString(locale, { weekday: 'long' });
+    }
+    return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+  };
+
   return (
     <button
       onClick={onClick}

@@ -1,0 +1,209 @@
+/**
+ * Renderer Process i18n Configuration
+ *
+ * Uses react-i18next with translations loaded from the main process via IPC.
+ * This allows the renderer to stay in sync with the main process language settings.
+ */
+
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
+
+// Supported languages and namespaces
+export const SUPPORTED_LANGUAGES = ['en', 'zh-CN'] as const;
+export const NAMESPACES = [
+  'common',
+  'home',
+  'execution',
+  'settings',
+  'history',
+  'errors',
+  'sidebar',
+] as const;
+
+export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+export type Namespace = (typeof NAMESPACES)[number];
+
+// Type for the window.accomplish API
+interface AccomplishI18nAPI {
+  i18n: {
+    getLanguage: () => Promise<'en' | 'zh-CN' | 'auto'>;
+    setLanguage: (language: 'en' | 'zh-CN' | 'auto') => Promise<void>;
+    getTranslations: (language?: string) => Promise<{
+      language: string;
+      translations: Record<string, Record<string, unknown>>;
+    }>;
+    getSupportedLanguages: () => Promise<readonly string[]>;
+    getResolvedLanguage: () => Promise<string>;
+    onLanguageChange: (
+      callback: (data: { language: string; resolvedLanguage: string }) => void
+    ) => () => void;
+  };
+}
+
+// Get the accomplish API from window (typed)
+function getAccomplishAPI(): AccomplishI18nAPI | null {
+  if (typeof window !== 'undefined' && 'accomplish' in window) {
+    return window.accomplish as unknown as AccomplishI18nAPI;
+  }
+  return null;
+}
+
+// Flag to track initialization
+let isInitialized = false;
+let initializationPromise: Promise<void> | null = null;
+
+/**
+ * Initialize i18n with translations from main process
+ */
+export async function initI18n(): Promise<void> {
+  // Prevent double initialization
+  if (isInitialized) {
+    return;
+  }
+
+  // Return existing promise if initialization is in progress
+  if (initializationPromise) {
+    return initializationPromise;
+  }
+
+  initializationPromise = (async () => {
+    const api = getAccomplishAPI();
+
+    // Default fallback resources (minimal English)
+    let initialResources: Record<string, Record<string, Record<string, unknown>>> = {
+      en: {
+        common: {
+          app: { name: 'Openwork' },
+          buttons: {
+            send: 'Send',
+            cancel: 'Cancel',
+            save: 'Save',
+          },
+        },
+      },
+    };
+    let initialLanguage: SupportedLanguage = 'en';
+
+    // Try to load translations from main process
+    if (api) {
+      try {
+        const result = await api.i18n.getTranslations();
+        initialLanguage = result.language as SupportedLanguage;
+
+        // Convert main process format to i18next format
+        initialResources = {
+          [initialLanguage]: result.translations as Record<string, Record<string, unknown>>,
+        };
+
+        // Also load English as fallback if not already loaded
+        if (initialLanguage !== 'en') {
+          const enResult = await api.i18n.getTranslations('en');
+          initialResources.en = enResult.translations as Record<string, Record<string, unknown>>;
+        }
+      } catch (error) {
+        console.warn('[i18n] Failed to load translations from main process:', error);
+      }
+    }
+
+    await i18n
+      .use(LanguageDetector)
+      .use(initReactI18next)
+      .init({
+        resources: initialResources,
+        lng: initialLanguage,
+        fallbackLng: 'en',
+        defaultNS: 'common',
+        ns: NAMESPACES as unknown as string[],
+
+        interpolation: {
+          escapeValue: false, // React already escapes values
+        },
+
+        // Language detection options
+        detection: {
+          order: ['localStorage', 'navigator'],
+          caches: ['localStorage'],
+          lookupLocalStorage: 'openwork-language',
+        },
+
+        // Debug mode (only in development)
+        debug: process.env.NODE_ENV === 'development',
+
+        // Return key if translation is missing
+        returnNull: false,
+        returnEmptyString: false,
+
+        // React options
+        react: {
+          useSuspense: false, // We handle loading states ourselves
+        },
+      });
+
+    // Subscribe to language changes from main process
+    if (api) {
+      api.i18n.onLanguageChange(async ({ resolvedLanguage }) => {
+        if (resolvedLanguage !== i18n.language) {
+          // Load translations for new language if not cached
+          if (!i18n.hasResourceBundle(resolvedLanguage, 'common')) {
+            try {
+              const result = await api.i18n.getTranslations(resolvedLanguage);
+              Object.entries(result.translations).forEach(([ns, translations]) => {
+                i18n.addResourceBundle(resolvedLanguage, ns, translations, true, true);
+              });
+            } catch (error) {
+              console.warn('[i18n] Failed to load translations for new language:', error);
+            }
+          }
+          await i18n.changeLanguage(resolvedLanguage);
+        }
+      });
+    }
+
+    isInitialized = true;
+    console.log(`[i18n] Initialized with language: ${initialLanguage}`);
+  })();
+
+  return initializationPromise;
+}
+
+/**
+ * Change language and sync with main process
+ */
+export async function changeLanguage(language: 'en' | 'zh-CN' | 'auto'): Promise<void> {
+  const api = getAccomplishAPI();
+
+  if (api) {
+    // Update main process first
+    await api.i18n.setLanguage(language);
+
+    // Load translations if needed
+    const resolvedLanguage = await api.i18n.getResolvedLanguage();
+    if (!i18n.hasResourceBundle(resolvedLanguage, 'common')) {
+      const result = await api.i18n.getTranslations(resolvedLanguage);
+      Object.entries(result.translations).forEach(([ns, translations]) => {
+        i18n.addResourceBundle(resolvedLanguage, ns, translations, true, true);
+      });
+    }
+
+    // Change i18next language
+    await i18n.changeLanguage(resolvedLanguage);
+  } else {
+    // Fallback: just change i18next language directly
+    const resolvedLanguage = language === 'auto' ? 'en' : language;
+    await i18n.changeLanguage(resolvedLanguage);
+  }
+}
+
+/**
+ * Get the current language preference from main process
+ */
+export async function getLanguagePreference(): Promise<'en' | 'zh-CN' | 'auto'> {
+  const api = getAccomplishAPI();
+  if (api) {
+    return api.i18n.getLanguage();
+  }
+  return 'auto';
+}
+
+export default i18n;

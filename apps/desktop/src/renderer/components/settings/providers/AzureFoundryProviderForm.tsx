@@ -1,6 +1,7 @@
 // apps/desktop/src/renderer/components/settings/providers/AzureFoundryProviderForm.tsx
 
 import { useState } from 'react';
+import { useTranslation, Trans } from 'react-i18next';
 import { getAccomplish } from '@/lib/accomplish';
 import type { ConnectedProvider, AzureFoundryCredentials } from '@accomplish/shared';
 import {
@@ -29,6 +30,7 @@ export function AzureFoundryProviderForm({
   onModelChange,
   showModelError,
 }: AzureFoundryProviderFormProps) {
+  const { t } = useTranslation('settings');
   const [authType, setAuthType] = useState<'api-key' | 'entra-id'>('api-key');
   const [endpoint, setEndpoint] = useState('');
   const [deploymentName, setDeploymentName] = useState('');
@@ -40,12 +42,12 @@ export function AzureFoundryProviderForm({
 
   const handleConnect = async () => {
     if (!endpoint.trim() || !deploymentName.trim()) {
-      setError('Endpoint URL and Deployment Name are required');
+      setError(t('azureFoundry.endpointRequired'));
       return;
     }
 
     if (authType === 'api-key' && !apiKey.trim()) {
-      setError('API Key is required for API Key authentication');
+      setError(t('azureFoundry.apiKeyRequired'));
       return;
     }
 
@@ -109,7 +111,7 @@ export function AzureFoundryProviderForm({
 
   return (
     <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
-      <ProviderFormHeader logoSrc={azureLogo} providerName="Azure AI Foundry" />
+      <ProviderFormHeader logoSrc={azureLogo} providerName={t('providers.azureFoundry')} />
 
       <div className="space-y-3">
         {!isConnected ? (
@@ -125,7 +127,7 @@ export function AzureFoundryProviderForm({
                     : 'bg-muted text-muted-foreground hover:text-foreground'
                 }`}
               >
-                API Key
+                {t('azureFoundry.authApiKey')}
               </button>
               <button
                 onClick={() => setAuthType('entra-id')}
@@ -136,26 +138,28 @@ export function AzureFoundryProviderForm({
                     : 'bg-muted text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Entra ID
+                {t('azureFoundry.authEntraId')}
               </button>
             </div>
 
             {authType === 'entra-id' && (
               <p className="text-xs text-muted-foreground">
-                Uses your Azure CLI credentials. Run <code className="bg-muted px-1 rounded">az login</code> first.
+                <Trans i18nKey="azureFoundry.entraIdHint" ns="settings">
+                  Uses your Azure CLI credentials. Run <code className="bg-muted px-1 rounded">az login</code> first.
+                </Trans>
               </p>
             )}
 
             {/* Endpoint URL */}
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">
-                Azure OpenAI Endpoint
+                {t('azureFoundry.endpointLabel')}
               </label>
               <input
                 type="text"
                 value={endpoint}
                 onChange={(e) => setEndpoint(e.target.value)}
-                placeholder="https://your-resource.openai.azure.com"
+                placeholder={t('azureFoundry.endpointPlaceholder')}
                 data-testid="azure-foundry-endpoint"
                 className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
               />
@@ -164,13 +168,13 @@ export function AzureFoundryProviderForm({
             {/* Deployment Name */}
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">
-                Deployment Name
+                {t('azureFoundry.deploymentLabel')}
               </label>
               <input
                 type="text"
                 value={deploymentName}
                 onChange={(e) => setDeploymentName(e.target.value)}
-                placeholder="e.g., gpt-4o, gpt-5"
+                placeholder={t('azureFoundry.deploymentPlaceholder')}
                 data-testid="azure-foundry-deployment"
                 className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
               />
@@ -180,13 +184,13 @@ export function AzureFoundryProviderForm({
             {authType === 'api-key' && (
               <div>
                 <label className="mb-2 block text-sm font-medium text-foreground">
-                  API Key
+                  {t('azureFoundry.apiKeyLabel')}
                 </label>
                 <input
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Enter your Azure API key"
+                  placeholder={t('azureFoundry.apiKeyPlaceholder')}
                   data-testid="azure-foundry-api-key"
                   className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                 />
@@ -201,7 +205,7 @@ export function AzureFoundryProviderForm({
             {/* Display saved credentials info */}
             <div className="space-y-3">
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Endpoint</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">{t('azureFoundry.endpointDisplayLabel')}</label>
                 <input
                   type="text"
                   value={(connectedProvider?.credentials as AzureFoundryCredentials)?.endpoint || ''}
@@ -210,7 +214,7 @@ export function AzureFoundryProviderForm({
                 />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Deployment</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">{t('azureFoundry.deploymentDisplayLabel')}</label>
                 <input
                   type="text"
                   value={(connectedProvider?.credentials as AzureFoundryCredentials)?.deploymentName || ''}
@@ -219,10 +223,10 @@ export function AzureFoundryProviderForm({
                 />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Authentication</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">{t('azureFoundry.authDisplayLabel')}</label>
                 <input
                   type="text"
-                  value={(connectedProvider?.credentials as AzureFoundryCredentials)?.authMethod === 'entra-id' ? 'Entra ID (Azure CLI)' : 'API Key'}
+                  value={(connectedProvider?.credentials as AzureFoundryCredentials)?.authMethod === 'entra-id' ? t('azureFoundry.entraIdDisplay') : t('azureFoundry.apiKeyDisplay')}
                   disabled
                   className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />

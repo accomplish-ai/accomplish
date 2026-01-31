@@ -283,6 +283,39 @@ const accomplishAPI = {
   exportLogs: (): Promise<{ success: boolean; path?: string; error?: string; reason?: string }> =>
     ipcRenderer.invoke('logs:export'),
 
+  // i18n - Internationalization
+  i18n: {
+    /** Get the stored language preference ('en', 'zh-CN', or 'auto') */
+    getLanguage: (): Promise<'en' | 'zh-CN' | 'auto'> =>
+      ipcRenderer.invoke('i18n:get-language'),
+
+    /** Set the language preference */
+    setLanguage: (language: 'en' | 'zh-CN' | 'auto'): Promise<void> =>
+      ipcRenderer.invoke('i18n:set-language', language),
+
+    /** Get all translations for a language */
+    getTranslations: (language?: string): Promise<{
+      language: string;
+      translations: Record<string, Record<string, unknown>>;
+    }> => ipcRenderer.invoke('i18n:get-translations', language),
+
+    /** Get the list of supported languages */
+    getSupportedLanguages: (): Promise<readonly string[]> =>
+      ipcRenderer.invoke('i18n:get-supported-languages'),
+
+    /** Get the resolved language (actual language being used) */
+    getResolvedLanguage: (): Promise<string> =>
+      ipcRenderer.invoke('i18n:get-resolved-language'),
+
+    /** Subscribe to language changes */
+    onLanguageChange: (callback: (data: { language: string; resolvedLanguage: string }) => void) => {
+      const listener = (_: unknown, data: { language: string; resolvedLanguage: string }) =>
+        callback(data);
+      ipcRenderer.on('i18n:language-changed', listener);
+      return () => ipcRenderer.removeListener('i18n:language-changed', listener);
+    },
+  },
+
   // Speech-to-Text API
   speechIsConfigured: (): Promise<boolean> =>
     ipcRenderer.invoke('speech:is-configured'),

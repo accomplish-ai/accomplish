@@ -1,0 +1,259 @@
+{
+  "title": "Settings",
+  "setupTitle": "Set up Openwork",
+  "tabs": {
+    "providers": "Providers",
+    "voiceInput": "Voice Input"
+  },
+  "model": {
+    "title": "Model",
+    "cloudProviders": "Cloud Providers",
+    "localModels": "Local Models",
+    "cloudDescription": "Select a cloud AI model. Requires an API key for the provider.",
+    "selectModel": "Select a model...",
+    "searchModels": "Search models...",
+    "noApiKey": "(No API key)",
+    "modelUpdated": "Model updated to {{model}}",
+    "noApiKeyWarning": "No API key configured for {{provider}}. Add one below.",
+    "noModelsFound": "No models found",
+    "required": "Please select a model to continue"
+  },
+  "apiKey": {
+    "title": "API Key",
+    "bringYourOwn": "Bring Your Own Model/API Key",
+    "description": "Setup the API key and model for your own AI coworker.",
+    "provider": "Provider",
+    "apiKeyLabel": "{{provider}} API Key",
+    "saveButton": "Save API Key",
+    "invalidFormat": "Invalid API key format. Key should start with {{prefix}}",
+    "savedMessage": "{{provider}} API key saved securely.",
+    "removedMessage": "{{provider}} API key removed.",
+    "savedKeys": "Saved Keys",
+    "confirmDelete": "Are you sure?",
+    "enterKey": "Enter API Key",
+    "invalidKey": "Invalid API key",
+    "enterKeyRequired": "Please enter an API key",
+    "saved": "API key saved",
+    "savedReconnectToSee": "API key saved (reconnect to see prefix)"
+  },
+  "providers": {
+    "title": "Providers",
+    "search": "Search providers...",
+    "unknownType": "Unknown provider type",
+    "formTitle": "{{provider}} Settings",
+    "formLogo": "{{provider}} logo",
+    "showMore": "Show More",
+    "showLess": "Show Less",
+    "anthropic": "Anthropic",
+    "openai": "OpenAI",
+    "google": "Google AI",
+    "xai": "xAI (Grok)",
+    "deepseek": "DeepSeek",
+    "zai": "Z.AI Coding Plan",
+    "bedrock": "Amazon Bedrock",
+    "ollama": "Ollama",
+    "openrouter": "OpenRouter",
+    "litellm": "LiteLLM",
+    "vertex": "Vertex AI",
+    "lmstudio": "LM Studio",
+    "moonshot": "Moonshot",
+    "azureFoundry": "Azure AI Foundry"
+  },
+  "providerLabels": {
+    "anthropic": "Claude models",
+    "openai": "GPT models",
+    "google": "Gemini models",
+    "xai": "Grok models",
+    "deepseek": "DeepSeek models",
+    "zai": "GLM models",
+    "bedrock": "AWS managed",
+    "ollama": "Local inference",
+    "openrouter": "200+ models",
+    "litellm": "Unified proxy",
+    "vertex": "Google Cloud",
+    "lmstudio": "Local inference",
+    "moonshot": "Moonshot models",
+    "azureFoundry": "Azure deployment"
+  },
+  "status": {
+    "connected": "Connected",
+    "ready": "Ready",
+    "notConfigured": "Not configured",
+    "connecting": "Connecting...",
+    "disconnecting": "Disconnecting...",
+    "testing": "Testing connection...",
+    "fetchingModels": "Fetching models...",
+    "selectModelToComplete": "Select a model to complete setup",
+    "error": "An error has occurred",
+    "connectionFailed": "Connection failed"
+  },
+  "buttons": {
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "connecting": "Connecting...",
+    "done": "Done",
+    "refresh": "Refresh",
+    "test": "Test Connection"
+  },
+  "help": {
+    "findApiKey": "How can I find it?",
+    "learnMore": "Learn more"
+  },
+  "common": {
+    "optional": "Optional"
+  },
+  "ollama": {
+    "description": "Connect to a local Ollama server to use models running on your machine.",
+    "serverUrl": "Ollama Server URL",
+    "connected": "Connected - {{count}} model(s) available",
+    "selectModel": "Select Model",
+    "useThisModel": "Use This Model",
+    "helpText": "Make sure <link>Ollama</link> is installed and running, then click Test to connect.",
+    "currentlyUsing": "Currently using"
+  },
+  "bedrock": {
+    "accessKeys": "Access Keys",
+    "awsProfile": "AWS Profile",
+    "accessKeyId": "Access Key ID",
+    "secretAccessKey": "Secret Access Key",
+    "sessionToken": "Session Token",
+    "sessionTokenOptional": "Optional",
+    "sessionTokenHint": "For temporary credentials (STS)",
+    "profileName": "Profile Name",
+    "defaultProfile": "default",
+    "region": "Region",
+    "saveButton": "Save Bedrock Credentials",
+    "savedMessage": "Amazon Bedrock credentials saved successfully.",
+    "enterSecretAccessKey": "Enter secret access key",
+    "invalidCredentials": "Invalid credentials",
+    "regions": {
+      "us-east-1": "US East (N. Virginia)",
+      "us-east-2": "US East (Ohio)",
+      "us-west-1": "US West (N. California)",
+      "us-west-2": "US West (Oregon)",
+      "eu-west-1": "Europe (Ireland)",
+      "eu-west-2": "Europe (London)",
+      "eu-west-3": "Europe (Paris)",
+      "eu-central-1": "Europe (Frankfurt)",
+      "ap-northeast-1": "Asia Pacific (Tokyo)",
+      "ap-northeast-2": "Asia Pacific (Seoul)",
+      "ap-southeast-1": "Asia Pacific (Singapore)",
+      "ap-southeast-2": "Asia Pacific (Sydney)",
+      "ap-south-1": "Asia Pacific (Mumbai)"
+    }
+  },
+  "openrouter": {
+    "description": "Access 200+ AI models through OpenRouter's unified API.",
+    "fetchModelsFailed": "Failed to fetch models"
+  },
+  "litellm": {
+    "description": "Connect to your LiteLLM proxy server for unified model access.",
+    "serverUrl": "Server URL",
+    "optionalApiKey": "Optional API key"
+  },
+  "oauth": {
+    "signingIn": "Signing in...",
+    "loginWithOpenAI": "Login with OpenAI",
+    "or": "or"
+  },
+  "openai": {
+    "baseUrl": "Base URL (optional)",
+    "baseUrlHint": "Leave blank for OpenAI. Set to use an OpenAI-compatible endpoint."
+  },
+  "lmstudio": {
+    "description": "Connect to LM Studio for local model inference.",
+    "serverUrl": "LM Studio Server URL",
+    "helpText": "Start LM Studio and enable the local server in Developer settings",
+    "toolSupport": {
+      "tools": "Tools",
+      "noTools": "No Tools",
+      "unknown": "Unknown",
+      "verified": "Function calling verified"
+    },
+    "warnings": {
+      "noToolSupport": "This model does not support tool/function calling",
+      "noToolSupportDetail": "Tasks requiring browser automation or file operations will not work correctly.",
+      "unknownSupport": "Tool support could not be verified",
+      "unknownSupportDetail": "This model may or may not support tool/function calling. Test it to confirm."
+    },
+    "contextLength": {
+      "title": "Context length requirement",
+      "description": "Ensure your model is loaded with a large enough context length (max available recommended) in LM Studio settings."
+    }
+  },
+  "zai": {
+    "region": "Region",
+    "china": "China",
+    "international": "International"
+  },
+  "azureFoundry": {
+    "authApiKey": "API Key",
+    "authEntraId": "Entra ID",
+    "entraIdHint": "Uses your Azure CLI credentials. Run <code>az login</code> first.",
+    "endpointLabel": "Azure OpenAI Endpoint",
+    "endpointPlaceholder": "https://your-resource.openai.azure.com",
+    "deploymentLabel": "Deployment Name",
+    "deploymentPlaceholder": "e.g., gpt-4o, gpt-5",
+    "apiKeyLabel": "API Key",
+    "apiKeyPlaceholder": "Enter your Azure API key",
+    "endpointDisplayLabel": "Endpoint",
+    "deploymentDisplayLabel": "Deployment",
+    "authDisplayLabel": "Authentication",
+    "entraIdDisplay": "Entra ID (Azure CLI)",
+    "apiKeyDisplay": "API Key",
+    "endpointRequired": "Endpoint URL and Deployment Name are required",
+    "apiKeyRequired": "API Key is required for API Key authentication"
+  },
+  "speech": {
+    "title": "Speech-to-Text",
+    "description": "Enable voice input using ElevenLabs Speech-to-Text API",
+    "apiKeyLabel": "ElevenLabs API Key",
+    "apiKeyRequired": "API key is required",
+    "apiKeySaved": "API key saved successfully",
+    "apiKeySaveFailed": "Failed to save API key",
+    "apiKeyConfigured": "ElevenLabs API key is configured. Enter a new key below to replace it.",
+    "apiKeyHint": "Your API key is stored securely in your system keychain.",
+    "saveApiKey": "Save API Key",
+    "getApiKeyInfo": "To use speech input, you need an ElevenLabs API key. Get one at",
+    "howToUse": "How to use:",
+    "instruction1": "Click the microphone button",
+    "instruction1Detail": "to start recording, click again to stop",
+    "instruction2": "Hold Alt key",
+    "instruction2Detail": "to record voice input (push-to-talk mode)",
+    "tooltipSetup": "Click to set up voice input",
+    "tooltipRecording": "Recording - Click to stop",
+    "tooltipTranscribing": "Transcribing...",
+    "tooltipError": "Error during transcription - Click to retry",
+    "tooltipDefault": "Click to record or hold Alt to record voice input",
+    "statusProcessing": "Processing...",
+    "statusRetry": "Retry"
+  },
+  "developer": {
+    "title": "Developer",
+    "debugMode": "Debug Mode",
+    "debugDescription": "Show detailed backend logs in the task view.",
+    "debugEnabled": "Debug mode is enabled. Backend logs will appear in the task view when running tasks.",
+    "exportLogs": "Export Logs",
+    "exporting": "Exporting...",
+    "exported": "Exported",
+    "exportFailed": "Export Failed"
+  },
+  "language": {
+    "title": "Language",
+    "description": "Choose your preferred display language.",
+    "auto": "Auto (System)",
+    "en": "English",
+    "zhCN": "Simplified Chinese"
+  },
+  "about": {
+    "title": "About",
+    "version": "Version {{version}}",
+    "description": "Openwork is a local computer-use AI agent for your Mac that reads your files, creates documents, and automates repetitive knowledge work—all open-source with your AI models of choice.",
+    "contact": "Any questions or feedback? Click here to contact us"
+  },
+  "warnings": {
+    "noProviderReady": "No provider ready",
+    "noProviderReadyDescription": "You need to connect a provider and select a model before you can run tasks.",
+    "closeAnyway": "Close Anyway"
+  }
+}
