@@ -62,6 +62,91 @@ test.describe('Settings - All Providers', () => {
     });
   });
 
+  // ===== GOOGLE VERTEX AI PROVIDER =====
+  test.describe('Google Vertex AI Provider', () => {
+    test('should display Google Vertex AI provider card in expanded view', async ({ window }) => {
+      const settingsPage = new SettingsPage(window);
+      await window.waitForLoadState('domcontentloaded');
+      await settingsPage.navigateToSettings();
+
+      await settingsPage.toggleShowAll();
+
+      // Google Vertex AI should be visible after Show All
+      const vertexCard = settingsPage.getProviderCard('google-vertex-ai');
+      await expect(vertexCard).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+
+      await captureForAI(window, 'settings-vertex', 'provider-card-visible', [
+        'Google Vertex AI provider card is visible',
+        'Card is visible after Show All',
+      ]);
+    });
+
+    test('should show project ID, region, and API key form when selecting Vertex AI', async ({ window }) => {
+      const settingsPage = new SettingsPage(window);
+      await window.waitForLoadState('domcontentloaded');
+      await settingsPage.navigateToSettings();
+
+      await settingsPage.toggleShowAll();
+      await settingsPage.selectProvider('google-vertex-ai');
+
+      await expect(settingsPage.vertexProjectIdInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+      await expect(settingsPage.vertexRegionSelect).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+      await expect(settingsPage.apiKeyInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+
+      await captureForAI(window, 'settings-vertex', 'full-form', [
+        'Google Vertex AI form shows all required fields',
+        'Project ID input is visible',
+        'Region selector is visible',
+        'API key input is visible',
+      ]);
+    });
+
+    test('should allow entering Vertex AI configuration', async ({ window }) => {
+      const settingsPage = new SettingsPage(window);
+      await window.waitForLoadState('domcontentloaded');
+      await settingsPage.navigateToSettings();
+
+      await settingsPage.toggleShowAll();
+      await settingsPage.selectProvider('google-vertex-ai');
+
+      const testProjectId = 'my-gcp-project-123';
+      const testApiKey = 'AIzaSyTest_VertexKey_12345';
+
+      await settingsPage.enterVertexProjectId(testProjectId);
+      await settingsPage.selectVertexRegion('us-central1');
+      await settingsPage.enterApiKey(testApiKey);
+
+      await expect(settingsPage.vertexProjectIdInput).toHaveValue(testProjectId);
+      await expect(settingsPage.apiKeyInput).toHaveValue(testApiKey);
+
+      await captureForAI(window, 'settings-vertex', 'config-filled', [
+        'Google Vertex AI configuration accepts values',
+        'Project ID field filled correctly',
+        'Region selector works',
+        'API key filled correctly',
+      ]);
+    });
+
+    test('should have multiple region options available', async ({ window }) => {
+      const settingsPage = new SettingsPage(window);
+      await window.waitForLoadState('domcontentloaded');
+      await settingsPage.navigateToSettings();
+
+      await settingsPage.toggleShowAll();
+      await settingsPage.selectProvider('google-vertex-ai');
+
+      // Select different regions to verify they work
+      await settingsPage.selectVertexRegion('europe-west1');
+      await settingsPage.selectVertexRegion('asia-northeast1');
+      await settingsPage.selectVertexRegion('us-central1');
+
+      await captureForAI(window, 'settings-vertex', 'region-selector', [
+        'Region selector has multiple options',
+        'Can select different GCP regions',
+      ]);
+    });
+  });
+
   // ===== XAI PROVIDER =====
   test.describe('xAI Provider', () => {
     test('should display xAI provider card in expanded view', async ({ window }) => {
@@ -195,7 +280,7 @@ test.describe('Settings - All Providers', () => {
 
       // All providers should be visible
       const allProviders = [
-        'openai', 'anthropic', 'google', 'bedrock',
+        'openai', 'anthropic', 'google', 'google-vertex-ai', 'bedrock',
         'moonshot', 'azure-foundry', 'deepseek', 'zai',
         'ollama', 'lmstudio', 'xai', 'openrouter',
         'litellm', 'minimax',

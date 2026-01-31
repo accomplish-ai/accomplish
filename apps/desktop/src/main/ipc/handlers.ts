@@ -113,7 +113,7 @@ import {
 } from '../test-utils/mock-task-flow';
 
 const MAX_TEXT_LENGTH = 8000;
-const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'moonshot', 'zai', 'azure-foundry', 'custom', 'bedrock', 'litellm', 'minimax', 'lmstudio', 'elevenlabs']);
+const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'openrouter', 'google', 'google-vertex-ai', 'xai', 'deepseek', 'moonshot', 'zai', 'azure-foundry', 'custom', 'bedrock', 'litellm', 'minimax', 'lmstudio', 'elevenlabs']);
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
 
 interface OllamaModel {
@@ -973,6 +973,28 @@ export function registerIPCHandlers(): void {
             API_KEY_VALIDATION_TIMEOUT_MS
           );
           break;
+
+        case 'google-vertex-ai': {
+          // Vertex AI requires project ID and region in addition to API key
+          const vertexProjectId = options?.projectId as string;
+          const vertexRegion = (options?.region as string) || 'us-central1';
+
+          if (!vertexProjectId) {
+            return { valid: false, error: 'Project ID is required for Vertex AI' };
+          }
+
+          // Use the Vertex AI API endpoint to list models (validates both API key and project access)
+          const vertexEndpoint = `https://${vertexRegion}-aiplatform.googleapis.com/v1/projects/${vertexProjectId}/locations/${vertexRegion}/publishers/google/models?key=${sanitizedKey}`;
+
+          response = await fetchWithTimeout(
+            vertexEndpoint,
+            {
+              method: 'GET',
+            },
+            API_KEY_VALIDATION_TIMEOUT_MS
+          );
+          break;
+        }
 
         case 'xai':
           response = await fetchWithTimeout(

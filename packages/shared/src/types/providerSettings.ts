@@ -4,6 +4,7 @@ export type ProviderId =
   | 'anthropic'
   | 'openai'
   | 'google'
+  | 'google-vertex-ai'
   | 'xai'
   | 'deepseek'
   | 'moonshot'
@@ -16,7 +17,7 @@ export type ProviderId =
   | 'minimax'
   | 'lmstudio';
 
-export type ProviderCategory = 'classic' | 'aws' | 'azure' | 'local' | 'proxy' | 'hybrid';
+export type ProviderCategory = 'classic' | 'aws' | 'azure' | 'gcp' | 'local' | 'proxy' | 'hybrid';
 
 export interface ProviderMeta {
   id: ProviderId;
@@ -31,6 +32,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   anthropic: { id: 'anthropic', name: 'Anthropic', category: 'classic', label: 'Service', logoKey: 'claude', helpUrl: 'https://console.anthropic.com/settings/keys' },
   openai: { id: 'openai', name: 'OpenAI', category: 'classic', label: 'Service', logoKey: 'open-ai', helpUrl: 'https://platform.openai.com/api-keys' },
   google: { id: 'google', name: 'Gemini', category: 'classic', label: 'Service', logoKey: 'google-gen-ai', helpUrl: 'https://aistudio.google.com/app/apikey' },
+  'google-vertex-ai': { id: 'google-vertex-ai', name: 'Google Vertex AI', category: 'gcp', label: 'Service', logoKey: 'vertex', helpUrl: 'https://console.cloud.google.com/apis/credentials' },
   xai: { id: 'xai', name: 'XAI', category: 'classic', label: 'Service', logoKey: 'Xai', helpUrl: 'https://x.ai/api' },
   deepseek: { id: 'deepseek', name: 'DeepSeek', category: 'classic', label: 'Service', logoKey: 'Deepseek', helpUrl: 'https://platform.deepseek.com/api_keys' },
   moonshot: { id: 'moonshot', name: 'Moonshot AI', category: 'classic', label: 'Service', logoKey: 'moonshot', helpUrl: 'https://platform.moonshot.ai/docs/guide/start-using-kimi-api' },
@@ -97,6 +99,13 @@ export interface AzureFoundryCredentials {
   keyPrefix?: string; // Only for api-key auth
 }
 
+export interface GoogleVertexAICredentials {
+  type: 'google-vertex-ai';
+  keyPrefix: string;
+  projectId: string;
+  region: string;
+}
+
 export interface OAuthCredentials {
   type: 'oauth';
   oauthProvider: 'chatgpt';
@@ -110,6 +119,7 @@ export type ProviderCredentials =
   | LiteLLMCredentials
   | ZaiCredentials
   | AzureFoundryCredentials
+  | GoogleVertexAICredentials
   | LMStudioCredentials
   | OAuthCredentials;
 
@@ -161,6 +171,7 @@ export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
   anthropic: 'anthropic/claude-haiku-4-5',
   openai: 'openai/gpt-5.2-codex',
   google: 'google/gemini-3-pro-preview',
+  'google-vertex-ai': 'google-vertex-ai/gemini-2.5-flash',
   xai: 'xai/grok-4',
   bedrock: 'amazon-bedrock/anthropic.claude-haiku-4-5-20251001-v1:0',
   moonshot: 'moonshot/kimi-latest',

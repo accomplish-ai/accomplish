@@ -3,6 +3,7 @@
 export { ClassicProviderForm } from './ClassicProviderForm';
 export { BedrockProviderForm } from './BedrockProviderForm';
 export { AzureFoundryProviderForm } from './AzureFoundryProviderForm';
+export { GoogleVertexAIProviderForm } from './GoogleVertexAIProviderForm';
 export { OllamaProviderForm } from './OllamaProviderForm';
 export { OpenRouterProviderForm } from './OpenRouterProviderForm';
 export { LiteLLMProviderForm } from './LiteLLMProviderForm';

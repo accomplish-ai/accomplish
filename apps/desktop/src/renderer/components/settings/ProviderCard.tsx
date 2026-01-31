@@ -10,6 +10,7 @@ import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import anthropicLogo from '/assets/ai-logos/anthropic.svg';
 import openaiLogo from '/assets/ai-logos/openai.svg';
 import googleLogo from '/assets/ai-logos/google.svg';
+import vertexLogo from '/assets/ai-logos/vertex.svg';
 import xaiLogo from '/assets/ai-logos/xai.svg';
 import deepseekLogo from '/assets/ai-logos/deepseek.svg';
 import moonshotLogo from '/assets/ai-logos/moonshot.svg';
@@ -29,6 +30,7 @@ const PROVIDER_LOGOS: Record<ProviderId, string> = {
   anthropic: anthropicLogo,
   openai: openaiLogo,
   google: googleLogo,
+  'google-vertex-ai': vertexLogo,
   xai: xaiLogo,
   deepseek: deepseekLogo,
   moonshot: moonshotLogo,

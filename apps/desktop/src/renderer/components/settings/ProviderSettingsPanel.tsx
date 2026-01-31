@@ -7,6 +7,7 @@ import {
   ClassicProviderForm,
   BedrockProviderForm,
   AzureFoundryProviderForm,
+  GoogleVertexAIProviderForm,
   OllamaProviderForm,
   OpenRouterProviderForm,
   LiteLLMProviderForm,
@@ -77,6 +78,17 @@ export function ProviderSettingsPanel({
       case 'azure':
         return (
           <AzureFoundryProviderForm
+            connectedProvider={connectedProvider}
+            onConnect={onConnect}
+            onDisconnect={onDisconnect}
+            onModelChange={onModelChange}
+            showModelError={showModelError}
+          />
+        );
+
+      case 'gcp':
+        return (
+          <GoogleVertexAIProviderForm
             connectedProvider={connectedProvider}
             onConnect={onConnect}
             onDisconnect={onDisconnect}
