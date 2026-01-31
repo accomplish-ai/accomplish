@@ -23,6 +23,7 @@ import { BrowserScriptCard } from '../components/BrowserScriptCard';
 import loadingSymbol from '/assets/loading-symbol.svg';
 import SettingsDialog from '../components/layout/SettingsDialog';
 import { TodoSidebar } from '../components/TodoSidebar';
+import { ModelIndicator } from '../components/ui/ModelIndicator';
 import { useSpeechInput } from '../hooks/useSpeechInput';
 import { SpeechInputButton } from '../components/ui/SpeechInputButton';
 
@@ -450,6 +451,11 @@ export default function ExecutionPage() {
 
   const handleOpenSpeechSettings = useCallback(() => {
     setSettingsInitialTab('voice');
+    setShowSettingsDialog(true);
+  }, []);
+
+  const handleOpenModelSettings = useCallback(() => {
+    setSettingsInitialTab('providers');
     setShowSettingsDialog(true);
   }, []);
 
@@ -1160,22 +1166,32 @@ export default function ExecutionPage() {
 {/* Running state input with Stop button */}
       {currentTask.status === 'running' && !permissionRequest && (
         <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4">
-          <div className="max-w-4xl mx-auto flex gap-3">
-            <Input
-              placeholder="Agent is working..."
-              disabled
-              className="flex-1 opacity-50"
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={interruptTask}
-              title="Stop agent (Ctrl+C)"
-              className="shrink-0 hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
-              data-testid="execution-stop-button"
-            >
-              <Square className="h-4 w-4 fill-current" />
-            </Button>
+          <div className="max-w-4xl mx-auto flex flex-col gap-2">
+            {/* Model indicator above input */}
+            <div className="flex justify-start">
+              <ModelIndicator
+                isRunning={true}
+                onOpenSettings={handleOpenModelSettings}
+              />
+            </div>
+            {/* Input row */}
+            <div className="flex gap-3 items-center">
+              <Input
+                placeholder="Agent is working..."
+                disabled
+                className="flex-1 opacity-50"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={interruptTask}
+                title="Stop agent (Ctrl+C)"
+                className="shrink-0 hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
+                data-testid="execution-stop-button"
+              >
+                <Square className="h-4 w-4 fill-current" />
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -1183,11 +1199,18 @@ export default function ExecutionPage() {
       {/* Follow-up input */}
       {canFollowUp && (
         <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto flex flex-col gap-2">
+            {/* Model indicator above input */}
+            <div className="flex justify-start">
+              <ModelIndicator
+                isRunning={false}
+                onOpenSettings={handleOpenModelSettings}
+              />
+            </div>
             {speechInput.error && (
               <Alert
                 variant="destructive"
-                className="mb-2 py-2 px-3 flex items-center gap-2 [&>svg]:static [&>svg~*]:pl-0"
+                className="py-2 px-3 flex items-center gap-2 [&>svg]:static [&>svg~*]:pl-0"
               >
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="text-xs leading-tight">
@@ -1205,7 +1228,7 @@ export default function ExecutionPage() {
               </Alert>
             )}
             {/* Input field with Send button */}
-            <div className="flex gap-3">
+            <div className="flex gap-3 items-center">
               <Input
                 ref={followUpInputRef}
                 value={followUp}

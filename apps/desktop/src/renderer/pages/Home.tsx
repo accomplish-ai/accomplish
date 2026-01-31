@@ -145,6 +145,11 @@ export default function HomePage() {
     setShowSettingsDialog(true);
   }, []);
 
+  const handleOpenModelSettings = useCallback(() => {
+    setSettingsInitialTab('providers');
+    setShowSettingsDialog(true);
+  }, []);
+
   const handleApiKeySaved = async () => {
     // API key was saved - close dialog and execute the task
     setShowSettingsDialog(false);
@@ -198,6 +203,7 @@ export default function HomePage() {
                 large={true}
                 autoFocus={true}
                 onOpenSpeechSettings={handleOpenSpeechSettings}
+                onOpenModelSettings={handleOpenModelSettings}
               />
             </CardContent>
 

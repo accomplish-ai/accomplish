@@ -5,6 +5,7 @@ import { getAccomplish } from '../../lib/accomplish';
 import { CornerDownLeft, Loader2, AlertCircle } from 'lucide-react';
 import { useSpeechInput } from '../../hooks/useSpeechInput';
 import { SpeechInputButton } from '../ui/SpeechInputButton';
+import { ModelIndicator } from '../ui/ModelIndicator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface TaskInputBarProps {
@@ -22,6 +23,10 @@ interface TaskInputBarProps {
    */
   onOpenSpeechSettings?: () => void;
   /**
+   * Called when user wants to open settings to change model
+   */
+  onOpenModelSettings?: () => void;
+  /**
    * Automatically submit after a successful transcription.
    */
   autoSubmitOnTranscription?: boolean;
@@ -37,6 +42,7 @@ export default function TaskInputBar({
   large = false,
   autoFocus = false,
   onOpenSpeechSettings,
+  onOpenModelSettings,
   autoSubmitOnTranscription = true,
 }: TaskInputBarProps) {
   const isDisabled = disabled || isLoading;
@@ -140,6 +146,14 @@ export default function TaskInputBar({
           rows={1}
           className={`max-h-[200px] flex-1 resize-none bg-transparent text-foreground placeholder:text-gray-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${large ? 'text-[20px]' : 'text-sm'}`}
         />
+
+        {/* Model Indicator */}
+        {onOpenModelSettings && (
+          <ModelIndicator
+            isRunning={false}
+            onOpenSettings={onOpenModelSettings}
+          />
+        )}
 
         {/* Speech Input Button */}
         <SpeechInputButton
