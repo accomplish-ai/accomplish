@@ -58,6 +58,7 @@ interface AccomplishAPI {
   setOpenAiBaseUrl(baseUrl: string): Promise<void>;
   getOpenAiOauthStatus(): Promise<{ connected: boolean; expires?: number }>;
   loginOpenAiWithChatGpt(): Promise<{ ok: boolean; openedUrl?: string }>;
+  cancelOpenAiLogin(): Promise<boolean>;
 
   // API Key management
   hasApiKey(): Promise<boolean>;

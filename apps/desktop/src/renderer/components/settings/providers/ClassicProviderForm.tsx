@@ -160,6 +160,15 @@ export function ClassicProviderForm({
     }
   };
 
+  const handleCancelSignIn = async () => {
+    try {
+      const accomplish = getAccomplish();
+      await accomplish.cancelOpenAiLogin();
+    } catch {
+      // Ignore errors - the main flow will handle the cancellation
+    }
+  };
+
   return (
     <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
       <ProviderFormHeader logoSrc={logoSrc} providerName={meta.name} />
@@ -168,16 +177,35 @@ export function ClassicProviderForm({
       {isOpenAI && !isConnected && (
         <div className="space-y-4">
           {/* OAuth login button */}
-          <button
-            type="button"
-            onClick={handleChatGptSignIn}
-            disabled={signingIn}
-            data-testid="openai-oauth-signin"
-            className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
-          >
-            <img src={openaiLogo} alt="" className="h-5 w-5" />
-            {signingIn ? 'Signing in...' : 'Login with OpenAI'}
-          </button>
+          {signingIn ? (
+            <div className="space-y-2">
+              <div className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-muted px-4 py-3 text-sm font-medium text-muted-foreground">
+                <img src={openaiLogo} alt="" className="h-5 w-5 opacity-50" />
+                <span>Waiting for sign-in...</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCancelSignIn}
+                data-testid="openai-oauth-cancel"
+                className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                Cancel sign-in
+              </button>
+              <p className="text-xs text-center text-muted-foreground">
+                Complete sign-in in your browser, or cancel to try again.
+              </p>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleChatGptSignIn}
+              data-testid="openai-oauth-signin"
+              className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              <img src={openaiLogo} alt="" className="h-5 w-5" />
+              Login with OpenAI
+            </button>
+          )}
 
           {/* Divider with "or" */}
           <div className="flex items-center gap-3">

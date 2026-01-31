@@ -63,6 +63,8 @@ const accomplishAPI = {
     ipcRenderer.invoke('opencode:auth:openai:status'),
   loginOpenAiWithChatGpt: (): Promise<{ ok: boolean; openedUrl?: string }> =>
     ipcRenderer.invoke('opencode:auth:openai:login'),
+  cancelOpenAiLogin: (): Promise<boolean> =>
+    ipcRenderer.invoke('opencode:auth:openai:cancel'),
 
   // API Key management (new simplified handlers)
   hasApiKey: (): Promise<boolean> =>

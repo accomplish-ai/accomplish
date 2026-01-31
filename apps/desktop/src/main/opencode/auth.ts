@@ -2,6 +2,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as pty from 'node-pty';
+import type { IPty } from 'node-pty';
 import { app, shell } from 'electron';
 import { getOpenCodeCliPath } from './cli-path';
 import { generateOpenCodeConfig } from './config-generator';
@@ -12,6 +13,12 @@ interface OpenCodeOauthAuthEntry {
   access?: string;
   expires?: number;
 }
+
+// OAuth timeout in milliseconds (2 minutes)
+const OAUTH_TIMEOUT_MS = 2 * 60 * 1000;
+
+// Track the current OAuth PTY process for cancellation
+let currentOAuthProcess: IPty | null = null;
 
 function getOpenCodeDataHome(): string {
   if (process.platform === 'win32') {
@@ -89,7 +96,36 @@ function getShellArgs(command: string): string[] {
   return ['-c', command];
 }
 
+/**
+ * Cancel any in-progress OpenAI OAuth login.
+ * Returns true if a process was killed, false if no process was running.
+ */
+export function cancelOpenAiLogin(): boolean {
+  if (currentOAuthProcess) {
+    try {
+      currentOAuthProcess.kill();
+    } catch {
+      // Process may have already exited
+    }
+    currentOAuthProcess = null;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Check if an OAuth login is currently in progress.
+ */
+export function isOpenAiLoginInProgress(): boolean {
+  return currentOAuthProcess !== null;
+}
+
 export async function loginOpenAiWithChatGpt(): Promise<{ openedUrl?: string }> {
+  // If a login is already in progress, cancel it first
+  if (currentOAuthProcess) {
+    cancelOpenAiLogin();
+  }
+
   await generateOpenCodeConfig();
 
   const { command, args: baseArgs } = getOpenCodeCliPath();
@@ -114,6 +150,16 @@ export async function loginOpenAiWithChatGpt(): Promise<{ openedUrl?: string }> 
     let hasSelectedProvider = false;
     let hasSelectedLoginMethod = false;
     let buffer = '';
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let settled = false;
+
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      currentOAuthProcess = null;
+    };
 
     const proc = pty.spawn(shellCmd, shellArgs, {
       name: 'xterm-256color',
@@ -122,6 +168,26 @@ export async function loginOpenAiWithChatGpt(): Promise<{ openedUrl?: string }> 
       cwd: safeCwd,
       env,
     });
+
+    // Store reference for cancellation
+    currentOAuthProcess = proc;
+
+    // Set up timeout
+    timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      try {
+        proc.kill();
+      } catch {
+        // Process may have already exited
+      }
+      cleanup();
+      reject(
+        new Error(
+          'OpenAI sign-in timed out. Please try again and complete the sign-in in your browser within 2 minutes.'
+        )
+      );
+    }, OAUTH_TIMEOUT_MS);
 
     const tryOpenExternal = async (url: string) => {
       if (openedUrl) return;
@@ -162,6 +228,10 @@ export async function loginOpenAiWithChatGpt(): Promise<{ openedUrl?: string }> 
     });
 
     proc.onExit(({ exitCode, signal }) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+
       if (exitCode === 0) {
         resolve({ openedUrl });
         return;
@@ -170,12 +240,18 @@ export async function loginOpenAiWithChatGpt(): Promise<{ openedUrl?: string }> 
       const redacted = tail
         .replace(/https?:\/\/\S+/g, '[url]')
         .replace(/sk-(?:ant-|or-)?[A-Za-z0-9_-]+/g, 'sk-[redacted]');
-      reject(
-        new Error(
-          `OpenCode auth login failed (exit ${exitCode}, signal ${signal ?? 'none'})` +
-            (redacted ? `\n\nOutput:\n${redacted}` : '')
-        )
-      );
+
+      // Check if this was a user cancellation (SIGTERM/SIGKILL results in signal being set)
+      if (signal) {
+        reject(new Error('OpenAI sign-in was cancelled.'));
+      } else {
+        reject(
+          new Error(
+            `OpenCode auth login failed (exit ${exitCode}, signal ${signal ?? 'none'})` +
+              (redacted ? `\n\nOutput:\n${redacted}` : '')
+          )
+        );
+      }
     });
   });
 }

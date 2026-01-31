@@ -63,7 +63,7 @@ import {
   getProviderDebugMode,
   hasReadyProvider,
 } from '../store/providerSettings';
-import { getOpenAiOauthStatus, loginOpenAiWithChatGpt } from '../opencode/auth';
+import { getOpenAiOauthStatus, loginOpenAiWithChatGpt, cancelOpenAiLogin } from '../opencode/auth';
 import type { ProviderId, ConnectedProvider, BedrockCredentials } from '@accomplish/shared';
 import { getDesktopConfig } from '../config';
 import {
@@ -2311,6 +2311,11 @@ export function registerIPCHandlers(): void {
   handle('opencode:auth:openai:login', async (_event: IpcMainInvokeEvent) => {
     const result = await loginOpenAiWithChatGpt();
     return { ok: true, ...result };
+  });
+
+  // OpenAI OAuth (ChatGPT) cancel login
+  handle('opencode:auth:openai:cancel', async (_event: IpcMainInvokeEvent) => {
+    return cancelOpenAiLogin();
   });
 
   // Onboarding: Get onboarding complete status

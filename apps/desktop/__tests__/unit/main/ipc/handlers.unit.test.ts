@@ -91,6 +91,7 @@ vi.mock('@main/opencode/adapter', () => ({
 vi.mock('@main/opencode/auth', () => ({
   getOpenAiOauthStatus: vi.fn(() => ({ connected: false })),
   loginOpenAiWithChatGpt: vi.fn(() => Promise.resolve({ openedUrl: undefined })),
+  cancelOpenAiLogin: vi.fn(() => false),
 }));
 
 // Mock task manager
