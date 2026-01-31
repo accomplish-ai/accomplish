@@ -178,7 +178,11 @@ export default function ExecutionPage() {
   const [debugPanelOpen, setDebugPanelOpen] = useState(false);
   const [debugModeEnabled, setDebugModeEnabled] = useState(false);
   const [debugExported, setDebugExported] = useState(false);
+  const [debugSearchQuery, setDebugSearchQuery] = useState('');
+  const [debugSearchIndex, setDebugSearchIndex] = useState(0); // Current focused match index
   const debugPanelRef = useRef<HTMLDivElement>(null);
+  const debugSearchInputRef = useRef<HTMLInputElement>(null);
+  const debugLogRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [customResponse, setCustomResponse] = useState('');
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
@@ -232,6 +236,54 @@ export default function ExecutionPage() {
       console.error('[Speech] Error:', error.message);
     },
   });
+
+  // Filter debug logs based on search query
+  const filteredDebugLogs = useMemo(() => {
+    if (!debugSearchQuery.trim()) return debugLogs;
+    const query = debugSearchQuery.toLowerCase();
+    return debugLogs.filter(log =>
+      log.message.toLowerCase().includes(query) ||
+      log.type.toLowerCase().includes(query) ||
+      (log.data !== undefined &&
+        (typeof log.data === 'string' ? log.data : JSON.stringify(log.data))
+          .toLowerCase().includes(query))
+    );
+  }, [debugLogs, debugSearchQuery]);
+
+  // Reset search index when query changes
+  useEffect(() => {
+    setDebugSearchIndex(0);
+  }, [debugSearchQuery]);
+
+  // Navigate to next/previous match
+  const goToNextMatch = useCallback(() => {
+    if (filteredDebugLogs.length === 0) return;
+    const nextIndex = (debugSearchIndex + 1) % filteredDebugLogs.length;
+    setDebugSearchIndex(nextIndex);
+    // Scroll the row into view
+    const rowEl = debugLogRefs.current.get(nextIndex);
+    rowEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [filteredDebugLogs.length, debugSearchIndex]);
+
+  const goToPrevMatch = useCallback(() => {
+    if (filteredDebugLogs.length === 0) return;
+    const prevIndex = (debugSearchIndex - 1 + filteredDebugLogs.length) % filteredDebugLogs.length;
+    setDebugSearchIndex(prevIndex);
+    // Scroll the row into view
+    const rowEl = debugLogRefs.current.get(prevIndex);
+    rowEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [filteredDebugLogs.length, debugSearchIndex]);
+
+  // Highlight matching text in debug logs
+  const highlightText = useCallback((text: string, query: string) => {
+    if (!query.trim()) return text;
+    const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+    return parts.map((part, i) =>
+      part.toLowerCase() === query.toLowerCase() ? (
+        <mark key={i} className="bg-yellow-500/40 text-yellow-200 rounded px-0.5">{part}</mark>
+      ) : part
+    );
+  }, []);
 
   // Debounced scroll function
   const scrollToBottom = useMemo(
@@ -293,8 +345,9 @@ export default function ExecutionPage() {
   useEffect(() => {
     if (id) {
       loadTaskById(id);
-      // Clear debug logs when switching tasks
+      // Clear debug logs and search when switching tasks
       setDebugLogs([]);
+      setDebugSearchQuery('');
     }
 
     // Handle individual task updates
@@ -380,6 +433,18 @@ export default function ExecutionPage() {
       debugPanelRef.current.scrollTop = debugPanelRef.current.scrollHeight;
     }
   }, [debugLogs.length, debugPanelOpen]);
+
+  // CMD+F to focus debug search when panel is open
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f' && debugPanelOpen && debugModeEnabled) {
+        e.preventDefault();
+        debugSearchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [debugPanelOpen, debugModeEnabled]);
 
   // Auto-focus follow-up input when task completes
   const isComplete = ['completed', 'failed', 'cancelled', 'interrupted'].includes(currentTask?.status ?? '');
@@ -1288,7 +1353,9 @@ export default function ExecutionPage() {
               <span className="font-medium">Debug Logs</span>
               {debugLogs.length > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full bg-zinc-700 text-zinc-300 text-xs">
-                  {debugLogs.length}
+                  {debugSearchQuery.trim() && filteredDebugLogs.length !== debugLogs.length
+                    ? `${filteredDebugLogs.length} of ${debugLogs.length}`
+                    : debugLogs.length}
                 </span>
               )}
             </div>
@@ -1343,42 +1410,112 @@ export default function ExecutionPage() {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div
-                  ref={debugPanelRef}
-                  className="h-[200px] overflow-y-auto bg-zinc-950 text-zinc-300 font-mono text-xs p-4"
-                >
-                  {debugLogs.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-zinc-500">
-                      No debug logs yet. Run a task to see logs.
+                <div className="h-[200px] flex flex-col bg-zinc-950">
+                  {/* Sticky search input - top right */}
+                  <div className="flex items-center justify-end gap-2 p-2 border-b border-zinc-800 shrink-0">
+                    {/* Match counter */}
+                    {debugSearchQuery.trim() && filteredDebugLogs.length > 0 && (
+                      <span className="text-xs text-zinc-500">
+                        {debugSearchIndex + 1} of {filteredDebugLogs.length}
+                      </span>
+                    )}
+                    {/* Navigation arrows */}
+                    {debugSearchQuery.trim() && filteredDebugLogs.length > 0 && (
+                      <div className="flex">
+                        <button
+                          onClick={goToPrevMatch}
+                          className="p-1 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-l border border-zinc-700 border-r-0"
+                          title="Previous match (Shift+Enter)"
+                        >
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={goToNextMatch}
+                          className="p-1 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-r border border-zinc-700"
+                          title="Next match (Enter)"
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500" />
+                      <input
+                        ref={debugSearchInputRef}
+                        type="text"
+                        value={debugSearchQuery}
+                        onChange={(e) => setDebugSearchQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && debugSearchQuery.trim()) {
+                            e.preventDefault();
+                            if (e.shiftKey) {
+                              goToPrevMatch();
+                            } else {
+                              goToNextMatch();
+                            }
+                          }
+                        }}
+                        placeholder="Search logs... (⌘F)"
+                        className="h-7 w-52 pl-7 pr-2 text-xs bg-zinc-800 border border-zinc-700 rounded text-zinc-300 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-500"
+                        data-testid="debug-search-input"
+                      />
                     </div>
-                  ) : (
-                    <div className="space-y-1">
-                      {debugLogs.map((log, index) => (
-                        <div key={index} className="flex gap-2">
-                          <span className="text-zinc-500 shrink-0">
-                            {new Date(log.timestamp).toLocaleTimeString()}
-                          </span>
-                          <span className={cn(
-                            'shrink-0 px-1 rounded',
-                            log.type === 'error' ? 'bg-red-500/20 text-red-400' :
-                            log.type === 'warn' ? 'bg-yellow-500/20 text-yellow-400' :
-                            log.type === 'info' ? 'bg-blue-500/20 text-blue-400' :
-                            'bg-zinc-700 text-zinc-400'
-                          )}>
-                            [{log.type}]
-                          </span>
-                          <span className="text-zinc-300 break-all">
-                            {log.message}
-                            {log.data !== undefined && (
-                              <span className="text-zinc-500 ml-2">
-                                {typeof log.data === 'string' ? log.data : JSON.stringify(log.data, null, 0)}
-                              </span>
+                  </div>
+                  {/* Scrollable logs area */}
+                  <div
+                    ref={debugPanelRef}
+                    className="flex-1 overflow-y-auto text-zinc-300 font-mono text-xs p-4"
+                  >
+                    {debugLogs.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-zinc-500">
+                        No debug logs yet. Run a task to see logs.
+                      </div>
+                    ) : filteredDebugLogs.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-zinc-500">
+                        No logs match your search
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {filteredDebugLogs.map((log, index) => (
+                          <div
+                            key={index}
+                            ref={(el) => {
+                              if (el) debugLogRefs.current.set(index, el);
+                              else debugLogRefs.current.delete(index);
+                            }}
+                            className={cn(
+                              'flex gap-2 px-1 -mx-1 rounded',
+                              debugSearchQuery.trim() && index === debugSearchIndex && 'bg-zinc-800/80 ring-1 ring-zinc-600'
                             )}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                          >
+                            <span className="text-zinc-500 shrink-0">
+                              {new Date(log.timestamp).toLocaleTimeString()}
+                            </span>
+                            <span className={cn(
+                              'shrink-0 px-1 rounded',
+                              log.type === 'error' ? 'bg-red-500/20 text-red-400' :
+                              log.type === 'warn' ? 'bg-yellow-500/20 text-yellow-400' :
+                              log.type === 'info' ? 'bg-blue-500/20 text-blue-400' :
+                              'bg-zinc-700 text-zinc-400'
+                            )}>
+                              [{highlightText(log.type, debugSearchQuery)}]
+                            </span>
+                            <span className="text-zinc-300 break-all">
+                              {highlightText(log.message, debugSearchQuery)}
+                              {log.data !== undefined && (
+                                <span className="text-zinc-500 ml-2">
+                                  {highlightText(
+                                    typeof log.data === 'string' ? log.data : JSON.stringify(log.data, null, 0),
+                                    debugSearchQuery
+                                  )}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             )}
