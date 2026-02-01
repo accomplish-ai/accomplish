@@ -179,11 +179,22 @@ if (!gotTheLock) {
     nodeVersion: process.version,
   });
 
-  app.on('second-instance', () => {
+  app.on('second-instance', (_event, commandLine) => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
       console.log('[Main] Focused existing instance after second-instance event');
+
+      // On Windows, protocol URLs come through commandLine on second-instance
+      if (process.platform === 'win32') {
+        const protocolUrl = commandLine.find((arg) => arg.startsWith('accomplish://'));
+        if (protocolUrl) {
+          console.log('[Main] Received protocol URL from second-instance:', protocolUrl);
+          if (protocolUrl.startsWith('accomplish://callback')) {
+            mainWindow.webContents.send('auth:callback', protocolUrl);
+          }
+        }
+      }
     }
   });
 
@@ -291,7 +302,37 @@ app.on('before-quit', () => {
 });
 
 // Handle custom protocol (accomplish://)
-app.setAsDefaultProtocolClient('accomplish');
+// On Windows in dev mode, we need to pass the script path for protocol registration
+if (process.platform === 'win32' && !app.isPackaged) {
+  app.setAsDefaultProtocolClient('accomplish', process.execPath, [
+    path.resolve(process.argv[1]),
+  ]);
+} else {
+  app.setAsDefaultProtocolClient('accomplish');
+}
+
+// Handle protocol URL from process.argv (Windows first launch with protocol URL)
+function handleProtocolUrlFromArgs(): void {
+  if (process.platform === 'win32') {
+    const protocolUrl = process.argv.find((arg) => arg.startsWith('accomplish://'));
+    if (protocolUrl) {
+      console.log('[Main] Received protocol URL from argv:', protocolUrl);
+      // Delay sending until window is ready
+      app.whenReady().then(() => {
+        setTimeout(() => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            if (protocolUrl.startsWith('accomplish://callback')) {
+              mainWindow.webContents.send('auth:callback', protocolUrl);
+            }
+          }
+        }, 1000);
+      });
+    }
+  }
+}
+
+// Check for protocol URL on startup
+handleProtocolUrlFromArgs();
 
 app.on('open-url', (event, url) => {
   event.preventDefault();

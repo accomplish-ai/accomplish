@@ -905,8 +905,8 @@ export default function ExecutionPage() {
                           ({currentTool})
                         </span>
                       )}
-                      {/* Elapsed time - only show during startup stages */}
-                      {!currentTool && startupStageTaskId === id && startupStage && (
+                      {/* Elapsed time - only show during startup stages when valid */}
+                      {!currentTool && startupStageTaskId === id && startupStage && elapsedTime > 0 && (
                         <span className="text-xs text-muted-foreground/60">
                           ({elapsedTime}s)
                         </span>

@@ -3,8 +3,15 @@
 const path = require('path');
 const fs = require('fs');
 const esbuild = require('esbuild');
+const { execSync } = require('child_process');
 
 const skillsDir = path.join(__dirname, '..', 'skills');
+
+// Skills that have runtime dependencies (playwright) that cannot be bundled
+const SKILLS_WITH_RUNTIME_DEPS = ['dev-browser', 'dev-browser-mcp'];
+
+// Skills that are fully bundled (no runtime node_modules needed)
+const SKILLS_FULLY_BUNDLED = ['ask-user-question', 'file-permission', 'complete-task'];
 
 const bundles = [
   {
@@ -84,15 +91,53 @@ async function bundleSkill({ name, entry, outfile, external = [], banner: needsB
   });
 }
 
-function prunePerSkillNodeModules() {
-  const entries = fs.readdirSync(skillsDir, { withFileTypes: true });
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const skillPath = path.join(skillsDir, entry.name);
+/**
+ * For packaged builds, reinstall only production dependencies.
+ * - Skills with runtime deps (playwright): npm install --omit=dev
+ * - Fully bundled skills: remove node_modules entirely
+ */
+function reinstallProductionDepsForBundledBuild() {
+  // Handle skills with runtime dependencies (need playwright)
+  for (const skillName of SKILLS_WITH_RUNTIME_DEPS) {
+    const skillPath = path.join(skillsDir, skillName);
     const nodeModulesPath = path.join(skillPath, 'node_modules');
+    const packageJsonPath = path.join(skillPath, 'package.json');
+
+    if (!fs.existsSync(packageJsonPath)) {
+      console.log(`[bundle-skills] Skipping ${skillName}: no package.json`);
+      continue;
+    }
+
+    // Remove existing node_modules
     if (fs.existsSync(nodeModulesPath)) {
       fs.rmSync(nodeModulesPath, { recursive: true, force: true });
       console.log(`[bundle-skills] Removed ${nodeModulesPath}`);
+    }
+
+    // Reinstall with production deps only (--omit=dev skips devDependencies)
+    // Note: We don't use --ignore-scripts because playwright needs its postinstall
+    // script to download browser binaries
+    console.log(`[bundle-skills] Installing production deps for ${skillName}...`);
+    try {
+      execSync('npm install --omit=dev', {
+        cwd: skillPath,
+        stdio: 'inherit',
+      });
+      console.log(`[bundle-skills] Installed production deps for ${skillName}`);
+    } catch (error) {
+      console.error(`[bundle-skills] Failed to install deps for ${skillName}:`, error.message);
+      throw error;
+    }
+  }
+
+  // Handle fully bundled skills (no runtime deps needed)
+  for (const skillName of SKILLS_FULLY_BUNDLED) {
+    const skillPath = path.join(skillsDir, skillName);
+    const nodeModulesPath = path.join(skillPath, 'node_modules');
+
+    if (fs.existsSync(nodeModulesPath)) {
+      fs.rmSync(nodeModulesPath, { recursive: true, force: true });
+      console.log(`[bundle-skills] Removed ${nodeModulesPath} (fully bundled)`);
     }
   }
 }
@@ -103,10 +148,10 @@ async function main() {
     await bundleSkill(bundle);
   }
 
-  const shouldPrune = process.env.CI === 'true' || process.env.OPENWORK_BUNDLED_SKILLS === '1';
-  if (shouldPrune) {
-    console.log('[bundle-skills] Pruning per-skill node_modules for packaged build');
-    prunePerSkillNodeModules();
+  const shouldOptimize = process.env.CI === 'true' || process.env.OPENWORK_BUNDLED_SKILLS === '1';
+  if (shouldOptimize) {
+    console.log('[bundle-skills] Optimizing skill dependencies for packaged build...');
+    reinstallProductionDepsForBundledBuild();
   }
 
   console.log('[bundle-skills] Done');
