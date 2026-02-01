@@ -9,12 +9,22 @@
  * - Uses port 9227 for Chrome CDP (vs 9225)
  * - Uses isolated Chrome profile at ~/.accomplish-test-local-agent-chrome
  * - Writes config to ~/.opencode/opencode-test-local-agent.json
+ *
+ * IMPORTANT: This uses the SAME agent configuration (system prompt, MCP servers)
+ * as production via the shared-config module. Only ports and paths differ.
  */
 
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
+
+// Import shared config builder - this ensures test uses the SAME agent as production
+import {
+  buildOpenCodeConfig,
+  createNpxTsxCommandResolver,
+  type OpenCodeConfig,
+} from '../src/main/opencode/shared-config';
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -29,25 +39,6 @@ const TEST_LOCAL_AGENT_CHROME_PROFILE = path.join(os.homedir(), '.accomplish-tes
 const PERMISSION_API_PORT = 3847;
 const QUESTION_API_PORT = 3848;
 
-interface McpServerConfig {
-  type?: 'local' | 'remote';
-  command?: string[];
-  enabled?: boolean;
-  environment?: Record<string, string>;
-  timeout?: number;
-}
-
-interface OpenCodeConfig {
-  $schema?: string;
-  model?: string;
-  default_agent?: string;
-  enabled_providers?: string[];
-  permission?: string;
-  agent?: Record<string, { description?: string; prompt?: string; mode?: string }>;
-  mcp?: Record<string, McpServerConfig>;
-  provider?: Record<string, unknown>;
-}
-
 /**
  * Get the skills directory path relative to this script
  */
@@ -58,39 +49,10 @@ function getSkillsPath(): string {
 }
 
 /**
- * Generate the system prompt for the Accomplish agent
- */
-function getSystemPrompt(): string {
-  const platformInstructions = process.platform === 'darwin'
-    ? 'You are running on macOS.'
-    : process.platform === 'win32'
-    ? 'You are running on Windows. Use PowerShell syntax.'
-    : 'You are running on Linux.';
-
-  return `<identity>
-You are Accomplish, a browser automation assistant.
-</identity>
-
-<environment>
-${platformInstructions}
-</environment>
-
-<capabilities>
-When users ask about your capabilities, mention:
-- **Browser Automation**: Control web browsers, navigate sites, fill forms, click buttons
-- **File Management**: Sort, rename, and move files based on content or rules
-</capabilities>
-
-<behavior>
-- Use MCP tools directly - browser_navigate, browser_snapshot, browser_click, browser_type
-- NEVER use shell commands to open browsers - ALL browser operations MUST use browser_* MCP tools
-- After each action, evaluate the result before deciding next steps
-</behavior>
-`;
-}
-
-/**
  * Generate isolated OpenCode config for test local agent
+ *
+ * This uses the SAME config structure as production (via shared-config module),
+ * just with isolated ports and paths for testing.
  */
 export function generateTestLocalAgentConfig(): string {
   const homeDir = os.homedir();
@@ -109,57 +71,23 @@ export function generateTestLocalAgentConfig(): string {
 
   const skillsPath = getSkillsPath();
 
-  const config: OpenCodeConfig = {
-    $schema: 'https://opencode.ai/config.json',
-    default_agent: 'accomplish',
-    enabled_providers: ['anthropic', 'openai', 'google', 'xai'],
-    permission: 'allow',
-    agent: {
-      accomplish: {
-        description: 'Browser automation assistant for test local agent',
-        prompt: getSystemPrompt(),
-        mode: 'primary',
-      },
+  // Build config using the SAME shared config builder as production
+  // Only differences: isolated ports and browser profile for testing
+  const config: OpenCodeConfig = buildOpenCodeConfig({
+    ports: {
+      permissionApi: PERMISSION_API_PORT,
+      questionApi: QUESTION_API_PORT,
+      browserHttp: TEST_LOCAL_AGENT_HTTP_PORT,
+      browserCdp: TEST_LOCAL_AGENT_CDP_PORT,
     },
-    mcp: {
-      'file-permission': {
-        type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'file-permission', 'src', 'index.ts')],
-        enabled: true,
-        environment: {
-          PERMISSION_API_PORT: String(PERMISSION_API_PORT),
-        },
-        timeout: 10000,
-      },
-      'ask-user-question': {
-        type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'ask-user-question', 'src', 'index.ts')],
-        enabled: true,
-        environment: {
-          QUESTION_API_PORT: String(QUESTION_API_PORT),
-        },
-        timeout: 10000,
-      },
-      'dev-browser-mcp': {
-        type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'dev-browser-mcp', 'src', 'index.ts')],
-        enabled: true,
-        environment: {
-          // Override ports for isolation
-          DEV_BROWSER_PORT: String(TEST_LOCAL_AGENT_HTTP_PORT),
-          DEV_BROWSER_CDP_PORT: String(TEST_LOCAL_AGENT_CDP_PORT),
-          DEV_BROWSER_PROFILE: TEST_LOCAL_AGENT_CHROME_PROFILE,
-        },
-        timeout: 30000,
-      },
-      'complete-task': {
-        type: 'local',
-        command: ['npx', 'tsx', path.join(skillsPath, 'complete-task', 'src', 'index.ts')],
-        enabled: true,
-        timeout: 5000,
-      },
+    paths: {
+      skillsPath,
+      browserProfile: TEST_LOCAL_AGENT_CHROME_PROFILE,
     },
-  };
+    commandResolver: createNpxTsxCommandResolver(skillsPath),
+    // Use all default providers - API keys come from environment
+    enabledProviders: ['anthropic', 'openai', 'google', 'xai', 'deepseek'],
+  });
 
   const configJson = JSON.stringify(config, null, 2);
   fs.writeFileSync(configPath, configJson);
@@ -167,6 +95,7 @@ export function generateTestLocalAgentConfig(): string {
   console.log('[test-local-agent] Config generated at:', configPath);
   console.log('[test-local-agent] Using ports:', { http: TEST_LOCAL_AGENT_HTTP_PORT, cdp: TEST_LOCAL_AGENT_CDP_PORT });
   console.log('[test-local-agent] Chrome profile:', TEST_LOCAL_AGENT_CHROME_PROFILE);
+  console.log('[test-local-agent] Using SAME agent config as production (via shared-config)');
 
   return configPath;
 }
