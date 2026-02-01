@@ -360,32 +360,35 @@ export default function ExecutionPage() {
     // Handle individual task updates
     const unsubscribeTask = accomplish.onTaskUpdate((event) => {
       addTaskUpdate(event);
-      // Track current tool from tool messages
-      if (event.type === 'message' && event.message?.type === 'tool') {
+      // Track current tool from tool messages (only for current task to prevent UI leaking)
+      if (event.taskId === id && event.type === 'message' && event.message?.type === 'tool') {
         const toolName = event.message.toolName || event.message.content?.match(/Using tool: (\w+)/)?.[1];
         if (toolName) {
           setCurrentTool(toolName);
           setCurrentToolInput(event.message.toolInput);
         }
       }
-      // Clear tool on completion
-      if (event.type === 'complete' || event.type === 'error') {
+      // Clear tool on completion (only for current task)
+      if (event.taskId === id && (event.type === 'complete' || event.type === 'error')) {
         setCurrentTool(null);
         setCurrentToolInput(null);
       }
     });
 
     // Handle batched task updates (for performance)
+    // Only update local UI state for current task to prevent UI leaking between parallel tasks
     const unsubscribeTaskBatch = accomplish.onTaskUpdateBatch?.((event) => {
       if (event.messages?.length) {
         addTaskUpdateBatch(event);
-        // Track current tool from the last tool message
-        const lastToolMsg = [...event.messages].reverse().find(m => m.type === 'tool');
-        if (lastToolMsg) {
-          const toolName = lastToolMsg.toolName || lastToolMsg.content?.match(/Using tool: (\w+)/)?.[1];
-          if (toolName) {
-            setCurrentTool(toolName);
-            setCurrentToolInput(lastToolMsg.toolInput);
+        // Track current tool from the last tool message (only for current task)
+        if (event.taskId === id) {
+          const lastToolMsg = [...event.messages].reverse().find(m => m.type === 'tool');
+          if (lastToolMsg) {
+            const toolName = lastToolMsg.toolName || lastToolMsg.content?.match(/Using tool: (\w+)/)?.[1];
+            if (toolName) {
+              setCurrentTool(toolName);
+              setCurrentToolInput(lastToolMsg.toolInput);
+            }
           }
         }
       }
