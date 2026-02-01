@@ -6,6 +6,7 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
+import type { TodoItem } from '@accomplish/shared';
 
 // Expose the accomplish API to the renderer
 const accomplishAPI = {
@@ -30,6 +31,8 @@ const accomplishAPI = {
   deleteTask: (taskId: string): Promise<void> =>
     ipcRenderer.invoke('task:delete', taskId),
   clearTaskHistory: (): Promise<void> => ipcRenderer.invoke('task:clear-history'),
+  getTodosForTask: (taskId: string): Promise<TodoItem[]> =>
+    ipcRenderer.invoke('task:get-todos', taskId),
 
   // Permission responses
   respondToPermission: (response: { taskId: string; allowed: boolean }): Promise<void> =>

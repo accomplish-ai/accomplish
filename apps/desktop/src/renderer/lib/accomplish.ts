@@ -162,6 +162,9 @@ interface AccomplishAPI {
   setProviderDebugMode(enabled: boolean): Promise<void>;
   getProviderDebugMode(): Promise<boolean>;
 
+  // Todo operations
+  getTodosForTask(taskId: string): Promise<TodoItem[]>;
+
   // Event subscriptions
   onTaskUpdate(callback: (event: TaskUpdateEvent) => void): () => void;
   onTaskUpdateBatch?(callback: (event: { taskId: string; messages: TaskMessage[] }) => void): () => void;

@@ -23,6 +23,9 @@ import {
   addTaskMessage,
   deleteTask,
   clearHistory,
+  saveTodosForTask,
+  getTodosForTask,
+  clearTodosForTask,
 } from '../store/taskHistory';
 import { generateTaskSummary } from '../services/summarizer';
 import {
@@ -416,6 +419,11 @@ export function registerIPCHandlers(): void {
         if (sessionId) {
           updateTaskSessionId(taskId, sessionId);
         }
+
+        // Clear todos from DB only on success (keep todos for failed/interrupted tasks so user can see what was incomplete)
+        if (result.status === 'success') {
+          clearTodosForTask(taskId);
+        }
       },
 
       onError: (error: Error) => {
@@ -453,6 +461,9 @@ export function registerIPCHandlers(): void {
       },
 
       onTodoUpdate: (todos: TodoItem[]) => {
+        // Save to database for persistence
+        saveTodosForTask(taskId, todos);
+        // Forward to renderer for immediate UI update
         forwardToRenderer('todo:update', { taskId, todos });
       },
 
@@ -537,6 +548,11 @@ export function registerIPCHandlers(): void {
   // Task: Clear all history
   handle('task:clear-history', async (_event: IpcMainInvokeEvent) => {
     clearHistory();
+  });
+
+  // Task: Get todos for a specific task
+  handle('task:get-todos', async (_event: IpcMainInvokeEvent, taskId: string) => {
+    return getTodosForTask(taskId);
   });
 
   // Permission: Respond to permission request
@@ -677,6 +693,11 @@ export function registerIPCHandlers(): void {
         if (newSessionId) {
           updateTaskSessionId(taskId, newSessionId);
         }
+
+        // Clear todos from DB only on success (keep todos for failed/interrupted tasks so user can see what was incomplete)
+        if (result.status === 'success') {
+          clearTodosForTask(taskId);
+        }
       },
 
       onError: (error: Error) => {
@@ -714,6 +735,9 @@ export function registerIPCHandlers(): void {
       },
 
       onTodoUpdate: (todos: TodoItem[]) => {
+        // Save to database for persistence
+        saveTodosForTask(taskId, todos);
+        // Forward to renderer for immediate UI update
         forwardToRenderer('todo:update', { taskId, todos });
       },
     };

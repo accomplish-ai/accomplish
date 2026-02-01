@@ -627,9 +627,13 @@ if (typeof window !== 'undefined' && window.accomplish) {
     useTaskStore.getState().setTaskSummary(data.taskId, data.summary);
   });
 
-  // Subscribe to todo updates
+  // Subscribe to todo updates - only update if for current task
   window.accomplish.onTodoUpdate?.((data: { taskId: string; todos: TodoItem[] }) => {
-    useTaskStore.getState().setTodos(data.taskId, data.todos);
+    const state = useTaskStore.getState();
+    // Only update todos if they're for the currently viewed task
+    if (state.currentTask?.id === data.taskId) {
+      state.setTodos(data.taskId, data.todos);
+    }
   });
 
   // Subscribe to auth error events (e.g., OAuth token expired)

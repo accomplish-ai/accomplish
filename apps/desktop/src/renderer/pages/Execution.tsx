@@ -349,6 +349,11 @@ export default function ExecutionPage() {
       // Clear debug logs and search when switching tasks
       setDebugLogs([]);
       setDebugSearchQuery('');
+
+      // Fetch todos for this task from database (always set, even if empty, to clear stale todos)
+      accomplish.getTodosForTask(id).then((todos) => {
+        useTaskStore.getState().setTodos(id, todos);
+      });
     }
 
     // Handle individual task updates
@@ -969,8 +974,9 @@ export default function ExecutionPage() {
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={springs.bouncy}
             >
-              <Card className="w-full max-w-lg p-6 mx-4 max-h-[80vh] flex flex-col">
-                <div className="flex items-start gap-4 min-h-0 flex-1 overflow-hidden">
+              <Card className="w-full max-w-lg mx-4 max-h-[80vh] flex flex-col overflow-hidden">
+                {/* Header - always visible */}
+                <div className="flex items-start gap-4 p-6 pb-4 shrink-0">
                   <div className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full shrink-0",
                     isDeleteOperation(permissionRequest) ? "bg-red-500/10" :
@@ -987,20 +993,22 @@ export default function ExecutionPage() {
                       <AlertCircle className="h-5 w-5 text-warning" />
                     )}
                   </div>
-                  <div className="flex-1 min-w-0 overflow-y-auto">
-                    <h3 className={cn(
-                      "text-lg font-semibold mb-2",
-                      isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
-                    )}>
-                      {isDeleteOperation(permissionRequest)
-                        ? 'File Deletion Warning'
-                        : permissionRequest.type === 'file'
-                          ? 'File Permission Required'
-                          : permissionRequest.type === 'question'
-                            ? (permissionRequest.header || 'Question')
-                            : 'Permission Required'}
-                    </h3>
+                  <h3 className={cn(
+                    "text-lg font-semibold",
+                    isDeleteOperation(permissionRequest) ? "text-red-600" : "text-foreground"
+                  )}>
+                    {isDeleteOperation(permissionRequest)
+                      ? 'File Deletion Warning'
+                      : permissionRequest.type === 'file'
+                        ? 'File Permission Required'
+                        : permissionRequest.type === 'question'
+                          ? (permissionRequest.header || 'Question')
+                          : 'Permission Required'}
+                  </h3>
+                </div>
 
+                {/* Scrollable content area */}
+                <div className="flex-1 overflow-y-auto px-6 min-h-0">
                     {/* File permission specific UI */}
                     {permissionRequest.type === 'file' && (
                       <>
@@ -1189,38 +1197,39 @@ export default function ExecutionPage() {
                       </>
                     )}
 
-                    <div className="flex gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => handlePermissionResponse(false)}
-                        className="flex-1"
-                        data-testid="permission-deny-button"
-                      >
-                        {permissionRequest.type === 'question' ? 'Cancel' : 'Deny'}
-                      </Button>
-                      <Button
-                        onClick={() => handlePermissionResponse(true)}
-                        className={cn(
-                          "flex-1",
-                          isDeleteOperation(permissionRequest) && "bg-red-600 hover:bg-red-700 text-white"
-                        )}
-                        data-testid="permission-allow-button"
-                        disabled={
-                          permissionRequest.type === 'question' &&
-                          selectedOptions.length === 0 &&
-                          !customResponse.trim()
-                        }
-                      >
-                        {isDeleteOperation(permissionRequest)
-                          ? getDisplayFilePaths(permissionRequest).length > 1
-                            ? 'Delete All'
-                            : 'Delete'
-                          : permissionRequest.type === 'question'
-                            ? 'Submit'
-                            : 'Allow'}
-                      </Button>
-                    </div>
-                  </div>
+                </div>
+
+                {/* Footer with buttons - always visible */}
+                <div className="flex gap-3 p-6 pt-4 shrink-0 border-t border-border">
+                  <Button
+                    variant="outline"
+                    onClick={() => handlePermissionResponse(false)}
+                    className="flex-1"
+                    data-testid="permission-deny-button"
+                  >
+                    {permissionRequest.type === 'question' ? 'Cancel' : 'Deny'}
+                  </Button>
+                  <Button
+                    onClick={() => handlePermissionResponse(true)}
+                    className={cn(
+                      "flex-1",
+                      isDeleteOperation(permissionRequest) && "bg-red-600 hover:bg-red-700 text-white"
+                    )}
+                    data-testid="permission-allow-button"
+                    disabled={
+                      permissionRequest.type === 'question' &&
+                      selectedOptions.length === 0 &&
+                      !customResponse.trim()
+                    }
+                  >
+                    {isDeleteOperation(permissionRequest)
+                      ? getDisplayFilePaths(permissionRequest).length > 1
+                        ? 'Delete All'
+                        : 'Delete'
+                      : permissionRequest.type === 'question'
+                        ? 'Submit'
+                        : 'Allow'}
+                  </Button>
                 </div>
               </Card>
             </motion.div>

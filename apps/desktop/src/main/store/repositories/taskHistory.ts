@@ -1,6 +1,6 @@
 // apps/desktop/src/main/store/repositories/taskHistory.ts
 
-import type { Task, TaskMessage, TaskStatus, TaskAttachment } from '@accomplish/shared';
+import type { Task, TaskMessage, TaskStatus, TaskAttachment, TodoItem } from '@accomplish/shared';
 import { getDatabase } from '../db';
 
 export interface StoredTask {
@@ -43,6 +43,16 @@ interface AttachmentRow {
   type: string;
   data: string;
   label: string | null;
+}
+
+interface TodoRow {
+  id: number;
+  task_id: string;
+  todo_id: string;
+  content: string;
+  status: string;
+  priority: string;
+  sort_order: number;
 }
 
 const MAX_HISTORY_ITEMS = 100;
@@ -270,4 +280,43 @@ export function clearTaskHistoryStore(): void {
 // For backwards compatibility with the debounced flush
 export function flushPendingTasks(): void {
   // No-op: SQLite writes are immediate, no debouncing needed
+}
+
+export function getTodosForTask(taskId: string): TodoItem[] {
+  const db = getDatabase();
+
+  const rows = db
+    .prepare('SELECT * FROM task_todos WHERE task_id = ? ORDER BY sort_order ASC')
+    .all(taskId) as TodoRow[];
+
+  return rows.map((row) => ({
+    id: row.todo_id,
+    content: row.content,
+    status: row.status as TodoItem['status'],
+    priority: row.priority as TodoItem['priority'],
+  }));
+}
+
+export function saveTodosForTask(taskId: string, todos: TodoItem[]): void {
+  const db = getDatabase();
+
+  db.transaction(() => {
+    // Delete existing todos for this task
+    db.prepare('DELETE FROM task_todos WHERE task_id = ?').run(taskId);
+
+    // Insert new todos
+    const insert = db.prepare(
+      `INSERT INTO task_todos (task_id, todo_id, content, status, priority, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    );
+
+    todos.forEach((todo, index) => {
+      insert.run(taskId, todo.id, todo.content, todo.status, todo.priority, index);
+    });
+  })();
+}
+
+export function clearTodosForTask(taskId: string): void {
+  const db = getDatabase();
+  db.prepare('DELETE FROM task_todos WHERE task_id = ?').run(taskId);
 }
