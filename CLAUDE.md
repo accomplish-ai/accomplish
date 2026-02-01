@@ -107,6 +107,17 @@ Static assets go in `apps/desktop/public/assets/`.
 - Tests use Playwright with serial execution (Electron requirement)
 - Test config: `apps/desktop/playwright.config.ts`
 
+### E2E Testing Rules
+
+**NEVER run E2E tests directly on the machine** (`test:e2e:native` or similar).
+Electron tests take over the screen and block user from working.
+
+Allowed methods:
+- `pnpm -F @accomplish/desktop test:e2e` (Docker)
+- Push to branch and verify via `gh run watch`
+
+If Docker is unavailable and user hasn't started it, do NOT run native E2E tests.
+
 ## Bundled Node.js
 
 The packaged app bundles standalone Node.js v20.18.1 binaries to ensure MCP servers work on machines without Node.js installed.
