@@ -814,6 +814,46 @@ export class TaskManager {
     this.activeTasks.clear();
     console.log('[TaskManager] All tasks disposed');
   }
+
+  /**
+   * Async dispose all tasks with parallel force-kill and overall timeout
+   * Used during app restart/quit to ensure fast shutdown
+   * @param timeoutMs - Overall timeout for disposal (default 2000ms)
+   */
+  async disposeAsync(timeoutMs: number = 2000): Promise<void> {
+    console.log(`[TaskManager] Async disposing ${this.activeTasks.size} tasks with ${timeoutMs}ms timeout`);
+
+    // Clear the queue immediately
+    this.taskQueue = [];
+
+    if (this.activeTasks.size === 0) {
+      console.log('[TaskManager] No active tasks to dispose');
+      return;
+    }
+
+    // Kill all PTY processes in parallel with individual timeouts
+    const cleanupPromises = Array.from(this.activeTasks.entries()).map(
+      async ([taskId, managedTask]) => {
+        try {
+          console.log(`[TaskManager] Force killing task ${taskId}`);
+          // Give each process slightly less time than overall timeout
+          await managedTask.adapter.forceKill(timeoutMs - 500);
+          managedTask.cleanup();
+        } catch (error) {
+          console.error(`[TaskManager] Cleanup error for task ${taskId}:`, error);
+        }
+      }
+    );
+
+    // Race between all cleanups completing and overall timeout
+    await Promise.race([
+      Promise.allSettled(cleanupPromises),
+      new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+    ]);
+
+    this.activeTasks.clear();
+    console.log('[TaskManager] Async disposal complete');
+  }
 }
 
 // Singleton TaskManager instance for the application
@@ -836,6 +876,18 @@ export function getTaskManager(): TaskManager {
 export function disposeTaskManager(): void {
   if (taskManagerInstance) {
     taskManagerInstance.dispose();
+    taskManagerInstance = null;
+  }
+}
+
+/**
+ * Async dispose the global TaskManager instance with parallel force-kill
+ * Used during app restart/quit to ensure fast shutdown
+ * @param timeoutMs - Overall timeout for disposal (default 2000ms)
+ */
+export async function disposeTaskManagerAsync(timeoutMs: number = 2000): Promise<void> {
+  if (taskManagerInstance) {
+    await taskManagerInstance.disposeAsync(timeoutMs);
     taskManagerInstance = null;
   }
 }

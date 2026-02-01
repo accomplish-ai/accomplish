@@ -454,6 +454,53 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   }
 
   /**
+   * Force kill the PTY process with a timeout
+   * Used during cleanup/disposal to ensure processes are terminated
+   */
+  async forceKill(timeoutMs: number = 5000): Promise<void> {
+    if (!this.ptyProcess) {
+      console.log('[OpenCode CLI] No active process to force kill');
+      return;
+    }
+
+    console.log(`[OpenCode Adapter] Force killing PTY process with ${timeoutMs}ms timeout`);
+
+    // First try graceful termination
+    try {
+      this.ptyProcess.kill();
+    } catch (error) {
+      console.warn('[OpenCode Adapter] Error during initial kill:', error);
+    }
+
+    // Wait for process to exit or timeout
+    await new Promise<void>((resolve) => {
+      const checkInterval = setInterval(() => {
+        if (!this.ptyProcess) {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 100);
+
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        resolve();
+      }, timeoutMs);
+    });
+
+    // Ensure cleanup
+    if (this.ptyProcess) {
+      try {
+        this.ptyProcess.kill('SIGKILL');
+      } catch {
+        // Process may already be dead
+      }
+      this.ptyProcess = null;
+    }
+
+    console.log('[OpenCode Adapter] Force kill completed');
+  }
+
+  /**
    * Dispose the adapter and clean up all resources
    * Called when task completes, is cancelled, or on app quit
    */

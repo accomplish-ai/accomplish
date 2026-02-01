@@ -2,17 +2,120 @@ import { config } from 'dotenv';
 import { app, BrowserWindow, shell, ipcMain, nativeImage, dialog } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
-// Hardcode userData path to 'Openwork' regardless of package.json name
-// This ensures consistent data location across all versions
-const APP_DATA_NAME = 'Openwork';
-app.setPath('userData', path.join(app.getPath('appData'), APP_DATA_NAME));
+// Handle Squirrel.Windows startup events FIRST - before anything else
+// These events fire during install/update/uninstall and the app must exit immediately
+//
+// Squirrel lifecycle:
+// 1. --squirrel-install: Called during initial installation
+// 2. --squirrel-updated: Called after an update is applied (new version launching)
+// 3. --squirrel-uninstall: Called when user uninstalls the app
+// 4. --squirrel-obsolete: Called on the OLD version when a new version takes over
+// 5. --squirrel-firstrun: Called on first launch after installation (app should continue)
+//
+// IMPORTANT: For install/update/uninstall, we must:
+// - Use spawnSync (not spawn) to ensure shortcuts are created before app exits
+// - Register protocol handler during install so accomplish:// links work immediately
+// - Exit with process.exit(0) to signal successful handling to the installer
+if (process.platform === 'win32') {
+  const squirrelCommand = process.argv[1];
+
+  if (squirrelCommand?.startsWith('--squirrel-')) {
+    // Prevent multiple app instances from handling Squirrel events concurrently.
+    // This addresses the multi-click installer problem where users rapidly clicking
+    // the installer can spawn multiple app instances that race to create shortcuts.
+    // Note: This doesn't prevent multiple Setup.exe instances (that's Squirrel's job),
+    // but it ensures only one app instance processes the install/update/uninstall event.
+    const gotSquirrelLock = app.requestSingleInstanceLock();
+    if (!gotSquirrelLock) {
+      // Another instance is already handling this Squirrel event
+      process.exit(0);
+    }
+
+    const updateExe = path.resolve(path.dirname(process.execPath), '..', 'Update.exe');
+    const exeName = path.basename(process.execPath);
+    const updateExeExists = fs.existsSync(updateExe);
+
+    if (squirrelCommand === '--squirrel-install') {
+      // First-time installation: create shortcuts and register protocol
+      if (updateExeExists) {
+        const result = spawnSync(updateExe, ['--createShortcut=' + exeName], {
+          timeout: 30000,
+          windowsHide: true,
+        });
+        if (result.error) {
+          console.error('[Squirrel] Failed to create shortcuts:', result.error.message);
+        }
+      } else {
+        console.warn('[Squirrel] Update.exe not found at:', updateExe);
+      }
+
+      // Register protocol handler during install so accomplish:// links work
+      // even before the user launches the app manually for the first time.
+      // This is critical for OAuth callbacks to work immediately after install.
+      app.setAsDefaultProtocolClient('accomplish');
+
+      app.quit();
+      process.exit(0);
+    } else if (squirrelCommand === '--squirrel-updated') {
+      // App was updated: refresh shortcuts (exe path may have changed)
+      if (updateExeExists) {
+        const result = spawnSync(updateExe, ['--createShortcut=' + exeName], {
+          timeout: 30000,
+          windowsHide: true,
+        });
+        if (result.error) {
+          console.error('[Squirrel] Failed to update shortcuts:', result.error.message);
+        }
+      }
+
+      // Re-register protocol handler after update in case the exe path changed
+      app.setAsDefaultProtocolClient('accomplish');
+
+      app.quit();
+      process.exit(0);
+    } else if (squirrelCommand === '--squirrel-uninstall') {
+      // App is being uninstalled: remove shortcuts and unregister protocol
+      if (updateExeExists) {
+        const result = spawnSync(updateExe, ['--removeShortcut=' + exeName], {
+          timeout: 30000,
+          windowsHide: true,
+        });
+        if (result.error) {
+          console.error('[Squirrel] Failed to remove shortcuts:', result.error.message);
+        }
+      }
+
+      // Unregister protocol handler so accomplish:// links don't point to deleted app
+      app.removeAsDefaultProtocolClient('accomplish');
+
+      app.quit();
+      process.exit(0);
+    } else if (squirrelCommand === '--squirrel-obsolete') {
+      // Old version is being replaced by a new version - just exit immediately
+      app.quit();
+      process.exit(0);
+    } else if (squirrelCommand === '--squirrel-firstrun') {
+      // First launch after installation - app should continue running normally.
+      // This is a good place to show a welcome screen or run first-time setup,
+      // but for now we just log it and let the app start as usual.
+      console.log('[Squirrel] First run after installation');
+      // Don't quit - let the app continue to start normally
+    }
+  }
+}
+
+// Data schema version - increment when stored data formats change
+// This gives users a clean slate by using a new userData directory
+const DATA_SCHEMA_VERSION = 2;
+app.setPath('userData', `${app.getPath('userData')}-v${DATA_SCHEMA_VERSION}`);
 
 import { registerIPCHandlers } from './ipc/handlers';
 import { flushPendingTasks } from './store/taskHistory';
 import { disposeTaskManager } from './opencode/task-manager';
-import { migrateLegacyData } from './store/legacyMigration';
+import { checkAndCleanupFreshInstall } from './store/freshInstallCleanup';
 import { initializeDatabase, closeDatabase } from './store/db';
 import { getProviderSettings, clearProviderSettings } from './store/repositories/providerSettings';
 import { getApiKey } from './store/secureStorage';
@@ -20,6 +123,15 @@ import { FutureSchemaError } from './store/migrations/errors';
 import { stopAzureFoundryProxy } from './opencode/azure-foundry-proxy';
 import { stopMoonshotProxy } from './opencode/moonshot-proxy';
 import { initializeLogCollector, shutdownLogCollector, getLogCollector } from './logging';
+import { initUpdater, autoCheckForUpdates, quitAndInstall, setOnUpdateDownloaded } from './updater';
+import { createAppMenu, refreshAppMenu } from './menu';
+import {
+  initAnalytics,
+  flushAnalytics,
+  trackSessionEnd,
+  trackAppBackgrounded,
+  trackAppForegrounded,
+} from './analytics';
 
 // Local UI - no longer uses remote URL
 
@@ -179,25 +291,37 @@ if (!gotTheLock) {
     nodeVersion: process.version,
   });
 
-  app.on('second-instance', () => {
+  app.on('second-instance', (_event, commandLine) => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
       console.log('[Main] Focused existing instance after second-instance event');
+
+      // On Windows, protocol URLs come through commandLine on second-instance
+      if (process.platform === 'win32') {
+        const protocolUrl = commandLine.find((arg) => arg.startsWith('accomplish://'));
+        if (protocolUrl) {
+          console.log('[Main] Received protocol URL from second-instance:', protocolUrl);
+          if (protocolUrl.startsWith('accomplish://callback')) {
+            mainWindow.webContents.send('auth:callback', protocolUrl);
+          }
+        }
+      }
     }
   });
 
   app.whenReady().then(async () => {
     console.log('[Main] Electron app ready, version:', app.getVersion());
 
-    // Migrate data from legacy userData paths if needed (one-time migration)
+    // Check for fresh install and cleanup old data BEFORE initializing stores
+    // This ensures users get a clean slate after reinstalling from DMG
     try {
-      const didMigrate = migrateLegacyData();
-      if (didMigrate) {
-        console.log('[Main] Migrated data from legacy userData path');
+      const didCleanup = await checkAndCleanupFreshInstall();
+      if (didCleanup) {
+        console.log('[Main] Cleaned up data from previous installation');
       }
     } catch (err) {
-      console.error('[Main] Legacy data migration failed:', err);
+      console.error('[Main] Fresh install cleanup failed:', err);
     }
 
     // Initialize database and run migrations
@@ -252,13 +376,46 @@ if (!gotTheLock) {
     registerIPCHandlers();
     console.log('[Main] IPC handlers registered');
 
+    // Initialize analytics
+    initAnalytics();
+    console.log('[Main] Analytics initialized');
+
     createWindow();
+
+    // Set up application menu
+    createAppMenu();
+
+    // Initialize updater with main window
+    if (mainWindow) {
+      initUpdater(mainWindow);
+
+      // Refresh menu when update is downloaded to show "Restart to Update" label
+      setOnUpdateDownloaded(() => {
+        refreshAppMenu();
+      });
+
+      // Auto-check for updates after a short delay (let app fully load)
+      setTimeout(() => {
+        autoCheckForUpdates().catch((err) => {
+          console.error('[Main] Auto-update check failed:', err);
+        });
+      }, 5000);
+    }
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
         console.log('[Main] Application reactivated; recreated window');
       }
+    });
+
+    // Track app focus/blur for session analytics
+    app.on('browser-window-blur', () => {
+      trackAppBackgrounded();
+    });
+
+    app.on('browser-window-focus', () => {
+      trackAppForegrounded();
     });
   });
 }
@@ -288,10 +445,43 @@ app.on('before-quit', () => {
   closeDatabase();
   // Flush and shutdown logging LAST to capture all shutdown logs
   shutdownLogCollector();
+  // Track session end and flush analytics
+  trackSessionEnd();
+  flushAnalytics();
 });
 
 // Handle custom protocol (accomplish://)
-app.setAsDefaultProtocolClient('accomplish');
+// On Windows in dev mode, we need to pass the script path for protocol registration
+if (process.platform === 'win32' && !app.isPackaged) {
+  app.setAsDefaultProtocolClient('accomplish', process.execPath, [
+    path.resolve(process.argv[1]),
+  ]);
+} else {
+  app.setAsDefaultProtocolClient('accomplish');
+}
+
+// Handle protocol URL from process.argv (Windows first launch with protocol URL)
+function handleProtocolUrlFromArgs(): void {
+  if (process.platform === 'win32') {
+    const protocolUrl = process.argv.find((arg) => arg.startsWith('accomplish://'));
+    if (protocolUrl) {
+      console.log('[Main] Received protocol URL from argv:', protocolUrl);
+      // Delay sending until window is ready
+      app.whenReady().then(() => {
+        setTimeout(() => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            if (protocolUrl.startsWith('accomplish://callback')) {
+              mainWindow.webContents.send('auth:callback', protocolUrl);
+            }
+          }
+        }, 1000);
+      });
+    }
+  }
+}
+
+// Check for protocol URL on startup
+handleProtocolUrlFromArgs();
 
 app.on('open-url', (event, url) => {
   event.preventDefault();
@@ -314,4 +504,8 @@ ipcMain.handle('app:platform', () => {
 ipcMain.handle('app:is-e2e-mode', () => {
   return (global as Record<string, unknown>).E2E_MOCK_TASK_EVENTS === true ||
     process.env.E2E_MOCK_TASK_EVENTS === '1';
+});
+
+ipcMain.handle('update:install', async () => {
+  await quitAndInstall();
 });

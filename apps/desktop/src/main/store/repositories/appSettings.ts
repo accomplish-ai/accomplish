@@ -13,6 +13,7 @@ interface AppSettingsRow {
   azure_foundry_config: string | null;
   lmstudio_config: string | null;
   openai_base_url: string | null;
+  last_update_check: number | null;
 }
 
 interface AppSettings {
@@ -186,7 +187,24 @@ export function clearAppSettings(): void {
       litellm_config = NULL,
       azure_foundry_config = NULL,
       lmstudio_config = NULL,
-      openai_base_url = ''
+      openai_base_url = '',
+      last_update_check = NULL
     WHERE id = 1`
   ).run();
+}
+
+/**
+ * Get last update check timestamp
+ */
+export function getLastUpdateCheck(): number | null {
+  const row = getRow();
+  return row.last_update_check;
+}
+
+/**
+ * Set last update check timestamp
+ */
+export function setLastUpdateCheck(timestamp: number): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET last_update_check = ? WHERE id = 1').run(timestamp);
 }
