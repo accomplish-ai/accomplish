@@ -2,6 +2,7 @@
 
 import type { SelectedModel, OllamaConfig, LiteLLMConfig, AzureFoundryConfig, LMStudioConfig } from '@accomplish/shared';
 import { getDatabase } from '../db';
+import { safeParseJsonWithFallback } from '../../utils/json';
 
 interface AppSettingsRow {
   id: number;
@@ -152,25 +153,17 @@ export function setOpenAiBaseUrl(baseUrl: string): void {
   db.prepare('UPDATE app_settings SET openai_base_url = ? WHERE id = 1').run(baseUrl || '');
 }
 
-function safeParseJson<T>(json: string | null): T | null {
-  if (!json) return null;
-  try {
-    return JSON.parse(json) as T;
-  } catch {
-    return null;
-  }
-}
 
 export function getAppSettings(): AppSettings {
   const row = getRow();
   return {
     debugMode: row.debug_mode === 1,
     onboardingComplete: row.onboarding_complete === 1,
-    selectedModel: safeParseJson<SelectedModel>(row.selected_model),
-    ollamaConfig: safeParseJson<OllamaConfig>(row.ollama_config),
-    litellmConfig: safeParseJson<LiteLLMConfig>(row.litellm_config),
-    azureFoundryConfig: safeParseJson<AzureFoundryConfig>(row.azure_foundry_config),
-    lmstudioConfig: safeParseJson<LMStudioConfig>(row.lmstudio_config),
+    selectedModel: safeParseJsonWithFallback<SelectedModel>(row.selected_model),
+    ollamaConfig: safeParseJsonWithFallback<OllamaConfig>(row.ollama_config),
+    litellmConfig: safeParseJsonWithFallback<LiteLLMConfig>(row.litellm_config),
+    azureFoundryConfig: safeParseJsonWithFallback<AzureFoundryConfig>(row.azure_foundry_config),
+    lmstudioConfig: safeParseJsonWithFallback<LMStudioConfig>(row.lmstudio_config),
     openaiBaseUrl: row.openai_base_url || '',
   };
 }
