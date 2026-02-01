@@ -12,12 +12,12 @@
     "build": "tsc && vite build && node scripts/bundle-skills.cjs",
     "build:electron": "tsc && vite build && node scripts/package.cjs",
     "build:unpack": "tsc && vite build && node scripts/package.cjs --dir",
-    "package": "pnpm build && node scripts/package.cjs --mac --publish never",
-    "package:mac": "pnpm build && node scripts/package.cjs --mac --publish never",
-    "release": "pnpm build && node scripts/package.cjs --mac --publish always",
-    "release:mac": "pnpm build && node scripts/package.cjs --mac --publish always",
-    "package:win": "pnpm build && node scripts/package.cjs --win --x64 --publish never",
-    "release:win": "pnpm build && node scripts/package.cjs --win --x64 --publish always",
+    "package": "OPENWORK_BUNDLED_SKILLS=1 pnpm build && node scripts/package.cjs --mac --publish never",
+    "package:mac": "OPENWORK_BUNDLED_SKILLS=1 pnpm build && node scripts/package.cjs --mac --publish never",
+    "release": "OPENWORK_BUNDLED_SKILLS=1 pnpm build && node scripts/package.cjs --mac --publish always",
+    "release:mac": "OPENWORK_BUNDLED_SKILLS=1 pnpm build && node scripts/package.cjs --mac --publish always",
+    "package:win": "OPENWORK_BUNDLED_SKILLS=1 pnpm build && node scripts/package.cjs --win --x64 --publish never",
+    "release:win": "OPENWORK_BUNDLED_SKILLS=1 pnpm build && node scripts/package.cjs --win --x64 --publish always",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
@@ -99,7 +99,7 @@
   },
   "build": {
     "npmRebuild": false,
-    "compression": "store",
+    "compression": "maximum",
     "appId": "ai.accomplish.desktop",
     "productName": "Openwork",
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
@@ -197,11 +197,16 @@
       "icon": "resources/icon.ico"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Openwork"
+      "shortcutName": "Openwork",
+      "runAfterFinish": true,
+      "installerIcon": "resources/icon.ico",
+      "uninstallerIcon": "resources/icon.ico",
+      "deleteAppDataOnUninstall": false
     }
   }
 }

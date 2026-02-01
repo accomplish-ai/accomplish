@@ -14,9 +14,7 @@ interface OpenCodeOauthAuthEntry {
 }
 
 function getOpenCodeDataHome(): string {
-  if (process.platform === 'win32') {
-    return process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
-  }
+  // OpenCode CLI uses XDG convention (.local/share) on ALL platforms including Windows
   return process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
 }
 

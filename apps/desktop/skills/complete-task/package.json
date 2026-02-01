@@ -6,7 +6,7 @@
   "scripts": {
     "start": "npx tsx src/index.ts"
   },
-  "dependencies": {
+  "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"
   }
 }

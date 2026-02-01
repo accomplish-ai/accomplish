@@ -104,11 +104,12 @@ if (useBundledSkills) {
 
 // Install per-skill dependencies for dev/tsx workflows
 if (!useBundledSkills) {
-  // Use --omit=dev to exclude devDependencies (vitest, @types/*) - not needed at runtime
-  // This significantly reduces installer size and build time
+  // Install ALL dependencies (including devDependencies) during development
+  // because esbuild needs them for bundling. The bundle-skills.cjs script
+  // will reinstall with --omit=dev during packaged builds.
   const skills = ['dev-browser', 'dev-browser-mcp', 'file-permission', 'ask-user-question', 'complete-task'];
   for (const skill of skills) {
-    runCommand(`npm --prefix skills/${skill} install --omit=dev`, `Installing ${skill} dependencies`);
+    runCommand(`npm --prefix skills/${skill} install`, `Installing ${skill} dependencies`);
   }
 }
 
