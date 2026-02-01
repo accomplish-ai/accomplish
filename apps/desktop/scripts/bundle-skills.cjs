@@ -11,7 +11,7 @@ const skillsDir = path.join(__dirname, '..', 'skills');
 const SKILLS_WITH_RUNTIME_DEPS = ['dev-browser', 'dev-browser-mcp'];
 
 // Skills that are fully bundled (no runtime node_modules needed)
-const SKILLS_FULLY_BUNDLED = ['ask-user-question', 'file-permission', 'complete-task'];
+const SKILLS_FULLY_BUNDLED = ['ask-user-question', 'file-permission', 'complete-task', 'start-task'];
 
 const bundles = [
   {
@@ -26,6 +26,11 @@ const bundles = [
   },
   {
     name: 'complete-task',
+    entry: 'src/index.ts',
+    outfile: 'dist/index.mjs',
+  },
+  {
+    name: 'start-task',
     entry: 'src/index.ts',
     outfile: 'dist/index.mjs',
   },
