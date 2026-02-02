@@ -29,7 +29,7 @@ interface SettingsDialogProps {
   /**
    * Initial tab to show when dialog opens ('providers' or 'voice')
    */
-  initialTab?: 'providers' | 'voice' | 'skills';
+  initialTab?: 'providers' | 'voice' | 'skills' | 'about';
 }
 
 export default function SettingsDialog({
@@ -43,7 +43,8 @@ export default function SettingsDialog({
   const [gridExpanded, setGridExpanded] = useState(false);
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'providers' | 'voice' | 'skills'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'providers' | 'voice' | 'skills' | 'about'>(initialTab);
+  const [appVersion, setAppVersion] = useState<string>('');
   const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
 
   const {
@@ -67,6 +68,8 @@ export default function SettingsDialog({
     refetch();
     // Load debug mode from appSettings (correct store)
     accomplish.getDebugMode().then(setDebugModeState);
+    // Load app version
+    accomplish.getVersion().then(setAppVersion);
   }, [open, refetch, accomplish]);
 
   // Auto-select active provider (or initialProvider) and expand grid if needed when dialog opens
@@ -265,7 +268,7 @@ export default function SettingsDialog({
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle>Set up Openwork</DialogTitle>
+            <DialogTitle>Set up Accomplish</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center py-12">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -283,7 +286,7 @@ export default function SettingsDialog({
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Set up Openwork</DialogTitle>
+          <DialogTitle>Set up Accomplish</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
@@ -319,6 +322,16 @@ export default function SettingsDialog({
                 }`}
               >
                 Voice Input
+              </button>
+              <button
+                onClick={() => setActiveTab('about')}
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${
+                  activeTab === 'about'
+                    ? 'text-foreground border-b-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                About
               </button>
             </div>
             {activeTab === 'skills' && (
@@ -489,6 +502,43 @@ export default function SettingsDialog({
           {activeTab === 'voice' && (
             <div className="space-y-6">
               <SpeechSettingsForm onSave={() => {}} onChange={() => {}} />
+            </div>
+          )}
+
+          {/* About Tab */}
+          {activeTab === 'about' && (
+            <div className="space-y-6">
+              <div className="rounded-lg border border-border bg-card p-6">
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Visit us</div>
+                    <a
+                      href="https://www.accomplish.ai"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      www.accomplish.ai
+                    </a>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Have a question?</div>
+                    <a
+                      href="mailto:support@accomplish.ai"
+                      className="text-primary hover:underline"
+                    >
+                      support@accomplish.ai
+                    </a>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Version</div>
+                    <div className="font-medium">{appVersion || 'Loading...'}</div>
+                  </div>
+                </div>
+                <div className="mt-6 pt-4 border-t border-border text-xs text-muted-foreground">
+                  Accomplish™ All rights reserved.
+                </div>
+              </div>
             </div>
           )}
 
