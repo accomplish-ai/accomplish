@@ -154,19 +154,19 @@ After creating the skill:
 3. Update SKILL.md or bundled resources
 4. Test again
 
-## Saving Skills in Openwork
+## Saving Skills in Accomplish
 
-**IMPORTANT:** When creating skills in Openwork, you can ONLY create "custom" skills. You CANNOT create "official" skills - those are bundled with the app and managed by the Openwork team.
+**IMPORTANT:** When creating skills in Accomplish, you can ONLY create "custom" skills. You CANNOT create "official" skills - those are bundled with the app and managed by the Accomplish team.
 
 ### User Skills Directory
 
 **CRITICAL: You MUST save skills to EXACTLY this path. Do NOT ask the user where to save - the path is fixed by the app.**
 
-Skills must be saved to the Openwork user data directory under a `skills` folder:
+Skills must be saved to the Accomplish user data directory under a `skills` folder:
 
-**macOS:** `~/Library/Application Support/Openwork/skills/<skill-name>/SKILL.md`
-**Windows:** `%APPDATA%\Openwork\skills\<skill-name>\SKILL.md`
-**Linux:** `~/.config/Openwork/skills/<skill-name>/SKILL.md`
+**macOS:** `~/Library/Application Support/Accomplish/skills/<skill-name>/SKILL.md`
+**Windows:** `%APPDATA%\Accomplish\skills\<skill-name>\SKILL.md`
+**Linux:** `~/.config/Accomplish/skills/<skill-name>/SKILL.md`
 
 **NEVER:**
 - Ask the user where to save the skill file
@@ -180,9 +180,9 @@ The path is determined by the operating system. Detect the OS and use the correc
 **Do not ask the user for a path. Follow these steps automatically:**
 
 1. **Detect the operating system** to determine the correct base path:
-   - macOS: `~/Library/Application Support/Openwork/skills/`
-   - Windows: `%APPDATA%\Openwork\skills\`
-   - Linux: `~/.config/Openwork/skills/`
+   - macOS: `~/Library/Application Support/Accomplish/skills/`
+   - Windows: `%APPDATA%\Accomplish\skills\`
+   - Linux: `~/.config/Accomplish/skills/`
 
 2. **Create the skill directory** named after your skill (lowercase, hyphenated):
    ```
@@ -203,11 +203,11 @@ The path is determined by the operating system. Detect the OS and use the correc
    └── assets/
    ```
 
-5. **The skill is automatically detected** - Openwork scans this directory on startup and syncs new skills to its database. The skill will appear in Settings > Skills as a "Custom" skill.
+5. **The skill is automatically detected** - Accomplish scans this directory on startup and syncs new skills to its database. The skill will appear in Settings > Skills as a "Custom" skill.
 
 ### Skill Frontmatter Rules
 
-For custom skills in Openwork:
+For custom skills in Accomplish:
 - `name`: Required - the skill's display name
 - `description`: Required - when to use this skill
 - `command`: Optional - slash command like `/my-skill`
@@ -235,9 +235,9 @@ command: /awesome
    - The content was written correctly
 
 2. **Verify the path** - Confirm the file path matches the required location:
-   - macOS: `~/Library/Application Support/Openwork/skills/<skill-name>/SKILL.md`
-   - Windows: `%APPDATA%\Openwork\skills\<skill-name>\SKILL.md`
-   - Linux: `~/.config/Openwork/skills/<skill-name>/SKILL.md`
+   - macOS: `~/Library/Application Support/Accomplish/skills/<skill-name>/SKILL.md`
+   - Windows: `%APPDATA%\Accomplish\skills\<skill-name>\SKILL.md`
+   - Linux: `~/.config/Accomplish/skills/<skill-name>/SKILL.md`
 
 3. **Validate frontmatter** - Confirm the YAML frontmatter contains:
    - `name`: Present and non-empty
