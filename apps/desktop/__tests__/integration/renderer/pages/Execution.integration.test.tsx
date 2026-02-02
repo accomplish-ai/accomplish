@@ -406,15 +406,15 @@ describe('Execution Page Integration', () => {
       expect(screen.getByText('Third message')).toBeInTheDocument();
     });
 
-    it('should show "Thinking..." indicator when running without tool', () => {
+    it('should show thinking indicator when running without tool', () => {
       // Arrange
       mockStoreState.currentTask = createMockTask('task-123', 'Task', 'running', []);
 
       // Act
       renderWithRouter('task-123');
 
-      // Assert
-      expect(screen.getByText('Thinking...')).toBeInTheDocument();
+      // Assert - matches any of the action-oriented thinking phrases
+      expect(screen.getByText(/^(Doing|Executing|Running|Handling it|Accomplishing)\.\.\.$/)).toBeInTheDocument();
     });
 
     it('should display message timestamps', () => {
