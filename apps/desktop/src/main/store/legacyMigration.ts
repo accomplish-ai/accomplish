@@ -32,8 +32,11 @@ function getLegacyPaths(): LegacyPath[] {
       path: path.join(appDataPath, 'openwork'),
       dbName: isPackaged ? 'openwork.db' : 'openwork-dev.db'
     },
-    // Only migrate from DATA_SCHEMA_VERSION=2 path
-    { path: path.join(appDataPath, '@accomplish', 'desktop-v2') },
+    // Legacy @accomplish paths (used openwork.db naming)
+    {
+      path: path.join(appDataPath, '@accomplish', 'desktop-v2'),
+      dbName: isPackaged ? 'openwork.db' : 'openwork-dev.db'
+    },
   ];
 }
 
