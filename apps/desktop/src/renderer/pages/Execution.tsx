@@ -350,6 +350,9 @@ export default function ExecutionPage() {
       // Clear debug logs and search when switching tasks
       setDebugLogs([]);
       setDebugSearchQuery('');
+      // Reset tool state to prevent stale state when switching tasks (fixes UI leaking)
+      setCurrentTool(null);
+      setCurrentToolInput(null);
 
       // Fetch todos for this task from database (always set, even if empty, to clear stale todos)
       accomplish.getTodosForTask(id).then((todos) => {
