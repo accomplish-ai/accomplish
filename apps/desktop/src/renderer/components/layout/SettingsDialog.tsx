@@ -30,6 +30,10 @@ interface SettingsDialogProps {
    * Initial tab to show when dialog opens ('providers' or 'voice')
    */
   initialTab?: 'providers' | 'voice' | 'skills' | 'about';
+  /**
+   * Options for the skills tab (e.g., open Add dropdown)
+   */
+  skillsOptions?: { openAddDropdown?: boolean };
 }
 
 export default function SettingsDialog({
@@ -38,6 +42,7 @@ export default function SettingsDialog({
   onApiKeySaved,
   initialProvider,
   initialTab = 'providers',
+  skillsOptions,
 }: SettingsDialogProps) {
   const [selectedProvider, setSelectedProvider] = useState<ProviderId | null>(null);
   const [gridExpanded, setGridExpanded] = useState(false);
@@ -339,6 +344,7 @@ export default function SettingsDialog({
                 <AddSkillDropdown
                   onSkillAdded={() => setSkillsRefreshTrigger(t => t + 1)}
                   onClose={() => onOpenChange(false)}
+                  defaultOpen={skillsOptions?.openAddDropdown}
                 />
               </div>
             )}
