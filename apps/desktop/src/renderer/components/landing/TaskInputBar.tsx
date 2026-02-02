@@ -26,7 +26,7 @@ interface TaskInputBarProps {
   /**
    * Called when user wants to open settings (e.g., from "Manage Skills")
    */
-  onOpenSettings?: (tab: 'providers' | 'voice' | 'skills') => void;
+  onOpenSettings?: (tab: 'providers' | 'voice' | 'skills', options?: { openAddDropdown?: boolean }) => void;
   /**
    * Called when user wants to open settings to change model
    */
@@ -175,7 +175,7 @@ export default function TaskInputBar({
           {/* Plus Menu on left */}
           <PlusMenu
             onSkillSelect={handleSkillSelect}
-            onOpenSettings={(tab) => onOpenSettings?.(tab)}
+            onOpenSettings={(tab, options) => onOpenSettings?.(tab, options)}
             disabled={isDisabled || speechInput.isRecording}
           />
 
