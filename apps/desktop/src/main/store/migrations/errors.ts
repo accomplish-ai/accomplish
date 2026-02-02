@@ -12,7 +12,7 @@ export class FutureSchemaError extends Error {
     public readonly appVersion: number
   ) {
     super(
-      `Database schema v${storedVersion} is newer than app supports (v${appVersion}). Please update Openwork.`
+      `Database schema v${storedVersion} is newer than app supports (v${appVersion}). Please update Accomplish.`
     );
   }
 }

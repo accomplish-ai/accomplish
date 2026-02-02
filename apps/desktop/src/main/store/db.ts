@@ -12,7 +12,7 @@ let _db: Database.Database | null = null;
  * Get the database file path based on environment.
  */
 export function getDatabasePath(): string {
-  const dbName = app.isPackaged ? 'openwork.db' : 'openwork-dev.db';
+  const dbName = app.isPackaged ? 'accomplish.db' : 'accomplish-dev.db';
   return path.join(app.getPath('userData'), dbName);
 }
 

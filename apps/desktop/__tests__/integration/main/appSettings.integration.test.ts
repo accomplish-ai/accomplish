@@ -91,7 +91,7 @@ vi.mock('@main/store/db', () => ({
   })),
   closeDatabase: vi.fn(),
   resetDatabase: vi.fn(),
-  getDatabasePath: vi.fn(() => '/mock/path/openwork-dev.db'),
+  getDatabasePath: vi.fn(() => '/mock/path/accomplish-dev.db'),
   databaseExists: vi.fn(() => true),
   initializeDatabase: vi.fn(),
 }));

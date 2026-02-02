@@ -21,9 +21,9 @@ function getLegacyPaths(): string[] {
  * Includes database files and secure storage.
  */
 const FILES_TO_MIGRATE = [
-  'openwork.db',
-  'openwork.db-wal',
-  'openwork.db-shm',
+  'accomplish.db',
+  'accomplish.db-wal',
+  'accomplish.db-shm',
   'secure-storage.json',
 ];
 
@@ -43,7 +43,7 @@ export function migrateLegacyData(): boolean {
     const currentPath = app.getPath('userData');
 
     // If current path already has a database, skip migration
-    const currentDb = path.join(currentPath, 'openwork.db');
+    const currentDb = path.join(currentPath, 'accomplish.db');
     if (fs.existsSync(currentDb)) {
       console.log('[Migration] Current userData already has data, skipping migration');
       return false;
@@ -64,7 +64,7 @@ export function migrateLegacyData(): boolean {
           continue;
         }
 
-        const legacyDb = path.join(legacyPath, 'openwork.db');
+        const legacyDb = path.join(legacyPath, 'accomplish.db');
         if (!fs.existsSync(legacyDb)) {
           continue;
         }

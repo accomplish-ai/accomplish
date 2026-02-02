@@ -72,7 +72,7 @@ function getDerivedKey(): Buffer {
 
   // Combine machine-specific values to create a unique identifier
   // Note: We intentionally exclude userData path so encryption keys remain stable
-  // across userData directory version changes (e.g., desktop -> desktop-v2 -> Openwork)
+  // across userData directory version changes (e.g., desktop -> desktop-v2 -> Accomplish)
   const machineData = [
     os.platform(),
     os.homedir(),
