@@ -12,6 +12,7 @@ app.setPath('userData', path.join(app.getPath('appData'), APP_DATA_NAME));
 import { registerIPCHandlers } from './ipc/handlers';
 import { flushPendingTasks } from './store/taskHistory';
 import { disposeTaskManager } from './opencode/task-manager';
+import { oauthBrowserFlow } from './opencode/auth-browser';
 import { migrateLegacyData } from './store/legacyMigration';
 import { initializeDatabase, closeDatabase } from './store/db';
 import { getProviderSettings, clearProviderSettings } from './store/repositories/providerSettings';
@@ -291,6 +292,8 @@ app.on('before-quit', () => {
   flushPendingTasks();
   // Dispose all active tasks and cleanup PTY processes
   disposeTaskManager();
+  // Cancel any active OAuth flow
+  oauthBrowserFlow.dispose();
   // Stop Azure Foundry proxy server if running
   stopAzureFoundryProxy().catch((err) => {
     console.error('[Main] Failed to stop Azure Foundry proxy:', err);

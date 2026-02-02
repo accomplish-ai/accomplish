@@ -66,7 +66,8 @@ import {
   getProviderDebugMode,
   hasReadyProvider,
 } from '../store/providerSettings';
-import { getOpenAiOauthStatus, loginOpenAiWithChatGpt } from '../opencode/auth';
+import { getOpenAiOauthStatus } from '../opencode/auth';
+import { loginOpenAiWithChatGpt } from '../opencode/auth-browser';
 import type { ProviderId, ConnectedProvider, BedrockCredentials } from '@accomplish/shared';
 import { getDesktopConfig } from '../config';
 import {
