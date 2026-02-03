@@ -49,8 +49,90 @@ vi.mock('@main/permission-api', () => ({
 }));
 
 // Mock @accomplish/core (uses SQLite which requires native module)
-vi.mock('@accomplish/core', () => ({
-  // Provider settings
+// Note: generateConfig mock creates real files in temp directory for integration testing
+vi.mock('@accomplish/core', async () => {
+  const actualFs = await vi.importActual<typeof import('fs')>('fs');
+  const actualPath = await vi.importActual<typeof import('path')>('path');
+
+  return {
+    // Config generator - creates real files for integration testing
+    generateConfig: vi.fn((options: {
+      userDataPath: string;
+      mcpToolsPath: string;
+      platform: string;
+      isPackaged: boolean;
+      bundledNodeBinPath?: string;
+      skills: unknown[];
+      providerConfigs: Record<string, unknown>;
+      permissionApiPort: number;
+      questionApiPort: number;
+      enabledProviders: string[];
+      model?: string;
+      smallModel?: string;
+    }) => {
+      const configDir = actualPath.join(options.userDataPath, 'opencode');
+      const configPath = actualPath.join(configDir, 'opencode.json');
+
+      // Create config directory
+      if (!actualFs.existsSync(configDir)) {
+        actualFs.mkdirSync(configDir, { recursive: true });
+      }
+
+      // Build a realistic config object
+      const config = {
+        $schema: 'https://opencode.ai/config.json',
+        default_agent: 'accomplish',
+        permission: { '*': 'allow', todowrite: 'allow' },
+        enabled_providers: options.enabledProviders,
+        agent: {
+          accomplish: {
+            description: 'Browser automation assistant using dev-browser',
+            mode: 'primary',
+            prompt: `<environment>
+Platform: ${options.platform}
+</environment>
+
+## Browser Automation
+Use browser_* tools for web automation. browser_script executes JavaScript.
+
+## FILE PERMISSION WORKFLOW
+Use request_file_permission tool before modifying files.
+
+## user-communication
+Use AskUserQuestion tool for user interaction.`,
+          },
+        },
+        mcp: {
+          'file-permission': {
+            type: 'local',
+            enabled: true,
+            command: ['npx', 'tsx', actualPath.join(options.mcpToolsPath, 'file-permission', 'src', 'index.ts')],
+            environment: {
+              PERMISSION_API_PORT: String(options.permissionApiPort),
+            },
+            timeout: 30000,
+          },
+        },
+      };
+
+      // Write config file
+      actualFs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+
+      return {
+        configPath,
+        systemPrompt: config.agent.accomplish.prompt,
+        mcpServers: config.mcp,
+        providerConfigs: {},
+        enabledProviders: options.enabledProviders,
+      };
+    }),
+    ACCOMPLISH_AGENT_NAME: 'accomplish',
+
+    // Proxy functions
+    ensureAzureFoundryProxy: vi.fn(() => Promise.resolve()),
+    ensureMoonshotProxy: vi.fn(() => Promise.resolve()),
+
+    // Provider settings
   getProviderSettings: vi.fn(() => ({
     activeProviderId: null,
     connectedProviders: {},
@@ -94,7 +176,8 @@ vi.mock('@accomplish/core', () => ({
     lmstudioConfig: null,
   })),
   clearAppSettings: vi.fn(),
-}));
+  };
+});
 
 // Mock skills module (uses SQLite which requires native module)
 vi.mock('@main/skills', () => ({
