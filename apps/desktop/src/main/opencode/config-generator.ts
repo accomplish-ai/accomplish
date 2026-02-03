@@ -2,11 +2,16 @@ import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { PERMISSION_API_PORT, QUESTION_API_PORT } from '../permission-api';
-import { getOllamaConfig, getLMStudioConfig } from '../store/appSettings';
+import {
+  getOllamaConfig,
+  getLMStudioConfig,
+  getProviderSettings,
+  getActiveProviderModel,
+  getConnectedProviderIds,
+  ensureAzureFoundryProxy,
+  ensureMoonshotProxy,
+} from '@accomplish/core';
 import { getApiKey } from '../store/secureStorage';
-import { getProviderSettings, getActiveProviderModel, getConnectedProviderIds } from '../store/providerSettings';
-import { ensureAzureFoundryProxy } from './azure-foundry-proxy';
-import { ensureMoonshotProxy } from './moonshot-proxy';
 import { getNodePath } from '../utils/bundled-node';
 import { skillsManager } from '../skills';
 import type { BedrockCredentials, ProviderId, ZaiCredentials, AzureFoundryCredentials } from '@accomplish/shared';
@@ -636,7 +641,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     // Legacy fallback: use old OpenRouter config
     const openrouterKey = getApiKey('openrouter');
     if (openrouterKey) {
-      const { getSelectedModel } = await import('../store/appSettings');
+      const { getSelectedModel } = await import('@accomplish/core');
       const selectedModel = getSelectedModel();
 
       const openrouterModels: Record<string, OpenRouterProviderModelConfig> = {};
@@ -836,7 +841,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
   } else {
     // TODO: Remove legacy Azure Foundry config support in v0.4.0
     // Legacy fallback: use old Azure Foundry config
-    const { getAzureFoundryConfig } = await import('../store/appSettings');
+    const { getAzureFoundryConfig } = await import('@accomplish/core');
     const azureFoundryConfig = getAzureFoundryConfig();
     if (azureFoundryConfig?.enabled && activeModel?.provider === 'azure-foundry') {
       const config = await buildAzureFoundryProviderConfig(

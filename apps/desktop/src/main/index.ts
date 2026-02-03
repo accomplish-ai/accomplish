@@ -14,16 +14,19 @@ if (process.platform === 'win32') {
 }
 
 import { registerIPCHandlers } from './ipc/handlers';
-import { flushPendingTasks } from './store/taskHistory';
+import {
+  flushPendingTasks,
+  getProviderSettings,
+  clearProviderSettings,
+  FutureSchemaError,
+  stopAzureFoundryProxy,
+  stopMoonshotProxy,
+} from '@accomplish/core';
 import { disposeTaskManager } from './opencode/task-manager';
 import { oauthBrowserFlow } from './opencode/auth-browser';
 import { migrateLegacyData } from './store/legacyMigration';
 import { initializeDatabase, closeDatabase } from './store/db';
-import { getProviderSettings, clearProviderSettings } from './store/repositories/providerSettings';
 import { getApiKey } from './store/secureStorage';
-import { FutureSchemaError } from './store/migrations/errors';
-import { stopAzureFoundryProxy } from './opencode/azure-foundry-proxy';
-import { stopMoonshotProxy } from './opencode/moonshot-proxy';
 import { initializeLogCollector, shutdownLogCollector, getLogCollector } from './logging';
 import { skillsManager } from './skills';
 

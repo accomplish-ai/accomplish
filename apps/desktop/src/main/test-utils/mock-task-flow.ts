@@ -4,7 +4,7 @@
  */
 import { BrowserWindow } from 'electron';
 import type { Task, TaskMessage, TaskStatus } from '@accomplish/shared';
-import { updateTaskStatus } from '../store/taskHistory';
+import { updateTaskStatus } from '@accomplish/core';
 
 // ============================================================================
 // Types

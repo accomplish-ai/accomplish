@@ -7,7 +7,7 @@ import {
   getOpenCodeCliVersion,
 } from '../opencode/adapter';
 import { getLogCollector } from '../logging';
-import { getAzureEntraToken } from '../opencode/azure-token-manager';
+import { getAzureEntraToken } from '@accomplish/core';
 import {
   getTaskManager,
   disposeTaskManager,
@@ -26,7 +26,7 @@ import {
   saveTodosForTask,
   getTodosForTask,
   clearTodosForTask,
-} from '../store/taskHistory';
+} from '@accomplish/core';
 import { generateTaskSummary } from '../services/summarizer';
 import {
   storeApiKey,
@@ -54,7 +54,7 @@ import {
   setLiteLLMConfig,
   getLMStudioConfig,
   setLMStudioConfig,
-} from '../store/appSettings';
+} from '@accomplish/core';
 import {
   getProviderSettings,
   setActiveProvider,
@@ -65,8 +65,8 @@ import {
   setProviderDebugMode,
   getProviderDebugMode,
   hasReadyProvider,
-} from '../store/providerSettings';
-import { getOpenAiOauthStatus } from '../opencode/auth';
+  getOpenAiOauthStatus,
+} from '@accomplish/core';
 import { loginOpenAiWithChatGpt } from '../opencode/auth-browser';
 import type { ProviderId, ConnectedProvider, BedrockCredentials } from '@accomplish/shared';
 import { getDesktopConfig } from '../config';

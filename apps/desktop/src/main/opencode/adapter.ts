@@ -2,9 +2,14 @@ import * as pty from 'node-pty';
 import { EventEmitter } from 'events';
 import { app } from 'electron';
 import fs from 'fs';
-import { StreamParser } from './stream-parser';
-import { OpenCodeLogWatcher, createLogWatcher, OpenCodeLogError } from './log-watcher';
-import { CompletionEnforcer, CompletionEnforcerCallbacks } from './completion';
+import {
+  StreamParser,
+  OpenCodeLogWatcher,
+  createLogWatcher,
+  type OpenCodeLogError,
+  CompletionEnforcer,
+  type CompletionEnforcerCallbacks,
+} from '@accomplish/core';
 import {
   getOpenCodeCliPath,
   isOpenCodeBundled,
@@ -12,14 +17,19 @@ import {
 } from './cli-path';
 import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
 // TODO: Remove getAzureFoundryConfig import in v0.4.0 when legacy support is dropped
-import { getSelectedModel, getAzureFoundryConfig, getOpenAiBaseUrl } from '../store/appSettings';
-import { getActiveProviderModel, getConnectedProvider } from '../store/providerSettings';
+import {
+  getSelectedModel,
+  getAzureFoundryConfig,
+  getOpenAiBaseUrl,
+  getActiveProviderModel,
+  getConnectedProvider,
+} from '@accomplish/core';
 import type { AzureFoundryCredentials } from '@accomplish/shared';
 import { generateOpenCodeConfig, ACCOMPLISH_AGENT_NAME, syncApiKeysToOpenCodeAuth } from './config-generator';
-import { getAzureEntraToken } from './azure-token-manager';
+import { getAzureEntraToken } from '@accomplish/core';
 import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo, getNpxPath } from '../utils/bundled-node';
-import { getModelDisplayName } from '../utils/model-display';
+import { getModelDisplayName } from '@accomplish/core';
 import path from 'path';
 import { spawn } from 'child_process';
 import type {
