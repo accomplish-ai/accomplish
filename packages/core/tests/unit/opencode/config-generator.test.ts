@@ -293,7 +293,9 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
 
       expect(result.config.provider).toBeDefined();
-      expect(result.config.provider?.['custom-provider']).toEqual(customProvider);
+      // Provider config in output has id stripped (used as key)
+      const { id: _id, ...expectedProviderConfig } = customProvider;
+      expect(result.config.provider?.['custom-provider']).toEqual(expectedProviderConfig);
       expect(result.config.enabled_providers).toContain('custom-provider');
     });
 

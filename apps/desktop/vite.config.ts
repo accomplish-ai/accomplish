@@ -21,6 +21,7 @@ export default defineConfig(() => ({
           resolve: {
             alias: {
               '@accomplish/shared': path.resolve(__dirname, '../../packages/shared/src'),
+              '@accomplish/core': path.resolve(__dirname, '../../packages/core/src'),
             },
           },
           build: {
@@ -66,6 +67,7 @@ export default defineConfig(() => ({
       '@renderer': path.resolve(__dirname, 'src/renderer'),
       '@shared': path.resolve(__dirname, '../../packages/shared/src'),
       '@accomplish/shared': path.resolve(__dirname, '../../packages/shared/src'),
+      '@accomplish/core': path.resolve(__dirname, '../../packages/core/src'),
     },
   },
   // Build the React renderer

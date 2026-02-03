@@ -56,11 +56,8 @@ export interface ProviderConfig {
   id: string;
   npm: string;
   name: string;
-  options: {
-    baseURL: string;
-    apiKey?: string;
-    headers?: Record<string, string>;
-  };
+  /** Provider-specific options (e.g., baseURL for OpenAI-compatible, region/profile for Bedrock) */
+  options: Record<string, unknown>;
   models: Record<string, ProviderModelConfig>;
 }
 

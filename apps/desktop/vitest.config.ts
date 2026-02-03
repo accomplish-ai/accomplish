@@ -10,6 +10,8 @@ export default defineConfig({
       '@main': path.resolve(__dirname, 'src/main'),
       '@renderer': path.resolve(__dirname, 'src/renderer'),
       '@shared': path.resolve(__dirname, '../../packages/shared/src'),
+      '@accomplish/shared': path.resolve(__dirname, '../../packages/shared/src'),
+      '@accomplish/core': path.resolve(__dirname, '../../packages/core/src'),
     },
   },
   test: {

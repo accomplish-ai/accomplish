@@ -18,6 +18,7 @@ import {
   databaseExists as coreDatabaseExists,
   isDatabaseInitialized,
 } from '@accomplish/core';
+import { importLegacyElectronStoreData } from './electronStoreImport';
 
 /**
  * Get the database file path based on environment.
@@ -66,9 +67,12 @@ export function databaseExists(): boolean {
 export function initializeDatabase(): void {
   // Only initialize if not already initialized
   if (!isDatabaseInitialized()) {
-    coreInitializeDatabase({
+    const db = coreInitializeDatabase({
       databasePath: getDatabasePath(),
       runMigrations: true,
     });
+
+    // Import any legacy electron-store data (for users upgrading from pre-SQLite versions)
+    importLegacyElectronStoreData(db);
   }
 }

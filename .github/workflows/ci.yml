@@ -21,6 +21,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Run core package tests
+  core-tests:
+    name: Core Package Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Run core tests
+        run: pnpm -F @accomplish/core test
+
   # Run unit and integration tests in parallel
   unit-tests:
     name: Unit Tests

@@ -72,15 +72,6 @@ const PROVIDER_ID_TO_OPENCODE: Record<ProviderId, string> = {
   lmstudio: 'lmstudio',
 };
 
-/**
- * Build Bedrock provider configuration
- */
-interface BedrockProviderConfig {
-  options: {
-    region: string;
-    profile?: string;
-  };
-}
 
 /**
  * Build Azure Foundry provider configuration for OpenCode CLI
@@ -136,7 +127,6 @@ async function buildAzureFoundryProviderConfig(
  */
 async function buildProviderConfigs(azureFoundryToken?: string): Promise<{
   providerConfigs: ProviderConfig[];
-  bedrockConfig?: BedrockProviderConfig;
   enabledProviders: string[];
   modelOverride?: { model: string; smallModel: string };
 }> {
@@ -256,33 +246,49 @@ async function buildProviderConfigs(azureFoundryToken?: string): Promise<{
     console.log('[OpenCode Config] Moonshot configured:', modelId);
   }
 
-  // Configure Bedrock - special handling as it uses a different config structure
-  let bedrockConfig: BedrockProviderConfig | undefined;
+  // Configure Bedrock - uses @ai-sdk/amazon-bedrock provider with region/profile options
   let modelOverride: { model: string; smallModel: string } | undefined;
 
   const bedrockProvider = providerSettings.connectedProviders.bedrock;
   if (bedrockProvider?.connectionStatus === 'connected' && bedrockProvider.credentials.type === 'bedrock') {
     const creds = bedrockProvider.credentials;
-    bedrockConfig = {
-      options: {
-        region: creds.region || 'us-east-1',
-        ...(creds.authMethod === 'profile' && creds.profileName ? { profile: creds.profileName } : {}),
-      },
+    const bedrockOptions: Record<string, string> = {
+      region: creds.region || 'us-east-1',
     };
-    console.log('[OpenCode Config] Bedrock configured:', bedrockConfig);
+    if (creds.authMethod === 'profile' && creds.profileName) {
+      bedrockOptions.profile = creds.profileName;
+    }
+
+    // Add Bedrock as a provider config so OpenCode CLI can use it
+    providerConfigs.push({
+      id: 'amazon-bedrock',
+      npm: '@ai-sdk/amazon-bedrock',
+      name: 'Amazon Bedrock',
+      options: bedrockOptions,
+      models: {},
+    });
+    console.log('[OpenCode Config] Bedrock configured:', bedrockOptions);
   } else {
     // Legacy fallback
     const bedrockCredsJson = getApiKey('bedrock');
     if (bedrockCredsJson) {
       try {
         const creds = JSON.parse(bedrockCredsJson) as BedrockCredentials;
-        bedrockConfig = {
-          options: {
-            region: creds.region || 'us-east-1',
-            ...(creds.authType === 'profile' && creds.profileName ? { profile: creds.profileName } : {}),
-          },
+        const bedrockOptions: Record<string, string> = {
+          region: creds.region || 'us-east-1',
         };
-        console.log('[OpenCode Config] Bedrock (legacy) configured:', bedrockConfig);
+        if (creds.authType === 'profile' && creds.profileName) {
+          bedrockOptions.profile = creds.profileName;
+        }
+
+        providerConfigs.push({
+          id: 'amazon-bedrock',
+          npm: '@ai-sdk/amazon-bedrock',
+          name: 'Amazon Bedrock',
+          options: bedrockOptions,
+          models: {},
+        });
+        console.log('[OpenCode Config] Bedrock (legacy) configured:', bedrockOptions);
       } catch (e) {
         console.warn('[OpenCode Config] Failed to parse Bedrock credentials:', e);
       }
@@ -426,7 +432,7 @@ async function buildProviderConfigs(azureFoundryToken?: string): Promise<{
     console.log('[OpenCode Config] Z.AI Coding Plan configured, region:', zaiRegion);
   }
 
-  return { providerConfigs, bedrockConfig, enabledProviders, modelOverride };
+  return { providerConfigs, enabledProviders, modelOverride };
 }
 
 /**
@@ -445,7 +451,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
   console.log('[OpenCode Config] User data path:', userDataPath);
 
   // Build provider configurations from secure storage
-  const { providerConfigs, bedrockConfig, enabledProviders, modelOverride } = await buildProviderConfigs(azureFoundryToken);
+  const { providerConfigs, enabledProviders, modelOverride } = await buildProviderConfigs(azureFoundryToken);
 
   // Get enabled skills
   const enabledSkills = await skillsManager.getEnabled();
@@ -473,12 +479,6 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
   console.log('[OpenCode Config] Generated config at:', result.configPath);
   console.log('[OpenCode Config] OPENCODE_CONFIG env set to:', process.env.OPENCODE_CONFIG);
   console.log('[OpenCode Config] OPENCODE_CONFIG_DIR env set to:', process.env.OPENCODE_CONFIG_DIR);
-
-  // Note: Bedrock config is handled separately by OpenCode CLI through enabled_providers
-  // The bedrockConfig would need special handling if OpenCode CLI doesn't auto-configure it
-  if (bedrockConfig) {
-    console.log('[OpenCode Config] Bedrock provider options:', bedrockConfig.options);
-  }
 
   return result.configPath;
 }
