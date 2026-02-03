@@ -9,7 +9,7 @@ export const ZAI_ENDPOINTS: Record<ZaiRegion, string> = {
   international: 'https://api.z.ai/api/coding/paas/v4',
 };
 
-export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'minimax' | 'lmstudio';
+export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'minimax' | 'lmstudio' | 'huggingface';
 
 export interface ProviderConfig {
   id: ProviderType;
@@ -384,6 +384,12 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
         supportsVision: false,
       },
     ],
+  },
+  {
+    id: 'huggingface',
+    name: 'HuggingFace',
+    requiresApiKey: false,
+    models: [], // Fetched dynamically from local TGI server
   },
 ];
 

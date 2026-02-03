@@ -11,6 +11,7 @@ import {
   OpenRouterProviderForm,
   LiteLLMProviderForm,
   LMStudioProviderForm,
+  HuggingFaceProviderForm,
 } from './providers';
 import { ZaiProviderForm } from './providers/ZaiProviderForm';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
@@ -90,6 +91,17 @@ export function ProviderSettingsPanel({
         if (providerId === 'lmstudio') {
           return (
             <LMStudioProviderForm
+              connectedProvider={connectedProvider}
+              onConnect={onConnect}
+              onDisconnect={onDisconnect}
+              onModelChange={onModelChange}
+              showModelError={showModelError}
+            />
+          );
+        }
+        if (providerId === 'huggingface') {
+          return (
+            <HuggingFaceProviderForm
               connectedProvider={connectedProvider}
               onConnect={onConnect}
               onDisconnect={onDisconnect}

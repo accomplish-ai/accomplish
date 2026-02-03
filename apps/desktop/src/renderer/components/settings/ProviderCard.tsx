@@ -21,6 +21,7 @@ import openrouterLogo from '/assets/ai-logos/openrouter.svg';
 import litellmLogo from '/assets/ai-logos/litellm.svg';
 import minimaxLogo from '/assets/ai-logos/minimax.svg';
 import lmstudioLogo from '/assets/ai-logos/lmstudio.png';
+import huggingfaceLogo from '/assets/ai-logos/huggingface.svg';
 
 // Import connected badge icon
 import connectedKeyIcon from '/assets/icons/connected-key.svg';
@@ -40,6 +41,7 @@ const PROVIDER_LOGOS: Record<ProviderId, string> = {
   litellm: litellmLogo,
   minimax: minimaxLogo,
   lmstudio: lmstudioLogo,
+  huggingface: huggingfaceLogo,
 };
 
 interface ProviderCardProps {

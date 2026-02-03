@@ -14,7 +14,8 @@ export type ProviderId =
   | 'openrouter'
   | 'litellm'
   | 'minimax'
-  | 'lmstudio';
+  | 'lmstudio'
+  | 'huggingface';
 
 export type ProviderCategory = 'classic' | 'aws' | 'azure' | 'local' | 'proxy' | 'hybrid';
 
@@ -42,6 +43,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   litellm: { id: 'litellm', name: 'LiteLLM', category: 'hybrid', label: 'Service', logoKey: 'liteLLM' },
   minimax: { id: 'minimax', name: 'MiniMax', category: 'classic', label: 'Service', logoKey: 'minimax', helpUrl: 'https://platform.minimax.io/user-center/basic-information/interface-key' },
   lmstudio: { id: 'lmstudio', name: 'LM Studio', category: 'local', label: 'Local Models', logoKey: 'lmstudio', helpUrl: 'https://lmstudio.ai/' },
+  huggingface: { id: 'huggingface', name: 'HuggingFace', category: 'local', label: 'Local Models', logoKey: 'huggingface', helpUrl: 'https://huggingface.co/docs/text-generation-inference' },
 };
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -103,6 +105,11 @@ export interface OAuthCredentials {
   oauthProvider: 'chatgpt';
 }
 
+export interface HuggingFaceCredentials {
+  type: 'huggingface';
+  serverUrl: string;
+}
+
 export type ProviderCredentials =
   | ApiKeyCredentials
   | BedrockProviderCredentials
@@ -112,7 +119,8 @@ export type ProviderCredentials =
   | ZaiCredentials
   | AzureFoundryCredentials
   | LMStudioCredentials
-  | OAuthCredentials;
+  | OAuthCredentials
+  | HuggingFaceCredentials;
 
 /** Tool support status for a model */
 export type ToolSupportStatus = 'supported' | 'unsupported' | 'unknown';

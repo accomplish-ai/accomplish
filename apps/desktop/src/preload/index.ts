@@ -136,6 +136,13 @@ const accomplishAPI = {
   saveAzureFoundryConfig: (config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }): Promise<void> =>
     ipcRenderer.invoke('azure-foundry:save-config', config),
 
+  // HuggingFace TGI configuration
+  testHuggingFaceConnection: (url: string): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; toolSupport: 'supported' | 'unsupported' | 'unknown' }>;
+    error?: string;
+  }> => ipcRenderer.invoke('huggingface:test-connection', url),
+
   // OpenRouter configuration
   fetchOpenRouterModels: (): Promise<{
     success: boolean;

@@ -99,6 +99,13 @@ interface AccomplishAPI {
   testAzureFoundryConnection(config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }): Promise<{ success: boolean; error?: string }>;
   saveAzureFoundryConfig(config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }): Promise<void>;
 
+  // HuggingFace TGI configuration
+  testHuggingFaceConnection(url: string): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; toolSupport: 'supported' | 'unsupported' | 'unknown' }>;
+    error?: string;
+  }>;
+
   // OpenRouter configuration
   fetchOpenRouterModels(): Promise<{
     success: boolean;

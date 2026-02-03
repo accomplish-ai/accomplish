@@ -540,6 +540,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     litellm: 'litellm',
     minimax: 'minimax',
     lmstudio: 'lmstudio',
+    huggingface: 'huggingface',
   };
 
   // Build enabled providers list from new settings or fall back to base providers
@@ -805,6 +806,43 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
       };
 
       console.log('[OpenCode Config] LM Studio configured from legacy settings:', Object.keys(lmstudioModels));
+    }
+  }
+
+  // Configure HuggingFace TGI if connected
+  const huggingfaceProvider = providerSettings.connectedProviders.huggingface;
+  if (huggingfaceProvider?.connectionStatus === 'connected' && huggingfaceProvider.credentials.type === 'huggingface') {
+    if (huggingfaceProvider.selectedModelId) {
+      // OpenCode CLI splits "huggingface/model" into provider="huggingface" and modelID="model"
+      const rawModelId = huggingfaceProvider.selectedModelId.replace(/^huggingface\//, '');
+
+      // Sanitize model ID to only allow safe characters (alphanumeric, hyphens, underscores, periods, colons)
+      // This prevents potential injection if a malicious model ID was stored
+      const modelId = rawModelId.replace(/[^a-zA-Z0-9._:-]/g, '_');
+      if (modelId !== rawModelId) {
+        console.warn(`[OpenCode Config] HuggingFace model ID sanitized: "${rawModelId}" -> "${modelId}"`);
+      }
+
+      // Check if the model supports tools from the availableModels metadata
+      const modelInfo = huggingfaceProvider.availableModels?.find(
+        m => m.id === huggingfaceProvider.selectedModelId || m.id === modelId
+      );
+      const supportsTools = (modelInfo as { toolSupport?: string })?.toolSupport === 'supported';
+
+      providerConfig.huggingface = {
+        npm: '@ai-sdk/openai-compatible',
+        name: 'HuggingFace TGI',
+        options: {
+          baseURL: `${huggingfaceProvider.credentials.serverUrl}/v1`,
+        },
+        models: {
+          [modelId]: {
+            name: modelId,
+            tools: supportsTools,
+          },
+        },
+      };
+      console.log(`[OpenCode Config] HuggingFace TGI configured: ${modelId} (tools: ${supportsTools})`);
     }
   }
 

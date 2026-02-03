@@ -698,7 +698,6 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       env.MINIMAX_API_KEY = apiKeys.minimax;
       console.log('[OpenCode CLI] Using MiniMax API key from settings');
     }
-
     // Set Bedrock credentials if configured
     const bedrockCredentials = getBedrockCredentials();
     if (bedrockCredentials) {
@@ -794,6 +793,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         // LiteLLM models use format: litellm/model-name
         const modelId = selectedModel.model.replace(/^litellm\//, '');
         args.push('--model', `litellm/${modelId}`);
+      } else if (selectedModel.provider === 'huggingface') {
+        // HuggingFace TGI models use format: huggingface/model-name
+        const modelId = selectedModel.model.replace(/^huggingface\//, '');
+        args.push('--model', `huggingface/${modelId}`);
       } else {
         args.push('--model', selectedModel.model);
       }
