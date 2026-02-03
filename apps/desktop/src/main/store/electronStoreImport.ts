@@ -7,12 +7,15 @@
  * into the SQLite database. This handles users upgrading from very old
  * versions of the app that predated the SQLite migration.
  *
- * Import is skipped if the database already has data (from a previous migration).
+ * Import is tracked via schema_meta to ensure it only runs once per database,
+ * preventing duplicate inserts and stale data overwrites on subsequent launches.
  */
 
 import type { Database } from 'better-sqlite3';
 import Store from 'electron-store';
 import { app } from 'electron';
+
+const LEGACY_IMPORT_KEY = 'legacy_electron_store_import_complete';
 
 /**
  * Get store name based on environment (dev vs packaged).
@@ -22,17 +25,30 @@ function getStoreName(baseName: string): string {
 }
 
 /**
- * Check if the database already has app settings (not just default values).
- * If onboarding_complete is 1, data was already imported.
+ * Check if legacy import has already been attempted.
+ * Uses schema_meta table to track migration status.
  */
-function hasExistingData(db: Database): boolean {
+function wasLegacyImportAttempted(db: Database): boolean {
   try {
     const result = db.prepare(
-      'SELECT onboarding_complete FROM app_settings WHERE id = 1'
-    ).get() as { onboarding_complete: number } | undefined;
-    return result?.onboarding_complete === 1;
+      'SELECT value FROM schema_meta WHERE key = ?'
+    ).get(LEGACY_IMPORT_KEY) as { value: string } | undefined;
+    return result?.value === 'true';
   } catch {
     return false;
+  }
+}
+
+/**
+ * Mark legacy import as complete in schema_meta.
+ */
+function markLegacyImportComplete(db: Database): void {
+  try {
+    db.prepare(
+      'INSERT OR REPLACE INTO schema_meta (key, value) VALUES (?, ?)'
+    ).run(LEGACY_IMPORT_KEY, 'true');
+  } catch (err) {
+    console.error('[LegacyImport] Failed to mark import complete:', err);
   }
 }
 
@@ -101,7 +117,7 @@ function importProviderSettings(db: Database): void {
       legacy.get('debugMode') ? 1 : 0
     );
 
-    // Import connected providers
+    // Import connected providers (use OR IGNORE to avoid conflicts)
     const connectedProviders = legacy.get('connectedProviders') as Record<
       string,
       Record<string, unknown>
@@ -109,7 +125,7 @@ function importProviderSettings(db: Database): void {
 
     if (connectedProviders) {
       const insertProvider = db.prepare(
-        `INSERT OR REPLACE INTO providers
+        `INSERT OR IGNORE INTO providers
           (provider_id, connection_status, selected_model_id, credentials_type, credentials_data, last_connected_at, available_models)
         VALUES (?, ?, ?, ?, ?, ?, ?)`
       );
@@ -158,26 +174,28 @@ function importTaskHistory(db: Database): void {
       return;
     }
 
+    // Use OR IGNORE to avoid PK collisions if data already exists
     const insertTask = db.prepare(
-      `INSERT OR REPLACE INTO tasks
+      `INSERT OR IGNORE INTO tasks
         (id, prompt, summary, status, session_id, created_at, started_at, completed_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     );
 
     const insertMessage = db.prepare(
-      `INSERT INTO task_messages
+      `INSERT OR IGNORE INTO task_messages
         (id, task_id, type, content, tool_name, tool_input, timestamp, sort_order)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     );
 
     const insertAttachment = db.prepare(
-      `INSERT INTO task_attachments
+      `INSERT OR IGNORE INTO task_attachments
         (message_id, type, data, label)
       VALUES (?, ?, ?, ?)`
     );
 
+    let importedCount = 0;
     for (const task of tasks) {
-      insertTask.run(
+      const result = insertTask.run(
         task.id as string,
         task.prompt as string,
         task.summary as string | null,
@@ -188,37 +206,41 @@ function importTaskHistory(db: Database): void {
         task.completedAt as string | null
       );
 
-      const messages = task.messages as Array<Record<string, unknown>> | null;
-      if (messages) {
-        let sortOrder = 0;
-        for (const msg of messages) {
-          insertMessage.run(
-            msg.id as string,
-            task.id as string,
-            msg.type as string,
-            msg.content as string,
-            msg.toolName as string | null,
-            msg.toolInput ? JSON.stringify(msg.toolInput) : null,
-            msg.timestamp as string,
-            sortOrder++
-          );
+      // Only import messages/attachments if task was newly inserted
+      if (result.changes > 0) {
+        importedCount++;
+        const messages = task.messages as Array<Record<string, unknown>> | null;
+        if (messages) {
+          let sortOrder = 0;
+          for (const msg of messages) {
+            insertMessage.run(
+              msg.id as string,
+              task.id as string,
+              msg.type as string,
+              msg.content as string,
+              msg.toolName as string | null,
+              msg.toolInput ? JSON.stringify(msg.toolInput) : null,
+              msg.timestamp as string,
+              sortOrder++
+            );
 
-          const attachments = msg.attachments as Array<Record<string, unknown>> | null;
-          if (attachments) {
-            for (const att of attachments) {
-              insertAttachment.run(
-                msg.id as string,
-                att.type as string,
-                att.data as string,
-                att.label as string | null
-              );
+            const attachments = msg.attachments as Array<Record<string, unknown>> | null;
+            if (attachments) {
+              for (const att of attachments) {
+                insertAttachment.run(
+                  msg.id as string,
+                  att.type as string,
+                  att.data as string,
+                  att.label as string | null
+                );
+              }
             }
           }
         }
       }
     }
 
-    console.log(`[LegacyImport] Imported ${tasks.length} tasks`);
+    console.log(`[LegacyImport] Imported ${importedCount} new tasks (${tasks.length - importedCount} already existed)`);
   } catch (err) {
     console.error('[LegacyImport] Failed to import task-history:', err);
   }
@@ -228,14 +250,14 @@ function importTaskHistory(db: Database): void {
  * Import legacy electron-store data into SQLite database.
  *
  * This should be called after database initialization and migrations.
- * It's safe to call multiple times - import is skipped if data already exists.
+ * Import is tracked in schema_meta to ensure it only runs once per database.
  *
  * @param db The SQLite database instance
  */
 export function importLegacyElectronStoreData(db: Database): void {
-  // Skip if database already has data (was previously migrated)
-  if (hasExistingData(db)) {
-    console.log('[LegacyImport] Database already has data, skipping electron-store import');
+  // Check if import was already attempted (tracked in schema_meta)
+  if (wasLegacyImportAttempted(db)) {
+    console.log('[LegacyImport] Legacy import already completed, skipping');
     return;
   }
 
@@ -244,6 +266,9 @@ export function importLegacyElectronStoreData(db: Database): void {
   importAppSettings(db);
   importProviderSettings(db);
   importTaskHistory(db);
+
+  // Mark import as complete so it doesn't run again
+  markLegacyImportComplete(db);
 
   console.log('[LegacyImport] Legacy import complete');
 }
