@@ -30,7 +30,7 @@ export const DEFAULT_TEST_MODELS: Record<string, string> = {
   zai: 'zai/glm-4.7-flashx',
 
   // AWS Bedrock (models fetched dynamically, this is a fallback)
-  'bedrock-api-key': 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+  'bedrock-api-key': 'amazon-bedrock/deepseek.v3-v1:0',
   'bedrock-access-keys': 'us.anthropic.claude-sonnet-4-20250514-v1:0',
   'bedrock-profile': 'us.anthropic.claude-sonnet-4-20250514-v1:0',
 
@@ -39,7 +39,7 @@ export const DEFAULT_TEST_MODELS: Record<string, string> = {
   'azure-foundry-entra-id': '',
 
   // Local providers (models discovered at runtime)
-  ollama: '', // First available model
+  ollama: 'qwen3-vl:2b', // First available model
   lmstudio: '', // First available model
   litellm: '', // First available model
 };
@@ -174,7 +174,8 @@ export const PROVIDER_TEST_CONFIGS: Record<string, ProviderTestConfig> = {
     authMethod: 'bedrock-api-key',
     requiresShowAll: false,
     modelSelection: {
-      strategy: 'first', // Models fetched from AWS
+      strategy: 'specific', // Models fetched from AWS
+      modelId: DEFAULT_TEST_MODELS['bedrock-api-key'],
     },
     connectionTimeout: 60000, // Bedrock can be slower to connect
   },
@@ -235,8 +236,10 @@ export const PROVIDER_TEST_CONFIGS: Record<string, ProviderTestConfig> = {
     displayName: 'Ollama',
     authMethod: 'server-url',
     requiresShowAll: false,
+    serverUrl: 'http://localhost:11434',
     modelSelection: {
-      strategy: 'first', // Use first discovered model
+      strategy: 'specific',
+      modelId: DEFAULT_TEST_MODELS.ollama,
     },
     connectionTimeout: 30000,
   },
@@ -268,7 +271,7 @@ export const PROVIDER_TEST_CONFIGS: Record<string, ProviderTestConfig> = {
 
 /**
  * Get the resolved model ID for a provider test.
- * Priority: secrets.modelId > config.modelSelection.modelId > DEFAULT_TEST_MODELS > empty string
+ * Priority: secrets.modelId > config.modelSelection.modelId > DEFAULT_TEST_MODELS (for specific) > empty string
  */
 function resolveModelId(configKey: string, config: ProviderTestConfig, secrets: unknown): string {
   // Check if secrets has a modelId override
@@ -282,6 +285,11 @@ function resolveModelId(configKey: string, config: ProviderTestConfig, secrets: 
   // Use config's model selection if specific
   if (config.modelSelection.strategy === 'specific' && config.modelSelection.modelId) {
     return config.modelSelection.modelId;
+  }
+
+  // For 'first' strategy, return empty to indicate "select first available"
+  if (config.modelSelection.strategy === 'first') {
+    return '';
   }
 
   // Fall back to default test models

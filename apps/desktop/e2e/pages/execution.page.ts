@@ -95,4 +95,16 @@ export class ExecutionPage {
       { timeout }
     );
   }
+
+  async waitForCompletedSuccessfully(timeout = 180000) {
+    await this.page.waitForFunction(
+      () => {
+        const badge = document.querySelector('[data-testid="execution-status-badge"]');
+        if (!badge) return false;
+        const text = badge.textContent?.toLowerCase() || '';
+        return text.includes('completed') && !text.includes('failed');
+      },
+      { timeout }
+    );
+  }
 }

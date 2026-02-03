@@ -160,14 +160,16 @@ export function ModelSelector({
               </div>
 
               {/* Model list */}
-              <div className="max-h-60 overflow-y-auto">
+              <div className="max-h-60 overflow-y-auto" data-testid="model-selector-list">
                 {filteredModels.length === 0 ? (
                   <div className="px-3 py-2 text-sm text-muted-foreground">No models found</div>
                 ) : (
-                  filteredModels.map((model) => (
+                  filteredModels.map((model, index) => (
                     <button
                       key={model.id}
                       type="button"
+                      data-testid={`model-option-${index}`}
+                      data-model-id={model.id}
                       onClick={() => {
                         onChange(model.id);
                         setIsOpen(false);

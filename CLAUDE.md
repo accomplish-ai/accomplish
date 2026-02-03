@@ -78,7 +78,8 @@ Renderer
 - Shared types go in `packages/shared/src/types/`
 - Renderer state via Zustand store actions
 - IPC handlers in `src/main/ipc/handlers.ts` must match `window.accomplish` API in preload
-- **Avoid nested ternaries** - Use mapper objects, if/else instead for better readability:
+- **Avoid nested ternaries** - Use mapper objects, if/else instead for better readability
+- **Minimal comments** - Only add comments for counter-intuitive behavior or when code cannot clearly express intent. Don't comment obvious operations.
 
 
 ### Image Assets in Renderer

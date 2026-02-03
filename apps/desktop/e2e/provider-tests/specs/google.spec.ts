@@ -5,13 +5,13 @@ import { ExecutionPage } from '../../pages/execution.page';
 import { getProviderTestConfig, DEFAULT_TASK_TIMEOUT } from '../provider-test-configs';
 import type { ResolvedProviderTestConfig, ApiKeySecrets } from '../types';
 
-test.describe('OpenAI Provider E2E', () => {
+test.describe('Google Provider E2E', () => {
   let testConfig: ResolvedProviderTestConfig;
 
   test.beforeEach(async ({}, testInfo) => {
-    const config = getProviderTestConfig('openai');
+    const config = getProviderTestConfig('google');
     if (!config) {
-      testInfo.skip(true, 'No OpenAI secrets configured');
+      testInfo.skip(true, 'No Google secrets configured');
       return;
     }
     testConfig = config;
@@ -44,7 +44,6 @@ test.describe('OpenAI Provider E2E', () => {
 
     await home.enterTask(testConfig.taskPrompt);
     await home.submitButton.click();
-    
     await execution.waitForCompletedSuccessfully(DEFAULT_TASK_TIMEOUT);
   });
 });

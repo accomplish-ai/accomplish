@@ -39,6 +39,8 @@ export interface ProviderTestConfig {
   };
   /** Connection timeout override (ms) */
   readonly connectionTimeout?: number;
+  /** Server URL for local providers (Ollama, LM Studio, etc.) */
+  readonly serverUrl?: string;
   /** Setup hook - run before connecting */
   readonly setup?: () => Promise<void>;
   /** Teardown hook - run after test */
@@ -90,6 +92,11 @@ export interface ServerUrlSecrets {
   readonly serverUrl: string;
 }
 
+/** Ollama-specific secrets with optional model override */
+export interface OllamaSecrets extends ServerUrlSecrets {
+  readonly modelId?: string;
+}
+
 /** Server URL with optional key secrets (LiteLLM) */
 export interface ServerUrlWithKeySecrets {
   readonly serverUrl: string;
@@ -111,6 +118,7 @@ export type ProviderSecrets =
   | AzureApiKeySecrets
   | AzureEntraIdSecrets
   | ServerUrlSecrets
+  | OllamaSecrets
   | ServerUrlWithKeySecrets
   | ZaiSecrets;
 
