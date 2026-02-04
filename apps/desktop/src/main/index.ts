@@ -18,9 +18,9 @@ import { flushPendingTasks } from './store/taskHistory';
 import { disposeTaskManager } from './opencode/task-manager';
 import { oauthBrowserFlow } from './opencode/auth-browser';
 import { migrateLegacyData } from './store/legacyMigration';
-import { initializeDatabase, closeDatabase } from './store/db';
+import { initializeDatabase, closeDatabase, resetDatabaseSingleton } from './store/db';
 import { getProviderSettings, clearProviderSettings } from './store/repositories/providerSettings';
-import { getApiKey } from './store/secureStorage';
+import { clearSecureStorage, getApiKey } from './store/secureStorage';
 import { FutureSchemaError } from './store/migrations/errors';
 import { stopAzureFoundryProxy } from './opencode/azure-foundry-proxy';
 import { stopMoonshotProxy } from './opencode/moonshot-proxy';
@@ -42,17 +42,25 @@ if (process.argv.includes('--e2e-mock-tasks') || process.env.E2E_MOCK_TASK_EVENT
 // Use CLEAN_START env var since CLI args don't pass through vite to Electron
 if (process.env.CLEAN_START === '1') {
   const userDataPath = app.getPath('userData');
-  console.log('[Clean Mode] Clearing userData directory:', userDataPath);
+  console.log('[Clean Mode] Starting clean mode - clearing all data');
+  console.log('[Clean Mode] userData path:', userDataPath);
+
+  // Step 1: Delete the entire userData directory (contains database and electron-store files)
   try {
     if (fs.existsSync(userDataPath)) {
       fs.rmSync(userDataPath, { recursive: true, force: true });
-      console.log('[Clean Mode] Successfully cleared userData');
+      console.log('[Clean Mode] Successfully deleted userData directory');
     }
   } catch (err) {
-    console.error('[Clean Mode] Failed to clear userData:', err);
+    console.error('[Clean Mode] Failed to delete userData directory:', err);
   }
-  // Note: Secure storage (API keys, auth tokens) is stored in electron-store
-  // which lives in userData, so it gets cleared with the directory above
+
+  // Step 2: Reset all singletons to ensure fresh state
+  // This is critical because singletons may have been initialized before directory deletion
+  clearSecureStorage();   // Resets secure storage singleton
+  resetDatabaseSingleton(); // Resets database singleton
+
+  console.log('[Clean Mode] All singletons reset - app will start fresh');
 }
 
 // Set app name before anything else (affects internal Electron name)
@@ -212,13 +220,18 @@ if (!gotTheLock) {
     console.log('[Main] Electron app ready, version:', app.getVersion());
 
     // Migrate data from legacy userData paths if needed (one-time migration)
-    try {
-      const didMigrate = migrateLegacyData();
-      if (didMigrate) {
-        console.log('[Main] Migrated data from legacy userData path');
+    // Skip migration when CLEAN_START=1 to ensure truly fresh state for E2E tests
+    if (process.env.CLEAN_START !== '1') {
+      try {
+        const didMigrate = migrateLegacyData();
+        if (didMigrate) {
+          console.log('[Main] Migrated data from legacy userData path');
+        }
+      } catch (err) {
+        console.error('[Main] Legacy data migration failed:', err);
       }
-    } catch (err) {
-      console.error('[Main] Legacy data migration failed:', err);
+    } else {
+      console.log('[Main] Skipping legacy migration due to CLEAN_START=1');
     }
 
     // Initialize database and run migrations

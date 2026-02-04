@@ -79,6 +79,7 @@ Renderer
 - Renderer state via Zustand store actions
 - IPC handlers in `src/main/ipc/handlers.ts` must match `window.accomplish` API in preload
 - **Avoid nested ternaries** - Use mapper objects, if/else instead for better readability
+- **Minimal comments** - Only add comments for counter-intuitive behavior or when code cannot clearly express intent. Don't comment obvious operations.
 - **Reuse UI components** - Check `src/renderer/components/ui/` for existing components before creating new ones (e.g., `SearchableSelect`, `Button`, `Dialog`)
 
 

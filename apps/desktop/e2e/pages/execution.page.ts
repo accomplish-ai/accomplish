@@ -78,4 +78,33 @@ export class ExecutionPage {
       { timeout: TEST_TIMEOUTS.TASK_COMPLETE_WAIT }
     );
   }
+
+  /**
+   * Wait for task completion with a custom timeout.
+   * Used for real API calls which take longer than mocked tasks.
+   * @param timeout - Timeout in milliseconds (default: 180000 = 3 min)
+   */
+  async waitForCompleteReal(timeout = 180000) {
+    await this.page.waitForFunction(
+      () => {
+        const badge = document.querySelector('[data-testid="execution-status-badge"]');
+        if (!badge) return false;
+        const text = badge.textContent?.toLowerCase() || '';
+        return text.includes('completed') || text.includes('failed') || text.includes('stopped') || text.includes('cancelled');
+      },
+      { timeout }
+    );
+  }
+
+  async waitForCompletedSuccessfully(timeout = 180000) {
+    await this.page.waitForFunction(
+      () => {
+        const badge = document.querySelector('[data-testid="execution-status-badge"]');
+        if (!badge) return false;
+        const text = badge.textContent?.toLowerCase() || '';
+        return text.includes('completed') && !text.includes('failed');
+      },
+      { timeout }
+    );
+  }
 }

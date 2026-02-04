@@ -1460,106 +1460,47 @@ export function registerIPCHandlers(): void {
 
   // Ollama: Test connection and get models
   /**
-   * Test tool support for a single Ollama model by making a function call request.
-   * Ollama supports OpenAI-compatible API at /v1/chat/completions
+   * Check tool support for an Ollama model using the /api/show endpoint.
+   * Returns the capabilities from model metadata instead of making inference calls.
    */
   async function testOllamaModelToolSupport(
     baseUrl: string,
     modelId: string
   ): Promise<ToolSupportStatus> {
-    // Use a time-based tool that the model cannot answer without calling
-    // Combined with tool_choice: 'required' to force tool usage if supported
-    const testPayload = {
-      model: modelId,
-      messages: [
-        { role: 'user', content: 'What is the current time? You must use the get_current_time tool.' }
-      ],
-      tools: [
-        {
-          type: 'function',
-          function: {
-            name: 'get_current_time',
-            description: 'Gets the current time. Must be called to know what time it is.',
-            parameters: {
-              type: 'object',
-              properties: {
-                timezone: {
-                  type: 'string',
-                  description: 'Timezone (e.g., UTC, America/New_York)'
-                }
-              },
-              required: []
-            }
-          }
-        }
-      ],
-      tool_choice: 'required',
-      max_tokens: 100,
-    };
-
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-      const response = await fetch(`${baseUrl}/v1/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(testPayload),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+      const response = await fetchWithTimeout(
+        `${baseUrl}/api/show`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: modelId }),
+        },
+        5000
+      );
 
       if (!response.ok) {
-        // Check if error indicates tools aren't supported
-        const errorText = await response.text();
-        if (errorText.includes('tool') || errorText.includes('function') || errorText.includes('does not support')) {
-          console.log(`[Ollama] Model ${modelId} does not support tools (error response)`);
-          return 'unsupported';
-        }
-        console.warn(`[Ollama] Tool test failed for ${modelId}: ${response.status}`);
+        console.warn(`[Ollama] /api/show failed for ${modelId}: ${response.status}`);
         return 'unknown';
       }
 
       const data = await response.json() as {
-        choices?: Array<{
-          message?: {
-            tool_calls?: Array<{ function?: { name: string } }>;
-          };
-          finish_reason?: string;
-        }>;
+        capabilities?: string[];
       };
 
-      // Check if the response contains tool calls
-      const choice = data.choices?.[0];
-      if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
-        console.log(`[Ollama] Model ${modelId} supports tools (made tool call)`);
+      if (data.capabilities?.includes('tools')) {
+        console.log(`[Ollama] Model ${modelId} supports tools (capabilities)`);
         return 'supported';
       }
 
-      // Check finish_reason - 'tool_calls' indicates tool support even if not used
-      if (choice?.finish_reason === 'tool_calls') {
-        console.log(`[Ollama] Model ${modelId} supports tools (finish_reason)`);
-        return 'supported';
+      if (Array.isArray(data.capabilities)) {
+        console.log(`[Ollama] Model ${modelId} does not support tools (capabilities: ${data.capabilities.join(', ')})`);
+        return 'unsupported';
       }
 
-      // Model responded but didn't use tools despite tool_choice: 'required'
-      // This likely means the model doesn't actually support tools (just ignored the param)
-      console.log(`[Ollama] Model ${modelId} did not make tool call despite required - marking as unknown`);
+      console.log(`[Ollama] Model ${modelId} has no capabilities field`);
       return 'unknown';
     } catch (error) {
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          console.warn(`[Ollama] Tool test timed out for ${modelId}`);
-          return 'unknown';
-        }
-        // Check for tool-related errors in the message
-        if (error.message.includes('tool') || error.message.includes('function')) {
-          console.log(`[Ollama] Model ${modelId} does not support tools (exception)`);
-          return 'unsupported';
-        }
-      }
-      console.warn(`[Ollama] Tool test error for ${modelId}:`, error);
+      console.warn(`[Ollama] Tool check error for ${modelId}:`, error);
       return 'unknown';
     }
   }

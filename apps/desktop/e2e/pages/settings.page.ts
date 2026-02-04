@@ -199,7 +199,30 @@ export class SettingsPage {
   }
 
   async selectModel(modelId: string) {
-    await this.modelSelector.selectOption(modelId);
+    const tagName = await this.modelSelector.evaluate(el => el.tagName.toLowerCase());
+
+    if (tagName === 'select') {
+      await this.modelSelector.selectOption(modelId);
+    } else {
+      // Custom dropdown - click to open, then click the option by model ID
+      await this.modelSelector.click();
+      await this.page.waitForTimeout(200);
+      const option = this.page.locator(`[data-model-id="${modelId}"]`);
+      await option.click();
+    }
+  }
+
+  async selectFirstModel() {
+    const tagName = await this.modelSelector.evaluate(el => el.tagName.toLowerCase());
+
+    if (tagName === 'select') {
+      await this.modelSelector.selectOption({ index: 1 }); // index 0 is placeholder
+    } else {
+      // Custom dropdown - click to open, then click first option
+      await this.modelSelector.click();
+      await this.page.waitForTimeout(200);
+      await this.page.getByTestId('model-option-0').click();
+    }
   }
 
   async toggleDebugMode() {

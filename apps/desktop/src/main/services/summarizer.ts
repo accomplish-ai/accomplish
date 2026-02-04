@@ -112,13 +112,15 @@ async function callOpenAI(apiKey: string, prompt: string): Promise<string> {
     }),
   });
 
+
   if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.status}`);
+    throw new Error(`OpenAI API error: ${response.status} ${JSON.stringify(errorData)}`);
   }
 
   const data = (await response.json()) as {
     choices: Array<{ message: { content: string } }>;
   };
+
   const text = data.choices?.[0]?.message?.content;
   return cleanSummary(text || '');
 }

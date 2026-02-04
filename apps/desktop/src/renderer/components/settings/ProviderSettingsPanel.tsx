@@ -34,6 +34,15 @@ export function ProviderSettingsPanel({
 }: ProviderSettingsPanelProps) {
   const meta = PROVIDER_META[providerId];
 
+  // Handle unknown/invalid provider ID (can happen with stale database values)
+  if (!meta) {
+    return (
+      <div className="min-h-[260px]">
+        <div className="text-muted-foreground p-4">Unknown provider selected</div>
+      </div>
+    );
+  }
+
   // Render form content based on provider category
   const renderForm = () => {
     // Handle Z.AI separately (has region selector)

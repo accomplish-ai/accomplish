@@ -266,7 +266,10 @@ export function listStoredCredentials(): Array<{ account: string; password: stri
  * Clear all secure storage (used during fresh install cleanup)
  */
 export function clearSecureStorage(): void {
-  const store = getSecureStore();
-  store.clear();
+  if (_secureStore) {
+    _secureStore.clear();
+    _secureStore = null; // Reset singleton so it gets recreated fresh
+  }
   _derivedKey = null; // Clear cached key
+  console.log('[SecureStorage] Cleared all secure storage and reset singleton');
 }

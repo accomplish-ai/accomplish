@@ -117,6 +117,7 @@ function OllamaModelSelector({
         value={value}
         onChange={onChange}
         error={error}
+        placeholder="Select a model..."
       />
 
       {/* Warning for unsupported or unknown models */}

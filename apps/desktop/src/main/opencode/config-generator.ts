@@ -47,7 +47,9 @@ export function getOpenCodeConfigDir(): string {
   if (app.isPackaged) {
     return process.resourcesPath;
   } else {
-    return app.getAppPath();
+    // In development, app.getAppPath() returns dist-electron/main
+    // Go up 2 levels to get to apps/desktop
+    return path.join(app.getAppPath(), '..', '..');
   }
 }
 
@@ -857,6 +859,29 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
         });
       }
     }
+  }
+
+  // Configure OpenAI provider with store: false for project-scoped API keys
+  // Project-scoped API keys (sk-proj-...) don't have permission to store responses
+  // in OpenAI's Responses API, so we must set store: false
+  const openaiKey = getApiKey('openai');
+  if (openaiKey) {
+    const openaiProvider = providerSettings.connectedProviders.openai;
+    const selectedModelId = openaiProvider?.selectedModelId || 'openai/gpt-5.2-codex';
+    const modelId = selectedModelId.replace(/^openai\//, '');
+
+    providerConfig.openai = {
+      models: {
+        [modelId]: {
+          name: modelId,
+          tools: true,
+          options: {
+            store: false,
+          },
+        },
+      },
+    } as unknown as ProviderConfig;
+    console.log('[OpenCode Config] OpenAI provider configured with store: false for model:', modelId);
   }
 
   // Add Z.AI Coding Plan provider configuration with all supported models

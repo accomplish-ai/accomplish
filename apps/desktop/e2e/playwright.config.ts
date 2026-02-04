@@ -42,6 +42,19 @@ export default defineConfig({
       testMatch: /.*integration\.spec\.ts/,
       timeout: 120000,
       retries: 0,
-    }
+    },
+    {
+      name: 'provider-e2e',
+      testDir: './provider-tests/specs',
+      testMatch: /.*\.spec\.ts/,
+      timeout: 180000, // 3 min for real API calls
+      retries: 0,
+      use: {
+        // CRITICAL: Disable captures to prevent credential leakage
+        screenshot: 'off',
+        video: 'off',
+        trace: 'off',
+      },
+    },
   ],
 });

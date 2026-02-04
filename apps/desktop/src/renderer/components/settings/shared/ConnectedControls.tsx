@@ -12,6 +12,7 @@ export function ConnectedControls({ onDisconnect }: ConnectedControlsProps) {
       <button
         className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-[#e6e3dd] bg-[#e9f7e7] px-4 py-2.5 text-sm font-semibold text-[#244325] shadow-sm"
         disabled
+        data-testid="connection-status"
       >
         <img src={connectedIcon} alt="" className="h-4 w-4" />
         Connected
