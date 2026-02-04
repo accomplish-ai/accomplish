@@ -44,6 +44,7 @@ import {
   setOnboardingComplete,
   getSelectedModel,
   setSelectedModel,
+  getActiveProviderModel,
   getOpenAiBaseUrl,
   setOpenAiBaseUrl,
   getOllamaConfig,
@@ -311,6 +312,13 @@ export function registerIPCHandlers(): void {
       return mockTask;
     }
 
+    // Add modelId for progress display
+    const activeModel = getActiveProviderModel();
+    const selectedModel = activeModel || getSelectedModel();
+    if (selectedModel?.model) {
+      validatedConfig.modelId = selectedModel.model;
+    }
+
     const callbacks = createTaskCallbacks({
       taskId,
       window,
@@ -454,6 +462,10 @@ export function registerIPCHandlers(): void {
       addTaskMessage(validatedExistingTaskId, userMessage);
     }
 
+    // Add modelId for progress display
+    const activeModelForResume = getActiveProviderModel();
+    const selectedModelForResume = activeModelForResume || getSelectedModel();
+
     const callbacks = createTaskCallbacks({
       taskId,
       window,
@@ -467,6 +479,7 @@ export function registerIPCHandlers(): void {
       prompt: validatedPrompt,
       sessionId: validatedSessionId,
       taskId,
+      modelId: selectedModelForResume?.model,
     }, callbacks);
 
     if (validatedExistingTaskId) {

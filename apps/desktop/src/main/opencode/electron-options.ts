@@ -15,6 +15,7 @@ import {
   ensureDevBrowserServer,
   resolveCliPath,
   isCliAvailable as coreIsCliAvailable,
+  buildCliArgs as coreBuildCliArgs,
   type BrowserServerConfig,
   type CliResolverConfig,
 } from '@accomplish/core';
@@ -183,18 +184,19 @@ export async function buildEnvironment(): Promise<NodeJS.ProcessEnv> {
 }
 
 export async function buildCliArgs(config: TaskConfig, _taskId: string): Promise<string[]> {
-  const args: string[] = ['run'];
+  // Get model from provider settings (Electron secure storage)
+  const activeModel = getActiveProviderModel();
+  const selectedModel = activeModel || getSelectedModel();
 
-  // CRITICAL: Output JSON format for StreamParser to parse messages
-  args.push('--format', 'json');
-
-  if (config.sessionId) {
-    args.push('--resume', config.sessionId);
-  }
-
-  args.push(config.prompt);
-
-  return args;
+  // Use core's buildCliArgs with Electron-sourced model info
+  return coreBuildCliArgs({
+    prompt: config.prompt,
+    sessionId: config.sessionId,
+    selectedModel: selectedModel ? {
+      provider: selectedModel.provider,
+      model: selectedModel.model,
+    } : null,
+  });
 }
 
 export function getCliCommand(): { command: string; args: string[] } {

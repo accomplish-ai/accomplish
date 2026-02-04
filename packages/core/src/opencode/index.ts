@@ -28,12 +28,14 @@ export {
   generateConfig,
   getOpenCodeConfigPath,
   ACCOMPLISH_AGENT_NAME,
+  buildCliArgs,
 } from './config-generator.js';
 export type {
   ConfigGeneratorOptions,
   ProviderConfig,
   ProviderModelConfig,
   GeneratedConfig,
+  BuildCliArgsOptions,
 } from './config-generator.js';
 
 export { StreamParser } from './stream-parser.js';

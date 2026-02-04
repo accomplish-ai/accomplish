@@ -152,6 +152,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     const taskId = config.taskId || this.generateTaskId();
     this.currentTaskId = taskId;
     this.currentSessionId = null;
+    this.currentModelId = config.modelId || null;
     this.messages = [];
     this.streamParser.reset();
     this.hasCompleted = false;

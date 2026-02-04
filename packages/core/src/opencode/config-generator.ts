@@ -527,3 +527,74 @@ Use empty array [] if no skills apply to your task.
 export function getOpenCodeConfigPath(userDataPath: string): string {
   return path.join(userDataPath, 'opencode', 'opencode.json');
 }
+
+/**
+ * Options for building CLI arguments
+ */
+export interface BuildCliArgsOptions {
+  /** Task prompt */
+  prompt: string;
+  /** Session ID for resuming */
+  sessionId?: string;
+  /** Selected model info from provider settings */
+  selectedModel?: {
+    provider: string;
+    model: string;
+  } | null;
+}
+
+/**
+ * Build CLI arguments for OpenCode.
+ * This is the core implementation - desktop and CLI should use this.
+ */
+export function buildCliArgs(options: BuildCliArgsOptions): string[] {
+  const { prompt, sessionId, selectedModel } = options;
+
+  const args: string[] = ['run'];
+
+  // CRITICAL: Output JSON format for StreamParser to parse messages
+  args.push('--format', 'json');
+
+  // Add model selection if specified
+  if (selectedModel?.model) {
+    if (selectedModel.provider === 'zai') {
+      // Z.AI Coding Plan uses 'zai-coding-plan' provider in OpenCode CLI
+      const modelId = selectedModel.model.split('/').pop();
+      args.push('--model', `zai-coding-plan/${modelId}`);
+    } else if (selectedModel.provider === 'deepseek') {
+      // DeepSeek uses 'deepseek' provider in OpenCode CLI
+      const modelId = selectedModel.model.split('/').pop();
+      args.push('--model', `deepseek/${modelId}`);
+    } else if (selectedModel.provider === 'openrouter') {
+      // OpenRouter models use format: openrouter/provider/model
+      args.push('--model', selectedModel.model);
+    } else if (selectedModel.provider === 'ollama') {
+      // Ollama models use format: ollama/model-name
+      const modelId = selectedModel.model.replace(/^ollama\//, '');
+      args.push('--model', `ollama/${modelId}`);
+    } else if (selectedModel.provider === 'litellm') {
+      // LiteLLM models use format: litellm/model-name
+      const modelId = selectedModel.model.replace(/^litellm\//, '');
+      args.push('--model', `litellm/${modelId}`);
+    } else if (selectedModel.provider === 'lmstudio') {
+      // LM Studio models use format: lmstudio/model-name
+      const modelId = selectedModel.model.replace(/^lmstudio\//, '');
+      args.push('--model', `lmstudio/${modelId}`);
+    } else {
+      args.push('--model', selectedModel.model);
+    }
+  }
+
+  // Resume session if specified
+  if (sessionId) {
+    args.push('--resume', sessionId);
+  }
+
+  // Use the Accomplish agent for browser automation guidance
+  args.push('--agent', ACCOMPLISH_AGENT_NAME);
+
+  // Prompt must be last
+  args.push(prompt);
+
+  return args;
+}

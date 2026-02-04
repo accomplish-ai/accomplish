@@ -16,6 +16,8 @@ export interface TaskConfig {
   systemPromptAppend?: string;
   outputSchema?: object;
   sessionId?: string;
+  /** Model ID for display name in progress events */
+  modelId?: string;
 }
 
 export interface Task {
