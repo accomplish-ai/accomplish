@@ -52,6 +52,18 @@ vi.mock('@accomplish/core', async () => {
   const actualPath = await vi.importActual<typeof import('path')>('path');
 
   return {
+    // buildProviderConfigs - builds provider configurations from API keys
+    buildProviderConfigs: vi.fn(() =>
+      Promise.resolve({
+        providerConfigs: {},
+        enabledProviders: ['anthropic', 'openai', 'google'],
+        modelOverride: undefined,
+      })
+    ),
+
+    // syncApiKeysToOpenCodeAuth - syncs API keys to auth.json
+    syncApiKeysToOpenCodeAuth: vi.fn(() => Promise.resolve()),
+
     // Config generator - creates real files for integration testing
     generateConfig: vi.fn((options: {
       userDataPath: string;
