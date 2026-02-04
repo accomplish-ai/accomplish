@@ -243,12 +243,11 @@ export async function buildProviderConfigs(
       bedrockOptions.profile = creds.profileName;
     }
 
+    // Note: Only pass options for Bedrock - no npm/name/models fields
+    // This matches the old behavior where OpenCode uses its built-in amazon-bedrock provider
     providerConfigs.push({
       id: 'amazon-bedrock',
-      npm: '@ai-sdk/amazon-bedrock',
-      name: 'Amazon Bedrock',
       options: bedrockOptions,
-      models: {},
     });
     console.log('[OpenCode Config Builder] Bedrock configured:', bedrockOptions);
   } else {
@@ -263,12 +262,10 @@ export async function buildProviderConfigs(
           bedrockOptions.profile = creds.profileName;
         }
 
+        // Note: Only pass options for Bedrock - no npm/name/models fields
         providerConfigs.push({
           id: 'amazon-bedrock',
-          npm: '@ai-sdk/amazon-bedrock',
-          name: 'Amazon Bedrock',
           options: bedrockOptions,
-          models: {},
         });
         console.log('[OpenCode Config Builder] Bedrock (legacy) configured:', bedrockOptions);
       } catch (e) {
