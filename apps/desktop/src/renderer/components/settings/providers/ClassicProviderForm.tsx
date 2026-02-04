@@ -13,27 +13,7 @@ import {
   ProviderFormHeader,
   FormError,
 } from '../shared';
-
-// Import provider logos
-import anthropicLogo from '/assets/ai-logos/anthropic.svg';
-import openaiLogo from '/assets/ai-logos/openai.svg';
-import googleLogo from '/assets/ai-logos/google.svg';
-import xaiLogo from '/assets/ai-logos/xai.svg';
-import deepseekLogo from '/assets/ai-logos/deepseek.svg';
-import moonshotLogo from '/assets/ai-logos/moonshot.svg';
-import zaiLogo from '/assets/ai-logos/zai.svg';
-import minimaxLogo from '/assets/ai-logos/minimax.svg';
-
-const PROVIDER_LOGOS: Record<string, string> = {
-  anthropic: anthropicLogo,
-  openai: openaiLogo,
-  google: googleLogo,
-  xai: xaiLogo,
-  deepseek: deepseekLogo,
-  moonshot: moonshotLogo,
-  zai: zaiLogo,
-  minimax: minimaxLogo,
-};
+import { PROVIDER_LOGOS } from '@/lib/provider-logos';
 
 interface ClassicProviderFormProps {
   providerId: ProviderId;
@@ -175,7 +155,7 @@ export function ClassicProviderForm({
             data-testid="openai-oauth-signin"
             className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
           >
-            <img src={openaiLogo} alt="" className="h-5 w-5" />
+            <img src={PROVIDER_LOGOS['openai']} alt="" className="h-5 w-5" />
             {signingIn ? 'Signing in...' : 'Login with OpenAI'}
           </button>
 

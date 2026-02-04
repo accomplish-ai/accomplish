@@ -1,6 +1,6 @@
 import { BrowserWindow } from 'electron';
 import type { Task, TaskMessage, TaskStatus } from '@accomplish/shared';
-import { updateTaskStatus } from '@accomplish/core';
+import { updateTaskStatus, createMessageId } from '@accomplish/core';
 
 export type MockScenario =
   | 'success'
@@ -53,10 +53,6 @@ export function detectScenarioFromPrompt(prompt: string): MockScenario {
   }
 
   return 'success';
-}
-
-function createMessageId(): string {
-  return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
 function sleep(ms: number): Promise<void> {

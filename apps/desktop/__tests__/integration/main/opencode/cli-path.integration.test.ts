@@ -1,8 +1,9 @@
 /**
  * Integration tests for OpenCode CLI path resolution
  *
- * Tests the cli-path module which resolves paths to the OpenCode CLI binary
- * in both development and packaged app modes.
+ * Tests the electron-options module which resolves paths to the OpenCode CLI binary
+ * in both development and packaged app modes. Uses @accomplish/core's cli-resolver
+ * with Electron-specific configuration.
  *
  * @module __tests__/integration/main/opencode/cli-path.integration.test
  */
@@ -41,6 +42,25 @@ vi.mock('child_process', () => ({
   execSync: mockExecSync,
 }));
 
+// Mock @accomplish/core cli-resolver functions - they use fs internally which is already mocked
+// We need to pass through to the actual implementation since it uses the mocked fs
+vi.mock('@accomplish/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@accomplish/core')>();
+  return {
+    ...actual,
+    // The cli-resolver functions should use the mocked fs, so we don't need to mock them
+    // But we need to ensure other imports don't break the tests
+    getSelectedModel: vi.fn(() => null),
+    getAzureFoundryConfig: vi.fn(() => null),
+    getActiveProviderModel: vi.fn(() => null),
+    getConnectedProvider: vi.fn(() => null),
+    getAzureEntraToken: vi.fn(() => ({ success: true, token: 'mock-token' })),
+    getModelDisplayName: vi.fn(() => 'Mock Model'),
+    ensureDevBrowserServer: vi.fn(),
+    getOpenAiBaseUrl: vi.fn(() => ''),
+  };
+});
+
 describe('OpenCode CLI Path Module', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -75,7 +95,7 @@ describe('OpenCode CLI Path Module', () => {
         });
 
         // Act
-        const { getOpenCodeCliPath } = await import('@main/opencode/cli-path');
+        const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
         const result = getOpenCodeCliPath();
 
         // Assert
@@ -95,7 +115,7 @@ describe('OpenCode CLI Path Module', () => {
         mockFs.readdirSync.mockReturnValue([]);
 
         // Act
-        const { getOpenCodeCliPath } = await import('@main/opencode/cli-path');
+        const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
         const result = getOpenCodeCliPath();
 
         // Assert
@@ -115,7 +135,7 @@ describe('OpenCode CLI Path Module', () => {
         mockFs.readdirSync.mockReturnValue([]);
 
         // Act
-        const { getOpenCodeCliPath } = await import('@main/opencode/cli-path');
+        const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
         const result = getOpenCodeCliPath();
 
         // Assert
@@ -137,7 +157,7 @@ describe('OpenCode CLI Path Module', () => {
         mockFs.readdirSync.mockReturnValue([]);
 
         // Act
-        const { getOpenCodeCliPath } = await import('@main/opencode/cli-path');
+        const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
         const result = getOpenCodeCliPath();
 
         // Assert
@@ -152,7 +172,7 @@ describe('OpenCode CLI Path Module', () => {
         mockFs.readdirSync.mockReturnValue([]);
 
         // Act
-        const { getOpenCodeCliPath } = await import('@main/opencode/cli-path');
+        const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
         const result = getOpenCodeCliPath();
 
         // Assert
@@ -193,7 +213,7 @@ describe('OpenCode CLI Path Module', () => {
         });
 
         // Act
-        const { getOpenCodeCliPath } = await import('@main/opencode/cli-path');
+        const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
         const result = getOpenCodeCliPath();
 
         // Assert
@@ -210,7 +230,7 @@ describe('OpenCode CLI Path Module', () => {
         mockFs.existsSync.mockReturnValue(false);
 
         // Act & Assert
-        const { getOpenCodeCliPath } = await import('@main/opencode/cli-path');
+        const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
         expect(() => getOpenCodeCliPath()).toThrow('OpenCode CLI not found at');
       });
     });
@@ -235,7 +255,7 @@ describe('OpenCode CLI Path Module', () => {
         });
 
         // Act
-        const { isOpenCodeBundled } = await import('@main/opencode/cli-path');
+        const { isOpenCodeBundled } = await import('@main/opencode/electron-options');
         const result = isOpenCodeBundled();
 
         // Assert
@@ -256,7 +276,7 @@ describe('OpenCode CLI Path Module', () => {
         mockFs.readdirSync.mockReturnValue([]);
 
         // Act
-        const { isOpenCodeBundled } = await import('@main/opencode/cli-path');
+        const { isOpenCodeBundled } = await import('@main/opencode/electron-options');
         const result = isOpenCodeBundled();
 
         // Assert
@@ -271,7 +291,7 @@ describe('OpenCode CLI Path Module', () => {
         mockExecSync.mockReturnValue('/usr/local/bin/opencode');
 
         // Act
-        const { isOpenCodeBundled } = await import('@main/opencode/cli-path');
+        const { isOpenCodeBundled } = await import('@main/opencode/electron-options');
         const result = isOpenCodeBundled();
 
         // Assert
@@ -288,7 +308,7 @@ describe('OpenCode CLI Path Module', () => {
         });
 
         // Act
-        const { isOpenCodeBundled } = await import('@main/opencode/cli-path');
+        const { isOpenCodeBundled } = await import('@main/opencode/electron-options');
         const result = isOpenCodeBundled();
 
         // Assert
@@ -328,7 +348,7 @@ describe('OpenCode CLI Path Module', () => {
         });
 
         // Act
-        const { isOpenCodeBundled } = await import('@main/opencode/cli-path');
+        const { isOpenCodeBundled } = await import('@main/opencode/electron-options');
         const result = isOpenCodeBundled();
 
         // Assert
@@ -344,7 +364,7 @@ describe('OpenCode CLI Path Module', () => {
         mockFs.existsSync.mockReturnValue(false);
 
         // Act
-        const { isOpenCodeBundled } = await import('@main/opencode/cli-path');
+        const { isOpenCodeBundled } = await import('@main/opencode/electron-options');
         const result = isOpenCodeBundled();
 
         // Assert
@@ -381,7 +401,7 @@ describe('OpenCode CLI Path Module', () => {
         });
 
         // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/cli-path');
+        const { getBundledOpenCodeVersion } = await import('@main/opencode/electron-options');
         const result = getBundledOpenCodeVersion();
 
         // Assert
@@ -397,7 +417,7 @@ describe('OpenCode CLI Path Module', () => {
         mockFs.existsSync.mockReturnValue(false);
 
         // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/cli-path');
+        const { getBundledOpenCodeVersion } = await import('@main/opencode/electron-options');
         const result = getBundledOpenCodeVersion();
 
         // Assert
@@ -421,7 +441,7 @@ describe('OpenCode CLI Path Module', () => {
         mockExecSync.mockReturnValue('opencode 1.5.0\n');
 
         // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/cli-path');
+        const { getBundledOpenCodeVersion } = await import('@main/opencode/electron-options');
         const result = getBundledOpenCodeVersion();
 
         // Assert
@@ -443,7 +463,7 @@ describe('OpenCode CLI Path Module', () => {
         mockExecSync.mockReturnValue('2.0.1');
 
         // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/cli-path');
+        const { getBundledOpenCodeVersion } = await import('@main/opencode/electron-options');
         const result = getBundledOpenCodeVersion();
 
         // Assert
@@ -467,7 +487,7 @@ describe('OpenCode CLI Path Module', () => {
         });
 
         // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/cli-path');
+        const { getBundledOpenCodeVersion } = await import('@main/opencode/electron-options');
         const result = getBundledOpenCodeVersion();
 
         // Assert
@@ -496,7 +516,7 @@ describe('OpenCode CLI Path Module', () => {
       });
 
       // Act
-      const { getOpenCodeCliPath } = await import('@main/opencode/cli-path');
+      const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
       const result = getOpenCodeCliPath();
 
       // Assert
@@ -512,7 +532,7 @@ describe('OpenCode CLI Path Module', () => {
       mockFs.readdirSync.mockReturnValue([]);
 
       // Act
-      const { getOpenCodeCliPath } = await import('@main/opencode/cli-path');
+      const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
       const result = getOpenCodeCliPath();
 
       // Assert - should fallback to opencode on PATH

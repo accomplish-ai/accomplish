@@ -1,7 +1,7 @@
 import { app } from 'electron';
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { spawn } from 'child_process';
 import type { AdapterOptions, TaskManagerOptions, TaskCallbacks } from '@accomplish/core';
 import type { TaskConfig } from '@accomplish/shared';
 import { DEV_BROWSER_PORT } from '@accomplish/shared';
@@ -13,18 +13,78 @@ import {
   getAzureEntraToken,
   getModelDisplayName,
   ensureDevBrowserServer,
+  resolveCliPath,
+  isCliAvailable as coreIsCliAvailable,
   type BrowserServerConfig,
+  type CliResolverConfig,
 } from '@accomplish/core';
 import type { AzureFoundryCredentials } from '@accomplish/shared';
-import {
-  getOpenCodeCliPath,
-  isOpenCodeBundled,
-} from './cli-path';
 import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
 import { getOpenAiBaseUrl } from '@accomplish/core';
 import { generateOpenCodeConfig, getMcpToolsPath, syncApiKeysToOpenCodeAuth } from './config-generator';
 import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo } from '../utils/bundled-node';
+
+function getCliResolverConfig(): CliResolverConfig {
+  return {
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    appPath: app.getAppPath(),
+  };
+}
+
+export function getOpenCodeCliPath(): { command: string; args: string[] } {
+  const resolved = resolveCliPath(getCliResolverConfig());
+  if (resolved) {
+    return { command: resolved.cliPath, args: [] };
+  }
+  console.log('[CLI Path] Falling back to opencode command on PATH');
+  return { command: 'opencode', args: [] };
+}
+
+export function isOpenCodeBundled(): boolean {
+  return coreIsCliAvailable(getCliResolverConfig());
+}
+
+export function getBundledOpenCodeVersion(): string | null {
+  const { command } = getOpenCodeCliPath();
+  // getCliVersion is async but we need sync for backwards compatibility
+  // For packaged apps, we can read version from package.json directly
+  if (app.isPackaged) {
+    try {
+      const packageName = process.platform === 'win32' ? 'opencode-windows-x64' : 'opencode-ai';
+      const packageJsonPath = path.join(
+        process.resourcesPath,
+        'app.asar.unpacked',
+        'node_modules',
+        packageName,
+        'package.json'
+      );
+
+      if (fs.existsSync(packageJsonPath)) {
+        const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+        return pkg.version;
+      }
+    } catch {
+      // Fall through to command execution
+    }
+  }
+
+  // For dev mode, execute the CLI to get version
+  try {
+    const fullCommand = `"${command}" --version`;
+    const output = execSync(fullCommand, {
+      encoding: 'utf-8',
+      timeout: 5000,
+      stdio: ['pipe', 'pipe', 'pipe']
+    }).trim();
+
+    const versionMatch = output.match(/(\d+\.\d+\.\d+)/);
+    return versionMatch ? versionMatch[1] : output;
+  } catch {
+    return null;
+  }
+}
 
 export async function buildEnvironment(): Promise<NodeJS.ProcessEnv> {
   const env: NodeJS.ProcessEnv = {
@@ -123,7 +183,10 @@ export async function buildEnvironment(): Promise<NodeJS.ProcessEnv> {
 }
 
 export async function buildCliArgs(config: TaskConfig, _taskId: string): Promise<string[]> {
-  const args: string[] = [];
+  const args: string[] = ['run'];
+
+  // CRITICAL: Output JSON format for StreamParser to parse messages
+  args.push('--format', 'json');
 
   if (config.sessionId) {
     args.push('--resume', config.sessionId);

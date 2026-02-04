@@ -18,6 +18,7 @@ import { EventEmitter } from 'events';
 const mockApp = {
   isPackaged: false,
   getPath: vi.fn((name: string) => `/mock/path/${name}`),
+  getAppPath: vi.fn(() => '/mock/app/path'),
 };
 
 const mockShell = {

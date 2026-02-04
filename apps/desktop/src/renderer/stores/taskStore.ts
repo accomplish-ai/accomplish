@@ -1,13 +1,14 @@
 import { create } from 'zustand';
-import type {
-  Task,
-  TaskConfig,
-  TaskStatus,
-  TaskUpdateEvent,
-  PermissionRequest,
-  PermissionResponse,
-  TaskMessage,
-  TodoItem,
+import {
+  createMessageId,
+  type Task,
+  type TaskConfig,
+  type TaskStatus,
+  type TaskUpdateEvent,
+  type PermissionRequest,
+  type PermissionResponse,
+  type TaskMessage,
+  type TodoItem,
 } from '@accomplish/shared';
 import { getAccomplish } from '../lib/accomplish';
 
@@ -93,10 +94,6 @@ interface TaskState {
   clearTodos: () => void;
   setAuthError: (error: { providerId: string; message: string }) => void;
   clearAuthError: () => void;
-}
-
-function createMessageId(): string {
-  return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({

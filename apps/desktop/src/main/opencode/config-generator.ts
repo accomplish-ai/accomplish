@@ -17,6 +17,7 @@ import type { ProviderConfig, ProviderModelConfig } from '@accomplish/core';
 import { getApiKey } from '../store/secureStorage';
 import { getNodePath } from '../utils/bundled-node';
 import { skillsManager } from '../skills';
+import { ZAI_ENDPOINTS, DEFAULT_PROVIDERS, PROVIDER_ID_TO_OPENCODE } from '@accomplish/shared';
 import type { BedrockCredentials, ProviderId, ZaiCredentials, AzureFoundryCredentials } from '@accomplish/shared';
 
 export { ACCOMPLISH_AGENT_NAME };
@@ -36,24 +37,6 @@ export function getOpenCodeConfigDir(): string {
     return path.join(app.getAppPath(), '..', '..', 'packages', 'core');
   }
 }
-
-const PROVIDER_ID_TO_OPENCODE: Record<ProviderId, string> = {
-  anthropic: 'anthropic',
-  openai: 'openai',
-  google: 'google',
-  xai: 'xai',
-  deepseek: 'deepseek',
-  moonshot: 'moonshot',
-  zai: 'zai-coding-plan',
-  bedrock: 'amazon-bedrock',
-  'azure-foundry': 'azure-foundry',
-  ollama: 'ollama',
-  openrouter: 'openrouter',
-  litellm: 'litellm',
-  minimax: 'minimax',
-  lmstudio: 'lmstudio',
-};
-
 
 async function buildAzureFoundryProviderConfig(
   endpoint: string,
@@ -369,22 +352,23 @@ async function buildProviderConfigs(azureFoundryToken?: string): Promise<{
   if (zaiKey) {
     const zaiCredentials = providerSettings.connectedProviders.zai?.credentials as ZaiCredentials | undefined;
     const zaiRegion = zaiCredentials?.region || 'international';
-    const zaiEndpoint = zaiRegion === 'china'
-      ? 'https://open.bigmodel.cn/api/paas/v4'
-      : 'https://api.z.ai/api/coding/paas/v4';
+    const zaiEndpoint = ZAI_ENDPOINTS[zaiRegion];
+
+    // Generate ZAI models from DEFAULT_PROVIDERS
+    const zaiProviderConfig = DEFAULT_PROVIDERS.find(p => p.id === 'zai');
+    const zaiModels: Record<string, ProviderModelConfig> = {};
+    if (zaiProviderConfig) {
+      for (const model of zaiProviderConfig.models) {
+        zaiModels[model.id] = { name: model.displayName, tools: true };
+      }
+    }
 
     providerConfigs.push({
       id: 'zai-coding-plan',
       npm: '@ai-sdk/openai-compatible',
       name: 'Z.AI Coding Plan',
       options: { baseURL: zaiEndpoint },
-      models: {
-        'glm-4.7-flashx': { name: 'GLM-4.7 FlashX (Latest)', tools: true },
-        'glm-4.7': { name: 'GLM-4.7', tools: true },
-        'glm-4.7-flash': { name: 'GLM-4.7 Flash', tools: true },
-        'glm-4.6': { name: 'GLM-4.6', tools: true },
-        'glm-4.5-flash': { name: 'GLM-4.5 Flash', tools: true },
-      },
+      models: zaiModels,
     });
     console.log('[OpenCode Config] Z.AI Coding Plan configured, region:', zaiRegion);
   }

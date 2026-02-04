@@ -2,7 +2,7 @@ import * as net from 'net';
 import * as fs from 'fs';
 import * as pty from 'node-pty';
 import { app, shell } from 'electron';
-import { getOpenCodeCliPath } from './cli-path';
+import { getOpenCodeCliPath } from './electron-options';
 import { generateOpenCodeConfig } from './config-generator';
 
 interface LoginResult {

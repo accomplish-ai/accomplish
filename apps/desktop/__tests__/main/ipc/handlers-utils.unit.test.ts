@@ -9,19 +9,17 @@
  * - sanitizeString (text validation/sanitization)
  * - extractScreenshots (base64 image extraction)
  * - sanitizeToolOutput (output cleaning)
- * - ID generation patterns
+ * - ID generation patterns (from @accomplish/shared)
  */
 
 import { describe, it, expect } from 'vitest';
-
-// Since these functions are not exported from handlers.ts,
-// we'll recreate them here for testing purposes.
-// In a real codebase, these would be extracted to a separate utils file.
+import { createTaskId, createMessageId } from '@accomplish/shared';
 
 const MAX_TEXT_LENGTH = 8000;
 
 /**
  * Sanitize and validate string input
+ * (Local copy for testing - the real implementation is in handlers.ts)
  */
 function sanitizeString(input: unknown, field: string, maxLength = MAX_TEXT_LENGTH): string {
   if (typeof input !== 'string') {
@@ -35,20 +33,6 @@ function sanitizeString(input: unknown, field: string, maxLength = MAX_TEXT_LENG
     throw new Error(`${field} exceeds maximum length`);
   }
   return trimmed;
-}
-
-/**
- * Create a task ID with timestamp and random suffix
- */
-function createTaskId(): string {
-  return `task_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-}
-
-/**
- * Create a message ID with timestamp and random suffix
- */
-function createMessageId(): string {
-  return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
 /**

@@ -162,3 +162,24 @@ export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
 export function getDefaultModelForProvider(providerId: ProviderId): string | null {
   return DEFAULT_MODELS[providerId] ?? null;
 }
+
+/**
+ * Maps internal ProviderId to OpenCode CLI provider names.
+ * Used when generating OpenCode configuration.
+ */
+export const PROVIDER_ID_TO_OPENCODE: Record<ProviderId, string> = {
+  anthropic: 'anthropic',
+  openai: 'openai',
+  google: 'google',
+  xai: 'xai',
+  deepseek: 'deepseek',
+  moonshot: 'moonshot',
+  zai: 'zai-coding-plan',
+  bedrock: 'amazon-bedrock',
+  'azure-foundry': 'azure-foundry',
+  ollama: 'ollama',
+  openrouter: 'openrouter',
+  litellm: 'litellm',
+  minimax: 'minimax',
+  lmstudio: 'lmstudio',
+};

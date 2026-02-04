@@ -81,19 +81,7 @@ vi.mock('electron', () => {
   };
 });
 
-// Mock opencode adapter
-vi.mock('@main/opencode/adapter', () => ({
-  isOpenCodeCliInstalled: vi.fn(() => Promise.resolve(true)),
-  getOpenCodeCliVersion: vi.fn(() => Promise.resolve('1.0.0')),
-}));
-
-// Mock OpenCode auth (ChatGPT OAuth)
-vi.mock('@main/opencode/auth', () => ({
-  getOpenAiOauthStatus: vi.fn(() => ({ connected: false })),
-  loginOpenAiWithChatGpt: vi.fn(() => Promise.resolve({ openedUrl: undefined })),
-}));
-
-// Mock task manager
+// Mock task manager instance (will be returned by getTaskManager)
 const mockTaskManager = {
   startTask: vi.fn(),
   cancelTask: vi.fn(),
@@ -104,11 +92,21 @@ const mockTaskManager = {
   getSessionId: vi.fn(() => null),
   isTaskQueued: vi.fn(() => false),
   cancelQueuedTask: vi.fn(),
+  dispose: vi.fn(),
 };
 
-vi.mock('@main/opencode/task-manager', () => ({
+// Mock @main/opencode - this is what handlers.ts imports from
+vi.mock('@main/opencode', () => ({
   getTaskManager: vi.fn(() => mockTaskManager),
   disposeTaskManager: vi.fn(),
+  isOpenCodeCliInstalled: vi.fn(() => Promise.resolve(true)),
+  getOpenCodeCliVersion: vi.fn(() => Promise.resolve('1.0.0')),
+}));
+
+// Mock OpenCode auth (ChatGPT OAuth) - used by handlers.ts for OpenAI OAuth
+vi.mock('@main/opencode/auth', () => ({
+  getOpenAiOauthStatus: vi.fn(() => ({ connected: false })),
+  loginOpenAiWithChatGpt: vi.fn(() => Promise.resolve({ openedUrl: undefined })),
 }));
 
 // Mock task history (stored in test state)
@@ -127,7 +125,34 @@ let mockSelectedModel: { provider: string; model: string } | null = null;
 let mockOpenAiBaseUrl = '';
 
 // Mock @accomplish/core - comprehensive mock covering all exports used by handlers.ts
-vi.mock('@accomplish/core', () => ({
+vi.mock('@accomplish/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@accomplish/core')>();
+  return {
+    // Use actual implementation for API validation since tests stub fetch
+    validateApiKey: actual.validateApiKey,
+
+    // Use actual implementation for URL validation since tests depend on real validation
+    validateHttpUrl: actual.validateHttpUrl,
+
+  // Utility functions
+  fetchWithTimeout: vi.fn(() => Promise.resolve(new Response('{}'))),
+  createTaskId: vi.fn(() => `task_${Date.now()}`),
+  createMessageId: vi.fn(() => `msg-${Date.now()}`),
+  sanitizeString: vi.fn((input: unknown, fieldName: string, maxLength = 255) => {
+    if (typeof input !== 'string') {
+      throw new Error(`${fieldName} must be a string`);
+    }
+    const trimmed = input.trim();
+    if (!trimmed) {
+      throw new Error(`${fieldName} is required`);
+    }
+    if (trimmed.length > maxLength) {
+      throw new Error(`${fieldName} exceeds maximum length of ${maxLength}`);
+    }
+    return trimmed;
+  }),
+  safeParseJson: vi.fn((s: string) => ({ success: true, data: JSON.parse(s) })),
+
   // Task history functions
   getTasks: vi.fn(() => mockTasks),
   getTask: vi.fn((taskId: string) => mockTasks.find((t) => t.id === taskId)),
@@ -230,8 +255,9 @@ vi.mock('@accomplish/core', () => ({
   validateLiteLLMConnection: vi.fn(() => Promise.resolve({ valid: true })),
   validateLMStudioConnection: vi.fn(() => Promise.resolve({ valid: true })),
   validateAzureFoundryConnection: vi.fn(() => Promise.resolve({ valid: true })),
-  validateMoonshotApiKey: vi.fn(() => Promise.resolve({ valid: true })),
-}));
+    validateMoonshotApiKey: vi.fn(() => Promise.resolve({ valid: true })),
+  };
+});
 
 // Mock secure storage
 let mockApiKeys: Record<string, string | null> = {};
@@ -1036,10 +1062,10 @@ describe('IPC Handlers Integration', () => {
     it('shell:open-external should reject non-http/https protocols', async () => {
       // Arrange & Act & Assert
       await expect(invokeHandler('shell:open-external', 'file:///etc/passwd')).rejects.toThrow(
-        'Only http and https URLs are allowed'
+        'must use http or https protocol'
       );
       await expect(invokeHandler('shell:open-external', 'javascript:alert(1)')).rejects.toThrow(
-        'Only http and https URLs are allowed'
+        'must use http or https protocol'
       );
     });
 

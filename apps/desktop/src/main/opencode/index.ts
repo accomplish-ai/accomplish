@@ -27,13 +27,10 @@ export {
   isCliAvailable,
   onBeforeStart,
   onBeforeTaskStart,
-} from './electron-options';
-
-export {
   getOpenCodeCliPath,
   isOpenCodeBundled,
   getBundledOpenCodeVersion,
-} from './cli-path';
+} from './electron-options';
 
 export {
   generateOpenCodeConfig,
@@ -49,8 +46,8 @@ import {
   createElectronAdapterOptions,
   createElectronTaskManagerOptions,
   isCliAvailable,
+  getBundledOpenCodeVersion,
 } from './electron-options';
-import { getBundledOpenCodeVersion } from './cli-path';
 
 let taskManagerInstance: TaskManager | null = null;
 

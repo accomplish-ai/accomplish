@@ -22,6 +22,10 @@ import {
   getTodosForTask,
   validateApiKey,
   fetchWithTimeout,
+  validateHttpUrl,
+  createTaskId,
+  createMessageId,
+  sanitizeString,
 } from '@accomplish/core';
 import { generateTaskSummary } from '../services/summarizer';
 import {
@@ -112,7 +116,6 @@ import {
 } from '../test-utils/mock-task-flow';
 import { skillsManager } from '../skills';
 
-const MAX_TEXT_LENGTH = 8000;
 const ALLOWED_API_KEY_PROVIDERS = new Set(['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'moonshot', 'zai', 'azure-foundry', 'custom', 'bedrock', 'litellm', 'minimax', 'lmstudio', 'elevenlabs']);
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
 
@@ -215,20 +218,6 @@ function assertTrustedWindow(window: BrowserWindow | null): BrowserWindow {
   return window;
 }
 
-function sanitizeString(input: unknown, field: string, maxLength = MAX_TEXT_LENGTH): string {
-  if (typeof input !== 'string') {
-    throw new Error(`${field} must be a string`);
-  }
-  const trimmed = input.trim();
-  if (!trimmed) {
-    throw new Error(`${field} is required`);
-  }
-  if (trimmed.length > maxLength) {
-    throw new Error(`${field} exceeds maximum length`);
-  }
-  return trimmed;
-}
-
 function validateTaskConfig(config: TaskConfig): TaskConfig {
   const prompt = sanitizeString(config.prompt, 'prompt');
   const validated: TaskConfig = { prompt };
@@ -251,8 +240,7 @@ function validateTaskConfig(config: TaskConfig): TaskConfig {
   if (config.systemPromptAppend) {
     validated.systemPromptAppend = sanitizeString(
       config.systemPromptAppend,
-      'systemPromptAppend',
-      MAX_TEXT_LENGTH
+      'systemPromptAppend'
     );
   }
   if (config.outputSchema && typeof config.outputSchema === 'object') {
@@ -1061,12 +1049,9 @@ export function registerIPCHandlers(): void {
     const sanitizedUrl = sanitizeString(url, 'ollamaUrl', 256);
 
     try {
-      const parsed = new URL(sanitizedUrl);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        return { success: false, error: 'Only http and https URLs are allowed' };
-      }
-    } catch {
-      return { success: false, error: 'Invalid URL format' };
+      validateHttpUrl(sanitizedUrl, 'Ollama URL');
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Invalid URL format' };
     }
 
     try {
@@ -1118,17 +1103,7 @@ export function registerIPCHandlers(): void {
       if (typeof config.baseUrl !== 'string' || typeof config.enabled !== 'boolean') {
         throw new Error('Invalid Ollama configuration');
       }
-      try {
-        const parsed = new URL(config.baseUrl);
-        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-          throw new Error('Only http and https URLs are allowed');
-        }
-      } catch (e) {
-        if (e instanceof Error && e.message.includes('http')) {
-          throw e;
-        }
-        throw new Error('Invalid base URL format');
-      }
+      validateHttpUrl(config.baseUrl, 'Ollama base URL');
       if (config.lastValidated !== undefined && typeof config.lastValidated !== 'number') {
         throw new Error('Invalid Ollama configuration');
       }
@@ -1165,10 +1140,7 @@ export function registerIPCHandlers(): void {
         throw new Error('Invalid Azure Foundry configuration: enabled must be a boolean');
       }
       try {
-        const parsed = new URL(config.baseUrl);
-        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-          throw new Error('Invalid Azure Foundry configuration: Only http and https URLs are allowed');
-        }
+        validateHttpUrl(config.baseUrl, 'Azure Foundry base URL');
       } catch {
         throw new Error('Invalid Azure Foundry configuration: Invalid base URL format');
       }
@@ -1184,13 +1156,10 @@ export function registerIPCHandlers(): void {
 
     let baseUrl: string;
     try {
-      const parsed = new URL(endpoint);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        return { success: false, error: 'Only http and https URLs are allowed' };
-      }
+      validateHttpUrl(endpoint, 'Azure Foundry endpoint');
       baseUrl = endpoint.replace(/\/$/, '');
-    } catch {
-      return { success: false, error: 'Invalid endpoint URL format' };
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Invalid endpoint URL format' };
     }
 
     try {
@@ -1347,12 +1316,9 @@ export function registerIPCHandlers(): void {
     const sanitizedApiKey = apiKey ? sanitizeString(apiKey, 'apiKey', 256) : undefined;
 
     try {
-      const parsed = new URL(sanitizedUrl);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        return { success: false, error: 'Only http and https URLs are allowed' };
-      }
-    } catch {
-      return { success: false, error: 'Invalid URL format' };
+      validateHttpUrl(sanitizedUrl, 'LiteLLM URL');
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Invalid URL format' };
     }
 
     try {
@@ -1466,17 +1432,7 @@ export function registerIPCHandlers(): void {
       if (typeof config.baseUrl !== 'string' || typeof config.enabled !== 'boolean') {
         throw new Error('Invalid LiteLLM configuration');
       }
-      try {
-        const parsed = new URL(config.baseUrl);
-        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-          throw new Error('Only http and https URLs are allowed');
-        }
-      } catch (e) {
-        if (e instanceof Error && e.message.includes('http')) {
-          throw e;
-        }
-        throw new Error('Invalid base URL format');
-      }
+      validateHttpUrl(config.baseUrl, 'LiteLLM base URL');
       if (config.lastValidated !== undefined && typeof config.lastValidated !== 'number') {
         throw new Error('Invalid LiteLLM configuration');
       }
@@ -1590,12 +1546,9 @@ export function registerIPCHandlers(): void {
     const sanitizedUrl = sanitizeString(url, 'lmstudioUrl', 256);
 
     try {
-      const parsed = new URL(sanitizedUrl);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        return { success: false, error: 'Only http and https URLs are allowed' };
-      }
-    } catch {
-      return { success: false, error: 'Invalid URL format' };
+      validateHttpUrl(sanitizedUrl, 'LM Studio URL');
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Invalid URL format' };
     }
 
     try {
@@ -1707,17 +1660,7 @@ export function registerIPCHandlers(): void {
       if (typeof config.baseUrl !== 'string' || typeof config.enabled !== 'boolean') {
         throw new Error('Invalid LM Studio configuration');
       }
-      try {
-        const parsed = new URL(config.baseUrl);
-        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-          throw new Error('Only http and https URLs are allowed');
-        }
-      } catch (e) {
-        if (e instanceof Error && e.message.includes('http')) {
-          throw e;
-        }
-        throw new Error('Invalid base URL format');
-      }
+      validateHttpUrl(config.baseUrl, 'LM Studio base URL');
       if (config.lastValidated !== undefined && typeof config.lastValidated !== 'number') {
         throw new Error('Invalid LM Studio configuration');
       }
@@ -1789,17 +1732,7 @@ export function registerIPCHandlers(): void {
       return;
     }
 
-    let parsed: URL;
-    try {
-      parsed = new URL(trimmed);
-    } catch {
-      throw new Error('Invalid URL');
-    }
-
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      throw new Error('Only http and https URLs are allowed');
-    }
-
+    validateHttpUrl(trimmed, 'OpenAI base URL');
     setOpenAiBaseUrl(trimmed.replace(/\/+$/, ''));
   });
 
@@ -1836,10 +1769,7 @@ export function registerIPCHandlers(): void {
 
   handle('shell:open-external', async (_event: IpcMainInvokeEvent, url: string) => {
     try {
-      const parsed = new URL(url);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        throw new Error('Only http and https URLs are allowed');
-      }
+      validateHttpUrl(url, 'External URL');
       await shell.openExternal(url);
     } catch (error) {
       console.error('Failed to open external URL:', error);
@@ -2011,14 +1941,6 @@ export function registerIPCHandlers(): void {
   ipcMain.handle('skills:show-in-folder', async (_, filePath: string) => {
     shell.showItemInFolder(filePath);
   });
-}
-
-function createTaskId(): string {
-  return `task_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function createMessageId(): string {
-  return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
 function extractScreenshots(output: string): {
