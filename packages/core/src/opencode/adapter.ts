@@ -30,7 +30,7 @@ export interface AdapterOptions {
   isPackaged: boolean;
   tempPath: string;
   getCliCommand: () => { command: string; args: string[] };
-  buildEnvironment: () => Promise<NodeJS.ProcessEnv>;
+  buildEnvironment: (taskId: string) => Promise<NodeJS.ProcessEnv>;
   buildCliArgs: (config: TaskConfig) => Promise<string[]>;
   onBeforeStart?: () => Promise<void>;
   getModelDisplayName?: (modelId: string) => string;
@@ -181,7 +181,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     console.log('[OpenCode CLI]', startMsg);
     this.emit('debug', { type: 'info', message: startMsg });
 
-    const env = await this.options.buildEnvironment();
+    const env = await this.options.buildEnvironment(taskId);
 
     const allArgs = [...baseArgs, ...cliArgs];
     const cmdMsg = `Command: ${command}`;
@@ -671,7 +671,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     const { command, args: baseArgs } = this.options.getCliCommand();
     console.log('[OpenCode Adapter] Session resumption command:', command, [...baseArgs, ...cliArgs].join(' '));
 
-    const env = await this.options.buildEnvironment();
+    const env = await this.options.buildEnvironment(this.currentTaskId || 'default');
 
     const allArgs = [...baseArgs, ...cliArgs];
     const safeCwd = config.workingDirectory || this.options.tempPath;

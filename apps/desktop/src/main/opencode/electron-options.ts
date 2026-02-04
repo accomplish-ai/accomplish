@@ -87,10 +87,16 @@ export function getBundledOpenCodeVersion(): string | null {
   }
 }
 
-export async function buildEnvironment(): Promise<NodeJS.ProcessEnv> {
+export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEnv> {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
   };
+
+  // Set task ID for MCP tools to isolate browser tabs and other resources per task
+  if (taskId) {
+    env.ACCOMPLISH_TASK_ID = taskId;
+    console.log('[OpenCode CLI] Task ID in environment:', taskId);
+  }
 
   if (app.isPackaged) {
     env.ELECTRON_RUN_AS_NODE = '1';

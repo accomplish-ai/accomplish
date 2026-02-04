@@ -29,7 +29,7 @@ describe('TaskManager', () => {
           isPackaged: false,
           tempPath: '/tmp',
           getCliCommand: () => ({ command: 'opencode', args: [] }),
-          buildEnvironment: async () => ({}),
+          buildEnvironment: async (_taskId: string) => ({}),
           buildCliArgs: async () => [],
         },
         defaultWorkingDirectory: '/home/user',

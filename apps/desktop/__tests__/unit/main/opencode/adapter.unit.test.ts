@@ -616,7 +616,7 @@ vi.mock('@accomplish/core', async () => {
     isPackaged: boolean;
     tempPath: string;
     getCliCommand: () => { command: string; args: string[] };
-    buildEnvironment: () => Promise<NodeJS.ProcessEnv>;
+    buildEnvironment: (taskId: string) => Promise<NodeJS.ProcessEnv>;
     buildCliArgs: (config: TaskConfigMock) => Promise<string[]>;
     onBeforeStart?: () => Promise<void>;
     getModelDisplayName?: (modelId: string) => string;
@@ -718,13 +718,13 @@ vi.mock('@main/opencode/electron-options', () => ({
     isPackaged: false,
     tempPath: '/mock/temp',
     getCliCommand: () => ({ command: '/mock/opencode/cli', args: [] }),
-    buildEnvironment: () => Promise.resolve({ PATH: '/usr/bin' }),
+    buildEnvironment: (_taskId: string) => Promise.resolve({ PATH: '/usr/bin' }),
     buildCliArgs: (config: { prompt: string; sessionId?: string }) => Promise.resolve(['run', '--format', 'json', config.prompt]),
     onBeforeStart: () => Promise.resolve(),
     getModelDisplayName: (model: string) => model,
   })),
   createElectronTaskManagerOptions: vi.fn(() => ({})),
-  buildEnvironment: vi.fn(() => Promise.resolve({ PATH: '/usr/bin' })),
+  buildEnvironment: vi.fn((_taskId: string) => Promise.resolve({ PATH: '/usr/bin' })),
   buildCliArgs: vi.fn((config: { prompt: string }) => Promise.resolve(['run', '--format', 'json', config.prompt])),
   getCliCommand: vi.fn(() => ({ command: '/mock/opencode/cli', args: [] })),
   isCliAvailable: vi.fn(() => Promise.resolve(true)),
