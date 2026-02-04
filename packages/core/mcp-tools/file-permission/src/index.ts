@@ -1,12 +1,4 @@
 #!/usr/bin/env node
-/**
- * File Permission MCP Server
- *
- * Exposes a `request_file_permission` tool that the agent calls before
- * performing file operations. The tool communicates with the Electron
- * main process via HTTP to show a permission modal and wait for user response.
- */
-
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -31,7 +23,6 @@ const server = new Server(
   { capabilities: { tools: {} } }
 );
 
-// List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
@@ -70,7 +61,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   ],
 }));
 
-// Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
   if (request.params.name !== 'request_file_permission') {
     return {
@@ -82,7 +72,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   const args = request.params.arguments as FilePermissionInput;
   const { operation, filePath, filePaths, targetPath, contentPreview } = args;
 
-  // Validate required fields
   if (!operation || (!filePath && (!filePaths || filePaths.length === 0))) {
     return {
       content: [{ type: 'text', text: 'Error: operation and either filePath or filePaths are required' }],
@@ -91,7 +80,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   }
 
   try {
-    // Call Electron main process HTTP endpoint
     const response = await fetch(PERMISSION_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -100,7 +88,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
         filePath,
         filePaths,
         targetPath,
-        contentPreview: contentPreview?.substring(0, 500), // Truncate preview
+        contentPreview: contentPreview?.substring(0, 500),
       }),
     });
 
@@ -125,7 +113,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   }
 });
 
-// Start the MCP server
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

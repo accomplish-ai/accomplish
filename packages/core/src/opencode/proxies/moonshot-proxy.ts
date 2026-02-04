@@ -3,38 +3,26 @@ import https from 'https';
 import { URL } from 'url';
 
 const MOONSHOT_PROXY_PORT = 9229;
-const MAX_REQUEST_SIZE = 10 * 1024 * 1024; // 10MB limit
-// Set DEBUG_MOONSHOT_PROXY=1 to enable verbose logging
+const MAX_REQUEST_SIZE = 10 * 1024 * 1024;
 const DEBUG = process.env.DEBUG_MOONSHOT_PROXY === '1';
 
 let server: http.Server | null = null;
 let targetBaseUrl: string | null = null;
 
-// Store reasoning_content by message content hash to replay on subsequent requests
-// Key: hash of assistant message content, Value: reasoning_content
 const reasoningContentCache = new Map<string, string>();
 
 function hashMessageContent(msg: Record<string, unknown>): string {
-  // Create a hash from the message content and tool_calls to identify it
   const content = String(msg.content || '');
   const toolCalls = JSON.stringify(msg.tool_calls || []);
-  // Simple hash - just use first 100 chars of content + tool call IDs
+  // Use truncated content + tool calls as key since full content can be very large
   return `${content.slice(0, 100)}::${toolCalls.slice(0, 200)}`;
 }
 
-/**
- * Extract reasoning_content from Moonshot response and cache it.
- * Handles both streaming (SSE) and non-streaming responses.
- */
 function extractAndCacheReasoningContent(responseText: string): void {
-  // For streaming responses, parse SSE format
-  // Each chunk is: data: {"choices":[{"delta":{"reasoning_content":"...","content":"...","tool_calls":[...]}}]}
-
   let fullReasoningContent = '';
   let fullContent = '';
   let toolCalls: unknown[] = [];
 
-  // Try parsing as SSE (streaming)
   const lines = responseText.split('\n');
   for (const line of lines) {
     if (!line.startsWith('data: ')) continue;
@@ -50,7 +38,6 @@ function extractAndCacheReasoningContent(responseText: string): void {
       const delta = choice.delta as Record<string, unknown> | undefined;
       const message = choice.message as Record<string, unknown> | undefined;
 
-      // Handle streaming delta format
       if (delta) {
         if (delta.reasoning_content) {
           fullReasoningContent += String(delta.reasoning_content);
@@ -59,14 +46,12 @@ function extractAndCacheReasoningContent(responseText: string): void {
           fullContent += String(delta.content);
         }
         if (delta.tool_calls && Array.isArray(delta.tool_calls)) {
-          // Merge tool calls (streaming sends them in pieces)
           for (const tc of delta.tool_calls) {
             const tcObj = tc as Record<string, unknown>;
             const index = tcObj.index as number;
             if (!toolCalls[index]) {
               toolCalls[index] = { ...tcObj };
             } else {
-              // Merge function arguments
               const existing = toolCalls[index] as Record<string, unknown>;
               if (tcObj.function && typeof tcObj.function === 'object') {
                 const fn = tcObj.function as Record<string, unknown>;
@@ -81,7 +66,6 @@ function extractAndCacheReasoningContent(responseText: string): void {
         }
       }
 
-      // Handle non-streaming message format
       if (message) {
         if (message.reasoning_content) {
           fullReasoningContent = String(message.reasoning_content);
@@ -94,11 +78,9 @@ function extractAndCacheReasoningContent(responseText: string): void {
         }
       }
     } catch {
-      // Skip unparseable lines
     }
   }
 
-  // Also try parsing as non-streaming JSON response
   if (!fullReasoningContent) {
     try {
       const data = JSON.parse(responseText) as Record<string, unknown>;
@@ -112,11 +94,9 @@ function extractAndCacheReasoningContent(responseText: string): void {
         }
       }
     } catch {
-      // Not valid JSON
     }
   }
 
-  // Cache if we have reasoning_content
   if (fullReasoningContent && (fullContent || toolCalls.length > 0)) {
     const mockMsg: Record<string, unknown> = {
       content: fullContent,
@@ -129,7 +109,6 @@ function extractAndCacheReasoningContent(responseText: string): void {
       console.log(`[Moonshot Proxy] Cached reasoning_content (${fullReasoningContent.length} chars) for hash: ${hash.slice(0, 50)}...`);
     }
 
-    // Limit cache size to prevent memory issues
     if (reasoningContentCache.size > 100) {
       const firstKey = reasoningContentCache.keys().next().value;
       if (firstKey) reasoningContentCache.delete(firstKey);
@@ -167,10 +146,10 @@ function shouldTransformBody(contentType: string | undefined): boolean {
 }
 
 /**
- * Transform request body for Moonshot compatibility.
- * - Removes thinking/reasoning flags that require reasoning_content in tool calls
- * - Adds empty reasoning_content to assistant tool-call messages when missing
- * - Converts max_completion_tokens to max_tokens if needed
+ * Transform request body for Moonshot compatibility:
+ * - Strips thinking/reasoning flags (Moonshot requires reasoning_content in responses)
+ * - Adds reasoning_content to assistant messages (Moonshot API requirement)
+ * - Converts max_completion_tokens to max_tokens
  */
 export function transformMoonshotRequestBody(body: Buffer): Buffer {
   const text = body.toString('utf8');
@@ -189,9 +168,7 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
       }
     }
 
-    // Only strip thinking/reasoning flags from the top-level request object.
-    // We intentionally do NOT recurse into nested objects (like tool schemas)
-    // because legitimate tool parameters might be named 'reasoning', etc.
+    // Only strip from top-level to avoid removing legitimate tool parameter names like 'reasoning'
     const topLevelDisallowedKeys = ['enable_thinking', 'reasoning', 'reasoning_effort'];
     for (const key of topLevelDisallowedKeys) {
       if (key in parsed) {
@@ -219,7 +196,6 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
         const hasToolCallContent = Array.isArray(msg.content)
           && msg.content.some(item => item && typeof item === 'object' && (item as Record<string, unknown>).type === 'tool_call');
         if (typeof role === 'string' && role === 'assistant' && !('reasoning_content' in msg)) {
-          // Try to find cached reasoning_content from previous response
           const hash = hashMessageContent(msg);
           const cachedReasoning = reasoningContentCache.get(hash);
           if (cachedReasoning) {
@@ -228,7 +204,6 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
               console.log(`[Moonshot Proxy] Restored reasoning_content from cache (${cachedReasoning.length} chars)`);
             }
           } else {
-            // Fallback: use placeholder if we don't have cached content
             msg.reasoning_content = 'Thinking...';
             if (DEBUG) {
               console.log(`[Moonshot Proxy] No cached reasoning_content, using placeholder`);
@@ -266,7 +241,6 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
       }
     }
 
-    // Always return the transformed body to ensure consistency
     const result = Buffer.from(JSON.stringify(parsed), 'utf8');
     if (DEBUG && modified) {
       console.log(`[Moonshot Proxy] Body transformed: ${body.length} -> ${result.length} bytes`);
@@ -280,7 +254,6 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
 
 function isValidRequestPath(pathname: string): boolean {
   if (pathname === '/health') return true;
-  // Allow /chat/completions and similar OpenAI-compatible paths
   if (pathname === '/chat/completions' || pathname.startsWith('/chat/')) return true;
   if (pathname === '/completions' || pathname.startsWith('/completions/')) return true;
   if (pathname === '/embeddings' || pathname.startsWith('/embeddings/')) return true;
@@ -356,7 +329,6 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
 
     const headers = { ...req.headers } as Record<string, string | string[] | undefined>;
     delete headers.host;
-    // Always update content-length since we always transform
     headers['content-length'] = String(body.length);
 
     const requestOptions: http.RequestOptions = {
@@ -370,7 +342,6 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
     const proxy = (isHttps ? https : http).request(requestOptions, (proxyRes) => {
       res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
 
-      // Intercept response to capture reasoning_content for caching
       const responseChunks: Buffer[] = [];
 
       proxyRes.on('data', (chunk: Buffer) => {
@@ -381,7 +352,6 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
       proxyRes.on('end', () => {
         res.end();
 
-        // Try to extract and cache reasoning_content from the response
         try {
           const responseText = Buffer.concat(responseChunks).toString('utf8');
           extractAndCacheReasoningContent(responseText);
@@ -493,9 +463,6 @@ export async function stopMoonshotProxy(): Promise<void> {
   });
 }
 
-/**
- * Check if the proxy server is currently running.
- */
 export function isMoonshotProxyRunning(): boolean {
   return server !== null && server.listening;
 }

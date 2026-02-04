@@ -1,11 +1,4 @@
 #!/usr/bin/env node
-/**
- * AskUserQuestion MCP Server
- *
- * Exposes an `AskUserQuestion` tool that the agent calls to ask users
- * questions via the UI. Communicates with Electron main process via HTTP.
- */
-
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -36,7 +29,6 @@ const server = new Server(
   { capabilities: { tools: {} } }
 );
 
-// List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
@@ -96,7 +88,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   ],
 }));
 
-// Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
   if (request.params.name !== 'AskUserQuestion') {
     return {
@@ -108,7 +99,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   const args = request.params.arguments as AskUserQuestionInput;
   const { questions } = args;
 
-  // Validate required fields
   if (!questions || questions.length === 0) {
     return {
       content: [{ type: 'text', text: 'Error: At least one question is required' }],
@@ -125,7 +115,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   }
 
   try {
-    // Call Electron main process HTTP endpoint
     const response = await fetch(QUESTION_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -158,7 +147,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
       };
     }
 
-    // Format response for the agent
     if (result.selectedOptions && result.selectedOptions.length > 0) {
       return {
         content: [{ type: 'text', text: `User selected: ${result.selectedOptions.join(', ')}` }],
@@ -183,7 +171,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   }
 });
 
-// Start the MCP server
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

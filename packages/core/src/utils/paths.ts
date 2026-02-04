@@ -1,26 +1,8 @@
-/**
- * Platform-independent path utilities
- *
- * Provides functions for resolving user data paths, temp paths,
- * and creating platform configurations without Electron dependencies.
- */
-
 import * as os from 'os';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import type { PlatformConfig } from '../types.js';
 
-/**
- * Get the default user data path for the given app name.
- *
- * Platform-specific paths:
- * - macOS: ~/Library/Application Support/<appName>
- * - Windows: %APPDATA%/<appName>
- * - Linux: ~/.config/<appName>
- *
- * @param appName - The application name
- * @returns The default user data path
- */
 export function getDefaultUserDataPath(appName: string): string {
   const platform = process.platform;
   const home = os.homedir();
@@ -31,29 +13,13 @@ export function getDefaultUserDataPath(appName: string): string {
   if (platform === 'win32') {
     return path.join(process.env.APPDATA || path.join(home, 'AppData', 'Roaming'), appName);
   }
-  // Linux and other Unix-like systems
   return path.join(process.env.XDG_CONFIG_HOME || path.join(home, '.config'), appName);
 }
 
-/**
- * Get the default temporary directory path.
- *
- * @returns The system temporary directory
- */
 export function getDefaultTempPath(): string {
   return os.tmpdir();
 }
 
-/**
- * Create a default platform configuration for the given app name.
- *
- * This is useful for CLI applications or tests that don't have access
- * to Electron's app paths.
- *
- * @param appName - The application name
- * @param overrides - Optional overrides for the default configuration
- * @returns A PlatformConfig with sensible defaults
- */
 export function createDefaultPlatformConfig(
   appName: string,
   overrides?: Partial<PlatformConfig>
@@ -68,24 +34,10 @@ export function createDefaultPlatformConfig(
   };
 }
 
-/**
- * Resolve a path relative to the user data directory.
- *
- * @param config - The platform configuration
- * @param segments - Path segments to join with the user data path
- * @returns The resolved absolute path
- */
 export function resolveUserDataPath(config: PlatformConfig, ...segments: string[]): string {
   return path.join(config.userDataPath, ...segments);
 }
 
-/**
- * Resolve a path relative to the resources directory.
- *
- * @param config - The platform configuration
- * @param segments - Path segments to join with the resources path
- * @returns The resolved absolute path, or null if resourcesPath is not set
- */
 export function resolveResourcesPath(
   config: PlatformConfig,
   ...segments: string[]
@@ -96,13 +48,6 @@ export function resolveResourcesPath(
   return path.join(config.resourcesPath, ...segments);
 }
 
-/**
- * Resolve a path relative to the app directory.
- *
- * @param config - The platform configuration
- * @param segments - Path segments to join with the app path
- * @returns The resolved absolute path, or null if appPath is not set
- */
 export function resolveAppPath(config: PlatformConfig, ...segments: string[]): string | null {
   if (!config.appPath) {
     return null;
@@ -110,14 +55,6 @@ export function resolveAppPath(config: PlatformConfig, ...segments: string[]): s
   return path.join(config.appPath, ...segments);
 }
 
-/**
- * Get the path to the bundled MCP tools directory in @accomplish/core.
- *
- * Uses module resolution to find the package location, which works for
- * all installation methods (npm, yarn, pnpm, symlinks).
- *
- * @returns Absolute path to the mcp-tools directory
- */
 export function getMcpToolsPath(): string {
   const currentDir = path.dirname(fileURLToPath(import.meta.url));
   // Navigate from dist/utils/ to package root, then to mcp-tools

@@ -1,6 +1,3 @@
-// packages/core/src/storage/repositories/index.ts
-
-// App settings
 export {
   getDebugMode,
   setDebugMode,
@@ -23,7 +20,6 @@ export {
   type AppSettings,
 } from './appSettings.js';
 
-// Provider settings
 export {
   getProviderSettings,
   setActiveProvider,
@@ -40,7 +36,6 @@ export {
   getConnectedProviderIds,
 } from './providerSettings.js';
 
-// Task history
 export {
   getTasks,
   getTask,
@@ -60,7 +55,6 @@ export {
   type StoredTask,
 } from './taskHistory.js';
 
-// Skills
 export {
   getAllSkills,
   getEnabledSkills,

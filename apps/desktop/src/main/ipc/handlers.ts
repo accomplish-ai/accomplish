@@ -126,9 +126,6 @@ interface OllamaModel {
   toolSupport?: ToolSupportStatus;
 }
 
-/**
- * Fetch with timeout using AbortController
- */
 async function fetchWithTimeout(
   url: string,
   options: RequestInit,
@@ -145,10 +142,8 @@ async function fetchWithTimeout(
   }
 }
 
-// Message batching configuration
 const MESSAGE_BATCH_DELAY_MS = 50;
 
-// Per-task message batching state
 interface MessageBatcher {
   pendingMessages: TaskMessage[];
   timeout: NodeJS.Timeout | null;
@@ -170,13 +165,11 @@ function createMessageBatcher(
     flush: () => {
       if (batcher.pendingMessages.length === 0) return;
 
-      // Send all pending messages in one IPC call
       forwardToRenderer('task:update:batch', {
         taskId,
         messages: batcher.pendingMessages,
       });
 
-      // Also persist each message to history
       for (const msg of batcher.pendingMessages) {
         addTaskMessage(taskId, msg);
       }
@@ -206,7 +199,6 @@ function queueMessage(
 
   batcher.pendingMessages.push(message);
 
-  // Set up or reset the batch timer
   if (batcher.timeout) {
     clearTimeout(batcher.timeout);
   }
@@ -284,10 +276,6 @@ function validateTaskConfig(config: TaskConfig): TaskConfig {
   return validated;
 }
 
-/**
- * Check if E2E auth bypass is enabled via global flag, command-line argument, or environment variable
- * Global flag is set by Playwright's app.evaluate() and is most reliable across platforms
- */
 function isE2ESkipAuthEnabled(): boolean {
   return (
     (global as Record<string, unknown>).E2E_SKIP_AUTH === true ||
@@ -310,29 +298,20 @@ function handle<Args extends unknown[], ReturnType = unknown>(
   });
 }
 
-/**
- * Register all IPC handlers
- */
 export function registerIPCHandlers(): void {
   const taskManager = getTaskManager();
 
-  // Start the permission API server for file-permission MCP
-  // Initialize when we have a window (deferred until first task:start)
   let permissionApiInitialized = false;
 
-  // Task: Start a new task
   handle('task:start', async (event: IpcMainInvokeEvent, config: TaskConfig) => {
     const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
     const sender = event.sender;
     const validatedConfig = validateTaskConfig(config);
 
-    // Check for ready provider before starting task (skip in E2E mock mode)
-    // This is a backend safety check - the UI should also check before calling
     if (!isMockTaskEventsEnabled() && !hasReadyProvider()) {
       throw new Error('No provider is ready. Please connect a provider and select a model in Settings.');
     }
 
-    // Initialize permission API server (once, when we have a window)
     if (!permissionApiInitialized) {
       initPermissionApi(window, () => taskManager.getActiveTaskId());
       startPermissionApiServer();
@@ -342,15 +321,12 @@ export function registerIPCHandlers(): void {
 
     const taskId = createTaskId();
 
-    // E2E Mock Mode: Return mock task and emit simulated events
     if (isMockTaskEventsEnabled()) {
       const mockTask = createMockTask(taskId, validatedConfig.prompt);
       const scenario = detectScenarioFromPrompt(validatedConfig.prompt);
 
-      // Save task to history so Execution page can load it
       saveTask(mockTask);
 
-      // Execute mock flow asynchronously (sends IPC events)
       void executeMockTaskFlow(window, {
         taskId,
         prompt: validatedConfig.prompt,
@@ -361,20 +337,17 @@ export function registerIPCHandlers(): void {
       return mockTask;
     }
 
-    // Setup event forwarding to renderer
     const forwardToRenderer = (channel: string, data: unknown) => {
       if (!window.isDestroyed() && !sender.isDestroyed()) {
         sender.send(channel, data);
       }
     };
 
-    // Create task-scoped callbacks for the TaskManager
     const callbacks: TaskCallbacks = {
       onMessage: (message: OpenCodeMessage) => {
         const taskMessage = toTaskMessage(message);
         if (!taskMessage) return;
 
-        // Queue message for batching instead of immediate send
         queueMessage(taskId, taskMessage, forwardToRenderer, addTaskMessage);
       },
 
@@ -386,13 +359,11 @@ export function registerIPCHandlers(): void {
       },
 
       onPermissionRequest: (request: unknown) => {
-        // Flush pending messages before showing permission request
         flushAndCleanupBatcher(taskId);
         forwardToRenderer('permission:request', request);
       },
 
       onComplete: (result: TaskResult) => {
-        // Flush any pending messages before completing
         flushAndCleanupBatcher(taskId);
 
         forwardToRenderer('task:update', {
@@ -401,7 +372,6 @@ export function registerIPCHandlers(): void {
           result,
         });
 
-        // Map result status to task status
         let taskStatus: TaskStatus;
         if (result.status === 'success') {
           taskStatus = 'completed';
@@ -411,23 +381,21 @@ export function registerIPCHandlers(): void {
           taskStatus = 'failed';
         }
 
-        // Update task status in history
         updateTaskStatus(taskId, taskStatus, new Date().toISOString());
 
-        // Update session ID if available (important for interrupted tasks to allow continuation)
+        // Session ID needed for interrupted tasks to allow continuation
         const sessionId = result.sessionId || taskManager.getSessionId(taskId);
         if (sessionId) {
           updateTaskSessionId(taskId, sessionId);
         }
 
-        // Clear todos from DB only on success (keep todos for failed/interrupted tasks so user can see what was incomplete)
+        // Keep todos for failed/interrupted tasks so user can see what was incomplete
         if (result.status === 'success') {
           clearTodosForTask(taskId);
         }
       },
 
       onError: (error: Error) => {
-        // Flush any pending messages before error
         flushAndCleanupBatcher(taskId);
 
         forwardToRenderer('task:update', {
@@ -436,7 +404,6 @@ export function registerIPCHandlers(): void {
           error: error.message,
         });
 
-        // Update task status in history
         updateTaskStatus(taskId, 'failed', new Date().toISOString());
       },
 
@@ -451,32 +418,25 @@ export function registerIPCHandlers(): void {
       },
 
       onStatusChange: (status: TaskStatus) => {
-        // Notify renderer of status change (e.g., queued -> running)
         forwardToRenderer('task:status-change', {
           taskId,
           status,
         });
-        // Update task status in history
         updateTaskStatus(taskId, status, new Date().toISOString());
       },
 
       onTodoUpdate: (todos: TodoItem[]) => {
-        // Save to database for persistence
         saveTodosForTask(taskId, todos);
-        // Forward to renderer for immediate UI update
         forwardToRenderer('todo:update', { taskId, todos });
       },
 
       onAuthError: (error: { providerId: string; message: string }) => {
-        // Forward auth error to renderer so it can show re-login toast
         forwardToRenderer('auth:error', error);
       },
     };
 
-    // Start the task via TaskManager (creates isolated adapter or queues if busy)
     const task = await taskManager.startTask(taskId, validatedConfig, callbacks);
 
-    // Add initial user message with the prompt to the chat
     const initialUserMessage: TaskMessage = {
       id: createMessageId(),
       type: 'user',
@@ -485,10 +445,8 @@ export function registerIPCHandlers(): void {
     };
     task.messages = [initialUserMessage];
 
-    // Save task to history (includes the initial user message)
     saveTask(task);
 
-    // Generate AI summary asynchronously (don't block task execution)
     generateTaskSummary(validatedConfig.prompt)
       .then((summary) => {
         updateTaskSummary(taskId, summary);
@@ -501,78 +459,62 @@ export function registerIPCHandlers(): void {
     return task;
   });
 
-  // Task: Cancel current task (running or queued)
   handle('task:cancel', async (_event: IpcMainInvokeEvent, taskId?: string) => {
     if (!taskId) return;
 
-    // Check if it's a queued task first
     if (taskManager.isTaskQueued(taskId)) {
       taskManager.cancelQueuedTask(taskId);
       updateTaskStatus(taskId, 'cancelled', new Date().toISOString());
       return;
     }
 
-    // Otherwise cancel the running task
     if (taskManager.hasActiveTask(taskId)) {
       await taskManager.cancelTask(taskId);
       updateTaskStatus(taskId, 'cancelled', new Date().toISOString());
     }
   });
 
-  // Task: Interrupt current task (graceful Ctrl+C, doesn't kill process)
   handle('task:interrupt', async (_event: IpcMainInvokeEvent, taskId?: string) => {
     if (!taskId) return;
 
     if (taskManager.hasActiveTask(taskId)) {
       await taskManager.interruptTask(taskId);
-      // Note: Don't change task status - task is still running, just interrupted
-      console.log(`[IPC] Task ${taskId} interrupted`);
     }
   });
 
-  // Task: Get task from history
   handle('task:get', async (_event: IpcMainInvokeEvent, taskId: string) => {
     return getTask(taskId) || null;
   });
 
-  // Task: List tasks from history
   handle('task:list', async (_event: IpcMainInvokeEvent) => {
     return getTasks();
   });
 
-  // Task: Delete task from history
   handle('task:delete', async (_event: IpcMainInvokeEvent, taskId: string) => {
     deleteTask(taskId);
   });
 
-  // Task: Clear all history
   handle('task:clear-history', async (_event: IpcMainInvokeEvent) => {
     clearHistory();
   });
 
-  // Task: Get todos for a specific task
   handle('task:get-todos', async (_event: IpcMainInvokeEvent, taskId: string) => {
     return getTodosForTask(taskId);
   });
 
-  // Permission: Respond to permission request
   handle('permission:respond', async (_event: IpcMainInvokeEvent, response: PermissionResponse) => {
     const parsedResponse = validate(permissionResponseSchema, response);
     const { taskId, decision, requestId } = parsedResponse;
 
-    // Check if this is a file permission request from the MCP server
     if (requestId && isFilePermissionRequest(requestId)) {
       const allowed = decision === 'allow';
       const resolved = resolvePermission(requestId, allowed);
       if (resolved) {
-        console.log(`[IPC] File permission request ${requestId} resolved: ${allowed ? 'allowed' : 'denied'}`);
         return;
       }
-      // If not found in pending, fall through to standard handling
       console.warn(`[IPC] File permission request ${requestId} not found in pending requests`);
     }
 
-    // Check if this is a question request from the MCP server
     if (requestId && isQuestionRequest(requestId)) {
       const denied = decision === 'deny';
       const resolved = resolveQuestion(requestId, {
@@ -581,31 +523,25 @@ export function registerIPCHandlers(): void {
         denied,
       });
       if (resolved) {
-        console.log(`[IPC] Question request ${requestId} resolved: ${denied ? 'denied' : 'answered'}`);
         return;
       }
-      // If not found in pending, fall through to standard handling
       console.warn(`[IPC] Question request ${requestId} not found in pending requests`);
     }
 
-    // Check if the task is still active
     if (!taskManager.hasActiveTask(taskId)) {
       console.warn(`[IPC] Permission response for inactive task ${taskId}`);
       return;
     }
 
     if (decision === 'allow') {
-      // Send the response to the correct task's CLI
       const message = parsedResponse.selectedOptions?.join(', ') || parsedResponse.message || 'yes';
       const sanitizedMessage = sanitizeString(message, 'permissionResponse', 1024);
       await taskManager.sendResponse(taskId, sanitizedMessage);
     } else {
-      // Send denial to the correct task
       await taskManager.sendResponse(taskId, 'no');
     }
   });
 
-  // Session: Resume (continue conversation)
   handle('session:resume', async (event: IpcMainInvokeEvent, sessionId: string, prompt: string, existingTaskId?: string) => {
     const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
     const sender = event.sender;
@@ -615,16 +551,12 @@ export function registerIPCHandlers(): void {
       ? sanitizeString(existingTaskId, 'taskId', 128)
       : undefined;
 
-    // Check for ready provider before resuming session (skip in E2E mock mode)
-    // This is a backend safety check - the UI should also check before calling
     if (!isMockTaskEventsEnabled() && !hasReadyProvider()) {
       throw new Error('No provider is ready. Please connect a provider and select a model in Settings.');
     }
 
-    // Use existing task ID or create a new one
     const taskId = validatedExistingTaskId || createTaskId();
 
-    // Persist the user's follow-up message to task history
     if (validatedExistingTaskId) {
       const userMessage: TaskMessage = {
         id: createMessageId(),
@@ -635,20 +567,17 @@ export function registerIPCHandlers(): void {
       addTaskMessage(validatedExistingTaskId, userMessage);
     }
 
-    // Setup event forwarding to renderer
     const forwardToRenderer = (channel: string, data: unknown) => {
       if (!window.isDestroyed() && !sender.isDestroyed()) {
         sender.send(channel, data);
       }
     };
 
-    // Create task-scoped callbacks for the TaskManager (with batching for performance)
     const callbacks: TaskCallbacks = {
       onMessage: (message: OpenCodeMessage) => {
         const taskMessage = toTaskMessage(message);
         if (!taskMessage) return;
 
-        // Queue message for batching instead of immediate send
         queueMessage(taskId, taskMessage, forwardToRenderer, addTaskMessage);
       },
 
@@ -660,13 +589,11 @@ export function registerIPCHandlers(): void {
       },
 
       onPermissionRequest: (request: unknown) => {
-        // Flush pending messages before showing permission request
         flushAndCleanupBatcher(taskId);
         forwardToRenderer('permission:request', request);
       },
 
       onComplete: (result: TaskResult) => {
-        // Flush any pending messages before completing
         flushAndCleanupBatcher(taskId);
 
         forwardToRenderer('task:update', {
@@ -675,7 +602,6 @@ export function registerIPCHandlers(): void {
           result,
         });
 
-        // Map result status to task status
         let taskStatus: TaskStatus;
         if (result.status === 'success') {
           taskStatus = 'completed';
@@ -685,23 +611,21 @@ export function registerIPCHandlers(): void {
           taskStatus = 'failed';
         }
 
-        // Update task status in history
         updateTaskStatus(taskId, taskStatus, new Date().toISOString());
 
-        // Update session ID if available (important for interrupted tasks to allow continuation)
+        // Session ID needed for interrupted tasks to allow continuation
         const newSessionId = result.sessionId || taskManager.getSessionId(taskId);
         if (newSessionId) {
           updateTaskSessionId(taskId, newSessionId);
         }
 
-        // Clear todos from DB only on success (keep todos for failed/interrupted tasks so user can see what was incomplete)
+        // Keep todos for failed/interrupted tasks so user can see what was incomplete
         if (result.status === 'success') {
           clearTodosForTask(taskId);
         }
       },
 
       onError: (error: Error) => {
-        // Flush any pending messages before error
         flushAndCleanupBatcher(taskId);
 
         forwardToRenderer('task:update', {
@@ -710,7 +634,6 @@ export function registerIPCHandlers(): void {
           error: error.message,
         });
 
-        // Update task status in history
         updateTaskStatus(taskId, 'failed', new Date().toISOString());
       },
 
@@ -725,31 +648,25 @@ export function registerIPCHandlers(): void {
       },
 
       onStatusChange: (status: TaskStatus) => {
-        // Notify renderer of status change (e.g., queued -> running)
         forwardToRenderer('task:status-change', {
           taskId,
           status,
         });
-        // Update task status in history
         updateTaskStatus(taskId, status, new Date().toISOString());
       },
 
       onTodoUpdate: (todos: TodoItem[]) => {
-        // Save to database for persistence
         saveTodosForTask(taskId, todos);
-        // Forward to renderer for immediate UI update
         forwardToRenderer('todo:update', { taskId, todos });
       },
     };
 
-    // Start the task via TaskManager with sessionId for resume (creates isolated adapter or queues if busy)
     const task = await taskManager.startTask(taskId, {
       prompt: validatedPrompt,
       sessionId: validatedSessionId,
       taskId,
     }, callbacks);
 
-    // Update task status in history (whether running or queued)
     if (validatedExistingTaskId) {
       updateTaskStatus(validatedExistingTaskId, task.status, new Date().toISOString());
     }
@@ -757,9 +674,6 @@ export function registerIPCHandlers(): void {
     return task;
   });
 
-  // Settings: Get API keys
-  // Note: In production, this should fetch from backend to get metadata
-  // The actual keys are stored locally in secure storage
   handle('settings:api-keys', async (_event: IpcMainInvokeEvent) => {
     const storedCredentials = await listStoredCredentials();
 
@@ -768,7 +682,6 @@ export function registerIPCHandlers(): void {
       .map((credential) => {
         const provider = credential.account.replace('apiKey:', '');
 
-        // Handle Bedrock specially - it stores JSON credentials
         let keyPrefix = '';
         if (provider === 'bedrock') {
           try {
@@ -798,8 +711,6 @@ export function registerIPCHandlers(): void {
         };
       });
 
-    // Check for Azure Foundry Entra ID configuration (stored in config, not keychain)
-    // Only add if not already present (checking for API key existence)
     const azureConfig = getAzureFoundryConfig();
     const hasAzureKey = keys.some((k) => k.provider === 'azure-foundry');
 
@@ -817,7 +728,6 @@ export function registerIPCHandlers(): void {
     return keys;
   });
 
-  // Settings: Add API key (stores securely in OS keychain)
   handle(
     'settings:add-api-key',
     async (_event: IpcMainInvokeEvent, provider: string, key: string, label?: string) => {
@@ -827,7 +737,6 @@ export function registerIPCHandlers(): void {
       const sanitizedKey = sanitizeString(key, 'apiKey', 256);
       const sanitizedLabel = label ? sanitizeString(label, 'label', 128) : undefined;
 
-      // Store the API key securely in OS keychain
       await storeApiKey(provider, sanitizedKey);
 
       return {
@@ -841,39 +750,30 @@ export function registerIPCHandlers(): void {
     }
   );
 
-  // Settings: Remove API key
   handle('settings:remove-api-key', async (_event: IpcMainInvokeEvent, id: string) => {
-    // Extract provider from id (format: local-{provider})
     const sanitizedId = sanitizeString(id, 'id', 128);
     const provider = sanitizedId.replace('local-', '');
     await deleteApiKey(provider);
   });
 
-  // API Key: Check if API key exists
   handle('api-key:exists', async (_event: IpcMainInvokeEvent) => {
     const apiKey = await getApiKey('anthropic');
     return Boolean(apiKey);
   });
 
-  // API Key: Set API key
   handle('api-key:set', async (_event: IpcMainInvokeEvent, key: string) => {
     const sanitizedKey = sanitizeString(key, 'apiKey', 256);
     await storeApiKey('anthropic', sanitizedKey);
-    console.log('[API Key] Key set', { keyPrefix: sanitizedKey.substring(0, 8) });
   });
 
-  // API Key: Get API key
   handle('api-key:get', async (_event: IpcMainInvokeEvent) => {
     return getApiKey('anthropic');
   });
 
-  // API Key: Validate API key by making a test request
   handle('api-key:validate', async (_event: IpcMainInvokeEvent, key: string) => {
     const sanitizedKey = sanitizeString(key, 'apiKey', 256);
-    console.log('[API Key] Validation requested');
 
     try {
-      // Make a simple API call to validate the key
       const response = await fetchWithTimeout(
         'https://api.anthropic.com/v1/messages',
         {
@@ -912,13 +812,11 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  // API Key: Validate API key for any provider
   handle('api-key:validate-provider', async (_event: IpcMainInvokeEvent, provider: string, key: string, options?: Record<string, any>) => {
     if (!ALLOWED_API_KEY_PROVIDERS.has(provider)) {
       return { valid: false, error: 'Unsupported provider' };
     }
 
-    // Special handling for Azure Foundry with Entra ID - skip strict key validation
     let sanitizedKey = '';
     const isUsingEntraIdAuth = provider === 'azure-foundry' && (
       options?.authType === 'entra-id' || 
@@ -1043,7 +941,6 @@ export function registerIPCHandlers(): void {
           );
           break;
 
-        // Z.AI Coding Plan uses the same validation as standard API
         case 'zai': {
           const zaiRegion = (options?.region as string) || 'international';
           const zaiEndpoint = zaiRegion === 'china'
@@ -1064,18 +961,14 @@ export function registerIPCHandlers(): void {
         }
 
         case 'azure-foundry':
-          // Prioritize options passed in (from settings dialog setup)
-          // otherwise fall back to stored config
           const config = getAzureFoundryConfig();
           const baseUrl = options?.baseUrl || config?.baseUrl;
           const deploymentName = options?.deploymentName || config?.deploymentName;
           const authType = options?.authType || config?.authType || 'api-key';
 
-          // Store token if using Entra ID to avoid double-fetch
           let entraToken = '';
 
           if (authType === 'entra-id') {
-             // If we have options, we should try to validate connection using Entra ID (setup mode)
              if (options?.baseUrl && options?.deploymentName) {
                  const tokenResult = await getAzureEntraToken();
                  if (!tokenResult.success) {
@@ -1083,8 +976,7 @@ export function registerIPCHandlers(): void {
                  }
                  entraToken = tokenResult.token;
              } else {
-                 // No options means validating existing config which is entra-id (background check)
-                 // We skip actual validation here to avoid overhead
+                 // Skip validation for existing entra-id config to avoid overhead
                  return { valid: true };
              }
           }
@@ -1113,7 +1005,7 @@ export function registerIPCHandlers(): void {
              headers['api-key'] = sanitizedKey;
           }
 
-          // Try max_completion_tokens first (newer models like GPT-4o, GPT-5)
+          // Try max_completion_tokens first, fall back to max_tokens for older models
           response = await fetchWithTimeout(
             testUrl,
             {
@@ -1127,14 +1019,11 @@ export function registerIPCHandlers(): void {
             API_KEY_VALIDATION_TIMEOUT_MS
           );
 
-           // If max_completion_tokens not supported, try max_tokens (older models)
           if (!response.ok) {
             const firstErrorData = await response.json().catch(() => ({}));
             const firstErrorMessage = (firstErrorData as { error?: { message?: string } })?.error?.message || '';
-            console.log('[Azure Foundry] First attempt failed:', firstErrorMessage);
-            
+
             if (firstErrorMessage.includes('max_completion_tokens')) {
-              console.log('[Azure Foundry] Retrying with max_tokens for older model');
               response = await fetchWithTimeout(
                 testUrl,
                 {
@@ -1148,15 +1037,12 @@ export function registerIPCHandlers(): void {
                 API_KEY_VALIDATION_TIMEOUT_MS
               );
             } else {
-              // Return the error from the first attempt
-              console.warn(`[API Key] Validation failed for ${provider}`, { status: response.status, error: firstErrorMessage });
               return { valid: false, error: firstErrorMessage || `API returned status ${response.status}` };
             }
           }
           break;
 
         case 'minimax':
-          // MiniMax uses Anthropic-compatible API
           response = await fetchWithTimeout(
             'https://api.minimax.io/anthropic/v1/messages',
             {
@@ -1178,8 +1064,6 @@ export function registerIPCHandlers(): void {
           break;
 
         default:
-          // For 'custom' provider, skip validation
-          console.log('[API Key] Skipping validation for custom provider');
           return { valid: true };
       }
 
@@ -1202,17 +1086,12 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  // Bedrock: Validate AWS credentials
   handle('bedrock:validate', async (_event: IpcMainInvokeEvent, credentials: string) => {
-    console.log('[Bedrock] Validation requested');
-
     const parsed = JSON.parse(credentials);
     let client: BedrockClient;
     let cleanupEnv: (() => void) | null = null;
 
-    // Create client based on auth type
     if (parsed.authType === 'apiKey') {
-      // Set environment variable for AWS SDK to pick up
       const originalToken = process.env.AWS_BEARER_TOKEN_BEDROCK;
       process.env.AWS_BEARER_TOKEN_BEDROCK = parsed.apiKey;
       cleanupEnv = () => {
@@ -1226,7 +1105,6 @@ export function registerIPCHandlers(): void {
         region: parsed.region || 'us-east-1',
       });
     } else if (parsed.authType === 'accessKeys') {
-      // Access key authentication
       const awsCredentials: { accessKeyId: string; secretAccessKey: string; sessionToken?: string } = {
         accessKeyId: parsed.accessKeyId,
         secretAccessKey: parsed.secretAccessKey,
@@ -1239,7 +1117,6 @@ export function registerIPCHandlers(): void {
         credentials: awsCredentials,
       });
     } else if (parsed.authType === 'profile') {
-      // AWS Profile authentication
       client = new BedrockClient({
         region: parsed.region || 'us-east-1',
         credentials: fromIni({ profile: parsed.profileName || 'default' }),
@@ -1249,17 +1126,13 @@ export function registerIPCHandlers(): void {
     }
 
     try {
-      // Test by listing foundation models - single request point for all auth types
       const command = new ListFoundationModelsCommand({});
       await client.send(command);
 
-      console.log('[Bedrock] Validation succeeded');
       return { valid: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Validation failed';
-      console.warn('[Bedrock] Validation failed:', message);
 
-      // Provide user-friendly error messages
       if (message.includes('UnrecognizedClientException') || message.includes('InvalidSignatureException')) {
         return { valid: false, error: 'Invalid AWS credentials. Please check your Access Key ID and Secret Access Key.' };
       }
@@ -1279,17 +1152,14 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  // Fetch available Bedrock models
   handle('bedrock:fetch-models', async (_event: IpcMainInvokeEvent, credentialsJson: string) => {
     try {
       const credentials = JSON.parse(credentialsJson) as BedrockCredentials;
 
-      // Create Bedrock client (same pattern as validate)
       let bedrockClient: BedrockClient;
       let originalToken: string | undefined;
 
       if (credentials.authType === 'apiKey') {
-        // API Key authentication (Bearer token)
         originalToken = process.env.AWS_BEARER_TOKEN_BEDROCK;
         process.env.AWS_BEARER_TOKEN_BEDROCK = credentials.apiKey;
         bedrockClient = new BedrockClient({
@@ -1312,11 +1182,9 @@ export function registerIPCHandlers(): void {
       }
 
       try {
-        // Fetch all foundation models
         const command = new ListFoundationModelsCommand({});
         const response = await bedrockClient.send(command);
 
-        // Transform to standard format, filtering for text output models
         // Use modelId for display name to avoid duplicates (multiple versions share the same modelName)
         const models = (response.modelSummaries || [])
           .filter(m => m.outputModalities?.includes('TEXT'))
@@ -1329,7 +1197,6 @@ export function registerIPCHandlers(): void {
 
         return { success: true, models };
       } finally {
-        // Restore original env for API key auth
         if (credentials.authType === 'apiKey') {
           if (originalToken !== undefined) {
             process.env.AWS_BEARER_TOKEN_BEDROCK = originalToken;
@@ -1344,11 +1211,9 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  // Bedrock: Save credentials
   handle('bedrock:save', async (_event: IpcMainInvokeEvent, credentials: string) => {
     const parsed = JSON.parse(credentials);
 
-    // Validate structure
     if (parsed.authType === 'apiKey') {
       if (!parsed.apiKey) {
         throw new Error('API Key is required');
@@ -1365,10 +1230,8 @@ export function registerIPCHandlers(): void {
       throw new Error('Invalid authentication type');
     }
 
-    // Store the credentials
     storeApiKey('bedrock', credentials);
 
-    // Generate label and keyPrefix based on auth type
     let label: string;
     let keyPrefix: string;
     if (parsed.authType === 'apiKey') {
@@ -1392,7 +1255,6 @@ export function registerIPCHandlers(): void {
     };
   });
 
-  // Bedrock: Get credentials
   handle('bedrock:get-credentials', async (_event: IpcMainInvokeEvent) => {
     const stored = getApiKey('bedrock');
     if (!stored) return null;
@@ -1403,15 +1265,11 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  // API Key: Clear API key
   handle('api-key:clear', async (_event: IpcMainInvokeEvent) => {
     await deleteApiKey('anthropic');
-    console.log('[API Key] Key cleared');
   });
 
-  // OpenCode CLI: Check if installed
   handle('opencode:check', async (_event: IpcMainInvokeEvent) => {
-    // E2E test bypass: return mock CLI status when E2E skip auth is enabled
     if (isE2ESkipAuthEnabled()) {
       return {
         installed: true,
@@ -1429,17 +1287,14 @@ export function registerIPCHandlers(): void {
     };
   });
 
-  // OpenCode CLI: Get version
   handle('opencode:version', async (_event: IpcMainInvokeEvent) => {
     return getOpenCodeCliVersion();
   });
 
-  // Model: Get selected model
   handle('model:get', async (_event: IpcMainInvokeEvent) => {
     return getSelectedModel();
   });
 
-  // Model: Set selected model
   handle('model:set', async (_event: IpcMainInvokeEvent, model: SelectedModel) => {
     if (!model || typeof model.provider !== 'string' || typeof model.model !== 'string') {
       throw new Error('Invalid model configuration');
@@ -1447,17 +1302,10 @@ export function registerIPCHandlers(): void {
     setSelectedModel(model);
   });
 
-  // Ollama: Test connection and get models
-  /**
-   * Test tool support for a single Ollama model by making a function call request.
-   * Ollama supports OpenAI-compatible API at /v1/chat/completions
-   */
   async function testOllamaModelToolSupport(
     baseUrl: string,
     modelId: string
   ): Promise<ToolSupportStatus> {
-    // Use a time-based tool that the model cannot answer without calling
-    // Combined with tool_choice: 'required' to force tool usage if supported
     const testPayload = {
       model: modelId,
       messages: [
@@ -1500,7 +1348,6 @@ export function registerIPCHandlers(): void {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        // Check if error indicates tools aren't supported
         const errorText = await response.text();
         if (errorText.includes('tool') || errorText.includes('function') || errorText.includes('does not support')) {
           console.log(`[Ollama] Model ${modelId} does not support tools (error response)`);
@@ -1519,22 +1366,16 @@ export function registerIPCHandlers(): void {
         }>;
       };
 
-      // Check if the response contains tool calls
       const choice = data.choices?.[0];
       if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
         console.log(`[Ollama] Model ${modelId} supports tools (made tool call)`);
         return 'supported';
       }
 
-      // Check finish_reason - 'tool_calls' indicates tool support even if not used
       if (choice?.finish_reason === 'tool_calls') {
         console.log(`[Ollama] Model ${modelId} supports tools (finish_reason)`);
         return 'supported';
       }
-
-      // Model responded but didn't use tools despite tool_choice: 'required'
-      // This likely means the model doesn't actually support tools (just ignored the param)
-      console.log(`[Ollama] Model ${modelId} did not make tool call despite required - marking as unknown`);
       return 'unknown';
     } catch (error) {
       if (error instanceof Error) {
@@ -1542,7 +1383,6 @@ export function registerIPCHandlers(): void {
           console.warn(`[Ollama] Tool test timed out for ${modelId}`);
           return 'unknown';
         }
-        // Check for tool-related errors in the message
         if (error.message.includes('tool') || error.message.includes('function')) {
           console.log(`[Ollama] Model ${modelId} does not support tools (exception)`);
           return 'unsupported';
@@ -1556,7 +1396,6 @@ export function registerIPCHandlers(): void {
   handle('ollama:test-connection', async (_event: IpcMainInvokeEvent, url: string) => {
     const sanitizedUrl = sanitizeString(url, 'ollamaUrl', 256);
 
-    // Validate URL format and protocol
     try {
       const parsed = new URL(sanitizedUrl);
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
@@ -1584,9 +1423,6 @@ export function registerIPCHandlers(): void {
         return { success: true, models: [] };
       }
 
-      console.log(`[Ollama] Found ${rawModels.length} models, testing tool support...`);
-
-      // Test tool support for each model
       const models: OllamaModel[] = [];
       for (const m of rawModels) {
         const toolSupport = await testOllamaModelToolSupport(sanitizedUrl, m.name);
@@ -1596,14 +1432,11 @@ export function registerIPCHandlers(): void {
           size: m.size,
           toolSupport,
         });
-        console.log(`[Ollama] Model ${m.name}: toolSupport=${toolSupport}`);
       }
 
-      console.log(`[Ollama] Connection successful, found ${models.length} models`);
       return { success: true, models };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Connection failed';
-      console.warn('[Ollama] Connection failed:', message);
 
       if (error instanceof Error && error.name === 'AbortError') {
         return { success: false, error: 'Connection timed out. Make sure Ollama is running.' };
@@ -1612,18 +1445,15 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  // Ollama: Get stored config
   handle('ollama:get-config', async (_event: IpcMainInvokeEvent) => {
     return getOllamaConfig();
   });
 
-  // Ollama: Set config
   handle('ollama:set-config', async (_event: IpcMainInvokeEvent, config: OllamaConfig | null) => {
     if (config !== null) {
       if (typeof config.baseUrl !== 'string' || typeof config.enabled !== 'boolean') {
         throw new Error('Invalid Ollama configuration');
       }
-      // Validate URL format and protocol
       try {
         const parsed = new URL(config.baseUrl);
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
@@ -1635,11 +1465,9 @@ export function registerIPCHandlers(): void {
         }
         throw new Error('Invalid base URL format');
       }
-      // Validate optional lastValidated if present
       if (config.lastValidated !== undefined && typeof config.lastValidated !== 'number') {
         throw new Error('Invalid Ollama configuration');
       }
-      // Validate optional models array if present
       if (config.models !== undefined) {
         if (!Array.isArray(config.models)) {
           throw new Error('Invalid Ollama configuration: models must be an array');
@@ -1652,18 +1480,14 @@ export function registerIPCHandlers(): void {
       }
     }
     setOllamaConfig(config);
-    console.log('[Ollama] Config saved:', config);
   });
 
-  // Azure Foundry: Get config
   handle('azure-foundry:get-config', async (_event: IpcMainInvokeEvent) => {
     return getAzureFoundryConfig();
   });
 
-  // Azure Foundry: Set config
   handle('azure-foundry:set-config', async (_event: IpcMainInvokeEvent, config: AzureFoundryConfig | null) => {
     if (config !== null) {
-      // Validate required fields
       if (typeof config.baseUrl !== 'string' || !config.baseUrl.trim()) {
         throw new Error('Invalid Azure Foundry configuration: baseUrl is required');
       }
@@ -1676,7 +1500,6 @@ export function registerIPCHandlers(): void {
       if (typeof config.enabled !== 'boolean') {
         throw new Error('Invalid Azure Foundry configuration: enabled must be a boolean');
       }
-      // Validate URL format
       try {
         const parsed = new URL(config.baseUrl);
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
@@ -1687,17 +1510,14 @@ export function registerIPCHandlers(): void {
       }
     }
     setAzureFoundryConfig(config);
-    console.log('[Azure Foundry] Config saved:', config);
   });
 
-  // Azure Foundry: Test connection (for new provider settings architecture)
   handle('azure-foundry:test-connection', async (
     _event: IpcMainInvokeEvent,
     config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }
   ) => {
     const { endpoint, deploymentName, authType, apiKey } = config;
 
-    // Validate URL format
     let baseUrl: string;
     try {
       const parsed = new URL(endpoint);
@@ -1718,7 +1538,6 @@ export function registerIPCHandlers(): void {
         }
         authHeader = apiKey;
       } else {
-        // Entra ID authentication - uses cached token with auto-refresh
         const tokenResult = await getAzureEntraToken();
         if (!tokenResult.success) {
           return { success: false, error: tokenResult.error };
@@ -1726,10 +1545,8 @@ export function registerIPCHandlers(): void {
         authHeader = `Bearer ${tokenResult.token}`;
       }
 
-      // Test connection with a minimal chat completion request
       const testUrl = `${baseUrl}/openai/deployments/${deploymentName}/chat/completions?api-version=2024-02-15-preview`;
 
-      // Build headers based on auth type
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -1753,7 +1570,6 @@ export function registerIPCHandlers(): void {
       );
 
       if (!response.ok) {
-        // Try with max_tokens for older models
         const retryResponse = await fetchWithTimeout(
           testUrl,
           {
@@ -1787,19 +1603,16 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  // Azure Foundry: Save config (for new provider settings architecture)
   handle('azure-foundry:save-config', async (
     _event: IpcMainInvokeEvent,
     config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }
   ) => {
     const { endpoint, deploymentName, authType, apiKey } = config;
 
-    // Store API key in secure storage if provided
     if (authType === 'api-key' && apiKey) {
       storeApiKey('azure-foundry', apiKey);
     }
 
-    // Save config to app settings (for legacy support and config generation)
     const azureConfig: AzureFoundryConfig = {
       baseUrl: endpoint,
       deploymentName,
@@ -1817,7 +1630,6 @@ export function registerIPCHandlers(): void {
     });
   });
 
-  // OpenRouter: Fetch available models
   handle('openrouter:fetch-models', async (_event: IpcMainInvokeEvent) => {
     const apiKey = getApiKey('openrouter');
     if (!apiKey) {
@@ -1844,7 +1656,6 @@ export function registerIPCHandlers(): void {
 
       const data = await response.json() as { data?: Array<{ id: string; name: string; context_length?: number }> };
       const models = (data.data || []).map((m) => {
-        // Extract provider from model ID (e.g., "anthropic/claude-3.5-sonnet" -> "anthropic")
         const provider = m.id.split('/')[0] || 'unknown';
         return {
           id: m.id,
@@ -1867,12 +1678,10 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  // LiteLLM: Test connection and fetch models
   handle('litellm:test-connection', async (_event: IpcMainInvokeEvent, url: string, apiKey?: string) => {
     const sanitizedUrl = sanitizeString(url, 'litellmUrl', 256);
     const sanitizedApiKey = apiKey ? sanitizeString(apiKey, 'apiKey', 256) : undefined;
 
-    // Validate URL format and protocol
     try {
       const parsed = new URL(sanitizedUrl);
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
@@ -1902,7 +1711,6 @@ export function registerIPCHandlers(): void {
 
       const data = await response.json() as { data?: Array<{ id: string; object: string; created?: number; owned_by?: string }> };
       const models = (data.data || []).map((m) => {
-        // Extract provider from model ID (e.g., "openai/gpt-4" -> "openai")
         const provider = m.id.split('/')[0] || m.owned_by || 'unknown';
         return {
           id: m.id,
@@ -1925,7 +1733,6 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  // LiteLLM: Fetch models from configured proxy
   handle('litellm:fetch-models', async (_event: IpcMainInvokeEvent) => {
     const config = getLiteLLMConfig();
     if (!config || !config.baseUrl) {
@@ -1954,11 +1761,9 @@ export function registerIPCHandlers(): void {
 
       const data = await response.json() as { data?: Array<{ id: string; object: string; created?: number; owned_by?: string }> };
       const models = (data.data || []).map((m) => {
-        // Extract provider from model ID (e.g., "anthropic/claude-sonnet" -> "anthropic")
         const parts = m.id.split('/');
         const provider = parts.length > 1 ? parts[0] : (m.owned_by !== 'openai' ? m.owned_by : 'unknown') || 'unknown';
 
-        // Generate display name (e.g., "anthropic/claude-sonnet" -> "Anthropic: Claude Sonnet")
         const modelPart = parts.length > 1 ? parts.slice(1).join('/') : m.id;
         const providerDisplay = provider.charAt(0).toUpperCase() + provider.slice(1);
         const modelDisplay = modelPart
@@ -1988,18 +1793,15 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  // LiteLLM: Get stored config
   handle('litellm:get-config', async (_event: IpcMainInvokeEvent) => {
     return getLiteLLMConfig();
   });
 
-  // LiteLLM: Set config
   handle('litellm:set-config', async (_event: IpcMainInvokeEvent, config: LiteLLMConfig | null) => {
     if (config !== null) {
       if (typeof config.baseUrl !== 'string' || typeof config.enabled !== 'boolean') {
         throw new Error('Invalid LiteLLM configuration');
       }
-      // Validate URL format and protocol
       try {
         const parsed = new URL(config.baseUrl);
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
@@ -2011,11 +1813,9 @@ export function registerIPCHandlers(): void {
         }
         throw new Error('Invalid base URL format');
       }
-      // Validate optional lastValidated if present
       if (config.lastValidated !== undefined && typeof config.lastValidated !== 'number') {
         throw new Error('Invalid LiteLLM configuration');
       }
-      // Validate optional models array if present
       if (config.models !== undefined) {
         if (!Array.isArray(config.models)) {
           throw new Error('Invalid LiteLLM configuration: models must be an array');
@@ -2028,23 +1828,12 @@ export function registerIPCHandlers(): void {
       }
     }
     setLiteLLMConfig(config);
-    console.log('[LiteLLM] Config saved:', config);
   });
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // LM Studio Handlers
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Test tool support for a single LM Studio model by making a function call request.
-   * Returns 'supported', 'unsupported', or 'unknown' based on the response.
-   */
   async function testLMStudioModelToolSupport(
     baseUrl: string,
     modelId: string
   ): Promise<ToolSupportStatus> {
-    // Use a time-based tool that the model cannot answer without calling
-    // Combined with tool_choice: 'required' to force tool usage if supported
     const testPayload = {
       model: modelId,
       messages: [
@@ -2087,7 +1876,6 @@ export function registerIPCHandlers(): void {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        // Check if error indicates tools aren't supported
         const errorText = await response.text();
         if (errorText.includes('tool') || errorText.includes('function')) {
           console.log(`[LM Studio] Model ${modelId} does not support tools (error response)`);
@@ -2106,22 +1894,17 @@ export function registerIPCHandlers(): void {
         }>;
       };
 
-      // Check if the response contains tool calls
       const choice = data.choices?.[0];
       if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
         console.log(`[LM Studio] Model ${modelId} supports tools (made tool call)`);
         return 'supported';
       }
 
-      // Check finish_reason - 'tool_calls' indicates tool support even if not used
       if (choice?.finish_reason === 'tool_calls') {
         console.log(`[LM Studio] Model ${modelId} supports tools (finish_reason)`);
         return 'supported';
       }
 
-      // Model responded but didn't use tools despite tool_choice: 'required'
-      // This likely means the model doesn't actually support tools (just ignored the param)
-      console.log(`[LM Studio] Model ${modelId} did not make tool call despite required - marking as unknown`);
       return 'unknown';
     } catch (error) {
       if (error instanceof Error) {
@@ -2129,7 +1912,6 @@ export function registerIPCHandlers(): void {
           console.warn(`[LM Studio] Tool test timed out for ${modelId}`);
           return 'unknown';
         }
-        // Check for tool-related errors in the message
         if (error.message.includes('tool') || error.message.includes('function')) {
           console.log(`[LM Studio] Model ${modelId} does not support tools (exception)`);
           return 'unsupported';
@@ -2140,11 +1922,9 @@ export function registerIPCHandlers(): void {
     }
   }
 
-  // LM Studio: Test connection and fetch models with tool support detection
   handle('lmstudio:test-connection', async (_event: IpcMainInvokeEvent, url: string) => {
     const sanitizedUrl = sanitizeString(url, 'lmstudioUrl', 256);
 
-    // Validate URL format and protocol
     try {
       const parsed = new URL(sanitizedUrl);
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
@@ -2155,7 +1935,6 @@ export function registerIPCHandlers(): void {
     }
 
     try {
-      // First, fetch available models
       const response = await fetchWithTimeout(
         `${sanitizedUrl}/v1/models`,
         { method: 'GET' },
@@ -2175,18 +1954,13 @@ export function registerIPCHandlers(): void {
         return { success: false, error: 'No models loaded in LM Studio. Please load a model first.' };
       }
 
-      console.log(`[LM Studio] Found ${rawModels.length} models, testing tool support...`);
-
-      // Test tool support for each model
       const models: Array<{ id: string; name: string; toolSupport: ToolSupportStatus }> = [];
 
       for (const m of rawModels) {
-        // Format display name from model ID
         const displayName = m.id
           .replace(/-/g, ' ')
           .replace(/\b\w/g, (c) => c.toUpperCase());
 
-        // Test tool support
         const toolSupport = await testLMStudioModelToolSupport(sanitizedUrl, m.id);
 
         models.push({
@@ -2211,7 +1985,6 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  // LM Studio: Fetch models from configured instance
   handle('lmstudio:fetch-models', async (_event: IpcMainInvokeEvent) => {
     const config = getLMStudioConfig();
     if (!config || !config.baseUrl) {
@@ -2234,7 +2007,6 @@ export function registerIPCHandlers(): void {
       const data = await response.json() as { data?: Array<{ id: string; object: string; owned_by?: string }> };
       const rawModels = data.data || [];
 
-      // Test tool support for each model
       const models: Array<{ id: string; name: string; toolSupport: ToolSupportStatus }> = [];
 
       for (const m of rawModels) {
@@ -2250,8 +2022,6 @@ export function registerIPCHandlers(): void {
           toolSupport,
         });
       }
-
-      console.log(`[LM Studio] Fetched ${models.length} models`);
       return { success: true, models };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch models';
@@ -2264,18 +2034,15 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  // LM Studio: Get stored config
   handle('lmstudio:get-config', async (_event: IpcMainInvokeEvent) => {
     return getLMStudioConfig();
   });
 
-  // LM Studio: Set config
   handle('lmstudio:set-config', async (_event: IpcMainInvokeEvent, config: LMStudioConfig | null) => {
     if (config !== null) {
       if (typeof config.baseUrl !== 'string' || typeof config.enabled !== 'boolean') {
         throw new Error('Invalid LM Studio configuration');
       }
-      // Validate URL format and protocol
       try {
         const parsed = new URL(config.baseUrl);
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
@@ -2287,11 +2054,9 @@ export function registerIPCHandlers(): void {
         }
         throw new Error('Invalid base URL format');
       }
-      // Validate optional lastValidated if present
       if (config.lastValidated !== undefined && typeof config.lastValidated !== 'number') {
         throw new Error('Invalid LM Studio configuration');
       }
-      // Validate optional models array if present
       if (config.models !== undefined) {
         if (!Array.isArray(config.models)) {
           throw new Error('Invalid LM Studio configuration: models must be an array');
@@ -2304,13 +2069,10 @@ export function registerIPCHandlers(): void {
       }
     }
     setLMStudioConfig(config);
-    console.log('[LM Studio] Config saved:', config);
   });
 
-  // API Keys: Get all API keys (with masked values)
   handle('api-keys:all', async (_event: IpcMainInvokeEvent) => {
     const keys = await getAllApiKeys();
-    // Return masked versions for UI
     const masked: Record<string, { exists: boolean; prefix?: string }> = {};
     for (const [provider, key] of Object.entries(keys)) {
       masked[provider] = {
@@ -2321,9 +2083,7 @@ export function registerIPCHandlers(): void {
     return masked;
   });
 
-  // API Keys: Check if any key exists
   handle('api-keys:has-any', async (_event: IpcMainInvokeEvent) => {
-    // In E2E mock mode, pretend we have API keys
     if (isMockTaskEventsEnabled()) {
       return true;
     }
@@ -2332,34 +2092,28 @@ export function registerIPCHandlers(): void {
     return getOpenAiOauthStatus().connected;
   });
 
-  // Settings: Get debug mode setting
   handle('settings:debug-mode', async (_event: IpcMainInvokeEvent) => {
     return getDebugMode();
   });
 
-  // Settings: Set debug mode setting
   handle('settings:set-debug-mode', async (_event: IpcMainInvokeEvent, enabled: boolean) => {
     if (typeof enabled !== 'boolean') {
       throw new Error('Invalid debug mode flag');
     }
     setDebugMode(enabled);
-    // Broadcast the change to all renderer windows
     for (const win of BrowserWindow.getAllWindows()) {
       win.webContents.send('settings:debug-mode-changed', { enabled });
     }
   });
 
-  // Settings: Get all app settings
   handle('settings:app-settings', async (_event: IpcMainInvokeEvent) => {
     return getAppSettings();
   });
 
-  // Settings: Get OpenAI base URL override
   handle('settings:openai-base-url:get', async (_event: IpcMainInvokeEvent) => {
     return getOpenAiBaseUrl();
   });
 
-  // Settings: Set OpenAI base URL override
   handle('settings:openai-base-url:set', async (_event: IpcMainInvokeEvent, baseUrl: string) => {
     if (typeof baseUrl !== 'string') {
       throw new Error('Invalid base URL');
@@ -2382,36 +2136,28 @@ export function registerIPCHandlers(): void {
       throw new Error('Only http and https URLs are allowed');
     }
 
-    // Store without trailing slashes for consistent downstream URL joining.
     setOpenAiBaseUrl(trimmed.replace(/\/+$/, ''));
   });
 
-  // OpenAI OAuth (ChatGPT) status
   handle('opencode:auth:openai:status', async (_event: IpcMainInvokeEvent) => {
     return getOpenAiOauthStatus();
   });
 
-  // OpenAI OAuth (ChatGPT) login
   handle('opencode:auth:openai:login', async (_event: IpcMainInvokeEvent) => {
     const result = await loginOpenAiWithChatGpt();
     return { ok: true, ...result };
   });
 
-  // Onboarding: Get onboarding complete status
-  // Also checks for existing task history to handle upgrades from pre-onboarding versions
   handle('onboarding:complete', async (_event: IpcMainInvokeEvent) => {
-    // E2E test bypass: skip onboarding when E2E skip auth is enabled
     if (isE2ESkipAuthEnabled()) {
       return true;
     }
 
-    // If onboarding is already marked complete, return true
     if (getOnboardingComplete()) {
       return true;
     }
 
-    // Check if this is an existing user (has task history)
-    // If so, mark onboarding as complete and skip the wizard
+    // Existing users (has task history) skip onboarding wizard
     const tasks = getTasks();
     if (tasks.length > 0) {
       setOnboardingComplete(true);
@@ -2421,13 +2167,10 @@ export function registerIPCHandlers(): void {
     return false;
   });
 
-  // Onboarding: Set onboarding complete status
   handle('onboarding:set-complete', async (_event: IpcMainInvokeEvent, complete: boolean) => {
     setOnboardingComplete(complete);
   });
 
-  // Shell: Open URL in external browser
-  // Only allows http/https URLs for security
   handle('shell:open-external', async (_event: IpcMainInvokeEvent, url: string) => {
     try {
       const parsed = new URL(url);
@@ -2441,21 +2184,17 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  // Log event handler - now just returns ok (no external logging)
   handle(
     'log:event',
     async (_event: IpcMainInvokeEvent, _payload: { level?: string; message?: string; context?: Record<string, unknown> }) => {
-      // No-op: external logging removed
       return { ok: true };
     }
   );
 
-  // Speech-to-Text: Check if ElevenLabs is configured
   handle('speech:is-configured', async (_event: IpcMainInvokeEvent) => {
     return isElevenLabsConfigured();
   });
 
-  // Speech-to-Text: Get configuration status
   handle('speech:get-config', async (_event: IpcMainInvokeEvent) => {
     const apiKey = getApiKey('elevenlabs');
     return {
@@ -2465,24 +2204,20 @@ export function registerIPCHandlers(): void {
     };
   });
 
-  // Speech-to-Text: Validate API key (makes actual API call to ElevenLabs)
   handle('speech:validate', async (_event: IpcMainInvokeEvent, apiKey?: string) => {
     return validateElevenLabsApiKey(apiKey);
   });
 
-  // Speech-to-Text: Transcribe audio (receives audio data from renderer, calls ElevenLabs API)
   handle('speech:transcribe', async (_event: IpcMainInvokeEvent, audioData: ArrayBuffer, mimeType?: string) => {
     console.log('[IPC] speech:transcribe received:', {
       audioDataType: typeof audioData,
       audioDataByteLength: audioData?.byteLength,
       mimeType,
     });
-    // Convert ArrayBuffer to Buffer for the service
     const buffer = Buffer.from(audioData);
     console.log('[IPC] Converted to buffer:', { bufferLength: buffer.length });
     return transcribeAudio(buffer, mimeType);
   });
-  // Provider Settings
   handle('provider-settings:get', async () => {
     return getProviderSettings();
   });
@@ -2515,23 +2250,19 @@ export function registerIPCHandlers(): void {
     return getProviderDebugMode();
   });
 
-  // Logs: Export application logs
   handle('logs:export', async (event: IpcMainInvokeEvent) => {
     const window = BrowserWindow.fromWebContents(event.sender);
     if (!window) throw new Error('No window found');
 
-    // Flush pending logs before export
     const collector = getLogCollector();
     collector.flush();
 
     const logPath = collector.getCurrentLogPath();
     const logDir = collector.getLogDir();
 
-    // Generate default filename with timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const defaultFilename = `accomplish-logs-${timestamp}.txt`;
 
-    // Show save dialog
     const result = await dialog.showSaveDialog(window, {
       title: 'Export Application Logs',
       defaultPath: defaultFilename,
@@ -2547,12 +2278,9 @@ export function registerIPCHandlers(): void {
     }
 
     try {
-      // Check if current log file exists
       if (fs.existsSync(logPath)) {
-        // Copy the log file to the selected location
         fs.copyFileSync(logPath, result.filePath);
       } else {
-        // No logs yet - create empty file with header
         const header = `Accomplish Application Logs\nExported: ${new Date().toISOString()}\nLog Directory: ${logDir}\n\nNo logs recorded yet.\n`;
         fs.writeFileSync(result.filePath, header);
       }
@@ -2564,7 +2292,6 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  // Skills management
   ipcMain.handle('skills:list', async () => {
     return skillsManager.getAll();
   });
@@ -2581,7 +2308,6 @@ export function registerIPCHandlers(): void {
     return skillsManager.getContent(id);
   });
 
-  // File picker dialog for uploading skills
   ipcMain.handle('skills:pick-file', async () => {
     const mainWindow = BrowserWindow.getAllWindows()[0];
     const result = await dialog.showOpenDialog(mainWindow, {
@@ -2632,17 +2358,12 @@ function createMessageId(): string {
   return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-/**
- * Extract base64 screenshots from tool output
- * Returns cleaned text (with images replaced by placeholders) and extracted attachments
- */
 function extractScreenshots(output: string): {
   cleanedText: string;
   attachments: Array<{ type: 'screenshot' | 'json'; data: string; label?: string }>;
 } {
   const attachments: Array<{ type: 'screenshot' | 'json'; data: string; label?: string }> = [];
 
-  // Match data URLs (data:image/png;base64,...)
   const dataUrlRegex = /data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+/g;
   let match;
   while ((match = dataUrlRegex.exec(output)) !== null) {
@@ -2653,12 +2374,9 @@ function extractScreenshots(output: string): {
     });
   }
 
-  // Also check for raw base64 PNG (starts with iVBORw0)
-  // This pattern matches PNG base64 that isn't already a data URL
   const rawBase64Regex = /(?<![;,])(?:^|["\s])?(iVBORw0[A-Za-z0-9+/=]{100,})(?:["\s]|$)/g;
   while ((match = rawBase64Regex.exec(output)) !== null) {
     const base64Data = match[1];
-    // Wrap in data URL if it's valid base64 PNG
     if (base64Data && base64Data.length > 100) {
       attachments.push({
         type: 'screenshot',
@@ -2668,12 +2386,10 @@ function extractScreenshots(output: string): {
     }
   }
 
-  // Clean the text - replace image data with placeholder
   let cleanedText = output
     .replace(dataUrlRegex, '[Screenshot captured]')
     .replace(rawBase64Regex, '[Screenshot captured]');
 
-  // Also clean up common JSON wrappers around screenshots
   cleanedText = cleanedText
     .replace(/"[Screenshot captured]"/g, '"[Screenshot]"')
     .replace(/\[Screenshot captured\]\[Screenshot captured\]/g, '[Screenshot captured]');
@@ -2681,48 +2397,31 @@ function extractScreenshots(output: string): {
   return { cleanedText, attachments };
 }
 
-/**
- * Sanitize tool output to remove technical details that confuse users
- */
 function sanitizeToolOutput(text: string, isError: boolean): string {
   let result = text;
 
-  // Strip any remaining ANSI escape codes
   result = result.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
-  // Also strip any leftover escape sequences that may have been partially matched
   result = result.replace(/\x1B\[2m|\x1B\[22m|\x1B\[0m/g, '');
 
-  // Remove WebSocket URLs
   result = result.replace(/ws:\/\/[^\s\]]+/g, '[connection]');
 
-  // Remove "Call log:" sections and everything after
   result = result.replace(/\s*Call log:[\s\S]*/i, '');
 
-  // Simplify common Playwright/CDP errors for users
   if (isError) {
-    // Timeout errors: extract just the timeout duration
     const timeoutMatch = result.match(/timed? ?out after (\d+)ms/i);
     if (timeoutMatch) {
       const seconds = Math.round(parseInt(timeoutMatch[1]) / 1000);
       return `Timed out after ${seconds}s`;
     }
 
-    // "browserType.connectOverCDP: Protocol error (X): Y" → "Y"
     const protocolMatch = result.match(/Protocol error \([^)]+\):\s*(.+)/i);
     if (protocolMatch) {
       result = protocolMatch[1].trim();
     }
 
-    // "Error executing code: X" → just the meaningful part
     result = result.replace(/^Error executing code:\s*/i, '');
-
-    // Clean up "browserType.connectOverCDP:" prefix
     result = result.replace(/browserType\.connectOverCDP:\s*/i, '');
-
-    // Remove stack traces (lines starting with "at ")
     result = result.replace(/\s+at\s+.+/g, '');
-
-    // Remove error class names like "CodeExecutionTimeoutError:"
     result = result.replace(/\w+Error:\s*/g, '');
   }
 
@@ -2730,9 +2429,6 @@ function sanitizeToolOutput(text: string, isError: boolean): string {
 }
 
 function toTaskMessage(message: OpenCodeMessage): TaskMessage | null {
-  // OpenCode format: step_start, text, tool_call, tool_use, tool_result, step_finish
-
-  // Handle text content
   if (message.type === 'text') {
     if (message.part.text) {
       return {
@@ -2745,7 +2441,6 @@ function toTaskMessage(message: OpenCodeMessage): TaskMessage | null {
     return null;
   }
 
-  // Handle tool calls (legacy format - just shows tool is starting)
   if (message.type === 'tool_call') {
     return {
       id: createMessageId(),
@@ -2757,7 +2452,6 @@ function toTaskMessage(message: OpenCodeMessage): TaskMessage | null {
     };
   }
 
-  // Handle tool_use messages (combined tool call + result)
   if (message.type === 'tool_use') {
     const toolUseMsg = message as import('@accomplish/shared').OpenCodeToolUseMessage;
     const toolName = toolUseMsg.part.tool || 'unknown';
@@ -2765,16 +2459,10 @@ function toTaskMessage(message: OpenCodeMessage): TaskMessage | null {
     const toolOutput = toolUseMsg.part.state?.output || '';
     const status = toolUseMsg.part.state?.status;
 
-    // Only create message for completed/error status (not pending/running)
     if (status === 'completed' || status === 'error') {
-      // Extract screenshots from tool output
       const { cleanedText, attachments } = extractScreenshots(toolOutput);
-
-      // Sanitize output - more aggressive for errors
       const isError = status === 'error';
       const sanitizedText = sanitizeToolOutput(cleanedText, isError);
-
-      // Truncate long outputs for display
       const displayText = sanitizedText.length > 500
         ? sanitizedText.substring(0, 500) + '...'
         : sanitizedText;

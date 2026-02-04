@@ -1,11 +1,4 @@
 #!/usr/bin/env node
-/**
- * ReportThought MCP Server
- *
- * Exposes a `report_thought` tool that subagents use to stream their thoughts
- * to the UI in real-time. Communicates with Electron main process via HTTP.
- */
-
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -29,7 +22,6 @@ const server = new Server(
   { capabilities: { tools: {} } }
 );
 
-// List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
@@ -56,7 +48,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   ],
 }));
 
-// Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
   if (request.params.name !== 'report_thought') {
     return {
@@ -68,7 +59,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   const args = request.params.arguments as unknown as ReportThoughtInput;
   const { content, category } = args;
 
-  // Validate required fields
   if (!content || !category) {
     return {
       content: [{ type: 'text', text: 'Error: content and category are required' }],
@@ -76,10 +66,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
     };
   }
 
-  // Log to stderr for debugging
   console.error(`[report-thought] [${category}] ${content}`);
 
-  // Fire-and-forget POST to thought stream API
   if (THOUGHT_STREAM_TASK_ID) {
     try {
       const response = await fetch(THOUGHT_STREAM_URL, {
@@ -109,7 +97,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   };
 });
 
-// Start the MCP server
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

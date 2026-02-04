@@ -1,13 +1,6 @@
 #!/usr/bin/env node
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/**
- * Dev-Browser MCP Server
- *
- * Exposes browser automation as direct MCP tools, eliminating the need
- * for agents to write scripts. Connects to the dev-browser server on port 9224.
- */
 
-// Early startup logging - this should appear immediately if the script is executed
 console.error('[dev-browser-mcp] Script starting...');
 console.error('[dev-browser-mcp] Node version:', process.version);
 console.error('[dev-browser-mcp] CWD:', process.cwd());
@@ -25,21 +18,14 @@ import { getSnapshotManager, resetSnapshotManager } from './snapshot/index.js';
 
 console.error('[dev-browser-mcp] All imports completed successfully');
 
-// Port can be overridden via environment variable for isolated testing
 const DEV_BROWSER_PORT = parseInt(process.env.DEV_BROWSER_PORT || '9224', 10);
 const DEV_BROWSER_URL = `http://localhost:${DEV_BROWSER_PORT}`;
-
-// Task ID for page name prefixing (supports parallel tasks)
 const TASK_ID = process.env.ACCOMPLISH_TASK_ID || 'default';
 
-/**
- * Translate Playwright errors into AI-friendly messages with actionable guidance.
- * Based on Vercel agent-browser pattern: https://github.com/vercel-labs/agent-browser/blob/main/src/actions.ts
- */
+// Based on Vercel agent-browser pattern: https://github.com/vercel-labs/agent-browser/blob/main/src/actions.ts
 function toAIFriendlyError(error: unknown, selector: string): Error {
   const message = error instanceof Error ? error.message : String(error);
 
-  // Handle strict mode violation (multiple elements match)
   if (message.includes('strict mode violation')) {
     const countMatch = message.match(/resolved to (\d+) elements/);
     const count = countMatch ? countMatch[1] : 'multiple';
@@ -49,7 +35,6 @@ function toAIFriendlyError(error: unknown, selector: string): Error {
     );
   }
 
-  // Handle element not interactable (blocked by overlay)
   if (message.includes('intercepts pointer events') || message.includes('element is not visible')) {
     return new Error(
       `Element "${selector}" is blocked by another element (likely a modal, overlay, or cookie banner). ` +
@@ -58,7 +43,6 @@ function toAIFriendlyError(error: unknown, selector: string): Error {
     );
   }
 
-  // Handle element not visible
   if (message.includes('not visible') && !message.includes('Timeout')) {
     return new Error(
       `Element "${selector}" exists but is not visible. ` +
@@ -67,7 +51,6 @@ function toAIFriendlyError(error: unknown, selector: string): Error {
     );
   }
 
-  // Handle element not found / timeout waiting for element
   if (message.includes('waiting for') && (message.includes('to be visible') || message.includes('Timeout'))) {
     return new Error(
       `Element "${selector}" not found or not visible within timeout. ` +
@@ -75,7 +58,6 @@ function toAIFriendlyError(error: unknown, selector: string): Error {
     );
   }
 
-  // Handle page/target closed
   if (message.includes('Target closed') || message.includes('Session closed') || message.includes('Page closed')) {
     return new Error(
       `The page or tab was closed unexpectedly. ` +
@@ -83,7 +65,6 @@ function toAIFriendlyError(error: unknown, selector: string): Error {
     );
   }
 
-  // Handle navigation errors
   if (message.includes('net::ERR_') || message.includes('Navigation failed')) {
     return new Error(
       `Navigation failed: ${message}. ` +
@@ -91,39 +72,27 @@ function toAIFriendlyError(error: unknown, selector: string): Error {
     );
   }
 
-  // Default: return original error with suggestion
   return new Error(
     `${message}. ` +
     `Try taking a new browser_snapshot() to see the current page state before retrying.`
   );
 }
 
-// Browser connection state
 let browser: Browser | null = null;
 let connectingPromise: Promise<Browser> | null = null;
-// Cached server mode (fetched once at connection time)
 let cachedServerMode: string | null = null;
-// Active page override for tab switching (dev-browser server doesn't track this)
 let activePageOverride: Page | null = null;
-// Track the page that currently has the active glow effect
 let glowingPage: Page | null = null;
-
-// Track pages with navigation listeners to avoid duplicates
 const pagesWithGlowListeners = new WeakSet<Page>();
 
-/**
- * Inject the glow CSS/DOM into the page
- */
 async function injectGlowElements(page: Page): Promise<void> {
   if (page.isClosed()) return;
 
   try {
     await page.evaluate(() => {
-    // Remove existing glow if any
     document.getElementById('__dev-browser-active-glow')?.remove();
     document.getElementById('__dev-browser-active-glow-style')?.remove();
 
-    // Create style element for keyframes - cycles through colors with enhanced visibility
     const style = document.createElement('style');
     style.id = '__dev-browser-active-glow-style';
     style.textContent = `
@@ -160,7 +129,6 @@ async function injectGlowElements(page: Page): Promise<void> {
     `;
     document.head.appendChild(style);
 
-    // Create enhanced glow overlay - thicker border, stronger effect
     const overlay = document.createElement('div');
     overlay.id = '__dev-browser-active-glow';
     overlay.style.cssText = `
@@ -183,26 +151,19 @@ async function injectGlowElements(page: Page): Promise<void> {
   }
 }
 
-/**
- * Inject active tab glow effect into a page (with navigation listener)
- */
 async function injectActiveTabGlow(page: Page): Promise<void> {
-  // Remove glow from previous page if different
   if (glowingPage && glowingPage !== page && !glowingPage.isClosed()) {
     await removeActiveTabGlow(glowingPage);
   }
 
   glowingPage = page;
 
-  // Inject glow elements now
   await injectGlowElements(page);
 
-  // Set up listener to re-inject glow after navigation (only once per page)
   if (!pagesWithGlowListeners.has(page)) {
     pagesWithGlowListeners.add(page);
 
     page.on('load', async () => {
-      // Re-inject glow if this page is still the active glowing page
       if (glowingPage === page && !page.isClosed()) {
         console.error('[dev-browser-mcp] Page navigated, re-injecting glow...');
         await injectGlowElements(page);
@@ -211,9 +172,6 @@ async function injectActiveTabGlow(page: Page): Promise<void> {
   }
 }
 
-/**
- * Remove active tab glow effect from a page
- */
 async function removeActiveTabGlow(page: Page): Promise<void> {
   if (page.isClosed()) {
     if (glowingPage === page) {
@@ -236,9 +194,6 @@ async function removeActiveTabGlow(page: Page): Promise<void> {
   }
 }
 
-/**
- * Fetch with retry for handling concurrent connection issues
- */
 async function fetchWithRetry(
   url: string,
   options?: RequestInit,
@@ -266,9 +221,6 @@ async function fetchWithRetry(
   throw lastError || new Error('fetchWithRetry failed');
 }
 
-/**
- * Ensure browser is connected and server mode is cached
- */
 async function ensureConnected(): Promise<Browser> {
   if (browser && browser.isConnected()) {
     return browser;
@@ -285,15 +237,12 @@ async function ensureConnected(): Promise<Browser> {
         throw new Error(`Server returned ${res.status}: ${await res.text()}`);
       }
       const info = await res.json() as { wsEndpoint: string; mode?: string };
-      // Cache the server mode once at connection time
       cachedServerMode = info.mode || 'normal';
       browser = await chromium.connectOverCDP(info.wsEndpoint);
 
-      // Set up listener for new pages - auto-inject glow when tabs open
       for (const context of browser.contexts()) {
         context.on('page', async (page) => {
           console.error('[dev-browser-mcp] New page detected, injecting glow immediately...');
-          // Small delay to ensure page has a body element, then inject
           setTimeout(async () => {
             try {
               if (!page.isClosed()) {
@@ -306,7 +255,6 @@ async function ensureConnected(): Promise<Browser> {
           }, 100);
         });
 
-        // Also inject glow on existing pages
         for (const page of context.pages()) {
           if (!page.isClosed() && !glowingPage) {
             try {
@@ -327,17 +275,11 @@ async function ensureConnected(): Promise<Browser> {
   return connectingPromise;
 }
 
-/**
- * Get full page name with task prefix
- */
 function getFullPageName(pageName?: string): string {
   const name = pageName || 'main';
   return `${TASK_ID}-${name}`;
 }
 
-/**
- * Find page by CDP targetId
- */
 async function findPageByTargetId(b: Browser, targetId: string): Promise<Page | null> {
   for (const context of b.contexts()) {
     for (const page of context.pages()) {
@@ -377,16 +319,11 @@ interface GetPageResponse {
   url?: string;
 }
 
-/**
- * Get or create a page by name
- */
 async function getPage(pageName?: string): Promise<Page> {
-  // If we have an active page override from tab switching, use it
   if (activePageOverride) {
     if (!activePageOverride.isClosed()) {
       return activePageOverride;
     }
-    // Page closed, clear override
     activePageOverride = null;
   }
 
@@ -407,7 +344,6 @@ async function getPage(pageName?: string): Promise<Page> {
 
   const b = await ensureConnected();
 
-  // Use cached server mode (fetched once at connection time)
   const isExtensionMode = cachedServerMode === 'extension';
 
   if (isExtensionMode) {
@@ -435,21 +371,14 @@ async function getPage(pageName?: string): Promise<Page> {
   return page;
 }
 
-/**
- * Wait for page to finish loading using Playwright's built-in function
- */
 async function waitForPageLoad(page: Page, timeout = 3000): Promise<void> {
   try {
-    // Use Playwright's optimized wait which monitors network activity
     await page.waitForLoadState('domcontentloaded', { timeout });
   } catch {
-    // Ignore timeout errors - page may be slow but still usable
+    // Page may be slow but still usable
   }
 }
 
-/**
- * Cached snapshot script (module-level constant to avoid re-creating the string)
- */
 const SNAPSHOT_SCRIPT = `
 (function() {
   if (window.__devBrowser_getAISnapshot) return;
@@ -1382,7 +1311,6 @@ const SNAPSHOT_SCRIPT = `
     return element;
   }
 
-  // Expose main functions
   window.__devBrowser_getAISnapshot = getAISnapshot;
   window.__devBrowser_selectSnapshotRef = selectSnapshotRef;
 })();
@@ -1396,41 +1324,29 @@ interface SnapshotOptions {
   fullSnapshot?: boolean;
 }
 
-/**
- * Default snapshot options for token optimization.
- * Used by browser_script and other internal snapshot calls.
- */
 const DEFAULT_SNAPSHOT_OPTIONS: SnapshotOptions = {
   interactiveOnly: true,
   maxElements: 300,
   maxTokens: 8000,
 };
 
-/**
- * Get a snapshot with session history header and diff support.
- * Used by browser_script to include Tier 3 context management.
- * Behaves like browser_snapshot - returns diff when on same page with few changes.
- */
 async function getSnapshotWithHistory(page: Page, options: SnapshotOptions = {}): Promise<string> {
   const rawSnapshot = await getAISnapshot(page, options);
   const url = page.url();
   const title = await page.title();
 
-  // Process through snapshot manager for diffing (same as browser_snapshot)
   const manager = getSnapshotManager();
   const result = manager.processSnapshot(rawSnapshot, url, title, {
     fullSnapshot: options.fullSnapshot ?? false,
     interactiveOnly: options.interactiveOnly ?? true,
   });
 
-  // Build output with session history
   let output = '';
   const sessionSummary = manager.getSessionSummary();
   if (sessionSummary.history) {
     output += `# ${sessionSummary.history}\n\n`;
   }
 
-  // Use diff result when available, otherwise full snapshot
   if (result.type === 'diff') {
     output += `# Changes Since Last Snapshot\n${result.content}`;
   } else {
@@ -1440,26 +1356,19 @@ async function getSnapshotWithHistory(page: Page, options: SnapshotOptions = {})
   return output;
 }
 
-/**
- * Get ARIA snapshot for a page
- * Optimized: checks if script is already injected before sending
- */
 async function getAISnapshot(page: Page, options: SnapshotOptions = {}): Promise<string> {
-  // Check if script is already injected to avoid sending large script on every call
   const isInjected = await page.evaluate(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return !!(globalThis as any).__devBrowser_getAISnapshot;
   });
 
   if (!isInjected) {
-    // Inject the script only once per page
     await page.evaluate((script: string) => {
       // eslint-disable-next-line no-eval
       eval(script);
     }, SNAPSHOT_SCRIPT);
   }
 
-  // Now call the snapshot function with options
   const snapshot = await page.evaluate((opts) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (globalThis as any).__devBrowser_getAISnapshot(opts);
@@ -1472,9 +1381,6 @@ async function getAISnapshot(page: Page, options: SnapshotOptions = {}): Promise
   return snapshot;
 }
 
-/**
- * Get element by ref from the last snapshot
- */
 async function selectSnapshotRef(page: Page, ref: string): Promise<ElementHandle | null> {
   const elementHandle = await page.evaluateHandle((refId: string) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1501,7 +1407,6 @@ async function selectSnapshotRef(page: Page, ref: string): Promise<ElementHandle
   return element;
 }
 
-// Tool input types
 interface BrowserNavigateInput {
   url: string;
   page_name?: string;
@@ -1575,35 +1480,30 @@ interface BrowserSequenceInput {
   page_name?: string;
 }
 
-/**
- * Script action for browser_script tool.
- * These actions find elements at runtime, enabling single-roundtrip workflows.
- */
 interface ScriptAction {
   action:
-    | 'goto'           // Navigate to URL
-    | 'waitForLoad'    // Wait for page load
-    | 'waitForSelector' // Wait for element to appear
-    | 'waitForNavigation' // Wait for navigation to complete
-    | 'findAndFill'    // Find element by selector, fill if exists
-    | 'findAndClick'   // Find element by selector, click if exists
-    | 'fillByRef'      // Fill using ref from previous snapshot
-    | 'clickByRef'     // Click using ref from previous snapshot
-    | 'snapshot'       // Get ARIA snapshot
-    | 'screenshot'     // Take screenshot
-    | 'keyboard'       // Press key or type text
-    | 'evaluate';      // Run JavaScript
-  // Parameters for different actions
-  url?: string;           // For goto
-  selector?: string;      // For waitForSelector, findAndFill, findAndClick
-  ref?: string;           // For fillByRef, clickByRef
-  text?: string;          // For findAndFill, fillByRef, keyboard (type mode)
-  key?: string;           // For keyboard (press mode)
-  pressEnter?: boolean;   // For findAndFill, fillByRef
-  timeout?: number;       // For waitForSelector, waitForNavigation
-  fullPage?: boolean;     // For screenshot
-  code?: string;          // For evaluate
-  skipIfNotFound?: boolean; // For findAndFill, findAndClick - don't fail if element missing
+    | 'goto'
+    | 'waitForLoad'
+    | 'waitForSelector'
+    | 'waitForNavigation'
+    | 'findAndFill'
+    | 'findAndClick'
+    | 'fillByRef'
+    | 'clickByRef'
+    | 'snapshot'
+    | 'screenshot'
+    | 'keyboard'
+    | 'evaluate';
+  url?: string;
+  selector?: string;
+  ref?: string;
+  text?: string;
+  key?: string;
+  pressEnter?: boolean;
+  timeout?: number;
+  fullPage?: boolean;
+  code?: string;
+  skipIfNotFound?: boolean;
 }
 
 interface BrowserScriptInput {
@@ -2497,7 +2397,6 @@ Returns JSON only (no snapshots/screenshots) to minimize token usage. Max 20 URL
   ],
 }));
 
-// Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
   const { name, arguments: args } = request.params;
 
@@ -2508,19 +2407,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
       case 'browser_navigate': {
         const { url, page_name } = args as BrowserNavigateInput;
 
-        // Add protocol if missing
         let fullUrl = url;
         if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
           fullUrl = 'https://' + fullUrl;
         }
 
-        // Reset snapshot state - we're navigating to a new page
         resetSnapshotManager();
 
         const page = await getPage(page_name);
         await page.goto(fullUrl);
         await waitForPageLoad(page);
-        await injectActiveTabGlow(page);  // Add visual indicator for active tab
+        await injectActiveTabGlow(page);
 
         const title = await page.title();
         const currentUrl = page.url();
@@ -2546,14 +2443,10 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         const { page_name, interactive_only, full_snapshot, max_elements, viewport_only, include_history, max_tokens } = args as BrowserSnapshotInput;
         const page = await getPage(page_name);
 
-        // Parse and validate max_elements (1-1000, default 300)
-        // If full_snapshot is true, use Infinity to bypass element limits
         const validatedMaxElements = full_snapshot
           ? Infinity
           : Math.min(Math.max(max_elements ?? 300, 1), 1000);
 
-        // Parse and validate max_tokens (1000-50000, default 8000)
-        // If full_snapshot is true, use Infinity to bypass token limits
         const validatedMaxTokens = full_snapshot
           ? Infinity
           : Math.min(Math.max(max_tokens ?? 8000, 1000), 50000);
@@ -2570,7 +2463,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         const url = page.url();
         const title = await page.title();
 
-        // Detect canvas-based apps that need special handling
         const canvasApps = [
           { pattern: /docs\.google\.com/, name: 'Google Docs' },
           { pattern: /sheets\.google\.com/, name: 'Google Sheets' },
@@ -2581,17 +2473,14 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         ];
         const detectedApp = canvasApps.find(app => app.pattern.test(url));
 
-        // Process through snapshot manager for diffing
         const manager = getSnapshotManager();
         const result = manager.processSnapshot(rawSnapshot, url, title, {
           fullSnapshot: full_snapshot,
           interactiveOnly: interactive_only ?? true,
         });
 
-        // Build output with optional session history
         let output = '';
 
-        // Include session history if requested (default: true)
         const includeHistory = include_history !== false;
         if (includeHistory) {
           const sessionSummary = manager.getSessionSummary();
@@ -2640,7 +2529,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         if (button) clickOptions.button = button;
         if (click_count) clickOptions.clickCount = click_count;
 
-        // Build description suffix for button/click_count
         const descParts: string[] = [];
         if (click_count === 2) descParts.push('double-click');
         else if (click_count === 3) descParts.push('triple-click');
@@ -2650,7 +2538,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         const clickDesc = descParts.length > 0 ? ` (${descParts.join(', ')})` : '';
 
         try {
-          // Position-based click (e.g., center for canvas apps)
           if (position === 'center' || position === 'center-lower') {
             const viewport = page.viewportSize();
             const clickX = (viewport?.width || 1280) / 2;
@@ -2663,7 +2550,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             return { content: [{ type: 'text' as const, text: `Clicked viewport ${positionName} (${Math.round(clickX)}, ${Math.round(clickY)})${clickDesc}` }] };
           }
 
-          // Explicit x/y coordinates
           if (x !== undefined && y !== undefined) {
             await page.mouse.click(x, y, clickOptions);
             await waitForPageLoad(page);
@@ -2729,7 +2615,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             };
           }
 
-          // Clear existing text and type new text
           await element.click();
           await element.fill(text);
 
@@ -2780,7 +2665,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         const { script, page_name } = args as BrowserEvaluateInput;
         const page = await getPage(page_name);
 
-        // Wrap script to handle return values
         const wrappedScript = `(async () => { ${script} })()`;
         const result = await page.evaluate(wrappedScript);
 
@@ -2799,7 +2683,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           const res = await fetchWithRetry(`${DEV_BROWSER_URL}/pages`);
           const data = await res.json() as { pages: string[] };
 
-          // Filter to show only pages for this task
           const taskPrefix = `${TASK_ID}-`;
           const taskPages = data.pages
             .filter(name => name.startsWith(taskPrefix))
@@ -2950,7 +2833,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           } catch (err) {
             const errMsg = err instanceof Error ? err.message : String(err);
             results.push(`${stepNum}. FAILED: ${errMsg}`);
-            // Stop sequence on error
             return {
               content: [{ type: 'text', text: `Sequence stopped at step ${stepNum}:\n${results.join('\n')}` }],
               isError: true,
@@ -3001,9 +2883,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
               }
 
               case 'waitForNavigation': {
-                await page.waitForNavigation({ timeout: step.timeout || 10000 }).catch(() => {
-                  // Ignore timeout - navigation may have already completed
-                });
+                await page.waitForNavigation({ timeout: step.timeout || 10000 }).catch(() => {});
                 results.push(`${stepNum}. Navigation completed`);
                 break;
               }
@@ -3127,15 +3007,12 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             const errMsg = err instanceof Error ? err.message : String(err);
             results.push(`${stepNum}. FAILED: ${errMsg}`);
 
-            // Try to capture page state on failure for debugging (with session history)
             try {
               snapshotResult = await getSnapshotWithHistory(page, DEFAULT_SNAPSHOT_OPTIONS);
               results.push(`→ Captured page state at failure`);
             } catch {
-              // Ignore - page might be in bad state
             }
 
-            // Build response with error info
             const content: CallToolResult['content'] = [
               { type: 'text', text: `Script stopped at step ${stepNum}:\n${results.join('\n')}` },
             ];
@@ -3149,20 +3026,16 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           }
         }
 
-        // Always get final snapshot for agent feedback (unless one was just taken)
         const lastAction = actions[actions.length - 1];
         if (lastAction?.action !== 'snapshot') {
           try {
-            // Wait for page to stabilize before capturing final state
             await waitForPageLoad(page, 2000);
             snapshotResult = await getSnapshotWithHistory(page, DEFAULT_SNAPSHOT_OPTIONS);
             results.push(`→ Auto-captured final page state`);
           } catch {
-            // Ignore snapshot errors - page might be navigating
           }
         }
 
-        // Build successful response
         const content: CallToolResult['content'] = [
           { type: 'text', text: `Script completed (${actions.length} actions):\n${results.join('\n')}` },
         ];
@@ -3179,7 +3052,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         const { direction, amount, ref, selector, position, page_name } = args as BrowserScrollInput;
         const page = await getPage(page_name);
 
-        // Scroll element into view
         if (ref) {
           const element = await selectSnapshotRef(page, ref);
           if (!element) {
@@ -3189,7 +3061,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             };
           }
           await element.scrollIntoViewIfNeeded();
-          // Reset snapshot state after scroll - content likely changed
           resetSnapshotManager();
           return {
             content: [{ type: 'text', text: `Scrolled [ref=${ref}] into view` }],
@@ -3205,25 +3076,21 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             };
           }
           await element.scrollIntoViewIfNeeded();
-          // Reset snapshot state after scroll - content likely changed
           resetSnapshotManager();
           return {
             content: [{ type: 'text', text: `Scrolled "${selector}" into view` }],
           };
         }
 
-        // Scroll to position
         if (position) {
           if (position === 'top') {
             await page.evaluate(() => window.scrollTo(0, 0));
-            // Reset snapshot state after scroll - content likely changed
             resetSnapshotManager();
             return {
               content: [{ type: 'text', text: 'Scrolled to top of page' }],
             };
           } else if (position === 'bottom') {
             await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-            // Reset snapshot state after scroll - content likely changed
             resetSnapshotManager();
             return {
               content: [{ type: 'text', text: 'Scrolled to bottom of page' }],
@@ -3231,7 +3098,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           }
         }
 
-        // Scroll by direction and amount
         if (direction) {
           const scrollAmount = amount || 500;
           let deltaX = 0;
@@ -3253,7 +3119,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           }
 
           await page.mouse.wheel(deltaX, deltaY);
-          // Reset snapshot state after scroll - content likely changed
           resetSnapshotManager();
           return {
             content: [{ type: 'text', text: `Scrolled ${direction} by ${scrollAmount}px` }],
@@ -3308,7 +3173,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         const { ref, selector, value, label, index, page_name } = args as BrowserSelectInput;
         const page = await getPage(page_name);
 
-        // Build selection option
         let selectOption: { value?: string; label?: string; index?: number } | undefined;
         if (value !== undefined) {
           selectOption = { value };
@@ -3334,7 +3198,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
               isError: true,
             };
           }
-          // Use evaluate to select on the element directly
           await element.selectOption(selectOption);
           const selectedBy = value ? `value="${value}"` : label ? `label="${label}"` : `index=${index}`;
           return {
@@ -3487,7 +3350,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         } = args as BrowserDragInput;
         const page = await getPage(page_name);
 
-        // Determine source position
         let sourcePos: { x: number; y: number } | null = null;
 
         if (source_x !== undefined && source_y !== undefined) {
@@ -3533,7 +3395,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           };
         }
 
-        // Determine target position
         let targetPos: { x: number; y: number } | null = null;
 
         if (target_x !== undefined && target_y !== undefined) {
@@ -3579,7 +3440,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           };
         }
 
-        // Perform drag and drop using mouse events
         await page.mouse.move(sourcePos.x, sourcePos.y);
         await page.mouse.down();
         await page.mouse.move(targetPos.x, targetPos.y, { steps: 10 });
@@ -3624,7 +3484,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           };
         }
 
-        // Try to get input value first, then fall back to text content
         const value = await element.evaluate((el) => {
           if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
             return { type: 'value', text: el.value };
@@ -3807,15 +3666,11 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             };
           }
 
-          // Store the frame reference for subsequent operations
-          // Note: In Playwright, we work with frames directly, not by "entering" them
-          // The frame URL is returned so the agent can use it for context
           const frameUrl = frame.url();
           return {
             content: [{ type: 'text', text: `Entered iframe. Frame URL: ${frameUrl}\nNote: Use browser_evaluate with frame-aware selectors, or take a snapshot to see iframe content.` }],
           };
         } else if (action === 'exit') {
-          // In Playwright, there's no explicit "exit" - you just work with the main page again
           return {
             content: [{ type: 'text', text: 'Exited iframe. Now working with main page.' }],
           };
@@ -3859,8 +3714,8 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           }
           const targetPage = allPages[index]!;
           await targetPage.bringToFront();
-          activePageOverride = targetPage;  // Set the override so getPage() returns this tab
-          await injectActiveTabGlow(targetPage);  // Add visual indicator for active tab
+          activePageOverride = targetPage;
+          await injectActiveTabGlow(targetPage);
           return {
             content: [{ type: 'text', text: `Switched to tab ${index}: ${targetPage.url()}\n\nNow use browser_snapshot() to see the content of this tab.` }],
           };
@@ -3882,7 +3737,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           }
           const targetPage = allPages[index]!;
           const closedUrl = targetPage.url();
-          // Clear override if closing the active tab
           if (activePageOverride === targetPage) {
             activePageOverride = null;
           }
@@ -3907,8 +3761,8 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             await newPage.waitForLoadState('domcontentloaded');
             const allPages = context.pages();
             const newIndex = allPages.indexOf(newPage);
-            activePageOverride = newPage;  // Set the new tab as active
-            await injectActiveTabGlow(newPage);  // Add visual indicator for new tab
+            activePageOverride = newPage;
+            await injectActiveTabGlow(newPage);
             return {
               content: [{ type: 'text', text: `New tab opened at index ${newIndex}: ${newPage.url()}` }],
             };
@@ -3929,18 +3783,15 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       case 'browser_canvas_type': {
         const { text, position, page_name } = args as BrowserCanvasTypeInput;
         const page = await getPage(page_name);
-        const jumpToStart = position !== 'current'; // Default to 'start'
+        const jumpToStart = position !== 'current';
 
-        // Step 1: Click in the document area (center-lower to avoid overlays)
         const viewport = page.viewportSize();
         const clickX = (viewport?.width || 1280) / 2;
         const clickY = (viewport?.height || 720) * 2 / 3;
         await page.mouse.click(clickX, clickY);
 
-        // Small delay to ensure focus
         await page.waitForTimeout(100);
 
-        // Step 2: Jump to document start if requested
         if (jumpToStart) {
           const isMac = process.platform === 'darwin';
           const modifier = isMac ? 'Meta' : 'Control';
@@ -3948,7 +3799,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           await page.waitForTimeout(50);
         }
 
-        // Step 3: Type the text
         await page.keyboard.type(text);
 
         const positionDesc = jumpToStart ? 'at document start' : 'at current position';
@@ -3982,7 +3832,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           page_name?: string;
         };
 
-        // Validate inputs
         if (!urls || urls.length === 0) {
           return {
             content: [{ type: 'text', text: 'Error: urls array is required and must not be empty' }],
@@ -4002,8 +3851,8 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           };
         }
 
-        const BATCH_TIMEOUT_MS = 120_000; // 2-minute aggregate timeout for entire batch
-        const MAX_RESULT_SIZE_BYTES = 1_048_576; // 1MB per result
+        const BATCH_TIMEOUT_MS = 120_000;
+        const MAX_RESULT_SIZE_BYTES = 1_048_576;
 
         const page = await getPage(page_name);
         const batchResults: Array<{
@@ -4016,7 +3865,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         const batchStart = Date.now();
 
         for (const url of urls) {
-          // Check aggregate timeout
           if (Date.now() - batchStart > BATCH_TIMEOUT_MS) {
             batchResults.push({ url, status: 'failed', error: 'Batch timeout exceeded (2 min limit)' });
             continue;
@@ -4031,24 +3879,17 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           const effectiveTimeout = Math.min(30000, remainingTime);
 
           try {
-            // Navigate to the URL
             await page.goto(fullUrl, { waitUntil: 'domcontentloaded', timeout: effectiveTimeout });
 
-            // Wait for specific selector if provided
             if (waitForSelector) {
-              await page.waitForSelector(waitForSelector, { timeout: Math.min(10000, remainingTime) }).catch(() => {
-                // Continue even if selector not found — extractScript may still work
-              });
+              await page.waitForSelector(waitForSelector, { timeout: Math.min(10000, remainingTime) }).catch(() => {});
             }
 
-            // Run extraction script
             const data = await page.evaluate((script: string) => {
-              // Wrap in function body so 'return' works
               const fn = new Function(script);
               return fn();
             }, extractScript);
 
-            // Guard against oversized results
             const serialized = JSON.stringify(data);
             if (serialized.length > MAX_RESULT_SIZE_BYTES) {
               batchResults.push({
@@ -4066,7 +3907,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           }
         }
 
-        // Reset snapshot manager since we navigated through multiple pages
         resetSnapshotManager();
 
         const succeeded = batchResults.filter(r => r.status === 'success').length;
@@ -4101,7 +3941,6 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
   }
 });
 
-// Start the MCP server
 async function main() {
   console.error('[dev-browser-mcp] main() called, creating transport...');
   const transport = new StdioServerTransport();
@@ -4110,7 +3949,6 @@ async function main() {
   console.error('[dev-browser-mcp] Server connected successfully!');
   console.error('[dev-browser-mcp] MCP Server ready and listening for tool calls');
 
-  // Connect to browser immediately to set up page listeners for auto-glow
   console.error('[dev-browser-mcp] Connecting to browser for auto-glow setup...');
   try {
     await ensureConnected();

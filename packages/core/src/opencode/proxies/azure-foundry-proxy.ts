@@ -3,7 +3,7 @@ import https from 'https';
 import { URL } from 'url';
 
 const AZURE_FOUNDRY_PROXY_PORT = 9228;
-const MAX_REQUEST_SIZE = 10 * 1024 * 1024; // 10MB limit
+const MAX_REQUEST_SIZE = 10 * 1024 * 1024;
 
 let server: http.Server | null = null;
 let targetBaseUrl: string | null = null;
@@ -14,17 +14,12 @@ export interface AzureFoundryProxyInfo {
   port: number;
 }
 
-/**
- * Validate and normalize a base URL.
- * @throws Error if URL is invalid
- */
 function normalizeBaseUrl(url: string): string {
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
       throw new Error(`Invalid protocol: ${parsed.protocol}. Only http and https are supported.`);
     }
-    // Remove trailing slash
     return parsed.origin + parsed.pathname.replace(/\/$/, '');
   } catch (error) {
     if (error instanceof TypeError) {
@@ -44,8 +39,8 @@ function shouldTransformBody(contentType: string | undefined): boolean {
 
 /**
  * Transform request body for Azure AI Foundry compatibility.
- * - Strips 'reasoning_effort' parameter (not supported by Azure)
- * - Converts 'max_tokens' to 'max_completion_tokens' (required by newer models like gpt-5.2, o1, o3)
+ * - Strips 'reasoning_effort' (not supported by Azure)
+ * - Converts 'max_tokens' to 'max_completion_tokens' (required by gpt-5.2, o1, o3)
  */
 export function transformRequestBody(body: Buffer): Buffer {
   const text = body.toString('utf8');
@@ -53,16 +48,13 @@ export function transformRequestBody(body: Buffer): Buffer {
     const parsed = JSON.parse(text) as Record<string, unknown>;
     let modified = false;
 
-    // Strip reasoning_effort (Azure doesn't support it)
     if ('reasoning_effort' in parsed) {
       console.log('[Azure Foundry Proxy] Stripping unsupported reasoning_effort parameter');
       delete parsed.reasoning_effort;
       modified = true;
     }
 
-    // Convert max_tokens to max_completion_tokens (required by gpt-5.2, o1, o3, etc.)
     if ('max_tokens' in parsed) {
-      // Only convert if max_completion_tokens isn't already set
       if (!('max_completion_tokens' in parsed)) {
         console.log('[Azure Foundry Proxy] Converting max_tokens to max_completion_tokens');
         parsed.max_completion_tokens = parsed.max_tokens;
@@ -75,29 +67,20 @@ export function transformRequestBody(body: Buffer): Buffer {
       return Buffer.from(JSON.stringify(parsed), 'utf8');
     }
   } catch {
-    // Not valid JSON, return as-is
     return body;
   }
   return body;
 }
 
-/**
- * Validate request path - only allow OpenAI-compatible API paths
- */
 function isValidRequestPath(path: string): boolean {
-  // Allow health check
   if (path === '/health') return true;
-  // Allow Azure OpenAI paths (e.g., /openai/deployments/...)
   if (path.startsWith('/openai/')) return true;
-  // Allow standard OpenAI SDK paths (e.g., /chat/completions, /completions, /embeddings)
   if (path.startsWith('/chat/') || path.startsWith('/completions') || path.startsWith('/embeddings')) return true;
-  // Allow models endpoint
   if (path === '/models' || path.startsWith('/models/')) return true;
   return false;
 }
 
 function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
-  // Health check endpoint
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', target: targetBaseUrl, port: AZURE_FOUNDRY_PROXY_PORT }));
@@ -115,7 +98,6 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
 
   const url = new URL(req.url || '/', 'http://localhost');
 
-  // Validate request path for security
   if (!isValidRequestPath(url.pathname)) {
     console.warn(`[Azure Foundry Proxy] Rejected invalid path: ${url.pathname}`);
     res.writeHead(403, { 'Content-Type': 'application/json' });
@@ -201,12 +183,6 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
   });
 }
 
-/**
- * Start or reuse the Azure Foundry proxy server.
- * The proxy strips unsupported parameters (like reasoning_effort) before forwarding to Azure.
- *
- * @throws Error if the server cannot start (e.g., port in use by another application)
- */
 export async function ensureAzureFoundryProxy(baseURL: string): Promise<AzureFoundryProxyInfo> {
   targetBaseUrl = normalizeBaseUrl(baseURL);
 
@@ -246,10 +222,6 @@ export async function ensureAzureFoundryProxy(baseURL: string): Promise<AzureFou
   };
 }
 
-/**
- * Stop the Azure Foundry proxy server and release resources.
- * Should be called on app shutdown.
- */
 export async function stopAzureFoundryProxy(): Promise<void> {
   if (!server) {
     return;
@@ -279,9 +251,6 @@ export async function stopAzureFoundryProxy(): Promise<void> {
   });
 }
 
-/**
- * Check if the proxy server is currently running.
- */
 export function isAzureFoundryProxyRunning(): boolean {
   return server !== null && server.listening;
 }

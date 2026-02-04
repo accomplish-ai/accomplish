@@ -1,22 +1,11 @@
-/**
- * Browser detection utilities
- *
- * Platform-independent functions to detect installed browsers
- * (System Chrome and Playwright Chromium).
- */
-
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-/**
- * Check if system Chrome is installed
- */
 export function isSystemChromeInstalled(): boolean {
   if (process.platform === 'darwin') {
     return fs.existsSync('/Applications/Google Chrome.app');
   } else if (process.platform === 'win32') {
-    // Check common Windows Chrome locations
     const programFiles = process.env['PROGRAMFILES'] || 'C:\\Program Files';
     const programFilesX86 = process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)';
     return (
@@ -24,13 +13,9 @@ export function isSystemChromeInstalled(): boolean {
       fs.existsSync(path.join(programFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'))
     );
   }
-  // Linux - check common paths
   return fs.existsSync('/usr/bin/google-chrome') || fs.existsSync('/usr/bin/chromium-browser');
 }
 
-/**
- * Check if Playwright Chromium is installed
- */
 export function isPlaywrightInstalled(): boolean {
   const homeDir = os.homedir();
   const possiblePaths = [
@@ -57,9 +42,6 @@ export function isPlaywrightInstalled(): boolean {
   return false;
 }
 
-/**
- * Check if any browser is available (Chrome or Playwright)
- */
 export function hasBrowserAvailable(): boolean {
   return isSystemChromeInstalled() || isPlaywrightInstalled();
 }

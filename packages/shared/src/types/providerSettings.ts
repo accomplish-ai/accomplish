@@ -1,5 +1,3 @@
-// packages/shared/src/types/providerSettings.ts
-
 export type ProviderId =
   | 'anthropic'
   | 'openai'
@@ -22,9 +20,9 @@ export interface ProviderMeta {
   id: ProviderId;
   name: string;
   category: ProviderCategory;
-  label: string; // "Service" or "Local Models"
-  logoKey: string; // For icon lookup
-  helpUrl?: string; // "How can I find it?" link
+  label: string;
+  logoKey: string;
+  helpUrl?: string;
 }
 
 export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
@@ -95,7 +93,7 @@ export interface AzureFoundryCredentials {
   authMethod: 'api-key' | 'entra-id';
   endpoint: string;
   deploymentName: string;
-  keyPrefix?: string; // Only for api-key auth
+  keyPrefix?: string;
 }
 
 export interface OAuthCredentials {
@@ -114,10 +112,8 @@ export type ProviderCredentials =
   | LMStudioCredentials
   | OAuthCredentials;
 
-/** Tool support status for a model */
 export type ToolSupportStatus = 'supported' | 'unsupported' | 'unknown';
 
-/** Model with tool support metadata */
 export interface ModelWithToolSupport {
   id: string;
   name: string;
@@ -130,7 +126,7 @@ export interface ConnectedProvider {
   selectedModelId: string | null;
   credentials: ProviderCredentials;
   lastConnectedAt: string;
-  availableModels?: Array<{ id: string; name: string; toolSupport?: ToolSupportStatus }>; // For dynamic providers
+  availableModels?: Array<{ id: string; name: string; toolSupport?: ToolSupportStatus }>;
 }
 
 export interface ProviderSettings {
@@ -154,10 +150,6 @@ export function getActiveProvider(settings: ProviderSettings | null | undefined)
   return settings.connectedProviders?.[settings.activeProviderId] ?? null;
 }
 
-/**
- * Default models for main providers (auto-selected on connection)
- * These are the recommended models for each provider
- */
 export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
   anthropic: 'anthropic/claude-opus-4-5',
   openai: 'openai/gpt-5.2',
@@ -167,9 +159,6 @@ export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
   moonshot: 'moonshot/kimi-latest',
 };
 
-/**
- * Get the default model for a provider (if one exists)
- */
 export function getDefaultModelForProvider(providerId: ProviderId): string | null {
   return DEFAULT_MODELS[providerId] ?? null;
 }

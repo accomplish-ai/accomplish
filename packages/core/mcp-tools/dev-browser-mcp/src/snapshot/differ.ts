@@ -1,11 +1,6 @@
-// packages/core/mcp-tools/dev-browser-mcp/src/snapshot/differ.ts
-
 import type { ParsedSnapshot, SnapshotDiff, ElementChange, SnapshotElement } from './types.js';
 
-/**
- * Compare two parsed snapshots and return the diff.
- * Returns null if >70% of elements changed (not worth diffing).
- */
+// Returns null if >70% of elements changed (not worth diffing)
 export function diffSnapshots(
   previous: ParsedSnapshot,
   current: ParsedSnapshot
@@ -15,12 +10,10 @@ export function diffSnapshots(
   const addedRefs: string[] = [];
   const removedRefs: string[] = [];
 
-  // Find elements in current that are new or changed
   for (const [ref, currentEl] of current.elements) {
     const previousEl = previous.elements.get(ref);
 
     if (!previousEl) {
-      // Element is new
       addedRefs.push(ref);
       changes.push({
         ref,
@@ -28,7 +21,6 @@ export function diffSnapshots(
         changeType: 'added',
       });
     } else if (hasElementChanged(previousEl, currentEl)) {
-      // Element changed
       changes.push({
         ref,
         element: currentEl,
@@ -40,12 +32,10 @@ export function diffSnapshots(
         changeType: 'modified',
       });
     } else {
-      // Element unchanged
       unchangedRefs.push(ref);
     }
   }
 
-  // Find elements that were removed
   for (const [ref, previousEl] of previous.elements) {
     if (!current.elements.has(ref)) {
       removedRefs.push(ref);
@@ -57,7 +47,6 @@ export function diffSnapshots(
     }
   }
 
-  // If >70% changed, not worth diffing
   const totalElements = current.elements.size;
   const changedCount = changes.length;
   if (totalElements > 0 && changedCount / totalElements > 0.7) {
@@ -72,11 +61,7 @@ export function diffSnapshots(
   };
 }
 
-/**
- * Check if an element has meaningfully changed.
- */
 function hasElementChanged(previous: SnapshotElement, current: SnapshotElement): boolean {
-  // Compare all relevant properties
   return (
     previous.role !== current.role ||
     previous.name !== current.name ||
@@ -89,9 +74,6 @@ function hasElementChanged(previous: SnapshotElement, current: SnapshotElement):
   );
 }
 
-/**
- * Format a diff into a compact YAML-like string for the agent.
- */
 export function formatDiff(
   diff: SnapshotDiff,
   url: string,
@@ -99,11 +81,9 @@ export function formatDiff(
 ): string {
   const lines: string[] = [];
 
-  // Header
   lines.push(`[Same page: ${title}]`);
   lines.push(`[URL: ${url}]`);
 
-  // Unchanged refs - compress consecutive refs
   if (diff.unchangedRefs.length > 0) {
     const compressed = compressRefList(diff.unchangedRefs);
     lines.push(`[Unchanged: ${compressed}]`);
@@ -111,7 +91,6 @@ export function formatDiff(
 
   lines.push('');
 
-  // Changed elements
   if (diff.changes.length > 0) {
     lines.push('Changed:');
     for (const change of diff.changes) {
@@ -127,9 +106,6 @@ export function formatDiff(
   return lines.join('\n');
 }
 
-/**
- * Format a single element change.
- */
 function formatChange(change: ElementChange): string {
   const { ref, element, changeType } = change;
   const lines: string[] = [];
@@ -143,7 +119,6 @@ function formatChange(change: ElementChange): string {
 
   lines.push(line);
 
-  // Show value changes for modified elements
   if (changeType === 'modified') {
     if (element.value !== undefined && element.value !== change.previousValue) {
       lines.push(`  value: "${element.value}"  # was: "${change.previousValue || ''}"`);
@@ -167,13 +142,10 @@ function formatChange(change: ElementChange): string {
   return lines.join('\n');
 }
 
-/**
- * Compress a list of refs like ['e1', 'e2', 'e3', 'e5', 'e6'] into 'e1-e3, e5-e6'
- */
+// Compress ['e1', 'e2', 'e3', 'e5', 'e6'] into 'e1-e3, e5-e6'
 export function compressRefList(refs: string[]): string {
   if (refs.length === 0) return '';
 
-  // Extract numbers and sort
   const numbers = refs
     .map(ref => parseInt(ref.replace('e', ''), 10))
     .sort((a, b) => a - b);

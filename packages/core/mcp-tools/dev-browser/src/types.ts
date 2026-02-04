@@ -1,5 +1,3 @@
-// API request/response types - shared between client and server
-
 export interface ServeOptions {
   port?: number;
   headless?: boolean;
@@ -24,7 +22,7 @@ export interface GetPageRequest {
 export interface GetPageResponse {
   wsEndpoint: string;
   name: string;
-  targetId: string; // CDP target ID for reliable page matching
+  targetId: string;
 }
 
 export interface ListPagesResponse {

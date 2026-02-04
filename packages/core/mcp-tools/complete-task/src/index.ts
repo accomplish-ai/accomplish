@@ -34,7 +34,6 @@ const server = new Server(
   { capabilities: { tools: {} } }
 );
 
-// List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
@@ -70,7 +69,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   ],
 }));
 
-// Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (request.params.name !== 'complete_task') {
     throw new Error(`Unknown tool: ${request.params.name}`);
@@ -84,7 +82,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       remaining_work?: string;
     };
 
-  // Log for debugging
   console.error(`[complete-task] status=${status}`);
   console.error(`[complete-task] original_request=${original_request_summary}`);
   console.error(`[complete-task] summary=${summary}`);
@@ -92,7 +89,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     console.error(`[complete-task] remaining=${remaining_work}`);
   }
 
-  // Build response message
   let responseText = `Task ${status}.`;
   if (status === 'success') {
     responseText = `Task completed successfully.`;
@@ -107,7 +103,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   };
 });
 
-// Start server
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

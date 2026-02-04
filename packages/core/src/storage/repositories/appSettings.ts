@@ -1,5 +1,3 @@
-// packages/core/src/storage/repositories/appSettings.ts
-
 import type {
   SelectedModel,
   OllamaConfig,
@@ -142,17 +140,11 @@ export function setLMStudioConfig(config: LMStudioConfig | null): void {
   );
 }
 
-/**
- * Get OpenAI base URL override (empty string means default).
- */
 export function getOpenAiBaseUrl(): string {
   const row = getRow();
   return row.openai_base_url || '';
 }
 
-/**
- * Set OpenAI base URL override (empty string clears override).
- */
 export function setOpenAiBaseUrl(baseUrl: string): void {
   const db = getDatabase();
   db.prepare('UPDATE app_settings SET openai_base_url = ? WHERE id = 1').run(baseUrl || '');

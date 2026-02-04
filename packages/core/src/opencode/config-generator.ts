@@ -2,61 +2,35 @@ import path from 'path';
 import fs from 'fs';
 import type { ProviderId, Skill } from '@accomplish/shared';
 
-/**
- * Agent name used by Accomplish
- */
 export const ACCOMPLISH_AGENT_NAME = 'accomplish';
 
-/**
- * Configuration options for generating OpenCode config
- */
 export interface ConfigGeneratorOptions {
-  /** Operating system platform */
   platform: NodeJS.Platform;
-  /** Path to MCP tools directory */
   mcpToolsPath: string;
-  /** Active provider and model */
   provider?: {
     id: ProviderId;
     model: string;
     baseUrl?: string;
   };
-  /** API key for the active provider (if needed) */
   apiKey?: string;
-  /** Enabled skills to include in system prompt */
   skills?: Skill[];
-  /** Path to bundled Node.js bin directory */
   bundledNodeBinPath?: string;
-  /** Path to bundled tsx command */
   bundledTsxPath?: string;
-  /** Whether the app is packaged (production) */
   isPackaged: boolean;
-  /** Custom provider configurations */
   providerConfigs?: ProviderConfig[];
-  /** Azure Foundry Entra ID token (if using Azure with Entra ID auth) */
   azureFoundryToken?: string;
-  /** Permission API port for file permissions */
   permissionApiPort?: number;
-  /** Question API port for user questions */
   questionApiPort?: number;
-  /** Path to user data directory for config file storage */
   userDataPath: string;
-  /** Model override (e.g., for Bedrock which uses same model for both) */
   model?: string;
-  /** Small model override (e.g., for Bedrock which uses same model for both) */
   smallModel?: string;
-  /** List of enabled provider IDs (if not provided, uses defaults) */
   enabledProviders?: string[];
 }
 
-/**
- * Provider configuration for custom/local providers
- */
 export interface ProviderConfig {
   id: string;
   npm: string;
   name: string;
-  /** Provider-specific options (e.g., baseURL for OpenAI-compatible, region/profile for Bedrock) */
   options: Record<string, unknown>;
   models: Record<string, ProviderModelConfig>;
 }
@@ -71,19 +45,11 @@ export interface ProviderModelConfig {
   options?: Record<string, unknown>;
 }
 
-/**
- * Generated OpenCode configuration
- */
 export interface GeneratedConfig {
-  /** System prompt for the agent */
   systemPrompt: string;
-  /** MCP server configurations */
   mcpServers: Record<string, McpServerConfig>;
-  /** Environment variables to set */
   environment: Record<string, string>;
-  /** Full config object ready to write */
   config: OpenCodeConfigFile;
-  /** Path where config was written */
   configPath: string;
 }
 
@@ -115,9 +81,6 @@ interface OpenCodeConfigFile {
   plugin?: string[];
 }
 
-/**
- * Build platform-specific environment setup instructions
- */
 function getPlatformEnvironmentInstructions(platform: NodeJS.Platform): string {
   if (platform === 'win32') {
     return `<environment>
@@ -134,9 +97,6 @@ You are running on ${platform === 'darwin' ? 'macOS' : 'Linux'}.
   }
 }
 
-/**
- * Base system prompt template for the Accomplish agent.
- */
 const ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE = `<identity>
 You are Accomplish, a browser automation assistant.
 </identity>
@@ -323,9 +283,6 @@ The \`original_request_summary\` field forces you to re-read the request - use t
 </behavior>
 `;
 
-/**
- * Resolve the bundled tsx command for running MCP TypeScript servers.
- */
 function resolveBundledTsxCommand(mcpToolsPath: string, platform: NodeJS.Platform): string[] {
   const tsxBin = platform === 'win32' ? 'tsx.cmd' : 'tsx';
   const candidates = [
@@ -346,9 +303,6 @@ function resolveBundledTsxCommand(mcpToolsPath: string, platform: NodeJS.Platfor
   return ['npx', 'tsx'];
 }
 
-/**
- * Resolve the MCP command for a specific MCP server.
- */
 function resolveMcpCommand(
   tsxCommand: string[],
   mcpToolsPath: string,
@@ -372,12 +326,6 @@ function resolveMcpCommand(
   return [...tsxCommand, sourcePath];
 }
 
-/**
- * Generate OpenCode configuration for the Accomplish agent.
- *
- * @param options - Configuration options
- * @returns Generated configuration
- */
 export function generateConfig(options: ConfigGeneratorOptions): GeneratedConfig {
   const {
     platform,
@@ -394,12 +342,10 @@ export function generateConfig(options: ConfigGeneratorOptions): GeneratedConfig
     enabledProviders: customEnabledProviders,
   } = options;
 
-  // Build platform-specific system prompt by replacing placeholders
   const environmentInstructions = getPlatformEnvironmentInstructions(platform);
   let systemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE
     .replace(/\{\{ENVIRONMENT_INSTRUCTIONS\}\}/g, environmentInstructions);
 
-  // Add skills section if enabled skills exist
   if (skills.length > 0) {
     const skillsSection = `
 
@@ -424,15 +370,12 @@ Use empty array [] if no skills apply to your task.
     systemPrompt += skillsSection;
   }
 
-  // Resolve tsx command
   const tsxCommand = resolveBundledTsxCommand(mcpToolsPath, platform);
 
-  // Get node path from bundled paths
   const nodePath = bundledNodeBinPath
     ? path.join(bundledNodeBinPath, platform === 'win32' ? 'node.exe' : 'node')
     : undefined;
 
-  // Build MCP server configurations
   const mcpServers: Record<string, McpServerConfig> = {
     'file-permission': {
       type: 'local',
@@ -512,20 +455,16 @@ Use empty array [] if no skills apply to your task.
     },
   };
 
-  // Build provider configurations (strip id from values since it's used as the key)
   const providerConfig: Record<string, Omit<ProviderConfig, 'id'>> = {};
   for (const provider of providerConfigs) {
     const { id, ...rest } = provider;
     providerConfig[id] = rest;
   }
 
-  // Build enabled providers list
   let enabledProviders: string[];
   if (customEnabledProviders) {
-    // Use custom list if provided
     enabledProviders = [...new Set([...customEnabledProviders, ...Object.keys(providerConfig)])];
   } else {
-    // Default base providers
     const baseProviders = [
       'anthropic', 'openai', 'openrouter', 'google', 'xai',
       'deepseek', 'moonshot', 'zai-coding-plan', 'amazon-bedrock', 'minimax'
@@ -533,7 +472,6 @@ Use empty array [] if no skills apply to your task.
     enabledProviders = [...new Set([...baseProviders, ...Object.keys(providerConfig)])];
   }
 
-  // Build the full config
   const config: OpenCodeConfigFile = {
     $schema: 'https://opencode.ai/config.json',
     ...(model && { model }),
@@ -556,22 +494,18 @@ Use empty array [] if no skills apply to your task.
     mcp: mcpServers,
   };
 
-  // Determine config path and write
   const configDir = path.join(userDataPath, 'opencode');
   const configPath = path.join(configDir, 'opencode.json');
 
-  // Ensure directory exists
   if (!fs.existsSync(configDir)) {
     fs.mkdirSync(configDir, { recursive: true });
   }
 
-  // Write config file
   const configJson = JSON.stringify(config, null, 2);
   fs.writeFileSync(configPath, configJson);
 
   console.log('[OpenCode Config] Generated config at:', configPath);
 
-  // Build environment variables
   const environment: Record<string, string> = {
     OPENCODE_CONFIG: configPath,
     OPENCODE_CONFIG_DIR: configDir,
@@ -590,9 +524,6 @@ Use empty array [] if no skills apply to your task.
   };
 }
 
-/**
- * Get the path where OpenCode config is stored.
- */
 export function getOpenCodeConfigPath(userDataPath: string): string {
   return path.join(userDataPath, 'opencode', 'opencode.json');
 }

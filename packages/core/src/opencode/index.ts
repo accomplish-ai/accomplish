@@ -1,11 +1,3 @@
-/**
- * OpenCode Layer - Interface to the OpenCode CLI
- *
- * This module provides a platform-agnostic interface to the OpenCode CLI.
- * Key abstraction: it accepts injected handlers (PermissionHandler, TaskEventHandler)
- * instead of using Electron IPC directly.
- */
-
 // Main adapter
 export {
   OpenCodeAdapter,
@@ -17,7 +9,6 @@ export type {
   OpenCodeAdapterEvents,
 } from './adapter.js';
 
-// Task manager
 export {
   TaskManager,
   createTaskManager,
@@ -28,14 +19,12 @@ export type {
   TaskProgressEvent,
 } from './task-manager.js';
 
-// CLI resolver
 export {
   resolveCliPath,
   isCliAvailable,
   getCliVersion,
 } from './cli-resolver.js';
 
-// Config generator
 export {
   generateConfig,
   getOpenCodeConfigPath,
@@ -48,11 +37,9 @@ export type {
   GeneratedConfig,
 } from './config-generator.js';
 
-// Stream parser
 export { StreamParser } from './stream-parser.js';
 export type { StreamParserEvents } from './stream-parser.js';
 
-// Log watcher
 export {
   OpenCodeLogWatcher,
   createLogWatcher,
@@ -62,7 +49,6 @@ export type {
   LogWatcherEvents,
 } from './log-watcher.js';
 
-// Auth utilities
 export {
   getOpenCodeDataHome,
   getOpenCodeAuthJsonPath,
@@ -71,7 +57,6 @@ export {
   writeOpenCodeAuth,
 } from './auth.js';
 
-// Completion enforcement
 export {
   CompletionEnforcer,
   CompletionState,
@@ -86,7 +71,6 @@ export type {
   CompleteTaskArgs,
 } from './completion/index.js';
 
-// Proxy servers
 export {
   ensureAzureFoundryProxy,
   stopAzureFoundryProxy,

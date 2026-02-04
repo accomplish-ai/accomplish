@@ -1,5 +1,3 @@
-// packages/core/src/storage/repositories/skills.ts
-
 import type { Skill, SkillSource } from '@accomplish/shared';
 import { getDatabase } from '../database.js';
 

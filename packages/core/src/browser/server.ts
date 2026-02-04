@@ -1,30 +1,14 @@
-/**
- * Dev-browser server management
- *
- * Functions to install Playwright, start the dev-browser server,
- * and ensure browser automation is ready.
- */
-
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { isSystemChromeInstalled, isPlaywrightInstalled } from './detection.js';
 
-/**
- * Configuration for browser server operations
- */
 export interface BrowserServerConfig {
-  /** Path to the MCP tools directory containing dev-browser */
   mcpToolsPath: string;
-  /** Path to bundled Node.js bin directory (for npx) */
   bundledNodeBinPath?: string;
-  /** Port the dev-browser server runs on */
   devBrowserPort: number;
 }
 
-/**
- * Build environment with bundled Node.js in PATH
- */
 function buildNodeEnvironment(bundledNodeBinPath?: string): NodeJS.ProcessEnv {
   const spawnEnv: NodeJS.ProcessEnv = { ...process.env };
 
@@ -44,9 +28,6 @@ function buildNodeEnvironment(bundledNodeBinPath?: string): NodeJS.ProcessEnv {
   return spawnEnv;
 }
 
-/**
- * Get the npx executable path
- */
 function getNpxExecutable(bundledNodeBinPath?: string): string {
   if (bundledNodeBinPath) {
     const npxName = process.platform === 'win32' ? 'npx.cmd' : 'npx';
@@ -58,9 +39,6 @@ function getNpxExecutable(bundledNodeBinPath?: string): string {
   return 'npx';
 }
 
-/**
- * Get the node executable path
- */
 function getNodeExecutable(bundledNodeBinPath?: string): string {
   if (bundledNodeBinPath) {
     const nodeName = process.platform === 'win32' ? 'node.exe' : 'node';
@@ -72,10 +50,6 @@ function getNodeExecutable(bundledNodeBinPath?: string): string {
   return 'node';
 }
 
-/**
- * Install Playwright Chromium browser.
- * Returns a promise that resolves when installation is complete.
- */
 export async function installPlaywrightChromium(
   config: BrowserServerConfig,
   onProgress?: (message: string) => void
@@ -129,9 +103,6 @@ export async function installPlaywrightChromium(
   });
 }
 
-/**
- * Check if the dev-browser server is running and ready
- */
 export async function isDevBrowserServerReady(port: number): Promise<boolean> {
   try {
     const controller = new AbortController();
@@ -146,9 +117,6 @@ export async function isDevBrowserServerReady(port: number): Promise<boolean> {
   }
 }
 
-/**
- * Wait for the dev-browser server to be ready with polling
- */
 export async function waitForDevBrowserServer(
   port: number,
   maxWaitMs = 15000,
@@ -168,19 +136,12 @@ export async function waitForDevBrowserServer(
   return false;
 }
 
-/**
- * Server startup result with logs for debugging
- */
 export interface ServerStartResult {
   ready: boolean;
   pid?: number;
   logs: string[];
 }
 
-/**
- * Start the dev-browser server.
- * Returns startup result with status and logs.
- */
 export async function startDevBrowserServer(
   config: BrowserServerConfig
 ): Promise<ServerStartResult> {
@@ -198,7 +159,7 @@ export async function startDevBrowserServer(
   console.log('[Browser] Script exists:', fs.existsSync(serverScript));
   console.log('[Browser] CWD exists:', fs.existsSync(serverCwd));
 
-  // Spawn server in background (detached, unref to not block)
+  // detached + unref allows server to outlive parent process
   const child = spawn(nodeExe, [serverScript], {
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -207,7 +168,6 @@ export async function startDevBrowserServer(
     windowsHide: true,
   });
 
-  // Capture stdout/stderr for debugging
   child.stdout?.on('data', (data: Buffer) => {
     const lines = data.toString().split('\n').filter((l) => l.trim());
     for (const line of lines) {
@@ -246,7 +206,7 @@ export async function startDevBrowserServer(
 
   console.log('[Browser] Dev-browser server spawn initiated (PID:', child.pid, ')');
 
-  // Wait for the server to be ready (longer timeout on Windows)
+  // Windows needs longer timeout due to slower process startup
   const maxWaitMs = process.platform === 'win32' ? 30000 : 15000;
   console.log(`[Browser] Waiting for dev-browser server to be ready (max ${maxWaitMs}ms)...`);
 
@@ -261,23 +221,16 @@ export async function startDevBrowserServer(
   };
 }
 
-/**
- * Ensure the dev-browser server is running.
- * Called before starting tasks to pre-warm the browser.
- *
- * If neither system Chrome nor Playwright is installed, downloads Playwright first.
- */
+// Downloads Playwright Chromium if no browser is available, then starts the server
 export async function ensureDevBrowserServer(
   config: BrowserServerConfig,
   onProgress?: (progress: { stage: string; message?: string }) => void
 ): Promise<ServerStartResult> {
-  // Check if we have a browser available
   const hasChrome = isSystemChromeInstalled();
   const hasPlaywright = isPlaywrightInstalled();
 
   console.log(`[Browser] Browser check: Chrome=${hasChrome}, Playwright=${hasPlaywright}`);
 
-  // If no browser available, install Playwright first
   if (!hasChrome && !hasPlaywright) {
     console.log('[Browser] No browser available, installing Playwright Chromium...');
     onProgress?.({
@@ -295,7 +248,7 @@ export async function ensureDevBrowserServer(
     }
   }
 
-  // Check if server is already running (skip on macOS to avoid Local Network permission dialog)
+  // Skip check on macOS to avoid triggering Local Network permission dialog
   if (process.platform !== 'darwin') {
     if (await isDevBrowserServerReady(config.devBrowserPort)) {
       console.log('[Browser] Dev-browser server already running');
@@ -303,6 +256,5 @@ export async function ensureDevBrowserServer(
     }
   }
 
-  // Start the server
   return startDevBrowserServer(config);
 }

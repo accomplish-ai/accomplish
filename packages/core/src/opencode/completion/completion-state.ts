@@ -1,43 +1,10 @@
-/**
- * Explicit state machine for completion enforcement flow.
- *
- * WHY A STATE MACHINE:
- * - Replaces what would be multiple boolean flags
- * - Makes state transitions explicit and debuggable
- * - Prevents invalid state combinations
- *
- * STATE FLOW DIAGRAM:
- *
- *   IDLE ──────────────────────────────────────┬──────────────────────────┐
- *     │                                        │                          │
- *     │ complete_task(success,                 │ complete_task(partial)   │ complete_task(blocked)
- *     │ todos complete)                        │   OR                    │
- *     │                                        │ success→partial          │
- *     ▼                                        │ (incomplete todos)       ▼
- *   DONE ──► (task ends)                       ▼                     BLOCKED ──► (task ends)
- *                                      PARTIAL_CONTINUATION_PENDING
- *                                              │
- *                                              │ startPartialContinuation()
- *                                              ▼
- *                                            IDLE (continue work)
- *
- *   IDLE ──► agent stops without complete_task
- *     │
- *     ▼
- *   CONTINUATION_PENDING ──► startContinuation() ──► IDLE
- *     │
- *     │ max retries exceeded
- *     ▼
- *   MAX_RETRIES_REACHED ──► (task ends with warning)
- */
-
 export enum CompletionFlowState {
-  IDLE,                           // Initial state, no complete_task called
-  BLOCKED,                        // Agent called complete_task with blocked status
-  PARTIAL_CONTINUATION_PENDING,   // Agent called complete_task(partial), continuation pending
-  CONTINUATION_PENDING,           // Agent stopped without complete_task, continuation pending
-  MAX_RETRIES_REACHED,            // Exhausted continuation attempts
-  DONE                            // Task complete
+  IDLE,
+  BLOCKED,
+  PARTIAL_CONTINUATION_PENDING,
+  CONTINUATION_PENDING,
+  MAX_RETRIES_REACHED,
+  DONE
 }
 
 export interface CompleteTaskArgs {
@@ -57,7 +24,6 @@ export class CompletionState {
     this.maxContinuationAttempts = maxContinuationAttempts;
   }
 
-  // State queries
   getState(): CompletionFlowState {
     return this.state;
   }
@@ -93,7 +59,6 @@ export class CompletionState {
            this.state === CompletionFlowState.MAX_RETRIES_REACHED;
   }
 
-  // State transitions
   recordCompleteTaskCall(args: CompleteTaskArgs): void {
     this.completeTaskArgs = args;
     if (args.status === 'success') {
@@ -101,17 +66,13 @@ export class CompletionState {
     } else if (args.status === 'partial') {
       this.state = CompletionFlowState.PARTIAL_CONTINUATION_PENDING;
     } else {
-      // blocked or unknown - terminal
       this.state = CompletionFlowState.BLOCKED;
     }
   }
 
   scheduleContinuation(): boolean {
-    // Can schedule continuation from:
-    // - IDLE: agent never called complete_task
-    // - CONTINUATION_PENDING: previous continuation was scheduled but process didn't exit
-    //   (OpenCode CLI's auto-continue keeps process alive, so handleProcessExit/startContinuation
-    //   is never called to reset state to IDLE)
+    // Allow from CONTINUATION_PENDING because OpenCode CLI's auto-continue keeps
+    // process alive, so handleProcessExit/startContinuation may never reset to IDLE
     if (this.state !== CompletionFlowState.IDLE &&
         this.state !== CompletionFlowState.CONTINUATION_PENDING) {
       return false;
@@ -131,7 +92,6 @@ export class CompletionState {
     if (this.state !== CompletionFlowState.CONTINUATION_PENDING) {
       throw new Error(`Cannot start continuation from state ${CompletionFlowState[this.state]}`);
     }
-    // Reset to IDLE so we can track next complete_task call
     this.state = CompletionFlowState.IDLE;
   }
 
@@ -146,7 +106,6 @@ export class CompletionState {
       return false;
     }
 
-    // Reset to IDLE so we can track next complete_task call
     this.state = CompletionFlowState.IDLE;
     return true;
   }

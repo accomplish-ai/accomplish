@@ -29,7 +29,6 @@ const server = new Server(
   { capabilities: { tools: {} } }
 );
 
-// List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
@@ -69,7 +68,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   ],
 }));
 
-// Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (request.params.name !== 'start_task') {
     throw new Error(`Unknown tool: ${request.params.name}`);
@@ -83,7 +81,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     skills: string[];
   };
 
-  // Log for debugging
   console.error(`[start-task] original_request=${original_request}`);
   console.error(`[start-task] goal=${goal}`);
   console.error(`[start-task] steps=${JSON.stringify(steps)}`);
@@ -95,7 +92,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   };
 });
 
-// Start server
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

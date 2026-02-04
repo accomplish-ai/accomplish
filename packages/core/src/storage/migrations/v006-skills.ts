@@ -1,5 +1,3 @@
-// packages/core/src/storage/migrations/v006-skills.ts
-
 import type { Database } from 'better-sqlite3';
 import type { Migration } from './index.js';
 

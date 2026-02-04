@@ -1,11 +1,3 @@
-/**
- * TaskManager - Manages multiple concurrent OpenCode CLI task executions
- *
- * This class implements a process manager pattern to support true parallel
- * session execution. Each task gets its own OpenCodeAdapter instance with
- * isolated PTY process, state, and event handling.
- */
-
 import { OpenCodeAdapter, AdapterOptions, OpenCodeCliNotFoundError } from './adapter.js';
 import type {
   TaskConfig,
@@ -17,21 +9,13 @@ import type {
   TodoItem,
 } from '@accomplish/shared';
 
-/**
- * Progress event with startup stage information
- */
 export interface TaskProgressEvent {
   stage: string;
   message?: string;
-  /** Whether this is the first task (cold start) - used for UI hints */
   isFirstTask?: boolean;
-  /** Model display name for 'connecting' stage */
   modelName?: string;
 }
 
-/**
- * Callbacks for task events - scoped to a specific task
- */
 export interface TaskCallbacks {
   onMessage: (message: OpenCodeMessage) => void;
   onProgress: (progress: TaskProgressEvent) => void;
@@ -44,27 +28,16 @@ export interface TaskCallbacks {
   onAuthError?: (error: { providerId: string; message: string }) => void;
 }
 
-/**
- * Options for creating a TaskManager
- */
 export interface TaskManagerOptions {
-  /** Configuration for adapters (without workingDirectory which is per-task) */
   adapterOptions: Omit<AdapterOptions, 'buildCliArgs'> & {
     buildCliArgs: (config: TaskConfig, taskId: string) => Promise<string[]>;
   };
-  /** Default working directory for tasks */
   defaultWorkingDirectory: string;
-  /** Maximum number of concurrent tasks (default: 10) */
   maxConcurrentTasks?: number;
-  /** Function to check if CLI is available */
   isCliAvailable: () => Promise<boolean>;
-  /** Optional callback before starting task (e.g., browser setup) */
   onBeforeTaskStart?: (callbacks: TaskCallbacks, isFirstTask: boolean) => Promise<void>;
 }
 
-/**
- * Internal representation of a managed task
- */
 interface ManagedTask {
   taskId: string;
   adapter: OpenCodeAdapter;
@@ -73,9 +46,6 @@ interface ManagedTask {
   createdAt: Date;
 }
 
-/**
- * Queued task waiting for execution
- */
 interface QueuedTask {
   taskId: string;
   config: TaskConfig;
@@ -83,23 +53,13 @@ interface QueuedTask {
   createdAt: Date;
 }
 
-/**
- * Default maximum number of concurrent tasks
- */
 const DEFAULT_MAX_CONCURRENT_TASKS = 10;
 
-/**
- * TaskManager manages OpenCode CLI task executions with parallel execution
- *
- * Multiple tasks can run concurrently up to maxConcurrentTasks.
- * Each task gets its own isolated PTY process.
- */
 export class TaskManager {
   private activeTasks: Map<string, ManagedTask> = new Map();
   private taskQueue: QueuedTask[] = [];
   private maxConcurrentTasks: number;
   private options: TaskManagerOptions;
-  /** Tracks whether this is the first task since app launch (cold start) */
   private isFirstTask: boolean = true;
 
   constructor(options: TaskManagerOptions) {
@@ -107,52 +67,37 @@ export class TaskManager {
     this.maxConcurrentTasks = options.maxConcurrentTasks ?? DEFAULT_MAX_CONCURRENT_TASKS;
   }
 
-  /**
-   * Check if this is a cold start (first task since app launch)
-   */
   getIsFirstTask(): boolean {
     return this.isFirstTask;
   }
 
-  /**
-   * Start a new task. Multiple tasks can run in parallel up to maxConcurrentTasks.
-   * If at capacity, new tasks are queued and start automatically when a task completes.
-   */
   async startTask(
     taskId: string,
     config: TaskConfig,
     callbacks: TaskCallbacks
   ): Promise<Task> {
-    // Check if CLI is installed
     const cliInstalled = await this.options.isCliAvailable();
     if (!cliInstalled) {
       throw new OpenCodeCliNotFoundError();
     }
 
-    // Check if task already exists
     if (this.activeTasks.has(taskId) || this.taskQueue.some(q => q.taskId === taskId)) {
       throw new Error(`Task ${taskId} is already running or queued`);
     }
 
-    // If at max concurrent tasks, queue this one
     if (this.activeTasks.size >= this.maxConcurrentTasks) {
       console.log(`[TaskManager] At max concurrent tasks (${this.maxConcurrentTasks}). Queueing task ${taskId}`);
       return this.queueTask(taskId, config, callbacks);
     }
 
-    // Execute immediately
     return this.executeTask(taskId, config, callbacks);
   }
 
-  /**
-   * Queue a task for later execution
-   */
   private queueTask(
     taskId: string,
     config: TaskConfig,
     callbacks: TaskCallbacks
   ): Task {
-    // Check queue limit
     if (this.taskQueue.length >= this.maxConcurrentTasks) {
       throw new Error(
         `Maximum queued tasks (${this.maxConcurrentTasks}) reached. Please wait for tasks to complete.`
@@ -178,24 +123,18 @@ export class TaskManager {
     };
   }
 
-  /**
-   * Execute a task immediately
-   */
   private async executeTask(
     taskId: string,
     config: TaskConfig,
     callbacks: TaskCallbacks
   ): Promise<Task> {
-    // Build adapter options for this specific task
     const adapterOptions: AdapterOptions = {
       ...this.options.adapterOptions,
       buildCliArgs: (taskConfig) => this.options.adapterOptions.buildCliArgs(taskConfig, taskId),
     };
 
-    // Create a new adapter instance for this task
     const adapter = new OpenCodeAdapter(adapterOptions, taskId);
 
-    // Wire up event listeners
     const onMessage = (message: OpenCodeMessage) => {
       callbacks.onMessage(message);
     };
@@ -210,14 +149,12 @@ export class TaskManager {
 
     const onComplete = (result: TaskResult) => {
       callbacks.onComplete(result);
-      // Auto-cleanup on completion and process queue
       this.cleanupTask(taskId);
       this.processQueue();
     };
 
     const onError = (error: Error) => {
       callbacks.onError(error);
-      // Auto-cleanup on error and process queue
       this.cleanupTask(taskId);
       this.processQueue();
     };
@@ -234,7 +171,6 @@ export class TaskManager {
       callbacks.onAuthError?.(error);
     };
 
-    // Attach listeners
     adapter.on('message', onMessage);
     adapter.on('progress', onProgress);
     adapter.on('permission-request', onPermissionRequest);
@@ -244,7 +180,6 @@ export class TaskManager {
     adapter.on('todo:update', onTodoUpdate);
     adapter.on('auth-error', onAuthError);
 
-    // Create cleanup function
     const cleanup = () => {
       adapter.off('message', onMessage);
       adapter.off('progress', onProgress);
@@ -257,7 +192,6 @@ export class TaskManager {
       adapter.dispose();
     };
 
-    // Register the managed task
     const managedTask: ManagedTask = {
       taskId,
       adapter,
@@ -269,7 +203,6 @@ export class TaskManager {
 
     console.log(`[TaskManager] Executing task ${taskId}. Active tasks: ${this.activeTasks.size}`);
 
-    // Create task object immediately
     const task: Task = {
       id: taskId,
       prompt: config.prompt,
@@ -278,34 +211,27 @@ export class TaskManager {
       createdAt: new Date().toISOString(),
     };
 
-    // Start setup and agent asynchronously
     const isFirstTask = this.isFirstTask;
     (async () => {
       try {
-        // Emit starting stage immediately
         callbacks.onProgress({ stage: 'starting', message: 'Starting task...', isFirstTask });
 
-        // Run pre-start callback if provided (e.g., browser setup)
         if (this.options.onBeforeTaskStart) {
           await this.options.onBeforeTaskStart(callbacks, isFirstTask);
         }
 
-        // Mark cold start as complete after setup
         if (this.isFirstTask) {
           this.isFirstTask = false;
         }
 
-        // Emit environment setup stage
         callbacks.onProgress({ stage: 'environment', message: 'Setting up environment...', isFirstTask });
 
-        // Now start the agent
         await adapter.startTask({
           ...config,
           taskId,
           workingDirectory: config.workingDirectory || this.options.defaultWorkingDirectory,
         });
       } catch (error) {
-        // Cleanup on failure and process queue
         callbacks.onError(error instanceof Error ? error : new Error(String(error)));
         this.cleanupTask(taskId);
         this.processQueue();
@@ -315,15 +241,11 @@ export class TaskManager {
     return task;
   }
 
-  /**
-   * Process the queue - start queued tasks if we have capacity
-   */
   private async processQueue(): Promise<void> {
     while (this.taskQueue.length > 0 && this.activeTasks.size < this.maxConcurrentTasks) {
       const nextTask = this.taskQueue.shift()!;
       console.log(`[TaskManager] Processing queue. Starting task ${nextTask.taskId}. Active: ${this.activeTasks.size}, Remaining in queue: ${this.taskQueue.length}`);
 
-      // Notify that task is now running
       nextTask.callbacks.onStatusChange?.('running');
 
       try {
@@ -339,11 +261,7 @@ export class TaskManager {
     }
   }
 
-  /**
-   * Cancel a specific task (running or queued)
-   */
   async cancelTask(taskId: string): Promise<void> {
-    // Check if it's a queued task
     const queueIndex = this.taskQueue.findIndex(q => q.taskId === taskId);
     if (queueIndex !== -1) {
       console.log(`[TaskManager] Cancelling queued task ${taskId}`);
@@ -351,7 +269,6 @@ export class TaskManager {
       return;
     }
 
-    // Otherwise, it's a running task
     const managedTask = this.activeTasks.get(taskId);
     if (!managedTask) {
       console.warn(`[TaskManager] Task ${taskId} not found for cancellation`);
@@ -368,9 +285,6 @@ export class TaskManager {
     }
   }
 
-  /**
-   * Interrupt a running task (graceful Ctrl+C)
-   */
   async interruptTask(taskId: string): Promise<void> {
     const managedTask = this.activeTasks.get(taskId);
     if (!managedTask) {
@@ -382,9 +296,6 @@ export class TaskManager {
     await managedTask.adapter.interruptTask();
   }
 
-  /**
-   * Cancel a queued task
-   */
   cancelQueuedTask(taskId: string): boolean {
     const queueIndex = this.taskQueue.findIndex(q => q.taskId === taskId);
     if (queueIndex === -1) {
@@ -396,9 +307,6 @@ export class TaskManager {
     return true;
   }
 
-  /**
-   * Send a response to a specific task's PTY
-   */
   async sendResponse(taskId: string, response: string): Promise<void> {
     const managedTask = this.activeTasks.get(taskId);
     if (!managedTask) {
@@ -408,105 +316,63 @@ export class TaskManager {
     await managedTask.adapter.sendResponse(response);
   }
 
-  /**
-   * Get the session ID for a specific task
-   */
   getSessionId(taskId: string): string | null {
     const managedTask = this.activeTasks.get(taskId);
     return managedTask?.adapter.getSessionId() ?? null;
   }
 
-  /**
-   * Check if a task is running
-   */
   isTaskRunning(taskId: string): boolean {
     const managedTask = this.activeTasks.get(taskId);
     return managedTask?.adapter.running ?? false;
   }
 
-  /**
-   * Get an active adapter for a task
-   */
   getTask(taskId: string): OpenCodeAdapter | undefined {
     return this.activeTasks.get(taskId)?.adapter;
   }
 
-  /**
-   * Check if a task is active
-   */
   hasActiveTask(taskId: string): boolean {
     return this.activeTasks.has(taskId);
   }
 
-  /**
-   * Check if there are any running tasks
-   */
   hasRunningTask(): boolean {
     return this.activeTasks.size > 0;
   }
 
-  /**
-   * Check if a specific task is queued
-   */
   isTaskQueued(taskId: string): boolean {
     return this.taskQueue.some(q => q.taskId === taskId);
   }
 
-  /**
-   * Get queue position for a task (1-based), or 0 if not queued
-   */
   getQueuePosition(taskId: string): number {
     const index = this.taskQueue.findIndex(q => q.taskId === taskId);
     return index === -1 ? 0 : index + 1;
   }
 
-  /**
-   * Get the current queue length
-   */
   getQueueLength(): number {
     return this.taskQueue.length;
   }
 
-  /**
-   * Get the number of active tasks
-   */
   get runningTaskCount(): number {
     return this.activeTasks.size;
   }
 
-  /**
-   * Get all active task IDs
-   */
   getActiveTaskIds(): string[] {
     return Array.from(this.activeTasks.keys());
   }
 
-  /**
-   * Get the currently running task ID (not queued)
-   * Returns the first active task if multiple are running
-   */
   getActiveTaskId(): string | null {
     const firstActive = this.activeTasks.keys().next();
     return firstActive.done ? null : firstActive.value;
   }
 
-  /**
-   * Get the number of active tasks
-   */
   getActiveTaskCount(): number {
     return this.activeTasks.size;
   }
 
-  /**
-   * Cancel all running tasks
-   */
   cancelAllTasks(): void {
     console.log(`[TaskManager] Cancelling all ${this.activeTasks.size} active tasks`);
 
-    // Clear the queue
     this.taskQueue = [];
 
-    // Cancel all active tasks
     for (const [taskId] of this.activeTasks) {
       this.cancelTask(taskId).catch(err => {
         console.error(`[TaskManager] Error cancelling task ${taskId}:`, err);
@@ -514,9 +380,6 @@ export class TaskManager {
     }
   }
 
-  /**
-   * Cleanup a specific task
-   */
   private cleanupTask(taskId: string): void {
     const managedTask = this.activeTasks.get(taskId);
     if (managedTask) {
@@ -527,13 +390,9 @@ export class TaskManager {
     }
   }
 
-  /**
-   * Dispose all tasks and cleanup resources
-   */
   dispose(): void {
     console.log(`[TaskManager] Disposing all tasks (${this.activeTasks.size} active, ${this.taskQueue.length} queued)`);
 
-    // Clear the queue
     this.taskQueue = [];
 
     for (const [taskId, managedTask] of this.activeTasks) {
@@ -549,9 +408,6 @@ export class TaskManager {
   }
 }
 
-/**
- * Create a new TaskManager instance
- */
 export function createTaskManager(options: TaskManagerOptions): TaskManager {
   return new TaskManager(options);
 }

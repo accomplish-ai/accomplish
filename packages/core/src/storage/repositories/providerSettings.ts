@@ -1,5 +1,3 @@
-// packages/core/src/storage/repositories/providerSettings.ts
-
 import type {
   ProviderSettings,
   ProviderId,
@@ -119,7 +117,6 @@ export function removeConnectedProvider(providerId: ProviderId): void {
   db.transaction(() => {
     db.prepare('DELETE FROM providers WHERE provider_id = ?').run(providerId);
 
-    // If this was the active provider, clear it
     const meta = getMetaRow();
     if (meta.active_provider_id === providerId) {
       db.prepare('UPDATE provider_meta SET active_provider_id = NULL WHERE id = 1').run();

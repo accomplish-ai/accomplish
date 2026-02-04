@@ -1,72 +1,20 @@
-/**
- * Basic logging utilities for @accomplish/core
- *
- * Provides a simple, extensible logging interface that can be used
- * across the core package without depending on specific logging frameworks.
- */
-
-/**
- * Log severity levels
- */
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-/**
- * A log entry with metadata
- */
 export interface LogEntry {
-  /** Log severity level */
   level: LogLevel;
-  /** The log message */
   message: string;
-  /** Timestamp of the log entry */
   timestamp: Date;
-  /** Optional context data */
   context?: Record<string, unknown>;
 }
 
-/**
- * Logger interface for consistent logging across the package
- */
 export interface Logger {
-  /**
-   * Log a debug message
-   * @param message - The message to log
-   * @param context - Optional context data
-   */
   debug(message: string, context?: Record<string, unknown>): void;
-
-  /**
-   * Log an info message
-   * @param message - The message to log
-   * @param context - Optional context data
-   */
   info(message: string, context?: Record<string, unknown>): void;
-
-  /**
-   * Log a warning message
-   * @param message - The message to log
-   * @param context - Optional context data
-   */
   warn(message: string, context?: Record<string, unknown>): void;
-
-  /**
-   * Log an error message
-   * @param message - The message to log
-   * @param context - Optional context data
-   */
   error(message: string, context?: Record<string, unknown>): void;
-
-  /**
-   * Create a child logger with a specific prefix
-   * @param childPrefix - The prefix for the child logger
-   * @returns A new logger instance with the prefix
-   */
   child(childPrefix: string): Logger;
 }
 
-/**
- * Log level priority for filtering
- */
 const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
   debug: 0,
   info: 1,
@@ -74,24 +22,12 @@ const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
   error: 3,
 };
 
-/**
- * Console logger options
- */
 export interface ConsoleLoggerOptions {
-  /** Prefix to prepend to all log messages */
   prefix?: string;
-  /** Minimum log level to output (default: 'debug') */
   minLevel?: LogLevel;
-  /** Whether to include timestamps (default: true) */
   includeTimestamp?: boolean;
 }
 
-/**
- * Create a simple console-based logger
- *
- * @param options - Logger configuration options
- * @returns A Logger instance that outputs to the console
- */
 export function createConsoleLogger(options: ConsoleLoggerOptions = {}): Logger {
   const { prefix = '', minLevel = 'debug', includeTimestamp = true } = options;
 
@@ -145,17 +81,8 @@ export function createConsoleLogger(options: ConsoleLoggerOptions = {}): Logger 
   };
 }
 
-/**
- * Create a no-op logger that discards all log messages
- *
- * Useful for tests or when logging needs to be disabled
- *
- * @returns A Logger instance that does nothing
- */
 export function createNoOpLogger(): Logger {
-  const noop = (): void => {
-    // Intentionally empty
-  };
+  const noop = (): void => {};
 
   return {
     debug: noop,
@@ -166,14 +93,6 @@ export function createNoOpLogger(): Logger {
   };
 }
 
-/**
- * Create a buffered logger that stores log entries in memory
- *
- * Useful for testing or when log entries need to be processed later
- *
- * @param options - Logger configuration options
- * @returns A Logger instance with a getEntries() method
- */
 export function createBufferedLogger(
   options: ConsoleLoggerOptions = {}
 ): Logger & { getEntries(): LogEntry[]; clear(): void } {

@@ -1,19 +1,9 @@
-// packages/core/src/storage/migrations/v001-initial.ts
-
 import type { Database } from 'better-sqlite3';
 import type { Migration } from './index.js';
 
-/**
- * Initial migration: Creates the base schema for the database.
- *
- * Note: Legacy data import from electron-store has been removed in the core package.
- * The desktop app should handle legacy migration before initializing the core database
- * if needed.
- */
 export const migration: Migration = {
   version: 1,
   up: (db: Database) => {
-    // Create schema_meta table
     db.exec(`
       CREATE TABLE schema_meta (
         key TEXT PRIMARY KEY,
@@ -21,7 +11,6 @@ export const migration: Migration = {
       )
     `);
 
-    // Create app_settings table
     db.exec(`
       CREATE TABLE app_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -33,7 +22,6 @@ export const migration: Migration = {
       )
     `);
 
-    // Create provider tables
     db.exec(`
       CREATE TABLE provider_meta (
         id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -54,7 +42,6 @@ export const migration: Migration = {
       )
     `);
 
-    // Create task tables
     db.exec(`
       CREATE TABLE tasks (
         id TEXT PRIMARY KEY,
@@ -91,11 +78,9 @@ export const migration: Migration = {
       )
     `);
 
-    // Create indexes
     db.exec(`CREATE INDEX idx_tasks_created_at ON tasks(created_at DESC)`);
     db.exec(`CREATE INDEX idx_messages_task_id ON task_messages(task_id)`);
 
-    // Insert default rows for single-row tables
     db.exec(`INSERT INTO app_settings (id) VALUES (1)`);
     db.exec(`INSERT INTO provider_meta (id) VALUES (1)`);
   },

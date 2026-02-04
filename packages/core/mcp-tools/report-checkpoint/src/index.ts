@@ -1,11 +1,4 @@
 #!/usr/bin/env node
-/**
- * ReportCheckpoint MCP Server
- *
- * Exposes a `report_checkpoint` tool that subagents use to stream progress checkpoints
- * to the UI in real-time. Communicates with Electron main process via HTTP.
- */
-
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -31,7 +24,6 @@ const server = new Server(
   { capabilities: { tools: {} } }
 );
 
-// List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
@@ -66,7 +58,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   ],
 }));
 
-// Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
   if (request.params.name !== 'report_checkpoint') {
     return {
@@ -78,7 +69,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   const args = request.params.arguments as unknown as ReportCheckpointInput;
   const { status, summary, nextPlanned, blocker } = args;
 
-  // Validate required fields
   if (!status || !summary) {
     return {
       content: [{ type: 'text', text: 'Error: status and summary are required' }],
@@ -86,7 +76,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
     };
   }
 
-  // Log to stderr for debugging
   console.error(`[report-checkpoint] [${status}] ${summary}`);
   if (nextPlanned) {
     console.error(`[report-checkpoint] Next planned: ${nextPlanned}`);
@@ -95,7 +84,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
     console.error(`[report-checkpoint] Blocker: ${blocker}`);
   }
 
-  // Fire-and-forget POST to thought stream API
   if (THOUGHT_STREAM_TASK_ID) {
     try {
       const response = await fetch(CHECKPOINT_URL, {
@@ -127,7 +115,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   };
 });
 
-// Start the MCP server
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

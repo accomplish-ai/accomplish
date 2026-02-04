@@ -1,7 +1,5 @@
 /**
- * CDP Relay Server for Chrome Extension mode
- *
- * This server acts as a bridge between Playwright clients and a Chrome extension.
+ * CDP Relay Server: bridges Playwright clients and a Chrome extension.
  * Instead of launching a browser, it waits for the extension to connect and
  * forwards CDP commands/events between them.
  */
@@ -10,10 +8,6 @@ import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import type { WSContext } from "hono/ws";
-
-// ============================================================================
-// Types
-// ============================================================================
 
 export interface RelayOptions {
   port?: number;
@@ -43,10 +37,9 @@ interface ConnectedTarget {
 interface PlaywrightClient {
   id: string;
   ws: WSContext;
-  knownTargets: Set<string>; // targetIds this client has received attachedToTarget for
+  knownTargets: Set<string>;
 }
 
-// Message types for extension communication
 interface ExtensionCommandMessage {
   id: number;
   method: "forwardCDPCommand";
@@ -77,7 +70,6 @@ type ExtensionMessage =
   | ExtensionEventMessage
   | { method: "log"; params: { level: string; args: string[] } };
 
-// CDP message types
 interface CDPCommand {
   id: number;
   method: string;
@@ -98,22 +90,16 @@ interface CDPEvent {
   params?: Record<string, unknown>;
 }
 
-// ============================================================================
-// Relay Server Implementation
-// ============================================================================
-
 export async function serveRelay(options: RelayOptions = {}): Promise<RelayServer> {
   // Accomplish uses port 9224 to avoid conflicts with Claude Code's dev-browser (9222)
   const port = options.port ?? 9224;
   const host = options.host ?? "127.0.0.1";
 
-  // State
   const connectedTargets = new Map<string, ConnectedTarget>();
-  const namedPages = new Map<string, string>(); // name -> sessionId
+  const namedPages = new Map<string, string>();
   const playwrightClients = new Map<string, PlaywrightClient>();
   let extensionWs: WSContext | null = null;
 
-  // Pending requests to extension
   const extensionPendingRequests = new Map<
     number,
     {
@@ -122,10 +108,6 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
     }
   >();
   let extensionMessageId = 0;
-
-  // ============================================================================
-  // Helper Functions
-  // ============================================================================
 
   function log(...args: unknown[]) {
     console.log("[relay]", ...args);
@@ -140,17 +122,13 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
         client.ws.send(messageStr);
       }
     } else {
-      // Broadcast to all clients
       for (const client of playwrightClients.values()) {
         client.ws.send(messageStr);
       }
     }
   }
 
-  /**
-   * Send Target.attachedToTarget event with deduplication.
-   * Tracks which targets each client has seen to prevent "Duplicate target" errors.
-   */
+  // Deduplicates to prevent "Duplicate target" errors
   function sendAttachedToTarget(
     target: ConnectedTarget,
     clientId?: string,
@@ -172,7 +150,6 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
         client.ws.send(JSON.stringify(event));
       }
     } else {
-      // Broadcast to all clients that don't know about this target yet
       for (const client of playwrightClients.values()) {
         if (!client.knownTargets.has(target.targetId)) {
           client.knownTargets.add(target.targetId);
@@ -228,7 +205,6 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
     params?: Record<string, unknown>;
     sessionId?: string;
   }): Promise<unknown> {
-    // Handle some CDP commands locally
     switch (method) {
       case "Browser.getVersion":
         return {
@@ -243,24 +219,22 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
         return {};
 
       case "Target.setAutoAttach":
-        if (sessionId) {
-          break; // Forward to extension for child frames
-        }
+        // Forward to extension for child frames when sessionId present
+        if (sessionId) break;
         return {};
 
       case "Target.setDiscoverTargets":
         return {};
 
       case "Target.attachToBrowserTarget":
-        // Browser-level session - return a fake session since we only proxy tabs
+        // Fake session since we only proxy tabs, not the browser
         return { sessionId: "browser" };
 
       case "Target.detachFromTarget":
-        // If detaching from our fake "browser" session, just return success
+        // Our fake "browser" session
         if (sessionId === "browser" || params?.sessionId === "browser") {
           return {};
         }
-        // Otherwise forward to extension
         break;
 
       case "Target.attachToTarget": {
@@ -296,7 +270,6 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
           }
         }
 
-        // Return first target if no specific one requested
         const firstTarget = Array.from(connectedTargets.values())[0];
         return { targetInfo: firstTarget?.targetInfo };
       }
@@ -311,28 +284,21 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
 
       case "Target.createTarget":
       case "Target.closeTarget":
-        // Forward to extension
         return await sendToExtension({
           method: "forwardCDPCommand",
           params: { method, params },
         });
     }
 
-    // Forward all other commands to extension
     return await sendToExtension({
       method: "forwardCDPCommand",
       params: { sessionId, method, params },
     });
   }
 
-  // ============================================================================
-  // HTTP/WebSocket Server
-  // ============================================================================
-
   const app = new Hono();
   const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
-  // Health check / server info
   app.get("/", (c) => {
     return c.json({
       wsEndpoint: `ws://${host}:${port}/cdp`,
@@ -341,14 +307,12 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
     });
   });
 
-  // List named pages
   app.get("/pages", (c) => {
     return c.json({
       pages: Array.from(namedPages.keys()),
     });
   });
 
-  // Get or create a named page
   app.post("/pages", async (c) => {
     const body = await c.req.json();
     const name = body.name as string;
@@ -357,12 +321,10 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
       return c.json({ error: "name is required" }, 400);
     }
 
-    // Check if page already exists by name
     const existingSessionId = namedPages.get(name);
     if (existingSessionId) {
       const target = connectedTargets.get(existingSessionId);
       if (target) {
-        // Activate the tab so it becomes the active tab
         await sendToExtension({
           method: "forwardCDPCommand",
           params: {
@@ -377,11 +339,9 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
           url: target.targetInfo.url,
         });
       }
-      // Session no longer valid, remove it
       namedPages.delete(name);
     }
 
-    // Create a new tab
     if (!extensionWs) {
       return c.json({ error: "Extension not connected" }, 503);
     }
@@ -392,14 +352,12 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
         params: { method: "Target.createTarget", params: { url: "about:blank" } },
       })) as { targetId: string };
 
-      // Wait for Target.attachedToTarget event to register the new target
+      // Wait for Target.attachedToTarget event to register the target
       await new Promise((resolve) => setTimeout(resolve, 200));
 
-      // Find and name the new target
       for (const [sessionId, target] of connectedTargets) {
         if (target.targetId === result.targetId) {
           namedPages.set(name, sessionId);
-          // Activate the tab so it becomes the active tab
           await sendToExtension({
             method: "forwardCDPCommand",
             params: {
@@ -423,16 +381,12 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
     }
   });
 
-  // Delete a named page (removes the name, doesn't close the tab)
+  // Removes the name mapping without closing the tab
   app.delete("/pages/:name", (c) => {
     const name = c.req.param("name");
     const deleted = namedPages.delete(name);
     return c.json({ success: deleted });
   });
-
-  // ============================================================================
-  // Playwright Client WebSocket
-  // ============================================================================
 
   app.get(
     "/cdp/:clientId?",
@@ -478,15 +432,12 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
           try {
             const result = await routeCdpCommand({ method, params, sessionId });
 
-            // After Target.setAutoAttach, send attachedToTarget for existing targets
-            // Uses deduplication to prevent "Duplicate target" errors
             if (method === "Target.setAutoAttach" && !sessionId) {
               for (const target of connectedTargets.values()) {
                 sendAttachedToTarget(target, clientId);
               }
             }
 
-            // After Target.setDiscoverTargets, send targetCreated events
             if (
               method === "Target.setDiscoverTargets" &&
               (params as { discover?: boolean })?.discover
@@ -504,7 +455,6 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
               }
             }
 
-            // After Target.attachToTarget, send attachedToTarget event (with deduplication)
             if (
               method === "Target.attachToTarget" &&
               (result as { sessionId?: string })?.sessionId
@@ -544,10 +494,6 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
     })
   );
 
-  // ============================================================================
-  // Extension WebSocket
-  // ============================================================================
-
   app.get(
     "/extension",
     upgradeWebSocket(() => {
@@ -557,7 +503,6 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
             log("Closing existing extension connection");
             extensionWs.close(4001, "Extension Replaced");
 
-            // Clear state
             connectedTargets.clear();
             namedPages.clear();
             for (const pending of extensionPendingRequests.values()) {
@@ -580,7 +525,6 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
             return;
           }
 
-          // Handle response to our request
           if ("id" in message && typeof message.id === "number") {
             const pending = extensionPendingRequests.get(message.id);
             if (!pending) {
@@ -598,19 +542,16 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
             return;
           }
 
-          // Handle log messages
           if ("method" in message && message.method === "log") {
             const { level, args } = message.params;
             console.log(`[extension:${level}]`, ...args);
             return;
           }
 
-          // Handle CDP events from extension
           if ("method" in message && message.method === "forwardCDPEvent") {
             const eventMsg = message as ExtensionEventMessage;
             const { method, params, sessionId } = eventMsg.params;
 
-            // Handle target lifecycle events
             if (method === "Target.attachedToTarget") {
               const targetParams = params as {
                 sessionId: string;
@@ -626,13 +567,11 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
 
               log(`Target attached: ${targetParams.targetInfo.url} (${targetParams.sessionId})`);
 
-              // Use deduplication helper - only sends to clients that don't know about this target
               sendAttachedToTarget(target);
             } else if (method === "Target.detachedFromTarget") {
               const detachParams = params as { sessionId: string };
               connectedTargets.delete(detachParams.sessionId);
 
-              // Also remove any name mapping
               for (const [name, sid] of namedPages) {
                 if (sid === detachParams.sessionId) {
                   namedPages.delete(name);
@@ -660,7 +599,6 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
                 params: infoParams,
               });
             } else {
-              // Forward other CDP events to Playwright
               sendToPlaywright({
                 sessionId,
                 method,
@@ -687,7 +625,6 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
           connectedTargets.clear();
           namedPages.clear();
 
-          // Close all Playwright clients
           for (const client of playwrightClients.values()) {
             client.ws.close(1000, "Extension disconnected");
           }
@@ -700,10 +637,6 @@ export async function serveRelay(options: RelayOptions = {}): Promise<RelayServe
       };
     })
   );
-
-  // ============================================================================
-  // Start Server
-  // ============================================================================
 
   const server = serve({ fetch: app.fetch, port, hostname: host });
   injectWebSocket(server);

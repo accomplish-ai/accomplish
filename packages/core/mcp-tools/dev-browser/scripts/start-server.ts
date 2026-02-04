@@ -6,9 +6,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Use a user-writable location for tmp and profiles (app bundle is read-only when installed)
-// On macOS: ~/Library/Application Support/Accomplish/dev-browser/
-// Fallback: system temp directory
+// Use a user-writable location (app bundle is read-only when installed)
 function getDataDir(): string {
   const homeDir = process.env.HOME || process.env.USERPROFILE || "";
   if (process.platform === "darwin") {
@@ -16,27 +14,22 @@ function getDataDir(): string {
   } else if (process.platform === "win32") {
     return join(process.env.APPDATA || homeDir, "Accomplish", "dev-browser");
   } else {
-    // Linux or fallback
     return join(homeDir, ".accomplish", "dev-browser");
   }
 }
 
 const dataDir = getDataDir();
 const tmpDir = join(dataDir, "tmp");
-// Profile can be overridden via environment variable for isolated testing
 const profileDir = process.env.DEV_BROWSER_PROFILE || join(dataDir, "profiles");
 
-// Create data directories if they don't exist
 console.log(`Creating data directory: ${dataDir}`);
 mkdirSync(tmpDir, { recursive: true });
 mkdirSync(profileDir, { recursive: true });
 
 // Accomplish uses ports 9224/9225 to avoid conflicts with Claude Code's dev-browser (9222/9223)
-// Ports can be overridden via environment variable for isolated agent testing
 const ACCOMPLISH_HTTP_PORT = parseInt(process.env.DEV_BROWSER_PORT || '9224', 10);
 const ACCOMPLISH_CDP_PORT = parseInt(process.env.DEV_BROWSER_CDP_PORT || '9225', 10);
 
-// Validate port numbers (catch NaN from invalid env var values)
 if (!Number.isFinite(ACCOMPLISH_HTTP_PORT) || ACCOMPLISH_HTTP_PORT < 1 || ACCOMPLISH_HTTP_PORT > 65535) {
   throw new Error(`Invalid DEV_BROWSER_PORT: ${process.env.DEV_BROWSER_PORT}. Must be a number between 1 and 65535`);
 }
@@ -44,7 +37,6 @@ if (!Number.isFinite(ACCOMPLISH_CDP_PORT) || ACCOMPLISH_CDP_PORT < 1 || ACCOMPLI
   throw new Error(`Invalid DEV_BROWSER_CDP_PORT: ${process.env.DEV_BROWSER_CDP_PORT}. Must be a number between 1 and 65535`);
 }
 
-// Check if server is already running
 console.log("Checking for existing servers...");
 try {
   const res = await fetch(`http://localhost:${ACCOMPLISH_HTTP_PORT}`, {
@@ -53,7 +45,6 @@ try {
   if (res.ok) {
     const info = await res.json() as { mode?: string };
 
-    // If it's a relay/extension server, kill it - we need launch mode
     if (info.mode === "extension") {
       console.log("Found relay server running, killing to start launch server...");
       try {
@@ -69,26 +60,23 @@ try {
             execSync(`kill -9 ${pid}`);
           }
         }
-        // Give it a moment to release the port
+        // Wait for port to be released
         await new Promise(resolve => setTimeout(resolve, 500));
       } catch {
-        // Failed to kill, continue anyway and let serve() fail with clear error
+        // Let serve() fail with clear error if kill failed
       }
     } else {
-      // Correct server type already running
       console.log(`Launch server already running on port ${ACCOMPLISH_HTTP_PORT}`);
       process.exit(0);
     }
   }
 } catch {
-  // Server not running, continue to start
+  // Server not running
 }
 
-// Clean up stale CDP port if HTTP server isn't running (crash recovery)
-// This handles the case where Node crashed but Chrome is still running
+// Clean up stale CDP port (crash recovery: Node crashed but Chrome is still running)
 try {
   if (process.platform === 'win32') {
-    // Windows: use netstat to find PID, then taskkill
     const output = execSync(`netstat -ano | findstr :${ACCOMPLISH_CDP_PORT}`, { encoding: "utf-8" });
     const match = output.match(/LISTENING\s+(\d+)/);
     if (match) {
@@ -97,7 +85,6 @@ try {
       execSync(`taskkill /F /PID ${pid}`, { stdio: "ignore" });
     }
   } else {
-    // Unix: use lsof
     const pid = execSync(`lsof -ti:${ACCOMPLISH_CDP_PORT}`, { encoding: "utf-8" }).trim();
     if (pid) {
       console.log(`Cleaning up stale Chrome process on CDP port ${ACCOMPLISH_CDP_PORT} (PID: ${pid})`);
@@ -105,13 +92,10 @@ try {
     }
   }
 } catch {
-  // No process on CDP port, which is expected
+  // Expected when no stale process exists
 }
 
-// Clean up stale Chrome profile lock files (crash recovery)
-// When Chrome crashes or is force-killed, it leaves behind SingletonLock files
-// that prevent new instances from starting. Clean them up before launching.
-// We have separate profile directories for system Chrome and Playwright Chromium.
+// Clean up stale Chrome lock files (crash recovery: Chrome leaves SingletonLock files that block new instances)
 const profileDirs = [
   join(profileDir, "chrome-profile"),
   join(profileDir, "playwright-profile"),
@@ -131,7 +115,6 @@ for (const dir of profileDirs) {
   }
 }
 
-// Helper to install Playwright Chromium
 function installPlaywrightChromium(): void {
   console.log("\n========================================");
   console.log("Downloading browser (one-time setup)...");
@@ -152,7 +135,6 @@ function installPlaywrightChromium(): void {
       pm = manager;
       break;
     } catch {
-      // Package manager not found, try next
     }
   }
 
@@ -165,7 +147,6 @@ function installPlaywrightChromium(): void {
   console.log("\nBrowser installed successfully!\n");
 }
 
-// Start the server - tries system Chrome first, falls back to Playwright Chromium
 console.log("Starting dev browser server...");
 const headless = process.env.HEADLESS === "true";
 
@@ -186,7 +167,6 @@ async function startServer(retry = false): Promise<void> {
     console.log(`\nReady`);
     console.log(`\nPress Ctrl+C to stop`);
 
-    // Keep the process running
     await new Promise(() => {});
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -202,7 +182,6 @@ async function startServer(retry = false): Promise<void> {
       console.log("\nSystem Chrome not available, downloading Playwright Chromium...");
       try {
         installPlaywrightChromium();
-        // Retry with Playwright Chromium (useSystemChrome will fail again, but fallback will work)
         await startServer(true);
         return;
       } catch (installError) {
@@ -212,7 +191,6 @@ async function startServer(retry = false): Promise<void> {
       }
     }
 
-    // If we've already retried or it's a different error, give up
     console.error("Failed to start dev browser server:", error);
     process.exit(1);
   }

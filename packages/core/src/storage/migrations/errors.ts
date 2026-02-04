@@ -1,9 +1,3 @@
-// packages/core/src/storage/migrations/errors.ts
-
-/**
- * Thrown when the database schema version is newer than the app supports.
- * User must update the app to continue.
- */
 export class FutureSchemaError extends Error {
   name = 'FutureSchemaError' as const;
 
@@ -17,9 +11,6 @@ export class FutureSchemaError extends Error {
   }
 }
 
-/**
- * Thrown when a migration fails to apply.
- */
 export class MigrationError extends Error {
   name = 'MigrationError' as const;
 
@@ -31,9 +22,6 @@ export class MigrationError extends Error {
   }
 }
 
-/**
- * Thrown when the database file is corrupted or unreadable.
- */
 export class CorruptDatabaseError extends Error {
   name = 'CorruptDatabaseError' as const;
 

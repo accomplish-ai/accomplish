@@ -1,14 +1,9 @@
-// apps/desktop/src/main/store/electronStoreImport.ts
-
 /**
  * Legacy electron-store data import.
  *
- * This module imports data from the pre-SQLite electron-store format
- * into the SQLite database. This handles users upgrading from very old
- * versions of the app that predated the SQLite migration.
- *
- * Import is tracked via schema_meta to ensure it only runs once per database,
- * preventing duplicate inserts and stale data overwrites on subsequent launches.
+ * Imports data from the pre-SQLite electron-store format into SQLite.
+ * Tracked via schema_meta to ensure it only runs once per database,
+ * preventing duplicate inserts and stale data overwrites.
  */
 
 import type { Database } from 'better-sqlite3';
@@ -17,17 +12,10 @@ import { app } from 'electron';
 
 const LEGACY_IMPORT_KEY = 'legacy_electron_store_import_complete';
 
-/**
- * Get store name based on environment (dev vs packaged).
- */
 function getStoreName(baseName: string): string {
   return app.isPackaged ? baseName : `${baseName}-dev`;
 }
 
-/**
- * Check if legacy import has already been attempted.
- * Uses schema_meta table to track migration status.
- */
 function wasLegacyImportAttempted(db: Database): boolean {
   try {
     const result = db.prepare(
@@ -39,18 +27,8 @@ function wasLegacyImportAttempted(db: Database): boolean {
   }
 }
 
-/**
- * Check if the database has existing user data.
- * Used to detect databases that already have user settings to avoid overwriting.
- *
- * Returns true if:
- * - Onboarding is complete, OR
- * - Any providers are configured, OR
- * - Any tasks exist
- */
 function hasExistingUserData(db: Database): boolean {
   try {
-    // Check if onboarding is complete (user has set up the app)
     const appSettings = db.prepare(
       'SELECT onboarding_complete FROM app_settings WHERE id = 1'
     ).get() as { onboarding_complete: number } | undefined;
@@ -58,7 +36,6 @@ function hasExistingUserData(db: Database): boolean {
       return true;
     }
 
-    // Check if any providers are configured
     const providerCount = db.prepare(
       'SELECT COUNT(*) as count FROM providers'
     ).get() as { count: number } | undefined;
@@ -66,7 +43,6 @@ function hasExistingUserData(db: Database): boolean {
       return true;
     }
 
-    // Check if any tasks exist
     const taskCount = db.prepare(
       'SELECT COUNT(*) as count FROM tasks'
     ).get() as { count: number } | undefined;
@@ -80,9 +56,6 @@ function hasExistingUserData(db: Database): boolean {
   }
 }
 
-/**
- * Mark legacy import as complete in schema_meta.
- */
 function markLegacyImportComplete(db: Database): void {
   try {
     db.prepare(
@@ -93,9 +66,6 @@ function markLegacyImportComplete(db: Database): void {
   }
 }
 
-/**
- * Import app settings from legacy electron-store.
- */
 function importAppSettings(db: Database): void {
   try {
     const legacy = new Store<Record<string, unknown>>({
@@ -131,9 +101,6 @@ function importAppSettings(db: Database): void {
   }
 }
 
-/**
- * Import provider settings from legacy electron-store.
- */
 function importProviderSettings(db: Database): void {
   try {
     const legacy = new Store<Record<string, unknown>>({
@@ -147,7 +114,6 @@ function importProviderSettings(db: Database): void {
 
     console.log('[LegacyImport] Importing provider-settings...');
 
-    // Import provider_meta
     db.prepare(
       `UPDATE provider_meta SET
         active_provider_id = ?,
@@ -158,7 +124,6 @@ function importProviderSettings(db: Database): void {
       legacy.get('debugMode') ? 1 : 0
     );
 
-    // Import connected providers (use OR IGNORE to avoid conflicts)
     const connectedProviders = legacy.get('connectedProviders') as Record<
       string,
       Record<string, unknown>
@@ -193,9 +158,6 @@ function importProviderSettings(db: Database): void {
   }
 }
 
-/**
- * Import task history from legacy electron-store.
- */
 function importTaskHistory(db: Database): void {
   try {
     const legacy = new Store<Record<string, unknown>>({
@@ -215,7 +177,6 @@ function importTaskHistory(db: Database): void {
       return;
     }
 
-    // Use OR IGNORE to avoid PK collisions if data already exists
     const insertTask = db.prepare(
       `INSERT OR IGNORE INTO tasks
         (id, prompt, summary, status, session_id, created_at, started_at, completed_at)
@@ -247,7 +208,6 @@ function importTaskHistory(db: Database): void {
         task.completedAt as string | null
       );
 
-      // Only import messages/attachments if task was newly inserted
       if (result.changes > 0) {
         importedCount++;
         const messages = task.messages as Array<Record<string, unknown>> | null;
@@ -290,27 +250,16 @@ function importTaskHistory(db: Database): void {
 /**
  * Import legacy electron-store data into SQLite database.
  *
- * This should be called after database initialization and migrations.
- * Import is tracked in schema_meta to ensure it only runs once per database.
- *
- * IMPORTANT: On older versions, the legacy import was part of the v001 migration.
- * If we detect an existing database without the import flag, it means the user
- * upgraded from an older version where import was already done (or not needed).
- * In that case, we mark import complete WITHOUT running it to avoid overwriting
- * current settings with stale JSON data.
- *
- * @param db The SQLite database instance
+ * If we detect an existing database without the import flag, the user upgraded
+ * from a version where import was baked into v001 migration. Mark complete
+ * WITHOUT running to prevent overwriting current settings with stale JSON data.
  */
 export function importLegacyElectronStoreData(db: Database): void {
-  // Check if import was already attempted (tracked in schema_meta)
   if (wasLegacyImportAttempted(db)) {
     console.log('[LegacyImport] Legacy import already completed, skipping');
     return;
   }
 
-  // If the database already has user data but no import flag, it means the user
-  // upgraded from a version where import was baked into v001 migration.
-  // Mark as complete WITHOUT running to prevent overwriting current data.
   if (hasExistingUserData(db)) {
     console.log('[LegacyImport] Database has existing user data - marking import complete without running');
     markLegacyImportComplete(db);
@@ -323,7 +272,6 @@ export function importLegacyElectronStoreData(db: Database): void {
   importProviderSettings(db);
   importTaskHistory(db);
 
-  // Mark import as complete so it doesn't run again
   markLegacyImportComplete(db);
 
   console.log('[LegacyImport] Legacy import complete');

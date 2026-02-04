@@ -1,5 +1,3 @@
-// packages/core/src/storage/repositories/taskHistory.ts
-
 import type { Task, TaskMessage, TaskStatus, TaskAttachment, TodoItem } from '@accomplish/shared';
 import { getDatabase } from '../database.js';
 
@@ -132,7 +130,6 @@ export function saveTask(task: Task): void {
   const db = getDatabase();
 
   db.transaction(() => {
-    // Upsert task
     db.prepare(
       `INSERT OR REPLACE INTO tasks
         (id, prompt, summary, status, session_id, created_at, started_at, completed_at)
@@ -148,10 +145,8 @@ export function saveTask(task: Task): void {
       task.completedAt || null
     );
 
-    // Delete existing messages and attachments (cascade handles attachments)
     db.prepare('DELETE FROM task_messages WHERE task_id = ?').run(task.id);
 
-    // Insert messages
     const insertMessage = db.prepare(
       `INSERT INTO task_messages
         (id, task_id, type, content, tool_name, tool_input, timestamp, sort_order)
@@ -182,7 +177,6 @@ export function saveTask(task: Task): void {
       }
     }
 
-    // Enforce max history limit
     db.prepare(
       `DELETE FROM tasks WHERE id NOT IN (
         SELECT id FROM tasks ORDER BY created_at DESC LIMIT ?
@@ -213,7 +207,6 @@ export function addTaskMessage(taskId: string, message: TaskMessage): void {
   const db = getDatabase();
 
   db.transaction(() => {
-    // Get the next sort_order
     const maxOrder = db
       .prepare('SELECT MAX(sort_order) as max FROM task_messages WHERE task_id = ?')
       .get(taskId) as { max: number | null };
@@ -268,8 +261,7 @@ export function clearHistory(): void {
 }
 
 export function setMaxHistoryItems(_max: number): void {
-  // Note: MAX_HISTORY_ITEMS is a constant now, but we keep this function
-  // for API compatibility. In the future, this could be stored in a settings table.
+  // Deprecated: MAX_HISTORY_ITEMS is a constant. Kept for API compatibility.
   console.log('[TaskHistory] setMaxHistoryItems is deprecated, using constant limit');
 }
 
@@ -277,10 +269,8 @@ export function clearTaskHistoryStore(): void {
   clearHistory();
 }
 
-// For backwards compatibility with the debounced flush
-export function flushPendingTasks(): void {
-  // No-op: SQLite writes are immediate, no debouncing needed
-}
+// No-op: SQLite writes are immediate. Kept for API compatibility.
+export function flushPendingTasks(): void {}
 
 export function getTodosForTask(taskId: string): TodoItem[] {
   const db = getDatabase();
@@ -301,10 +291,8 @@ export function saveTodosForTask(taskId: string, todos: TodoItem[]): void {
   const db = getDatabase();
 
   db.transaction(() => {
-    // Delete existing todos for this task
     db.prepare('DELETE FROM task_todos WHERE task_id = ?').run(taskId);
 
-    // Insert new todos
     const insert = db.prepare(
       `INSERT INTO task_todos (task_id, todo_id, content, status, priority, sort_order)
        VALUES (?, ?, ?, ?, ?, ?)`

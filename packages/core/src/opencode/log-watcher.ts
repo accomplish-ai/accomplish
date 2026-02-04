@@ -3,9 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-/**
- * Parsed error from OpenCode logs
- */
 export interface OpenCodeLogError {
   timestamp: string;
   service: string;
@@ -16,19 +13,14 @@ export interface OpenCodeLogError {
   statusCode?: number;
   message?: string;
   raw: string;
-  /** True if this is an authentication error that requires re-login */
   isAuthError?: boolean;
 }
 
-/**
- * Known error patterns and their user-friendly messages
- */
 const ERROR_PATTERNS: Array<{
   pattern: RegExp;
   extract: (match: RegExpMatchArray, line: string) => Partial<OpenCodeLogError>;
 }> = [
   {
-    // OpenAI OAuth token expired/invalid
     pattern: /openai.*(?:invalid_api_key|invalid_token|token.*expired|oauth.*invalid|Incorrect API key)/i,
     extract: () => ({
       errorName: 'OAuthExpiredError',
@@ -39,7 +31,6 @@ const ERROR_PATTERNS: Array<{
     }),
   },
   {
-    // OpenAI 401 Unauthorized
     pattern: /openai.*"status":\s*401|"status":\s*401.*openai|providerID=openai.*statusCode.*401/i,
     extract: () => ({
       errorName: 'OAuthUnauthorizedError',
@@ -50,7 +41,6 @@ const ERROR_PATTERNS: Array<{
     }),
   },
   {
-    // OpenAI authentication failed
     pattern: /openai.*authentication.*failed|authentication.*failed.*openai/i,
     extract: () => ({
       errorName: 'OAuthAuthenticationError',
@@ -61,7 +51,6 @@ const ERROR_PATTERNS: Array<{
     }),
   },
   {
-    // AWS Bedrock throttling error
     pattern: /ThrottlingException.*?"message":"([^"]+)"/,
     extract: (match) => ({
       errorName: 'ThrottlingException',
@@ -70,7 +59,6 @@ const ERROR_PATTERNS: Array<{
     }),
   },
   {
-    // Generic AI_APICallError with status code
     pattern: /"name":"AI_APICallError".*?"statusCode":(\d+).*?"message":"([^"]+)"/,
     extract: (match) => ({
       errorName: 'AI_APICallError',
@@ -79,7 +67,6 @@ const ERROR_PATTERNS: Array<{
     }),
   },
   {
-    // AI_APICallError without detailed message (fallback)
     pattern: /"name":"AI_APICallError".*?"statusCode":(\d+)/,
     extract: (match) => ({
       errorName: 'AI_APICallError',
@@ -88,7 +75,6 @@ const ERROR_PATTERNS: Array<{
     }),
   },
   {
-    // Access denied / authentication errors
     pattern: /AccessDeniedException|UnauthorizedException|InvalidSignatureException/,
     extract: () => ({
       errorName: 'AuthenticationError',
@@ -97,7 +83,6 @@ const ERROR_PATTERNS: Array<{
     }),
   },
   {
-    // Model not found
     pattern: /ModelNotFoundError|ResourceNotFoundException.*model/i,
     extract: () => ({
       errorName: 'ModelNotFoundError',
@@ -106,7 +91,6 @@ const ERROR_PATTERNS: Array<{
     }),
   },
   {
-    // Validation errors
     pattern: /ValidationException.*?"message":"([^"]+)"/,
     extract: (match) => ({
       errorName: 'ValidationError',
@@ -121,11 +105,7 @@ export interface LogWatcherEvents {
   'log-line': [string];
 }
 
-/**
- * Watches OpenCode CLI log files for errors.
- * The CLI writes logs to ~/.local/share/opencode/log/ but doesn't output
- * errors as JSON to stdout, so we need to monitor the log files directly.
- */
+// Watches log files because CLI doesn't output errors as JSON to stdout
 export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
   private logDir: string;
   private watcher: fs.FSWatcher | null = null;
@@ -138,13 +118,9 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
 
   constructor(logDir?: string) {
     super();
-    // OpenCode stores logs in ~/.local/share/opencode/log/
     this.logDir = logDir || path.join(os.homedir(), '.local', 'share', 'opencode', 'log');
   }
 
-  /**
-   * Start watching for errors in the most recent log file
-   */
   async start(): Promise<void> {
     if (this.isWatching) {
       return;
@@ -153,19 +129,15 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
     this.isWatching = true;
     this.seenErrors.clear();
 
-    // Find the most recent log file
     await this.findAndWatchLatestLog();
 
-    // Poll for new content every 500ms
     this.pollInterval = setInterval(() => {
       this.readNewContent();
     }, 500);
 
-    // Watch for new log files being created
     try {
       this.watcher = fs.watch(this.logDir, (eventType, filename) => {
         if (eventType === 'rename' && filename?.endsWith('.log')) {
-          // A new log file was created, switch to it
           this.findAndWatchLatestLog();
         }
       });
@@ -174,9 +146,6 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
     }
   }
 
-  /**
-   * Stop watching
-   */
   async stop(): Promise<void> {
     this.isWatching = false;
 
@@ -200,9 +169,6 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
     this.seenErrors.clear();
   }
 
-  /**
-   * Find and start watching the most recent log file
-   */
   private async findAndWatchLatestLog(): Promise<void> {
     try {
       const files = await fs.promises.readdir(this.logDir);
@@ -217,19 +183,17 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
 
       const latestLog = path.join(this.logDir, logFiles[0]);
 
-      // If we're already watching this file, don't restart
       if (latestLog === this.currentLogFile) {
         return;
       }
 
-      // Close previous file handle
       if (this.fileHandle) {
         await this.fileHandle.close();
       }
 
       this.currentLogFile = latestLog;
 
-      // Open file and seek to end (we only care about new errors)
+      // Seek to end since we only care about new errors after watching starts
       this.fileHandle = await fs.promises.open(latestLog, 'r');
       const stat = await this.fileHandle.stat();
       this.readPosition = stat.size;
@@ -240,9 +204,6 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
     }
   }
 
-  /**
-   * Read new content from the log file
-   */
   private async readNewContent(): Promise<void> {
     if (!this.fileHandle || !this.isWatching) {
       return;
@@ -275,36 +236,28 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
         }
       }
     } catch (err) {
-      // File might have been rotated, try to find new log
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
         await this.findAndWatchLatestLog();
       }
     }
   }
 
-  /**
-   * Parse a log line for errors
-   */
   private parseLine(line: string): void {
-    // Only process ERROR lines
     if (!line.includes('ERROR')) {
       return;
     }
 
-    // Extract timestamp and basic info
     const timestampMatch = line.match(/^(\w+)\s+(\S+)\s+(\+\d+ms)/);
     const serviceMatch = line.match(/service=(\S+)/);
     const providerMatch = line.match(/providerID=(\S+)/);
     const modelMatch = line.match(/modelID=(\S+)/);
     const sessionMatch = line.match(/sessionID=(\S+)/);
 
-    // Try to match known error patterns
     for (const { pattern, extract } of ERROR_PATTERNS) {
       const match = line.match(pattern);
       if (match) {
         const errorInfo = extract(match, line);
 
-        // Create a unique key for deduplication
         const errorKey = `${errorInfo.errorName}:${errorInfo.statusCode}:${sessionMatch?.[1] || ''}`;
         if (this.seenErrors.has(errorKey)) {
           continue;
@@ -330,9 +283,6 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
     }
   }
 
-  /**
-   * Get a user-friendly error message
-   */
   static getErrorMessage(error: OpenCodeLogError): string {
     switch (error.errorName) {
       case 'OAuthExpiredError':
@@ -361,9 +311,6 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
   }
 }
 
-/**
- * Create a log watcher instance
- */
 export function createLogWatcher(logDir?: string): OpenCodeLogWatcher {
   return new OpenCodeLogWatcher(logDir);
 }

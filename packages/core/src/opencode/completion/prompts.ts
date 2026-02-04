@@ -1,16 +1,3 @@
-/**
- * Prompt templates for continuation flows.
- *
- * PROMPT DESIGN RATIONALE:
- *
- * CONTINUATION PROMPT:
- * - Non-aggressive tone to avoid interrupting in-progress work
- * - Asks agent to self-assess "Have I actually finished?" before acting
- * - "CONTINUE WORKING" as first option - ensures agent finishes work before signaling completion
- * - Lists all three statuses so agent picks the appropriate one
- * - Explicit "Keep working if there's more to do" reinforces work-first priority
- */
-
 export function getContinuationPrompt(): string {
   return `REMINDER: You must call complete_task when finished.
 

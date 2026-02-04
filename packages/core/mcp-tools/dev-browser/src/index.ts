@@ -21,7 +21,6 @@ export interface DevBrowserServer {
   stop: () => Promise<void>;
 }
 
-// Helper to retry fetch with exponential backoff
 async function fetchWithRetry(
   url: string,
   maxRetries = 5,
@@ -43,7 +42,6 @@ async function fetchWithRetry(
   throw new Error(`Failed after ${maxRetries} retries: ${lastError?.message}`);
 }
 
-// Helper to add timeout to promises
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return Promise.race([
     promise,
@@ -54,14 +52,12 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
 }
 
 export async function serve(options: ServeOptions = {}): Promise<DevBrowserServer> {
-  // Ports can be overridden via environment variable for isolated testing
   const port = options.port ?? parseInt(process.env.DEV_BROWSER_PORT || '9224', 10);
   const headless = options.headless ?? false;
   const cdpPort = options.cdpPort ?? parseInt(process.env.DEV_BROWSER_CDP_PORT || '9225', 10);
   const profileDir = options.profileDir ?? process.env.DEV_BROWSER_PROFILE;
-  const useSystemChrome = options.useSystemChrome ?? true; // Default to trying system Chrome
+  const useSystemChrome = options.useSystemChrome ?? true;
 
-  // Validate port numbers (Number.isFinite catches NaN from invalid env var values)
   if (!Number.isFinite(port) || port < 1 || port > 65535) {
     throw new Error(`Invalid port: ${port}. Must be a number between 1 and 65535`);
   }
@@ -72,50 +68,44 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     throw new Error("port and cdpPort must be different");
   }
 
-  // Base profile directory
   const baseProfileDir = profileDir ?? join(process.cwd(), ".browser-data");
 
   let context: BrowserContext;
   let usedSystemChrome = false;
 
-  // Try system Chrome first if enabled (much faster - no download needed)
   if (useSystemChrome) {
     try {
       console.log("Trying to use system Chrome...");
-      // Use separate profile directory for system Chrome to avoid compatibility issues
       const chromeUserDataDir = join(baseProfileDir, "chrome-profile");
       mkdirSync(chromeUserDataDir, { recursive: true });
 
       context = await chromium.launchPersistentContext(chromeUserDataDir, {
         headless,
-        channel: 'chrome', // Use system Chrome instead of Playwright's Chromium
-        ignoreDefaultArgs: ['--enable-automation'], // Remove automation flag
+        channel: 'chrome',
+        ignoreDefaultArgs: ['--enable-automation'],
         args: [
           `--remote-debugging-port=${cdpPort}`,
-          '--disable-blink-features=AutomationControlled', // Hide navigator.webdriver
+          '--disable-blink-features=AutomationControlled',
         ],
       });
       usedSystemChrome = true;
       console.log("Using system Chrome (fast startup!)");
     } catch (chromeError) {
       console.log("System Chrome not available, falling back to Playwright Chromium...");
-      // Fall through to Playwright Chromium below
     }
   }
 
-  // Fall back to Playwright's bundled Chromium
   if (!usedSystemChrome) {
-    // Use separate profile directory for Playwright Chromium to avoid compatibility issues
     const playwrightUserDataDir = join(baseProfileDir, "playwright-profile");
     mkdirSync(playwrightUserDataDir, { recursive: true });
 
     console.log("Launching browser with Playwright Chromium...");
     context = await chromium.launchPersistentContext(playwrightUserDataDir, {
       headless,
-      ignoreDefaultArgs: ['--enable-automation'], // Remove automation flag
+      ignoreDefaultArgs: ['--enable-automation'],
       args: [
         `--remote-debugging-port=${cdpPort}`,
-        '--disable-blink-features=AutomationControlled', // Hide navigator.webdriver
+        '--disable-blink-features=AutomationControlled',
       ],
     });
     console.log("Browser launched with Playwright Chromium");
@@ -123,29 +113,24 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
 
   console.log("Browser launched with persistent profile...");
 
-  // Listen for browser context close (e.g., user closes Chrome window)
-  // When this happens, exit the server so it can be restarted with a fresh browser
+  // Exit server when user closes browser so it can be restarted fresh
   context.on('close', () => {
     console.log('Browser context closed (user may have closed Chrome). Exiting server...');
     process.exit(0);
   });
 
-  // Get the CDP WebSocket endpoint from Chrome's JSON API (with retry for slow startup)
   const cdpResponse = await fetchWithRetry(`http://127.0.0.1:${cdpPort}/json/version`);
   const cdpInfo = (await cdpResponse.json()) as { webSocketDebuggerUrl: string };
   const wsEndpoint = cdpInfo.webSocketDebuggerUrl;
   console.log(`CDP WebSocket endpoint: ${wsEndpoint}`);
 
-  // Registry entry type for page tracking
   interface PageEntry {
     page: Page;
     targetId: string;
   }
 
-  // Registry: name -> PageEntry
   const registry = new Map<string, PageEntry>();
 
-  // Helper to get CDP targetId for a page
   async function getTargetId(page: Page): Promise<string> {
     const cdpSession = await context.newCDPSession(page);
     try {
@@ -156,17 +141,14 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     }
   }
 
-  // Express server for page management
   const app: Express = express();
   app.use(express.json());
 
-  // GET / - server info
   app.get("/", (_req: Request, res: Response) => {
     const response: ServerInfoResponse = { wsEndpoint };
     res.json(response);
   });
 
-  // GET /pages - list all pages
   app.get("/pages", (_req: Request, res: Response) => {
     const response: ListPagesResponse = {
       pages: Array.from(registry.keys()),
@@ -174,7 +156,6 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     res.json(response);
   });
 
-  // POST /pages - get or create page
   app.post("/pages", async (req: Request, res: Response) => {
     const body = req.body as GetPageRequest;
     const { name, viewport } = body;
@@ -194,10 +175,8 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
       return;
     }
 
-    // Check if page already exists
     let entry = registry.get(name);
     if (!entry) {
-      // Create new page in the persistent context (with timeout to prevent hangs)
       const page = await withTimeout(context.newPage(), 30000, "Page creation timed out after 30s");
 
       // Apply viewport if provided
@@ -209,7 +188,6 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
       entry = { page, targetId };
       registry.set(name, entry);
 
-      // Clean up registry when page is closed (e.g., user clicks X)
       page.on("close", () => {
         registry.delete(name);
       });
@@ -219,7 +197,6 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     res.json(response);
   });
 
-  // DELETE /pages/:name - close a page
   app.delete("/pages/:name", async (req: Request<{ name: string }>, res: Response) => {
     const name = decodeURIComponent(req.params.name);
     const entry = registry.get(name);
@@ -234,56 +211,48 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     res.status(404).json({ error: "page not found" });
   });
 
-  // Start the server
   const server = app.listen(port, () => {
     console.log(`HTTP API server running on port ${port}`);
   });
 
-  // Track active connections for clean shutdown
   const connections = new Set<Socket>();
   server.on("connection", (socket: Socket) => {
     connections.add(socket);
     socket.on("close", () => connections.delete(socket));
   });
 
-  // Track if cleanup has been called to avoid double cleanup
   let cleaningUp = false;
 
-  // Cleanup function
   const cleanup = async () => {
     if (cleaningUp) return;
     cleaningUp = true;
 
     console.log("\nShutting down...");
 
-    // Close all active HTTP connections
     for (const socket of connections) {
       socket.destroy();
     }
     connections.clear();
 
-    // Close all pages
     for (const entry of registry.values()) {
       try {
         await entry.page.close();
       } catch {
-        // Page might already be closed
+        // Already closed
       }
     }
     registry.clear();
 
-    // Close context (this also closes the browser)
     try {
       await context.close();
     } catch {
-      // Context might already be closed
+      // Already closed
     }
 
     server.close();
     console.log("Server stopped.");
   };
 
-  // Synchronous cleanup for forced exits
   const syncCleanup = () => {
     try {
       context.close();
@@ -292,7 +261,6 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     }
   };
 
-  // Signal handlers (consolidated to reduce duplication)
   const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const;
 
   const signalHandler = async () => {
@@ -306,13 +274,11 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     process.exit(1);
   };
 
-  // Register handlers
   signals.forEach((sig) => process.on(sig, signalHandler));
   process.on("uncaughtException", errorHandler);
   process.on("unhandledRejection", errorHandler);
   process.on("exit", syncCleanup);
 
-  // Helper to remove all handlers
   const removeHandlers = () => {
     signals.forEach((sig) => process.off(sig, signalHandler));
     process.off("uncaughtException", errorHandler);

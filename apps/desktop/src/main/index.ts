@@ -4,8 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
-// Hardcode userData path to 'Accomplish' regardless of package.json name
-// This ensures consistent data location across all versions
+// Hardcode userData path to ensure consistent data location across all versions
 const APP_DATA_NAME = 'Accomplish';
 app.setPath('userData', path.join(app.getPath('appData'), APP_DATA_NAME));
 
@@ -30,10 +29,7 @@ import { getApiKey } from './store/secureStorage';
 import { initializeLogCollector, shutdownLogCollector, getLogCollector } from './logging';
 import { skillsManager } from './skills';
 
-// Local UI - no longer uses remote URL
-
-// Early E2E flag detection - check command-line args before anything else
-// This must run synchronously at module load time
+// E2E flags must be detected synchronously at module load time before app.whenReady()
 if (process.argv.includes('--e2e-skip-auth')) {
   (global as Record<string, unknown>).E2E_SKIP_AUTH = true;
 }
@@ -41,7 +37,6 @@ if (process.argv.includes('--e2e-mock-tasks') || process.env.E2E_MOCK_TASK_EVENT
   (global as Record<string, unknown>).E2E_MOCK_TASK_EVENTS = true;
 }
 
-// Clean mode - wipe all stored data for a fresh start
 // Use CLEAN_START env var since CLI args don't pass through vite to Electron
 if (process.env.CLEAN_START === '1') {
   const userDataPath = app.getPath('userData');
@@ -54,30 +49,16 @@ if (process.env.CLEAN_START === '1') {
   } catch (err) {
     console.error('[Clean Mode] Failed to clear userData:', err);
   }
-  // Note: Secure storage (API keys) uses @accomplish/core's SecureStorage
-  // which stores data in userData, so it gets cleared with the directory above
 }
 
-// Set app name before anything else (affects internal Electron name)
 app.setName('Accomplish');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Load .env file from app root
 const envPath = app.isPackaged
   ? path.join(process.resourcesPath, '.env')
   : path.join(__dirname, '../../.env');
 config({ path: envPath });
-
-// The built directory structure
-//
-// ├─┬ dist-electron
-// │ ├─┬ main
-// │ │ └── index.js    > Electron-Main
-// │ └─┬ preload
-// │   └── index.js    > Preload-Scripts
-// ├─┬ dist
-// │ └── index.html    > Electron-Renderer
 
 process.env.APP_ROOT = path.join(__dirname, '../..');
 
@@ -87,7 +68,6 @@ export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
 let mainWindow: BrowserWindow | null = null;
 
-// Get the preload script path
 function getPreloadPath(): string {
   return path.join(__dirname, '../preload/index.cjs');
 }
@@ -95,7 +75,6 @@ function getPreloadPath(): string {
 function createWindow() {
   console.log('[Main] Creating main application window');
 
-  // Get app icon
   const iconFile = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
   const iconPath = app.isPackaged
     ? path.join(process.resourcesPath, iconFile)
@@ -124,7 +103,6 @@ function createWindow() {
     },
   });
 
-  // Open external links in browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https:') || url.startsWith('http:')) {
       shell.openExternal(url);
@@ -132,16 +110,13 @@ function createWindow() {
     return { action: 'deny' };
   });
 
-  // Maximize window by default
   mainWindow.maximize();
 
-  // Open DevTools in dev mode (non-packaged), but not during E2E tests
   const isE2EMode = (global as Record<string, unknown>).E2E_SKIP_AUTH === true;
   if (!app.isPackaged && !isE2EMode) {
     mainWindow.webContents.openDevTools({ mode: 'right' });
   }
 
-  // Load the local UI
   if (VITE_DEV_SERVER_URL) {
     console.log('[Main] Loading from Vite dev server:', VITE_DEV_SERVER_URL);
     mainWindow.loadURL(VITE_DEV_SERVER_URL);
@@ -152,38 +127,30 @@ function createWindow() {
   }
 }
 
-// Global error handlers to prevent crashes from uncaught errors
-// These commonly occur when stdout is unavailable (terminal closed, app shutdown)
+// Log to file only to avoid recursive EIO errors when stdout is unavailable
 process.on('uncaughtException', (error) => {
-  // Only log to file (not console) to avoid recursive EIO errors
   try {
     const collector = getLogCollector();
     collector.log('ERROR', 'main', `Uncaught exception: ${error.message}`, {
       name: error.name,
       stack: error.stack,
     });
-  } catch {
-    // Ignore errors during error handling
-  }
+  } catch {}
 });
 
 process.on('unhandledRejection', (reason) => {
   try {
     const collector = getLogCollector();
     collector.log('ERROR', 'main', 'Unhandled promise rejection', { reason });
-  } catch {
-    // Ignore errors during error handling
-  }
+  } catch {}
 });
 
-// Single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
   console.log('[Main] Second instance attempted; quitting');
   app.quit();
 } else {
-  // Initialize logging FIRST - before anything else
   initializeLogCollector();
   getLogCollector().logEnv('INFO', 'App starting', {
     version: app.getVersion(),
@@ -198,7 +165,6 @@ if (!gotTheLock) {
       mainWindow.focus();
       console.log('[Main] Focused existing instance after second-instance event');
 
-      // On Windows, protocol URLs come through commandLine on second-instance
       if (process.platform === 'win32') {
         const protocolUrl = commandLine.find((arg) => arg.startsWith('accomplish://'));
         if (protocolUrl) {
@@ -214,7 +180,6 @@ if (!gotTheLock) {
   app.whenReady().then(async () => {
     console.log('[Main] Electron app ready, version:', app.getVersion());
 
-    // Migrate data from legacy userData paths if needed (one-time migration)
     try {
       const didMigrate = migrateLegacyData();
       if (didMigrate) {
@@ -224,7 +189,6 @@ if (!gotTheLock) {
       console.error('[Main] Legacy data migration failed:', err);
     }
 
-    // Initialize database and run migrations
     try {
       initializeDatabase();
     } catch (err) {
@@ -242,8 +206,7 @@ if (!gotTheLock) {
       throw err;
     }
 
-    // Validate provider settings - if DB says a provider is connected with api_key
-    // but the key doesn't exist in secure storage, clear provider settings
+    // Clear provider settings if DB says api_key auth but key is missing from secure storage
     try {
       const settings = getProviderSettings();
       for (const [providerId, provider] of Object.entries(settings.connectedProviders)) {
@@ -261,10 +224,8 @@ if (!gotTheLock) {
       console.error('[Main] Provider validation failed:', err);
     }
 
-    // Initialize skills manager (scans skill directories and syncs to database)
     await skillsManager.initialize();
 
-    // Set dock icon on macOS
     if (process.platform === 'darwin' && app.dock) {
       const iconPath = app.isPackaged
         ? path.join(process.resourcesPath, 'icon.png')
@@ -275,7 +236,6 @@ if (!gotTheLock) {
       }
     }
 
-    // Register IPC handlers before creating window
     registerIPCHandlers();
     console.log('[Main] IPC handlers registered');
 
@@ -292,35 +252,25 @@ if (!gotTheLock) {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    console.log('[Main] All windows closed; quitting app');
     app.quit();
   }
 });
 
-// Flush pending task history writes and dispose TaskManager before quitting
 app.on('before-quit', () => {
-  console.log('[Main] App before-quit event fired');
   flushPendingTasks();
-  // Dispose all active tasks and cleanup PTY processes
   disposeTaskManager();
-  // Cancel any active OAuth flow
   oauthBrowserFlow.dispose();
-  // Stop Azure Foundry proxy server if running
   stopAzureFoundryProxy().catch((err) => {
     console.error('[Main] Failed to stop Azure Foundry proxy:', err);
   });
-  // Stop Moonshot proxy server if running
   stopMoonshotProxy().catch((err) => {
     console.error('[Main] Failed to stop Moonshot proxy:', err);
   });
-  // Close database connection
   closeDatabase();
-  // Flush and shutdown logging LAST to capture all shutdown logs
   shutdownLogCollector();
 });
 
-// Handle custom protocol (accomplish://)
-// On Windows in dev mode, we need to pass the script path for protocol registration
+// On Windows in dev mode, pass the script path for protocol registration
 if (process.platform === 'win32' && !app.isPackaged) {
   app.setAsDefaultProtocolClient('accomplish', process.execPath, [
     path.resolve(process.argv[1]),
@@ -329,13 +279,10 @@ if (process.platform === 'win32' && !app.isPackaged) {
   app.setAsDefaultProtocolClient('accomplish');
 }
 
-// Handle protocol URL from process.argv (Windows first launch with protocol URL)
 function handleProtocolUrlFromArgs(): void {
   if (process.platform === 'win32') {
     const protocolUrl = process.argv.find((arg) => arg.startsWith('accomplish://'));
     if (protocolUrl) {
-      console.log('[Main] Received protocol URL from argv:', protocolUrl);
-      // Delay sending until window is ready
       app.whenReady().then(() => {
         setTimeout(() => {
           if (mainWindow && !mainWindow.isDestroyed()) {
@@ -349,19 +296,15 @@ function handleProtocolUrlFromArgs(): void {
   }
 }
 
-// Check for protocol URL on startup
 handleProtocolUrlFromArgs();
 
 app.on('open-url', (event, url) => {
   event.preventDefault();
-  console.log('[Main] Received protocol URL:', url);
-  // Handle protocol URL
   if (url.startsWith('accomplish://callback')) {
     mainWindow?.webContents?.send('auth:callback', url);
   }
 });
 
-// IPC Handlers
 ipcMain.handle('app:version', () => {
   return app.getVersion();
 });

@@ -1,16 +1,3 @@
-/**
- * Electron-specific options for OpenCode adapter and task manager
- *
- * This module provides Electron-specific implementations of the callbacks
- * required by @accomplish/core's OpenCodeAdapter and TaskManager.
- *
- * Desktop-specific concerns:
- * - Path resolution via Electron's app module
- * - Bundled Node.js and CLI paths
- * - API key loading from secure storage
- * - Environment variable building with Electron context
- */
-
 import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
@@ -39,22 +26,17 @@ import { generateOpenCodeConfig, getMcpToolsPath, syncApiKeysToOpenCodeAuth } fr
 import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo } from '../utils/bundled-node';
 
-/**
- * Build environment variables with all API keys and Electron-specific settings
- */
 export async function buildEnvironment(): Promise<NodeJS.ProcessEnv> {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
   };
 
   if (app.isPackaged) {
-    // Run the bundled CLI with Electron acting as Node (no system Node required).
+    // Electron acts as Node for bundled CLI (no system Node required)
     env.ELECTRON_RUN_AS_NODE = '1';
 
-    // Log bundled Node.js configuration
     logBundledNodeInfo();
 
-    // Add bundled Node.js to PATH (highest priority)
     const bundledNode = getBundledNodePaths();
     if (bundledNode) {
       const delimiter = process.platform === 'win32' ? ';' : ':';
@@ -70,13 +52,11 @@ export async function buildEnvironment(): Promise<NodeJS.ProcessEnv> {
       console.log('[OpenCode CLI] Added bundled Node.js to PATH:', bundledNode.binDir);
     }
 
-    // For packaged apps on macOS, extend PATH to include common Node.js locations
     if (process.platform === 'darwin') {
       env.PATH = getExtendedNodePath(env.PATH);
     }
   }
 
-  // Load all API keys from secure storage
   const apiKeys = await getAllApiKeys();
 
   if (apiKeys.anthropic) {
@@ -114,7 +94,6 @@ export async function buildEnvironment(): Promise<NodeJS.ProcessEnv> {
     env.MINIMAX_API_KEY = apiKeys.minimax;
   }
 
-  // Set Bedrock credentials if configured
   const bedrockCredentials = getBedrockCredentials();
   if (bedrockCredentials) {
     if (bedrockCredentials.authType === 'apiKey') {
@@ -133,7 +112,6 @@ export async function buildEnvironment(): Promise<NodeJS.ProcessEnv> {
     }
   }
 
-  // Set Ollama host if configured
   const activeModel = getActiveProviderModel();
   const selectedModel = getSelectedModel();
   if (activeModel?.provider === 'ollama' && activeModel.baseUrl) {
@@ -145,45 +123,29 @@ export async function buildEnvironment(): Promise<NodeJS.ProcessEnv> {
   return env;
 }
 
-/**
- * Build CLI arguments for task execution
- */
 export async function buildCliArgs(config: TaskConfig, _taskId: string): Promise<string[]> {
   const args: string[] = [];
 
-  // Session resume mode
   if (config.sessionId) {
     args.push('--resume', config.sessionId);
   }
 
-  // Prompt is passed as positional argument
   args.push(config.prompt);
 
   return args;
 }
 
-/**
- * Get the CLI command and arguments for spawning OpenCode
- */
 export function getCliCommand(): { command: string; args: string[] } {
   return getOpenCodeCliPath();
 }
 
-/**
- * Check if OpenCode CLI is available
- */
 export async function isCliAvailable(): Promise<boolean> {
   return isOpenCodeBundled();
 }
 
-/**
- * Run pre-start setup: generate config, sync API keys, get Azure token if needed
- */
 export async function onBeforeStart(): Promise<void> {
-  // Sync API keys to OpenCode CLI's auth.json
   await syncApiKeysToOpenCodeAuth();
 
-  // Get Azure Entra ID token if needed
   let azureFoundryToken: string | undefined;
   const activeModel = getActiveProviderModel();
   const selectedModel = activeModel || getSelectedModel();
@@ -203,13 +165,9 @@ export async function onBeforeStart(): Promise<void> {
     azureFoundryToken = tokenResult.token;
   }
 
-  // Generate OpenCode config file
   await generateOpenCodeConfig(azureFoundryToken);
 }
 
-/**
- * Get browser server configuration for the dev-browser
- */
 function getBrowserServerConfig(): BrowserServerConfig {
   const bundledPaths = getBundledNodePaths();
   return {
@@ -219,9 +177,6 @@ function getBrowserServerConfig(): BrowserServerConfig {
   };
 }
 
-/**
- * Callback before starting a task (browser setup)
- */
 export async function onBeforeTaskStart(
   callbacks: TaskCallbacks,
   isFirstTask: boolean
@@ -230,14 +185,10 @@ export async function onBeforeTaskStart(
     callbacks.onProgress({ stage: 'browser', message: 'Preparing browser...', isFirstTask });
   }
 
-  // Ensure browser is available (may download Playwright if needed)
   const browserConfig = getBrowserServerConfig();
   await ensureDevBrowserServer(browserConfig, callbacks.onProgress);
 }
 
-/**
- * Create Electron-specific adapter options
- */
 export function createElectronAdapterOptions(): AdapterOptions {
   return {
     platform: process.platform,
@@ -251,9 +202,6 @@ export function createElectronAdapterOptions(): AdapterOptions {
   };
 }
 
-/**
- * Create Electron-specific task manager options
- */
 export function createElectronTaskManagerOptions(): TaskManagerOptions {
   return {
     adapterOptions: {

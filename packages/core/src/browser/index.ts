@@ -1,9 +1,3 @@
-/**
- * Browser automation utilities
- *
- * Platform-independent browser detection and dev-browser server management.
- */
-
 export {
   isSystemChromeInstalled,
   isPlaywrightInstalled,

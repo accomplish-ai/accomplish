@@ -1,15 +1,6 @@
-// packages/core/mcp-tools/dev-browser-mcp/src/snapshot/parser.ts
-
 import type { SnapshotElement, ParsedSnapshot } from './types.js';
 
-/**
- * Parse a YAML snapshot string into a structured format with elements indexed by ref.
- *
- * Example input line:
- * - button "Submit" [ref=e5] [disabled]:
- *
- * Extracts: { ref: 'e5', role: 'button', name: 'Submit', disabled: true }
- */
+// Parses YAML lines like: - button "Submit" [ref=e5] [disabled]:
 export function parseSnapshot(
   yamlSnapshot: string,
   url: string,
@@ -18,8 +9,6 @@ export function parseSnapshot(
   const elements = new Map<string, SnapshotElement>();
   const lines = yamlSnapshot.split('\n');
 
-  // Regex to match element lines with refs
-  // Matches: - role "name" [ref=eN] [optional-attrs]:
   const elementRegex = /^(\s*)-\s+(\w+)(?:\s+"([^"]*)"|\s+'([^']*)')?(.*)$/;
   const refRegex = /\[ref=(e\d+)\]/;
   const valueRegex = /:\s*"([^"]*)"\s*$/;
@@ -38,18 +27,16 @@ export function parseSnapshot(
     const name = nameDouble ?? nameSingle ?? '';
 
     const refMatch = rest.match(refRegex);
-    if (!refMatch) continue; // Skip elements without refs
+    if (!refMatch) continue;
 
     const ref = refMatch[1];
     const element: SnapshotElement = { ref, role, name };
 
-    // Extract value (for inputs with content after colon)
     const valueMatch = line.match(valueRegex);
     if (valueMatch) {
       element.value = valueMatch[1];
     }
 
-    // Extract boolean attributes
     const checkedMatch = rest.match(checkedRegex);
     if (checkedMatch) {
       element.checked = checkedMatch[1] === 'mixed' ? 'mixed' : true;
@@ -89,10 +76,6 @@ export function parseSnapshot(
   };
 }
 
-/**
- * Extract the page title from snapshot metadata header.
- * Looks for "Page Title: ..." or similar patterns.
- */
 export function extractTitleFromSnapshot(snapshot: string): string {
   const titleMatch = snapshot.match(/(?:Page Title|Title):\s*(.+)/i);
   return titleMatch ? titleMatch[1].trim() : '';

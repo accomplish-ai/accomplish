@@ -1,10 +1,3 @@
-/**
- * API key validation for various providers
- *
- * This module provides platform-agnostic API key validation.
- * It uses the native fetch API (available in Node.js 18+).
- */
-
 import type { ProviderType } from '@accomplish/shared';
 import { ZAI_ENDPOINTS, type ZaiRegion } from '@accomplish/shared';
 
@@ -24,9 +17,6 @@ export interface ValidationOptions {
 
 const DEFAULT_TIMEOUT_MS = 10000;
 
-/**
- * Fetch with timeout support
- */
 async function fetchWithTimeout(
   url: string,
   options: RequestInit,
@@ -46,14 +36,6 @@ async function fetchWithTimeout(
   }
 }
 
-/**
- * Validate an API key for a given provider
- *
- * @param provider - The provider type to validate against
- * @param apiKey - The API key to validate
- * @param options - Optional configuration (baseUrl, timeout, zaiRegion)
- * @returns ValidationResult indicating if the key is valid
- */
 export async function validateApiKey(
   provider: ProviderType,
   apiKey: string,
@@ -204,8 +186,7 @@ export async function validateApiKey(
         );
         break;
 
-      // Providers that don't support simple API key validation
-      // or use alternative auth methods (AWS credentials, local servers, etc.)
+      // These providers use alternative auth (AWS credentials, local servers, etc.)
       case 'ollama':
       case 'bedrock':
       case 'azure-foundry':
@@ -213,7 +194,6 @@ export async function validateApiKey(
       case 'lmstudio':
       case 'custom':
       default:
-        // Skip validation for these providers
         return { valid: true };
     }
 
@@ -221,13 +201,11 @@ export async function validateApiKey(
       return { valid: true };
     }
 
-    // Handle error responses
     const errorData = await response.json().catch(() => ({}));
     const errorMessage =
       (errorData as { error?: { message?: string } })?.error?.message ||
       `API returned status ${response.status}`;
 
-    // 401 indicates invalid API key
     if (response.status === 401) {
       return { valid: false, error: 'Invalid API key' };
     }

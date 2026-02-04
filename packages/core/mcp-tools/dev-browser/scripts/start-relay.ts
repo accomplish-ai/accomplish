@@ -1,9 +1,3 @@
-/**
- * Start the CDP relay server for Chrome extension mode
- *
- * Usage: npm run start-extension
- */
-
 import { serveRelay } from "@/relay.js";
 
 // Accomplish uses port 9224 to avoid conflicts with Claude Code's dev-browser (9222)
@@ -16,7 +10,6 @@ async function main() {
     host: HOST,
   });
 
-  // Handle shutdown
   const shutdown = async () => {
     console.log("\nShutting down relay server...");
     await server.stop();
