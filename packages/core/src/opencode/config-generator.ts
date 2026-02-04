@@ -29,10 +29,10 @@ export interface ConfigGeneratorOptions {
 
 export interface ProviderConfig {
   id: string;
-  npm: string;
-  name: string;
+  npm?: string;
+  name?: string;
   options: Record<string, unknown>;
-  models: Record<string, ProviderModelConfig>;
+  models?: Record<string, ProviderModelConfig>;
 }
 
 export interface ProviderModelConfig {
