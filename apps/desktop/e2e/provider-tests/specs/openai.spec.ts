@@ -27,10 +27,12 @@ test.describe('OpenAI Provider E2E', () => {
     await settings.selectProvider(testConfig.config.providerId);
 
     const isAlreadyConnected = await settings.disconnectButton.isVisible();
+
     if (isAlreadyConnected) {
       await settings.clickDisconnect();
       await providerWindow.waitForTimeout(500);
     }
+
 
     await settings.enterApiKey(secrets.apiKey);
     await settings.clickConnect();

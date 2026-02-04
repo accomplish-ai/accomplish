@@ -73,6 +73,15 @@ export function databaseExists(): boolean {
 }
 
 /**
+ * Reset the database singleton without closing.
+ * Used during CLEAN_START to ensure fresh state after userData is deleted.
+ */
+export function resetDatabaseSingleton(): void {
+  _db = null;
+  console.log('[DB] Reset database singleton');
+}
+
+/**
  * Initialize the database and run migrations.
  * Call this on app startup before any database access.
  * Throws FutureSchemaError if the database is from a newer app version.

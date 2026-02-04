@@ -29,12 +29,14 @@ export const test = base.extend<ElectronFixtures>({
         mainPath,
         '--e2e-skip-auth',
         '--e2e-mock-tasks',
+        
         // Disable sandbox in Docker (required for containerized Electron)
         ...(process.env.DOCKER_ENV === '1' ? ['--no-sandbox', '--disable-gpu'] : []),
       ],
       env: {
         ...process.env,
         E2E_SKIP_AUTH: '1',
+        
         E2E_MOCK_TASK_EVENTS: '1',
         NODE_ENV: 'test',
       },

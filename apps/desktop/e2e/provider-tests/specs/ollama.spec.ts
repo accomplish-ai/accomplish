@@ -63,7 +63,7 @@ test.describe('Ollama Provider E2E', () => {
     // Select model
     if (setupResult.modelId) {
       console.log('Selecting model', setupResult.modelId);
-      await providerWindow.pause();
+
       await settings.selectModel(`ollama/${setupResult.modelId}`);
     } else {
       await settings.selectFirstModel();
