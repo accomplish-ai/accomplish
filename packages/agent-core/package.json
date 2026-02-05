@@ -1,8 +1,18 @@
 {
   "name": "@accomplish/agent-core",
   "version": "0.1.0",
-  "private": true,
+  "description": "Core logic for Accomplish - OpenCode adapter, storage, providers, MCP tools, and skills",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/accomplish-ai/accomplish.git",
+    "directory": "packages/agent-core"
+  },
+  "publishConfig": {
+    "name": "@accomplish_ai/agent-core",
+    "access": "public"
+  },
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
