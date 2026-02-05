@@ -7,7 +7,7 @@ import {
   LOG_RETENTION_DAYS,
   LOG_BUFFER_FLUSH_INTERVAL_MS,
   LOG_BUFFER_MAX_ENTRIES,
-} from '../common/constants.js';
+} from '../constants/logging.js';
 
 import { redact } from './redact.js';
 

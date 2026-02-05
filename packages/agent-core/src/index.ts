@@ -389,7 +389,14 @@ export type { TodoItem } from './common/types/todo.js';
 export type { LogLevel, LogSource, LogEntry } from './common/types/logging.js';
 export type { ThoughtEvent, CheckpointEvent } from './common/types/thought-stream.js';
 
-// Constants
+// Constants (Browser-safe - from common)
+export {
+  MODEL_DISPLAY_NAMES,
+  PROVIDER_PREFIXES,
+  getModelDisplayName,
+} from './common/constants/model-display.js';
+
+// Constants (Main-process only - system configuration)
 export {
   DEV_BROWSER_PORT,
   DEV_BROWSER_CDP_PORT,
@@ -401,13 +408,7 @@ export {
   LOG_RETENTION_DAYS,
   LOG_BUFFER_FLUSH_INTERVAL_MS,
   LOG_BUFFER_MAX_ENTRIES,
-} from './common/constants.js';
-
-export {
-  MODEL_DISPLAY_NAMES,
-  PROVIDER_PREFIXES,
-  getModelDisplayName,
-} from './common/constants/model-display.js';
+} from './constants/index.js';
 
 // Utils
 export {
@@ -431,3 +432,28 @@ export {
   resumeSessionSchema,
   validate,
 } from './common/schemas/validation.js';
+
+// -----------------------------------------------------------------------------
+// Internal Module (from ./internal/) - Main Process Only
+// -----------------------------------------------------------------------------
+// IMPORTANT: These exports are for main process implementation only.
+// They contain internal types and mappers that should NEVER be used in
+// the renderer process or exposed to external API consumers.
+
+// Internal types (for working with runtime state in main process)
+export type {
+  TaskInternal,
+  TaskCallbacksInternal,
+  TaskProgressInternal,
+  ManagedTaskInternal,
+  QueuedTaskInternal,
+} from './internal/index.js';
+
+// Mappers (for converting internal types to public DTOs)
+export {
+  toTaskDTO,
+  toTaskDTOArray,
+  toTaskProgressDTO,
+  toTaskMessageDTO,
+  hasInternalFields,
+} from './internal/index.js';

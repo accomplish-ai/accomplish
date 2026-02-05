@@ -115,20 +115,9 @@ export type { TodoItem } from './common/types/todo.js';
 export type { LogLevel, LogSource, LogEntry } from './common/types/logging.js';
 export type { ThoughtEvent, CheckpointEvent } from './common/types/thought-stream.js';
 
-// === CONSTANTS ===
-export {
-  DEV_BROWSER_PORT,
-  DEV_BROWSER_CDP_PORT,
-  THOUGHT_STREAM_PORT,
-  PERMISSION_API_PORT,
-  QUESTION_API_PORT,
-  PERMISSION_REQUEST_TIMEOUT_MS,
-  LOG_MAX_FILE_SIZE_BYTES,
-  LOG_RETENTION_DAYS,
-  LOG_BUFFER_FLUSH_INTERVAL_MS,
-  LOG_BUFFER_MAX_ENTRIES,
-} from './common/constants.js';
-
+// === CONSTANTS (Browser-safe only) ===
+// Note: System constants (ports, logging config) are NOT exported here.
+// They are only available from the main index.ts entry point.
 export {
   MODEL_DISPLAY_NAMES,
   PROVIDER_PREFIXES,
