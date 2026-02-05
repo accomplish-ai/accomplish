@@ -143,6 +143,8 @@ export async function buildProviderConfigs(
   if (ollamaProvider?.connectionStatus === 'connected' && ollamaProvider.credentials.type === 'ollama') {
     if (ollamaProvider.selectedModelId) {
       const modelId = ollamaProvider.selectedModelId.replace(/^ollama\//, '');
+      // Register model with both formats for compatibility
+      // Some code paths use "modelId" while others use "ollama/modelId"
       providerConfigs.push({
         id: 'ollama',
         npm: '@ai-sdk/openai-compatible',
@@ -152,6 +154,7 @@ export async function buildProviderConfigs(
         },
         models: {
           [modelId]: { name: modelId, tools: true },
+          [`ollama/${modelId}`]: { name: modelId, tools: true },
         },
       });
       console.log('[OpenCode Config Builder] Ollama configured:', modelId);
@@ -162,7 +165,9 @@ export async function buildProviderConfigs(
     if (ollamaConfig?.enabled && ollamaModels && ollamaModels.length > 0) {
       const models: Record<string, ProviderModelConfig> = {};
       for (const model of ollamaModels) {
+        // Register both formats for compatibility
         models[model.id] = { name: model.displayName, tools: true };
+        models[`ollama/${model.id}`] = { name: model.displayName, tools: true };
       }
       providerConfigs.push({
         id: 'ollama',

@@ -76,8 +76,15 @@ export class TaskManager {
     config: TaskConfig,
     callbacks: TaskCallbacks
   ): Promise<Task> {
+    console.log('[TaskManager] Starting task:', taskId);
+    console.log('[TaskManager] Working directory:', config.workingDirectory || this.options.defaultWorkingDirectory);
+    console.log('[TaskManager] Prompt length:', config.prompt?.length || 0);
+
     const cliInstalled = await this.options.isCliAvailable();
+    console.log('[TaskManager] CLI available check result:', cliInstalled);
+
     if (!cliInstalled) {
+      console.error('[TaskManager] OpenCode CLI not found - task will fail');
       throw new OpenCodeCliNotFoundError();
     }
 
@@ -154,6 +161,7 @@ export class TaskManager {
     };
 
     const onError = (error: Error) => {
+      console.error('[TaskManager] Task error:', taskId, error.message, error.stack);
       callbacks.onError(error);
       this.cleanupTask(taskId);
       this.processQueue();
@@ -232,6 +240,7 @@ export class TaskManager {
           workingDirectory: config.workingDirectory || this.options.defaultWorkingDirectory,
         });
       } catch (error) {
+        console.error('[TaskManager] Failed to start task:', taskId, error);
         callbacks.onError(error instanceof Error ? error : new Error(String(error)));
         this.cleanupTask(taskId);
         this.processQueue();
