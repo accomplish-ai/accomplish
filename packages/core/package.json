@@ -3,42 +3,28 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./opencode": {
-      "import": "./dist/opencode/index.js",
-      "types": "./dist/opencode/index.d.ts"
-    },
-    "./storage": {
-      "import": "./dist/storage/index.js",
-      "types": "./dist/storage/index.d.ts"
-    },
-    "./providers": {
-      "import": "./dist/providers/index.js",
-      "types": "./dist/providers/index.d.ts"
-    },
-    "./skills": {
-      "import": "./dist/skills/index.js",
-      "types": "./dist/skills/index.d.ts"
-    },
-    "./utils": {
-      "import": "./dist/utils/index.js",
-      "types": "./dist/utils/index.d.ts"
-    },
-    "./browser": {
-      "import": "./dist/browser/index.js",
-      "types": "./dist/browser/index.d.ts"
+      "default": "./dist/index.js"
     }
   },
   "files": [
     "dist",
-    "mcp-tools"
+    "mcp-tools/*/src",
+    "mcp-tools/*/dist",
+    "mcp-tools/*/package.json",
+    "mcp-tools/*/tsconfig.json",
+    "mcp-tools/*/*.md",
+    "mcp-tools/package.json"
   ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

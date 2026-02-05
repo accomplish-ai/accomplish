@@ -3,5 +3,4 @@ export {
   permissionResponseSchema,
   resumeSessionSchema,
   validate,
-  type ResumeSession,
 } from './validation.js';

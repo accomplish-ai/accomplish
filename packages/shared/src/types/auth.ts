@@ -1,27 +1,3 @@
-export interface User {
-  id: string;
-  email: string;
-  name?: string;
-  pictureUrl?: string;
-  tier: 'free' | 'pro' | 'enterprise';
-  createdAt: string;
-}
-
-export interface Session {
-  id: string;
-  userId: string;
-  deviceId?: string;
-  deviceName?: string;
-  createdAt: string;
-  expiresAt: string;
-}
-
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-}
-
 export interface ApiKeyConfig {
   id: string;
   provider: 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock';
@@ -56,10 +32,3 @@ export type BedrockCredentials =
   | BedrockAccessKeyCredentials
   | BedrockProfileCredentials
   | BedrockApiKeyCredentials;
-
-export interface QuotaStatus {
-  callsUsed: number;
-  callsLimit: number;
-  remaining: number;
-  resetsAt?: string;
-}

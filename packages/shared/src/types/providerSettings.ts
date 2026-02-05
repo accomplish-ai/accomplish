@@ -114,12 +114,6 @@ export type ProviderCredentials =
 
 export type ToolSupportStatus = 'supported' | 'unsupported' | 'unknown';
 
-export interface ModelWithToolSupport {
-  id: string;
-  name: string;
-  toolSupport?: ToolSupportStatus;
-}
-
 export interface ConnectedProvider {
   providerId: ProviderId;
   connectionStatus: ConnectionStatus;

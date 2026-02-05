@@ -111,18 +111,6 @@ export interface AzureFoundryConfig {
   lastValidated?: number;
 }
 
-export interface OpenRouterModel {
-  id: string;
-  name: string;
-  provider: string;
-  contextLength: number;
-}
-
-export interface OpenRouterConfig {
-  models: OpenRouterModel[];
-  lastFetched?: number;
-}
-
 export interface LiteLLMModel {
   id: string;
   name: string;

@@ -38,10 +38,3 @@ export function validate<TSchema extends z.ZodTypeAny>(
   }
   return result.data;
 }
-
-// Type for resumeSessionSchema - exported as it doesn't conflict with existing types
-export type ResumeSession = z.infer<typeof resumeSessionSchema>;
-
-// Note: TaskConfig and PermissionResponse types are not exported here
-// to avoid conflicts with existing types in ./types/
-// Use the existing types from @accomplish/shared instead

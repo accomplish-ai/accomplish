@@ -11,7 +11,6 @@ import {
   getActiveProviderModel,
   getConnectedProvider,
   getAzureEntraToken,
-  getModelDisplayName,
   ensureDevBrowserServer,
   resolveCliPath,
   isCliAvailable as coreIsCliAvailable,
@@ -22,6 +21,7 @@ import {
   type CliResolverConfig,
   type EnvironmentConfig,
 } from '@accomplish/core';
+import { getModelDisplayName } from '@accomplish/shared';
 import type { AzureFoundryCredentials, BedrockCredentials } from '@accomplish/shared';
 import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
 import { generateOpenCodeConfig, getMcpToolsPath, syncApiKeysToOpenCodeAuth } from './config-generator';

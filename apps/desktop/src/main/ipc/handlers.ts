@@ -28,8 +28,6 @@ import {
   testLiteLLMConnection,
   fetchLiteLLMModels,
   validateHttpUrl,
-  createTaskId,
-  createMessageId,
   sanitizeString,
   generateTaskSummary,
   toTaskMessage,
@@ -37,6 +35,7 @@ import {
   flushAndCleanupBatcher,
   validateTaskConfig,
 } from '@accomplish/core';
+import { createTaskId, createMessageId } from '@accomplish/shared';
 import {
   storeApiKey,
   getApiKey,

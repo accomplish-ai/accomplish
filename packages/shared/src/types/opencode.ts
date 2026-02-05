@@ -120,26 +120,3 @@ export type OpenCodeMessage =
   | OpenCodeToolResultMessage
   | OpenCodeStepFinishMessage
   | OpenCodeErrorMessage;
-
-export interface NormalizedMessage {
-  type: 'init' | 'assistant' | 'user' | 'tool_use' | 'tool_result' | 'result';
-  sessionId?: string;
-  content?: string;
-  toolName?: string;
-  toolInput?: unknown;
-  toolOutput?: string;
-  status?: 'success' | 'error';
-  error?: string;
-  metadata?: {
-    model?: string;
-    provider?: string;
-    durationMs?: number;
-    tokens?: {
-      input: number;
-      output: number;
-    };
-  };
-}
-
-export type ClaudeMessage = OpenCodeMessage;
-export type ClaudeMessageBase = OpenCodeMessageBase;

@@ -1,11 +1,4 @@
-import type {
-  PermissionRequest,
-  PermissionResponse,
-  Task,
-  TaskMessage,
-  TaskProgress,
-  TaskResult,
-} from '@accomplish/shared';
+import type { PermissionRequest, PermissionResponse, TaskMessage, TaskProgress, TaskResult } from '@accomplish/shared';
 
 export interface PlatformConfig {
   userDataPath: string;
@@ -54,11 +47,3 @@ export interface BundledNodePaths {
   binDir: string;
 }
 
-export type {
-  PermissionRequest,
-  PermissionResponse,
-  Task,
-  TaskMessage,
-  TaskProgress,
-  TaskResult,
-};

@@ -14,12 +14,6 @@ export interface Skill {
   updatedAt: string;
 }
 
-export interface SkillsState {
-  skills: Skill[];
-  filter: 'all' | 'active' | 'official';
-  searchQuery: string;
-}
-
 export interface SkillFrontmatter {
   name: string;
   description: string;
