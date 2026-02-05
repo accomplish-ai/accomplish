@@ -15,7 +15,7 @@ const nodeModulesPath = path.join(__dirname, '..', 'node_modules');
 const accomplishPath = path.join(nodeModulesPath, '@accomplish');
 
 // Save symlink targets for restoration
-const workspacePackages = ['shared', 'core'];
+const workspacePackages = ['agent-core'];
 const symlinkTargets = {};
 
 try {
