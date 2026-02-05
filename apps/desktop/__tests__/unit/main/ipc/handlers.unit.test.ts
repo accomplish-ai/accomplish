@@ -137,6 +137,16 @@ vi.mock('@accomplish/agent-core', async (importOriginal) => {
     // Use actual implementation for task config validation
     validateTaskConfig: actual.validateTaskConfig,
 
+    // Use actual implementation for allowed API key providers constant
+    ALLOWED_API_KEY_PROVIDERS: actual.ALLOWED_API_KEY_PROVIDERS,
+
+    // Use actual implementation for standard validation providers constant
+    STANDARD_VALIDATION_PROVIDERS: actual.STANDARD_VALIDATION_PROVIDERS,
+
+    // Use actual implementation for validation schemas and functions
+    validate: actual.validate,
+    permissionResponseSchema: actual.permissionResponseSchema,
+
   // Utility functions
   fetchWithTimeout: vi.fn(() => Promise.resolve(new Response('{}'))),
   createTaskId: vi.fn(() => `task_${Date.now()}`),

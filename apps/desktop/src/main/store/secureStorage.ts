@@ -1,5 +1,5 @@
 import { app } from 'electron';
-import { SecureStorage, createSecureStorage } from '@accomplish/agent-core/storage';
+import { SecureStorage, createSecureStorage } from '@accomplish/agent-core';
 import type { ApiKeyProvider } from '@accomplish/agent-core';
 
 export type { ApiKeyProvider };
