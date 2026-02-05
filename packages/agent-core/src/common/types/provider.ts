@@ -5,7 +5,7 @@ export const ZAI_ENDPOINTS: Record<ZaiRegion, string> = {
   international: 'https://api.z.ai/api/coding/paas/v4',
 };
 
-export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'minimax' | 'lmstudio';
+export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'minimax' | 'lmstudio' | 'nim';
 
 export type ApiKeyProvider =
   | 'anthropic'
@@ -22,6 +22,7 @@ export type ApiKeyProvider =
   | 'litellm'
   | 'minimax'
   | 'lmstudio'
+  | 'nim'
   | 'elevenlabs';
 
 /**
@@ -44,6 +45,7 @@ export const ALLOWED_API_KEY_PROVIDERS: ReadonlySet<string> = new Set<string>([
   'litellm',
   'minimax',
   'lmstudio',
+  'nim',
   'elevenlabs',
 ]);
 
@@ -136,6 +138,20 @@ export interface LMStudioConfig {
   enabled: boolean;
   lastValidated?: number;
   models?: LMStudioModel[];
+}
+
+export interface NimModel {
+  id: string;
+  name: string;
+  /** Maximum context length from max_model_len in NIM API response */
+  maxModelLen?: number;
+}
+
+export interface NimConfig {
+  baseUrl: string;
+  enabled: boolean;
+  lastValidated?: number;
+  models?: NimModel[];
 }
 
 export const DEFAULT_PROVIDERS: ProviderConfig[] = [

@@ -50,7 +50,7 @@ interface AccomplishAPI {
 
   // Settings
   getApiKeys(): Promise<ApiKeyConfig[]>;
-  addApiKey(provider: 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'lmstudio' | 'elevenlabs', key: string, label?: string): Promise<ApiKeyConfig>;
+  addApiKey(provider: 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'lmstudio' | 'nim' | 'elevenlabs', key: string, label?: string): Promise<ApiKeyConfig>;
   removeApiKey(id: string): Promise<void>;
   getDebugMode(): Promise<boolean>;
   setDebugMode(enabled: boolean): Promise<void>;
@@ -143,6 +143,23 @@ interface AccomplishAPI {
     lastValidated?: number;
     models?: Array<{ id: string; name: string; toolSupport: ToolSupportStatus }>;
   } | null): Promise<void>;
+
+  // NIM configuration
+  testNimConnection(url: string, apiKey?: string): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string }>;
+    error?: string;
+  }>;
+  fetchNimModels(baseUrl: string, apiKey?: string): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string }>;
+    error?: string;
+  }>;
+
+  testNimModelToolSupport(baseUrl: string, modelId: string): Promise<{
+    toolSupport: ToolSupportStatus;
+    contextLength?: number;
+  }>;
 
   // Bedrock configuration
   validateBedrockCredentials(credentials: string): Promise<{ valid: boolean; error?: string }>;

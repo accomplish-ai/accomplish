@@ -352,6 +352,52 @@ export async function buildProviderConfigs(
     }
   }
 
+  // NIM provider
+  const nimProvider = providerSettings.connectedProviders.nim;
+  if (nimProvider?.connectionStatus === 'connected' && nimProvider.credentials.type === 'nim' && nimProvider.selectedModelId) {
+    const modelId = nimProvider.selectedModelId.replace(/^nim\//, '');
+    const nimApiKey = getApiKey('nim');
+    const nimBaseUrl = nimProvider.credentials.serverUrl.replace(/\/+$/, '');
+
+    // Get model info to retrieve context length (discovered during model selection probe)
+    const modelInfo = nimProvider.availableModels?.find(
+      m => m.id === nimProvider.selectedModelId || m.id === modelId
+    );
+    // Use discovered context length, or fall back to conservative default (8192)
+    // Context length is discovered by the probe when user selects a model
+    const maxModelLen = modelInfo?.maxModelLen ?? 8192;
+
+    // Build model config with limits
+    const nimModelConfig: ProviderModelConfig = { name: modelId, tools: true };
+    // Set output limit to a reasonable fraction of context, leaving room for input
+    // For large contexts (>32k), cap output at 16384; for smaller, use half
+    // Nvidia NIM has different output limits for different models, so we need to use the maxModelLen to determine the output limit
+    const outputLimit = maxModelLen > 32000 
+      ? Math.min(Math.floor(maxModelLen / 4), 16384)
+      : Math.min(Math.floor(maxModelLen / 2), 4096);
+    nimModelConfig.limit = {
+      context: maxModelLen,
+      output: outputLimit,
+    };
+
+    providerConfigs.push({
+      id: 'nim',
+      npm: '@ai-sdk/openai-compatible',
+      name: 'NVIDIA NIM',
+      options: {
+        baseURL: nimBaseUrl,
+        ...(nimApiKey ? { apiKey: nimApiKey } : {}),
+      },
+      models: {
+        [modelId]: nimModelConfig,
+      },
+    });
+    if (!enabledProviders.includes('nim')) {
+      enabledProviders.push('nim');
+    }
+    console.log('[OpenCode Config Builder] NIM configured:', modelId, 'baseURL:', nimBaseUrl, 'hasApiKey:', !!nimApiKey, 'maxModelLen:', maxModelLen);
+  }
+
   // Azure Foundry provider
   const azureFoundryProvider = providerSettings.connectedProviders['azure-foundry'];
   if (azureFoundryProvider?.connectionStatus === 'connected' && azureFoundryProvider.credentials.type === 'azure-foundry') {
@@ -486,6 +532,14 @@ export async function syncApiKeysToOpenCodeAuth(
       auth.minimax = { type: 'api', key: apiKeys.minimax };
       updated = true;
       console.log('[OpenCode Auth] Synced MiniMax API key');
+    }
+  }
+
+  if (apiKeys.nim) {
+    if (!auth.nim || auth.nim.key !== apiKeys.nim) {
+      auth.nim = { type: 'api', key: apiKeys.nim };
+      updated = true;
+      console.log('[OpenCode Auth] Synced NIM API key');
     }
   }
 

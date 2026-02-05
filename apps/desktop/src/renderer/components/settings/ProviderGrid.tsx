@@ -23,6 +23,7 @@ const PROVIDER_ORDER: ProviderId[] = [
   'openrouter',
   'litellm',
   'minimax',
+  'nim',
 ];
 
 interface ProviderGridProps {

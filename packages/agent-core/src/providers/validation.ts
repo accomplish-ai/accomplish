@@ -167,6 +167,24 @@ export async function validateApiKey(
         );
         break;
 
+      case 'nim': {
+        const baseUrl = (options?.baseUrl || '').replace(/\/+$/, '');
+        if (!baseUrl) {
+          return { valid: false, error: 'NIM base URL is required' };
+        }
+        response = await fetchWithTimeout(
+          `${baseUrl}/v1/models`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+            },
+          },
+          timeout
+        );
+        break;
+      }
+
       case 'ollama':
       case 'bedrock':
       case 'azure-foundry':

@@ -68,6 +68,9 @@ import {
   testLMStudioConnection,
   fetchLMStudioModels,
   validateLMStudioConfig,
+  testNimConnection,
+  fetchNimModels,
+  testNimModelToolSupport,
 } from '@accomplish/agent-core';
 import { safeParseJson } from '@accomplish/agent-core';
 import {
@@ -819,6 +822,20 @@ export function registerIPCHandlers(): void {
       validateLMStudioConfig(config);
     }
     setLMStudioConfig(config);
+  });
+
+  // NIM configuration
+  handle('nim:test-connection', async (_event: IpcMainInvokeEvent, url: string, apiKey?: string) => {
+    return testNimConnection({ baseUrl: url, apiKey });
+  });
+
+  handle('nim:fetch-models', async (_event: IpcMainInvokeEvent, baseUrl: string, apiKey?: string) => {
+    return fetchNimModels({ baseUrl, apiKey });
+  });
+
+  handle('nim:test-model-tool-support', async (_event: IpcMainInvokeEvent, baseUrl: string, modelId: string) => {
+    const apiKey = getApiKey('nim');
+    return testNimModelToolSupport(baseUrl, modelId, apiKey || undefined);
   });
 
   handle('api-keys:all', async (_event: IpcMainInvokeEvent) => {

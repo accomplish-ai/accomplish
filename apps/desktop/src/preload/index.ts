@@ -189,6 +189,24 @@ const accomplishAPI = {
     models?: Array<{ id: string; name: string; toolSupport: 'supported' | 'unsupported' | 'unknown' }>;
   } | null): Promise<void> => ipcRenderer.invoke('lmstudio:set-config', config),
 
+  // NIM configuration
+  testNimConnection: (url: string, apiKey?: string): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string }>;
+    error?: string;
+  }> => ipcRenderer.invoke('nim:test-connection', url, apiKey),
+
+  fetchNimModels: (baseUrl: string, apiKey?: string): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string }>;
+    error?: string;
+  }> => ipcRenderer.invoke('nim:fetch-models', baseUrl, apiKey),
+
+  testNimModelToolSupport: (baseUrl: string, modelId: string): Promise<{
+    toolSupport: 'supported' | 'unsupported' | 'unknown';
+    contextLength?: number;
+  }> => ipcRenderer.invoke('nim:test-model-tool-support', baseUrl, modelId),
+
   // Bedrock
   validateBedrockCredentials: (credentials: string) =>
     ipcRenderer.invoke('bedrock:validate', credentials),

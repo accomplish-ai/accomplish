@@ -39,6 +39,7 @@ const API_KEY_ENV_MAPPING: Record<string, string> = {
   openrouter: 'OPENROUTER_API_KEY',
   litellm: 'LITELLM_API_KEY',
   minimax: 'MINIMAX_API_KEY',
+  nim: 'NIM_API_KEY',
 };
 
 /**

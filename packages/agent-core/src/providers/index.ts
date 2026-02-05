@@ -1,5 +1,15 @@
 export { validateApiKey, type ValidationResult, type ValidationOptions } from './validation.js';
 export {
+  type ConnectionResult,
+  type UrlValidationResult,
+  validateAndSanitizeUrl,
+  extractApiErrorMessage,
+  handleConnectionError,
+  toConnectionError,
+  createFailureResult,
+  createSuccessResult,
+} from './provider-utils.js';
+export {
   getModelsForProvider,
   getDefaultModelForProvider,
   isValidModel,
@@ -55,3 +65,15 @@ export {
   type LMStudioConnectionOptions,
   type LMStudioFetchModelsOptions,
 } from './lmstudio.js';
+export {
+  testNimConnection,
+  fetchNimModels,
+  validateNimConfig,
+  testNimModelToolSupport,
+  NIM_REQUEST_TIMEOUT_MS,
+  type NimModel,
+  type NimConnectionResult,
+  type NimConnectionOptions,
+  type NimFetchModelsOptions,
+  type NimModelProbeResult,
+} from './nim.js';

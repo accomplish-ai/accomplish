@@ -12,7 +12,8 @@ export type ProviderId =
   | 'openrouter'
   | 'litellm'
   | 'minimax'
-  | 'lmstudio';
+  | 'lmstudio'
+  | 'nim';
 
 export type ProviderCategory = 'classic' | 'aws' | 'azure' | 'local' | 'proxy' | 'hybrid';
 
@@ -40,6 +41,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   litellm: { id: 'litellm', name: 'LiteLLM', category: 'hybrid', label: 'Service', logoKey: 'liteLLM' },
   minimax: { id: 'minimax', name: 'MiniMax', category: 'classic', label: 'Service', logoKey: 'minimax', helpUrl: 'https://platform.minimax.io/user-center/basic-information/interface-key' },
   lmstudio: { id: 'lmstudio', name: 'LM Studio', category: 'local', label: 'Local Models', logoKey: 'lmstudio', helpUrl: 'https://lmstudio.ai/' },
+  nim: { id: 'nim', name: 'NVIDIA NIM', category: 'hybrid', label: 'Service', logoKey: 'nim', helpUrl: 'https://build.nvidia.com/' },
 };
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -88,6 +90,13 @@ export interface LMStudioCredentials {
   serverUrl: string;
 }
 
+export interface NimCredentials {
+  type: 'nim';
+  serverUrl: string;
+  hasApiKey: boolean;
+  keyPrefix?: string;
+}
+
 export interface AzureFoundryCredentials {
   type: 'azure-foundry';
   authMethod: 'api-key' | 'entra-id';
@@ -110,6 +119,7 @@ export type ProviderCredentials =
   | ZaiCredentials
   | AzureFoundryCredentials
   | LMStudioCredentials
+  | NimCredentials
   | OAuthCredentials;
 
 export type ToolSupportStatus = 'supported' | 'unsupported' | 'unknown';
@@ -120,7 +130,7 @@ export interface ConnectedProvider {
   selectedModelId: string | null;
   credentials: ProviderCredentials;
   lastConnectedAt: string;
-  availableModels?: Array<{ id: string; name: string; toolSupport?: ToolSupportStatus }>;
+  availableModels?: Array<{ id: string; name: string; toolSupport?: ToolSupportStatus; maxModelLen?: number }>;
 }
 
 export interface ProviderSettings {
@@ -176,4 +186,5 @@ export const PROVIDER_ID_TO_OPENCODE: Record<ProviderId, string> = {
   litellm: 'litellm',
   minimax: 'minimax',
   lmstudio: 'lmstudio',
+  nim: 'nim',
 };

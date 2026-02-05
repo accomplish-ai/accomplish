@@ -1,15 +1,19 @@
 import type { LiteLLMModel, LiteLLMConfig } from '../common/types/provider.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
-import { validateHttpUrl } from '../utils/url.js';
 import { sanitizeString } from '../utils/sanitize.js';
+import {
+  type ConnectionResult,
+  validateAndSanitizeUrl,
+  extractApiErrorMessage,
+  handleConnectionError,
+  toConnectionError,
+  createFailureResult,
+  createSuccessResult,
+} from './provider-utils.js';
 
 const DEFAULT_TIMEOUT_MS = 10000;
 
-export interface LiteLLMConnectionResult {
-  success: boolean;
-  error?: string;
-  models?: LiteLLMModel[];
-}
+export type LiteLLMConnectionResult = ConnectionResult<LiteLLMModel>;
 
 interface LiteLLMModelsResponse {
   data?: Array<{
@@ -23,23 +27,17 @@ interface LiteLLMModelsResponse {
 /**
  * Tests connection to a LiteLLM proxy server and retrieves available models.
  * Makes an HTTP request to the OpenAI-compatible /v1/models endpoint.
- *
- * @param url - The LiteLLM proxy base URL
- * @param apiKey - Optional API key for authentication
- * @returns Connection result with available models on success
  */
 export async function testLiteLLMConnection(
   url: string,
   apiKey?: string
 ): Promise<LiteLLMConnectionResult> {
-  const sanitizedUrl = sanitizeString(url, 'litellmUrl', 256);
-  const sanitizedApiKey = apiKey ? sanitizeString(apiKey, 'apiKey', 256) : undefined;
-
-  try {
-    validateHttpUrl(sanitizedUrl, 'LiteLLM URL');
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Invalid URL format' };
+  const urlValidation = validateAndSanitizeUrl(url, 'LiteLLM');
+  if (!urlValidation.valid) {
+    return createFailureResult(urlValidation.error);
   }
+
+  const sanitizedApiKey = apiKey ? sanitizeString(apiKey, 'apiKey', 256) : undefined;
 
   try {
     const headers: Record<string, string> = {};
@@ -48,18 +46,15 @@ export async function testLiteLLMConnection(
     }
 
     const response = await fetchWithTimeout(
-      `${sanitizedUrl}/v1/models`,
+      `${urlValidation.url}/v1/models`,
       { method: 'GET', headers },
       DEFAULT_TIMEOUT_MS
     );
 
     if (!response.ok) {
-      const errorData = (await response.json().catch(() => ({}))) as {
-        error?: { message?: string };
-      };
-      const errorMessage =
-        errorData?.error?.message || `API returned status ${response.status}`;
-      return { success: false, error: errorMessage };
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = extractApiErrorMessage(errorData, response.status);
+      return createFailureResult(errorMessage);
     }
 
     const data = (await response.json()) as LiteLLMModelsResponse;
@@ -74,15 +69,10 @@ export async function testLiteLLMConnection(
     });
 
     console.log(`[LiteLLM] Connection successful, found ${models.length} models`);
-    return { success: true, models };
+    return createSuccessResult(models);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Connection failed';
-    console.warn('[LiteLLM] Connection failed:', message);
-
-    if (error instanceof Error && error.name === 'AbortError') {
-      return { success: false, error: 'Connection timed out. Make sure LiteLLM proxy is running.' };
-    }
-    return { success: false, error: `Cannot connect to LiteLLM: ${message}` };
+    console.warn('[LiteLLM] Connection failed:', error);
+    return handleConnectionError(error, 'LiteLLM');
   }
 }
 
@@ -94,9 +84,6 @@ export interface FetchLiteLLMModelsOptions {
 /**
  * Fetches available models from a configured LiteLLM proxy.
  * Formats model names for display with provider prefixes.
- *
- * @param options - Configuration and optional API key
- * @returns Result with formatted models on success
  */
 export async function fetchLiteLLMModels(
   options: FetchLiteLLMModelsOptions
@@ -104,7 +91,7 @@ export async function fetchLiteLLMModels(
   const { config, apiKey } = options;
 
   if (!config || !config.baseUrl) {
-    return { success: false, error: 'No LiteLLM proxy configured' };
+    return createFailureResult('No LiteLLM proxy configured');
   }
 
   try {
@@ -120,12 +107,9 @@ export async function fetchLiteLLMModels(
     );
 
     if (!response.ok) {
-      const errorData = (await response.json().catch(() => ({}))) as {
-        error?: { message?: string };
-      };
-      const errorMessage =
-        errorData?.error?.message || `API returned status ${response.status}`;
-      return { success: false, error: errorMessage };
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = extractApiErrorMessage(errorData, response.status);
+      return createFailureResult(errorMessage);
     }
 
     const data = (await response.json()) as LiteLLMModelsResponse;
@@ -153,14 +137,9 @@ export async function fetchLiteLLMModels(
     });
 
     console.log(`[LiteLLM] Fetched ${models.length} models`);
-    return { success: true, models };
+    return createSuccessResult(models);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch models';
-    console.warn('[LiteLLM] Fetch failed:', message);
-
-    if (error instanceof Error && error.name === 'AbortError') {
-      return { success: false, error: 'Request timed out. Check your LiteLLM proxy.' };
-    }
-    return { success: false, error: `Failed to fetch models: ${message}` };
+    console.warn('[LiteLLM] Fetch failed:', error);
+    return toConnectionError(error, 'LiteLLM');
   }
 }

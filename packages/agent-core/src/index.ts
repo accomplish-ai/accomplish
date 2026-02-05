@@ -194,6 +194,13 @@ export {
   validateLMStudioConfig,
 } from './providers/lmstudio.js';
 
+export {
+  testNimConnection,
+  fetchNimModels,
+  validateNimConfig,
+  testNimModelToolSupport,
+} from './providers/nim.js';
+
 // -----------------------------------------------------------------------------
 // Utils Module (from ./utils/)
 // -----------------------------------------------------------------------------
@@ -319,6 +326,7 @@ export type {
   LiteLLMModel,
   LiteLLMConfig,
   LMStudioConfig,
+  NimConfig,
 } from './common/types/provider.js';
 export {
   DEFAULT_PROVIDERS,
@@ -342,6 +350,7 @@ export type {
   ZaiRegion,
   ZaiCredentials,
   LMStudioCredentials,
+  NimCredentials,
   AzureFoundryCredentials,
   OAuthCredentials,
   ProviderCredentials,

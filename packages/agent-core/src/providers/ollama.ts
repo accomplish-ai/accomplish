@@ -1,9 +1,13 @@
 import type { ToolSupportStatus } from '../common/types/providerSettings.js';
 
 import { fetchWithTimeout } from '../utils/fetch.js';
-import { validateHttpUrl } from '../utils/url.js';
-import { sanitizeString } from '../utils/sanitize.js';
 import { testOllamaModelToolSupport } from './tool-support-testing.js';
+import {
+  type ConnectionResult,
+  validateAndSanitizeUrl,
+  handleConnectionError,
+  createSuccessResult,
+} from './provider-utils.js';
 
 /** Default timeout for Ollama API requests in milliseconds */
 const OLLAMA_API_TIMEOUT_MS = 15000;
@@ -21,11 +25,7 @@ export interface OllamaModel {
 /**
  * Result of testing connection to an Ollama server
  */
-export interface OllamaConnectionResult {
-  success: boolean;
-  error?: string;
-  models?: OllamaModel[];
-}
+export type OllamaConnectionResult = ConnectionResult<OllamaModel>;
 
 /** Response type from Ollama /api/tags endpoint */
 interface OllamaTagsResponse {
@@ -39,22 +39,16 @@ interface OllamaTagsResponse {
  * 1. Validates and sanitizes the provided URL
  * 2. Calls the Ollama /api/tags endpoint to list available models
  * 3. For each model, tests whether it supports tool calling
- *
- * @param url - The Ollama server URL (e.g., 'http://localhost:11434')
- * @returns Connection result with success status and available models
  */
 export async function testOllamaConnection(url: string): Promise<OllamaConnectionResult> {
-  const sanitizedUrl = sanitizeString(url, 'ollamaUrl', 256);
-
-  try {
-    validateHttpUrl(sanitizedUrl, 'Ollama URL');
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Invalid URL format' };
+  const urlValidation = validateAndSanitizeUrl(url, 'Ollama');
+  if (!urlValidation.valid) {
+    return { success: false, error: urlValidation.error };
   }
 
   try {
     const response = await fetchWithTimeout(
-      `${sanitizedUrl}/api/tags`,
+      `${urlValidation.url}/api/tags`,
       { method: 'GET' },
       OLLAMA_API_TIMEOUT_MS
     );
@@ -67,12 +61,12 @@ export async function testOllamaConnection(url: string): Promise<OllamaConnectio
     const rawModels = data.models || [];
 
     if (rawModels.length === 0) {
-      return { success: true, models: [] };
+      return createSuccessResult([]);
     }
 
     const models: OllamaModel[] = [];
     for (const m of rawModels) {
-      const toolSupport = await testOllamaModelToolSupport(sanitizedUrl, m.name);
+      const toolSupport = await testOllamaModelToolSupport(urlValidation.url, m.name);
       models.push({
         id: m.name,
         displayName: m.name,
@@ -81,13 +75,8 @@ export async function testOllamaConnection(url: string): Promise<OllamaConnectio
       });
     }
 
-    return { success: true, models };
+    return createSuccessResult(models);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Connection failed';
-
-    if (error instanceof Error && error.name === 'AbortError') {
-      return { success: false, error: 'Connection timed out. Make sure Ollama is running.' };
-    }
-    return { success: false, error: `Cannot connect to Ollama: ${message}` };
+    return handleConnectionError(error, 'Ollama');
   }
 }
