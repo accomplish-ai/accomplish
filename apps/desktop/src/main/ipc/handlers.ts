@@ -497,7 +497,6 @@ export function registerIPCHandlers(): void {
 
     console.log(`[API Key] Validation requested for provider: ${provider}`);
 
-    // For standard providers, delegate to core's validateApiKey
     if (STANDARD_VALIDATION_PROVIDERS.has(provider)) {
       let sanitizedKey: string;
       try {
@@ -521,7 +520,6 @@ export function registerIPCHandlers(): void {
       return result;
     }
 
-    // Handle azure-foundry with special Entra ID handling
     if (provider === 'azure-foundry') {
       const config = getAzureFoundryConfig();
       const result = await validateAzureFoundry(config, {

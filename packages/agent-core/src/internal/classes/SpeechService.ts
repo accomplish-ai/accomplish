@@ -1,14 +1,3 @@
-/**
- * Speech-to-Text service using ElevenLabs API
- *
- * This service handles:
- * - API key validation
- * - Audio transcription via ElevenLabs STT API
- *
- * The service requires a SecureStorage instance to be provided,
- * allowing it to be used in different environments (Electron, CLI, etc.)
- */
-
 import { fetchWithTimeout } from '../../utils/fetch.js';
 import type { SecureStorage } from './SecureStorage.js';
 
@@ -27,10 +16,6 @@ export interface TranscriptionError {
   message: string;
 }
 
-/**
- * Speech service that uses ElevenLabs API for transcription.
- * Requires a SecureStorage instance for API key management.
- */
 export class SpeechService {
   private storage: SecureStorage;
 
@@ -38,24 +23,15 @@ export class SpeechService {
     this.storage = storage;
   }
 
-  /**
-   * Get the configured ElevenLabs API key
-   */
   getElevenLabsApiKey(): string | null {
     const key = this.storage.getApiKey('elevenlabs');
     return key && key.trim() ? key : null;
   }
 
-  /**
-   * Check if ElevenLabs is configured
-   */
   isElevenLabsConfigured(): boolean {
     return this.getElevenLabsApiKey() !== null;
   }
 
-  /**
-   * Validate ElevenLabs API key by making a test request
-   */
   async validateElevenLabsApiKey(
     apiKey?: string
   ): Promise<{ valid: boolean; error?: string }> {
@@ -105,13 +81,6 @@ export class SpeechService {
     }
   }
 
-  /**
-   * Transcribe audio using ElevenLabs Speech-to-Text API
-   *
-   * @param audioData - Audio data as Buffer (from renderer via IPC)
-   * @param mimeType - MIME type of the audio (e.g., 'audio/webm')
-   * @returns Transcription result or error
-   */
   async transcribeAudio(
     audioData: Buffer,
     mimeType: string = 'audio/webm'
@@ -144,7 +113,6 @@ export class SpeechService {
     });
 
     try {
-      // Create a Blob from the Buffer for FormData
       // Use Uint8Array to ensure proper typing for Blob constructor
       const uint8Array = new Uint8Array(audioData);
       const blob = new Blob([uint8Array], { type: mimeType });
@@ -154,7 +122,6 @@ export class SpeechService {
         blobType: blob.type,
       });
 
-      // Create FormData for multipart upload
       const formData = new FormData();
       formData.append('file', blob, 'audio.webm');
       formData.append('model_id', modelId);
@@ -178,9 +145,7 @@ export class SpeechService {
         let errorData: Record<string, unknown> = {};
         try {
           errorData = JSON.parse(errorText);
-        } catch {
-          // Not JSON, use raw text
-        }
+        } catch {}
 
         console.error('[ElevenLabs] API error:', {
           status: response.status,
@@ -305,9 +270,6 @@ export class SpeechService {
   }
 }
 
-/**
- * Create a new SpeechService instance
- */
 export function createSpeechService(storage: SecureStorage): SpeechService {
   return new SpeechService(storage);
 }

@@ -1,11 +1,9 @@
-// Factory functions from agent-core
 export {
   OpenCodeCliNotFoundError,
   createLogWatcher,
   createTaskManager,
 } from '@accomplish/agent-core';
 
-// Types from agent-core
 export type {
   AdapterOptions,
   OpenCodeAdapterEvents,

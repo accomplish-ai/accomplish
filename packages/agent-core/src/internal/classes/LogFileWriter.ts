@@ -11,12 +11,6 @@ import {
 
 import { redact } from '../../utils/redact.js';
 
-/**
- * LogFileWriter - Writes log entries to rotating daily log files.
- *
- * This class is platform-agnostic and requires the log directory to be
- * injected via constructor (dependency injection pattern).
- */
 export class LogFileWriter {
   private currentDate: string = '';
   private currentFilePath: string = '';

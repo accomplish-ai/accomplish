@@ -5,7 +5,6 @@ const fs = require('fs');
 const esbuild = require('esbuild');
 const { execSync } = require('child_process');
 
-// MCP tools are now in packages/agent-core/mcp-tools
 const skillsDir = path.join(__dirname, '..', '..', '..', 'packages', 'agent-core', 'mcp-tools');
 
 // Skills that have runtime dependencies (playwright) that cannot be bundled
@@ -107,7 +106,6 @@ async function bundleSkill({ name, entry, outfile, external = [], banner: needsB
  * - Fully bundled skills: remove node_modules entirely
  */
 function reinstallProductionDepsForBundledBuild() {
-  // Handle skills with runtime dependencies (need playwright)
   for (const skillName of SKILLS_WITH_RUNTIME_DEPS) {
     const skillPath = path.join(skillsDir, skillName);
     const nodeModulesPath = path.join(skillPath, 'node_modules');
@@ -118,13 +116,11 @@ function reinstallProductionDepsForBundledBuild() {
       continue;
     }
 
-    // Remove existing node_modules
     if (fs.existsSync(nodeModulesPath)) {
       fs.rmSync(nodeModulesPath, { recursive: true, force: true });
       console.log(`[bundle-skills] Removed ${nodeModulesPath}`);
     }
 
-    // Reinstall with production deps only (--omit=dev skips devDependencies)
     // Note: We don't use --ignore-scripts because playwright needs its postinstall
     // script to download browser binaries
     console.log(`[bundle-skills] Installing production deps for ${skillName}...`);
@@ -140,7 +136,6 @@ function reinstallProductionDepsForBundledBuild() {
     }
   }
 
-  // Handle fully bundled skills (no runtime deps needed)
   for (const skillName of SKILLS_FULLY_BUNDLED) {
     const skillPath = path.join(skillsDir, skillName);
     const nodeModulesPath = path.join(skillPath, 'node_modules');

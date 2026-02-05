@@ -14,12 +14,10 @@ const isWindows = process.platform === 'win32';
 const nodeModulesPath = path.join(__dirname, '..', 'node_modules');
 const accomplishPath = path.join(nodeModulesPath, '@accomplish');
 
-// Save symlink targets for restoration
 const workspacePackages = ['agent-core'];
 const symlinkTargets = {};
 
 try {
-  // Check and remove workspace symlinks
   for (const pkg of workspacePackages) {
     const pkgPath = path.join(accomplishPath, pkg);
     if (fs.existsSync(pkgPath)) {
@@ -32,7 +30,6 @@ try {
     }
   }
 
-  // Remove empty @accomplish directory if it exists
   if (Object.keys(symlinkTargets).length > 0) {
     try {
       fs.rmdirSync(accomplishPath);
@@ -41,7 +38,6 @@ try {
     }
   }
 
-  // Get command line args (everything after 'node scripts/package.js')
   const args = process.argv.slice(2).join(' ');
 
   // On Windows, skip native module rebuild (use prebuilt binaries)
@@ -58,12 +54,10 @@ try {
   execSync(command, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
 
 } finally {
-  // Restore the symlinks
   const packagesToRestore = Object.keys(symlinkTargets);
   if (packagesToRestore.length > 0) {
     console.log('Restoring workspace symlinks');
 
-    // Recreate @accomplish directory if needed
     if (!fs.existsSync(accomplishPath)) {
       fs.mkdirSync(accomplishPath, { recursive: true });
     }
