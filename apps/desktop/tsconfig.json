@@ -16,16 +16,14 @@
     "paths": {
       "@/*": ["src/renderer/*"],
       "@main/*": ["src/main/*"],
-      "@shared/*": ["../../packages/shared/src/*"],
-      "@accomplish/shared": ["../../packages/shared/src/index.ts"],
-      "@accomplish/core": ["../../packages/core/src/index.ts"],
-      "@accomplish/core/*": ["../../packages/core/src/*"]
+      "@accomplish/agent-core/browser": ["../../packages/agent-core/src/browser.ts"],
+      "@accomplish/agent-core": ["../../packages/agent-core/src/index.ts"],
+      "@accomplish/agent-core/*": ["../../packages/agent-core/src/*"]
     }
   },
   "include": [
     "src/**/*",
-    "../../packages/shared/src/**/*",
-    "../../packages/core/src/**/*"
+    "../../packages/agent-core/src/**/*"
   ],
   "exclude": ["node_modules", "dist", "dist-electron", "release"]
 }

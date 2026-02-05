@@ -5,7 +5,7 @@ import type {
   TaskResult,
   TaskStatus,
   TodoItem,
-} from '@accomplish/shared';
+} from '@accomplish/agent-core';
 import {
   updateTaskStatus,
   updateTaskSessionId,
@@ -14,7 +14,7 @@ import {
   clearTodosForTask,
   getDebugMode,
   mapResultToStatus,
-} from '@accomplish/core';
+} from '@accomplish/agent-core';
 import { getTaskManager } from '../opencode';
 import type { TaskCallbacks } from '../opencode';
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useNavigate, useLocation } from 'react-router-dom';
-import type { Task } from '@accomplish/shared';
+import type { Task } from '@accomplish/agent-core/browser';
 import { cn } from '@/lib/utils';
 import { Loader2, CheckCircle2, XCircle, Clock, Square, PauseCircle, X } from 'lucide-react';
 import { useTaskStore } from '@/stores/taskStore';

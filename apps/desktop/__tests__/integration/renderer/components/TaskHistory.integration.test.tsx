@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import type { Task, TaskStatus } from '@accomplish/shared';
+import type { Task, TaskStatus } from '@accomplish/agent-core';
 
 // Create mock functions for task store
 const mockLoadTasks = vi.fn();

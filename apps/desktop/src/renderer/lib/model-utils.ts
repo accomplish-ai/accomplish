@@ -1,1 +1,1 @@
-export { getModelDisplayName } from '@accomplish/shared';
+export { getModelDisplayName } from '@accomplish/agent-core/browser';

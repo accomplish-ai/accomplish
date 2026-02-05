@@ -9,9 +9,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src/renderer'),
       '@main': path.resolve(__dirname, 'src/main'),
       '@renderer': path.resolve(__dirname, 'src/renderer'),
-      '@shared': path.resolve(__dirname, '../../packages/shared/src'),
-      '@accomplish/shared': path.resolve(__dirname, '../../packages/shared/src'),
-      '@accomplish/core': path.resolve(__dirname, '../../packages/core/src'),
+      '@accomplish/agent-core/browser': path.resolve(__dirname, '../../packages/agent-core/src/browser'),
+      '@accomplish/agent-core': path.resolve(__dirname, '../../packages/agent-core/src'),
     },
   },
   test: {

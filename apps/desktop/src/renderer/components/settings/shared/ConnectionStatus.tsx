@@ -1,6 +1,6 @@
 // apps/desktop/src/renderer/components/settings/shared/ConnectionStatus.tsx
 
-import type { ConnectionStatus as ConnectionStatusType } from '@accomplish/shared';
+import type { ConnectionStatus as ConnectionStatusType } from '@accomplish/agent-core/browser';
 
 interface ConnectionStatusProps {
   status: ConnectionStatusType;

@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { Task, TaskMessage, TaskStatus } from '@accomplish/shared';
+import type { Task, TaskMessage, TaskStatus } from '@accomplish/agent-core';
 
 // In-memory storage for mock
 interface StoredTask {
@@ -27,7 +27,7 @@ function resetMockStore() {
 }
 
 // Mock the taskHistory module with in-memory behavior
-vi.mock('@accomplish/core', () => ({
+vi.mock('@accomplish/agent-core', () => ({
   getTasks: vi.fn(() => Array.from(mockTaskStore.values())),
 
   getTask: vi.fn((id: string) => mockTaskStore.get(id) || null),
@@ -123,7 +123,7 @@ describe('taskHistory Integration', () => {
   describe('saveTask and getTask', () => {
     it('should save and retrieve a task by ID', async () => {
       // Arrange
-      const { saveTask, getTask } = await import('@accomplish/core');
+      const { saveTask, getTask } = await import('@accomplish/agent-core');
       const task = createMockTask('task-1', 'Save and retrieve test');
 
       // Act
@@ -138,7 +138,7 @@ describe('taskHistory Integration', () => {
 
     it('should return null for non-existent task', async () => {
       // Arrange
-      const { getTask } = await import('@accomplish/core');
+      const { getTask } = await import('@accomplish/agent-core');
 
       // Act
       const result = getTask('non-existent');
@@ -149,7 +149,7 @@ describe('taskHistory Integration', () => {
 
     it('should save task with messages', async () => {
       // Arrange
-      const { saveTask, getTask } = await import('@accomplish/core');
+      const { saveTask, getTask } = await import('@accomplish/agent-core');
       const task = createMockTask('task-2');
       task.messages = [
         createMockMessage('msg-1', 'user', 'Hello'),
@@ -168,7 +168,7 @@ describe('taskHistory Integration', () => {
 
     it('should update existing task', async () => {
       // Arrange
-      const { saveTask, getTask } = await import('@accomplish/core');
+      const { saveTask, getTask } = await import('@accomplish/agent-core');
       const task = createMockTask('task-3', 'Original prompt');
       saveTask(task);
 
@@ -187,7 +187,7 @@ describe('taskHistory Integration', () => {
   describe('getTasks', () => {
     it('should return empty array when no tasks exist', async () => {
       // Arrange
-      const { getTasks } = await import('@accomplish/core');
+      const { getTasks } = await import('@accomplish/agent-core');
 
       // Act
       const result = getTasks();
@@ -198,7 +198,7 @@ describe('taskHistory Integration', () => {
 
     it('should return all saved tasks', async () => {
       // Arrange
-      const { saveTask, getTasks } = await import('@accomplish/core');
+      const { saveTask, getTasks } = await import('@accomplish/agent-core');
       saveTask(createMockTask('task-1', 'First task'));
       saveTask(createMockTask('task-2', 'Second task'));
       saveTask(createMockTask('task-3', 'Third task'));
@@ -214,7 +214,7 @@ describe('taskHistory Integration', () => {
   describe('updateTaskStatus', () => {
     it('should update task status', async () => {
       // Arrange
-      const { saveTask, getTask, updateTaskStatus } = await import('@accomplish/core');
+      const { saveTask, getTask, updateTaskStatus } = await import('@accomplish/agent-core');
       saveTask(createMockTask('task-1'));
 
       // Act
@@ -227,7 +227,7 @@ describe('taskHistory Integration', () => {
 
     it('should update task status with completedAt', async () => {
       // Arrange
-      const { saveTask, getTask, updateTaskStatus } = await import('@accomplish/core');
+      const { saveTask, getTask, updateTaskStatus } = await import('@accomplish/agent-core');
       saveTask(createMockTask('task-1'));
       const completedAt = new Date().toISOString();
 
@@ -244,7 +244,7 @@ describe('taskHistory Integration', () => {
   describe('updateTaskSessionId', () => {
     it('should update session ID for existing task', async () => {
       // Arrange
-      const { saveTask, getTask, updateTaskSessionId } = await import('@accomplish/core');
+      const { saveTask, getTask, updateTaskSessionId } = await import('@accomplish/agent-core');
       saveTask(createMockTask('task-1'));
 
       // Act
@@ -259,7 +259,7 @@ describe('taskHistory Integration', () => {
   describe('updateTaskSummary', () => {
     it('should update task summary', async () => {
       // Arrange
-      const { saveTask, getTask, updateTaskSummary } = await import('@accomplish/core');
+      const { saveTask, getTask, updateTaskSummary } = await import('@accomplish/agent-core');
       saveTask(createMockTask('task-1'));
 
       // Act
@@ -274,7 +274,7 @@ describe('taskHistory Integration', () => {
   describe('addTaskMessage', () => {
     it('should add message to existing task', async () => {
       // Arrange
-      const { saveTask, getTask, addTaskMessage } = await import('@accomplish/core');
+      const { saveTask, getTask, addTaskMessage } = await import('@accomplish/agent-core');
       saveTask(createMockTask('task-1'));
       const message = createMockMessage('msg-1', 'assistant', 'New message');
 
@@ -289,7 +289,7 @@ describe('taskHistory Integration', () => {
 
     it('should add multiple messages in order', async () => {
       // Arrange
-      const { saveTask, getTask, addTaskMessage } = await import('@accomplish/core');
+      const { saveTask, getTask, addTaskMessage } = await import('@accomplish/agent-core');
       saveTask(createMockTask('task-1'));
 
       // Act
@@ -309,7 +309,7 @@ describe('taskHistory Integration', () => {
   describe('deleteTask', () => {
     it('should delete task by ID', async () => {
       // Arrange
-      const { saveTask, getTask, deleteTask } = await import('@accomplish/core');
+      const { saveTask, getTask, deleteTask } = await import('@accomplish/agent-core');
       saveTask(createMockTask('task-1'));
       expect(getTask('task-1')).toBeDefined();
 
@@ -323,7 +323,7 @@ describe('taskHistory Integration', () => {
 
     it('should not throw when deleting non-existent task', async () => {
       // Arrange
-      const { deleteTask } = await import('@accomplish/core');
+      const { deleteTask } = await import('@accomplish/agent-core');
 
       // Act & Assert
       expect(() => deleteTask('non-existent')).not.toThrow();
@@ -333,7 +333,7 @@ describe('taskHistory Integration', () => {
   describe('clearHistory', () => {
     it('should remove all tasks', async () => {
       // Arrange
-      const { saveTask, getTasks, clearHistory } = await import('@accomplish/core');
+      const { saveTask, getTasks, clearHistory } = await import('@accomplish/agent-core');
       saveTask(createMockTask('task-1'));
       saveTask(createMockTask('task-2'));
       saveTask(createMockTask('task-3'));
@@ -351,7 +351,7 @@ describe('taskHistory Integration', () => {
   describe('flushPendingTasks', () => {
     it('should be a no-op for SQLite (writes are immediate)', async () => {
       // Arrange
-      const { flushPendingTasks } = await import('@accomplish/core');
+      const { flushPendingTasks } = await import('@accomplish/agent-core');
 
       // Act & Assert - should not throw
       expect(() => flushPendingTasks()).not.toThrow();

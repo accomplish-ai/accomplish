@@ -7,8 +7,8 @@ import {
   getNpxPath as coreGetNpxPath,
   logBundledNodeInfo as coreLogBundledNodeInfo,
   type BundledNodePathsExtended,
-} from '@accomplish/core';
-import type { PlatformConfig } from '@accomplish/core';
+} from '@accomplish/agent-core';
+import type { PlatformConfig } from '@accomplish/agent-core';
 
 export type { BundledNodePathsExtended as BundledNodePaths };
 

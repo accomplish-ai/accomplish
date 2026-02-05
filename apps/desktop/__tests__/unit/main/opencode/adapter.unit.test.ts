@@ -27,7 +27,7 @@ import type {
   OpenCodeToolUseMessage,
   OpenCodeStepFinishMessage,
   OpenCodeErrorMessage,
-} from '@accomplish/shared';
+} from '@accomplish/agent-core';
 
 // Mock electron module
 const mockApp = {
@@ -104,8 +104,8 @@ vi.mock('node-pty', () => ({
 // This will be accessed by the mocked OpenCodeAdapter
 const mockPtyInstanceRef = { current: null as MockPty | null };
 
-// Mock @accomplish/core - core package exports used by adapter
-vi.mock('@accomplish/core', async () => {
+// Mock @accomplish/agent-core - agent-core package exports used by adapter
+vi.mock('@accomplish/agent-core', async () => {
   const { EventEmitter } = await import('events');
   const nodePty = await import('node-pty');
 

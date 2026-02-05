@@ -19,8 +19,8 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
-import type { TaskConfig, TaskResult, OpenCodeMessage, PermissionRequest } from '@accomplish/shared';
-import type { TaskManagerOptions } from '@accomplish/core';
+import type { TaskConfig, TaskResult, OpenCodeMessage, PermissionRequest } from '@accomplish/agent-core';
+import type { TaskManagerOptions } from '@accomplish/agent-core';
 
 // Mock electron module
 const mockApp = {
@@ -171,9 +171,9 @@ class MockOpenCodeAdapter extends EventEmitter {
 // Track created adapters for testing
 const createdAdapters: MockOpenCodeAdapter[] = [];
 
-// Mock @accomplish/core module - this is where OpenCodeAdapter and TaskManager actually live
-vi.mock('@accomplish/core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@accomplish/core')>();
+// Mock @accomplish/agent-core module - this is where OpenCodeAdapter and TaskManager actually live
+vi.mock('@accomplish/agent-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@accomplish/agent-core')>();
   return {
     ...actual,
     OpenCodeAdapter: MockOpenCodeAdapter,

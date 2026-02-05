@@ -1,4 +1,4 @@
-export { redact } from '@accomplish/core';
+export { redact } from '@accomplish/agent-core';
 export {
   getLogFileWriter,
   initializeLogFileWriter,

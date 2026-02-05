@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { getAccomplish } from '@/lib/accomplish';
-import type { ConnectedProvider, AzureFoundryCredentials } from '@accomplish/shared';
+import type { ConnectedProvider, AzureFoundryCredentials } from '@accomplish/agent-core/browser';
 import {
   ModelSelector,
   ConnectButton,

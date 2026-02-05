@@ -19,12 +19,12 @@ import {
   FutureSchemaError,
   stopAzureFoundryProxy,
   stopMoonshotProxy,
-} from '@accomplish/core';
+} from '@accomplish/agent-core';
 import {
   initThoughtStreamApi,
   startThoughtStreamServer,
 } from './thought-stream-api';
-import type { ProviderId } from '@accomplish/shared';
+import type { ProviderId } from '@accomplish/agent-core';
 import { disposeTaskManager } from './opencode';
 import { oauthBrowserFlow } from './opencode/auth-browser';
 import { migrateLegacyData } from './store/legacyMigration';

@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { Task, TaskConfig, TaskStatus, TaskMessage, TaskResult } from '@accomplish/shared';
+import type { Task, TaskConfig, TaskStatus, TaskMessage, TaskResult } from '@accomplish/agent-core';
 
 // Helper to create a mock task
 function createMockTask(id: string, prompt: string = 'Test task', status: TaskStatus = 'pending'): Task {

@@ -31,15 +31,15 @@ WORKDIR /app
 # Copy package files first for better caching
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/shared/package.json ./packages/shared/
-COPY packages/core/package.json ./packages/core/
+COPY packages/agent-core/package.json ./packages/agent-core/
 COPY apps/desktop/package.json ./apps/desktop/
 
 # Copy scripts directory (needed by root postinstall script)
 COPY scripts/ ./scripts/
 
 # Copy mcp-tools directories (needed by desktop postinstall script)
-# MCP tools are now in packages/core/mcp-tools
-COPY packages/core/mcp-tools ./packages/core/mcp-tools
+# MCP tools are now in packages/agent-core/mcp-tools
+COPY packages/agent-core/mcp-tools ./packages/agent-core/mcp-tools
 
 # Copy scripts directory (needed by postinstall script)
 COPY apps/desktop/scripts ./apps/desktop/scripts

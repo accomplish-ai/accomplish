@@ -42,10 +42,10 @@ vi.mock('child_process', () => ({
   execSync: mockExecSync,
 }));
 
-// Mock @accomplish/core cli-resolver functions - they use fs internally which is already mocked
+// Mock @accomplish/agent-core cli-resolver functions - they use fs internally which is already mocked
 // We need to pass through to the actual implementation since it uses the mocked fs
-vi.mock('@accomplish/core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@accomplish/core')>();
+vi.mock('@accomplish/agent-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@accomplish/agent-core')>();
   return {
     ...actual,
     // The cli-resolver functions should use the mocked fs, so we don't need to mock them

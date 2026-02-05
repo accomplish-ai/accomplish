@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
-import type { ConnectedProvider, ZaiCredentials, ZaiRegion } from '@accomplish/shared';
-import { PROVIDER_META, DEFAULT_PROVIDERS, getDefaultModelForProvider } from '@accomplish/shared';
+import type { ConnectedProvider, ZaiCredentials, ZaiRegion } from '@accomplish/agent-core/browser';
+import { PROVIDER_META, DEFAULT_PROVIDERS, getDefaultModelForProvider } from '@accomplish/agent-core/browser';
 import {
   ModelSelector,
   ConnectButton,

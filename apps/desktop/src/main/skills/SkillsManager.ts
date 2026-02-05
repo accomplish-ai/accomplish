@@ -1,6 +1,6 @@
 import { app } from 'electron';
 import path from 'path';
-import { SkillsManager as CoreSkillsManager } from '@accomplish/core';
+import { SkillsManager as CoreSkillsManager } from '@accomplish/agent-core';
 import { getDatabase } from '../store/db';
 
 function getBundledSkillsPath(): string {

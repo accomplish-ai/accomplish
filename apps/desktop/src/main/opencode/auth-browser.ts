@@ -8,7 +8,7 @@ import {
   getPlatformShell,
   getShellArgs,
   waitForPortRelease,
-} from '@accomplish/shared';
+} from '@accomplish/agent-core';
 
 interface LoginResult {
   openedUrl?: string;

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTaskStore } from '../../stores/taskStore';
-import type { Task } from '@accomplish/shared';
+import type { Task } from '@accomplish/agent-core/browser';
 
 interface TaskHistoryProps {
   limit?: number;

@@ -1,7 +1,7 @@
 import { BrowserWindow } from 'electron';
-import type { Task, TaskMessage, TaskStatus } from '@accomplish/shared';
-import { createMessageId } from '@accomplish/shared';
-import { updateTaskStatus } from '@accomplish/core';
+import type { Task, TaskMessage, TaskStatus } from '@accomplish/agent-core';
+import { createMessageId } from '@accomplish/agent-core';
+import { updateTaskStatus } from '@accomplish/agent-core';
 
 export type MockScenario =
   | 'success'

@@ -10,7 +10,7 @@ import {
   type PermissionResponse,
   type TaskMessage,
   type TodoItem,
-} from '@accomplish/shared';
+} from '@accomplish/agent-core/browser';
 import { getAccomplish } from '../lib/accomplish';
 
 interface TaskUpdateBatchEvent {

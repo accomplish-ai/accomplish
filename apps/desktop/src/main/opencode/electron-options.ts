@@ -2,9 +2,9 @@ import { app } from 'electron';
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import type { AdapterOptions, TaskManagerOptions, TaskCallbacks } from '@accomplish/core';
-import type { TaskConfig } from '@accomplish/shared';
-import { DEV_BROWSER_PORT } from '@accomplish/shared';
+import type { AdapterOptions, TaskManagerOptions, TaskCallbacks } from '@accomplish/agent-core';
+import type { TaskConfig } from '@accomplish/agent-core';
+import { DEV_BROWSER_PORT } from '@accomplish/agent-core';
 import {
   getSelectedModel,
   getAzureFoundryConfig,
@@ -20,9 +20,9 @@ import {
   type BrowserServerConfig,
   type CliResolverConfig,
   type EnvironmentConfig,
-} from '@accomplish/core';
-import { getModelDisplayName } from '@accomplish/shared';
-import type { AzureFoundryCredentials, BedrockCredentials } from '@accomplish/shared';
+} from '@accomplish/agent-core';
+import { getModelDisplayName } from '@accomplish/agent-core';
+import type { AzureFoundryCredentials, BedrockCredentials } from '@accomplish/agent-core';
 import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
 import { generateOpenCodeConfig, getMcpToolsPath, syncApiKeysToOpenCodeAuth } from './config-generator';
 import { getExtendedNodePath } from '../utils/system-path';

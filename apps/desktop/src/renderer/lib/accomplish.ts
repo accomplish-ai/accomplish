@@ -22,7 +22,7 @@ import type {
   TodoItem,
   ToolSupportStatus,
   Skill,
-} from '@accomplish/shared';
+} from '@accomplish/agent-core/browser';
 
 // Define the API interface
 interface AccomplishAPI {

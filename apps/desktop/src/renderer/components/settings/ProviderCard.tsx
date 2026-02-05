@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react';
-import type { ProviderId, ConnectedProvider } from '@accomplish/shared';
-import { PROVIDER_META, isProviderReady } from '@accomplish/shared';
+import type { ProviderId, ConnectedProvider } from '@accomplish/agent-core/browser';
+import { PROVIDER_META, isProviderReady } from '@accomplish/agent-core/browser';
 import { AnimatePresence, motion } from 'framer-motion';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { PROVIDER_LOGOS } from '@/lib/provider-logos';

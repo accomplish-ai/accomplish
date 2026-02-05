@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { ConnectedProvider, LiteLLMCredentials } from '@accomplish/shared';
+import type { ConnectedProvider, LiteLLMCredentials } from '@accomplish/agent-core/browser';
 import {
   ModelSelector,
   ConnectButton,

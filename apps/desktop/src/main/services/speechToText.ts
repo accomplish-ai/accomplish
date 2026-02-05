@@ -15,7 +15,7 @@ import {
   createSecureStorage,
   type TranscriptionResult,
   type TranscriptionError,
-} from '@accomplish/core';
+} from '@accomplish/agent-core';
 
 // Re-export types from core
 export type { TranscriptionResult, TranscriptionError };

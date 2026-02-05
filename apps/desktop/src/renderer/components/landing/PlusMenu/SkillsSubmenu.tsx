@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import type { Skill } from '@accomplish/shared';
+import type { Skill } from '@accomplish/agent-core/browser';
 import { Input } from '@/components/ui/input';
 import { DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import accomplishFavicon from '/assets/accomplish-favicon.png';

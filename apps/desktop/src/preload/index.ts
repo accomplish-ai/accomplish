@@ -6,7 +6,7 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ProviderType, Skill, TodoItem } from '@accomplish/shared';
+import type { ProviderType, Skill, TodoItem } from '@accomplish/agent-core';
 
 // Expose the accomplish API to the renderer
 const accomplishAPI = {

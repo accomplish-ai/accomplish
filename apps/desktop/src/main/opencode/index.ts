@@ -6,7 +6,7 @@ export {
   CompletionEnforcer,
   OpenCodeLogWatcher,
   createLogWatcher,
-} from '@accomplish/core';
+} from '@accomplish/agent-core';
 
 export type {
   AdapterOptions,
@@ -16,7 +16,7 @@ export type {
   TaskProgressEvent,
   OpenCodeLogError,
   CompletionEnforcerCallbacks,
-} from '@accomplish/core';
+} from '@accomplish/agent-core';
 
 export {
   createElectronAdapterOptions,
@@ -41,7 +41,7 @@ export {
 
 export { loginOpenAiWithChatGpt } from './auth-browser';
 
-import { OpenCodeAdapter, TaskManager } from '@accomplish/core';
+import { OpenCodeAdapter, TaskManager } from '@accomplish/agent-core';
 import {
   createElectronAdapterOptions,
   createElectronTaskManagerOptions,

@@ -8,9 +8,9 @@
 
 import http from 'http';
 import type { BrowserWindow } from 'electron';
-import { THOUGHT_STREAM_PORT } from '@accomplish/shared';
-import type { ThoughtEvent, CheckpointEvent } from '@accomplish/shared';
-import { ThoughtStreamHandler } from '@accomplish/core';
+import { THOUGHT_STREAM_PORT } from '@accomplish/agent-core';
+import type { ThoughtEvent, CheckpointEvent } from '@accomplish/agent-core';
+import { ThoughtStreamHandler } from '@accomplish/agent-core';
 
 // Re-export types and constant for backwards compatibility
 export { THOUGHT_STREAM_PORT };

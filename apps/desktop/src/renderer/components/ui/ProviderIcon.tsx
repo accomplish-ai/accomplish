@@ -3,7 +3,7 @@
  * Shows a colored icon with the provider's initial
  */
 
-import type { ProviderType } from '@accomplish/shared';
+import type { ProviderType } from '@accomplish/agent-core/browser';
 import { cn } from '@/lib/utils';
 
 interface ProviderIconProps {

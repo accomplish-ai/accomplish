@@ -10,8 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { ProviderId, ConnectedProvider } from '@accomplish/shared';
-import { hasAnyReadyProvider, isProviderReady } from '@accomplish/shared';
+import type { ProviderId, ConnectedProvider } from '@accomplish/agent-core/browser';
+import { hasAnyReadyProvider, isProviderReady } from '@accomplish/agent-core/browser';
 import { useProviderSettings } from '@/components/settings/hooks/useProviderSettings';
 import { ProviderGrid } from '@/components/settings/ProviderGrid';
 import { ProviderSettingsPanel } from '@/components/settings/ProviderSettingsPanel';

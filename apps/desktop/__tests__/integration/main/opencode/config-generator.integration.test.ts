@@ -45,9 +45,9 @@ vi.mock('electron', () => ({
 // Note: PERMISSION_API_PORT and QUESTION_API_PORT are now imported from @accomplish/shared
 // by config-generator.ts, so no mock needed here
 
-// Mock @accomplish/core (uses SQLite which requires native module)
+// Mock @accomplish/agent-core (uses SQLite which requires native module)
 // Note: generateConfig mock creates real files in temp directory for integration testing
-vi.mock('@accomplish/core', async () => {
+vi.mock('@accomplish/agent-core', async () => {
   const actualFs = await vi.importActual<typeof import('fs')>('fs');
   const actualPath = await vi.importActual<typeof import('path')>('path');
 
@@ -218,15 +218,15 @@ describe('OpenCode Config Generator Integration', () => {
     tempUserDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opencode-config-test-userData-'));
 
     // Create a monorepo-like structure in temp dir
-    // This simulates the real structure: monorepo/apps/desktop with packages/core/mcp-tools
+    // This simulates the real structure: monorepo/apps/desktop with packages/agent-core/mcp-tools
     tempMonorepoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opencode-config-test-monorepo-'));
     tempAppDir = path.join(tempMonorepoRoot, 'apps', 'desktop');
     fs.mkdirSync(tempAppDir, { recursive: true });
 
-    // Create mcp-tools directory structure at packages/core/mcp-tools
-    // In development, mcp-tools is at packages/core/mcp-tools relative to apps/desktop
-    // path.join(tempAppDir, '..', '..', 'packages', 'core', 'mcp-tools') now resolves correctly
-    const mcpToolsDir = path.join(tempMonorepoRoot, 'packages', 'core', 'mcp-tools');
+    // Create mcp-tools directory structure at packages/agent-core/mcp-tools
+    // In development, mcp-tools is at packages/agent-core/mcp-tools relative to apps/desktop
+    // path.join(tempAppDir, '..', '..', 'packages', 'agent-core', 'mcp-tools') now resolves correctly
+    const mcpToolsDir = path.join(tempMonorepoRoot, 'packages', 'agent-core', 'mcp-tools');
     fs.mkdirSync(mcpToolsDir, { recursive: true });
     fs.mkdirSync(path.join(mcpToolsDir, 'file-permission', 'src'), { recursive: true });
     fs.writeFileSync(path.join(mcpToolsDir, 'file-permission', 'src', 'index.ts'), '// mock file');
@@ -262,8 +262,8 @@ describe('OpenCode Config Generator Integration', () => {
         const { getMcpToolsPath } = await import('@main/opencode/config-generator');
         const result = getMcpToolsPath();
 
-        // Assert - mcp-tools is now at packages/core/mcp-tools relative to apps/desktop
-        expect(result).toBe(path.join(tempAppDir, '..', '..', 'packages', 'core', 'mcp-tools'));
+        // Assert - mcp-tools is now at packages/agent-core/mcp-tools relative to apps/desktop
+        expect(result).toBe(path.join(tempAppDir, '..', '..', 'packages', 'agent-core', 'mcp-tools'));
       });
     });
 

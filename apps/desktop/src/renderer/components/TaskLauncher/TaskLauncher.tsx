@@ -10,7 +10,7 @@ import { getAccomplish } from '@/lib/accomplish';
 import { cn } from '@/lib/utils';
 import { springs } from '@/lib/animations';
 import TaskLauncherItem from './TaskLauncherItem';
-import { hasAnyReadyProvider } from '@accomplish/shared';
+import { hasAnyReadyProvider } from '@accomplish/agent-core/browser';
 import {Input} from "@/components/ui/input";
 
 export default function TaskLauncher() {

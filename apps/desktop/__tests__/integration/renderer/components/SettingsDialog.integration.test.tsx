@@ -16,7 +16,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import type { ApiKeyConfig } from '@accomplish/shared';
+import type { ApiKeyConfig } from '@accomplish/agent-core';
 
 // Create mock functions for accomplish API
 const mockGetApiKeys = vi.fn();

@@ -13,13 +13,13 @@ import {
   QUESTION_API_PORT,
   isFilePermissionRequest,
   isQuestionRequest,
-} from '@accomplish/shared';
+} from '@accomplish/agent-core';
 import {
   PermissionRequestHandler,
   type FilePermissionRequestData,
   type QuestionRequestData,
   type QuestionResponseData,
-} from '@accomplish/core';
+} from '@accomplish/agent-core';
 
 export { PERMISSION_API_PORT, QUESTION_API_PORT, isFilePermissionRequest, isQuestionRequest };
 

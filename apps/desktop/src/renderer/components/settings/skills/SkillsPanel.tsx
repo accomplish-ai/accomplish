@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { Skill } from '@accomplish/shared';
+import type { Skill } from '@accomplish/agent-core/browser';
 import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,

@@ -1,7 +1,7 @@
 // apps/desktop/src/renderer/components/settings/skills/SkillCard.tsx
 
 import { memo, useCallback } from 'react';
-import type { Skill } from '@accomplish/shared';
+import type { Skill } from '@accomplish/agent-core/browser';
 import {
   DropdownMenu,
   DropdownMenuContent,

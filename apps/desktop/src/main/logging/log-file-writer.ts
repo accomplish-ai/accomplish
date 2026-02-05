@@ -7,10 +7,10 @@
 
 import path from 'path';
 import { app } from 'electron';
-import { LogFileWriter } from '@accomplish/core';
+import { LogFileWriter } from '@accomplish/agent-core';
 
 // Re-export types from shared package for backward compatibility
-export type { LogLevel, LogSource, LogEntry } from '@accomplish/shared';
+export type { LogLevel, LogSource, LogEntry } from '@accomplish/agent-core';
 
 let instance: LogFileWriter | null = null;
 

@@ -20,12 +20,9 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@accomplish/core':
+      '@accomplish/agent-core':
         specifier: workspace:*
-        version: link:../../packages/core
-      '@accomplish/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
+        version: link:../../packages/agent-core
       '@aws-sdk/client-bedrock':
         specifier: ^3.971.0
         version: 3.971.0
@@ -190,11 +187,8 @@ importers:
         specifier: ^4.0.17
         version: 4.0.17(@types/node@22.19.3)(happy-dom@20.1.0)(jiti@1.21.7)(jsdom@27.4.0)
 
-  packages/core:
+  packages/agent-core:
     dependencies:
-      '@accomplish/shared':
-        specifier: workspace:*
-        version: link:../shared
       '@aws-sdk/client-bedrock':
         specifier: ^3.971.0
         version: 3.971.0
@@ -229,19 +223,6 @@ importers:
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.19.3)(happy-dom@20.1.0)(jsdom@27.4.0)
-
-  packages/shared:
-    dependencies:
-      zod:
-        specifier: ^3.23.8
-        version: 3.25.76
-    devDependencies:
-      '@types/node':
-        specifier: ^20.11.0
-        version: 20.19.27
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
 
 packages:
 

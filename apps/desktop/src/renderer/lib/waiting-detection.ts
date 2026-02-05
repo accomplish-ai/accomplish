@@ -1,1 +1,1 @@
-export { isWaitingForUser } from '@accomplish/shared';
+export { isWaitingForUser } from '@accomplish/agent-core/browser';
