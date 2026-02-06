@@ -396,33 +396,9 @@ describe('secureStorage Integration', () => {
     });
   });
 
-  describe('listStoredCredentials', () => {
-    it('should return empty array when no credentials stored', async () => {
-      // Arrange
-      const { listStoredCredentials } = await import('@main/store/secureStorage');
-
-      // Act
-      const result = listStoredCredentials();
-
-      // Assert
-      expect(result).toEqual([]);
-    });
-
-    it('should return all stored credentials with decrypted values', async () => {
-      // Arrange
-      const { storeApiKey, listStoredCredentials } = await import('@main/store/secureStorage');
-      storeApiKey('anthropic', 'anthropic-key-123');
-      storeApiKey('openai', 'openai-key-456');
-
-      // Act
-      const result = listStoredCredentials();
-
-      // Assert
-      expect(result).toHaveLength(2);
-      expect(result).toContainEqual({ account: 'apiKey:anthropic', password: 'anthropic-key-123' });
-      expect(result).toContainEqual({ account: 'apiKey:openai', password: 'openai-key-456' });
-    });
-  });
+  // NOTE: listStoredCredentials was removed as part of the createStorage API migration.
+  // The functionality was internal to SecureStorage and is not part of the public StorageAPI.
+  // Use getAllApiKeys() instead to get all stored keys.
 
   describe('encryption consistency', () => {
     it('should decrypt values correctly after module reload', async () => {

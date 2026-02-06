@@ -713,16 +713,6 @@ vi.mock('@main/opencode/config-generator', () => ({
 
 // Mock electron-options - provides adapter options for desktop wrapper
 vi.mock('@main/opencode/electron-options', () => ({
-  createElectronAdapterOptions: vi.fn(() => ({
-    platform: 'darwin',
-    isPackaged: false,
-    tempPath: '/mock/temp',
-    getCliCommand: () => ({ command: '/mock/opencode/cli', args: [] }),
-    buildEnvironment: (_taskId: string) => Promise.resolve({ PATH: '/usr/bin' }),
-    buildCliArgs: (config: { prompt: string; sessionId?: string }) => Promise.resolve(['run', '--format', 'json', config.prompt]),
-    onBeforeStart: () => Promise.resolve(),
-    getModelDisplayName: (model: string) => model,
-  })),
   createElectronTaskManagerOptions: vi.fn(() => ({})),
   buildEnvironment: vi.fn((_taskId: string) => Promise.resolve({ PATH: '/usr/bin' })),
   buildCliArgs: vi.fn((config: { prompt: string }) => Promise.resolve(['run', '--format', 'json', config.prompt])),
@@ -752,11 +742,27 @@ vi.mock('@main/permission-api', () => ({
 }));
 
 describe('OpenCode Adapter Module', () => {
-  let OpenCodeAdapter: typeof import('@main/opencode').OpenCodeAdapter;
-  let createAdapter: typeof import('@main/opencode').createAdapter;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let OpenCodeAdapter: any;
   let isOpenCodeCliInstalled: typeof import('@main/opencode').isOpenCodeCliInstalled;
   let getOpenCodeCliVersion: typeof import('@main/opencode').getOpenCodeCliVersion;
   let OpenCodeCliNotFoundError: typeof import('@main/opencode').OpenCodeCliNotFoundError;
+
+  // Helper function to create adapter instances for testing
+  // Note: OpenCodeAdapter is now internal to agent-core, so we get it from the mocked module
+  function createTestAdapter(taskId?: string) {
+    const options = {
+      platform: 'darwin',
+      isPackaged: false,
+      tempPath: '/mock/temp',
+      getCliCommand: () => ({ command: '/mock/opencode/cli', args: [] }),
+      buildEnvironment: (_taskId: string) => Promise.resolve({ PATH: '/usr/bin' }),
+      buildCliArgs: (config: { prompt: string; sessionId?: string }) => Promise.resolve(['run', '--format', 'json', config.prompt]),
+      onBeforeStart: () => Promise.resolve(),
+      getModelDisplayName: (model: string) => model,
+    };
+    return new OpenCodeAdapter(options, taskId);
+  }
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -766,13 +772,14 @@ describe('OpenCode Adapter Module', () => {
     mockPtyInstance.killed = false;
     mockPtyInstance.removeAllListeners();
 
-    // Re-import module to get fresh state
-    const module = await import('@main/opencode');
-    OpenCodeAdapter = module.OpenCodeAdapter;
-    createAdapter = module.createAdapter;
-    isOpenCodeCliInstalled = module.isOpenCodeCliInstalled;
-    getOpenCodeCliVersion = module.getOpenCodeCliVersion;
-    OpenCodeCliNotFoundError = module.OpenCodeCliNotFoundError;
+    // Re-import modules to get fresh state
+    const desktopModule = await import('@main/opencode');
+    // OpenCodeAdapter is now internal to agent-core, get it from the mocked @accomplish/agent-core module
+    const agentCoreModule = await import('@accomplish/agent-core');
+    OpenCodeAdapter = (agentCoreModule as unknown as { OpenCodeAdapter: unknown }).OpenCodeAdapter;
+    isOpenCodeCliInstalled = desktopModule.isOpenCodeCliInstalled;
+    getOpenCodeCliVersion = desktopModule.getOpenCodeCliVersion;
+    OpenCodeCliNotFoundError = desktopModule.OpenCodeCliNotFoundError;
   });
 
   afterEach(() => {
@@ -784,7 +791,7 @@ describe('OpenCode Adapter Module', () => {
     describe('Constructor', () => {
       it('should create adapter instance with optional task ID', () => {
         // Act
-        const adapter = createAdapter('test-task-123');
+        const adapter = createTestAdapter('test-task-123');
 
         // Assert
         expect(adapter.getTaskId()).toBe('test-task-123');
@@ -793,7 +800,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should create adapter instance without task ID', () => {
         // Act
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
 
         // Assert
         expect(adapter.getTaskId()).toBeNull();
@@ -803,7 +810,7 @@ describe('OpenCode Adapter Module', () => {
     describe('startTask()', () => {
       it('should spawn PTY process with correct arguments', async () => {
         // Arrange
-        const adapter = createAdapter('test-task');
+        const adapter = createTestAdapter('test-task');
         const config = {
           prompt: 'Test prompt',
           taskId: 'test-task-123',
@@ -821,7 +828,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should generate task ID if not provided', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const config = { prompt: 'Test prompt' };
 
         // Act
@@ -833,7 +840,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should emit debug events during startup', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const debugEvents: Array<{ type: string; message: string }> = [];
         adapter.on('debug', (log) => debugEvents.push(log));
 
@@ -847,7 +854,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should throw error if adapter is disposed', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         adapter.dispose();
 
         // Act & Assert
@@ -860,7 +867,7 @@ describe('OpenCode Adapter Module', () => {
     describe('Event Emission', () => {
       it('should emit message event when receiving text message', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const messages: unknown[] = [];
         adapter.on('message', (msg) => messages.push(msg));
 
@@ -887,7 +894,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should emit progress event on step_start message', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const progressEvents: Array<{ stage: string; message?: string }> = [];
         adapter.on('progress', (p) => progressEvents.push(p));
 
@@ -917,7 +924,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should emit tool-use event on tool_call message', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const toolEvents: Array<[string, unknown]> = [];
         adapter.on('tool-use', (name, input) => toolEvents.push([name, input]));
 
@@ -946,7 +953,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should emit tool-use and tool-result events on tool_use message', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const toolUseEvents: Array<[string, unknown]> = [];
         const toolResultEvents: string[] = [];
         adapter.on('tool-use', (name, input) => toolUseEvents.push([name, input]));
@@ -982,7 +989,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should emit complete event on step_finish with stop reason when complete_task was called', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const completeEvents: Array<{ status: string; sessionId?: string }> = [];
         adapter.on('complete', (result) => completeEvents.push(result));
 
@@ -1020,7 +1027,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should schedule continuation on step_finish when complete_task was not called', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const completeEvents: Array<{ status: string; sessionId?: string }> = [];
         const debugEvents: Array<{ type: string; message: string }> = [];
         adapter.on('complete', (result) => completeEvents.push(result));
@@ -1073,7 +1080,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should emit complete after max continuation attempts without complete_task', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const completeEvents: Array<{ status: string; sessionId?: string }> = [];
         adapter.on('complete', (result) => completeEvents.push(result));
 
@@ -1119,7 +1126,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should not emit complete event on step_finish with tool_use reason', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const completeEvents: Array<{ status: string }> = [];
         adapter.on('complete', (result) => completeEvents.push(result));
 
@@ -1145,7 +1152,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should emit complete with error status on error message', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const completeEvents: Array<{ status: string; error?: string }> = [];
         adapter.on('complete', (result) => completeEvents.push(result));
 
@@ -1167,7 +1174,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should emit permission-request event for AskUserQuestion tool', async () => {
         // Arrange
-        const adapter = createAdapter('test-task');
+        const adapter = createTestAdapter('test-task');
         const permissionRequests: unknown[] = [];
         adapter.on('permission-request', (req) => permissionRequests.push(req));
 
@@ -1207,7 +1214,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should emit todo:update for non-empty todos', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const todoEvents: unknown[][] = [];
         adapter.on('todo:update', (todos) => todoEvents.push(todos));
 
@@ -1240,7 +1247,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should NOT emit todo:update for empty todos array', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const todoEvents: unknown[][] = [];
         adapter.on('todo:update', (todos) => todoEvents.push(todos));
 
@@ -1271,7 +1278,7 @@ describe('OpenCode Adapter Module', () => {
     describe('Stream Parser Integration', () => {
       it('should handle multiple JSON messages in single data chunk', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const messages: unknown[] = [];
         adapter.on('message', (msg) => messages.push(msg));
 
@@ -1297,7 +1304,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should handle split JSON messages across data chunks', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const messages: unknown[] = [];
         adapter.on('message', (msg) => messages.push(msg));
 
@@ -1320,7 +1327,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should skip non-JSON lines without crashing', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const messages: unknown[] = [];
         const debugEvents: unknown[] = [];
         adapter.on('message', (msg) => messages.push(msg));
@@ -1343,7 +1350,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should strip ANSI escape codes from data', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const messages: unknown[] = [];
         adapter.on('message', (msg) => messages.push(msg));
 
@@ -1366,7 +1373,7 @@ describe('OpenCode Adapter Module', () => {
     describe('Process Exit Handling', () => {
       it('should emit complete on normal exit (code 0)', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const completeEvents: Array<{ status: string }> = [];
         adapter.on('complete', (result) => completeEvents.push(result));
 
@@ -1382,7 +1389,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should emit error on non-zero exit code', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const errorEvents: Error[] = [];
         adapter.on('error', (err) => errorEvents.push(err));
 
@@ -1398,7 +1405,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should emit interrupted status when interrupted', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const completeEvents: Array<{ status: string }> = [];
         adapter.on('complete', (result) => completeEvents.push(result));
 
@@ -1415,7 +1422,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should not emit duplicate complete events', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const completeEvents: Array<{ status: string }> = [];
         adapter.on('complete', (result) => completeEvents.push(result));
 
@@ -1456,7 +1463,7 @@ describe('OpenCode Adapter Module', () => {
     describe('sendResponse()', () => {
       it('should write response to PTY', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         await adapter.startTask({ prompt: 'Test' });
 
         // Act
@@ -1468,7 +1475,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should throw error if no active process', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         // Don't start a task
 
         // Act & Assert
@@ -1479,7 +1486,7 @@ describe('OpenCode Adapter Module', () => {
     describe('cancelTask()', () => {
       it('should kill PTY process', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         await adapter.startTask({ prompt: 'Test' });
 
         // Act
@@ -1493,7 +1500,7 @@ describe('OpenCode Adapter Module', () => {
     describe('interruptTask()', () => {
       it('should send Ctrl+C to PTY', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         await adapter.startTask({ prompt: 'Test' });
 
         // Act
@@ -1505,7 +1512,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should handle interrupt when no active process', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         // Don't start a task
 
         // Act - should not throw
@@ -1519,7 +1526,7 @@ describe('OpenCode Adapter Module', () => {
     describe('dispose()', () => {
       it('should cleanup PTY process and state', async () => {
         // Arrange
-        const adapter = createAdapter('test-task');
+        const adapter = createTestAdapter('test-task');
         await adapter.startTask({ prompt: 'Test' });
 
         // Act
@@ -1534,7 +1541,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should be idempotent (safe to call multiple times)', () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
 
         // Act - call dispose multiple times
         adapter.dispose();
@@ -1547,7 +1554,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should remove all event listeners', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         let messageCount = 0;
         adapter.on('message', () => messageCount++);
         await adapter.startTask({ prompt: 'Test' });
@@ -1564,7 +1571,7 @@ describe('OpenCode Adapter Module', () => {
     describe('Session Management', () => {
       it('should track session ID from step_start message', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         await adapter.startTask({ prompt: 'Test' });
 
         const stepStart: OpenCodeStepStartMessage = {
@@ -1586,7 +1593,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should support resuming sessions', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
 
         // Act
         const task = await adapter.resumeSession('existing-session', 'Continue task');
@@ -1600,7 +1607,7 @@ describe('OpenCode Adapter Module', () => {
     describe('Session Resumption ANSI Filtering', () => {
       it('should filter ANSI codes in resumed session data', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const messages: unknown[] = [];
         adapter.on('message', (msg) => messages.push(msg));
 
@@ -1622,7 +1629,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should emit debug events in resumed session', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const debugEvents: Array<{ type: string; message: string }> = [];
         adapter.on('debug', (event) => debugEvents.push(event));
 
@@ -1643,7 +1650,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should handle Windows PowerShell ANSI sequences in resumed session', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const messages: unknown[] = [];
         adapter.on('message', (msg) => messages.push(msg));
 
@@ -1664,7 +1671,7 @@ describe('OpenCode Adapter Module', () => {
 
       it('should not feed empty data to parser in resumed session', async () => {
         // Arrange
-        const adapter = createAdapter();
+        const adapter = createTestAdapter();
         const messages: unknown[] = [];
         adapter.on('message', (msg) => messages.push(msg));
 
@@ -1681,17 +1688,6 @@ describe('OpenCode Adapter Module', () => {
   });
 
   describe('Factory Functions', () => {
-    describe('createAdapter()', () => {
-      it('should create a new adapter instance', () => {
-        // Act
-        const adapter = createAdapter('task-123');
-
-        // Assert
-        expect(adapter).toBeInstanceOf(OpenCodeAdapter);
-        expect(adapter.getTaskId()).toBe('task-123');
-      });
-    });
-
     describe('isOpenCodeCliInstalled()', () => {
       it('should return boolean indicating CLI availability', async () => {
         // Act

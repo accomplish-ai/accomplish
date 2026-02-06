@@ -7,18 +7,18 @@
 
 import path from 'path';
 import { app } from 'electron';
-import { LogFileWriter } from '@accomplish/agent-core';
+import { createLogWriter, type LogWriterAPI } from '@accomplish/agent-core';
 
 // Re-export types from shared package for backward compatibility
 export type { LogLevel, LogSource, LogEntry } from '@accomplish/agent-core';
 
-let instance: LogFileWriter | null = null;
+let instance: LogWriterAPI | null = null;
 
-export function getLogFileWriter(): LogFileWriter {
+export function getLogFileWriter(): LogWriterAPI {
   if (!instance) {
     const userDataPath = app.getPath('userData');
     const logDir = path.join(userDataPath, 'logs');
-    instance = new LogFileWriter(logDir);
+    instance = createLogWriter({ logDir });
   }
   return instance;
 }

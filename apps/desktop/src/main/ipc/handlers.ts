@@ -42,7 +42,7 @@ import {
   deleteApiKey,
   getAllApiKeys,
   hasAnyApiKey,
-  listStoredCredentials,
+  getBedrockCredentials,
 } from '../store/secureStorage';
 import {
   getDebugMode,
@@ -380,30 +380,28 @@ export function registerIPCHandlers(): void {
   });
 
   handle('settings:api-keys', async (_event: IpcMainInvokeEvent) => {
-    const storedCredentials = await listStoredCredentials();
+    const storedKeys = await getAllApiKeys();
 
-    const keys = storedCredentials
-      .filter((credential) => credential.account.startsWith('apiKey:'))
-      .map((credential) => {
-        const provider = credential.account.replace('apiKey:', '');
-
+    const keys = Object.entries(storedKeys)
+      .filter(([_provider, apiKey]) => apiKey !== null)
+      .map(([provider, apiKey]) => {
         let keyPrefix = '';
         if (provider === 'bedrock') {
-          try {
-            const parsed = JSON.parse(credential.password);
-            if (parsed.authType === 'accessKeys') {
-              keyPrefix = `${parsed.accessKeyId?.substring(0, 8) || 'AKIA'}...`;
-            } else if (parsed.authType === 'profile') {
-              keyPrefix = `Profile: ${parsed.profileName || 'default'}`;
+          const bedrockCreds = getBedrockCredentials();
+          if (bedrockCreds) {
+            if (bedrockCreds.authType === 'accessKeys') {
+              keyPrefix = `${bedrockCreds.accessKeyId?.substring(0, 8) || 'AKIA'}...`;
+            } else if (bedrockCreds.authType === 'profile') {
+              keyPrefix = `Profile: ${bedrockCreds.profileName || 'default'}`;
+            } else {
+              keyPrefix = 'AWS Credentials';
             }
-          } catch {
+          } else {
             keyPrefix = 'AWS Credentials';
           }
         } else {
           keyPrefix =
-            credential.password && credential.password.length > 0
-              ? `${credential.password.substring(0, 8)}...`
-              : '';
+            apiKey && apiKey.length > 0 ? `${apiKey.substring(0, 8)}...` : '';
         }
 
         return {

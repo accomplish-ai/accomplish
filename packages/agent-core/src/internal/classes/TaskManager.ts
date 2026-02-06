@@ -1,8 +1,8 @@
-import { OpenCodeAdapter, AdapterOptions, OpenCodeCliNotFoundError } from './adapter.js';
-import type { TaskConfig, Task, TaskResult, TaskStatus } from '../common/types/task.js';
-import type { OpenCodeMessage } from '../common/types/opencode.js';
-import type { PermissionRequest } from '../common/types/permission.js';
-import type { TodoItem } from '../common/types/todo.js';
+import { OpenCodeAdapter, AdapterOptions, OpenCodeCliNotFoundError } from './OpenCodeAdapter.js';
+import type { TaskConfig, Task, TaskResult, TaskStatus } from '../../common/types/task.js';
+import type { OpenCodeMessage } from '../../common/types/opencode.js';
+import type { PermissionRequest } from '../../common/types/permission.js';
+import type { TodoItem } from '../../common/types/todo.js';
 
 export interface TaskProgressEvent {
   stage: string;

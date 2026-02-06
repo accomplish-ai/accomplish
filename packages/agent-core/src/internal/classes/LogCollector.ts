@@ -6,9 +6,21 @@
  * a LogFileWriter instance to be injected.
  */
 
-import { type LogLevel, type LogSource } from '../common/types/logging.js';
-import { detectLogSource } from '../common/utils/log-source-detector.js';
-import type { LogWriterAPI } from '../types/log-writer.js';
+import { type LogLevel, type LogSource } from '../../common/types/logging.js';
+import { detectLogSource } from '../../common/utils/log-source-detector.js';
+
+/**
+ * Internal interface for the basic file writer that LogCollector needs.
+ * This is a subset of LogWriterAPI that only includes the low-level operations.
+ */
+interface InternalLogFileWriter {
+  initialize(): void;
+  write(level: LogLevel, source: LogSource, message: string): void;
+  flush(): void;
+  getCurrentLogPath(): string;
+  getLogDir(): string;
+  shutdown(): void;
+}
 
 // Store original console methods
 const originalConsole = {
@@ -21,7 +33,7 @@ const originalConsole = {
 export class LogCollector {
   private initialized = false;
 
-  constructor(private writer: LogWriterAPI) {}
+  constructor(private writer: InternalLogFileWriter) {}
 
   /**
    * Initialize the log collector - must be called early in app startup

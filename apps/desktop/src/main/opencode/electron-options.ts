@@ -2,7 +2,7 @@ import { app } from 'electron';
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import type { AdapterOptions, TaskManagerOptions, TaskCallbacks } from '@accomplish/agent-core';
+import type { TaskAdapterOptions, TaskManagerOptions, TaskCallbacks } from '@accomplish/agent-core';
 import type { TaskConfig } from '@accomplish/agent-core';
 import { DEV_BROWSER_PORT } from '@accomplish/agent-core';
 import {
@@ -218,19 +218,6 @@ export async function onBeforeTaskStart(
 
   const browserConfig = getBrowserServerConfig();
   await ensureDevBrowserServer(browserConfig, callbacks.onProgress);
-}
-
-export function createElectronAdapterOptions(): AdapterOptions {
-  return {
-    platform: process.platform,
-    isPackaged: app.isPackaged,
-    tempPath: app.getPath('temp'),
-    getCliCommand,
-    buildEnvironment,
-    buildCliArgs: (config: TaskConfig) => buildCliArgs(config, ''),
-    onBeforeStart,
-    getModelDisplayName,
-  };
 }
 
 export function createElectronTaskManagerOptions(): TaskManagerOptions {

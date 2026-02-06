@@ -2,7 +2,6 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import type { Database as DatabaseType } from 'better-sqlite3';
 
 /**
  * SkillsManager tests require better-sqlite3 native module.
@@ -16,20 +15,22 @@ describe('SkillsManager', () => {
   let testDir: string;
   let bundledSkillsPath: string;
   let userSkillsPath: string;
-  let db: DatabaseType | null = null;
-  let SkillsManager: typeof import('../../../src/skills/skills-manager.js').SkillsManager | null = null;
-  let manager: InstanceType<typeof import('../../../src/skills/skills-manager.js').SkillsManager> | null = null;
-  let Database: typeof import('better-sqlite3').default | null = null;
-  let runMigrations: typeof import('../../../src/storage/migrations/index.js').runMigrations | null = null;
+  let SkillsManager: typeof import('../../../src/internal/classes/SkillsManager.js').SkillsManager | null = null;
+  let manager: InstanceType<typeof import('../../../src/internal/classes/SkillsManager.js').SkillsManager> | null = null;
+  let initializeDatabase: typeof import('../../../src/storage/database.js').initializeDatabase | null = null;
+  let closeDatabase: typeof import('../../../src/storage/database.js').closeDatabase | null = null;
+  let getDatabase: typeof import('../../../src/storage/database.js').getDatabase | null = null;
   let moduleAvailable = false;
 
   beforeAll(async () => {
     try {
-      const betterSqlite3 = await import('better-sqlite3');
-      Database = betterSqlite3.default;
-      const migrations = await import('../../../src/storage/migrations/index.js');
-      runMigrations = migrations.runMigrations;
-      const skillsModule = await import('../../../src/skills/skills-manager.js');
+      // Verify better-sqlite3 is loadable
+      await import('better-sqlite3');
+      const dbModule = await import('../../../src/storage/database.js');
+      initializeDatabase = dbModule.initializeDatabase;
+      closeDatabase = dbModule.closeDatabase;
+      getDatabase = dbModule.getDatabase;
+      const skillsModule = await import('../../../src/internal/classes/SkillsManager.js');
       SkillsManager = skillsModule.SkillsManager;
       moduleAvailable = true;
     } catch (err) {
@@ -49,16 +50,12 @@ describe('SkillsManager', () => {
     fs.mkdirSync(bundledSkillsPath, { recursive: true });
     fs.mkdirSync(userSkillsPath, { recursive: true });
 
-    // Create in-memory database with migrations
-    db = new Database!(':memory:');
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    runMigrations!(db);
+    // Initialize the database singleton (used by repository functions)
+    initializeDatabase!({ databasePath: ':memory:', runMigrations: true });
 
     manager = new SkillsManager!({
       bundledSkillsPath,
       userSkillsPath,
-      database: db,
     });
 
     // Suppress console.log during tests
@@ -68,9 +65,8 @@ describe('SkillsManager', () => {
   });
 
   afterEach(() => {
-    if (db) {
-      db.close();
-      db = null;
+    if (closeDatabase) {
+      closeDatabase();
     }
 
     if (testDir && fs.existsSync(testDir)) {
@@ -239,13 +235,14 @@ Content here.
 
   describe('sync skills to database', () => {
     it('should sync skills to database', async () => {
-      if (!moduleAvailable || !manager || !db) return;
+      if (!moduleAvailable || !manager || !getDatabase) return;
 
       createSkillFile(bundledSkillsPath, 'db-skill');
 
       await manager.initialize();
 
-      // Query database directly
+      // Query database directly via singleton
+      const db = getDatabase();
       const row = db.prepare('SELECT * FROM skills WHERE name = ?').get('db-skill');
       expect(row).toBeDefined();
     });

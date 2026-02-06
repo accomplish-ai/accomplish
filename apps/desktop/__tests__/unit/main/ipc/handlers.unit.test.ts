@@ -325,11 +325,11 @@ vi.mock('@main/store/secureStorage', () => ({
   }),
   getAllApiKeys: vi.fn(() =>
     Promise.resolve({
-      anthropic: mockApiKeys['anthropic'] || null,
-      openai: mockApiKeys['openai'] || null,
-      google: mockApiKeys['google'] || null,
-      xai: mockApiKeys['xai'] || null,
-      custom: mockApiKeys['custom'] || null,
+      anthropic: mockApiKeys['anthropic'] ?? null,
+      openai: mockApiKeys['openai'] ?? null,
+      google: mockApiKeys['google'] ?? null,
+      xai: mockApiKeys['xai'] ?? null,
+      custom: mockApiKeys['custom'] ?? null,
     })
   ),
   hasAnyApiKey: vi.fn(() =>
@@ -617,11 +617,12 @@ describe('IPC Handlers Integration', () => {
     });
 
     it('settings:api-keys should return list of stored API keys', async () => {
-      // Arrange
-      mockStoredCredentials = [
-        { account: 'apiKey:anthropic', password: 'sk-ant-12345678' },
-        { account: 'apiKey:openai', password: 'sk-openai-abcdefgh' },
-      ];
+      // Arrange - set the api keys directly via mockApiKeys
+      // Note: The handler now uses getAllApiKeys() which reads from mockApiKeys
+      mockApiKeys = {
+        anthropic: 'sk-ant-12345678',
+        openai: 'sk-openai-abcdefgh',
+      };
 
       // Act
       const result = await invokeHandler('settings:api-keys');
@@ -2034,10 +2035,11 @@ describe('IPC Handlers Integration', () => {
     });
 
     it('settings:api-keys should handle empty password', async () => {
-      // Arrange
-      mockStoredCredentials = [
-        { account: 'apiKey:anthropic', password: '' },
-      ];
+      // Arrange - use mockApiKeys directly
+      // Note: The handler now uses getAllApiKeys() which reads from mockApiKeys
+      mockApiKeys = {
+        anthropic: '',  // Empty key value
+      };
 
       // Act
       const result = await invokeHandler('settings:api-keys') as Array<{ keyPrefix: string }>;

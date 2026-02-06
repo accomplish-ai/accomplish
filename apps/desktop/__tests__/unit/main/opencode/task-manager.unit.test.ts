@@ -196,14 +196,6 @@ vi.mock('@main/opencode/config-generator', () => ({
 
 // Mock electron-options to provide mock TaskManagerOptions for singleton functions
 vi.mock('@main/opencode/electron-options', () => ({
-  createElectronAdapterOptions: vi.fn(() => ({
-    platform: 'darwin' as NodeJS.Platform,
-    isPackaged: false,
-    tempPath: '/mock/temp',
-    getCliCommand: () => ({ command: 'opencode', args: [] }),
-    buildEnvironment: async (_taskId: string) => ({}),
-    buildCliArgs: async () => [],
-  })),
   createElectronTaskManagerOptions: vi.fn(() => ({
     adapterOptions: {
       platform: 'darwin' as NodeJS.Platform,
@@ -267,7 +259,7 @@ function createMockTaskManagerOptions(overrides?: { maxConcurrentTasks?: number 
 }
 
 describe('Task Manager Module', () => {
-  let TaskManager: typeof import('@main/opencode').TaskManager;
+  let createTaskManager: typeof import('@main/opencode').createTaskManager;
   let getTaskManager: typeof import('@main/opencode').getTaskManager;
   let disposeTaskManager: typeof import('@main/opencode').disposeTaskManager;
 
@@ -291,7 +283,7 @@ describe('Task Manager Module', () => {
 
     // Re-import module to get fresh state
     const module = await import('@main/opencode');
-    TaskManager = module.TaskManager;
+    createTaskManager = module.createTaskManager;
     getTaskManager = module.getTaskManager;
     disposeTaskManager = module.disposeTaskManager;
   });
@@ -304,7 +296,7 @@ describe('Task Manager Module', () => {
     describe('Constructor', () => {
       it('should create task manager with default max concurrent tasks', () => {
         // Act
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
 
         // Assert
         expect(manager.getActiveTaskCount()).toBe(0);
@@ -313,7 +305,7 @@ describe('Task Manager Module', () => {
 
       it('should create task manager with custom max concurrent tasks', () => {
         // Arrange & Act
-        const manager = new TaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 5 }));
+        const manager = createTaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 5 }));
 
         // Assert - verify by filling up to the limit
         expect(manager.getActiveTaskCount()).toBe(0);
@@ -323,7 +315,7 @@ describe('Task Manager Module', () => {
     describe('startTask()', () => {
       it('should start a single task successfully', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
         const callbacks = createMockCallbacks();
         const config: TaskConfig = { prompt: 'Test task' };
 
@@ -339,7 +331,7 @@ describe('Task Manager Module', () => {
 
       it('should throw error if task ID already exists', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
         const callbacks = createMockCallbacks();
         const config: TaskConfig = { prompt: 'Test task' };
 
@@ -353,7 +345,7 @@ describe('Task Manager Module', () => {
 
       it('should execute multiple tasks in parallel up to limit', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 3 }));
+        const manager = createTaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 3 }));
 
         // Act
         await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
@@ -370,7 +362,7 @@ describe('Task Manager Module', () => {
 
       it('should queue tasks when at capacity', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 2 }));
+        const manager = createTaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 2 }));
 
         // Act
         await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
@@ -386,7 +378,7 @@ describe('Task Manager Module', () => {
 
       it('should throw error when queue is full', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
+        const manager = createTaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
 
         await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
         await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
@@ -397,37 +389,12 @@ describe('Task Manager Module', () => {
         ).rejects.toThrow('Maximum queued tasks');
       });
 
-      it('should return queue position for queued tasks', async () => {
-        // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
-
-        await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
-        await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
-
-        // Act
-        const position = manager.getQueuePosition('task-2');
-
-        // Assert
-        expect(position).toBe(1);
-      });
-
-      it('should return 0 for non-queued task position', async () => {
-        // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
-        await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
-
-        // Act
-        const position = manager.getQueuePosition('task-1');
-
-        // Assert
-        expect(position).toBe(0);
-      });
     });
 
     describe('Task Event Handling', () => {
       it('should forward message events to callbacks', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
         const callbacks = createMockCallbacks();
         await manager.startTask('task-1', { prompt: 'Test' }, callbacks);
 
@@ -438,7 +405,7 @@ describe('Task Manager Module', () => {
 
       it('should forward progress events to callbacks', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
         const callbacks = createMockCallbacks();
         await manager.startTask('task-1', { prompt: 'Test' }, callbacks);
 
@@ -453,7 +420,7 @@ describe('Task Manager Module', () => {
 
       it('should cleanup task on completion and process queue', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
+        const manager = createTaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
         const callbacks1 = createMockCallbacks();
         const callbacks2 = createMockCallbacks();
 
@@ -471,7 +438,7 @@ describe('Task Manager Module', () => {
 
       it('should cleanup task on error and process queue', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
+        const manager = createTaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
         const callbacks1 = createMockCallbacks();
         const callbacks2 = createMockCallbacks();
 
@@ -487,7 +454,7 @@ describe('Task Manager Module', () => {
     describe('cancelTask()', () => {
       it('should cancel a running task', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
         const callbacks = createMockCallbacks();
         await manager.startTask('task-1', { prompt: 'Test' }, callbacks);
 
@@ -500,7 +467,7 @@ describe('Task Manager Module', () => {
 
       it('should cancel a queued task', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
+        const manager = createTaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
         await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
         await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
 
@@ -516,7 +483,7 @@ describe('Task Manager Module', () => {
 
       it('should handle cancellation of non-existent task gracefully', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
 
         // Act & Assert - should not throw
         await manager.cancelTask('non-existent');
@@ -524,7 +491,7 @@ describe('Task Manager Module', () => {
 
       it('should process queue after cancellation', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
+        const manager = createTaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
         const callbacks2 = createMockCallbacks();
 
         await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
@@ -544,7 +511,7 @@ describe('Task Manager Module', () => {
     describe('interruptTask()', () => {
       it('should interrupt a running task', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
         await manager.startTask('task-1', { prompt: 'Test' }, createMockCallbacks());
 
         // Act & Assert - should not throw
@@ -553,7 +520,7 @@ describe('Task Manager Module', () => {
 
       it('should handle interruption of non-existent task gracefully', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
 
         // Act & Assert - should not throw
         await manager.interruptTask('non-existent');
@@ -563,7 +530,7 @@ describe('Task Manager Module', () => {
     describe('cancelQueuedTask()', () => {
       it('should remove task from queue and return true', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
+        const manager = createTaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
         await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
         await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
 
@@ -577,7 +544,7 @@ describe('Task Manager Module', () => {
 
       it('should return false for non-queued task', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
         await manager.startTask('task-1', { prompt: 'Test' }, createMockCallbacks());
 
         // Act
@@ -591,7 +558,7 @@ describe('Task Manager Module', () => {
     describe('sendResponse()', () => {
       it('should attempt to send response to active task', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
         await manager.startTask('task-1', { prompt: 'Test' }, createMockCallbacks());
 
         // Act & Assert - The adapter throws "No active process" because there's no real PTY
@@ -604,7 +571,7 @@ describe('Task Manager Module', () => {
 
       it('should throw error for non-existent task', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
 
         // Act & Assert
         await expect(manager.sendResponse('non-existent', 'response')).rejects.toThrow(
@@ -616,7 +583,7 @@ describe('Task Manager Module', () => {
     describe('getSessionId()', () => {
       it('should return session ID for active task after adapter starts', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
         await manager.startTask('task-1', { prompt: 'Test' }, createMockCallbacks());
 
         // Wait for async adapter initialization
@@ -632,7 +599,7 @@ describe('Task Manager Module', () => {
 
       it('should return null for non-existent task', () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
 
         // Act
         const sessionId = manager.getSessionId('non-existent');
@@ -645,7 +612,7 @@ describe('Task Manager Module', () => {
     describe('State Query Methods', () => {
       it('should report hasRunningTask correctly', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
 
         // Assert initial state
         expect(manager.hasRunningTask()).toBe(false);
@@ -659,7 +626,7 @@ describe('Task Manager Module', () => {
 
       it('should return all active task IDs', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 3 }));
+        const manager = createTaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 3 }));
         await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
         await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
 
@@ -674,7 +641,7 @@ describe('Task Manager Module', () => {
 
       it('should return first active task ID', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
         await manager.startTask('task-1', { prompt: 'Test' }, createMockCallbacks());
 
         // Act
@@ -686,7 +653,7 @@ describe('Task Manager Module', () => {
 
       it('should return null when no active tasks', () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
 
         // Act
         const activeId = manager.getActiveTaskId();
@@ -699,7 +666,7 @@ describe('Task Manager Module', () => {
     describe('dispose()', () => {
       it('should dispose all active tasks', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions());
+        const manager = createTaskManager(createMockTaskManagerOptions());
         await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
         await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
 
@@ -713,7 +680,7 @@ describe('Task Manager Module', () => {
 
       it('should clear the task queue', async () => {
         // Arrange
-        const manager = new TaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
+        const manager = createTaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 1 }));
         await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
         await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
 
@@ -744,8 +711,11 @@ describe('Task Manager Module', () => {
         disposeTaskManager();
         const manager = getTaskManager();
 
-        // Assert
-        expect(manager).toBeInstanceOf(TaskManager);
+        // Assert - verify manager has expected methods (factory returns interface, not class)
+        expect(manager).toBeDefined();
+        expect(typeof manager.startTask).toBe('function');
+        expect(typeof manager.cancelTask).toBe('function');
+        expect(typeof manager.dispose).toBe('function');
       });
     });
 
@@ -774,7 +744,7 @@ describe('Task Manager Module', () => {
   describe('Queue Processing', () => {
     it('should queue tasks and track positions correctly', async () => {
       // Arrange - use maxConcurrentTasks: 2 to allow queue limit of 2
-      const manager = new TaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 2 }));
+      const manager = createTaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 2 }));
 
       const callbacks1 = createMockCallbacks();
       const callbacks2 = createMockCallbacks();
@@ -790,13 +760,11 @@ describe('Task Manager Module', () => {
       // Assert queue state
       expect(manager.getActiveTaskCount()).toBe(2);
       expect(manager.getQueueLength()).toBe(2);
-      expect(manager.getQueuePosition('task-3')).toBe(1);
-      expect(manager.getQueuePosition('task-4')).toBe(2);
     });
 
     it('should maintain queue integrity during concurrent operations', async () => {
       // Arrange
-      const manager = new TaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 2 }));
+      const manager = createTaskManager(createMockTaskManagerOptions({ maxConcurrentTasks: 2 }));
 
       // Add multiple tasks
       await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());

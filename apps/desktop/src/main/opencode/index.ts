@@ -1,25 +1,18 @@
+// Factory functions from agent-core
 export {
-  OpenCodeAdapter,
   OpenCodeCliNotFoundError,
-  TaskManager,
-  StreamParser,
-  CompletionEnforcer,
-  OpenCodeLogWatcher,
-  createLogWatcher,
+  createTaskManager,
 } from '@accomplish/agent-core';
 
+// Types from agent-core
 export type {
-  AdapterOptions,
-  OpenCodeAdapterEvents,
   TaskManagerOptions,
   TaskCallbacks,
   TaskProgressEvent,
-  OpenCodeLogError,
-  CompletionEnforcerCallbacks,
+  TaskManagerAPI,
 } from '@accomplish/agent-core';
 
 export {
-  createElectronAdapterOptions,
   createElectronTaskManagerOptions,
   buildEnvironment,
   buildCliArgs,
@@ -41,19 +34,18 @@ export {
 
 export { loginOpenAiWithChatGpt } from './auth-browser';
 
-import { OpenCodeAdapter, TaskManager } from '@accomplish/agent-core';
+import { createTaskManager, type TaskManagerAPI } from '@accomplish/agent-core';
 import {
-  createElectronAdapterOptions,
   createElectronTaskManagerOptions,
   isCliAvailable,
   getBundledOpenCodeVersion,
 } from './electron-options';
 
-let taskManagerInstance: TaskManager | null = null;
+let taskManagerInstance: TaskManagerAPI | null = null;
 
-export function getTaskManager(): TaskManager {
+export function getTaskManager(): TaskManagerAPI {
   if (!taskManagerInstance) {
-    taskManagerInstance = new TaskManager(createElectronTaskManagerOptions());
+    taskManagerInstance = createTaskManager(createElectronTaskManagerOptions());
   }
   return taskManagerInstance;
 }
@@ -63,10 +55,6 @@ export function disposeTaskManager(): void {
     taskManagerInstance.dispose();
     taskManagerInstance = null;
   }
-}
-
-export function createAdapter(taskId?: string): OpenCodeAdapter {
-  return new OpenCodeAdapter(createElectronAdapterOptions(), taskId);
 }
 
 export async function isOpenCodeCliInstalled(): Promise<boolean> {

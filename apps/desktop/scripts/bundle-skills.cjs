@@ -94,6 +94,10 @@ async function bundleSkill({ name, entry, outfile, external = [], banner: needsB
     external,
     absWorkingDir: skillDir,
     tsconfig: fs.existsSync(tsconfigPath) ? tsconfigPath : undefined,
+    nodePaths: [
+      path.join(skillDir, 'node_modules'),
+      path.join(__dirname, '..', '..', '..', 'node_modules'),
+    ],
   });
 }
 
