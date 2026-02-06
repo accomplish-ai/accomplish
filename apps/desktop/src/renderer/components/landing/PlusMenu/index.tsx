@@ -14,18 +14,16 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { SkillsSubmenu } from './SkillsSubmenu';
-import { CreateSkillModal } from '@/components/skills/CreateSkillModal';
 
 interface PlusMenuProps {
   onSkillSelect: (command: string) => void;
-  onOpenSettings: (tab: 'skills') => void;
+  onOpenSettings: (tab: 'skills', options?: { openAddDropdown?: boolean }) => void;
   disabled?: boolean;
 }
 
 export function PlusMenu({ onSkillSelect, onOpenSettings, disabled }: PlusMenuProps) {
   const [open, setOpen] = useState(false);
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Fetch enabled skills when dropdown opens (filter out hidden skills for UI)
@@ -69,12 +67,10 @@ export function PlusMenu({ onSkillSelect, onOpenSettings, disabled }: PlusMenuPr
 
   const handleCreateNewSkill = () => {
     setOpen(false);
-    setCreateModalOpen(true);
+    onOpenSettings('skills', { openAddDropdown: true });
   };
 
   return (
-    <>
-      <CreateSkillModal open={createModalOpen} onOpenChange={setCreateModalOpen} />
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
@@ -120,6 +116,5 @@ export function PlusMenu({ onSkillSelect, onOpenSettings, disabled }: PlusMenuPr
         </DropdownMenuSub>
       </DropdownMenuContent>
     </DropdownMenu>
-    </>
   );
 }

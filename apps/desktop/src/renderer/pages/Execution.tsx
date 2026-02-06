@@ -199,6 +199,7 @@ export default function ExecutionPage() {
   const [customResponse, setCustomResponse] = useState('');
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<'providers' | 'voice' | 'skills'>('providers');
+  const [skillsOptions, setSkillsOptions] = useState<{ openAddDropdown?: boolean }>({});
   const [pendingFollowUp, setPendingFollowUp] = useState<string | null>(null);
   const pendingSpeechFollowUpRef = useRef<string | null>(null);
 
@@ -524,6 +525,7 @@ export default function ExecutionPage() {
     if (!open) {
       setPendingFollowUp(null);
       setSettingsInitialTab('providers');
+      setSkillsOptions({});
     }
   };
 
@@ -713,6 +715,7 @@ export default function ExecutionPage() {
         onOpenChange={handleSettingsDialogClose}
         onApiKeySaved={handleApiKeySaved}
         initialTab={settingsInitialTab}
+        skillsOptions={skillsOptions}
       />
 
     <div className="h-full flex flex-col bg-background relative">
@@ -1369,8 +1372,9 @@ export default function ExecutionPage() {
                     setFollowUp(newValue);
                     setTimeout(() => followUpInputRef.current?.focus(), 0);
                   }}
-                  onOpenSettings={(tab) => {
+                  onOpenSettings={(tab, options) => {
                     setSettingsInitialTab(tab);
+                    setSkillsOptions(options ?? {});
                     setShowSettingsDialog(true);
                   }}
                   disabled={isLoading || speechInput.isRecording}

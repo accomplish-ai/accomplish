@@ -1,12 +1,6 @@
 // apps/desktop/src/renderer/components/settings/skills/AddSkillDropdown.tsx
 
-import { useState } from 'react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -22,9 +16,11 @@ import { CreateSkillModal } from '@/components/skills/CreateSkillModal';
 interface AddSkillDropdownProps {
   onSkillAdded?: () => void;
   onClose?: () => void; // Close the settings dialog
+  defaultOpen?: boolean; // Open modal on mount
 }
 
-export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProps) {
+export function AddSkillDropdown({ onSkillAdded, onClose, defaultOpen }: AddSkillDropdownProps) {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isGitHubDialogOpen, setIsGitHubDialogOpen] = useState(false);
   const [isUploadErrorDialogOpen, setIsUploadErrorDialogOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -33,8 +29,17 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
   const [error, setError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // Open modal on mount if defaultOpen is true
+  useEffect(() => {
+    if (defaultOpen) {
+      setIsAddModalOpen(true);
+    }
+  }, [defaultOpen]);
+
   const handleUploadSkill = async () => {
     if (!window.accomplish) return;
+
+    setIsAddModalOpen(false); // Close the add modal first
 
     try {
       setIsLoading(true);
@@ -80,10 +85,12 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
   };
 
   const handleBuildWithAI = () => {
+    setIsAddModalOpen(false);
     setIsCreateModalOpen(true);
   };
 
   const handleOpenGitHubDialog = () => {
+    setIsAddModalOpen(false);
     setGitHubUrl('');
     setError(null);
     setIsGitHubDialogOpen(true);
@@ -97,102 +104,120 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
     }
   };
 
+  const handleCloseAddModal = () => {
+    setIsAddModalOpen(false);
+  };
+
   return (
     <>
       <CreateSkillModal open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen} onSettingsClose={onClose} />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button size="sm" className="gap-1.5">
-            <svg
-              className="h-4 w-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            Add
-            <svg
-              className="h-3 w-3"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-60">
-          <DropdownMenuItem
-            onClick={handleBuildWithAI}
-            className="flex-col items-start gap-0.5 py-2.5"
-          >
-            <div className="flex items-center gap-2">
-              <svg
-                className="h-4 w-4 text-muted-foreground"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M8 12h8M12 8v8" />
-              </svg>
-              <span className="font-medium">Build with Accomplish</span>
-            </div>
-            <span className="pl-6 text-xs text-muted-foreground">
-              Create skills through conversation
-            </span>
-          </DropdownMenuItem>
 
-          <DropdownMenuItem
-            onClick={handleUploadSkill}
-            disabled={isLoading}
-            className="flex-col items-start gap-0.5 py-2.5"
-          >
-            <div className="flex items-center gap-2">
-              <svg
-                className="h-4 w-4 text-muted-foreground"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                <polyline points="17,8 12,3 7,8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-              <span className="font-medium">Upload a skill</span>
-            </div>
-            <span className="pl-6 text-xs text-muted-foreground">
-              Upload a SKILL.md file
-            </span>
-          </DropdownMenuItem>
+      {/* Add Button */}
+      <Button size="sm" className="gap-1.5" onClick={() => setIsAddModalOpen(true)}>
+        <svg
+          className="h-4 w-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        Add
+      </Button>
 
-          <DropdownMenuItem
-            onClick={handleOpenGitHubDialog}
-            className="flex-col items-start gap-0.5 py-2.5"
-          >
-            <div className="flex items-center gap-2">
-              <svg
-                className="h-4 w-4 text-muted-foreground"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22" />
-              </svg>
-              <span className="font-medium">Import from GitHub</span>
-            </div>
-            <span className="pl-6 text-xs text-muted-foreground">
-              Paste a repository link
-            </span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Add Skill Modal */}
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+        <DialogContent className="sm:max-w-[360px] p-0 gap-0 overflow-hidden">
+          <DialogHeader className="p-5 pb-4 border-b border-border">
+            <DialogTitle>Add a Skill</DialogTitle>
+            <DialogDescription>
+              Choose how you'd like to add a new skill
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-3 space-y-1">
+            {/* Build with Accomplish */}
+            <button
+              onClick={handleBuildWithAI}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent transition-colors text-left"
+            >
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <svg
+                  className="w-5 h-5 text-primary"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M8 12h8M12 8v8" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-medium text-foreground text-sm">Build with Accomplish</div>
+                <div className="text-xs text-muted-foreground">Create through conversation</div>
+              </div>
+            </button>
+
+            {/* Upload a skill */}
+            <button
+              onClick={handleUploadSkill}
+              disabled={isLoading}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent transition-colors text-left disabled:opacity-50"
+            >
+              <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                <svg
+                  className="w-5 h-5 text-secondary-foreground"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                  <polyline points="17,8 12,3 7,8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-medium text-foreground text-sm">Upload a skill</div>
+                <div className="text-xs text-muted-foreground">Import a SKILL.md file</div>
+              </div>
+            </button>
+
+            {/* Import from GitHub */}
+            <button
+              onClick={handleOpenGitHubDialog}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent transition-colors text-left"
+            >
+              <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                <svg
+                  className="w-5 h-5 text-secondary-foreground"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-medium text-foreground text-sm">Import from GitHub</div>
+                <div className="text-xs text-muted-foreground">Paste a repository link</div>
+              </div>
+            </button>
+          </div>
+
+          <div className="p-4 border-t border-border bg-muted/30">
+            <button
+              onClick={handleCloseAddModal}
+              className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* GitHub Import Dialog */}
       <Dialog open={isGitHubDialogOpen} onOpenChange={handleCloseGitHubDialog}>

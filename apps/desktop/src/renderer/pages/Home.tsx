@@ -85,6 +85,7 @@ export default function HomePage() {
   const [showExamples, setShowExamples] = useState(true);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<'providers' | 'voice' | 'skills'>('providers');
+  const [skillsOptions, setSkillsOptions] = useState<{ openAddDropdown?: boolean }>({});
   const { startTask, isLoading, addTaskUpdate, setPermissionRequest } = useTaskStore();
   const navigate = useNavigate();
   const accomplish = getAccomplish();
@@ -134,9 +135,10 @@ export default function HomePage() {
 
   const handleSettingsDialogChange = (open: boolean) => {
     setShowSettingsDialog(open);
-    // Reset to providers tab when dialog closes
+    // Reset state when dialog closes
     if (!open) {
       setSettingsInitialTab('providers');
+      setSkillsOptions({});
     }
   };
 
@@ -169,6 +171,7 @@ export default function HomePage() {
         onOpenChange={handleSettingsDialogChange}
         onApiKeySaved={handleApiKeySaved}
         initialTab={settingsInitialTab}
+        skillsOptions={skillsOptions}
       />
       <div
         className="h-full flex items-center justify-center p-6 overflow-y-auto bg-accent"
@@ -203,8 +206,9 @@ export default function HomePage() {
                 large={true}
                 autoFocus={true}
                 onOpenSpeechSettings={handleOpenSpeechSettings}
-                onOpenSettings={(tab) => {
+                onOpenSettings={(tab, options) => {
                   setSettingsInitialTab(tab);
+                  setSkillsOptions(options ?? {});
                   setShowSettingsDialog(true);
                 }}
                 onOpenModelSettings={handleOpenModelSettings}
