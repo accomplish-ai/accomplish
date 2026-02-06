@@ -33,7 +33,7 @@ function rowToProvider(row: ProviderRow): ConnectedProvider {
   const credentials = safeParseJsonWithFallback<ProviderCredentials>(
     row.credentials_data,
     { type: 'api_key', keyPrefix: '' }
-  )!;
+  ) ?? { type: 'api_key' as const, keyPrefix: '' };
 
   return {
     providerId: row.provider_id as ProviderId,

@@ -1,6 +1,7 @@
 import type { Task, TaskMessage, TaskStatus, TaskAttachment } from '../../common/types/task.js';
 import type { TodoItem } from '../../common/types/todo.js';
 import { getDatabase } from '../database.js';
+import { safeParseJsonWithFallback } from '../../utils/json.js';
 
 export interface StoredTask {
   id: string;
@@ -65,34 +66,49 @@ function getMessagesForTask(taskId: string): TaskMessage[] {
     )
     .all(taskId) as MessageRow[];
 
-  const messages: TaskMessage[] = [];
+  if (messageRows.length === 0) return [];
 
-  for (const row of messageRows) {
-    const attachmentRows = db
-      .prepare('SELECT * FROM task_attachments WHERE message_id = ?')
-      .all(row.id) as AttachmentRow[];
+  // Batch-load all attachments for this task's messages in one query
+  const messageIds = messageRows.map((r) => r.id);
+  const placeholders = messageIds.map(() => '?').join(',');
+  const attachmentRows = db
+    .prepare(
+      `SELECT * FROM task_attachments WHERE message_id IN (${placeholders})`
+    )
+    .all(...messageIds) as AttachmentRow[];
 
+  // Group attachments by message_id
+  const attachmentsByMessageId = new Map<string, AttachmentRow[]>();
+  for (const a of attachmentRows) {
+    const existing = attachmentsByMessageId.get(a.message_id);
+    if (existing) {
+      existing.push(a);
+    } else {
+      attachmentsByMessageId.set(a.message_id, [a]);
+    }
+  }
+
+  return messageRows.map((row) => {
+    const rowAttachments = attachmentsByMessageId.get(row.id);
     const attachments: TaskAttachment[] | undefined =
-      attachmentRows.length > 0
-        ? attachmentRows.map((a) => ({
+      rowAttachments && rowAttachments.length > 0
+        ? rowAttachments.map((a) => ({
             type: a.type as 'screenshot' | 'json',
             data: a.data,
             label: a.label || undefined,
           }))
         : undefined;
 
-    messages.push({
+    return {
       id: row.id,
       type: row.type as TaskMessage['type'],
       content: row.content,
       toolName: row.tool_name || undefined,
-      toolInput: row.tool_input ? JSON.parse(row.tool_input) : undefined,
+      toolInput: row.tool_input ? safeParseJsonWithFallback(row.tool_input) ?? undefined : undefined,
       timestamp: row.timestamp,
       attachments,
-    });
-  }
-
-  return messages;
+    };
+  });
 }
 
 function rowToTask(row: TaskRow): StoredTask {
@@ -261,13 +277,6 @@ export function clearHistory(): void {
   db.prepare('DELETE FROM tasks').run();
 }
 
-export function setMaxHistoryItems(_max: number): void {}
-
-export function clearTaskHistoryStore(): void {
-  clearHistory();
-}
-
-export function flushPendingTasks(): void {}
 
 export function getTodosForTask(taskId: string): TodoItem[] {
   const db = getDatabase();

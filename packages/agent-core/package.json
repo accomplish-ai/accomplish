@@ -16,7 +16,8 @@
       "types": "./dist/common.d.ts",
       "import": "./dist/common.js",
       "default": "./dist/common.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",

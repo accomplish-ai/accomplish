@@ -558,12 +558,27 @@ if (typeof window !== 'undefined' && window.accomplish) {
 
   window.accomplish.onTaskUpdate((event: unknown) => {
     const updateEvent = event as TaskUpdateEvent;
+    const state = useTaskStore.getState();
+
+    // Centralized: apply task update to store (replaces per-component subscriptions)
+    state.addTaskUpdate(updateEvent);
+
     if (updateEvent.type === 'complete' || updateEvent.type === 'error') {
-      const state = useTaskStore.getState();
       if (state.setupProgressTaskId === updateEvent.taskId) {
         state.setSetupProgress(null, null);
       }
       state.clearStartupStage(updateEvent.taskId);
+    }
+  });
+
+  window.accomplish.onTaskStatusChange?.((data: { taskId: string; status: TaskStatus }) => {
+    useTaskStore.getState().updateTaskStatus(data.taskId, data.status);
+  });
+
+  window.accomplish.onTaskUpdateBatch?.((event: unknown) => {
+    const batchEvent = event as TaskUpdateBatchEvent;
+    if (batchEvent.messages?.length) {
+      useTaskStore.getState().addTaskUpdateBatch(batchEvent);
     }
   });
 

@@ -475,9 +475,6 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           this.emit('tool-result', toolUseOutput);
         }
 
-        if (toolUseName === 'AskUserQuestion') {
-          this.handleAskUserQuestion(toolUseInput as AskUserQuestionInput);
-        }
         break;
 
       case 'tool_result':

@@ -363,7 +363,8 @@ export class TaskManager {
 
     this.taskQueue = [];
 
-    for (const [taskId] of this.activeTasks) {
+    const taskIds = Array.from(this.activeTasks.keys());
+    for (const taskId of taskIds) {
       this.cancelTask(taskId).catch(err => {
         console.error(`[TaskManager] Error cancelling task ${taskId}:`, err);
       });

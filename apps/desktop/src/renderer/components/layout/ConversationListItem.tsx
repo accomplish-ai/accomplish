@@ -1,5 +1,3 @@
-'use client';
-
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { Task } from '@accomplish/agent-core/common';
 import { cn } from '@/lib/utils';

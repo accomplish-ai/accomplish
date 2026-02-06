@@ -41,8 +41,6 @@ export type {
 export type {
   ThoughtStreamAPI,
   ThoughtStreamOptions,
-  ThoughtEvent,
-  CheckpointEvent,
   ThoughtCategory,
   CheckpointStatus,
 } from './thought-stream.js';
@@ -51,9 +49,6 @@ export type {
 export type {
   LogWriterAPI,
   LogWriterOptions,
-  LogLevel,
-  LogSource,
-  LogEntry,
 } from './log-writer.js';
 
 // Skills Manager API
@@ -66,6 +61,7 @@ export type {
 export type {
   SpeechServiceAPI,
   SpeechServiceOptions,
+  SpeechStorageProvider,
   TranscriptionResult,
   TranscriptionError,
 } from './speech.js';

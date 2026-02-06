@@ -3,7 +3,8 @@ import type {
   SpeechServiceAPI,
   SpeechServiceOptions,
 } from '../types/speech.js';
+import type { SecureStorage } from '../internal/classes/SecureStorage.js';
 
 export function createSpeechService(options: SpeechServiceOptions): SpeechServiceAPI {
-  return new SpeechService(options.storage as any);
+  return new SpeechService(options.storage as SecureStorage);
 }

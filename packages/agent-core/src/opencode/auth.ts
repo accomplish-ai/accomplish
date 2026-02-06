@@ -73,6 +73,6 @@ export function writeOpenCodeAuth(providerKeys: Record<string, { type: string; k
     auth[providerId] = entry;
   }
 
-  fs.writeFileSync(authPath, JSON.stringify(auth, null, 2));
+  fs.writeFileSync(authPath, JSON.stringify(auth, null, 2), { mode: 0o600 });
   console.log('[OpenCode Auth] Updated auth.json at:', authPath);
 }

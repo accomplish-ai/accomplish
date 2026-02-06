@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -85,25 +83,9 @@ export default function HomePage() {
   const [showExamples, setShowExamples] = useState(true);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<'providers' | 'voice' | 'skills'>('providers');
-  const { startTask, isLoading, addTaskUpdate, setPermissionRequest } = useTaskStore();
+  const { startTask, isLoading } = useTaskStore();
   const navigate = useNavigate();
   const accomplish = getAccomplish();
-
-  // Subscribe to task events
-  useEffect(() => {
-    const unsubscribeTask = accomplish.onTaskUpdate((event) => {
-      addTaskUpdate(event);
-    });
-
-    const unsubscribePermission = accomplish.onPermissionRequest((request) => {
-      setPermissionRequest(request);
-    });
-
-    return () => {
-      unsubscribeTask();
-      unsubscribePermission();
-    };
-  }, [addTaskUpdate, setPermissionRequest, accomplish]);
 
   const executeTask = useCallback(async () => {
     if (!prompt.trim() || isLoading) return;

@@ -1,7 +1,7 @@
 // =============================================================================
-// @accomplish/core - Public API
+// @accomplish/agent-core - Public API
 // =============================================================================
-// This file explicitly exports the public API for the @accomplish/core package.
+// This file explicitly exports the public API for the @accomplish/agent-core package.
 // All exports are explicit named exports to ensure API stability and clarity.
 // =============================================================================
 
@@ -30,12 +30,8 @@ export {
 export type {
   // Task Manager API
   TaskManagerAPI,
-  TaskManagerOptions as TaskManagerFactoryOptions,
-  TaskAdapterOptions,
-  TaskCallbacks as TaskManagerCallbacks,
-  TaskProgressEvent as TaskManagerProgressEvent,
-  // Also export original names for backward compatibility
   TaskManagerOptions,
+  TaskAdapterOptions,
   TaskCallbacks,
   TaskProgressEvent,
   // Storage API
@@ -51,30 +47,25 @@ export type {
   // Permission Handler API
   PermissionHandlerAPI,
   PermissionHandlerOptions,
-  FilePermissionRequestData as PermissionFileRequestData,
-  QuestionRequestData as PermissionQuestionRequestData,
-  QuestionResponseData as PermissionQuestionResponseData,
+  FilePermissionRequestData,
+  QuestionRequestData,
+  QuestionResponseData,
   PermissionValidationResult,
   // Thought Stream API
   ThoughtStreamAPI,
   ThoughtStreamOptions,
-  ThoughtEvent as ThoughtStreamEvent,
-  CheckpointEvent as ThoughtStreamCheckpointEvent,
   ThoughtCategory,
   CheckpointStatus,
   // Log Writer API
   LogWriterAPI,
   LogWriterOptions,
-  LogEntry as LogWriterEntry,
   // Skills Manager API
   SkillsManagerAPI,
   SkillsManagerOptions,
   // Speech Service API
   SpeechServiceAPI,
   SpeechServiceOptions,
-  TranscriptionResult as SpeechTranscriptionResult,
-  TranscriptionError as SpeechTranscriptionError,
-  // Also export original names for backward compatibility
+  SpeechStorageProvider,
   TranscriptionResult,
   TranscriptionError,
 } from './types/index.js';
@@ -167,7 +158,6 @@ export {
   getTodosForTask,
   saveTodosForTask,
   clearTodosForTask,
-  flushPendingTasks,
 } from './storage/repositories/taskHistory.js';
 
 // App settings repository functions

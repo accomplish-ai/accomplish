@@ -3,43 +3,9 @@
  * Handles validation and tracking of thought stream events from MCP tools.
  */
 
-/** Category of a thought event */
-export type ThoughtCategory = 'observation' | 'reasoning' | 'decision' | 'action';
-
-/** Status of a checkpoint event */
-export type CheckpointStatus = 'progress' | 'complete' | 'stuck';
-
-/** A thought event from an agent */
-export interface ThoughtEvent {
-  /** ID of the task this thought belongs to */
-  taskId: string;
-  /** Content of the thought */
-  content: string;
-  /** Category of the thought */
-  category: ThoughtCategory;
-  /** Name of the agent that produced this thought */
-  agentName: string;
-  /** Timestamp when the thought was created */
-  timestamp: number;
-}
-
-/** A checkpoint event indicating progress */
-export interface CheckpointEvent {
-  /** ID of the task this checkpoint belongs to */
-  taskId: string;
-  /** Current status */
-  status: CheckpointStatus;
-  /** Summary of current state */
-  summary: string;
-  /** Next planned action (if status is 'progress') */
-  nextPlanned?: string;
-  /** Blocker description (if status is 'stuck') */
-  blocker?: string;
-  /** Name of the agent that produced this checkpoint */
-  agentName: string;
-  /** Timestamp when the checkpoint was created */
-  timestamp: number;
-}
+// Re-export canonical thought stream types from common
+export type { ThoughtCategory, CheckpointStatus, ThoughtEvent, CheckpointEvent } from '../common/types/thought-stream.js';
+import type { ThoughtEvent, CheckpointEvent } from '../common/types/thought-stream.js';
 
 /** Options for creating a ThoughtStreamHandler instance */
 export interface ThoughtStreamOptions {

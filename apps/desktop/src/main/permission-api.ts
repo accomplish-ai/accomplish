@@ -15,12 +15,16 @@ import {
   isQuestionRequest,
   createPermissionHandler,
   type PermissionHandlerAPI,
-  type PermissionFileRequestData as FilePermissionRequestData,
-  type PermissionQuestionRequestData as QuestionRequestData,
-  type PermissionQuestionResponseData as QuestionResponseData,
+  type FilePermissionRequestData,
+  type QuestionRequestData,
+  type QuestionResponseData,
 } from '@accomplish/agent-core';
+import { SERVER_SECRET } from './utils/server-secret';
 
 export { PERMISSION_API_PORT, QUESTION_API_PORT, isFilePermissionRequest, isQuestionRequest };
+export { SERVER_SECRET };
+
+const MAX_BODY_SIZE = 1024 * 1024; // 1MB
 
 // Singleton permission request handler
 const permissionHandler: PermissionHandlerAPI = createPermissionHandler();
@@ -64,15 +68,22 @@ export function resolveQuestion(
  */
 export function startPermissionApiServer(): http.Server {
   const server = http.createServer(async (req, res) => {
-    // CORS headers for local requests
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // CORS headers for local requests only
+    res.setHeader('Access-Control-Allow-Origin', 'http://127.0.0.1');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     // Handle preflight
     if (req.method === 'OPTIONS') {
       res.writeHead(200);
       res.end();
+      return;
+    }
+
+    // Verify shared secret
+    if (req.headers.authorization !== `Bearer ${SERVER_SECRET}`) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
       return;
     }
 
@@ -83,10 +94,21 @@ export function startPermissionApiServer(): http.Server {
       return;
     }
 
-    // Parse request body
+    // Parse request body with size limit
     let body = '';
+    let aborted = false;
     for await (const chunk of req) {
       body += chunk;
+      if (body.length > MAX_BODY_SIZE) {
+        aborted = true;
+        req.destroy();
+        break;
+      }
+    }
+    if (aborted) {
+      res.writeHead(413, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Request body too large' }));
+      return;
     }
 
     let data: FilePermissionRequestData;
@@ -165,15 +187,22 @@ export function startPermissionApiServer(): http.Server {
  */
 export function startQuestionApiServer(): http.Server {
   const server = http.createServer(async (req, res) => {
-    // CORS headers for local requests
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // CORS headers for local requests only
+    res.setHeader('Access-Control-Allow-Origin', 'http://127.0.0.1');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     // Handle preflight
     if (req.method === 'OPTIONS') {
       res.writeHead(200);
       res.end();
+      return;
+    }
+
+    // Verify shared secret
+    if (req.headers.authorization !== `Bearer ${SERVER_SECRET}`) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
       return;
     }
 
@@ -184,10 +213,21 @@ export function startQuestionApiServer(): http.Server {
       return;
     }
 
-    // Parse request body
+    // Parse request body with size limit
     let body = '';
+    let aborted = false;
     for await (const chunk of req) {
       body += chunk;
+      if (body.length > MAX_BODY_SIZE) {
+        aborted = true;
+        req.destroy();
+        break;
+      }
+    }
+    if (aborted) {
+      res.writeHead(413, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Request body too large' }));
+      return;
     }
 
     let data: QuestionRequestData;

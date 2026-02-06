@@ -223,10 +223,9 @@ declare global {
 }
 
 /**
- * Get the accomplish API
- * Throws if not running in Electron
+ * Build the accomplish API with Bedrock credential serialization overrides
  */
-export function getAccomplish() {
+function buildAccomplishApi() {
   if (!window.accomplish) {
     throw new Error('Accomplish API not available - not running in Electron');
   }
@@ -247,6 +246,17 @@ export function getAccomplish() {
 
     fetchBedrockModels: (credentials: string) => window.accomplish!.fetchBedrockModels(credentials),
   };
+}
+
+/**
+ * Get the accomplish API (cached singleton to prevent re-render loops)
+ * Throws if not running in Electron
+ */
+let cachedApi: ReturnType<typeof buildAccomplishApi> | null = null;
+export function getAccomplish() {
+  if (cachedApi) return cachedApi;
+  cachedApi = buildAccomplishApi();
+  return cachedApi;
 }
 
 /**

@@ -69,7 +69,7 @@ export function SpeechSettingsForm({ onSave, onChange }: SpeechSettingsFormProps
 
   const handleClearApiKey = async () => {
     try {
-      await accomplish.removeApiKey('local-elevenlabs');
+      await accomplish.removeApiKey('elevenlabs');
       setApiKey('');
       setIsConfigured(false);
       setSaveResult(null);

@@ -1,5 +1,3 @@
-'use client';
-
 import { useRef, useEffect } from 'react';
 import { getAccomplish } from '../../lib/accomplish';
 import { CornerDownLeft, Loader2, AlertCircle } from 'lucide-react';

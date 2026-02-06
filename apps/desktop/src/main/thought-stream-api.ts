@@ -12,9 +12,12 @@ import {
   THOUGHT_STREAM_PORT,
   createThoughtStreamHandler,
   type ThoughtStreamAPI,
-  type ThoughtStreamEvent as ThoughtEvent,
-  type ThoughtStreamCheckpointEvent as CheckpointEvent,
+  type ThoughtEvent,
+  type CheckpointEvent,
 } from '@accomplish/agent-core';
+import { SERVER_SECRET } from './utils/server-secret';
+
+const MAX_BODY_SIZE = 1024 * 1024; // 1MB
 
 // Re-export types and constant for backwards compatibility
 export { THOUGHT_STREAM_PORT };
@@ -52,15 +55,22 @@ export function unregisterActiveTask(taskId: string): void {
  */
 export function startThoughtStreamServer(): http.Server {
   const server = http.createServer(async (req, res) => {
-    // CORS headers for local requests
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // CORS headers for local requests only
+    res.setHeader('Access-Control-Allow-Origin', 'http://127.0.0.1');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     // Handle preflight
     if (req.method === 'OPTIONS') {
       res.writeHead(200);
       res.end();
+      return;
+    }
+
+    // Verify shared secret
+    if (req.headers.authorization !== `Bearer ${SERVER_SECRET}`) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
       return;
     }
 
@@ -71,10 +81,21 @@ export function startThoughtStreamServer(): http.Server {
       return;
     }
 
-    // Parse request body
+    // Parse request body with size limit
     let body = '';
+    let aborted = false;
     for await (const chunk of req) {
       body += chunk;
+      if (body.length > MAX_BODY_SIZE) {
+        aborted = true;
+        req.destroy();
+        break;
+      }
+    }
+    if (aborted) {
+      res.writeHead(413, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Request body too large' }));
+      return;
     }
 
     let data: Record<string, unknown>;
@@ -97,8 +118,20 @@ export function startThoughtStreamServer(): http.Server {
 
     // Route based on endpoint
     if (req.url === '/thought') {
+      if (typeof data.content !== 'string' || typeof data.category !== 'string' ||
+          typeof data.agentName !== 'string' || typeof data.timestamp !== 'number') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid thought event data' }));
+        return;
+      }
       handleThought(data as unknown as ThoughtEvent, res);
     } else if (req.url === '/checkpoint') {
+      if (typeof data.status !== 'string' || typeof data.summary !== 'string' ||
+          typeof data.agentName !== 'string' || typeof data.timestamp !== 'number') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid checkpoint event data' }));
+        return;
+      }
       handleCheckpoint(data as unknown as CheckpointEvent, res);
     } else {
       res.writeHead(404, { 'Content-Type': 'application/json' });

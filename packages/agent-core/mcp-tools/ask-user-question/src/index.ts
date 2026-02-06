@@ -9,6 +9,7 @@ import {
 
 const QUESTION_API_PORT = process.env.QUESTION_API_PORT || '9227';
 const QUESTION_API_URL = `http://localhost:${QUESTION_API_PORT}/question`;
+const SERVER_SECRET = process.env.ACCOMPLISH_SERVER_SECRET || '';
 
 interface QuestionOption {
   label: string;
@@ -117,7 +118,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   try {
     const response = await fetch(QUESTION_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(SERVER_SECRET && { Authorization: `Bearer ${SERVER_SECRET}` }),
+      },
       body: JSON.stringify({
         question: question.question,
         header: question.header,

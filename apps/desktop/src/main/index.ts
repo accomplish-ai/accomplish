@@ -13,7 +13,6 @@ if (process.platform === 'win32') {
 
 import { registerIPCHandlers } from './ipc/handlers';
 import {
-  flushPendingTasks,
   getProviderSettings,
   removeConnectedProvider,
   FutureSchemaError,
@@ -33,11 +32,13 @@ import { getApiKey } from './store/secureStorage';
 import { initializeLogCollector, shutdownLogCollector, getLogCollector } from './logging';
 import { skillsManager } from './skills';
 
-if (process.argv.includes('--e2e-skip-auth')) {
-  (global as Record<string, unknown>).E2E_SKIP_AUTH = true;
-}
-if (process.argv.includes('--e2e-mock-tasks') || process.env.E2E_MOCK_TASK_EVENTS === '1') {
-  (global as Record<string, unknown>).E2E_MOCK_TASK_EVENTS = true;
+if (!app.isPackaged) {
+  if (process.argv.includes('--e2e-skip-auth')) {
+    (global as Record<string, unknown>).E2E_SKIP_AUTH = true;
+  }
+  if (process.argv.includes('--e2e-mock-tasks') || process.env.E2E_MOCK_TASK_EVENTS === '1') {
+    (global as Record<string, unknown>).E2E_MOCK_TASK_EVENTS = true;
+  }
 }
 
 if (process.env.CLEAN_START === '1') {
@@ -67,6 +68,33 @@ process.env.APP_ROOT = path.join(__dirname, '../..');
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron');
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist');
 export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
+
+const MAX_PROTOCOL_URL_LENGTH = 2048;
+
+/**
+ * Validate and sanitize an accomplish:// protocol URL.
+ * Parses the URL, checks length, and reconstructs with only expected parameters.
+ * Returns null if the URL is invalid or not a recognized callback.
+ */
+function sanitizeProtocolUrl(raw: string): string | null {
+  if (!raw || raw.length > MAX_PROTOCOL_URL_LENGTH) return null;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'accomplish:') return null;
+    if (parsed.hostname !== 'callback' && !parsed.pathname.startsWith('//callback')) return null;
+    // Reconstruct with only known safe query parameters
+    const sanitized = new URL('accomplish://callback');
+    for (const key of ['code', 'state', 'error', 'provider']) {
+      const value = parsed.searchParams.get(key);
+      if (value) {
+        sanitized.searchParams.set(key, value);
+      }
+    }
+    return sanitized.toString();
+  } catch {
+    return null;
+  }
+}
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -102,6 +130,8 @@ function createWindow() {
       preload: preloadPath,
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
     },
   });
 
@@ -167,11 +197,11 @@ if (!gotTheLock) {
       console.log('[Main] Focused existing instance after second-instance event');
 
       if (process.platform === 'win32') {
-        const protocolUrl = commandLine.find((arg) => arg.startsWith('accomplish://'));
-        if (protocolUrl) {
-          console.log('[Main] Received protocol URL from second-instance:', protocolUrl);
-          if (protocolUrl.startsWith('accomplish://callback')) {
-            mainWindow.webContents.send('auth:callback', protocolUrl);
+        const rawUrl = commandLine.find((arg) => arg.startsWith('accomplish://'));
+        if (rawUrl) {
+          const sanitizedUrl = sanitizeProtocolUrl(rawUrl);
+          if (sanitizedUrl) {
+            mainWindow.webContents.send('auth:callback', sanitizedUrl);
           }
         }
       }
@@ -262,7 +292,6 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-  flushPendingTasks();
   disposeTaskManager();
   oauthBrowserFlow.dispose();
   stopAzureFoundryProxy().catch((err) => {
@@ -285,13 +314,14 @@ if (process.platform === 'win32' && !app.isPackaged) {
 
 function handleProtocolUrlFromArgs(): void {
   if (process.platform === 'win32') {
-    const protocolUrl = process.argv.find((arg) => arg.startsWith('accomplish://'));
-    if (protocolUrl) {
+    const rawUrl = process.argv.find((arg) => arg.startsWith('accomplish://'));
+    if (rawUrl) {
       app.whenReady().then(() => {
         setTimeout(() => {
           if (mainWindow && !mainWindow.isDestroyed()) {
-            if (protocolUrl.startsWith('accomplish://callback')) {
-              mainWindow.webContents.send('auth:callback', protocolUrl);
+            const sanitizedUrl = sanitizeProtocolUrl(rawUrl);
+            if (sanitizedUrl) {
+              mainWindow.webContents.send('auth:callback', sanitizedUrl);
             }
           }
         }, 1000);
@@ -304,8 +334,9 @@ handleProtocolUrlFromArgs();
 
 app.on('open-url', (event, url) => {
   event.preventDefault();
-  if (url.startsWith('accomplish://callback')) {
-    mainWindow?.webContents?.send('auth:callback', url);
+  const sanitizedUrl = sanitizeProtocolUrl(url);
+  if (sanitizedUrl) {
+    mainWindow?.webContents?.send('auth:callback', sanitizedUrl);
   }
 });
 

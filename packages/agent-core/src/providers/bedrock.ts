@@ -24,20 +24,11 @@ export async function validateBedrockCredentials(
 
   const parsed = parseResult.data;
   let client: BedrockClient;
-  let cleanupEnv: (() => void) | null = null;
 
   if (parsed.authType === 'apiKey') {
-    const originalToken = process.env.AWS_BEARER_TOKEN_BEDROCK;
-    process.env.AWS_BEARER_TOKEN_BEDROCK = parsed.apiKey;
-    cleanupEnv = () => {
-      if (originalToken !== undefined) {
-        process.env.AWS_BEARER_TOKEN_BEDROCK = originalToken;
-      } else {
-        delete process.env.AWS_BEARER_TOKEN_BEDROCK;
-      }
-    };
     client = new BedrockClient({
       region: parsed.region || 'us-east-1',
+      token: { token: parsed.apiKey },
     });
   } else if (parsed.authType === 'accessKeys') {
     if (!parsed.accessKeyId || !parsed.secretAccessKey) {
@@ -95,8 +86,6 @@ export async function validateBedrockCredentials(
     }
 
     return { valid: false, error: message };
-  } finally {
-    cleanupEnv?.();
   }
 }
 
@@ -125,14 +114,12 @@ export async function fetchBedrockModels(
   credentials: BedrockCredentials
 ): Promise<FetchBedrockModelsResult> {
   let bedrockClient: BedrockClient;
-  let originalToken: string | undefined;
 
   try {
     if (credentials.authType === 'apiKey') {
-      originalToken = process.env.AWS_BEARER_TOKEN_BEDROCK;
-      process.env.AWS_BEARER_TOKEN_BEDROCK = credentials.apiKey;
       bedrockClient = new BedrockClient({
         region: credentials.region || 'us-east-1',
+        token: { token: credentials.apiKey },
       });
     } else if (credentials.authType === 'accessKeys') {
       bedrockClient = new BedrockClient({
@@ -150,29 +137,19 @@ export async function fetchBedrockModels(
       });
     }
 
-    try {
-      const command = new ListFoundationModelsCommand({});
-      const response = await bedrockClient.send(command);
+    const command = new ListFoundationModelsCommand({});
+    const response = await bedrockClient.send(command);
 
-      const models = (response.modelSummaries || [])
-        .filter((m) => m.outputModalities?.includes('TEXT'))
-        .map((m) => ({
-          id: `amazon-bedrock/${m.modelId}`,
-          name: m.modelId || 'Unknown',
-          provider: m.providerName || 'Unknown',
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name));
+    const models = (response.modelSummaries || [])
+      .filter((m) => m.outputModalities?.includes('TEXT'))
+      .map((m) => ({
+        id: `amazon-bedrock/${m.modelId}`,
+        name: m.modelId || 'Unknown',
+        provider: m.providerName || 'Unknown',
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
 
-      return { success: true, models };
-    } finally {
-      if (credentials.authType === 'apiKey') {
-        if (originalToken !== undefined) {
-          process.env.AWS_BEARER_TOKEN_BEDROCK = originalToken;
-        } else {
-          delete process.env.AWS_BEARER_TOKEN_BEDROCK;
-        }
-      }
-    }
+    return { success: true, models };
   } catch (error) {
     console.error('[Bedrock] Failed to fetch models:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

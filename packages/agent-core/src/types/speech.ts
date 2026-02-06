@@ -23,10 +23,16 @@ export interface TranscriptionError {
   message: string;
 }
 
+/** Minimal interface for API key storage required by SpeechService */
+export interface SpeechStorageProvider {
+  /** Retrieve an API key for the given provider */
+  getApiKey(provider: string): string | null;
+}
+
 /** Options for creating a SpeechService instance */
 export interface SpeechServiceOptions {
-  /** Secure storage instance for API key management (opaque type) */
-  storage: unknown;
+  /** Storage instance for API key management */
+  storage: SpeechStorageProvider;
 }
 
 /** Public API for speech service operations */

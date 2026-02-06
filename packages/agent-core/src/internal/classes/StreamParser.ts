@@ -100,35 +100,13 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
 
     try {
       const message = JSON.parse(sanitized) as OpenCodeMessage;
-      console.log('[StreamParser] Parsed message type:', message.type);
       this.emitMessage(message);
-    } catch (e) {
-      console.log('[StreamParser] Failed to parse JSON:', sanitized.substring(0, 100), e);
+    } catch {
+      // Incomplete or malformed JSON - skip silently
     }
   }
 
   private emitMessage(message: OpenCodeMessage): void {
-    if (message.type === 'tool_call' || message.type === 'tool_result') {
-      const part = message.part as Record<string, unknown>;
-      console.log('[StreamParser] Tool message details:', {
-        type: message.type,
-        tool: part?.tool,
-        hasInput: !!part?.input,
-        hasOutput: !!part?.output,
-      });
-
-      const toolName = String(part?.tool || '').toLowerCase();
-      const output = String(part?.output || '').toLowerCase();
-      if (toolName.includes('dev-browser') ||
-          toolName.includes('browser') ||
-          toolName.includes('mcp') ||
-          output.includes('dev-browser') ||
-          output.includes('browser')) {
-        console.log('[StreamParser] >>> DEV-BROWSER MESSAGE <<<');
-        console.log('[StreamParser] Full message:', JSON.stringify(message, null, 2));
-      }
-    }
-
     this.emit('message', message);
   }
 

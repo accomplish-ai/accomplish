@@ -173,8 +173,12 @@ export async function validateApiKey(
       case 'litellm':
       case 'lmstudio':
       case 'custom':
-      default:
         return { valid: true };
+
+      default: {
+        const _exhaustive: never = provider;
+        return { valid: false, error: `Unknown provider: ${_exhaustive}` };
+      }
     }
 
     if (response.ok) {

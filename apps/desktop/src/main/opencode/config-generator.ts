@@ -11,6 +11,7 @@ import { getApiKey, getAllApiKeys } from '../store/secureStorage';
 import { getNodePath } from '../utils/bundled-node';
 import { skillsManager } from '../skills';
 import { PERMISSION_API_PORT, QUESTION_API_PORT } from '@accomplish/agent-core';
+import { SERVER_SECRET } from '../permission-api';
 
 export { ACCOMPLISH_AGENT_NAME };
 
@@ -71,6 +72,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     providerConfigs,
     permissionApiPort: PERMISSION_API_PORT,
     questionApiPort: QUESTION_API_PORT,
+    serverSecret: SERVER_SECRET,
     enabledProviders,
     model: modelOverride?.model,
     smallModel: modelOverride?.smallModel,

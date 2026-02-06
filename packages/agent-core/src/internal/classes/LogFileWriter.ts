@@ -2,6 +2,11 @@ import fs from 'fs';
 import path from 'path';
 
 import type { LogLevel, LogSource, LogEntry } from '../../common/types/logging.js';
+
+// Use process.stderr directly to avoid recursion when LogCollector intercepts console.error
+const writeStderr = (msg: string) => {
+  try { process.stderr.write(msg + '\n'); } catch { /* ignore if stderr unavailable */ }
+};
 import {
   LOG_MAX_FILE_SIZE_BYTES,
   LOG_RETENTION_DAYS,
@@ -69,7 +74,7 @@ export class LogFileWriter {
 
     if (this.checkFileSize()) {
       this.fileSizeExceeded = true;
-      console.error('[LogFileWriter] Max file size exceeded, stopping writes');
+      writeStderr('[LogFileWriter] Max file size exceeded, stopping writes');
       return;
     }
 
@@ -81,10 +86,10 @@ export class LogFileWriter {
       fs.appendFileSync(this.currentFilePath, lines.join('\n') + '\n');
       this.buffer = [];
     } catch (error) {
-      console.error('[LogFileWriter] Failed to write logs:', error);
+      writeStderr(`[LogFileWriter] Failed to write logs: ${error}`);
       // Don't clear buffer on failure - retry on next flush, but prevent unbounded growth
       if (this.buffer.length > LOG_BUFFER_MAX_ENTRIES * 10) {
-        console.error('[LogFileWriter] Buffer overflow - dropping oldest entries');
+        writeStderr('[LogFileWriter] Buffer overflow - dropping oldest entries');
         this.buffer = this.buffer.slice(-LOG_BUFFER_MAX_ENTRIES);
       }
     }
@@ -119,7 +124,7 @@ export class LogFileWriter {
           fs.appendFileSync(this.currentFilePath, lines.join('\n') + '\n');
           this.buffer = [];
         } catch (error) {
-          console.error('[LogFileWriter] Failed to write logs on date change:', error);
+          writeStderr(`[LogFileWriter] Failed to write logs on date change: ${error}`);
           // Don't clear buffer - entries will be written to new file
         }
       }
@@ -155,11 +160,11 @@ export class LogFileWriter {
         if (fileDate < cutoffDate) {
           const filePath = path.join(this.logDir, file);
           fs.unlinkSync(filePath);
-          console.log(`[LogFileWriter] Deleted old log file: ${file}`);
+          writeStderr(`[LogFileWriter] Deleted old log file: ${file}`);
         }
       }
     } catch (error) {
-      console.error('[LogFileWriter] Failed to cleanup old logs:', error);
+      writeStderr(`[LogFileWriter] Failed to cleanup old logs: ${error}`);
     }
   }
 }

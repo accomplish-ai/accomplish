@@ -28,7 +28,7 @@ export function registerMigration(migration: Migration): void {
   migrations.sort((a, b) => a.version - b.version);
 }
 
-export const CURRENT_VERSION = 6;
+export const CURRENT_VERSION = migrations[migrations.length - 1]?.version ?? 0;
 
 export function getStoredVersion(db: Database): number {
   try {

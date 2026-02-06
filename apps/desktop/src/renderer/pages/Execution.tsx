@@ -1,7 +1,5 @@
-'use client';
-
 import { useEffect, useState, useRef, useMemo, useCallback, memo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../stores/taskStore';
 import { getAccomplish } from '../lib/accomplish';
@@ -10,8 +8,6 @@ import type { TaskMessage } from '@accomplish/agent-core/common';
 import { hasAnyReadyProvider } from '@accomplish/agent-core/common';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check, Copy, Globe, MousePointer2, Type, Image, Keyboard, ArrowUpDown, ListChecks, Layers, Highlighter, ListOrdered, Upload, Move, Frame, ShieldCheck, MessageCircleQuestion, CheckCircle, Lightbulb, Flag } from 'lucide-react';
@@ -214,9 +210,6 @@ export default function ExecutionPage() {
     loadTaskById,
     isLoading,
     error,
-    addTaskUpdate,
-    addTaskUpdateBatch,
-    updateTaskStatus,
     setPermissionRequest,
     permissionRequest,
     respondToPermission,
@@ -377,9 +370,9 @@ export default function ExecutionPage() {
       });
     }
 
-    // Handle individual task updates
+    // Track local UI state (current tool, tool input) from task events
+    // Note: addTaskUpdate/updateTaskStatus/addTaskUpdateBatch are handled centrally in taskStore.ts
     const unsubscribeTask = accomplish.onTaskUpdate((event) => {
-      addTaskUpdate(event);
       // Track current tool from tool messages (only for current task to prevent UI leaking)
       if (event.taskId === id && event.type === 'message' && event.message?.type === 'tool') {
         const toolName = event.message.toolName || event.message.content?.match(/Using tool: (\w+)/)?.[1];
@@ -401,26 +394,19 @@ export default function ExecutionPage() {
       }
     });
 
-    // Handle batched task updates (for performance)
-    // Only update local UI state for current task to prevent UI leaking between parallel tasks
+    // Track tool state from batched updates (for performance)
     const unsubscribeTaskBatch = accomplish.onTaskUpdateBatch?.((event) => {
-      if (event.messages?.length) {
-        addTaskUpdateBatch(event);
-        // Track current tool from the last message (only for current task)
-        if (event.taskId === id) {
-          const lastMsg = event.messages[event.messages.length - 1];
-          if (lastMsg.type === 'assistant') {
-            // Agent sent a text response - no tool is active
-            setCurrentTool(null);
-            setCurrentToolInput(null);
-            if (id) clearStartupStage(id);
-          } else if (lastMsg.type === 'tool') {
-            // Tool is active
-            const toolName = lastMsg.toolName || lastMsg.content?.match(/Using tool: (\w+)/)?.[1];
-            if (toolName) {
-              setCurrentTool(toolName);
-              setCurrentToolInput(lastMsg.toolInput);
-            }
+      if (event.messages?.length && event.taskId === id) {
+        const lastMsg = event.messages[event.messages.length - 1];
+        if (lastMsg.type === 'assistant') {
+          setCurrentTool(null);
+          setCurrentToolInput(null);
+          if (id) clearStartupStage(id);
+        } else if (lastMsg.type === 'tool') {
+          const toolName = lastMsg.toolName || lastMsg.content?.match(/Using tool: (\w+)/)?.[1];
+          if (toolName) {
+            setCurrentTool(toolName);
+            setCurrentToolInput(lastMsg.toolInput);
           }
         }
       }
@@ -428,13 +414,6 @@ export default function ExecutionPage() {
 
     const unsubscribePermission = accomplish.onPermissionRequest((request) => {
       setPermissionRequest(request);
-    });
-
-    // Subscribe to task status changes (e.g., queued -> running)
-    const unsubscribeStatusChange = accomplish.onTaskStatusChange?.((data) => {
-      if (data.taskId === id) {
-        updateTaskStatus(data.taskId, data.status);
-      }
     });
 
     // Subscribe to debug logs
@@ -449,11 +428,10 @@ export default function ExecutionPage() {
       unsubscribeTask();
       unsubscribeTaskBatch?.();
       unsubscribePermission();
-      unsubscribeStatusChange?.();
       unsubscribeDebugLog();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, loadTaskById, addTaskUpdate, addTaskUpdateBatch, updateTaskStatus, setPermissionRequest]); // accomplish is stable singleton
+  }, [id, loadTaskById, setPermissionRequest, clearStartupStage]); // accomplish is stable singleton
 
   // Increment counter when task starts/resumes
   useEffect(() => {
@@ -499,7 +477,7 @@ export default function ExecutionPage() {
     }
   }, [canFollowUp]);
 
-  const handleFollowUp = async () => {
+  const handleFollowUp = useCallback(async () => {
     if (!followUp.trim()) return;
 
     // Check if any provider is ready before sending (skip in E2E mode)
@@ -517,7 +495,7 @@ export default function ExecutionPage() {
 
     await sendFollowUp(followUp);
     setFollowUp('');
-  };
+  }, [followUp, accomplish, sendFollowUp]);
 
   const handleSettingsDialogClose = (open: boolean) => {
     setShowSettingsDialog(open);

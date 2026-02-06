@@ -1,5 +1,5 @@
 import { app } from 'electron';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import type { TaskAdapterOptions, TaskManagerOptions, TaskCallbacks } from '@accomplish/agent-core';
@@ -27,6 +27,7 @@ import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
 import { generateOpenCodeConfig, getMcpToolsPath, syncApiKeysToOpenCodeAuth } from './config-generator';
 import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo } from '../utils/bundled-node';
+import { SERVER_SECRET } from '../permission-api';
 
 function getCliResolverConfig(): CliResolverConfig {
   return {
@@ -71,8 +72,7 @@ export function getBundledOpenCodeVersion(): string | null {
   }
 
   try {
-    const fullCommand = `"${command}" --version`;
-    const output = execSync(fullCommand, {
+    const output = execFileSync(command, ['--version'], {
       encoding: 'utf-8',
       timeout: 5000,
       stdio: ['pipe', 'pipe', 'pipe']
@@ -140,6 +140,7 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
     taskId: taskId || undefined,
     openAiBaseUrl: configuredOpenAiBaseUrl || undefined,
     ollamaHost,
+    serverSecret: SERVER_SECRET,
   };
 
   // Use the core function to set API keys and credentials

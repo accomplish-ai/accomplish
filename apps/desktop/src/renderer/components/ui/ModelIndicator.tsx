@@ -5,8 +5,6 @@
  * Just text and chevron, very clean and unobtrusive.
  */
 
-'use client';
-
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronDown, Settings, AlertTriangle } from 'lucide-react';
 import {

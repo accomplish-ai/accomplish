@@ -2,6 +2,7 @@ import { ipcMain, BrowserWindow, shell, app, dialog } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import { URL } from 'url';
 import fs from 'fs';
+import path from 'path';
 import {
   isOpenCodeCliInstalled,
   getOpenCodeCliVersion,
@@ -552,7 +553,15 @@ export function registerIPCHandlers(): void {
 
   handle('bedrock:fetch-models', async (_event: IpcMainInvokeEvent, credentialsJson: string) => {
     try {
-      const credentials = JSON.parse(credentialsJson) as BedrockCredentials;
+      let credentials: BedrockCredentials;
+      try {
+        credentials = JSON.parse(credentialsJson);
+      } catch {
+        return { success: false, error: 'Invalid credentials JSON', models: [] };
+      }
+      if (!credentials || typeof credentials !== 'object' || !credentials.authType) {
+        return { success: false, error: 'Invalid credentials structure', models: [] };
+      }
       const result = await fetchBedrockModels(credentials);
       if (!result.success && result.error) {
         return { success: false, error: normalizeIpcError(result.error), models: [] };
@@ -565,7 +574,15 @@ export function registerIPCHandlers(): void {
   });
 
   handle('bedrock:save', async (_event: IpcMainInvokeEvent, credentials: string) => {
-    const parsed = JSON.parse(credentials);
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(credentials);
+    } catch {
+      throw new Error('Invalid credentials JSON');
+    }
+    if (!parsed || typeof parsed !== 'object' || !parsed.authType) {
+      throw new Error('Invalid credentials structure');
+    }
 
     if (parsed.authType === 'apiKey') {
       if (!parsed.apiKey) {
@@ -589,13 +606,13 @@ export function registerIPCHandlers(): void {
     let keyPrefix: string;
     if (parsed.authType === 'apiKey') {
       label = 'Bedrock API Key';
-      keyPrefix = `${parsed.apiKey.substring(0, 8)}...`;
+      keyPrefix = `${String(parsed.apiKey).substring(0, 8)}...`;
     } else if (parsed.authType === 'accessKeys') {
       label = 'AWS Access Keys';
-      keyPrefix = `${parsed.accessKeyId.substring(0, 8)}...`;
+      keyPrefix = `${String(parsed.accessKeyId).substring(0, 8)}...`;
     } else {
-      label = `AWS Profile: ${parsed.profileName}`;
-      keyPrefix = parsed.profileName;
+      label = `AWS Profile: ${String(parsed.profileName)}`;
+      keyPrefix = String(parsed.profileName);
     }
 
     return {
@@ -1059,6 +1076,13 @@ export function registerIPCHandlers(): void {
   });
 
   handle('skills:add-from-file', async (_event, filePath: string) => {
+    if (!filePath.toLowerCase().endsWith('.md')) {
+      throw new Error('Only .md files are supported for skill import');
+    }
+    const stat = fs.statSync(filePath);
+    if (stat.size > 1024 * 1024) {
+      throw new Error('File is too large (max 1MB)');
+    }
     return skillsManager.addFromFile(filePath);
   });
 
@@ -1076,10 +1100,22 @@ export function registerIPCHandlers(): void {
   });
 
   handle('skills:open-in-editor', async (_event, filePath: string) => {
-    await shell.openPath(filePath);
+    const resolvedPath = path.resolve(filePath);
+    const bundledDir = path.resolve(skillsManager.getBundledSkillsPath());
+    const userDir = path.resolve(skillsManager.getUserSkillsPath());
+    if (!resolvedPath.startsWith(bundledDir + path.sep) && !resolvedPath.startsWith(userDir + path.sep)) {
+      throw new Error('File path is not within the skills directories');
+    }
+    await shell.openPath(resolvedPath);
   });
 
   handle('skills:show-in-folder', async (_event, filePath: string) => {
-    shell.showItemInFolder(filePath);
+    const resolvedPath = path.resolve(filePath);
+    const bundledDir = path.resolve(skillsManager.getBundledSkillsPath());
+    const userDir = path.resolve(skillsManager.getUserSkillsPath());
+    if (!resolvedPath.startsWith(bundledDir + path.sep) && !resolvedPath.startsWith(userDir + path.sep)) {
+      throw new Error('File path is not within the skills directories');
+    }
+    shell.showItemInFolder(resolvedPath);
   });
 }

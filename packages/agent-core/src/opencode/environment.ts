@@ -22,6 +22,8 @@ export interface EnvironmentConfig {
   openAiBaseUrl?: string;
   /** Ollama host URL (optional) */
   ollamaHost?: string;
+  /** Shared secret for authenticating to local HTTP servers (optional) */
+  serverSecret?: string;
 }
 
 /**
@@ -134,6 +136,11 @@ export function buildOpenCodeEnvironment(
   // Set Ollama host if provided
   if (config.ollamaHost) {
     env.OLLAMA_HOST = config.ollamaHost;
+  }
+
+  // Set server secret for local HTTP server authentication
+  if (config.serverSecret) {
+    env.ACCOMPLISH_SERVER_SECRET = config.serverSecret;
   }
 
   return env;

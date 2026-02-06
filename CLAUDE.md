@@ -21,11 +21,9 @@ pnpm build:desktop                              # Build desktop app only
 pnpm lint                                       # TypeScript checks
 pnpm typecheck                                  # Type validation across all workspaces
 
-# Testing
-pnpm test                                       # Run all Vitest tests
-pnpm test:unit                                  # Unit tests only
-pnpm test:integration                           # Integration tests only
-pnpm test:coverage                              # Tests with coverage
+# Testing (run within workspace packages, no root-level test scripts)
+pnpm -F @accomplish/agent-core test             # Run agent-core Vitest tests
+pnpm -F @accomplish/agent-core test:coverage    # Agent-core tests with coverage
 pnpm -F @accomplish/desktop test:e2e            # Docker-based E2E tests
 pnpm -F @accomplish/desktop test:e2e:native     # Native Playwright E2E tests
 pnpm -F @accomplish/desktop test:e2e:native:ui  # E2E with Playwright UI
@@ -40,33 +38,38 @@ pnpm clean                                      # Clean build outputs and node_m
 
 ```
 apps/desktop/           # Electron app (main/preload/renderer)
-packages/core/          # Core business logic (Node.js)
-packages/shared/        # Shared TypeScript types and constants
+packages/agent-core/    # Core business logic, types, constants (Node.js + browser-safe exports)
 ```
 
 ### Package Dependency Graph
 
 ```
-@accomplish/shared (types, constants)
-        ↑
-@accomplish/core (business logic, adapters, storage)
+@accomplish/agent-core (types, constants, business logic, storage)
         ↑
 @accomplish/desktop (Electron app)
 ```
+
+`@accomplish/agent-core` has two export entry points:
+- `"."` (`index.ts`) — Full Node.js API: factories, storage, opencode, providers, utils, and re-exports of all common types
+- `"./common"` (`common.ts`) — Browser-safe exports only: types, constants, schemas, pure utility functions
 
 ### Desktop App Structure (`apps/desktop/src/`)
 
 **Main Process** (`main/`):
 - `index.ts` - Electron bootstrap, single-instance enforcement, `accomplish://` protocol handler
+- `config.ts` - Configuration for main process
 - `ipc/handlers.ts` - IPC handlers for task lifecycle, settings, onboarding, API keys, providers
 - `ipc/task-callbacks.ts` - Bridges OpenCode events to renderer via IPC
 - `opencode/` - Electron-specific OpenCode CLI integration
-- `store/` - Electron-specific storage wrappers (delegates to core)
+- `store/` - Electron-specific storage (db, secure storage, legacy migration, electron-store import)
+- `logging/` - Log file writer and log collector
+- `services/` - Desktop-specific services (speech-to-text, summarizer)
+- `skills/` - Desktop-specific SkillsManager
 - `permission-api.ts` - HTTP servers for MCP permission bridge (ports 9226, 9227)
 - `thought-stream-api.ts` - HTTP server for thought/checkpoint streaming (port 9228)
 
 **Preload** (`preload/index.ts`):
-- Exposes `window.accomplish` API via `contextBridge` (100+ methods)
+- Exposes `window.accomplish` API via `contextBridge`
 - Provides `window.accomplishShell` for shell metadata
 
 **Renderer** (`renderer/`):
@@ -75,9 +78,33 @@ packages/shared/        # Shared TypeScript types and constants
 - `pages/` - Home (task input), Execution (task view), History
 - `stores/taskStore.ts` - Zustand store for all app state
 - `components/ui/` - Reusable shadcn/ui-based components
+- `hooks/` - React hooks
 - `lib/accomplish.ts` - Typed wrapper for the IPC API
+- `lib/animations.ts` - Reusable Framer Motion animation variants
+- `lib/model-utils.ts`, `lib/provider-logos.ts`, `lib/utils.ts`, `lib/waiting-detection.ts`
 
-### Core Package Structure (`packages/core/src/`)
+### Agent-Core Package Structure (`packages/agent-core/src/`)
+
+**Factories Module** (`factories/`):
+- `index.ts` - Re-exports all factory functions
+- `task-manager.ts` - `createTaskManager()`: concurrent task management, queuing
+- `storage.ts` - `createStorage()`: database and secure storage initialization
+- `permission-handler.ts` - `createPermissionHandler()`: file/tool permission handling
+- `thought-stream.ts` - `createThoughtStreamHandler()`: thought/checkpoint streaming
+- `log-writer.ts` - `createLogWriter()`: structured log file writing
+- `skills-manager.ts` - `createSkillsManager()`: custom prompt file management
+- `speech.ts` - `createSpeechService()`: speech-to-text service
+
+Factories are the **preferred API** — they return interfaces and hide internal implementation details.
+
+**Services Module** (`services/`):
+- `summarizer.ts` - AI-generated task summary service
+- `speech.ts` - SpeechService implementation
+- `thought-stream-handler.ts` - Thought/checkpoint stream processing
+- `permission-handler.ts` - Permission request handling
+
+**Internal Module** (`internal/`):
+- `classes/` - Internal class implementations used by factories (not directly exported)
 
 **OpenCode Module** (`opencode/`):
 - `adapter.ts` - `OpenCodeAdapter` class: PTY-based CLI spawning, message streaming
@@ -97,31 +124,35 @@ packages/shared/        # Shared TypeScript types and constants
 - `providers/` - Model configs, API key validation for all providers
 - `skills/` - SkillsManager for custom prompt files
 - `browser/` - Browser detection, Playwright installation
-- `utils/` - Bundled Node.js paths, logging, sanitization
+- `utils/` - Bundled Node.js paths, logging, sanitization, shell, network
+
+**Common Module** (`common/`):
+Browser-safe types, constants, schemas, and utility functions. Exported via `@accomplish/agent-core/common`.
+
+- `types/` - All shared TypeScript types:
+  - `task.ts` - Task, TaskMessage, TaskStatus, TaskProgress, TaskUpdateEvent
+  - `permission.ts` - PermissionRequest, PermissionResponse, FileOperation
+  - `provider.ts` - ProviderType, ProviderConfig, ModelConfig, DEFAULT_PROVIDERS
+  - `providerSettings.ts` - ProviderId, ConnectedProvider, ProviderSettings, PROVIDER_META
+  - `opencode.ts` - OpenCodeMessage union type for CLI output
+  - `auth.ts` - ApiKeyConfig, BedrockCredentials
+  - `skills.ts` - Skill, SkillSource, SkillFrontmatter
+  - `todo.ts` - TodoItem
+  - `logging.ts` - LogLevel, LogSource, LogEntry
+  - `thought-stream.ts` - ThoughtEvent, CheckpointEvent
+- `constants.ts` - DEV_BROWSER_PORT (9224), DEV_BROWSER_CDP_PORT (9225), THOUGHT_STREAM_PORT, etc.
+- `constants/model-display.ts` - MODEL_DISPLAY_NAMES, getModelDisplayName()
+- `schemas/validation.ts` - Zod validation schemas (taskConfigSchema, permissionResponseSchema, etc.)
+- `utils/` - Browser-safe utilities (id.ts, waiting-detection.ts, log-source-detector.ts)
 
 **MCP Tools** (`mcp-tools/`):
 - `ask-user-question/` - User prompts
 - `complete-task/` - Task completion signaling
 - `dev-browser/`, `dev-browser-mcp/` - Browser automation
 - `file-permission/` - File operation permissions
+- `safe-file-deletion/` - Safe file deletion operations
 - `start-task/` - Task initialization
 - `report-checkpoint/`, `report-thought/` - Progress reporting
-
-### Shared Package Structure (`packages/shared/src/`)
-
-**Types** (`types/`):
-- `task.ts` - Task, TaskMessage, TaskStatus, TaskProgress, TaskUpdateEvent
-- `permission.ts` - PermissionRequest, PermissionResponse, FileOperation
-- `provider.ts` - ProviderType, ProviderConfig, ModelConfig, DEFAULT_PROVIDERS
-- `providerSettings.ts` - ProviderId, ConnectedProvider, ProviderSettings, PROVIDER_META
-- `opencode.ts` - OpenCodeMessage union type for CLI output
-- `auth.ts` - ApiKeyConfig, BedrockCredentials
-- `skills.ts` - Skill, SkillSource, SkillFrontmatter
-- `todo.ts` - TodoItem
-
-**Constants**:
-- `constants.ts` - DEV_BROWSER_PORT (9224), DEV_BROWSER_CDP_PORT (9225)
-- `constants/model-display.ts` - MODEL_DISPLAY_NAMES, getModelDisplayName()
 
 ### IPC Communication Flow
 
@@ -131,7 +162,7 @@ Renderer (React)
 Preload (contextBridge)
     ↓ ipcRenderer.invoke
 Main Process (handlers.ts)
-    ↓ Core package (TaskManager, Storage, etc.)
+    ↓ Agent-core package (factories, storage, etc.)
     ↑ IPC events (task:update, permission:request, etc.)
 Preload
     ↑ ipcRenderer.on callbacks
@@ -147,21 +178,26 @@ Renderer (taskStore subscriptions)
 | `task:progress` | Startup stages, tool progress |
 | `task:status-change` | Status transitions |
 | `task:summary` | AI-generated summaries |
+| `task:thought` | Thought streaming events |
+| `task:checkpoint` | Checkpoint streaming events |
 | `permission:request` | File/tool/question permissions |
 | `todo:update` | Todo list updates |
 | `auth:error` | OAuth token expiry |
+| `auth:callback` | OAuth callback handling |
+| `settings:debug-mode-changed` | Debug mode setting changes |
 | `debug:log` | Debug log entries |
 
 ### Supported Providers
 
-16 providers: anthropic, openai, google, xai, deepseek, moonshot, zai, bedrock, azure-foundry, ollama, openrouter, litellm, minimax, lmstudio, custom
+15 providers: anthropic, openai, openrouter, google, xai, ollama, deepseek, moonshot, zai, azure-foundry, custom, bedrock, litellm, minimax, lmstudio
 
 ## Code Conventions
 
 - TypeScript everywhere (no JS for app logic)
 - Use `pnpm -F @accomplish/desktop ...` for desktop-specific commands
-- Shared types go in `packages/shared/src/types/`
-- Core business logic goes in `packages/core/src/`
+- Shared types go in `packages/agent-core/src/common/types/`
+- Core business logic goes in `packages/agent-core/src/`
+- Prefer factory functions (`createTaskManager`, `createStorage`, etc.) over direct class instantiation
 - Renderer state via Zustand store actions
 - IPC handlers in `src/main/ipc/handlers.ts` must match `window.accomplish` API in preload
 - **Avoid nested ternaries** - Use mapper objects or if/else for readability
@@ -200,8 +236,8 @@ Static assets go in `apps/desktop/public/assets/`.
 - Docker support: `apps/desktop/e2e/docker/`
 
 ### Unit/Integration Tests (Vitest)
-- Desktop config: `apps/desktop/vitest.config.ts`
-- Core config: `packages/core/vitest.config.ts`
+- Desktop config: `apps/desktop/vitest.config.ts` (also `vitest.unit.config.ts`, `vitest.integration.config.ts`)
+- Agent-core config: `packages/agent-core/vitest.config.ts`
 - Coverage thresholds: 80% statements/functions/lines, 70% branches
 
 ## Bundled Node.js
@@ -209,7 +245,7 @@ Static assets go in `apps/desktop/public/assets/`.
 The packaged app bundles standalone Node.js v20.18.1 binaries to ensure MCP servers work on machines without Node.js installed.
 
 ### Key Files
-- `packages/core/src/utils/bundled-node.ts` - Bundled node/npm/npx path utilities
+- `packages/agent-core/src/utils/bundled-node.ts` - Bundled node/npm/npx path utilities
 - `apps/desktop/scripts/download-nodejs.cjs` - Downloads Node.js binaries
 - `apps/desktop/scripts/after-pack.cjs` - Copies binary into app bundle
 
@@ -219,10 +255,22 @@ The packaged app bundles standalone Node.js v20.18.1 binaries to ensure MCP serv
 
 ```typescript
 import { spawn } from 'child_process';
-import { getNpxPath, getBundledNodePaths } from '@accomplish/core/utils';
+import { getNpxPath, getBundledNodePaths } from '@accomplish/agent-core/utils';
+import type { PlatformConfig } from '@accomplish/agent-core';
 
-const npxPath = getNpxPath();
-const bundledPaths = getBundledNodePaths();
+// getBundledNodePaths requires a PlatformConfig parameter
+const platformConfig: PlatformConfig = {
+  userDataPath: app.getPath('userData'),
+  tempPath: app.getPath('temp'),
+  isPackaged: app.isPackaged,
+  resourcesPath: process.resourcesPath,
+  appPath: app.getAppPath(),
+  platform: process.platform,
+  arch: process.arch,
+};
+
+const npxPath = getNpxPath(platformConfig);
+const bundledPaths = getBundledNodePaths(platformConfig);
 
 let spawnEnv: NodeJS.ProcessEnv = { ...process.env };
 if (bundledPaths) {
@@ -264,7 +312,7 @@ App data is stored in SQLite (`accomplish.db` in production, `accomplish-dev.db`
 ### Database Structure
 
 ```
-packages/core/src/storage/
+packages/agent-core/src/storage/
 ├── database.ts                  # Connection singleton, WAL mode, foreign keys
 ├── migrations/
 │   ├── index.ts                 # Migration runner with version checking
@@ -283,7 +331,7 @@ packages/core/src/storage/
 
 ### Adding New Migrations
 
-1. Create `packages/core/src/storage/migrations/vXXX-description.ts`:
+1. Create `packages/agent-core/src/storage/migrations/vXXX-description.ts`:
 ```typescript
 import type { Database } from 'better-sqlite3';
 import type { Migration } from './index';
@@ -296,7 +344,7 @@ export const migration: Migration = {
 };
 ```
 
-2. Update `packages/core/src/storage/migrations/index.ts`:
+2. Update `packages/agent-core/src/storage/migrations/index.ts`:
 ```typescript
 import { migration as v007 } from './v007-description';
 
@@ -311,7 +359,7 @@ If a user opens data from a newer app version, startup is blocked with a dialog 
 
 ## Secure Storage
 
-API keys are stored using AES-256-GCM encryption with machine-derived keys. The `SecureStorage` class in `packages/core/src/storage/secure-storage.ts` handles:
+API keys are stored using AES-256-GCM encryption with machine-derived keys. The `SecureStorage` class in `packages/agent-core/src/storage/secure-storage.ts` handles:
 - API key storage/retrieval by provider
 - AWS Bedrock credentials
 - Atomic file writes
@@ -322,12 +370,11 @@ API keys are stored using AES-256-GCM encryption with machine-derived keys. The 
 ### Path Aliases (Desktop)
 
 ```typescript
-"@/*"                  → "src/renderer/*"
-"@main/*"              → "src/main/*"
-"@shared/*"            → "../../packages/shared/src/*"
-"@accomplish/shared"   → "../../packages/shared/src/index.ts"
-"@accomplish/core"     → "../../packages/core/src/index.ts"
-"@accomplish/core/*"   → "../../packages/core/src/*"
+"@/*"                          → "src/renderer/*"
+"@main/*"                      → "src/main/*"
+"@accomplish/agent-core/common" → "../../packages/agent-core/src/common.ts"
+"@accomplish/agent-core"        → "../../packages/agent-core/src/index.ts"
+"@accomplish/agent-core/*"      → "../../packages/agent-core/src/*"
 ```
 
 ## Styling

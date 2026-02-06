@@ -271,6 +271,7 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
           errorName: errorInfo.errorName || 'UnknownError',
           statusCode: errorInfo.statusCode,
           message: errorInfo.message,
+          isAuthError: errorInfo.isAuthError,
           raw: line,
         };
 

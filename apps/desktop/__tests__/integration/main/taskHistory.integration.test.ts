@@ -84,9 +84,6 @@ vi.mock('@accomplish/agent-core', () => ({
     mockTaskStore.clear();
   }),
 
-  setMaxHistoryItems: vi.fn(),
-  clearTaskHistoryStore: vi.fn(() => mockTaskStore.clear()),
-  flushPendingTasks: vi.fn(),
 }));
 
 // Helper to create a mock task
@@ -348,13 +345,4 @@ describe('taskHistory Integration', () => {
     });
   });
 
-  describe('flushPendingTasks', () => {
-    it('should be a no-op for SQLite (writes are immediate)', async () => {
-      // Arrange
-      const { flushPendingTasks } = await import('@accomplish/agent-core');
-
-      // Act & Assert - should not throw
-      expect(() => flushPendingTasks()).not.toThrow();
-    });
-  });
 });
