@@ -66,7 +66,7 @@ export class ExecutionPage {
     await this.questionOptions.nth(index).click();
   }
 
-  async waitForComplete() {
+  async waitForComplete(timeout: number = TEST_TIMEOUTS.TASK_COMPLETE_WAIT) {
     // Wait for status badge to show a completed state (not running)
     await this.page.waitForFunction(
       () => {
@@ -75,7 +75,8 @@ export class ExecutionPage {
         const text = badge.textContent?.toLowerCase() || '';
         return text.includes('completed') || text.includes('failed') || text.includes('stopped') || text.includes('cancelled');
       },
-      { timeout: TEST_TIMEOUTS.TASK_COMPLETE_WAIT }
+      undefined,
+      { timeout }
     );
   }
 }

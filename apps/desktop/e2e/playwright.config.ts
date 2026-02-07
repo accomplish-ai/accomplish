@@ -40,7 +40,7 @@ export default defineConfig({
     {
       name: 'electron-integration',
       testMatch: /.*integration\.spec\.ts/,
-      timeout: 120000,
+      timeout: 300_000,
       retries: 0,
     }
   ],

@@ -26,6 +26,9 @@ export const TEST_TIMEOUTS = {
 
   /** Wait for task to reach completed/failed/stopped state */
   TASK_COMPLETE_WAIT: 20000,
+
+  /** Wait for real (non-mocked) smoke test task to complete */
+  SMOKE_TASK_COMPLETE: 240_000,
 } as const;
 
 /**

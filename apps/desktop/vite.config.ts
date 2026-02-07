@@ -15,7 +15,10 @@ export default defineConfig(() => ({
         // Main process entry
         entry: 'src/main/index.ts',
         onstart({ startup }) {
-          startup();
+          const args = process.env.ELECTRON_CDP_PORT
+            ? ['.', '--no-sandbox', `--remote-debugging-port=${process.env.ELECTRON_CDP_PORT}`]
+            : undefined;
+          startup(args);
         },
         vite: {
           resolve: {
