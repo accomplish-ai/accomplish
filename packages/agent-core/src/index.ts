@@ -118,7 +118,7 @@ export { buildOpenCodeEnvironment } from './opencode/environment.js';
 export type { EnvironmentConfig } from './opencode/environment.js';
 
 // Config builder functions
-export { buildProviderConfigs, syncApiKeysToOpenCodeAuth, BASE_OPENCODE_PROVIDERS } from './opencode/config-builder.js';
+export { buildProviderConfigs, syncApiKeysToOpenCodeAuth } from './opencode/config-builder.js';
 
 // Auth functions
 export { getOpenCodeAuthPath, getOpenAiOauthStatus } from './opencode/auth.js';
