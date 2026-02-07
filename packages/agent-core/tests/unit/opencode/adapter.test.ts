@@ -74,6 +74,88 @@ describe('Shell escaping utilities', () => {
     });
   });
 
+  describe('Windows cmd.exe /s /c quoting (Issue #354)', () => {
+    // Reproduce the escapeShellArg + getShellArgs logic from the adapter
+    // to verify that paths with spaces are correctly quoted for cmd.exe /s /c.
+
+    function escapeShellArgWin32(arg: string): string {
+      if (arg.includes(' ') || arg.includes('"')) {
+        return `"${arg.replace(/"/g, '""')}"`;
+      }
+      return arg;
+    }
+
+    function buildShellCommand(command: string, args: string[]): string {
+      const escapedCommand = escapeShellArgWin32(command);
+      const escapedArgs = args.map(arg => escapeShellArgWin32(arg));
+      return [escapedCommand, ...escapedArgs].join(' ');
+    }
+
+    function getShellArgsWin32(command: string): string[] {
+      return ['/s', '/c', `"${command}"`];
+    }
+
+    it('should wrap the full command in outer quotes for cmd.exe /s /c', () => {
+      const command = 'C:\\Users\\Li Yao\\AppData\\Local\\Programs\\@accomplishdesktop\\opencode.exe';
+      const args = ['run', '--format', 'json', '--prompt', 'hello world'];
+      const fullCommand = buildShellCommand(command, args);
+      const shellArgs = getShellArgsWin32(fullCommand);
+
+      // shellArgs[2] must have outer quotes wrapping the entire command
+      expect(shellArgs[2]).toBe(`"${fullCommand}"`);
+      // The inner path with spaces must still be individually quoted
+      expect(fullCommand).toContain('"C:\\Users\\Li Yao\\AppData\\Local\\Programs\\@accomplishdesktop\\opencode.exe"');
+      // The full shell args should be ['/s', '/c', '"..."']
+      expect(shellArgs[0]).toBe('/s');
+      expect(shellArgs[1]).toBe('/c');
+      expect(shellArgs[2].startsWith('"')).toBe(true);
+      expect(shellArgs[2].endsWith('"')).toBe(true);
+    });
+
+    it('should handle paths without spaces (no extra quoting needed on individual arg)', () => {
+      const command = 'C:\\Program\\opencode.exe';
+      const args = ['run'];
+      const fullCommand = buildShellCommand(command, args);
+      const shellArgs = getShellArgsWin32(fullCommand);
+
+      // Path has no spaces so escapeShellArg does NOT add inner quotes
+      expect(fullCommand).toBe('C:\\Program\\opencode.exe run');
+      // But the outer quotes from getShellArgs are still applied
+      expect(shellArgs[2]).toBe('"C:\\Program\\opencode.exe run"');
+    });
+
+    it('should handle multiple arguments with spaces', () => {
+      const command = 'C:\\Users\\Li Yao\\opencode.exe';
+      const args = ['--cwd', 'C:\\Users\\Li Yao\\projects', '--prompt', 'fix the bug'];
+      const fullCommand = buildShellCommand(command, args);
+      const shellArgs = getShellArgsWin32(fullCommand);
+
+      // All args with spaces should be individually quoted
+      expect(fullCommand).toContain('"C:\\Users\\Li Yao\\opencode.exe"');
+      expect(fullCommand).toContain('"C:\\Users\\Li Yao\\projects"');
+      expect(fullCommand).toContain('"fix the bug"');
+      // Outer quotes must be present
+      expect(shellArgs[2].startsWith('"')).toBe(true);
+      expect(shellArgs[2].endsWith('"')).toBe(true);
+    });
+
+    it('should handle paths with embedded double quotes', () => {
+      const command = 'C:\\Users\\Li "test" Yao\\opencode.exe';
+      const escaped = escapeShellArgWin32(command);
+      // Embedded quotes are doubled
+      expect(escaped).toBe('"C:\\Users\\Li ""test"" Yao\\opencode.exe"');
+    });
+
+    it('should handle Chinese and Unicode characters in paths', () => {
+      const command = 'C:\\Users\\李 耀\\AppData\\opencode.exe';
+      const fullCommand = buildShellCommand(command, ['run']);
+      const shellArgs = getShellArgsWin32(fullCommand);
+
+      expect(fullCommand).toContain('"C:\\Users\\李 耀\\AppData\\opencode.exe"');
+      expect(shellArgs[2]).toBe(`"${fullCommand}"`);
+    });
+  });
+
   describe('Unix shell escaping', () => {
     it('should handle arguments with single quotes', () => {
       // Single quotes need escaping on Unix
