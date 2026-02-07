@@ -328,15 +328,6 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     this.ptyProcess.write('\x03');
     console.log('[OpenCode CLI] Sent Ctrl+C interrupt signal');
-
-    if (this.options.platform === 'win32') {
-      setTimeout(() => {
-        if (this.ptyProcess) {
-          this.ptyProcess.write('Y\n');
-          console.log('[OpenCode CLI] Sent Y to confirm batch termination');
-        }
-      }, 100);
-    }
   }
 
   getSessionId(): string | null {
