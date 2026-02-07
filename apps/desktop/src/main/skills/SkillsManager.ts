@@ -16,6 +16,7 @@ function getUserSkillsPath(): string {
 export class SkillsManager {
   private coreManager: SkillsManagerAPI | null = null;
   private initialized = false;
+  private initializationPromise: Promise<void> | null = null;
 
   getBundledSkillsPath(): string {
     return getBundledSkillsPath();
@@ -37,47 +38,68 @@ export class SkillsManager {
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
+    if (!this.initializationPromise) {
+      this.initializationPromise = (async () => {
+        console.log('[SkillsManager] Initializing...');
+        await this.getCoreManager().initialize();
+        this.initialized = true;
+        console.log('[SkillsManager] Initialized');
+      })().catch((error) => {
+        this.initializationPromise = null;
+        throw error;
+      });
+    }
 
-    console.log('[SkillsManager] Initializing...');
-    await this.getCoreManager().initialize();
-    this.initialized = true;
-    console.log('[SkillsManager] Initialized');
+    await this.initializationPromise;
   }
 
   async resync(): Promise<void> {
+    await this.ensureInitialized();
     console.log('[SkillsManager] Resyncing skills...');
     await this.getCoreManager().resync();
   }
 
   async getAll() {
+    await this.ensureInitialized();
     return this.getCoreManager().getAllSkills();
   }
 
   async getEnabled() {
+    await this.ensureInitialized();
     return this.getCoreManager().getEnabledSkills();
   }
 
   async setEnabled(id: string, enabled: boolean): Promise<void> {
+    await this.ensureInitialized();
     this.getCoreManager().setSkillEnabled(id, enabled);
   }
 
   async getContent(id: string): Promise<string | null> {
+    await this.ensureInitialized();
     return this.getCoreManager().getSkillContent(id);
   }
 
   async addFromFile(sourcePath: string) {
+    await this.ensureInitialized();
     return this.getCoreManager().addSkill(sourcePath);
   }
 
   async addFromGitHub(rawUrl: string) {
+    await this.ensureInitialized();
     return this.getCoreManager().addSkill(rawUrl);
   }
 
   async delete(id: string): Promise<void> {
+    await this.ensureInitialized();
     const deleted = this.getCoreManager().deleteSkill(id);
     if (!deleted) {
       throw new Error('Skill not found or cannot be deleted');
     }
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (this.initialized) return;
+    await this.initialize();
   }
 }
 

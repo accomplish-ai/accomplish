@@ -11,6 +11,8 @@ import type { OpenCodeMessage } from '../common/types/opencode.js';
 import type { PermissionRequest } from '../common/types/permission.js';
 import type { TodoItem } from '../common/types/todo.js';
 
+let hasLoggedWindowsFirstTaskStartup = false;
+
 export class OpenCodeCliNotFoundError extends Error {
   constructor() {
     super(
@@ -160,6 +162,11 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       clearTimeout(this.waitingTransitionTimer);
       this.waitingTransitionTimer = null;
     }
+    const shouldLogWindowsStartupTiming =
+      this.options.platform === 'win32' && !hasLoggedWindowsFirstTaskStartup;
+    const startupTimerStart = shouldLogWindowsStartupTiming ? Date.now() : 0;
+    let spawnCompletedAt = 0;
+    let loggedFirstOutputTiming = false;
 
     if (this.logWatcher) {
       await this.logWatcher.start();
@@ -224,9 +231,21 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         cwd: safeCwd,
         env: env as { [key: string]: string },
       });
+      spawnCompletedAt = Date.now();
       const pidMsg = `PTY Process PID: ${this.ptyProcess.pid}`;
       console.log('[OpenCode CLI]', pidMsg);
       this.emit('debug', { type: 'info', message: pidMsg });
+      if (shouldLogWindowsStartupTiming) {
+        hasLoggedWindowsFirstTaskStartup = true;
+        const startupReadyMs = spawnCompletedAt - startupTimerStart;
+        const startupMsg = `[OpenCode Startup][Windows] first_task_spawn_ready_ms=${startupReadyMs}`;
+        console.log(startupMsg);
+        this.emit('debug', {
+          type: 'info',
+          message: startupMsg,
+          data: { startupReadyMs, taskId: this.currentTaskId },
+        });
+      }
 
       this.emit('progress', { stage: 'loading', message: 'Loading agent...' });
 
@@ -236,6 +255,20 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           .replace(/\x1B\][^\x07]*\x07/g, '')
           .replace(/\x1B\][^\x1B]*\x1B\\/g, '');
         if (cleanData.trim()) {
+          if (shouldLogWindowsStartupTiming && !loggedFirstOutputTiming) {
+            loggedFirstOutputTiming = true;
+            const now = Date.now();
+            const firstOutputMs = now - startupTimerStart;
+            const afterSpawnMs = spawnCompletedAt > 0 ? now - spawnCompletedAt : firstOutputMs;
+            const firstOutputMsg =
+              `[OpenCode Startup][Windows] first_task_first_output_ms=${firstOutputMs} after_spawn_ms=${afterSpawnMs}`;
+            console.log(firstOutputMsg);
+            this.emit('debug', {
+              type: 'info',
+              message: firstOutputMsg,
+              data: { firstOutputMs, afterSpawnMs, taskId: this.currentTaskId },
+            });
+          }
           const truncated = cleanData.substring(0, 500) + (cleanData.length > 500 ? '...' : '');
           console.log('[OpenCode CLI stdout]:', truncated);
           this.emit('debug', { type: 'stdout', message: cleanData });
@@ -366,10 +399,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
   private escapeShellArg(arg: string): string {
     if (this.options.platform === 'win32') {
-      if (arg.includes(' ') || arg.includes('"')) {
-        return `"${arg.replace(/"/g, '""')}"`;
-      }
-      return arg;
+      return `'${arg.replace(/'/g, "''")}'`;
     } else {
       const needsEscaping = ["'", ' ', '$', '`', '\\', '"', '\n'].some(c => arg.includes(c));
       if (needsEscaping) {
@@ -382,6 +412,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   private buildShellCommand(command: string, args: string[]): string {
     const escapedCommand = this.escapeShellArg(command);
     const escapedArgs = args.map(arg => this.escapeShellArg(arg));
+    if (this.options.platform === 'win32') {
+      return `& ${[escapedCommand, ...escapedArgs].join(' ')}`;
+    }
     return [escapedCommand, ...escapedArgs].join(' ');
   }
 
@@ -757,7 +790,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
   private getPlatformShell(): string {
     if (this.options.platform === 'win32') {
-      return 'cmd.exe';
+      return 'powershell.exe';
     } else if (this.options.isPackaged && this.options.platform === 'darwin') {
       return '/bin/sh';
     } else {
@@ -773,7 +806,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
   private getShellArgs(command: string): string[] {
     if (this.options.platform === 'win32') {
-      return ['/s', '/c', command];
+      return ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command];
     } else {
       return ['-c', command];
     }

@@ -224,8 +224,6 @@ if (!gotTheLock) {
       console.error('[Main] Provider validation failed:', err);
     }
 
-    await skillsManager.initialize();
-
     if (process.platform === 'darwin' && app.dock) {
       const iconPath = app.isPackaged
         ? path.join(process.resourcesPath, 'icon.png')
@@ -245,6 +243,10 @@ if (!gotTheLock) {
       initThoughtStreamApi(mainWindow);
       startThoughtStreamServer();
     }
+
+    void skillsManager.initialize().catch((err) => {
+      console.error('[Main] Skills initialization failed:', err);
+    });
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {

@@ -39,7 +39,10 @@ export class OAuthBrowserFlow {
     const { command, args: baseArgs } = getOpenCodeCliPath();
     const allArgs = [...baseArgs, 'auth', 'login'];
 
-    const fullCommand = [command, ...allArgs].map(quoteForShell).join(' ');
+    const quotedCommand = [command, ...allArgs].map(quoteForShell).join(' ');
+    const fullCommand = process.platform === 'win32'
+      ? `& ${quotedCommand}`
+      : quotedCommand;
     const shellCmd = getPlatformShell(app.isPackaged);
     const shellArgs = getShellArgs(fullCommand);
 
