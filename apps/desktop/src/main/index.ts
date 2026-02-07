@@ -211,7 +211,8 @@ if (!gotTheLock) {
       const settings = getProviderSettings();
       for (const [id, provider] of Object.entries(settings.connectedProviders)) {
         const providerId = id as ProviderId;
-        if (provider?.credentials?.type === 'api_key') {
+        const credType = provider?.credentials?.type;
+        if (!credType || credType === 'api_key') {
           const key = getApiKey(providerId);
           if (!key) {
             console.warn(`[Main] Provider ${providerId} has api_key auth but key not found in secure storage`);
