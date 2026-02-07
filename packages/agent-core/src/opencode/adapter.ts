@@ -773,7 +773,17 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
   private getShellArgs(command: string): string[] {
     if (this.options.platform === 'win32') {
-      return ['/s', '/c', command];
+      // cmd.exe /s /c strips the outermost pair of double quotes from the
+      // command string.  When the executable path contains spaces (e.g.
+      // C:\Users\Li Yao\...\opencode.exe), the individual-arg quoting
+      // produced by escapeShellArg already adds quotes around that path.
+      // Without an *extra* outer pair of quotes the /s flag strips
+      // those necessary quotes and cmd.exe mis-parses the command.
+      //
+      // Wrapping the whole command in an additional pair of double quotes
+      // is the documented way to make cmd.exe /s /c preserve inner quotes.
+      // See: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/cmd
+      return ['/s', '/c', `"${command}"`];
     } else {
       return ['-c', command];
     }
