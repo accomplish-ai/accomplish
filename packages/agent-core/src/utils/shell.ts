@@ -17,10 +17,7 @@ export function stripAnsi(input: string): string {
  */
 export function quoteForShell(arg: string): string {
   if (process.platform === 'win32') {
-    if (arg.includes(' ') || arg.includes('"')) {
-      return `"${arg.replace(/"/g, '\\"')}"`;
-    }
-    return arg;
+    return `'${arg.replace(/'/g, "''")}'`;
   }
   if (arg.includes("'") || arg.includes(' ') || arg.includes('"')) {
     return `'${arg.replace(/'/g, "'\\''")}'`;
@@ -54,7 +51,7 @@ export function getPlatformShell(isPackaged?: boolean): string {
  */
 export function getShellArgs(command: string): string[] {
   if (process.platform === 'win32') {
-    return ['-NoProfile', '-Command', command];
+    return ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command];
   }
   return ['-c', command];
 }

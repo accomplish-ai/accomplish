@@ -39,7 +39,10 @@ export class OAuthBrowserFlow {
     const { command, args: baseArgs } = getOpenCodeCliPath();
     const allArgs = [...baseArgs, 'auth', 'login'];
 
-    const fullCommand = [command, ...allArgs].map(quoteForShell).join(' ');
+    const quotedCommand = [command, ...allArgs].map(quoteForShell).join(' ');
+    const fullCommand = process.platform === 'win32'
+      ? `& ${quotedCommand}`
+      : quotedCommand;
     const shellCmd = getPlatformShell(app.isPackaged);
     const shellArgs = getShellArgs(fullCommand);
 
@@ -140,11 +143,6 @@ export class OAuthBrowserFlow {
 
     ptyProcess.write('\x03');
 
-    if (process.platform === 'win32') {
-      await this.delay(100);
-      ptyProcess.write('Y\n');
-    }
-
     const gracefulExited = await this.waitForExit(ptyProcess, 1000);
 
     if (!gracefulExited && this.activePty === ptyProcess) {
@@ -195,10 +193,6 @@ export class OAuthBrowserFlow {
         }
       }, timeoutMs);
     });
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
