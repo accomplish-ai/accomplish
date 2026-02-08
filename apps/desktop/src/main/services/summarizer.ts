@@ -13,6 +13,25 @@ Examples: "Check calendar", "Download invoice", "Search flights to Paris"
 
 Task: `;
 
+const SUMMARY_TIMEOUT_MS = 10000;
+
+/**
+ * Fetch with timeout using AbortController
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /**
  * Generate a short summary title for a task prompt
  * @param prompt The user's task prompt
@@ -63,7 +82,7 @@ async function callProvider(
 }
 
 async function callAnthropic(apiKey: string, prompt: string): Promise<string> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -80,7 +99,7 @@ async function callAnthropic(apiKey: string, prompt: string): Promise<string> {
         },
       ],
     }),
-  });
+  }, SUMMARY_TIMEOUT_MS);
 
   if (!response.ok) {
     throw new Error(`Anthropic API error: ${response.status}`);
@@ -94,7 +113,7 @@ async function callAnthropic(apiKey: string, prompt: string): Promise<string> {
 }
 
 async function callOpenAI(apiKey: string, prompt: string): Promise<string> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -110,7 +129,7 @@ async function callOpenAI(apiKey: string, prompt: string): Promise<string> {
         },
       ],
     }),
-  });
+  }, SUMMARY_TIMEOUT_MS);
 
   if (!response.ok) {
     throw new Error(`OpenAI API error: ${response.status}`);
@@ -124,7 +143,7 @@ async function callOpenAI(apiKey: string, prompt: string): Promise<string> {
 }
 
 async function callGoogle(apiKey: string, prompt: string): Promise<string> {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
@@ -141,7 +160,8 @@ async function callGoogle(apiKey: string, prompt: string): Promise<string> {
           maxOutputTokens: 50,
         },
       }),
-    }
+    },
+    SUMMARY_TIMEOUT_MS
   );
 
   if (!response.ok) {
@@ -156,7 +176,7 @@ async function callGoogle(apiKey: string, prompt: string): Promise<string> {
 }
 
 async function callXAI(apiKey: string, prompt: string): Promise<string> {
-  const response = await fetch('https://api.x.ai/v1/chat/completions', {
+  const response = await fetchWithTimeout('https://api.x.ai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -172,7 +192,7 @@ async function callXAI(apiKey: string, prompt: string): Promise<string> {
         },
       ],
     }),
-  });
+  }, SUMMARY_TIMEOUT_MS);
 
   if (!response.ok) {
     throw new Error(`xAI API error: ${response.status}`);

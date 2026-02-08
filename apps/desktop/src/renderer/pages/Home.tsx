@@ -83,25 +83,21 @@ export default function HomePage() {
   const [prompt, setPrompt] = useState('');
   const [showExamples, setShowExamples] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const { startTask, isLoading, addTaskUpdate, setPermissionRequest } = useTaskStore();
+  const { startTask, isLoading, setPermissionRequest } = useTaskStore();
   const navigate = useNavigate();
   const accomplish = getAccomplish();
 
-  // Subscribe to task events
+  // Subscribe to permission events (needed during brief window between task start and navigation)
+  // Task updates (complete/error/status) are handled globally by the store.
   useEffect(() => {
-    const unsubscribeTask = accomplish.onTaskUpdate((event) => {
-      addTaskUpdate(event);
-    });
-
     const unsubscribePermission = accomplish.onPermissionRequest((request) => {
       setPermissionRequest(request);
     });
 
     return () => {
-      unsubscribeTask();
       unsubscribePermission();
     };
-  }, [addTaskUpdate, setPermissionRequest, accomplish]);
+  }, [setPermissionRequest, accomplish]);
 
   const executeTask = useCallback(async () => {
     if (!prompt.trim() || isLoading) return;

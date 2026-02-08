@@ -33,6 +33,10 @@
 ### ~~BUG-008: Sidebar `onTaskStatusChange` subscription inconsistency [LOW]~~ FIXED
 **Fix:** Addressed as part of BUG-002 fix — removed all duplicate event subscriptions from Sidebar.
 
+### ~~BUG-009: Execution page debounce timer not cleaned up on unmount [LOW]~~ FIXED
+**File:** `apps/desktop/src/renderer/pages/Execution.tsx:46-52`
+**Fix:** Added `cancel()` method to the debounce utility and call it in the useEffect cleanup, ensuring no stale timers fire after unmount.
+
 ### ~~BUG-010: Screen Agent responds with generic help offer instead of executing tasks [HIGH]~~ FIXED
 **File:** `apps/desktop/src/main/opencode/config-generator.ts`
 **Description:** The `screen-agent` (used by the OpenCode CLI for screen capture tasks) had no custom configuration in the generated `opencode.json`. The CLI's built-in default prompt causes the agent to respond with "I noticed you might need some help. Would you like me to look at your screen and assist you?" instead of actually executing the user's request (e.g., taking a screenshot).
@@ -42,9 +46,16 @@
 **Description:** Related to BUG-010. Because the screen-agent responded with a generic help offer instead of executing tools, the task would never progress — no tool calls, no completion events. The UI shows "Thinking..." indefinitely because the task stays in `running` status with no new events.
 **Fix:** Same as BUG-010 — with a proper system prompt, the agent executes tasks and produces completion events.
 
+### ~~BUG-012: Home.tsx duplicate `onTaskUpdate` listener [MEDIUM]~~ FIXED
+**File:** `apps/desktop/src/renderer/pages/Home.tsx:91-104`
+**Description:** Same class of issue as BUG-002. Home.tsx subscribed to `onTaskUpdate` and called `addTaskUpdate`, duplicating what the global store already handles for complete/error events.
+**Fix:** Removed the `onTaskUpdate` subscription from Home.tsx. Kept `onPermissionRequest` subscription since it's needed during the brief window between task start and navigation to Execution page.
+
+### ~~BUG-013: Summarizer API calls have no timeout [MEDIUM]~~ FIXED
+**File:** `apps/desktop/src/main/services/summarizer.ts`
+**Description:** All four LLM provider API calls (Anthropic, OpenAI, Google, xAI) in the summarizer used plain `fetch()` with no timeout. If a provider is slow or unresponsive, the summary generation hangs indefinitely, blocking the async task and wasting resources.
+**Fix:** Added a `fetchWithTimeout` helper (matching the pattern already used in `handlers.ts`) with a 10-second timeout, and replaced all `fetch()` calls with `fetchWithTimeout()`.
+
 ## Open Bugs
 
-### BUG-009: Execution page debounce timer not cleaned up on unmount [LOW]
-**File:** `apps/desktop/src/renderer/pages/Execution.tsx:46-52`
-**Description:** The `debounce` utility creates a `setTimeout` that is never cleared when the component unmounts. The `useMemo` wrapping it only prevents recreating the debounce function, but the pending timer inside persists past unmount, potentially calling `scrollIntoView` on an unmounted element.
-**Fix:** Add cleanup in the useEffect that calls `scrollToBottom`, or convert to a ref-based approach with proper cleanup.
+_No open bugs remaining from this session._

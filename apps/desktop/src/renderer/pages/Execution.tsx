@@ -42,13 +42,15 @@ const TOOL_PROGRESS_MAP: Record<string, { label: string; icon: typeof FileText }
   dev_browser_execute: { label: 'Executing browser action', icon: Terminal },
 };
 
-// Debounce utility
-function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
+// Debounce utility with cancel support
+function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T & { cancel: () => void } {
   let timeoutId: ReturnType<typeof setTimeout>;
-  return ((...args: unknown[]) => {
+  const debounced = ((...args: unknown[]) => {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => fn(...args), ms);
-  }) as T;
+  }) as T & { cancel: () => void };
+  debounced.cancel = () => clearTimeout(timeoutId);
+  return debounced;
 }
 
 // Helper for file operation badge colors
@@ -171,6 +173,7 @@ export default function ExecutionPage() {
   // Auto-scroll to bottom (debounced for performance)
   useEffect(() => {
     scrollToBottom();
+    return () => scrollToBottom.cancel();
   }, [currentTask?.messages?.length, scrollToBottom]);
 
   // Auto-focus follow-up input when task completes
