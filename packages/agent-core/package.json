@@ -1,6 +1,6 @@
 {
   "name": "@accomplish_ai/agent-core",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Core logic for Accomplish - OpenCode adapter, storage, providers, MCP tools, and skills",
   "type": "module",
   "license": "MIT",
