@@ -91,8 +91,11 @@ if (isWindows) {
     }
   }
 } else {
-  // On macOS/Linux, run electron-rebuild first (matches original behavior)
-  runCommand('npx electron-rebuild', 'Running electron-rebuild');
+  // On macOS/Linux, skip electron-rebuild in postinstall.
+  // Native modules (better-sqlite3, node-pty) stay compiled for the system Node version,
+  // which keeps Vitest tests working. The `dev` script runs electron-rebuild separately
+  // before launching Electron, recompiling for Electron's bundled Node ABI.
+  console.log('\n> macOS/Linux: Skipping electron-rebuild (dev script handles it)');
 }
 
 const useBundledMcp = process.env.ACCOMPLISH_BUNDLED_MCP === '1' || process.env.CI === 'true';
