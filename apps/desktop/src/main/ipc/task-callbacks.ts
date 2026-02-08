@@ -180,6 +180,17 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
     },
 
     onProgress: (progress: { stage: string; message?: string }) => {
+      const language = getI18nLanguage();
+      if (language !== 'en' && progress.message) {
+        translateFromEnglish(progress.message, language)
+          .then((translated) => {
+            forwardToRenderer('task:progress', { taskId, ...progress, message: translated });
+          })
+          .catch(() => {
+            forwardToRenderer('task:progress', { taskId, ...progress });
+          });
+        return;
+      }
       forwardToRenderer('task:progress', {
         taskId,
         ...progress,
