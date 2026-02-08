@@ -130,6 +130,7 @@ import {
   detectScenarioFromPrompt,
 } from '../test-utils/mock-task-flow';
 import { skillsManager } from '../skills';
+import { translateFromEnglish } from '../services/translationService';
 import {
   initializeI18n,
   getLanguage as getI18nLanguage,
@@ -243,10 +244,13 @@ export function registerIPCHandlers(): void {
     saveTask(task);
 
     generateTaskSummary(validatedConfig.prompt, getApiKey)
-      .then((summary) => {
-        updateTaskSummary(taskId, summary);
+      .then(async (summary) => {
+        const language = getI18nLanguage();
+        const translatedSummary =
+          language !== 'en' ? await translateFromEnglish(summary, language) : summary;
+        updateTaskSummary(taskId, translatedSummary);
         if (!window.isDestroyed() && !sender.isDestroyed()) {
-          sender.send('task:summary', { taskId, summary });
+          sender.send('task:summary', { taskId, summary: translatedSummary });
         }
       })
       .catch((err) => {

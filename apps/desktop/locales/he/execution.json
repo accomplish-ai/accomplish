@@ -13,6 +13,13 @@
     "followUpDescription": "המעקב שלך ימשיך אוטומטית"
   },
   "thinking": "חושב...",
+  "thinkingPhrases": {
+    "doing": "מבצע...",
+    "executing": "מפעיל...",
+    "running": "רץ...",
+    "handling": "מטפל בזה...",
+    "accomplishing": "משיג..."
+  },
   "coldStartHint": "המשימה הראשונה לוקחת קצת יותר זמן...",
   "agentWorking": "הסוכן עובד...",
   "stopAgent": "עצור סוכן (Ctrl+C)",

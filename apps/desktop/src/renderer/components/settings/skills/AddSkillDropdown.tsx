@@ -1,6 +1,7 @@
 // apps/desktop/src/renderer/components/settings/skills/AddSkillDropdown.tsx
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,7 @@ interface AddSkillDropdownProps {
 }
 
 export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProps) {
+  const { t } = useTranslation('settings');
   const [isGitHubDialogOpen, setIsGitHubDialogOpen] = useState(false);
   const [isUploadErrorDialogOpen, setIsUploadErrorDialogOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -112,7 +114,7 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
             >
               <path d="M12 5v14M5 12h14" />
             </svg>
-            Add
+            {t('skills.add')}
             <svg
               className="h-3 w-3"
               viewBox="0 0 24 24"
@@ -140,10 +142,10 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
                 <circle cx="12" cy="12" r="10" />
                 <path d="M8 12h8M12 8v8" />
               </svg>
-              <span className="font-medium">Build with Accomplish</span>
+              <span className="font-medium">{t('skills.buildWithAccomplish')}</span>
             </div>
             <span className="pl-6 text-xs text-muted-foreground">
-              Create skills through conversation
+              {t('skills.buildDescription')}
             </span>
           </DropdownMenuItem>
 
@@ -164,10 +166,10 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
                 <polyline points="17,8 12,3 7,8" />
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
-              <span className="font-medium">Upload a skill</span>
+              <span className="font-medium">{t('skills.uploadSkill')}</span>
             </div>
             <span className="pl-6 text-xs text-muted-foreground">
-              Upload a SKILL.md file
+              {t('skills.uploadDescription')}
             </span>
           </DropdownMenuItem>
 
@@ -185,10 +187,10 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
               >
                 <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22" />
               </svg>
-              <span className="font-medium">Import from GitHub</span>
+              <span className="font-medium">{t('skills.importFromGitHub')}</span>
             </div>
             <span className="pl-6 text-xs text-muted-foreground">
-              Paste a repository link
+              {t('skills.importDescription')}
             </span>
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -198,9 +200,9 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
       <Dialog open={isGitHubDialogOpen} onOpenChange={handleCloseGitHubDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Import from GitHub</DialogTitle>
+            <DialogTitle>{t('skills.importFromGitHub')}</DialogTitle>
             <DialogDescription>
-              Enter the URL of a GitHub repository containing a SKILL.md file.
+              {t('skills.importDialogDescription')}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4 py-4">
@@ -225,13 +227,13 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
               onClick={handleCloseGitHubDialog}
               disabled={isLoading}
             >
-              Cancel
+              {t('skills.cancel')}
             </Button>
             <Button
               onClick={handleImportFromGitHub}
               disabled={isLoading || !gitHubUrl.trim()}
             >
-              {isLoading ? 'Importing...' : 'Import'}
+              {isLoading ? t('skills.importing') : t('skills.import')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -248,9 +250,9 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
             </div>
             <div className="flex-1">
               <DialogHeader className="space-y-1">
-                <DialogTitle>Upload Failed</DialogTitle>
+                <DialogTitle>{t('skills.uploadFailedTitle')}</DialogTitle>
                 <DialogDescription>
-                  The skill file could not be uploaded.
+                  {t('skills.uploadFailedDescription')}
                 </DialogDescription>
               </DialogHeader>
             </div>
@@ -266,7 +268,7 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
           </div>
 
           <p className="mt-4 text-sm text-muted-foreground">
-            Make sure your SKILL.md file has valid YAML frontmatter with at least a <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">name</code> field:
+            {t('skills.uploadErrorHelp')} <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">{t('skills.uploadErrorField')}</code> {t('skills.uploadErrorFieldSuffix')}
           </p>
 
           <pre className="mt-2 p-3 bg-muted rounded-md text-xs overflow-x-auto text-muted-foreground">
@@ -282,7 +284,7 @@ Instructions here...`}
 
           <DialogFooter className="mt-4">
             <Button onClick={() => setIsUploadErrorDialogOpen(false)}>
-              OK
+              {t('skills.ok')}
             </Button>
           </DialogFooter>
         </DialogContent>

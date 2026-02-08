@@ -17,6 +17,8 @@ import {
 } from '@accomplish_ai/agent-core';
 import { getTaskManager } from '../opencode';
 import type { TaskCallbacks } from '../opencode';
+import { translateFromEnglish } from '../services/translationService';
+import { getLanguage as getI18nLanguage } from '../i18n';
 
 export interface TaskCallbacksOptions {
   taskId: string;
@@ -54,6 +56,19 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
     onMessage: (message: OpenCodeMessage) => {
       const taskMessage = toTaskMessage(message);
       if (!taskMessage) return;
+
+      const language = getI18nLanguage();
+      if (language !== 'en' && taskMessage.type === 'assistant' && taskMessage.content.startsWith('**Plan:**')) {
+        translateFromEnglish(taskMessage.content, language)
+          .then((translated) => {
+            taskMessage.content = translated;
+            queueMessage(taskId, taskMessage, forwardToRenderer, addTaskMessage);
+          })
+          .catch(() => {
+            queueMessage(taskId, taskMessage, forwardToRenderer, addTaskMessage);
+          });
+        return;
+      }
 
       queueMessage(taskId, taskMessage, forwardToRenderer, addTaskMessage);
     },

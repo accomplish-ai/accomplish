@@ -48,12 +48,12 @@ const SpinningIcon = ({ className }: { className?: string }) => (
 );
 
 // Action-oriented thinking phrases
-const THINKING_PHRASES = [
-  'Doing...',
-  'Executing...',
-  'Running...',
-  'Handling it...',
-  'Accomplishing...',
+const THINKING_PHRASE_KEYS = [
+  'thinkingPhrases.doing',
+  'thinkingPhrases.executing',
+  'thinkingPhrases.running',
+  'thinkingPhrases.handling',
+  'thinkingPhrases.accomplishing',
 ];
 
 // Tool name to icon mapping
@@ -111,6 +111,10 @@ const TOOL_ICON_MAP: Record<string, typeof FileText> = {
 //   "dev-browser-mcp_browser_navigate" -> "browser_navigate"
 //   "file-permission_request_file_permission" -> "request_file_permission"
 //   "complete-task_complete_task" -> "complete_task"
+function capitalizeFirst(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 function getBaseToolName(toolName: string): string {
   // Try progressively stripping prefixes at each underscore position
   // to find a match in our map. This handles server names with hyphens
@@ -123,6 +127,11 @@ function getBaseToolName(toolName: string): string {
       return candidate;
     }
     idx += 1;
+  }
+  // Handle case mismatch: CLI sends lowercase (e.g. "read") but map uses PascalCase ("Read")
+  const capitalized = capitalizeFirst(toolName);
+  if (TOOL_ICON_MAP[capitalized]) {
+    return capitalized;
   }
   return toolName;
 }
@@ -267,10 +276,11 @@ export default function ExecutionPage() {
   }, [debugLogs, debugSearchQuery]);
 
   // Pick a random thinking phrase when entering thinking state (currentTool becomes null)
-  const thinkingPhrase = useMemo(() => {
-    return THINKING_PHRASES[Math.floor(Math.random() * THINKING_PHRASES.length)];
+  const thinkingPhraseKey = useMemo(() => {
+    return THINKING_PHRASE_KEYS[Math.floor(Math.random() * THINKING_PHRASE_KEYS.length)];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTool]);
+  const thinkingPhrase = t(thinkingPhraseKey);
 
   // Reset search index when query changes
   useEffect(() => {
@@ -939,7 +949,13 @@ export default function ExecutionPage() {
                               return t(`tools.${baseName}`, { defaultValue: currentTool });
                             })())
                           : (startupStageTaskId === id && startupStage)
-                            ? startupStage.message
+                            ? startupStage.stage === 'loading'
+                              ? t('loadingAgent')
+                              : startupStage.stage === 'waiting'
+                                ? t('waitingForResponse')
+                                : startupStage.stage === 'connecting'
+                                  ? t('connectingToModel', { modelName: startupStage.modelName || 'AI' })
+                                  : startupStage.message
                             : thinkingPhrase}
                       </span>
                       {currentTool && !(currentToolInput as { description?: string })?.description && (

@@ -13,6 +13,13 @@
     "followUpDescription": "您的后续操作将自动继续"
   },
   "thinking": "思考中...",
+  "thinkingPhrases": {
+    "doing": "执行中...",
+    "executing": "运行中...",
+    "running": "处理中...",
+    "handling": "处理中...",
+    "accomplishing": "完成中..."
+  },
   "coldStartHint": "首次任务需要更长时间...",
   "agentWorking": "智能体工作中...",
   "stopAgent": "停止智能体 (Ctrl+C)",

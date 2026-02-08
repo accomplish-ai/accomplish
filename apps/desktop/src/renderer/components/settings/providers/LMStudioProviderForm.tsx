@@ -28,10 +28,10 @@ interface LMStudioProviderFormProps {
   showModelError: boolean;
 }
 
-function ToolSupportBadge({ status }: { status: ToolSupportStatus }) {
+function ToolSupportBadge({ status, t }: { status: ToolSupportStatus; t: (key: string) => string }) {
   const config = {
     supported: {
-      label: 'Tools',
+      label: t('toolBadge.supported'),
       className: 'bg-green-500/20 text-green-400 border-green-500/30',
       icon: (
         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -40,7 +40,7 @@ function ToolSupportBadge({ status }: { status: ToolSupportStatus }) {
       ),
     },
     unsupported: {
-      label: 'No Tools',
+      label: t('toolBadge.unsupported'),
       className: 'bg-red-500/20 text-red-400 border-red-500/30',
       icon: (
         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -49,7 +49,7 @@ function ToolSupportBadge({ status }: { status: ToolSupportStatus }) {
       ),
     },
     unknown: {
-      label: 'Unknown',
+      label: t('toolBadge.unknown'),
       className: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
       icon: (
         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -266,7 +266,7 @@ export function LMStudioProviderForm({
 
               <div className="flex items-center gap-3 pt-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <ToolSupportBadge status="supported" />
+                  <ToolSupportBadge status="supported" t={t} />
                   <span>{t('common.functionCallingVerified')}</span>
                 </span>
               </div>

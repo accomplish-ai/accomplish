@@ -1,6 +1,7 @@
 // apps/desktop/src/renderer/components/settings/skills/SkillsPanel.tsx
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Skill } from '@accomplish_ai/agent-core/common';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ interface SkillsPanelProps {
 }
 
 export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
+  const { t } = useTranslation('settings');
   const [skills, setSkills] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -166,12 +168,12 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
     }
   }, [isResyncing]);
 
-  const filterLabel = filter === 'all' ? 'All' : filter === 'active' ? 'Active' : filter === 'inactive' ? 'Inactive' : 'By Accomplish';
+  const filterLabel = filter === 'all' ? t('skills.filterAll') : filter === 'active' ? t('skills.filterActive') : filter === 'inactive' ? t('skills.filterInactive') : t('skills.byAccomplish');
 
   if (loading) {
     return (
       <div className="flex h-[480px] items-center justify-center">
-        <div className="text-sm text-muted-foreground">Loading skills...</div>
+        <div className="text-sm text-muted-foreground">{t('skills.loading')}</div>
       </div>
     );
   }
@@ -209,16 +211,16 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-[180px]">
             <DropdownMenuItem onClick={() => setFilter('all')} className="flex justify-between">
-              All <span className="text-muted-foreground">{filterCounts.all}</span>
+              {t('skills.filterAll')} <span className="text-muted-foreground">{filterCounts.all}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setFilter('active')} className="flex justify-between">
-              Active <span className="text-muted-foreground">{filterCounts.active}</span>
+              {t('skills.filterActive')} <span className="text-muted-foreground">{filterCounts.active}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setFilter('inactive')} className="flex justify-between">
-              Inactive <span className="text-muted-foreground">{filterCounts.inactive}</span>
+              {t('skills.filterInactive')} <span className="text-muted-foreground">{filterCounts.inactive}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setFilter('official')} className="flex justify-between">
-              By Accomplish <span className="text-muted-foreground">{filterCounts.official}</span>
+              {t('skills.byAccomplish')} <span className="text-muted-foreground">{filterCounts.official}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -237,7 +239,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
           </svg>
           <Input
             type="text"
-            placeholder="Search skills..."
+            placeholder={t('skills.searchPlaceholder')}
             value={searchQuery}
             onChange={handleSearchChange}
             className="pl-9"
@@ -249,7 +251,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
           onClick={handleResync}
           disabled={isResyncing}
           className="flex items-center justify-center rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
-          title="Refresh skills"
+          title={t('skills.refresh')}
           whileTap={{ scale: 0.9 }}
         >
           <motion.div
@@ -316,7 +318,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
               exit="exit"
               transition={settingsTransitions.enter}
             >
-              No skills found
+              {t('skills.noSkillsFound')}
             </motion.div>
           )}
         </AnimatePresence>
@@ -338,7 +340,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
           >
             <path d="M6 9l6 6 6-6" />
           </svg>
-          Scroll for more skills
+          {t('skills.scrollForMore')}
         </div>
       )}
     </div>

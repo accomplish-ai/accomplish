@@ -570,7 +570,14 @@ export default function SettingsDialog({
                     className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                     data-testid="language-select"
                   >
-                    <option value="auto">{t('language.auto')}</option>
+                    <option value="auto">
+                      {(() => {
+                        const sysLang = navigator.language;
+                        if (sysLang.startsWith('zh')) return '自动 (系统)';
+                        if (sysLang.startsWith('he')) return 'אוטומטי (מערכת)';
+                        return 'Auto (System)';
+                      })()}
+                    </option>
                     <option value="en">English</option>
                     <option value="zh-CN">简体中文</option>
                     <option value="he">עברית</option>

@@ -13,6 +13,13 @@
     "followUpDescription": "Your follow-up will continue automatically"
   },
   "thinking": "Thinking...",
+  "thinkingPhrases": {
+    "doing": "Doing...",
+    "executing": "Executing...",
+    "running": "Running...",
+    "handling": "Handling it...",
+    "accomplishing": "Accomplishing..."
+  },
   "loadingAgent": "Loading agent...",
   "waitingForResponse": "Waiting for response...",
   "connectingToModel": "Connecting to {{modelName}}...",
