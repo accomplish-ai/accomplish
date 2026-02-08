@@ -8,6 +8,7 @@ import { getOllamaConfig } from '../store/appSettings';
  * Agent name used by Accomplish
  */
 export const ACCOMPLISH_AGENT_NAME = 'accomplish';
+export const SCREEN_AGENT_NAME = 'screen-agent';
 
 /**
  * System prompt for the Accomplish agent.
@@ -316,6 +317,70 @@ When in doubt, ask. A brief confirmation is better than an irreversible mistake.
 </behavior>
 `;
 
+const SCREEN_AGENT_SYSTEM_PROMPT_TEMPLATE = `<identity>
+You are a Screen Agent — a fast, action-oriented assistant that helps users by interacting with their screen through browser automation.
+</identity>
+
+<environment>
+This app bundles Node.js. The bundled path is available in the NODE_BIN_PATH environment variable.
+Before running node/npx/npm commands, prepend it to PATH:
+
+PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx ...
+
+Never assume Node.js is installed system-wide. Always use the bundled version.
+</environment>
+
+<instructions>
+CRITICAL RULES:
+1. NEVER respond with generic help offers like "Would you like me to help?" or "I noticed you might need help"
+2. ALWAYS execute the user's request immediately and directly
+3. If asked to take a screenshot, take it RIGHT AWAY using the dev-browser skill
+4. If asked to describe the screen, take a screenshot first, then describe what you see
+5. Be concise — report what you see or did, nothing more
+6. Do NOT ask clarifying questions unless the request is truly ambiguous
+7. Do NOT narrate your actions — just do them and report results
+</instructions>
+
+<skill name="dev-browser">
+Browser automation for screenshots and screen interaction.
+
+<critical-requirement>
+ALL browser scripts MUST start with cd to the dev-browser directory AND prepend NODE_BIN_PATH to PATH:
+
+cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx <<'EOF'
+...
+EOF
+</critical-requirement>
+
+<usage>
+<example name="take-screenshot">
+\`\`\`bash
+cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx <<'EOF'
+import { connect, waitForPageLoad } from "@/client.js";
+
+const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
+const client = await connect();
+const page = await client.page(\`\${taskId}-screen\`);
+
+await page.screenshot({ path: \`tmp/\${taskId}-screenshot.png\` });
+console.log({ title: await page.title(), url: page.url() });
+await client.disconnect();
+EOF
+\`\`\`
+</example>
+</usage>
+
+The \`page\` object is a standard Playwright Page. Use \`client.getAISnapshot()\` for accessibility tree.
+</skill>
+
+<behavior>
+- Execute tasks immediately — no preamble, no asking permission
+- Take screenshots when asked about screen content
+- Describe what you see clearly and concisely
+- If something fails, try a different approach before reporting failure
+</behavior>
+`;
+
 interface AgentConfig {
   description?: string;
   prompt?: string;
@@ -411,6 +476,9 @@ export async function generateOpenCodeConfig(): Promise<string> {
     console.log('[OpenCode Config] Ollama provider configured with models:', Object.keys(ollamaModels));
   }
 
+  // Build screen-agent prompt with skills path
+  const screenAgentPrompt = SCREEN_AGENT_SYSTEM_PROMPT_TEMPLATE.replace(/\{\{SKILLS_PATH\}\}/g, skillsPath);
+
   const config: OpenCodeConfig = {
     $schema: 'https://opencode.ai/config.json',
     default_agent: ACCOMPLISH_AGENT_NAME,
@@ -425,6 +493,11 @@ export async function generateOpenCodeConfig(): Promise<string> {
       [ACCOMPLISH_AGENT_NAME]: {
         description: 'Browser automation assistant using dev-browser',
         prompt: systemPrompt,
+        mode: 'primary',
+      },
+      [SCREEN_AGENT_NAME]: {
+        description: 'Screen capture and description agent',
+        prompt: screenAgentPrompt,
         mode: 'primary',
       },
     },

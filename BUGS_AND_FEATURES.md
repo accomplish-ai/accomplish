@@ -1,46 +1,48 @@
 # Bugs and Features
 
-## Bugs
+## Fixed Bugs
 
-### BUG-001: Permission API server never closed on app quit [HIGH]
-**File:** `apps/desktop/src/main/permission-api.ts:64-186`
-**Description:** The HTTP server created in `startPermissionApiServer()` is returned but the caller in `handlers.ts:289` discards the return value. On app quit (`before-quit` event in `index.ts:192`), only `disposeTaskManager()` is called — the permission API server is never closed. This prevents clean shutdown (open handles keep the process alive longer than needed) and causes `EADDRINUSE` errors if the app restarts quickly.
-**Fix:** Store the server reference and close it during `before-quit`.
+### ~~BUG-001: Permission API server never closed on app quit [HIGH]~~ FIXED
+**File:** `apps/desktop/src/main/permission-api.ts` and `apps/desktop/src/main/index.ts`
+**Fix:** Added `stopPermissionApiServer()` export that closes the server and rejects pending permissions. Called from `before-quit` in `index.ts`.
 
-### BUG-002: Duplicate IPC event listeners between Sidebar and Execution [MEDIUM]
-**File:** `apps/desktop/src/renderer/components/layout/Sidebar.tsx:34` and `apps/desktop/src/renderer/pages/Execution.tsx:112`
-**Description:** Both `Sidebar` and `Execution` components subscribe to `accomplish.onTaskUpdate()` and both call `addTaskUpdate(event)`. Since the Sidebar is always mounted while the Execution page is also mounted, every task update event triggers `addTaskUpdate` twice. For `complete`/`error` events this is idempotent (just extra re-renders), but it's wasteful and could cause subtle issues if message deduplication isn't perfect.
-**Fix:** Remove the `onTaskUpdate` subscription from the Sidebar — Execution handles it when mounted, and the store's global listener already handles setup progress cleanup.
+### ~~BUG-002: Duplicate IPC event listeners between Sidebar and Execution [MEDIUM]~~ FIXED
+**File:** `apps/desktop/src/renderer/components/layout/Sidebar.tsx` and `apps/desktop/src/renderer/stores/taskStore.ts`
+**Fix:** Removed duplicate `onTaskUpdate` and `onTaskStatusChange` subscriptions from Sidebar. Moved status change and completion handling to global store listeners so sidebar always reflects current state regardless of which page is mounted.
 
-### BUG-003: Preload `startTask` parameter type mismatch [MEDIUM]
+### ~~BUG-003: Preload `startTask` parameter type mismatch [MEDIUM]~~ FIXED
 **File:** `apps/desktop/src/preload/index.ts:21`
-**Description:** The preload declares `startTask(config: { description: string })` but the actual `TaskConfig` type uses `prompt`, not `description`. This type annotation is wrong and misleading. At runtime it works because JS doesn't enforce types, but it's confusing and any TypeScript tooling relying on the preload types would get the wrong API shape.
-**Fix:** Change the type to match the actual `TaskConfig` interface.
+**Fix:** Changed type from `{ description: string }` to `{ prompt: string; taskId?: string; sessionId?: string; workingDirectory?: string }` matching `TaskConfig`.
 
-### BUG-004: cancelTask sets ptyProcess to null before onExit fires [MEDIUM]
+### ~~BUG-004: cancelTask sets ptyProcess to null before onExit fires [MEDIUM]~~ FIXED
 **File:** `apps/desktop/src/main/opencode/adapter.ts:242-248`
-**Description:** `cancelTask()` calls `this.ptyProcess.kill()` then immediately sets `this.ptyProcess = null`. The PTY `onData` handler (line 183) could still fire between `kill()` and `null` assignment with buffered data. The `onExit` handler (line 198) will also fire later when the process actually exits, calling `handleProcessExit()` which sets `this.ptyProcess = null` again (harmless but redundant). The real issue is that `handleProcessExit` at line 633 nullifies `currentTaskId`, preventing `getSessionId()` from working for the completion callbacks.
-**Fix:** Don't null `ptyProcess` in `cancelTask()` — let `handleProcessExit` handle cleanup consistently.
+**Fix:** Removed `this.ptyProcess = null` from `cancelTask()`. Set `hasCompleted = true` before `kill()` to prevent duplicate completion. Let `handleProcessExit` handle cleanup consistently.
 
-### BUG-005: Stream parser buffer truncation can corrupt JSON messages [LOW]
+### ~~BUG-005: Stream parser buffer truncation can corrupt JSON messages [LOW]~~ FIXED
 **File:** `apps/desktop/src/main/opencode/stream-parser.ts:25-29`
-**Description:** When the buffer exceeds 10MB, the code keeps the last 5MB via `this.buffer.slice(-MAX_BUFFER_SIZE / 2)`. This can split a JSON message mid-line, causing the next `parseBuffer()` to attempt parsing a partial JSON object, which fails. The split message is permanently lost.
-**Fix:** Instead of slicing at an arbitrary byte offset, find the last newline in the discard region and slice there to preserve message boundaries.
+**Fix:** Changed buffer truncation to find the last newline boundary in the discard region, preserving complete JSON lines in the kept portion.
 
-### BUG-006: `accomplish.ts` interface has stale method names [LOW]
+### ~~BUG-006: `accomplish.ts` interface has stale method names [LOW]~~ FIXED
 **File:** `apps/desktop/src/renderer/lib/accomplish.ts:69-70`
-**Description:** The `AccomplishAPI` interface declares `checkClaudeCli()` and `getClaudeVersion()`, but the preload exposes `checkOpenCodeCli` (via `opencode:check`) and `getOpenCodeVersion` (via `opencode:version`). These methods would fail at runtime if ever called through the typed interface.
-**Fix:** Rename to `checkOpenCodeCli()` and `getOpenCodeVersion()` to match the preload.
+**Fix:** Renamed `checkClaudeCli()` to `checkOpenCodeCli()` and `getClaudeVersion()` to `getOpenCodeVersion()` to match preload.
 
-### BUG-007: handleProcessExit clears currentTaskId prematurely [MEDIUM]
+### ~~BUG-007: handleProcessExit clears currentTaskId prematurely [MEDIUM]~~ FIXED
 **File:** `apps/desktop/src/main/opencode/adapter.ts:633`
-**Description:** `handleProcessExit()` sets `this.currentTaskId = null` after emitting `complete` or `error`. However, `TaskManager.getSessionId()` at `task-manager.ts:558` may be called by the `onComplete` callback in `handlers.ts:368` which calls `taskManager.getSessionId(taskId)`. By the time completion callbacks propagate, the adapter's `currentTaskId` is already null. This doesn't directly break `getSessionId()` since it's looked up by `taskId` in the `activeTasks` map, but it makes the adapter inconsistent during the critical completion phase.
-**Fix:** Don't clear `currentTaskId` in `handleProcessExit` — let `dispose()` handle it.
+**Fix:** Removed `this.currentTaskId = null` from `handleProcessExit()`. Now only cleared in `dispose()`.
 
-### BUG-008: Sidebar `onTaskStatusChange` subscription inconsistency [LOW]
-**File:** `apps/desktop/src/renderer/components/layout/Sidebar.tsx:30`
-**Description:** Sidebar uses optional chaining `accomplish.onTaskStatusChange?.()` but the Execution page at line 150 also does the same. Both register listeners for the same event, both calling `updateTaskStatus`. This is the same class of duplicate listener issue as BUG-002.
-**Fix:** Consolidate event handling — remove from Sidebar since Execution handles it.
+### ~~BUG-008: Sidebar `onTaskStatusChange` subscription inconsistency [LOW]~~ FIXED
+**Fix:** Addressed as part of BUG-002 fix — removed all duplicate event subscriptions from Sidebar.
+
+### ~~BUG-010: Screen Agent responds with generic help offer instead of executing tasks [HIGH]~~ FIXED
+**File:** `apps/desktop/src/main/opencode/config-generator.ts`
+**Description:** The `screen-agent` (used by the OpenCode CLI for screen capture tasks) had no custom configuration in the generated `opencode.json`. The CLI's built-in default prompt causes the agent to respond with "I noticed you might need some help. Would you like me to look at your screen and assist you?" instead of actually executing the user's request (e.g., taking a screenshot).
+**Fix:** Added a `screen-agent` agent definition to the generated config with a proper system prompt that instructs the agent to execute tasks immediately, take screenshots when asked, and never respond with generic help offers.
+
+### ~~BUG-011: Screen Agent stuck on "Thinking..." forever [HIGH]~~ FIXED
+**Description:** Related to BUG-010. Because the screen-agent responded with a generic help offer instead of executing tools, the task would never progress — no tool calls, no completion events. The UI shows "Thinking..." indefinitely because the task stays in `running` status with no new events.
+**Fix:** Same as BUG-010 — with a proper system prompt, the agent executes tasks and produces completion events.
+
+## Open Bugs
 
 ### BUG-009: Execution page debounce timer not cleaned up on unmount [LOW]
 **File:** `apps/desktop/src/renderer/pages/Execution.tsx:46-52`
