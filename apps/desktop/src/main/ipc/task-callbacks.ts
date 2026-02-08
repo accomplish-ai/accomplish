@@ -1,22 +1,14 @@
 import type { BrowserWindow } from 'electron';
 import type {
-  OpenCodeMessage,
   TaskMessage,
   TaskResult,
   TaskStatus,
   TodoItem,
 } from '@accomplish_ai/agent-core';
-import {
-  updateTaskStatus,
-  updateTaskSessionId,
-  addTaskMessage,
-  saveTodosForTask,
-  clearTodosForTask,
-  getDebugMode,
-  mapResultToStatus,
-} from '@accomplish_ai/agent-core';
+import { mapResultToStatus } from '@accomplish_ai/agent-core';
 import { getTaskManager } from '../opencode';
 import type { TaskCallbacks } from '../opencode';
+import { getStorage } from '../store/storage';
 import { translateFromEnglish } from '../services/translationService';
 import { getLanguage as getI18nLanguage } from '../i18n';
 
@@ -92,26 +84,12 @@ export interface TaskCallbacksOptions {
   taskId: string;
   window: BrowserWindow;
   sender: Electron.WebContents;
-  toTaskMessage: (message: OpenCodeMessage) => TaskMessage | null;
-  queueMessage: (
-    taskId: string,
-    message: TaskMessage,
-    forwardToRenderer: (channel: string, data: unknown) => void,
-    addTaskMessageFn: (taskId: string, message: TaskMessage) => void
-  ) => void;
-  flushAndCleanupBatcher: (taskId: string) => void;
 }
 
 export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallbacks {
-  const {
-    taskId,
-    window,
-    sender,
-    toTaskMessage,
-    queueMessage,
-    flushAndCleanupBatcher,
-  } = options;
+  const { taskId, window, sender } = options;
 
+  const storage = getStorage();
   const taskManager = getTaskManager();
 
   const forwardToRenderer = (channel: string, data: unknown) => {
@@ -121,62 +99,63 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
   };
 
   return {
-    onMessage: (message: OpenCodeMessage) => {
-      const taskMessage = toTaskMessage(message);
-      if (!taskMessage) return;
-
+    onBatchedMessages: (messages: TaskMessage[]) => {
       const language = getI18nLanguage();
-      if (language !== 'en' && taskMessage.type === 'assistant' && taskMessage.content) {
-        translateFromEnglish(taskMessage.content, language)
-          .then((translated) => {
-            taskMessage.content = translated;
-            queueMessage(taskId, taskMessage, forwardToRenderer, addTaskMessage);
-          })
-          .catch(() => {
-            queueMessage(taskId, taskMessage, forwardToRenderer, addTaskMessage);
-          });
-        return;
-      }
+      const translations: Promise<void>[] = [];
 
-      if (taskMessage.type === 'tool') {
-        const input = (taskMessage.toolInput || {}) as Record<string, unknown>;
-        const translations: Promise<void>[] = [];
-
-        // Resolve tool display name: curated map first, then dynamic translation for unknowns
-        if (taskMessage.toolName) {
-          const displayName = getToolDisplayName(taskMessage.toolName, language);
-          if (displayName) {
-            input._translatedToolName = displayName;
-          } else if (language !== 'en') {
-            const humanized = humanizeToolName(taskMessage.toolName);
-            translations.push(
-              translateFromEnglish(humanized, language)
-                .then((t) => { input._translatedToolName = t; })
-                .catch(() => { input._translatedToolName = humanized; })
-            );
-          } else {
-            input._translatedToolName = humanizeToolName(taskMessage.toolName);
-          }
-        }
-
-        if (language !== 'en' && typeof input.description === 'string') {
+      for (const msg of messages) {
+        // Translate assistant message content
+        if (language !== 'en' && msg.type === 'assistant' && msg.content) {
           translations.push(
-            translateFromEnglish(input.description, language)
-              .then((t) => { input.description = t; })
+            translateFromEnglish(msg.content, language)
+              .then((t) => { msg.content = t; })
               .catch(() => {})
           );
         }
 
-        taskMessage.toolInput = input;
-        if (translations.length > 0) {
-          Promise.all(translations).then(() => {
-            queueMessage(taskId, taskMessage, forwardToRenderer, addTaskMessage);
-          });
-          return;
+        // Resolve tool display names and translate descriptions
+        if (msg.type === 'tool') {
+          const input = (msg.toolInput || {}) as Record<string, unknown>;
+          if (msg.toolName) {
+            const displayName = getToolDisplayName(msg.toolName, language);
+            if (displayName) {
+              input._translatedToolName = displayName;
+            } else if (language !== 'en') {
+              const humanized = humanizeToolName(msg.toolName);
+              translations.push(
+                translateFromEnglish(humanized, language)
+                  .then((t) => { input._translatedToolName = t; })
+                  .catch(() => { input._translatedToolName = humanized; })
+              );
+            } else {
+              input._translatedToolName = humanizeToolName(msg.toolName);
+            }
+          }
+          if (language !== 'en' && typeof input.description === 'string') {
+            translations.push(
+              translateFromEnglish(input.description, language)
+                .then((t) => { input.description = t; })
+                .catch(() => {})
+            );
+          }
+          msg.toolInput = input;
         }
       }
 
-      queueMessage(taskId, taskMessage, forwardToRenderer, addTaskMessage);
+      if (translations.length > 0) {
+        Promise.all(translations).then(() => {
+          forwardToRenderer('task:update:batch', { taskId, messages });
+          for (const msg of messages) {
+            storage.addTaskMessage(taskId, msg);
+          }
+        });
+        return;
+      }
+
+      forwardToRenderer('task:update:batch', { taskId, messages });
+      for (const msg of messages) {
+        storage.addTaskMessage(taskId, msg);
+      }
     },
 
     onProgress: (progress: { stage: string; message?: string }) => {
@@ -198,8 +177,6 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
     },
 
     onPermissionRequest: (request: unknown) => {
-      flushAndCleanupBatcher(taskId);
-
       const language = getI18nLanguage();
       const req = request as Record<string, unknown>;
 
@@ -253,8 +230,6 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
     },
 
     onComplete: (result: TaskResult) => {
-      flushAndCleanupBatcher(taskId);
-
       forwardToRenderer('task:update', {
         taskId,
         type: 'complete',
@@ -262,32 +237,30 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
       });
 
       const taskStatus = mapResultToStatus(result);
-      updateTaskStatus(taskId, taskStatus, new Date().toISOString());
+      storage.updateTaskStatus(taskId, taskStatus, new Date().toISOString());
 
       const sessionId = result.sessionId || taskManager.getSessionId(taskId);
       if (sessionId) {
-        updateTaskSessionId(taskId, sessionId);
+        storage.updateTaskSessionId(taskId, sessionId);
       }
 
       if (result.status === 'success') {
-        clearTodosForTask(taskId);
+        storage.clearTodosForTask(taskId);
       }
     },
 
     onError: (error: Error) => {
-      flushAndCleanupBatcher(taskId);
-
       forwardToRenderer('task:update', {
         taskId,
         type: 'error',
         error: error.message,
       });
 
-      updateTaskStatus(taskId, 'failed', new Date().toISOString());
+      storage.updateTaskStatus(taskId, 'failed', new Date().toISOString());
     },
 
     onDebug: (log: { type: string; message: string; data?: unknown }) => {
-      if (getDebugMode()) {
+      if (storage.getDebugMode()) {
         forwardToRenderer('debug:log', {
           taskId,
           timestamp: new Date().toISOString(),
@@ -301,11 +274,11 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
         taskId,
         status,
       });
-      updateTaskStatus(taskId, status, new Date().toISOString());
+      storage.updateTaskStatus(taskId, status, new Date().toISOString());
     },
 
     onTodoUpdate: (todos: TodoItem[]) => {
-      saveTodosForTask(taskId, todos);
+      storage.saveTodosForTask(taskId, todos);
       forwardToRenderer('todo:update', { taskId, todos });
     },
 

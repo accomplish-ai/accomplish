@@ -16,4 +16,8 @@ export const LOG_RETENTION_DAYS = 7;
 export const LOG_BUFFER_FLUSH_INTERVAL_MS = 5000;
 export const LOG_BUFFER_MAX_ENTRIES = 100;
 
-export * from './constants/model-display.js';
+export {
+  MODEL_DISPLAY_NAMES,
+  PROVIDER_PREFIXES,
+  getModelDisplayName,
+} from './constants/model-display.js';

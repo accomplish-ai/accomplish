@@ -1,6 +1,6 @@
 {
   "name": "@accomplish_ai/agent-core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Core logic for Accomplish - OpenCode adapter, storage, providers, MCP tools, and skills",
   "type": "module",
   "license": "MIT",
@@ -9,6 +9,19 @@
     "url": "https://github.com/accomplish-ai/accomplish.git",
     "directory": "packages/agent-core"
   },
+  "homepage": "https://github.com/accomplish-ai/accomplish/tree/main/packages/agent-core#readme",
+  "bugs": {
+    "url": "https://github.com/accomplish-ai/accomplish/issues"
+  },
+  "keywords": [
+    "automation",
+    "agent",
+    "opencode",
+    "task-manager",
+    "mcp",
+    "ai",
+    "electron"
+  ],
   "publishConfig": {
     "name": "@accomplish_ai/agent-core",
     "access": "public"
@@ -16,6 +29,7 @@
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "module": "./dist/index.js",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -30,10 +44,8 @@
   },
   "files": [
     "dist",
-    "mcp-tools/*/src",
     "mcp-tools/*/dist",
     "mcp-tools/*/package.json",
-    "mcp-tools/*/tsconfig.json",
     "mcp-tools/*/*.md",
     "mcp-tools/package.json"
   ],

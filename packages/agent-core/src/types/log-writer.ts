@@ -3,23 +3,9 @@
  * Handles writing structured logs to rotating log files.
  */
 
-/** Log severity levels */
-export type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
+import type { LogLevel, LogSource } from '../common/types/logging.js';
 
-/** Log source identifiers */
-export type LogSource = 'main' | 'mcp' | 'browser' | 'opencode' | 'env' | 'ipc';
-
-/** A structured log entry */
-export interface LogEntry {
-  /** ISO timestamp of the log entry */
-  timestamp: string;
-  /** Severity level */
-  level: LogLevel;
-  /** Source component */
-  source: LogSource;
-  /** Log message content */
-  message: string;
-}
+export type { LogLevel, LogSource, LogEntry } from '../common/types/logging.js';
 
 /** Options for creating a LogWriter instance */
 export interface LogWriterOptions {

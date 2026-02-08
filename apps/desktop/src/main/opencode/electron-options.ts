@@ -6,23 +6,19 @@ import type { TaskAdapterOptions, TaskManagerOptions, TaskCallbacks } from '@acc
 import type { TaskConfig } from '@accomplish_ai/agent-core';
 import { DEV_BROWSER_PORT } from '@accomplish_ai/agent-core';
 import {
-  getSelectedModel,
-  getAzureFoundryConfig,
-  getActiveProviderModel,
-  getConnectedProvider,
   getAzureEntraToken,
   ensureDevBrowserServer,
   resolveCliPath,
   isCliAvailable as coreIsCliAvailable,
   buildCliArgs as coreBuildCliArgs,
   buildOpenCodeEnvironment,
-  getOpenAiBaseUrl,
   type BrowserServerConfig,
   type CliResolverConfig,
   type EnvironmentConfig,
 } from '@accomplish_ai/agent-core';
 import { getModelDisplayName } from '@accomplish_ai/agent-core';
 import type { AzureFoundryCredentials, BedrockCredentials } from '@accomplish_ai/agent-core';
+import { getStorage } from '../store/storage';
 import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
 import { generateOpenCodeConfig, getMcpToolsPath, syncApiKeysToOpenCodeAuth } from './config-generator';
 import { getExtendedNodePath } from '../utils/system-path';
@@ -120,11 +116,12 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
   const bundledNode = getBundledNodePaths();
 
   // Determine OpenAI base URL
-  const configuredOpenAiBaseUrl = apiKeys.openai ? getOpenAiBaseUrl().trim() : undefined;
+  const storage = getStorage();
+  const configuredOpenAiBaseUrl = apiKeys.openai ? storage.getOpenAiBaseUrl().trim() : undefined;
 
   // Determine Ollama host
-  const activeModel = getActiveProviderModel();
-  const selectedModel = getSelectedModel();
+  const activeModel = storage.getActiveProviderModel();
+  const selectedModel = storage.getSelectedModel();
   let ollamaHost: string | undefined;
   if (activeModel?.provider === 'ollama' && activeModel.baseUrl) {
     ollamaHost = activeModel.baseUrl;
@@ -153,8 +150,9 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
 }
 
 export async function buildCliArgs(config: TaskConfig, _taskId: string): Promise<string[]> {
-  const activeModel = getActiveProviderModel();
-  const selectedModel = activeModel || getSelectedModel();
+  const storage = getStorage();
+  const activeModel = storage.getActiveProviderModel();
+  const selectedModel = activeModel || storage.getSelectedModel();
 
   return coreBuildCliArgs({
     prompt: config.prompt,
@@ -178,10 +176,11 @@ export async function onBeforeStart(): Promise<void> {
   await syncApiKeysToOpenCodeAuth();
 
   let azureFoundryToken: string | undefined;
-  const activeModel = getActiveProviderModel();
-  const selectedModel = activeModel || getSelectedModel();
-  const azureFoundryConfig = getAzureFoundryConfig();
-  const azureFoundryProvider = getConnectedProvider('azure-foundry');
+  const storage = getStorage();
+  const activeModel = storage.getActiveProviderModel();
+  const selectedModel = activeModel || storage.getSelectedModel();
+  const azureFoundryConfig = storage.getAzureFoundryConfig();
+  const azureFoundryProvider = storage.getConnectedProvider('azure-foundry');
   const azureFoundryCredentials = azureFoundryProvider?.credentials as AzureFoundryCredentials | undefined;
 
   const isAzureFoundryEntraId =

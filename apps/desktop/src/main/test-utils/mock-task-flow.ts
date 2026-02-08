@@ -1,7 +1,7 @@
 import { BrowserWindow } from 'electron';
 import type { Task, TaskMessage, TaskStatus } from '@accomplish_ai/agent-core';
 import { createMessageId } from '@accomplish_ai/agent-core';
-import { updateTaskStatus } from '@accomplish_ai/agent-core';
+import { getStorage } from '../store/storage';
 
 export type MockScenario =
   | 'success'
@@ -71,6 +71,7 @@ export async function executeMockTaskFlow(
     return;
   }
 
+  const storage = getStorage();
   const sendEvent = (channel: string, data: unknown) => {
     if (!window.isDestroyed()) {
       window.webContents.send(channel, data);
@@ -92,22 +93,23 @@ export async function executeMockTaskFlow(
   });
   await sleep(delayMs);
 
-  await executeScenario(sendEvent, taskId, scenario, delayMs);
+  await executeScenario(sendEvent, storage, taskId, scenario, delayMs);
 }
 
 async function executeScenario(
   sendEvent: (channel: string, data: unknown) => void,
+  storage: ReturnType<typeof getStorage>,
   taskId: string,
   scenario: MockScenario,
   delayMs: number
 ): Promise<void> {
   switch (scenario) {
     case 'success':
-      await executeSuccessScenario(sendEvent, taskId, delayMs);
+      await executeSuccessScenario(sendEvent, storage, taskId, delayMs);
       break;
 
     case 'with-tool':
-      await executeToolScenario(sendEvent, taskId, delayMs);
+      await executeToolScenario(sendEvent, storage, taskId, delayMs);
       break;
 
     case 'permission-required':
@@ -119,17 +121,18 @@ async function executeScenario(
       break;
 
     case 'error':
-      executeErrorScenario(sendEvent, taskId);
+      executeErrorScenario(sendEvent, storage, taskId);
       break;
 
     case 'interrupted':
-      await executeInterruptedScenario(sendEvent, taskId, delayMs);
+      await executeInterruptedScenario(sendEvent, storage, taskId, delayMs);
       break;
   }
 }
 
 async function executeSuccessScenario(
   sendEvent: (channel: string, data: unknown) => void,
+  storage: ReturnType<typeof getStorage>,
   taskId: string,
   delayMs: number
 ): Promise<void> {
@@ -145,7 +148,7 @@ async function executeSuccessScenario(
   });
   await sleep(delayMs);
 
-  updateTaskStatus(taskId, 'completed', new Date().toISOString());
+  storage.updateTaskStatus(taskId, 'completed', new Date().toISOString());
 
   sendEvent('task:update', {
     taskId,
@@ -156,6 +159,7 @@ async function executeSuccessScenario(
 
 async function executeToolScenario(
   sendEvent: (channel: string, data: unknown) => void,
+  storage: ReturnType<typeof getStorage>,
   taskId: string,
   delayMs: number
 ): Promise<void> {
@@ -192,7 +196,7 @@ async function executeToolScenario(
   });
   await sleep(delayMs);
 
-  updateTaskStatus(taskId, 'completed', new Date().toISOString());
+  storage.updateTaskStatus(taskId, 'completed', new Date().toISOString());
 
   sendEvent('task:update', {
     taskId,
@@ -239,9 +243,10 @@ function executeQuestionScenario(
 
 function executeErrorScenario(
   sendEvent: (channel: string, data: unknown) => void,
+  storage: ReturnType<typeof getStorage>,
   taskId: string
 ): void {
-  updateTaskStatus(taskId, 'failed', new Date().toISOString());
+  storage.updateTaskStatus(taskId, 'failed', new Date().toISOString());
 
   sendEvent('task:update', {
     taskId,
@@ -252,6 +257,7 @@ function executeErrorScenario(
 
 async function executeInterruptedScenario(
   sendEvent: (channel: string, data: unknown) => void,
+  storage: ReturnType<typeof getStorage>,
   taskId: string,
   delayMs: number
 ): Promise<void> {
@@ -267,7 +273,7 @@ async function executeInterruptedScenario(
   });
   await sleep(delayMs);
 
-  updateTaskStatus(taskId, 'interrupted', new Date().toISOString());
+  storage.updateTaskStatus(taskId, 'interrupted', new Date().toISOString());
 
   sendEvent('task:update', {
     taskId,

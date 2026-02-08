@@ -1,8 +1,11 @@
 import { OpenCodeAdapter, AdapterOptions, OpenCodeCliNotFoundError } from './OpenCodeAdapter.js';
-import type { TaskConfig, Task, TaskResult, TaskStatus } from '../../common/types/task.js';
+import type { TaskConfig, Task, TaskMessage, TaskResult, TaskStatus } from '../../common/types/task.js';
 import type { OpenCodeMessage } from '../../common/types/opencode.js';
 import type { PermissionRequest } from '../../common/types/permission.js';
 import type { TodoItem } from '../../common/types/todo.js';
+import { toTaskMessage, flushAndCleanupBatcher, queueMessage } from '../../opencode/message-processor.js';
+import { stopAzureFoundryProxy } from '../../opencode/proxies/azure-foundry-proxy.js';
+import { stopMoonshotProxy } from '../../opencode/proxies/moonshot-proxy.js';
 
 export interface TaskProgressEvent {
   stage: string;
@@ -12,7 +15,8 @@ export interface TaskProgressEvent {
 }
 
 export interface TaskCallbacks {
-  onMessage: (message: OpenCodeMessage) => void;
+  onMessage?: (message: OpenCodeMessage) => void;
+  onBatchedMessages?: (messages: TaskMessage[]) => void;
   onProgress: (progress: TaskProgressEvent) => void;
   onPermissionRequest: (request: PermissionRequest) => void;
   onComplete: (result: TaskResult) => void;
@@ -130,8 +134,22 @@ export class TaskManager {
 
     const adapter = new OpenCodeAdapter(adapterOptions, taskId);
 
+    const useInternalBatching = !!callbacks.onBatchedMessages;
+    const batchForward = useInternalBatching
+      ? (_channel: string, data: unknown) => {
+          const batchData = data as { taskId: string; messages: TaskMessage[] };
+          callbacks.onBatchedMessages!(batchData.messages);
+        }
+      : undefined;
+
     const onMessage = (message: OpenCodeMessage) => {
-      callbacks.onMessage(message);
+      if (useInternalBatching && batchForward) {
+        const taskMessage = toTaskMessage(message);
+        if (taskMessage) {
+          queueMessage(taskId, taskMessage, batchForward, () => {});
+        }
+      }
+      callbacks.onMessage?.(message);
     };
 
     const onProgress = (progress: { stage: string; message?: string; modelName?: string }) => {
@@ -139,16 +157,25 @@ export class TaskManager {
     };
 
     const onPermissionRequest = (request: PermissionRequest) => {
+      if (useInternalBatching) {
+        flushAndCleanupBatcher(taskId);
+      }
       callbacks.onPermissionRequest(request);
     };
 
     const onComplete = (result: TaskResult) => {
+      if (useInternalBatching) {
+        flushAndCleanupBatcher(taskId);
+      }
       callbacks.onComplete(result);
       this.cleanupTask(taskId);
       this.processQueue();
     };
 
     const onError = (error: Error) => {
+      if (useInternalBatching) {
+        flushAndCleanupBatcher(taskId);
+      }
       callbacks.onError(error);
       this.cleanupTask(taskId);
       this.processQueue();
@@ -387,6 +414,7 @@ export class TaskManager {
 
     for (const [taskId, managedTask] of this.activeTasks) {
       try {
+        flushAndCleanupBatcher(taskId);
         managedTask.cleanup();
       } catch (error) {
         console.error(`[TaskManager] Error cleaning up task ${taskId}:`, error);
@@ -394,6 +422,15 @@ export class TaskManager {
     }
 
     this.activeTasks.clear();
+
+    // Clean up proxies
+    stopAzureFoundryProxy().catch((err) => {
+      console.error('[TaskManager] Failed to stop Azure Foundry proxy:', err);
+    });
+    stopMoonshotProxy().catch((err) => {
+      console.error('[TaskManager] Failed to stop Moonshot proxy:', err);
+    });
+
     console.log('[TaskManager] All tasks disposed');
   }
 }

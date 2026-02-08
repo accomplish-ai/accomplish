@@ -20,8 +20,18 @@ export interface TaskProgressEvent {
 
 /** Callbacks for task lifecycle events */
 export interface TaskCallbacks {
-  /** Called when a message is received from the agent */
-  onMessage: (message: OpenCodeMessage) => void;
+  /**
+   * Called when a raw message is received from the agent.
+   * Optional when onBatchedMessages is provided.
+   */
+  onMessage?: (message: OpenCodeMessage) => void;
+  /**
+   * Called with processed and batched messages ready for display.
+   * Messages are converted from raw OpenCodeMessage to TaskMessage internally
+   * and batched at 50ms intervals for efficient rendering.
+   * When provided, message conversion and batching are handled by TaskManager.
+   */
+  onBatchedMessages?: (messages: TaskMessage[]) => void;
   /** Called when task progress changes */
   onProgress: (progress: TaskProgressEvent) => void;
   /** Called when a permission request is needed */

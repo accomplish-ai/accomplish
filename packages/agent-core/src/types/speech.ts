@@ -3,6 +3,8 @@
  * Handles speech-to-text transcription using external services.
  */
 
+import type { SecureStorageAPI } from './storage.js';
+
 /** Result of a successful transcription */
 export interface TranscriptionResult {
   /** Transcribed text */
@@ -25,8 +27,8 @@ export interface TranscriptionError {
 
 /** Options for creating a SpeechService instance */
 export interface SpeechServiceOptions {
-  /** Secure storage instance for API key management (opaque type) */
-  storage: unknown;
+  /** Secure storage instance for API key retrieval */
+  storage: SecureStorageAPI;
 }
 
 /** Public API for speech service operations */
