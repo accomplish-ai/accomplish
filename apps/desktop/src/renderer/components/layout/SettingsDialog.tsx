@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { getAccomplish } from '@/lib/accomplish';
@@ -66,17 +66,30 @@ export default function SettingsDialog({
   const [exportStatus, setExportStatus] = useState<'idle' | 'exporting' | 'success' | 'error'>('idle');
   const accomplish = getAccomplish();
 
+  // Check if system language is supported (for auto option)
+  const systemLanguageSupported = useMemo(() => {
+    const sysLang = navigator.language;
+    return sysLang.startsWith('en') || sysLang.startsWith('zh');
+  }, []);
+
   // Refetch settings and debug mode when dialog opens
   useEffect(() => {
     if (!open) return;
     refetch();
     // Load debug mode from appSettings (correct store)
     accomplish.getDebugMode().then(setDebugModeState);
-    // Load language preference
-    getLanguagePreference().then(setLanguageState);
+    // Load language preference — if auto is not supported, fall back to English
+    getLanguagePreference().then((pref) => {
+      if (pref === 'auto' && !systemLanguageSupported) {
+        setLanguageState('en');
+        changeLanguage('en');
+      } else {
+        setLanguageState(pref);
+      }
+    });
     // Load app version
     accomplish.getVersion().then(setAppVersion);
-  }, [open, refetch, accomplish]);
+  }, [open, refetch, accomplish, systemLanguageSupported]);
 
   // Auto-select active provider (or initialProvider) and expand grid if needed when dialog opens
   useEffect(() => {
@@ -570,8 +583,9 @@ export default function SettingsDialog({
                     className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                     data-testid="language-select"
                   >
-                    <option value="auto">
+                    <option value="auto" disabled={!systemLanguageSupported}>
                       {(() => {
+                        if (!systemLanguageSupported) return 'Auto (Unsupported)';
                         const sysLang = navigator.language;
                         if (sysLang.startsWith('zh')) return '自动 (系统)';
                         return 'Auto (System)';
