@@ -564,6 +564,9 @@ export function buildCliArgs(options: BuildCliArgsOptions): string[] {
     } else if (selectedModel.provider === 'lmstudio') {
       const modelId = selectedModel.model.replace(/^lmstudio\//, '');
       args.push('--model', `lmstudio/${modelId}`);
+    } else if (selectedModel.provider === 'custom') {
+      const modelId = selectedModel.model.replace(/^custom\//, '');
+      args.push('--model', `custom/${modelId}`);
     } else {
       args.push('--model', selectedModel.model);
     }
