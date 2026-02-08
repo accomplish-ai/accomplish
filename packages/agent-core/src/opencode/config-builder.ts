@@ -352,6 +352,32 @@ export async function buildProviderConfigs(
     }
   }
 
+  // Custom OpenAI-compatible provider
+  const customProvider = providerSettings.connectedProviders.custom;
+  if (customProvider?.connectionStatus === 'connected' && customProvider.credentials.type === 'custom' && customProvider.selectedModelId) {
+    const customApiKey = getApiKey('custom');
+    const creds = customProvider.credentials;
+    // Normalize base URL - remove trailing slash, use as-is (user should provide correct base URL)
+    const baseURL = creds.baseUrl.replace(/\/+$/, '');
+    const modelId = customProvider.selectedModelId.replace(/^custom\//, '');
+    providerConfigs.push({
+      id: 'custom',
+      npm: '@ai-sdk/openai-compatible',
+      name: 'Custom Endpoint',
+      options: {
+        baseURL,
+        ...(customApiKey ? { apiKey: customApiKey } : {}),
+      },
+      models: {
+        [modelId]: { name: modelId, tools: true },
+      },
+    });
+    if (!enabledProviders.includes('custom')) {
+      enabledProviders.push('custom');
+    }
+    console.log('[OpenCode Config Builder] Custom endpoint configured:', modelId, 'baseURL:', baseURL);
+  }
+
   // Azure Foundry provider
   const azureFoundryProvider = providerSettings.connectedProviders['azure-foundry'];
   if (azureFoundryProvider?.connectionStatus === 'connected' && azureFoundryProvider.credentials.type === 'azure-foundry') {

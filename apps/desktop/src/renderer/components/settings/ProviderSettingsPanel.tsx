@@ -11,6 +11,7 @@ import {
   OpenRouterProviderForm,
   LiteLLMProviderForm,
   LMStudioProviderForm,
+  CustomProviderForm,
 } from './providers';
 import { ZaiProviderForm } from './providers/ZaiProviderForm';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
@@ -121,6 +122,19 @@ export function ProviderSettingsPanel({
         );
 
       case 'hybrid':
+        // Handle different hybrid providers
+        if (providerId === 'custom') {
+          return (
+            <CustomProviderForm
+              connectedProvider={connectedProvider}
+              onConnect={onConnect}
+              onDisconnect={onDisconnect}
+              onModelChange={onModelChange}
+              showModelError={showModelError}
+            />
+          );
+        }
+        // Default to LiteLLM for other hybrid providers
         return (
           <LiteLLMProviderForm
             connectedProvider={connectedProvider}

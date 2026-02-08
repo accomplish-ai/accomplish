@@ -55,3 +55,7 @@ export {
   type LMStudioConnectionOptions,
   type LMStudioFetchModelsOptions,
 } from './lmstudio.js';
+export {
+  testCustomConnection,
+  type CustomConnectionResult,
+} from './custom.js';

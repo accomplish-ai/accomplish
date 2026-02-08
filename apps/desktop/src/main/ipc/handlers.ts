@@ -27,6 +27,7 @@ import {
   fetchOpenRouterModels,
   testLiteLLMConnection,
   fetchLiteLLMModels,
+  testCustomConnection,
   validateHttpUrl,
   sanitizeString,
   generateTaskSummary,
@@ -791,6 +792,12 @@ export function registerIPCHandlers(): void {
       }
     }
     setLiteLLMConfig(config);
+  });
+
+  handle('custom:test-connection', async (_event: IpcMainInvokeEvent, baseUrl: string, apiKey?: string) => {
+    const sanitizedUrl = sanitizeString(baseUrl, 'baseUrl', 256);
+    const sanitizedApiKey = apiKey ? sanitizeString(apiKey, 'apiKey', 512) : undefined;
+    return testCustomConnection(sanitizedUrl, sanitizedApiKey);
   });
 
   handle('lmstudio:test-connection', async (_event: IpcMainInvokeEvent, url: string) => {
