@@ -9,7 +9,6 @@ The `sync-translations.ts` script automatically translates missing UI strings fr
 **Supported Languages:**
 - English (en) - Source language
 - Simplified Chinese (zh-CN)
-- Hebrew (he)
 
 ## Setup
 
@@ -69,7 +68,7 @@ pnpm i18n:sync
 
 This will:
 1. Read all English translation files (source of truth)
-2. Compare with Chinese and Hebrew translation files
+2. Compare with Chinese translation files
 3. Find missing keys in each language
 4. Translate missing keys using Claude API
 5. Merge translations back into the language files
@@ -79,9 +78,6 @@ This will:
 ```bash
 # Sync only Chinese
 pnpm i18n:sync:zh
-
-# Sync only Hebrew
-pnpm i18n:sync:he
 ```
 
 ## How It Works
@@ -126,16 +122,10 @@ Edit `apps/desktop/src/renderer/i18n/index.ts`:
 
 ```typescript
 // Add 'es' to the Language type
-export type Language = 'en' | 'zh-CN' | 'he' | 'es';  // ← Add 'es'
+export type Language = 'en' | 'zh-CN' | 'es';  // ← Add 'es'
 
 // Add 'es' to supported languages array
-export const SUPPORTED_LANGUAGES: Language[] = ['en', 'zh-CN', 'he', 'es'];  // ← Add 'es'
-
-// If the language is RTL (Right-to-Left), update the function
-function updateDocumentDirection(language: string): void {
-  const isRTL = language === 'he' || language === 'ar' || language.startsWith('ar');
-  // Spanish is LTR (Left-to-Right), so no change needed
-}
+export const SUPPORTED_LANGUAGES: Language[] = ['en', 'zh-CN', 'es'];  // ← Add 'es'
 ```
 
 ### 3. Update Main Process (2 minutes)
@@ -144,17 +134,15 @@ Edit `apps/desktop/src/main/i18n/index.ts`:
 
 ```typescript
 // Add 'es' to the Language type
-export type Language = 'en' | 'zh-CN' | 'he' | 'es';  // ← Add 'es'
+export type Language = 'en' | 'zh-CN' | 'es';  // ← Add 'es'
 
 // Add 'es' to supported languages array
-export const SUPPORTED_LANGUAGES: Language[] = ['en', 'zh-CN', 'he', 'es'];  // ← Add 'es'
+export const SUPPORTED_LANGUAGES: Language[] = ['en', 'zh-CN', 'es'];  // ← Add 'es'
 
 // Add automatic language detection for system locale
 const systemLocale = app.getLocale();
 if (systemLocale.startsWith('zh')) {
   currentLanguage = 'zh-CN';
-} else if (systemLocale.startsWith('he')) {
-  currentLanguage = 'he';
 } else if (systemLocale.startsWith('es')) {  // ← Add this block
   currentLanguage = 'es';
 } else {
@@ -173,14 +161,13 @@ Edit `apps/desktop/src/renderer/components/layout/SettingsDialog.tsx`:
   <option value="auto">{t('language.auto')}</option>
   <option value="en">English</option>
   <option value="zh-CN">简体中文</option>
-  <option value="he">עברית</option>
   <option value="es">Español</option>  {/* ← Add this in Spanish */}
 </select>
 ```
 
 ### 5. Update Language Section Title Translation (Optional)
 
-The language dropdown shows names in their native scripts (English, 简体中文, עברית), so you don't need to add translated language names. The only translation you might want to update is the section title:
+The language dropdown shows names in their native scripts (English, 简体中文), so you don't need to add translated language names. The only translation you might want to update is the section title:
 
 Edit `apps/desktop/locales/en/settings.json` (optional - title only):
 
@@ -213,7 +200,7 @@ pnpm i18n:validate
 
 ### Notes
 
-- **RTL Languages**: If you're adding a Right-to-Left language (Arabic, Hebrew, Urdu, etc.), make sure to add it to the RTL check in `updateDocumentDirection()`
+- **RTL Languages**: If you're adding a Right-to-Left language (Arabic, Hebrew, Urdu, etc.), you'll need to add RTL direction handling in `updateDocumentDirection()`
 - **Language Codes**: Use standard ISO 639-1 codes (`es`, `fr`, `de`) or BCP 47 codes for variants (`zh-CN`, `pt-BR`)
 - **Translation Quality**: The automated translations are powered by Claude Sonnet 4, providing high-quality, natural-sounding UI text
 - **Cost**: Each language translation costs approximately $0.15 for all 300+ UI strings
@@ -249,7 +236,7 @@ The script uses Claude 3.5 Sonnet with specific instructions to:
 - Use natural, native phrasing appropriate for UI
 - Preserve technical terms (API, URL, etc.)
 - Keep placeholder syntax intact ({{variable}})
-- Use proper text direction for RTL languages (Hebrew)
+- Use proper text direction for RTL languages
 
 ## Cost Estimation
 
@@ -294,9 +281,6 @@ If you prefer not to use AI translation, you can manually edit the translation f
 ```bash
 # Edit Chinese translations
 apps/desktop/locales/zh-CN/common.json
-
-# Edit Hebrew translations
-apps/desktop/locales/he/common.json
 ```
 
 The app will use English as a fallback for any missing keys.

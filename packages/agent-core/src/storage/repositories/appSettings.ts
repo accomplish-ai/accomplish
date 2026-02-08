@@ -9,7 +9,7 @@ import { getDatabase } from '../database.js';
 import { safeParseJsonWithFallback } from '../../utils/json.js';
 
 /** Supported UI languages */
-export type UILanguage = 'en' | 'zh-CN' | 'he' | 'auto';
+export type UILanguage = 'en' | 'zh-CN' | 'auto';
 
 interface AppSettingsRow {
   id: number;
@@ -149,7 +149,7 @@ export function setLMStudioConfig(config: LMStudioConfig | null): void {
 export function getLanguage(): UILanguage {
   const row = getRow();
   const lang = row.language;
-  if (lang === 'en' || lang === 'zh-CN' || lang === 'he' || lang === 'auto') {
+  if (lang === 'en' || lang === 'zh-CN' || lang === 'auto') {
     return lang;
   }
   return 'auto';
@@ -174,7 +174,7 @@ export function setOpenAiBaseUrl(baseUrl: string): void {
 export function getAppSettings(): AppSettings {
   const row = getRow();
   const lang = row.language;
-  const validLang: UILanguage = (lang === 'en' || lang === 'zh-CN' || lang === 'he' || lang === 'auto') ? lang : 'auto';
+  const validLang: UILanguage = (lang === 'en' || lang === 'zh-CN' || lang === 'auto') ? lang : 'auto';
   return {
     debugMode: row.debug_mode === 1,
     onboardingComplete: row.onboarding_complete === 1,

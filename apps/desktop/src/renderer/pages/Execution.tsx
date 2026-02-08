@@ -115,6 +115,11 @@ function capitalizeFirst(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+// Convert raw tool names to human-readable form (e.g. "browser_get_text" → "Browser get text")
+function humanizeToolName(name: string): string {
+  return capitalizeFirst(name.replace(/_/g, ' '));
+}
+
 function getBaseToolName(toolName: string): string {
   // Try progressively stripping prefixes at each underscore position
   // to find a match in our map. This handles server names with hyphens
@@ -946,7 +951,7 @@ export default function ExecutionPage() {
                         {currentTool
                           ? ((currentToolInput as { description?: string })?.description || (() => {
                               const baseName = getBaseToolName(currentTool);
-                              return t(`tools.${baseName}`, { defaultValue: currentTool });
+                              return t(`tools.${baseName}`, { defaultValue: humanizeToolName(baseName) });
                             })())
                           : (startupStageTaskId === id && startupStage)
                             ? startupStage.stage === 'loading'
@@ -960,7 +965,7 @@ export default function ExecutionPage() {
                       </span>
                       {currentTool && !(currentToolInput as { description?: string })?.description && (
                         <span className="text-xs text-muted-foreground/60">
-                          ({currentTool})
+                          ({humanizeToolName(getBaseToolName(currentTool))})
                         </span>
                       )}
                       {/* Elapsed time - only show during startup stages when valid */}
@@ -1246,7 +1251,7 @@ export default function ExecutionPage() {
                         </p>
                         {permissionRequest.toolName && (
                           <div className="mb-4 p-3 rounded-lg bg-muted text-xs font-mono overflow-x-auto">
-                            <p className="text-muted-foreground mb-1">{t('permission.tool')}: {permissionRequest.toolName}</p>
+                            <p className="text-muted-foreground mb-1">{t('permission.tool')}: {humanizeToolName(getBaseToolName(permissionRequest.toolName))}</p>
                             <pre className="text-foreground">
                               {JSON.stringify(permissionRequest.toolInput, null, 2)}
                             </pre>
@@ -1756,7 +1761,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
         {isTool ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
             {ToolIcon ? <ToolIcon className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
-            <span>{baseToolName ? t(`tools.${baseToolName}`, { defaultValue: toolName || t('processing') }) : (toolName || t('processing'))}</span>
+            <span>{baseToolName ? t(`tools.${baseToolName}`, { defaultValue: humanizeToolName(baseToolName) }) : (toolName ? humanizeToolName(toolName) : t('processing'))}</span>
             {isLastMessage && isRunning && (
               <SpinningIcon className="h-3.5 w-3.5 ml-1" />
             )}

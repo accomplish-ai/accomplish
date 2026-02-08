@@ -259,8 +259,7 @@
     "description": "Choose your preferred display language.",
     "auto": "Auto (System)",
     "en": "English",
-    "zhCN": "Simplified Chinese",
-    "he": "Hebrew"
+    "zhCN": "Simplified Chinese"
   },
   "about": {
     "title": "About",

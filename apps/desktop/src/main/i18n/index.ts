@@ -10,7 +10,7 @@ import * as path from 'path';
 import { app } from 'electron';
 
 // Supported languages
-export const SUPPORTED_LANGUAGES = ['en', 'zh-CN', 'he'] as const;
+export const SUPPORTED_LANGUAGES = ['en', 'zh-CN'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 // Translation namespaces
@@ -117,8 +117,6 @@ export function initializeI18n(storedLanguage?: string | null): void {
     const systemLocale = app.getLocale();
     if (systemLocale.startsWith('zh')) {
       currentLanguage = 'zh-CN';
-    } else if (systemLocale.startsWith('he')) {
-      currentLanguage = 'he';
     } else {
       currentLanguage = 'en';
     }

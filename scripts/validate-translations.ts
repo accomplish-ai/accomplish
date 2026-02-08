@@ -24,7 +24,7 @@ const __dirname = path.dirname(__filename);
 const LOCALES_DIR = path.join(__dirname, '../apps/desktop/locales');
 const EXECUTION_TSX_PATH = path.join(__dirname, '../apps/desktop/src/renderer/pages/Execution.tsx');
 const SOURCE_LANG = 'en';
-const TARGET_LANGS = ['zh-CN', 'he'];
+const TARGET_LANGS = ['zh-CN'];
 
 interface ValidationResult {
   language: string;

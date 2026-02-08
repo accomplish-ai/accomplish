@@ -4,7 +4,7 @@
  *
  * This script:
  * 1. Reads English translation files (source of truth)
- * 2. Compares with target language files (zh-CN, he)
+ * 2. Compares with target language files (zh-CN)
  * 3. Finds missing keys
  * 4. Uses Claude API to translate missing keys
  * 5. Merges translations back into target files
@@ -18,7 +18,6 @@
  *
  *   # Translate specific language:
  *   pnpm i18n:sync:zh
- *   pnpm i18n:sync:he
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -47,7 +46,6 @@ if (fs.existsSync(envPath)) {
 // Language configuration
 const LANGUAGE_CONFIGS: Record<string, { name: string; direction: 'ltr' | 'rtl' }> = {
   'zh-CN': { name: 'Simplified Chinese', direction: 'ltr' },
-  'he': { name: 'Hebrew', direction: 'rtl' },
 };
 
 const LOCALES_DIR = path.join(__dirname, '../apps/desktop/locales');
@@ -134,7 +132,6 @@ CRITICAL RULES:
 - Use natural, native phrasing appropriate for UI elements
 - Keep technical terms consistent (API, URL, etc.)
 - For UI buttons and actions, use imperative/action form
-${langConfig.direction === 'rtl' ? '- This is a right-to-left language, ensure proper text formatting\n' : ''}
 English JSON to translate:
 \`\`\`json
 ${JSON.stringify(data, null, 2)}

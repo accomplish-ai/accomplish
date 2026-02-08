@@ -46,7 +46,7 @@ export default function SettingsDialog({
   const [gridExpanded, setGridExpanded] = useState(false);
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
-  const [language, setLanguageState] = useState<'en' | 'zh-CN' | 'he' | 'auto'>('auto');
+  const [language, setLanguageState] = useState<'en' | 'zh-CN' | 'auto'>('auto');
   const [activeTab, setActiveTab] = useState<'providers' | 'voice' | 'skills' | 'about'>(initialTab);
   const [appVersion, setAppVersion] = useState<string>('');
   const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
@@ -191,7 +191,7 @@ export default function SettingsDialog({
   }, [debugMode, accomplish]);
 
   // Handle language change
-  const handleLanguageChange = useCallback(async (newLanguage: 'en' | 'zh-CN' | 'he' | 'auto') => {
+  const handleLanguageChange = useCallback(async (newLanguage: 'en' | 'zh-CN' | 'auto') => {
     setLanguageState(newLanguage);
     await changeLanguage(newLanguage);
   }, []);
@@ -566,7 +566,7 @@ export default function SettingsDialog({
                 <div className="ml-4">
                   <select
                     value={language}
-                    onChange={(e) => handleLanguageChange(e.target.value as 'en' | 'zh-CN' | 'he' | 'auto')}
+                    onChange={(e) => handleLanguageChange(e.target.value as 'en' | 'zh-CN' | 'auto')}
                     className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                     data-testid="language-select"
                   >
@@ -574,13 +574,11 @@ export default function SettingsDialog({
                       {(() => {
                         const sysLang = navigator.language;
                         if (sysLang.startsWith('zh')) return '自动 (系统)';
-                        if (sysLang.startsWith('he')) return 'אוטומטי (מערכת)';
                         return 'Auto (System)';
                       })()}
                     </option>
                     <option value="en">English</option>
                     <option value="zh-CN">简体中文</option>
-                    <option value="he">עברית</option>
                   </select>
                 </div>
               </div>

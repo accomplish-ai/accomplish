@@ -22,7 +22,6 @@
     "clean": "pnpm -r clean && rm -rf node_modules",
     "i18n:sync": "tsx scripts/sync-translations.ts",
     "i18n:sync:zh": "tsx scripts/sync-translations.ts zh-CN",
-    "i18n:sync:he": "tsx scripts/sync-translations.ts he",
     "i18n:validate": "tsx scripts/validate-translations.ts",
     "changeset": "changeset",
     "version-packages": "changeset version",

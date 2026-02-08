@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       languages:
-        description: 'Languages to sync (comma-separated: zh-CN,he or "all")'
+        description: 'Languages to sync (comma-separated: zh-CN or "all")'
         required: false
         default: 'all'
         type: string

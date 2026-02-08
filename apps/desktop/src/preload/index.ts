@@ -288,12 +288,12 @@ const accomplishAPI = {
 
   // i18n - Internationalization
   i18n: {
-    /** Get the stored language preference ('en', 'zh-CN', 'he', or 'auto') */
-    getLanguage: (): Promise<'en' | 'zh-CN' | 'he' | 'auto'> =>
+    /** Get the stored language preference ('en', 'zh-CN', or 'auto') */
+    getLanguage: (): Promise<'en' | 'zh-CN' | 'auto'> =>
       ipcRenderer.invoke('i18n:get-language'),
 
     /** Set the language preference */
-    setLanguage: (language: 'en' | 'zh-CN' | 'he' | 'auto'): Promise<void> =>
+    setLanguage: (language: 'en' | 'zh-CN' | 'auto'): Promise<void> =>
       ipcRenderer.invoke('i18n:set-language', language),
 
     /** Get all translations for a language */
