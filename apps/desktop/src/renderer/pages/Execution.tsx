@@ -1349,9 +1349,9 @@ export default function ExecutionPage() {
                   }}
                   placeholder={
                     currentTask.status === 'interrupted'
-                      ? (hasSession ? "Give new instructions..." : "Send a new instruction to retry...")
+                      ? (hasSession ? "Reply..." : "Send a new instruction to retry...")
                       : currentTask.status === 'completed'
-                        ? "Give new instructions..."
+                        ? "Reply..."
                         : "Ask for something..."
                   }
                   disabled={isLoading || speechInput.isRecording}
