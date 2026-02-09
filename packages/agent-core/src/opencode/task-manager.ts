@@ -337,11 +337,6 @@ export class TaskManager {
     return this.taskQueue.some(q => q.taskId === taskId);
   }
 
-  getQueuePosition(taskId: string): number {
-    const index = this.taskQueue.findIndex(q => q.taskId === taskId);
-    return index === -1 ? 0 : index + 1;
-  }
-
   getQueueLength(): number {
     return this.taskQueue.length;
   }

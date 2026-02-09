@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
-import type { ConnectedProvider, OllamaCredentials, ToolSupportStatus } from '@accomplish/agent-core/common';
+import type { ConnectedProvider, OllamaCredentials, ToolSupportStatus } from '@accomplish_ai/agent-core/common';
 import {
   ConnectButton,
   ConnectedControls,

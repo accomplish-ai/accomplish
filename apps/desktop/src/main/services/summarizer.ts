@@ -1,6 +1,6 @@
 /**
- * @deprecated Import from '@accomplish/agent-core' instead.
+ * @deprecated Import from '@accomplish_ai/agent-core' instead.
  * This file re-exports from the core package for backward compatibility.
  */
 
-export { generateTaskSummary, type GetApiKeyFn } from '@accomplish/agent-core';
+export { generateTaskSummary, type GetApiKeyFn } from '@accomplish_ai/agent-core';

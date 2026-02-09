@@ -16,9 +16,9 @@
     "paths": {
       "@/*": ["src/renderer/*"],
       "@main/*": ["src/main/*"],
-      "@accomplish/agent-core/common": ["../../packages/agent-core/src/common.ts"],
-      "@accomplish/agent-core": ["../../packages/agent-core/src/index.ts"],
-      "@accomplish/agent-core/*": ["../../packages/agent-core/src/*"]
+      "@accomplish_ai/agent-core/common": ["../../packages/agent-core/src/common.ts"],
+      "@accomplish_ai/agent-core": ["../../packages/agent-core/src/index.ts"],
+      "@accomplish_ai/agent-core/*": ["../../packages/agent-core/src/*"]
     }
   },
   "include": [

@@ -12,10 +12,10 @@ const path = require('path');
 
 const isWindows = process.platform === 'win32';
 const nodeModulesPath = path.join(__dirname, '..', 'node_modules');
-const accomplishPath = path.join(nodeModulesPath, '@accomplish');
+const accomplishPath = path.join(nodeModulesPath, '@accomplish_ai');
 
 // Save symlink targets for restoration
-const workspacePackages = ['shared', 'core'];
+const workspacePackages = ['agent-core'];
 const symlinkTargets = {};
 
 try {
@@ -32,7 +32,7 @@ try {
     }
   }
 
-  // Remove empty @accomplish directory if it exists
+  // Remove empty @accomplish_ai directory if it exists
   if (Object.keys(symlinkTargets).length > 0) {
     try {
       fs.rmdirSync(accomplishPath);
@@ -63,7 +63,7 @@ try {
   if (packagesToRestore.length > 0) {
     console.log('Restoring workspace symlinks');
 
-    // Recreate @accomplish directory if needed
+    // Recreate @accomplish_ai directory if needed
     if (!fs.existsSync(accomplishPath)) {
       fs.mkdirSync(accomplishPath, { recursive: true });
     }

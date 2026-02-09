@@ -7,13 +7,13 @@
   "main": "dist-electron/main/index.js",
   "scripts": {
     "postinstall": "node scripts/postinstall.cjs",
-    "dev": "node scripts/patch-electron-name.cjs && node -e \"require('fs').rmSync('dist-electron',{recursive:true,force:true})\" && vite",
+    "dev": "node scripts/patch-electron-name.cjs && npx electron-rebuild -f && node -e \"require('fs').rmSync('dist-electron',{recursive:true,force:true})\" && vite",
     "dev:clean": "CLEAN_START=1 vite",
     "build": "tsc && vite build && node scripts/bundle-skills.cjs",
     "build:electron": "tsc && vite build && node scripts/package.cjs",
     "build:unpack": "tsc && vite build && node scripts/package.cjs --dir",
-    "package": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --mac --publish never",
-    "package:mac": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --mac --publish never",
+    "package": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --mac --publish never && npx electron-rebuild -f",
+    "package:mac": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --mac --publish never && npx electron-rebuild -f",
     "release": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --mac --publish always",
     "release:mac": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --mac --publish always",
     "package:win": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --win --x64 --publish never",
@@ -40,7 +40,7 @@
     "test:local-agent": "npx tsx scripts/test-local-agent-cli.ts"
   },
   "dependencies": {
-    "@accomplish/agent-core": "workspace:*",
+    "@accomplish_ai/agent-core": "workspace:*",
     "@aws-sdk/client-bedrock": "^3.971.0",
     "@aws-sdk/credential-providers": "^3.971.0",
     "@azure/identity": "^4.13.0",
@@ -119,7 +119,7 @@
       "node_modules/json-schema-typed/**",
       "node_modules/atomically/**",
       "node_modules/debounce-fn/**",
-      "!node_modules/@accomplish/**",
+      "!node_modules/@accomplish_ai/**",
       "!node_modules/opencode-darwin-*/**",
       "!node_modules/opencode-linux-*/**"
     ],

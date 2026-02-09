@@ -1,7 +1,7 @@
 'use client';
 
 import { useNavigate, useLocation } from 'react-router-dom';
-import type { Task } from '@accomplish/agent-core/common';
+import type { Task } from '@accomplish_ai/agent-core/common';
 import { cn } from '@/lib/utils';
 import { Loader2, CheckCircle2, XCircle, Clock, Square, PauseCircle, X } from 'lucide-react';
 import { useTaskStore } from '@/stores/taskStore';

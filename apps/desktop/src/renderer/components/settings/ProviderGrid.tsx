@@ -2,8 +2,8 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { ProviderId, ProviderSettings } from '@accomplish/agent-core/common';
-import { PROVIDER_META } from '@accomplish/agent-core/common';
+import type { ProviderId, ProviderSettings } from '@accomplish_ai/agent-core/common';
+import { PROVIDER_META } from '@accomplish_ai/agent-core/common';
 import { ProviderCard } from './ProviderCard';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 

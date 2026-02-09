@@ -1,0 +1,156 @@
+name: PR Preview Release
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'packages/**'
+      - '.changeset/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  preview:
+    name: Preview Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Check npm auth
+        id: npm_auth
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "has_auth=false" >> $GITHUB_OUTPUT
+            echo "NPM_TOKEN not available (expected for fork PRs)"
+          else
+            echo "has_auth=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for changesets
+        id: changesets
+        run: |
+          # Check if there are any changeset files (excluding README.md and config.json)
+          CHANGESET_COUNT=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- '.changeset/*.md' | grep -v README.md | wc -l | tr -d ' ')
+          if [ "$CHANGESET_COUNT" -gt "0" ]; then
+            echo "has_changesets=true" >> $GITHUB_OUTPUT
+            echo "Found $CHANGESET_COUNT changeset(s)"
+          else
+            echo "has_changesets=false" >> $GITHUB_OUTPUT
+            echo "No changesets found"
+          fi
+
+      - name: Build packages
+        if: steps.npm_auth.outputs.has_auth == 'true' && steps.changesets.outputs.has_changesets == 'true'
+        run: pnpm build
+
+      - name: Create snapshot version
+        if: steps.npm_auth.outputs.has_auth == 'true' && steps.changesets.outputs.has_changesets == 'true'
+        run: |
+          pnpm changeset version --snapshot pr-${{ github.event.pull_request.number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish snapshot
+        if: steps.npm_auth.outputs.has_auth == 'true' && steps.changesets.outputs.has_changesets == 'true'
+        run: |
+          pnpm changeset publish --tag pr-${{ github.event.pull_request.number }}
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Get published version
+        if: steps.npm_auth.outputs.has_auth == 'true' && steps.changesets.outputs.has_changesets == 'true'
+        id: version
+        run: |
+          VERSION=$(node -p "require('./packages/agent-core/package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR
+        if: steps.npm_auth.outputs.has_auth == 'true' && steps.changesets.outputs.has_changesets == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ steps.version.outputs.version }}';
+            const prNumber = context.payload.pull_request.number;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Preview release published')
+            );
+
+            const commitSha = '${{ github.event.pull_request.head.sha }}';
+            const shortSha = commitSha.substring(0, 7);
+            const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+
+            const latestEntry = `| \`${version}\` | [\`${shortSha}\`](https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${commitSha}) | ${timestamp} |`;
+
+            if (botComment) {
+              // Append new release to existing comment
+              const existingBody = botComment.body;
+
+              // Update the install command to latest version and add new row before the marker
+              const updatedBody = existingBody
+                .replace(/npm install @accomplish_ai\/agent-core@0\.\d+\.\d+-pr-\d+-\d+/,
+                  `npm install @accomplish_ai/agent-core@${version}`)
+                .replace(/(<!-- RELEASES_END -->)/, `${latestEntry}\n$1`);
+
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: updatedBody
+              });
+            } else {
+              // Create new comment with release history table
+              const body = [
+                '## 📦 Preview release published!',
+                '',
+                'Install latest with:',
+                '```bash',
+                `npm install @accomplish_ai/agent-core@${version}`,
+                '# or',
+                `npm install @accomplish_ai/agent-core@pr-${prNumber}`,
+                '```',
+                '',
+                '### Release History',
+                '',
+                '| Version | Commit | Published |',
+                '|---------|--------|-----------|',
+                latestEntry,
+                '<!-- RELEASES_END -->',
+              ].join('\n');
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: body
+              });
+            }

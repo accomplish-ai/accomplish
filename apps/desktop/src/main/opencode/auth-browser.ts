@@ -8,7 +8,7 @@ import {
   getPlatformShell,
   getShellArgs,
   waitForPortRelease,
-} from '@accomplish/agent-core';
+} from '@accomplish_ai/agent-core';
 
 interface LoginResult {
   openedUrl?: string;

@@ -45,9 +45,9 @@ vi.mock('electron', () => ({
 // Note: PERMISSION_API_PORT and QUESTION_API_PORT are now imported from @accomplish/shared
 // by config-generator.ts, so no mock needed here
 
-// Mock @accomplish/agent-core (uses SQLite which requires native module)
+// Mock @accomplish_ai/agent-core (uses SQLite which requires native module)
 // Note: generateConfig mock creates real files in temp directory for integration testing
-vi.mock('@accomplish/agent-core', async () => {
+vi.mock('@accomplish_ai/agent-core', async () => {
   const actualFs = await vi.importActual<typeof import('fs')>('fs');
   const actualPath = await vi.importActual<typeof import('path')>('path');
 

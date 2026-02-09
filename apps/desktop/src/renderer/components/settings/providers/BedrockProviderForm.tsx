@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
-import type { ConnectedProvider, BedrockProviderCredentials } from '@accomplish/agent-core/common';
-import { getDefaultModelForProvider } from '@accomplish/agent-core/common';
+import type { ConnectedProvider, BedrockProviderCredentials } from '@accomplish_ai/agent-core/common';
+import { getDefaultModelForProvider } from '@accomplish_ai/agent-core/common';
 import {
   ModelSelector,
   RegionSelector,

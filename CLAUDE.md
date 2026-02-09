@@ -34,6 +34,40 @@ pnpm -F @accomplish/desktop test:e2e:native:ui  # E2E with Playwright UI
 pnpm clean                                      # Clean build outputs and node_modules
 ```
 
+## Publishing Packages (Changesets)
+
+The `@accomplish_ai/agent-core` package is published to npm using [Changesets](https://github.com/changesets/changesets).
+
+### Creating a Changeset
+When making changes to the agent-core package, create a changeset:
+```bash
+pnpm changeset
+```
+This prompts you to:
+1. Select `@accomplish_ai/agent-core`
+2. Choose bump type (patch/minor/major)
+3. Write a summary for the changelog
+
+Commit the generated `.changeset/*.md` file with your PR.
+
+### Release Process (Automated)
+1. Merge PR with changeset files to `main`
+2. GitHub Action creates a "Version Packages" PR
+3. Review and merge the Version Packages PR
+4. GitHub Action publishes `@accomplish_ai/agent-core` to npm
+
+### PR Preview Releases
+When a PR contains changesets, a snapshot release is automatically published:
+```bash
+npm install @accomplish_ai/agent-core@pr-<PR_NUMBER>
+```
+
+### Manual Release (if needed)
+```bash
+pnpm version-packages  # Apply changesets, bump versions
+pnpm release           # Build and publish
+```
+
 ## Architecture
 
 ### Monorepo Layout

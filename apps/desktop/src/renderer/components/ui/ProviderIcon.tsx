@@ -3,7 +3,7 @@
  * Shows a colored icon with the provider's initial
  */
 
-import type { ProviderType } from '@accomplish/agent-core/common';
+import type { ProviderType } from '@accomplish_ai/agent-core/common';
 import { cn } from '@/lib/utils';
 
 interface ProviderIconProps {

@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import type { Task, TaskStatus, TaskMessage, PermissionRequest } from '@accomplish/agent-core';
+import type { Task, TaskStatus, TaskMessage, PermissionRequest } from '@accomplish_ai/agent-core';
 
 // Create mock functions
 const mockLoadTaskById = vi.fn();

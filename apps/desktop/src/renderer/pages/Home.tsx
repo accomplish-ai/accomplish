@@ -10,7 +10,7 @@ import { getAccomplish } from '../lib/accomplish';
 import { springs, staggerContainer, staggerItem } from '../lib/animations';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronDown } from 'lucide-react';
-import { hasAnyReadyProvider } from '@accomplish/agent-core/common';
+import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
 
 // Import use case images for proper bundling in production
 import calendarPrepNotesImg from '/assets/usecases/calendar-prep-notes.png';

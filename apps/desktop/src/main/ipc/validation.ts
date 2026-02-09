@@ -3,7 +3,7 @@ export {
   permissionResponseSchema,
   resumeSessionSchema,
   validate,
-} from '@accomplish/agent-core';
+} from '@accomplish_ai/agent-core';
 
 export function normalizeIpcError(error: unknown): Error {
   if (error instanceof Error) {

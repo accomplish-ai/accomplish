@@ -1,55 +1,27 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import matter from 'gray-matter';
-import type { Database } from 'better-sqlite3';
-import type { Skill, SkillSource, SkillFrontmatter } from '../common/types/skills.js';
+import type { Skill, SkillSource, SkillFrontmatter } from '../../common/types/skills.js';
+import type { SkillsManagerOptions } from '../../types/skills-manager.js';
+import {
+  getAllSkills as dbGetAllSkills,
+  getEnabledSkills as dbGetEnabledSkills,
+  getSkillById as dbGetSkillById,
+  upsertSkill as dbUpsertSkill,
+  setSkillEnabled as dbSetSkillEnabled,
+  deleteSkill as dbDeleteSkill,
+} from '../../storage/repositories/skills.js';
 
-interface SkillRow {
-  id: string;
-  name: string;
-  command: string;
-  description: string;
-  source: string;
-  is_enabled: number;
-  is_verified: number;
-  is_hidden: number;
-  file_path: string;
-  github_url: string | null;
-  updated_at: string;
-}
-
-export interface SkillsManagerOptions {
-  bundledSkillsPath: string;
-  userSkillsPath: string;
-  database: Database;
-}
-
-function rowToSkill(row: SkillRow): Skill {
-  return {
-    id: row.id,
-    name: row.name,
-    command: row.command,
-    description: row.description,
-    source: row.source as SkillSource,
-    isEnabled: row.is_enabled === 1,
-    isVerified: row.is_verified === 1,
-    isHidden: row.is_hidden === 1,
-    filePath: row.file_path,
-    githubUrl: row.github_url || undefined,
-    updatedAt: row.updated_at,
-  };
-}
+export type { SkillsManagerOptions };
 
 export class SkillsManager {
   private readonly bundledSkillsPath: string;
   private readonly userSkillsPath: string;
-  private readonly db: Database;
   private initialized = false;
 
   constructor(options: SkillsManagerOptions) {
     this.bundledSkillsPath = options.bundledSkillsPath;
     this.userSkillsPath = options.userSkillsPath;
-    this.db = options.database;
   }
 
   async initialize(): Promise<void> {
@@ -101,7 +73,7 @@ export class SkillsManager {
         }
       }
 
-      this.upsertSkill(skill);
+      dbUpsertSkill(skill);
     }
 
     for (const existingSkill of existingSkills) {
@@ -109,7 +81,7 @@ export class SkillsManager {
         console.log(
           `[SkillsManager] Removing stale skill: ${existingSkill.name} (${existingSkill.filePath})`
         );
-        this.deleteSkillFromDb(existingSkill.id);
+        dbDeleteSkill(existingSkill.id);
       }
     }
 
@@ -119,26 +91,19 @@ export class SkillsManager {
   }
 
   getAllSkills(): Skill[] {
-    const rows = this.db.prepare('SELECT * FROM skills ORDER BY name').all() as SkillRow[];
-    return rows.map(rowToSkill);
+    return dbGetAllSkills();
   }
 
   getEnabledSkills(): Skill[] {
-    const rows = this.db
-      .prepare('SELECT * FROM skills WHERE is_enabled = 1 ORDER BY name')
-      .all() as SkillRow[];
-    return rows.map(rowToSkill);
+    return dbGetEnabledSkills();
   }
 
   getSkillById(skillId: string): Skill | null {
-    const row = this.db
-      .prepare('SELECT * FROM skills WHERE id = ?')
-      .get(skillId) as SkillRow | undefined;
-    return row ? rowToSkill(row) : null;
+    return dbGetSkillById(skillId);
   }
 
   setSkillEnabled(skillId: string, enabled: boolean): void {
-    this.db.prepare('UPDATE skills SET is_enabled = ? WHERE id = ?').run(enabled ? 1 : 0, skillId);
+    dbSetSkillEnabled(skillId, enabled);
   }
 
   getSkillContent(skillId: string): string | null {
@@ -176,7 +141,7 @@ export class SkillsManager {
       fs.rmSync(skillDir, { recursive: true });
     }
 
-    this.deleteSkillFromDb(skillId);
+    dbDeleteSkill(skillId);
     return true;
   }
 
@@ -265,50 +230,31 @@ export class SkillsManager {
     return resolved.startsWith(resolvedDir + path.sep);
   }
 
-  private async addFromFile(sourcePath: string): Promise<Skill> {
+  private addFromFile(sourcePath: string): Skill {
     const content = fs.readFileSync(sourcePath, 'utf-8');
-    const frontmatter = this.parseFrontmatter(content);
-
-    if (!frontmatter.name) {
-      throw new Error('SKILL.md must have a name in frontmatter');
-    }
-
-    const safeName = this.sanitizeSkillName(frontmatter.name);
-    if (!safeName) {
-      throw new Error('Invalid skill name');
-    }
-
-    const skillDir = path.join(this.userSkillsPath, safeName);
-
-    if (!this.isPathWithinDirectory(skillDir, this.userSkillsPath)) {
-      throw new Error('Invalid skill name: path traversal detected');
-    }
-
-    if (!fs.existsSync(skillDir)) {
-      fs.mkdirSync(skillDir, { recursive: true });
-    }
-
-    const destPath = path.join(skillDir, 'SKILL.md');
+    const frontmatter = this.validateSkillFrontmatter(content);
+    const destPath = this.prepareSkillDir(frontmatter);
     fs.copyFileSync(sourcePath, destPath);
-
-    const skill: Skill = {
-      id: this.generateId(safeName, 'custom'),
-      name: frontmatter.name,
-      command: frontmatter.command || `/${safeName}`,
-      description: frontmatter.description || '',
-      source: 'custom',
-      isEnabled: true,
-      isVerified: false,
-      isHidden: false,
-      filePath: destPath,
-      updatedAt: new Date().toISOString(),
-    };
-
-    this.upsertSkill(skill);
-    return skill;
+    return this.persistSkill(frontmatter, destPath, 'custom');
   }
 
   private async addFromUrl(rawUrl: string): Promise<Skill> {
+    const fetchUrl = this.resolveGithubRawUrl(rawUrl);
+
+    console.log('[SkillsManager] Fetching from:', fetchUrl);
+
+    const response = await fetch(fetchUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch: ${response.statusText}`);
+    }
+    const content = await response.text();
+    const frontmatter = this.validateSkillFrontmatter(content);
+    const destPath = this.prepareSkillDir(frontmatter);
+    fs.writeFileSync(destPath, content);
+    return this.persistSkill(frontmatter, destPath, 'community', rawUrl);
+  }
+
+  private resolveGithubRawUrl(rawUrl: string): string {
     let parsedUrl: URL;
     try {
       parsedUrl = new URL(rawUrl);
@@ -325,41 +271,42 @@ export class SkillsManager {
       throw new Error('URL must use HTTPS');
     }
 
+    if (parsedUrl.hostname === 'raw.githubusercontent.com') {
+      return rawUrl;
+    }
+
     let fetchUrl = rawUrl;
-    if (rawUrl.includes('github.com') && !rawUrl.includes('raw.githubusercontent.com')) {
-      if (rawUrl.includes('/tree/')) {
-        fetchUrl = rawUrl
-          .replace('github.com', 'raw.githubusercontent.com')
-          .replace('/tree/', '/');
-        if (!fetchUrl.endsWith('SKILL.md')) {
-          fetchUrl = fetchUrl.replace(/\/?$/, '/SKILL.md');
-        }
-      } else if (rawUrl.includes('/blob/')) {
-        fetchUrl = rawUrl
-          .replace('github.com', 'raw.githubusercontent.com')
-          .replace('/blob/', '/');
-      } else {
-        fetchUrl = rawUrl.replace('github.com', 'raw.githubusercontent.com');
-        if (!fetchUrl.endsWith('SKILL.md')) {
-          fetchUrl = fetchUrl.replace(/\/?$/, '/SKILL.md');
-        }
+    if (rawUrl.includes('/tree/')) {
+      fetchUrl = rawUrl
+        .replace('github.com', 'raw.githubusercontent.com')
+        .replace('/tree/', '/');
+      if (!fetchUrl.endsWith('SKILL.md')) {
+        fetchUrl = fetchUrl.replace(/\/?$/, '/SKILL.md');
+      }
+    } else if (rawUrl.includes('/blob/')) {
+      fetchUrl = rawUrl
+        .replace('github.com', 'raw.githubusercontent.com')
+        .replace('/blob/', '/');
+    } else {
+      fetchUrl = rawUrl.replace('github.com', 'raw.githubusercontent.com');
+      if (!fetchUrl.endsWith('SKILL.md')) {
+        fetchUrl = fetchUrl.replace(/\/?$/, '/SKILL.md');
       }
     }
+    return fetchUrl;
+  }
 
-    console.log('[SkillsManager] Fetching from:', fetchUrl);
-
-    const response = await fetch(fetchUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch: ${response.statusText}`);
-    }
-    const content = await response.text();
-
+  private validateSkillFrontmatter(content: string): SkillFrontmatter & { name: string } {
     const frontmatter = this.parseFrontmatter(content);
 
     if (!frontmatter.name) {
       throw new Error('SKILL.md must have a name in frontmatter');
     }
 
+    return frontmatter as SkillFrontmatter & { name: string };
+  }
+
+  private prepareSkillDir(frontmatter: SkillFrontmatter & { name: string }): string {
     const safeName = this.sanitizeSkillName(frontmatter.name);
     if (!safeName) {
       throw new Error('Invalid skill name');
@@ -375,61 +322,32 @@ export class SkillsManager {
       fs.mkdirSync(skillDir, { recursive: true });
     }
 
-    const destPath = path.join(skillDir, 'SKILL.md');
-    fs.writeFileSync(destPath, content);
+    return path.join(skillDir, 'SKILL.md');
+  }
+
+  private persistSkill(
+    frontmatter: SkillFrontmatter & { name: string },
+    destPath: string,
+    source: SkillSource,
+    githubUrl?: string,
+  ): Skill {
+    const safeName = this.sanitizeSkillName(frontmatter.name);
 
     const skill: Skill = {
-      id: this.generateId(safeName, 'community'),
+      id: this.generateId(safeName, source),
       name: frontmatter.name,
       command: frontmatter.command || `/${safeName}`,
       description: frontmatter.description || '',
-      source: 'community',
+      source,
       isEnabled: true,
       isVerified: false,
       isHidden: false,
       filePath: destPath,
-      githubUrl: rawUrl,
+      ...(githubUrl && { githubUrl }),
       updatedAt: new Date().toISOString(),
     };
 
-    this.upsertSkill(skill);
+    dbUpsertSkill(skill);
     return skill;
-  }
-
-  private upsertSkill(skill: Skill): void {
-    this.db
-      .prepare(
-        `
-      INSERT INTO skills (id, name, command, description, source, is_enabled, is_verified, is_hidden, file_path, github_url, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET
-        name = excluded.name,
-        command = excluded.command,
-        description = excluded.description,
-        is_enabled = excluded.is_enabled,
-        is_verified = excluded.is_verified,
-        is_hidden = excluded.is_hidden,
-        file_path = excluded.file_path,
-        github_url = excluded.github_url,
-        updated_at = excluded.updated_at
-    `
-      )
-      .run(
-        skill.id,
-        skill.name,
-        skill.command,
-        skill.description,
-        skill.source,
-        skill.isEnabled ? 1 : 0,
-        skill.isVerified ? 1 : 0,
-        skill.isHidden ? 1 : 0,
-        skill.filePath,
-        skill.githubUrl || null,
-        skill.updatedAt
-      );
-  }
-
-  private deleteSkillFromDb(skillId: string): void {
-    this.db.prepare('DELETE FROM skills WHERE id = ?').run(skillId);
   }
 }

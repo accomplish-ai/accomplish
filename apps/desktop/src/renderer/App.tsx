@@ -5,7 +5,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { isRunningInElectron, getAccomplish } from './lib/accomplish';
 import { springs, variants } from './lib/animations';
-import type { ProviderId } from '@accomplish/agent-core/common';
+import type { ProviderId } from '@accomplish_ai/agent-core/common';
 
 // Pages
 import HomePage from './pages/Home';

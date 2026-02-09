@@ -8,9 +8,13 @@
 
 import http from 'http';
 import type { BrowserWindow } from 'electron';
-import { THOUGHT_STREAM_PORT } from '@accomplish/agent-core';
-import type { ThoughtEvent, CheckpointEvent } from '@accomplish/agent-core';
-import { ThoughtStreamHandler } from '@accomplish/agent-core';
+import {
+  THOUGHT_STREAM_PORT,
+  createThoughtStreamHandler,
+  type ThoughtStreamAPI,
+  type ThoughtStreamEvent as ThoughtEvent,
+  type ThoughtStreamCheckpointEvent as CheckpointEvent,
+} from '@accomplish_ai/agent-core';
 
 // Re-export types and constant for backwards compatibility
 export { THOUGHT_STREAM_PORT };
@@ -20,7 +24,7 @@ export type { ThoughtEvent, CheckpointEvent };
 let mainWindow: BrowserWindow | null = null;
 
 // Singleton handler instance for task tracking and event validation
-const thoughtStreamHandler = new ThoughtStreamHandler();
+const thoughtStreamHandler: ThoughtStreamAPI = createThoughtStreamHandler();
 
 /**
  * Initialize the thought stream API with dependencies

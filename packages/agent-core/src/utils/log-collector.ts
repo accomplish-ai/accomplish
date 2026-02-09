@@ -8,8 +8,7 @@
 
 import { type LogLevel, type LogSource } from '../common/types/logging.js';
 import { detectLogSource } from '../common/utils/log-source-detector.js';
-
-import { LogFileWriter } from './log-file-writer.js';
+import type { LogWriterAPI } from '../types/log-writer.js';
 
 // Store original console methods
 const originalConsole = {
@@ -22,7 +21,7 @@ const originalConsole = {
 export class LogCollector {
   private initialized = false;
 
-  constructor(private writer: LogFileWriter) {}
+  constructor(private writer: LogWriterAPI) {}
 
   /**
    * Initialize the log collector - must be called early in app startup

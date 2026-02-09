@@ -196,10 +196,13 @@ export class SecureStorage {
       'deepseek',
       'moonshot',
       'zai',
+      'azure-foundry',
       'custom',
       'bedrock',
       'litellm',
       'minimax',
+      'lmstudio',
+      'elevenlabs',
     ];
 
     const result: Record<string, string | null> = {};

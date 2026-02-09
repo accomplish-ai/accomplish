@@ -6,11 +6,11 @@ import {
   buildProviderConfigs,
   syncApiKeysToOpenCodeAuth as coreSyncApiKeysToOpenCodeAuth,
   getOpenCodeAuthPath,
-} from '@accomplish/agent-core';
+} from '@accomplish_ai/agent-core';
 import { getApiKey, getAllApiKeys } from '../store/secureStorage';
 import { getNodePath } from '../utils/bundled-node';
 import { skillsManager } from '../skills';
-import { PERMISSION_API_PORT, QUESTION_API_PORT } from '@accomplish/agent-core';
+import { PERMISSION_API_PORT, QUESTION_API_PORT } from '@accomplish_ai/agent-core';
 
 export { ACCOMPLISH_AGENT_NAME };
 

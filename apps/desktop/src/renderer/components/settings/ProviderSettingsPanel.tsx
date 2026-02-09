@@ -1,8 +1,8 @@
 // apps/desktop/src/renderer/components/settings/ProviderSettingsPanel.tsx
 
 import { AnimatePresence, motion } from 'framer-motion';
-import type { ProviderId, ConnectedProvider } from '@accomplish/agent-core/common';
-import { PROVIDER_META } from '@accomplish/agent-core/common';
+import type { ProviderId, ConnectedProvider } from '@accomplish_ai/agent-core/common';
+import { PROVIDER_META } from '@accomplish_ai/agent-core/common';
 import {
   ClassicProviderForm,
   BedrockProviderForm,

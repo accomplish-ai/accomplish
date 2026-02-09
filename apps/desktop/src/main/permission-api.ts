@@ -13,18 +13,17 @@ import {
   QUESTION_API_PORT,
   isFilePermissionRequest,
   isQuestionRequest,
-} from '@accomplish/agent-core';
-import {
-  PermissionRequestHandler,
-  type FilePermissionRequestData,
-  type QuestionRequestData,
-  type QuestionResponseData,
-} from '@accomplish/agent-core';
+  createPermissionHandler,
+  type PermissionHandlerAPI,
+  type PermissionFileRequestData as FilePermissionRequestData,
+  type PermissionQuestionRequestData as QuestionRequestData,
+  type PermissionQuestionResponseData as QuestionResponseData,
+} from '@accomplish_ai/agent-core';
 
 export { PERMISSION_API_PORT, QUESTION_API_PORT, isFilePermissionRequest, isQuestionRequest };
 
 // Singleton permission request handler
-const permissionHandler = new PermissionRequestHandler();
+const permissionHandler: PermissionHandlerAPI = createPermissionHandler();
 
 // Store reference to main window and task manager
 let mainWindow: BrowserWindow | null = null;
