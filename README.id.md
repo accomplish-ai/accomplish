@@ -14,24 +14,24 @@
   <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-0ea5e9?style=flat-square" alt="Unduh untuk macOS" /></a>
 </p>
 
-# Accomplish™ - Agen Desktop AI Open Source
+# WaIA (sebelumnya Accomplish) - Agen Desktop AI Open Source
 
-Accomplish adalah agen desktop AI open source yang mengotomatisasi manajemen file, pembuatan dokumen, dan tugas browser secara lokal di mesin Anda. Gunakan kunci API Anda sendiri (OpenAI, Anthropic, Google, xAI) atau jalankan model lokal melalui Ollama.
+WaIA adalah agen desktop AI open source yang mengotomatisasi manajemen file, pembuatan dokumen, dan tugas browser secara lokal di mesin Anda. Gunakan kunci API Anda sendiri (OpenAI, Anthropic, Google, Z.AI/GLM, xAI) atau jalankan model lokal melalui Ollama.
 
 <p align="center">
   <strong>Berjalan secara lokal di mesin Anda. Gunakan kunci API atau model lokal Anda sendiri. Berlisensi MIT.</strong>
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><strong>Unduh untuk Mac (Apple Silicon)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/WaIA-0.3.8-mac-arm64.dmg"><strong>Unduh untuk Mac (Apple Silicon)</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe"><strong>Unduh untuk Windows 11</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/WaIA-v2-0.3.8-win-x64.exe"><strong>Unduh untuk Windows 11</strong></a>
   ·
-  <a href="https://www.accomplish.ai/">Website Accomplish</a>
+  <a href="https://www.waia.ai/">Website WaIA</a>
   ·
-  <a href="https://www.accomplish.ai/blog/">Blog Accomplish</a>
+  <a href="https://www.waia.ai/blog/">Blog WaIA</a>
   ·
-  <a href="https://github.com/accomplish-ai/accomplish/releases">Rilis Accomplish</a>
+  <a href="https://github.com/accomplish-ai/accomplish/releases">Rilis WaIA</a>
 </p>
 
 <br />

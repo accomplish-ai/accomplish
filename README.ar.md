@@ -14,24 +14,24 @@
   <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-0ea5e9?style=flat-square" alt="تحميل لـ macOS" /></a>
 </p>
 
-# Accomplish™ - وكيل سطح مكتب ذكاء اصطناعي مفتوح المصدر
+# WaIA (سابقًا Accomplish) - وكيل سطح مكتب ذكاء اصطناعي مفتوح المصدر
 
-Accomplish هو وكيل سطح مكتب ذكاء اصطناعي مفتوح المصدر يقوم بأتمتة إدارة الملفات وإنشاء المستندات ومهام المتصفح محلياً على جهازك. استخدم مفاتيح API الخاصة بك (OpenAI، Anthropic، Google، xAI) أو شغّل نماذج محلية عبر Ollama.
+WaIA هو وكيل سطح مكتب ذكاء اصطناعي مفتوح المصدر يقوم بأتمتة إدارة الملفات وإنشاء المستندات ومهام المتصفح محلياً على جهازك. استخدم مفاتيح API الخاصة بك (OpenAI، Anthropic، Google، Z.AI/GLM، xAI) أو شغّل نماذج محلية عبر Ollama.
 
 <p align="center">
   <strong>يعمل محلياً على جهازك. استخدم مفاتيح API الخاصة بك أو النماذج المحلية. مرخص بـ MIT.</strong>
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><strong>تحميل لـ Mac (Apple Silicon)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/WaIA-0.3.8-mac-arm64.dmg"><strong>تحميل لـ Mac (Apple Silicon)</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe"><strong>تحميل لـ Windows 11</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/WaIA-v2-0.3.8-win-x64.exe"><strong>تحميل لـ Windows 11</strong></a>
   ·
-  <a href="https://www.accomplish.ai/">موقع Accomplish</a>
+  <a href="https://www.waia.ai/">موقع WaIA</a>
   ·
-  <a href="https://www.accomplish.ai/blog/">مدونة Accomplish</a>
+  <a href="https://www.waia.ai/blog/">مدونة WaIA</a>
   ·
-  <a href="https://github.com/accomplish-ai/accomplish/releases">إصدارات Accomplish</a>
+  <a href="https://github.com/accomplish-ai/accomplish/releases">إصدارات WaIA</a>
 </p>
 
 <br />

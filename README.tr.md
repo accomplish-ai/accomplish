@@ -14,24 +14,24 @@
   <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-0ea5e9?style=flat-square" alt="macOS için İndir" /></a>
 </p>
 
-# Accomplish™ - Açık Kaynaklı AI Masaüstü Ajanı
+# WaIA (eski adıyla Accomplish) - Açık Kaynaklı AI Masaüstü Ajanı
 
-Accomplish, bilgisayarınızda yerel olarak dosya yönetimi, belge oluşturma ve tarayıcı görevlerini otomatikleştiren açık kaynaklı bir AI masaüstü ajanıdır. Kendi API anahtarlarınızı (OpenAI, Anthropic, Google, xAI) kullanın veya Ollama üzerinden yerel modeller çalıştırın.
+WaIA, bilgisayarınızda yerel olarak dosya yönetimi, belge oluşturma ve tarayıcı görevlerini otomatikleştiren açık kaynaklı bir AI masaüstü ajanıdır. Kendi API anahtarlarınızı (OpenAI, Anthropic, Google, Z.AI/GLM, xAI) kullanın veya Ollama üzerinden yerel modeller çalıştırın.
 
 <p align="center">
   <strong>Bilgisayarınızda yerel olarak çalışır. Kendi API anahtarlarınızı veya yerel modellerinizi kullanın. MIT lisanslı.</strong>
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><strong>Mac için İndirin (Apple Silicon)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/WaIA-0.3.8-mac-arm64.dmg"><strong>Mac için İndirin (Apple Silicon)</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe"><strong>Windows 11 için İndirin</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/WaIA-v2-0.3.8-win-x64.exe"><strong>Windows 11 için İndirin</strong></a>
   ·
-  <a href="https://www.accomplish.ai/">Accomplish web sitesi</a>
+  <a href="https://www.waia.ai/">WaIA web sitesi</a>
   ·
-  <a href="https://www.accomplish.ai/blog/">Accomplish blogu</a>
+  <a href="https://www.waia.ai/blog/">WaIA blogu</a>
   ·
-  <a href="https://github.com/accomplish-ai/accomplish/releases">Accomplish sürümleri</a>
+  <a href="https://github.com/accomplish-ai/accomplish/releases">WaIA sürümleri</a>
 </p>
 
 <br />

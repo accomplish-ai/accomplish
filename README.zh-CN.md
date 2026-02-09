@@ -14,24 +14,24 @@
   <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-0ea5e9?style=flat-square" alt="下载 macOS 版" /></a>
 </p>
 
-# Accomplish™ - 开源 AI 桌面代理
+# WaIA (前身为 Accomplish) - 开源 AI 桌面代理
 
-Accomplish 是一款开源 AI 桌面代理，可在您的本地机器上自动化文件管理、文档创建和浏览器任务。使用您自己的 API 密钥（OpenAI、Anthropic、Google、xAI）或通过 Ollama 运行本地模型。
+WaIA 是一款开源 AI 桌面代理，可在您的本地机器上自动化文件管理、文档创建和浏览器任务。使用您自己的 API 密钥（OpenAI、Anthropic、Google、Z.AI/GLM、xAI）或通过 Ollama 运行本地模型。
 
 <p align="center">
   <strong>在您的机器上本地运行。使用您自己的 API 密钥或本地模型。MIT 许可证。</strong>
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><strong>下载 Mac 版（Apple Silicon）</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/WaIA-0.3.8-mac-arm64.dmg"><strong>下载 Mac 版（Apple Silicon）</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe"><strong>下载 Windows 11 版</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/WaIA-v2-0.3.8-win-x64.exe"><strong>下载 Windows 11 版</strong></a>
   ·
-  <a href="https://www.accomplish.ai/">Accomplish 官网</a>
+  <a href="https://www.waia.ai/">WaIA 官网</a>
   ·
-  <a href="https://www.accomplish.ai/blog/">Accomplish 博客</a>
+  <a href="https://www.waia.ai/blog/">WaIA 博客</a>
   ·
-  <a href="https://github.com/accomplish-ai/accomplish/releases">Accomplish 发布版本</a>
+  <a href="https://github.com/accomplish-ai/accomplish/releases">WaIA 发布版本</a>
 </p>
 
 <br />

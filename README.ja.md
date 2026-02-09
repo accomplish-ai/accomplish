@@ -14,24 +14,24 @@
   <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-0ea5e9?style=flat-square" alt="macOS用ダウンロード" /></a>
 </p>
 
-# Accomplish™ - オープンソースAIデスクトップエージェント
+# WaIA (旧Accomplish) - オープンソースAIデスクトップエージェント
 
-Accomplishは、お使いのマシン上でローカルにファイル管理、ドキュメント作成、ブラウザタスクを自動化するオープンソースAIデスクトップエージェントです。独自のAPIキー（OpenAI、Anthropic、Google、xAI）を使用するか、Ollama経由でローカルモデルを実行できます。
+WaIAは、お使いのマシン上でローカルにファイル管理、ドキュメント作成、ブラウザタスクを自動化するオープンソースAIデスクトップエージェントです。独自のAPIキー（OpenAI、Anthropic、Google、Z.AI/GLM、xAI）を使用するか、Ollama経由でローカルモデルを実行できます。
 
 <p align="center">
   <strong>お使いのマシン上でローカルに実行。独自のAPIキーまたはローカルモデルを使用。MITライセンス。</strong>
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><strong>Mac用ダウンロード（Apple Silicon）</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/WaIA-0.3.8-mac-arm64.dmg"><strong>Mac用ダウンロード（Apple Silicon）</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe"><strong>Windows 11用ダウンロード</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/WaIA-v2-0.3.8-win-x64.exe"><strong>Windows 11用ダウンロード</strong></a>
   ·
-  <a href="https://www.accomplish.ai/">Accomplishウェブサイト</a>
+  <a href="https://www.waia.ai/">WaIAウェブサイト</a>
   ·
-  <a href="https://www.accomplish.ai/blog/">Accomplishブログ</a>
+  <a href="https://www.waia.ai/blog/">WaIAブログ</a>
   ·
-  <a href="https://github.com/accomplish-ai/accomplish/releases">Accomplishリリース</a>
+  <a href="https://github.com/accomplish-ai/accomplish/releases">WaIAリリース</a>
 </p>
 
 <br />
@@ -52,7 +52,7 @@ Accomplishは、お使いのマシン上でローカルにファイル管理、�
 
 - ファイルはお使いのマシン上に保存
 - アクセスできるフォルダを自分で決定
-- Accomplish（または他の誰か）にデータは送信されません
+- WaIA（または他の誰か）にデータは送信されません
 
 </div>
 

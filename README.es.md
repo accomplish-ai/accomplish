@@ -14,24 +14,24 @@
   <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-0ea5e9?style=flat-square" alt="Descargar para macOS" /></a>
 </p>
 
-# Accomplish™ - Agente de Escritorio de IA de Código Abierto
+# WaIA (anteriormente Accomplish) - Agente de Escritorio de IA de Código Abierto
 
-Accomplish es un agente de escritorio de IA de código abierto que automatiza la gestión de archivos, creación de documentos y tareas del navegador localmente en tu máquina. Usa tus propias claves API (OpenAI, Anthropic, Google, xAI) o ejecuta modelos locales a través de Ollama.
+WaIA es un agente de escritorio de IA de código abierto que automatiza la gestión de archivos, creación de documentos y tareas del navegador localmente en tu máquina. Usa tus propias claves API (OpenAI, Anthropic, Google, Z.AI/GLM, xAI) o ejecuta modelos locales a través de Ollama.
 
 <p align="center">
   <strong>Se ejecuta localmente en tu máquina. Usa tus propias claves API o modelos locales. Licencia MIT.</strong>
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><strong>Descargar para Mac (Apple Silicon)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/WaIA-0.3.8-mac-arm64.dmg"><strong>Descargar para Mac (Apple Silicon)</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe"><strong>Descargar para Windows 11</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/WaIA-v2-0.3.8-win-x64.exe"><strong>Descargar para Windows 11</strong></a>
   ·
-  <a href="https://www.accomplish.ai/">Sitio web de Accomplish</a>
+  <a href="https://www.waia.ai/">Sitio web de WaIA</a>
   ·
-  <a href="https://www.accomplish.ai/blog/">Blog de Accomplish</a>
+  <a href="https://www.waia.ai/blog/">Blog de WaIA</a>
   ·
-  <a href="https://github.com/accomplish-ai/accomplish/releases">Versiones de Accomplish</a>
+  <a href="https://github.com/accomplish-ai/accomplish/releases">Versiones de WaIA</a>
 </p>
 
 <br />
@@ -52,7 +52,7 @@ Accomplish es un agente de escritorio de IA de código abierto que automatiza la
 
 - Tus archivos permanecen en tu máquina
 - Tú decides a qué carpetas puede acceder
-- Nada se envía a Accomplish (ni a nadie más)
+- Nada se envía a WaIA (ni a nadie más)
 
 </div>
 
