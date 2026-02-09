@@ -147,7 +147,7 @@ export function getActiveProvider(settings: ProviderSettings | null | undefined)
 export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
   anthropic: 'anthropic/claude-opus-4-5',
   openai: 'openai/gpt-5.2',
-  google: 'google/gemini-3-pro-preview',
+  google: 'google/gemini-2.5-flash-lite',
   xai: 'xai/grok-4',
   bedrock: 'amazon-bedrock/anthropic.claude-opus-4-5-20251101-v1:0',
   moonshot: 'moonshot/kimi-latest',

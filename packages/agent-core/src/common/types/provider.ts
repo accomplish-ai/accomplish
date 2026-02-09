@@ -218,6 +218,15 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     apiKeyEnvVar: 'GOOGLE_GENERATIVE_AI_API_KEY',
     models: [
       {
+        id: 'gemini-2.5-flash-lite',
+        displayName: 'Gemini 2.5 Flash Lite',
+        provider: 'google',
+        fullId: 'google/gemini-2.5-flash-lite',
+        contextWindow: 1048576,
+        maxOutputTokens: 65535,
+        supportsVision: true,
+      },
+      {
         id: 'gemini-3-pro-preview',
         displayName: 'Gemini 3 Pro',
         provider: 'google',

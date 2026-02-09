@@ -3,7 +3,7 @@
   "version": "0.3.8",
   "private": true,
   "type": "module",
-  "description": "Accomplish Desktop App",
+  "description": "WaIA - AI-powered desktop assistant for enhanced productivity",
   "main": "dist-electron/main/index.js",
   "scripts": {
     "postinstall": "node scripts/postinstall.cjs",
@@ -101,9 +101,9 @@
   "build": {
     "npmRebuild": false,
     "compression": "normal",
-    "appId": "ai.accomplish.desktop",
-    "productName": "Accomplish (formerly Openwork)",
-    "artifactName": "Accomplish-${version}-${os}-${arch}.${ext}",
+    "appId": "ai.waia.desktop",
+    "productName": "WaIA",
+    "artifactName": "WaIA-${version}-${os}-${arch}.${ext}",
     "directories": {
       "output": "release",
       "buildResources": "resources"
@@ -210,7 +210,7 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Accomplish",
+      "shortcutName": "WaIA",
       "runAfterFinish": true,
       "installerIcon": "resources/icon.ico",
       "uninstallerIcon": "resources/icon.ico",

@@ -14,9 +14,9 @@
   <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-0ea5e9?style=flat-square" alt="Download for macOS" /></a>
 </p>
 
-# Accomplish™ (formerly Openwork) - Open Source AI Desktop Agent
+# WaIA (formerly Accomplish) - Open Source AI Desktop Agent
 
-Accomplish is an open source AI desktop agent that automates file management, document creation, and browser tasks locally on your machine. Bring your own API keys (OpenAI, Anthropic, Google, xAI) or run local models via Ollama.
+WaIA is an open source AI desktop agent that automates file management, document creation, and browser tasks locally on your machine. Bring your own API keys (OpenAI, Anthropic, Google, Z.AI/GLM, xAI) or run local models via Ollama.
 
 <p align="center">
   <strong>Runs locally on your machine. Bring your own API keys or local models. MIT licensed.</strong>
