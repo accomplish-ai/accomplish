@@ -11,6 +11,7 @@ import { springs, staggerContainer, staggerItem } from '../lib/animations';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronDown } from 'lucide-react';
 import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // Import use case images for proper bundling in production
 import calendarPrepNotesImg from '/assets/usecases/calendar-prep-notes.png';
@@ -23,62 +24,29 @@ import stockPortfolioAlertsImg from '/assets/usecases/stock-portfolio-alerts.png
 import jobApplicationAutomationImg from '/assets/usecases/job-application-automation.png';
 import eventCalendarBuilderImg from '/assets/usecases/event-calendar-builder.png';
 
-const USE_CASE_EXAMPLES = [
-  {
-    title: 'Calendar Prep Notes',
-    description: 'Review tomorrow\'s meetings and draft a prep notes doc.',
-    prompt: 'Check my Google Calendar for tomorrow\'s meetings and draft preparation notes in a new Google Doc.',
-    image: calendarPrepNotesImg,
-  },
-  {
-    title: 'Inbox Promo Cleanup',
-    description: 'Clear promotional emails from the last 24 hours.',
-    prompt: 'Go to my Gmail inbox and delete all promotional emails from the last 24 hours.',
-    image: inboxPromoCleanupImg,
-  },
-  {
-    title: 'Competitor Pricing Deck',
-    description: 'Analyze competitor pricing and draft a slide with recommendations.',
-    prompt: 'Pull pricing and features from these 5 competitor sites [list URLs], save to a CSV, analyze our pricing gaps, and draft a recommendation slide in Google Slides for Monday\'s meeting.',
-    image: competitorPricingDeckImg,
-  },
-  {
-    title: 'Notion API Audit',
-    description: 'Scan a Notion wiki for old API mentions with direct links.',
-    prompt: 'Read through this Notion wiki at [URL] and find all mentions of the old API, listing them with page links.',
-    image: notionApiAuditImg,
-  },
-  {
-    title: 'Staging vs Prod Visual Check',
-    description: 'Compare staging and production visuals with screenshots.',
-    prompt: 'Compare my staging site at [URL] to production at [URL] and screenshot any visual differences.',
-    image: stagingVsProdVisualImg,
-  },
-  {
-    title: 'Production Broken Links',
-    description: 'Check my website for broken links.',
-    prompt: 'Open [URL], click through every link, and report any 404 errors.',
-    image: prodBrokenLinksImg,
-  },
-  {
-    title: 'Portfolio Monitoring',
-    description: 'Watch stock prices, and alert on drops and spikes.',
-    prompt: 'Monitor my stock portfolio on [broker site], alert on price drops and spikes.',
-    image: stockPortfolioAlertsImg,
-  },
-  {
-    title: 'Job Application Automation',
-    description: 'Filter jobs and submit applications with saved profiles.',
-    prompt: 'Find job listings from Indeed for [query], sort by salary, and apply to the top 5 using my profile.',
-    image: jobApplicationAutomationImg,
-  },
-  {
-    title: 'Event Calendar Builder',
-    description: 'Select top events and add them to the calendar.',
-    prompt: 'Scrape event listings from Eventbrite, filter by location, and add top 5 to my calendar.',
-    image: eventCalendarBuilderImg,
-  },
-];
+const EXAMPLE_KEYS = [
+  'calendarPrepNotes',
+  'inboxPromoCleanup',
+  'competitorPricingDeck',
+  'notionApiAudit',
+  'stagingVsProdVisual',
+  'prodBrokenLinks',
+  'portfolioMonitoring',
+  'jobApplicationAutomation',
+  'eventCalendarBuilder',
+] as const;
+
+const EXAMPLE_IMAGES = {
+  calendarPrepNotes: calendarPrepNotesImg,
+  inboxPromoCleanup: inboxPromoCleanupImg,
+  competitorPricingDeck: competitorPricingDeckImg,
+  notionApiAudit: notionApiAuditImg,
+  stagingVsProdVisual: stagingVsProdVisualImg,
+  prodBrokenLinks: prodBrokenLinksImg,
+  portfolioMonitoring: stockPortfolioAlertsImg,
+  jobApplicationAutomation: jobApplicationAutomationImg,
+  eventCalendarBuilder: eventCalendarBuilderImg,
+} as const;
 
 export default function HomePage() {
   const [prompt, setPrompt] = useState('');
@@ -88,6 +56,16 @@ export default function HomePage() {
   const { startTask, isLoading, addTaskUpdate, setPermissionRequest } = useTaskStore();
   const navigate = useNavigate();
   const accomplish = getAccomplish();
+  const { t } = useTranslation();
+
+  // Build examples with translations
+  const useCaseExamples = EXAMPLE_KEYS.map((key) => ({
+    key,
+    image: EXAMPLE_IMAGES[key],
+    title: t(`home.examples.${key}.title`),
+    description: t(`home.examples.${key}.description`),
+    prompt: t(`home.examples.${key}.prompt`),
+  }));
 
   // Subscribe to task events
   useEffect(() => {
@@ -182,7 +160,7 @@ export default function HomePage() {
           transition={springs.gentle}
           className="text-4xl font-light tracking-tight text-foreground"
         >
-          What will you accomplish today?
+          {t('home.title')}
         </motion.h1>
 
         <motion.div
@@ -199,7 +177,7 @@ export default function HomePage() {
                 onChange={setPrompt}
                 onSubmit={handleSubmit}
                 isLoading={isLoading}
-                placeholder="Describe a task and let AI handle the rest"
+                placeholder={t('home.placeholder')}
                 large={true}
                 autoFocus={true}
                 onOpenSpeechSettings={handleOpenSpeechSettings}
@@ -218,7 +196,7 @@ export default function HomePage() {
                 onClick={() => setShowExamples(!showExamples)}
                 className="w-full px-6 py-3 flex items-center justify-between text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-200"
               >
-                <span>Example prompts</span>
+                <span>{t('home.examplePrompts')}</span>
                 <motion.div
                   animate={{ rotate: showExamples ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
@@ -249,7 +227,7 @@ export default function HomePage() {
                         animate="animate"
                         className="grid grid-cols-3 gap-3"
                       >
-                        {USE_CASE_EXAMPLES.map((example, index) => (
+                        {useCaseExamples.map((example, index) => (
                           <motion.button
                             key={index}
                             data-testid={`home-example-${index}`}

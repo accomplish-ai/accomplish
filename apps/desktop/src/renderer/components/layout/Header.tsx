@@ -14,7 +14,7 @@ export default function Header() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <span className="text-base font-medium text-text">Accomplish</span>
+          <span className="text-base font-medium text-text">WaIA</span>
         </Link>
 
         {/* Navigation */}

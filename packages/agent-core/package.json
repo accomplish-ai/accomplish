@@ -1,7 +1,7 @@
 {
   "name": "@accomplish_ai/agent-core",
   "version": "0.3.1",
-  "description": "Core logic for Accomplish - OpenCode adapter, storage, providers, MCP tools, and skills",
+  "description": "Core logic for WaIA - OpenCode adapter, storage, providers, MCP tools, and skills",
   "type": "module",
   "license": "MIT",
   "repository": {

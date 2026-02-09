@@ -1,11 +1,11 @@
 /**
- * Patches the Electron.app Info.plist to show "Accomplish" instead of "Electron"
+ * Patches the Electron.app Info.plist to show "WaIA" instead of "Electron"
  * in macOS Cmd+Tab and Dock during development.
  */
 const fs = require('fs');
 const path = require('path');
 
-const APP_NAME = 'Accomplish';
+const APP_NAME = 'WaIA';
 
 // Only run on macOS
 if (process.platform !== 'darwin') {

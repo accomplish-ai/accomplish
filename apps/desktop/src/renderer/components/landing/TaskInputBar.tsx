@@ -8,6 +8,7 @@ import { SpeechInputButton } from '../ui/SpeechInputButton';
 import { ModelIndicator } from '../ui/ModelIndicator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PlusMenu } from './PlusMenu';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface TaskInputBarProps {
   value: string;
@@ -45,7 +46,7 @@ export default function TaskInputBar({
   value,
   onChange,
   onSubmit,
-  placeholder = 'Assign a task or ask anything',
+  placeholder,
   isLoading = false,
   disabled = false,
   large = false,
@@ -60,6 +61,10 @@ export default function TaskInputBar({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingAutoSubmitRef = useRef<string | null>(null);
   const accomplish = getAccomplish();
+  const { t } = useTranslation();
+
+  // Use translated placeholder if none provided
+  const finalPlaceholder = placeholder || t('taskInput.placeholder');
 
   // Speech input hook
   const speechInput = useSpeechInput({
@@ -146,7 +151,7 @@ export default function TaskInputBar({
                 className="ml-2 underline hover:no-underline"
                 type="button"
               >
-                Retry
+                {t('buttons.retry')}
               </button>
             )}
           </AlertDescription>
@@ -163,7 +168,7 @@ export default function TaskInputBar({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
+            placeholder={finalPlaceholder}
             disabled={isDisabled || speechInput.isRecording}
             rows={1}
             className="w-full max-h-[160px] resize-none bg-transparent text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
@@ -223,7 +228,7 @@ export default function TaskInputBar({
             }}
             disabled={!value.trim() || isDisabled || speechInput.isRecording}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all duration-200 ease-accomplish hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
-            title="Submit"
+            title={t('taskInput.submit')}
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

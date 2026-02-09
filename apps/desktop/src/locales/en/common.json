@@ -1,0 +1,243 @@
+{
+  "app": {
+    "name": "WaIA",
+    "description": "AI-powered desktop assistant"
+  },
+  "menu": {
+    "file": "File",
+    "edit": "Edit",
+    "view": "View",
+    "help": "Help"
+  },
+  "sidebar": {
+    "newTask": "New Task",
+    "settings": "Settings",
+    "searchTasks": "Search Tasks",
+    "noConversations": "No conversations yet"
+  },
+  "task": {
+    "title": "Task",
+    "description": "Description",
+    "status": "Status",
+    "running": "Running",
+    "queued": "Queued",
+    "completed": "Completed",
+    "error": "Error",
+    "cancelled": "Cancelled"
+  },
+  "buttons": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No",
+    "retry": "Retry",
+    "copy": "Copy",
+    "paste": "Paste"
+  },
+  "messages": {
+    "welcome": "Welcome to WaIA",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Information"
+  },
+  "settings": {
+    "title": "Settings",
+    "aiProvider": "AI Provider",
+    "apiKey": "API Key",
+    "model": "Model",
+    "language": "Language",
+    "theme": "Theme",
+    "debugMode": "Debug Mode",
+    "about": "About",
+    "version": "Version"
+  },
+  "home": {
+    "title": "What will you accomplish today?",
+    "placeholder": "Describe a task and let AI handle the rest",
+    "examplePrompts": "Example prompts",
+    "examples": {
+      "calendarPrepNotes": {
+        "title": "Calendar Prep Notes",
+        "description": "Review tomorrow's meetings and draft a prep notes doc.",
+        "prompt": "Check my Google Calendar for tomorrow's meetings and draft preparation notes in a new Google Doc."
+      },
+      "inboxPromoCleanup": {
+        "title": "Inbox Promo Cleanup",
+        "description": "Clear promotional emails from the last 24 hours.",
+        "prompt": "Go to my Gmail inbox and delete all promotional emails from the last 24 hours."
+      },
+      "competitorPricingDeck": {
+        "title": "Competitor Pricing Deck",
+        "description": "Analyze competitor pricing and draft a slide with recommendations.",
+        "prompt": "Pull pricing and features from these 5 competitor sites [list URLs], save to a CSV, analyze our pricing gaps, and draft a recommendation slide in Google Slides for Monday's meeting."
+      },
+      "notionApiAudit": {
+        "title": "Notion API Audit",
+        "description": "Scan a Notion wiki for old API mentions with direct links.",
+        "prompt": "Read through this Notion wiki at [URL] and find all mentions of the old API, listing them with page links."
+      },
+      "stagingVsProdVisual": {
+        "title": "Staging vs Prod Visual Check",
+        "description": "Compare staging and production visuals with screenshots.",
+        "prompt": "Compare my staging site at [URL] to production at [URL] and screenshot any visual differences."
+      },
+      "prodBrokenLinks": {
+        "title": "Production Broken Links",
+        "description": "Check my website for broken links.",
+        "prompt": "Open [URL], click through every link, and report any 404 errors."
+      },
+      "portfolioMonitoring": {
+        "title": "Portfolio Monitoring",
+        "description": "Watch stock prices, and alert on drops and spikes.",
+        "prompt": "Monitor my stock portfolio on [broker site], alert on price drops and spikes."
+      },
+      "jobApplicationAutomation": {
+        "title": "Job Application Automation",
+        "description": "Filter jobs and submit applications with saved profiles.",
+        "prompt": "Find job listings from Indeed for [query], sort by salary, and apply to the top 5 using my profile."
+      },
+      "eventCalendarBuilder": {
+        "title": "Event Calendar Builder",
+        "description": "Select top events and add them to the calendar.",
+        "prompt": "Scrape event listings from Eventbrite, filter by location, and add top 5 to my calendar."
+      }
+    }
+  },
+  "execution": {
+    "thinking": "Thinking...",
+    "executing": "Executing...",
+    "completed": "Completed",
+    "failed": "Failed",
+    "output": "Output",
+    "logs": "Logs"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Check your internet connection.",
+    "apiError": "API error. Check your credentials.",
+    "fileNotFound": "File not found.",
+    "permissionDenied": "Permission denied."
+  },
+  "taskInput": {
+    "placeholder": "Assign a task or ask anything",
+    "submit": "Submit",
+    "working": "Agent is working...",
+    "speechError": "Speech recognition error",
+    "retry": "Retry"
+  },
+  "execution": {
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "interrupted": "Stopped",
+      "stopped": "Stopped"
+    },
+    "waiting": "Waiting for another task",
+    "waitingDetails": "Your task is queued and will start automatically when the current task completes.",
+    "waitingFollowUp": "Your follow-up will continue automatically",
+    "chromeNotInstalled": "Chrome not installed",
+    "installingBrowser": "Installing browser for automation...",
+    "downloading": "Downloading...",
+    "oneTimeSetup": "One-time setup (~250 MB total)",
+    "firstTaskTakesLonger": "First task takes a bit longer...",
+    "browserDownloadTitle": "Downloading browser",
+    "fileDeletionWarning": "File Deletion Warning",
+    "filesWillBeDeleted": "files will be permanently deleted:",
+    "thisFileWillBeDeleted": "This file will be permanently deleted:",
+    "cannotBeUndone": "This action cannot be undone.",
+    "previewContent": "Preview content",
+    "filePermissionRequired": "File Permission Required",
+    "permissionRequired": "Permission Required",
+    "question": "Question",
+    "allow": "Allow",
+    "deny": "Deny",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleteAll": "Delete All",
+    "submit": "Submit",
+    "continue": "Continue",
+    "doneContinue": "Done, Continue",
+    "giveNewInstructions": "Give new instructions...",
+    "sendNewInstruction": "Send a new instruction to retry...",
+    "askForSomething": "Ask for something...",
+    "startNewTask": "Start New Task",
+    "taskStopped": "Task stopped",
+    "taskCompleted": "Task completed",
+    "taskFailed": "Task failed",
+    "goHome": "Go Home",
+    "stopAgent": "Stop agent (Ctrl+C)",
+    "copyToClipboard": "Copy to clipboard",
+    "export": "Export",
+    "exported": "Exported",
+    "clear": "Clear",
+    "debugLogs": "Debug Logs",
+    "noDebugLogs": "No debug logs yet. Run a task to see logs.",
+    "noLogsMatch": "No logs match your search",
+    "searchLogs": "Search logs... (⌘F)",
+    "system": "System",
+    "processing": "Processing",
+    "tool": "Tool",
+    "enterDifferentOption": "Enter a different option...",
+    "orTypeYourOwn": "or type your own",
+    "nextMatch": "Next match (Enter)",
+    "prevMatch": "Previous match (Shift+Enter)",
+    "allowTool": "Allow {toolName}?",
+    "send": "Send"
+  },
+  "thinking": {
+    "doing": "Doing...",
+    "executing": "Executing...",
+    "running": "Running...",
+    "handling": "Handling it...",
+    "accomplishing": "Accomplishing...",
+    "retried": "Retrying...",
+    "readingFiles": "Reading files",
+    "findingFiles": "Finding files",
+    "searchingCode": "Searching code",
+    "runningCommand": "Running command",
+    "writingFile": "Writing file",
+    "editingFile": "Editing file",
+    "runningAgent": "Running agent",
+    "fetchingWebpage": "Fetching web page",
+    "searchingWeb": "Searching web",
+    "executingBrowserAction": "Executing browser action",
+    "navigating": "Navigating",
+    "readingPage": "Reading page",
+    "clicking": "Clicking",
+    "typing": "Typing",
+    "takingScreenshot": "Taking screenshot",
+    "runningScript": "Running script",
+    "pressingKeys": "Pressing keys",
+    "scrolling": "Scrolling",
+    "hovering": "Hovering",
+    "selectingOption": "Selecting option",
+    "waiting": "Waiting",
+    "managingTabs": "Managing tabs",
+    "gettingPages": "Getting pages",
+    "highlighting": "Highlighting",
+    "browserSequence": "Browser sequence",
+    "uploadingFile": "Uploading file",
+    "dragging": "Dragging",
+    "gettingText": "Getting text",
+    "checkingVisibility": "Checking visibility",
+    "checkingState": "Checking state",
+    "switchingFrame": "Switching frame",
+    "typingInCanvas": "Typing in canvas",
+    "browserActions": "Browser Actions",
+    "requestingPermission": "Requesting permission",
+    "askingQuestion": "Asking question",
+    "completingTask": "Completing task",
+    "thinking": "Thinking",
+    "checkpoint": "Checkpoint",
+    "startingTask": "Starting Task"
+  }
+}

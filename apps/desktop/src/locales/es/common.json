@@ -1,0 +1,243 @@
+{
+  "app": {
+    "name": "WaIA",
+    "description": "Asistente de escritorio potenciado por IA"
+  },
+  "menu": {
+    "file": "Archivo",
+    "edit": "Editar",
+    "view": "Ver",
+    "help": "Ayuda"
+  },
+  "sidebar": {
+    "newTask": "Nueva Tarea",
+    "settings": "Configuración",
+    "searchTasks": "Buscar Tareas",
+    "noConversations": "No hay conversaciones aún"
+  },
+  "task": {
+    "title": "Tarea",
+    "description": "Descripción",
+    "status": "Estado",
+    "running": "Ejecutándose",
+    "queued": "En cola",
+    "completed": "Completada",
+    "error": "Error",
+    "cancelled": "Cancelada"
+  },
+  "buttons": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "ok": "Aceptar",
+    "yes": "Sí",
+    "no": "No",
+    "retry": "Reintentar",
+    "copy": "Copiar",
+    "paste": "Pegar"
+  },
+  "messages": {
+    "welcome": "Bienvenido a WaIA",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "info": "Información"
+  },
+  "settings": {
+    "title": "Configuración",
+    "aiProvider": "Proveedor de IA",
+    "apiKey": "Clave de API",
+    "model": "Modelo",
+    "language": "Idioma",
+    "theme": "Tema",
+    "debugMode": "Modo de depuración",
+    "about": "Acerca de",
+    "version": "Versión"
+  },
+  "home": {
+    "title": "¿Qué lograrás hoy?",
+    "placeholder": "Describe una tarea y deja que la IA se encargue del resto",
+    "examplePrompts": "Ejemplos de prompts",
+    "examples": {
+      "calendarPrepNotes": {
+        "title": "Notas de preparación de calendario",
+        "description": "Revisa las reuniones de mañana y borra un documento de notas de preparación.",
+        "prompt": "Revisa mi Google Calendar para las reuniones de mañana y borra notas de preparación en un nuevo Google Doc."
+      },
+      "inboxPromoCleanup": {
+        "title": "Limpieza de correos promocionales",
+        "description": "Elimina correos electrónicos promocionales de las últimas 24 horas.",
+        "prompt": "Ve a mi bandeja de entrada de Gmail y elimina todos los correos promocionales de las últimas 24 horas."
+      },
+      "competitorPricingDeck": {
+        "title": "Análisis de precios de competidores",
+        "description": "Analiza precios de competidores y prepara una diapositiva con recomendaciones.",
+        "prompt": "Obtén precios y características de estos 5 sitios de competidores [lista URLs], guárdalos en un CSV, analiza nuestras brechas de precios y prepara una diapositiva de recomendación en Google Slides para la reunión del lunes."
+      },
+      "notionApiAudit": {
+        "title": "Auditoría de API en Notion",
+        "description": "Escanea una wiki de Notion buscando menciones de la API antigua con enlaces directos.",
+        "prompt": "Lee esta wiki de Notion en [URL] y encuentra todas las menciones de la API antigua, listándolas con enlaces a las páginas."
+      },
+      "stagingVsProdVisual": {
+        "title": "Verificación visual de staging vs producción",
+        "description": "Compara visuales de staging y producción con capturas de pantalla.",
+        "prompt": "Compara mi sitio de staging en [URL] con producción en [URL] y captura cualquier diferencia visual."
+      },
+      "prodBrokenLinks": {
+        "title": "Enlaces rotos en producción",
+        "description": "Verifica si hay enlaces rotos en mi sitio web.",
+        "prompt": "Abre [URL], haz clic en cada enlace y reporta cualquier error 404."
+      },
+      "portfolioMonitoring": {
+        "title": "Monitoreo de portafolio",
+        "description": "Observa precios de acciones y alerta sobre caídas y picos.",
+        "prompt": "Monitorea mi portafolio de acciones en [sitio del bróker], alerta sobre caídas y picos de precios."
+      },
+      "jobApplicationAutomation": {
+        "title": "Automatización de solicitudes de empleo",
+        "description": "Filtra trabajos y envía solicitudes con perfiles guardados.",
+        "prompt": "Busca listados de empleo en Indeed para [consulta], ordena por salario y solicita los 5 mejores usando mi perfil."
+      },
+      "eventCalendarBuilder": {
+        "title": "Constructor de calendario de eventos",
+        "description": "Selecciona los mejores eventos y agrégalos al calendario.",
+        "prompt": "Extrae listados de eventos de Eventbrite, filtra por ubicación y agrega los 5 mejores a mi calendario."
+      }
+    }
+  },
+  "execution": {
+    "thinking": "Pensando...",
+    "executing": "Ejecutando...",
+    "completed": "Completado",
+    "failed": "Falló",
+    "output": "Salida",
+    "logs": "Registros"
+  },
+  "errors": {
+    "generic": "Algo salió mal. Por favor intenta de nuevo.",
+    "network": "Error de conexión. Verifica tu internet.",
+    "apiError": "Error de API. Verifica tus credenciales.",
+    "fileNotFound": "Archivo no encontrado.",
+    "permissionDenied": "Permiso denegado."
+  },
+  "taskInput": {
+    "placeholder": "Asigna una tarea o pregunta cualquier cosa",
+    "submit": "Enviar",
+    "working": "El agente está trabajando...",
+    "speechError": "Error en el reconocimiento de voz",
+    "retry": "Reintentar"
+  },
+  "execution": {
+    "status": {
+      "queued": "En cola",
+      "running": "Ejecutándose",
+      "completed": "Completado",
+      "failed": "Falló",
+      "cancelled": "Cancelado",
+      "interrupted": "Detenido",
+      "stopped": "Detenido"
+    },
+    "waiting": "Esperando otra tarea",
+    "waitingDetails": "Tu tarea está en cola y comenzará automáticamente cuando se complete la tarea actual.",
+    "waitingFollowUp": "Tu continuación será automática",
+    "chromeNotInstalled": "Chrome no está instalado",
+    "installingBrowser": "Instalando navegador para automatización...",
+    "downloading": "Descargando...",
+    "oneTimeSetup": "Configuración única (~250 MB total)",
+    "firstTaskTakesLonger": "La primera tarea tarda un poco más...",
+    "browserDownloadTitle": "Descargando navegador",
+    "fileDeletionWarning": "Advertencia de eliminación de archivo",
+    "filesWillBeDeleted": "archivos serán eliminados permanentemente:",
+    "thisFileWillBeDeleted": "Este archivo será eliminado permanentemente:",
+    "cannotBeUndone": "Esta acción no se puede deshacer.",
+    "previewContent": "Vista previa del contenido",
+    "filePermissionRequired": "Permiso de archivo requerido",
+    "permissionRequired": "Permiso requerido",
+    "question": "Pregunta",
+    "allow": "Permitir",
+    "deny": "Denegar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "deleteAll": "Eliminar todo",
+    "submit": "Enviar",
+    "continue": "Continuar",
+    "doneContinue": "Listo, Continuar",
+    "giveNewInstructions": "Da nuevas instrucciones...",
+    "sendNewInstruction": "Envía una nueva instrucción para reintentar...",
+    "askForSomething": "Pide algo...",
+    "startNewTask": "Iniciar nueva tarea",
+    "taskStopped": "Tarea detenida",
+    "taskCompleted": "Tarea completada",
+    "taskFailed": "Tarea fallida",
+    "goHome": "Ir al inicio",
+    "stopAgent": "Detener agente (Ctrl+C)",
+    "copyToClipboard": "Copiar al portapapeles",
+    "export": "Exportar",
+    "exported": "Exportado",
+    "clear": "Limpiar",
+    "debugLogs": "Registros de depuración",
+    "noDebugLogs": "No hay registros de depuración aún. Ejecuta una tarea para ver los registros.",
+    "noLogsMatch": "No hay registros que coincidan con tu búsqueda",
+    "searchLogs": "Buscar registros... (⌘F)",
+    "system": "Sistema",
+    "processing": "Procesando",
+    "tool": "Herramienta",
+    "enterDifferentOption": "Ingresa una opción diferente...",
+    "orTypeYourOwn": "o escribe la tuya",
+    "nextMatch": "Siguiente coincidencia (Enter)",
+    "prevMatch": "Coincidencia anterior (Shift+Enter)",
+    "allowTool": "¿Permitir {toolName}?",
+    "send": "Enviar"
+  },
+  "thinking": {
+    "doing": "Haciendo...",
+    "executing": "Ejecutando...",
+    "running": "Ejecutando...",
+    "handling": "Procesando...",
+    "accomplishing": "Logrando...",
+    "retried": "Reintentando...",
+    "readingFiles": "Leyendo archivos",
+    "findingFiles": "Buscando archivos",
+    "searchingCode": "Buscando código",
+    "runningCommand": "Ejecutando comando",
+    "writingFile": "Escribiendo archivo",
+    "editingFile": "Editando archivo",
+    "runningAgent": "Ejecutando agente",
+    "fetchingWebpage": "Obteniendo página web",
+    "searchingWeb": "Buscando en la web",
+    "executingBrowserAction": "Ejecutando acción de navegador",
+    "navigating": "Navegando",
+    "readingPage": "Leyendo página",
+    "clicking": "Haciendo clic",
+    "typing": "Escribiendo",
+    "takingScreenshot": "Tomando captura de pantalla",
+    "runningScript": "Ejecutando script",
+    "pressingKeys": "Presionando teclas",
+    "scrolling": "Desplazando",
+    "hovering": "Pasando el cursor",
+    "selectingOption": "Seleccionando opción",
+    "waiting": "Esperando",
+    "managingTabs": "Gestionando pestañas",
+    "gettingPages": "Obteniendo páginas",
+    "highlighting": "Resaltando",
+    "browserSequence": "Secuencia de navegador",
+    "uploadingFile": "Subiendo archivo",
+    "dragging": "Arrastrando",
+    "gettingText": "Obteniendo texto",
+    "checkingVisibility": "Verificando visibilidad",
+    "checkingState": "Verificando estado",
+    "switchingFrame": "Cambiando marco",
+    "typingInCanvas": "Escribiendo en lienzo",
+    "browserActions": "Acciones de navegador",
+    "requestingPermission": "Solicitando permiso",
+    "askingQuestion": "Haciendo pregunta",
+    "completingTask": "Completando tarea",
+    "thinking": "Pensando",
+    "checkpoint": "Punto de control",
+    "startingTask": "Iniciando tarea"
+  }
+}

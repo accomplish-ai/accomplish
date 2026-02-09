@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import { app, BrowserWindow, shell, ipcMain, nativeImage, dialog } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, nativeImage, dialog, Menu } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -8,10 +8,11 @@ const APP_DATA_NAME = 'Accomplish';
 app.setPath('userData', path.join(app.getPath('appData'), APP_DATA_NAME));
 
 if (process.platform === 'win32') {
-  app.setAppUserModelId('ai.accomplish.desktop');
+  app.setAppUserModelId('ai.waia.desktop');
 }
 
 import { registerIPCHandlers } from './ipc/handlers';
+import { buildMenu } from './menu';
 import {
   FutureSchemaError,
 } from '@accomplish_ai/agent-core';
@@ -48,7 +49,7 @@ if (process.env.CLEAN_START === '1') {
   }
 }
 
-app.setName('Accomplish');
+app.setName('WaIA');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -89,7 +90,7 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    title: 'Accomplish',
+    title: 'WaIA',
     icon: icon.isEmpty() ? undefined : icon,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     trafficLightPosition: { x: 16, y: 16 },
@@ -192,8 +193,8 @@ if (!gotTheLock) {
         await dialog.showMessageBox({
           type: 'error',
           title: 'Update Required',
-          message: `This data was created by a newer version of Accomplish (schema v${err.storedVersion}).`,
-          detail: `Your app supports up to schema v${err.appVersion}. Please update Accomplish to continue.`,
+          message: `This data was created by a newer version of WaIA (schema v${err.storedVersion}).`,
+          detail: `Your app supports up to schema v${err.appVersion}. Please update WaIA to continue.`,
           buttons: ['Quit'],
         });
         app.quit();
@@ -235,6 +236,11 @@ if (!gotTheLock) {
 
     registerIPCHandlers();
     console.log('[Main] IPC handlers registered');
+
+    // Build and set application menu with Spanish labels
+    const menu = buildMenu();
+    Menu.setApplicationMenu(menu);
+    console.log('[Main] Application menu set');
 
     createWindow();
 

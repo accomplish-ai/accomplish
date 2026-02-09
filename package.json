@@ -2,8 +2,8 @@
   "name": "accomplish",
   "version": "0.1.0",
   "private": true,
-  "description": "The open source AI coworker that lives on your desktop",
-  "author": "Accomplish Inc",
+  "description": "WaIA - The AI-powered desktop assistant that lives on your machine",
+  "author": "WaIA Team",
   "license": "MIT",
   "repository": {
     "type": "git",

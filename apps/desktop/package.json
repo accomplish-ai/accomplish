@@ -3,7 +3,7 @@
   "version": "0.3.8",
   "private": true,
   "type": "module",
-  "description": "Accomplish Desktop App",
+  "description": "WaIA - AI-powered desktop assistant for enhanced productivity",
   "main": "dist-electron/main/index.js",
   "scripts": {
     "postinstall": "node scripts/postinstall.cjs",
@@ -18,6 +18,8 @@
     "release:mac": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --mac --publish always",
     "package:win": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --win --x64 --publish never",
     "release:win": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --win --x64 --publish always",
+    "package:linux": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --linux --publish never",
+    "release:linux": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --linux --publish always",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
@@ -60,11 +62,13 @@
     "electron-store": "^8.2.0",
     "framer-motion": "^12.26.2",
     "gray-matter": "^4.0.3",
+    "i18next": "^25.8.4",
     "lucide-react": "^0.454.0",
     "node-pty": "^1.1.0",
     "opencode-ai": "1.1.16",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-i18next": "^16.5.4",
     "react-markdown": "^9.0.1",
     "react-router-dom": "^7.1.1",
     "tailwind-merge": "^3.3.1",
@@ -101,9 +105,9 @@
   "build": {
     "npmRebuild": false,
     "compression": "normal",
-    "appId": "ai.accomplish.desktop",
-    "productName": "Accomplish (formerly Openwork)",
-    "artifactName": "Accomplish-${version}-${os}-${arch}.${ext}",
+    "appId": "ai.waia.desktop",
+    "productName": "WaIA",
+    "artifactName": "WaIA-${version}-${os}-${arch}.${ext}",
     "directories": {
       "output": "release",
       "buildResources": "resources"
@@ -204,13 +208,26 @@
       ],
       "icon": "resources/icon.ico"
     },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "resources/icon.png",
+      "category": "Utility;Productivity;Development;",
+      "desktop": {
+        "Name": "WaIA",
+        "Comment": "Asistente de escritorio potenciado por IA",
+        "Keywords": "AI;Assistant;Productivity;WaIA;",
+        "StartupWMClass": "WaIA"
+      }
+    },
     "nsis": {
       "oneClick": true,
       "perMachine": false,
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Accomplish",
+      "shortcutName": "WaIA",
       "runAfterFinish": true,
       "installerIcon": "resources/icon.ico",
       "uninstallerIcon": "resources/icon.ico",

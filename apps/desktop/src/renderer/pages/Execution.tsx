@@ -37,7 +37,7 @@ interface DebugLogEntry {
   data?: unknown;
 }
 
-// Spinning Accomplish icon component
+// Spinning WaIA icon component
 const SpinningIcon = ({ className }: { className?: string }) => (
   <img
     src={loadingSymbol}

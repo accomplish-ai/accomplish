@@ -65,7 +65,7 @@ const { openLauncher, authError, clearAuthError } = useTaskStore();
     const checkStatus = async () => {
       // Check if running in Electron
       if (!isRunningInElectron()) {
-        setErrorMessage('This application must be run inside the Accomplish desktop app.');
+        setErrorMessage('This application must be run inside the WaIA desktop app.');
         setStatus('error');
         return;
       }

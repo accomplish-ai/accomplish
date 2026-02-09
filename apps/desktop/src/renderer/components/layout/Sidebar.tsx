@@ -12,12 +12,14 @@ import ConversationListItem from './ConversationListItem';
 import SettingsDialog from './SettingsDialog';
 import { Settings, MessageSquarePlus, Search } from 'lucide-react';
 import logoImage from '/assets/logo-1.png';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Sidebar() {
   const navigate = useNavigate();
   const [showSettings, setShowSettings] = useState(false);
   const { tasks, loadTasks, updateTaskStatus, addTaskUpdate, openLauncher } = useTaskStore();
   const accomplish = getAccomplish();
+  const { t } = useTranslation();
 
   useEffect(() => {
     loadTasks();
@@ -55,17 +57,17 @@ export default function Sidebar() {
             variant="default"
             size="sm"
             className="flex-1 justify-center gap-2"
-            title="New Task"
+            title={t('sidebar.newTask')}
           >
             <MessageSquarePlus className="h-4 w-4" />
-            New Task
+            {t('sidebar.newTask')}
           </Button>
           <Button
             onClick={openLauncher}
             variant="outline"
             size="sm"
             className="px-2"
-            title="Search Tasks (⌘K)"
+            title={t('sidebar.searchTasks')}
           >
             <Search className="h-4 w-4" />
           </Button>
@@ -83,7 +85,7 @@ export default function Sidebar() {
                   exit={{ opacity: 0 }}
                   className="px-3 py-8 text-center text-sm text-muted-foreground"
                 >
-                  No conversations yet
+                  {t('sidebar.noConversations')}
                 </motion.div>
               ) : (
                 <motion.div
@@ -108,7 +110,7 @@ export default function Sidebar() {
           <div className="flex items-center">
             <img
               src={logoImage}
-              alt="Accomplish"
+              alt={t('app.name')}
               style={{ height: '20px', paddingLeft: '6px' }}
             />
           </div>
@@ -119,7 +121,7 @@ export default function Sidebar() {
             variant="ghost"
             size="icon"
             onClick={() => setShowSettings(true)}
-            title="Settings"
+            title={t('sidebar.settings')}
           >
             <Settings className="h-4 w-4" />
           </Button>
