@@ -1,5 +1,11 @@
 # @accomplish_ai/agent-core
 
+## 0.2.2
+
+### Patch Changes
+
+- 0287432: Include server.cjs launcher files in published npm package by adding `mcp-tools/*/*.cjs` to the files field
+
 ## 0.2.1
 
 ### Patch Changes
