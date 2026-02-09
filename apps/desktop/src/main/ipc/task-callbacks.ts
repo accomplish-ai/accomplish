@@ -9,7 +9,7 @@ import { mapResultToStatus } from '@accomplish_ai/agent-core';
 import { getTaskManager } from '../opencode';
 import type { TaskCallbacks } from '../opencode';
 import { getStorage } from '../store/storage';
-import { translateFromEnglish } from '../services/translationService';
+import { translateFromEnglish, clearTaskLanguage } from '../services/translationService';
 import { getLanguage as getI18nLanguage } from '../i18n';
 
 // Human-readable tool display names per language.
@@ -247,6 +247,8 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
       if (result.status === 'success') {
         storage.clearTodosForTask(taskId);
       }
+
+      clearTaskLanguage(taskId);
     },
 
     onError: (error: Error) => {
@@ -257,6 +259,7 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
       });
 
       storage.updateTaskStatus(taskId, 'failed', new Date().toISOString());
+      clearTaskLanguage(taskId);
     },
 
     onDebug: (log: { type: string; message: string; data?: unknown }) => {
