@@ -26,7 +26,7 @@ interface TaskInputBarProps {
   /**
    * Called when user wants to open settings (e.g., from "Manage Skills")
    */
-  onOpenSettings?: (tab: 'providers' | 'voice' | 'skills') => void;
+  onOpenSettings?: (tab: 'providers' | 'voice' | 'skills' | 'connectors') => void;
   /**
    * Called when user wants to open settings to change model
    */

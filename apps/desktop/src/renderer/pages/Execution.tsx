@@ -198,7 +198,7 @@ export default function ExecutionPage() {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [customResponse, setCustomResponse] = useState('');
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [settingsInitialTab, setSettingsInitialTab] = useState<'providers' | 'voice' | 'skills'>('providers');
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'providers' | 'voice' | 'skills' | 'connectors'>('providers');
   const [pendingFollowUp, setPendingFollowUp] = useState<string | null>(null);
   const pendingSpeechFollowUpRef = useRef<string | null>(null);
 

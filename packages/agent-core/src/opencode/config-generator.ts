@@ -39,6 +39,13 @@ export interface ConfigGeneratorOptions {
   enabledProviders?: string[];
   /** Browser configuration. Defaults to { mode: 'builtin' } */
   browser?: BrowserConfig;
+  /** Connected MCP remote servers with OAuth access tokens */
+  connectors?: Array<{
+    id: string;
+    name: string;
+    url: string;
+    accessToken: string;
+  }>;
 }
 
 export interface ProviderConfig {
@@ -71,6 +78,7 @@ interface McpServerConfig {
   type?: 'local' | 'remote';
   command?: string[];
   url?: string;
+  headers?: Record<string, string>;
   enabled?: boolean;
   environment?: Record<string, string>;
   timeout?: number;
@@ -465,6 +473,26 @@ Use empty array [] if no skills apply to your task.
       ...(Object.keys(browserEnv).length > 0 && { environment: browserEnv }),
       timeout: 30000,
     };
+  }
+
+  // Add connected MCP connectors as remote servers
+  if (options.connectors) {
+    for (const connector of options.connectors) {
+      // Use short sanitized name as key to keep tool names under 64 chars
+      const sanitized = connector.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 20);
+      const key = sanitized || 'mcp-remote';
+      mcpServers[key] = {
+        type: 'remote',
+        url: connector.url,
+        headers: { Authorization: `Bearer ${connector.accessToken}` },
+        enabled: true,
+      };
+    }
   }
 
   // Fill browser-specific template sections based on mode
