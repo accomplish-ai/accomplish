@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       languages:
-        description: 'Languages to sync (comma-separated: zh-CN or "all")'
+        description: 'Language codes to sync (comma-separated, e.g. "zh-CN" or "all")'
         required: false
         default: 'all'
         type: string
@@ -61,7 +61,7 @@ jobs:
             IFS=',' read -ra LANGS <<< "${{ github.event.inputs.languages }}"
             for lang in "${LANGS[@]}"; do
               echo "Syncing $lang..."
-              pnpm i18n:sync:${lang}
+              pnpm i18n:sync -- "$lang"
             done
           fi
 
