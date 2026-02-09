@@ -18,6 +18,8 @@
     "release:mac": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --mac --publish always",
     "package:win": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --win --x64 --publish never",
     "release:win": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --win --x64 --publish always",
+    "package:linux": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --linux --publish never",
+    "release:linux": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --linux --publish always",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
@@ -205,6 +207,19 @@
         "nsis"
       ],
       "icon": "resources/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "resources/icon.png",
+      "category": "Utility;Productivity;Development;",
+      "desktop": {
+        "Name": "WaIA",
+        "Comment": "Asistente de escritorio potenciado por IA",
+        "Keywords": "AI;Assistant;Productivity;WaIA;",
+        "StartupWMClass": "WaIA"
+      }
     },
     "nsis": {
       "oneClick": true,
