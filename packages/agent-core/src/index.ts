@@ -111,6 +111,8 @@ export {
   ACCOMPLISH_AGENT_NAME,
 } from './opencode/config-generator.js';
 
+export type { BrowserConfig } from './opencode/config-generator.js';
+
 export { buildOpenCodeEnvironment } from './opencode/environment.js';
 
 export type { EnvironmentConfig } from './opencode/environment.js';

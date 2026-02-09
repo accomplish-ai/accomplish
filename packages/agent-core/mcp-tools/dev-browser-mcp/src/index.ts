@@ -13,14 +13,22 @@ import {
   ListToolsRequestSchema,
   type CallToolResult,
 } from '@modelcontextprotocol/sdk/types.js';
-import { chromium, type Browser, type Page, type ElementHandle } from 'playwright';
+import { type Page, type ElementHandle } from 'playwright';
 import { getSnapshotManager, resetSnapshotManager } from './snapshot/index.js';
+import {
+  configureFromEnv,
+  ensureConnected as ensureConnectedRaw,
+  getPage as getPageRaw,
+  listPages,
+  closePage,
+  getFullPageName,
+  getConnectionMode,
+} from './connection.js';
 
 console.error('[dev-browser-mcp] All imports completed successfully');
 
-const DEV_BROWSER_PORT = parseInt(process.env.DEV_BROWSER_PORT || '9224', 10);
-const DEV_BROWSER_URL = `http://localhost:${DEV_BROWSER_PORT}`;
-const TASK_ID = process.env.ACCOMPLISH_TASK_ID || 'default';
+const connectionConfig = configureFromEnv();
+const TASK_ID = connectionConfig.taskId;
 
 function toAIFriendlyError(error: unknown, selector: string): Error {
   const message = error instanceof Error ? error.message : String(error);
@@ -77,9 +85,6 @@ function toAIFriendlyError(error: unknown, selector: string): Error {
   );
 }
 
-let browser: Browser | null = null;
-let connectingPromise: Promise<Browser> | null = null;
-let cachedServerMode: string | null = null;
 let activePageOverride: Page | null = null;
 let glowingPage: Page | null = null;
 const pagesWithGlowListeners = new WeakSet<Page>();
@@ -192,128 +197,41 @@ async function removeActiveTabGlow(page: Page): Promise<void> {
   }
 }
 
-async function fetchWithRetry(
-  url: string,
-  options?: RequestInit,
-  maxRetries = 3,
-  baseDelayMs = 100
-): Promise<Response> {
-  let lastError: Error | null = null;
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const res = await fetch(url, options);
-      return res;
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-      const isConnectionError = lastError.message.includes('fetch failed') ||
-        lastError.message.includes('ECONNREFUSED') ||
-        lastError.message.includes('socket') ||
-        lastError.message.includes('UND_ERR');
-      if (!isConnectionError || i >= maxRetries - 1) {
-        throw lastError;
-      }
-      const delay = baseDelayMs * Math.pow(2, i) + Math.random() * 50;
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-  throw lastError || new Error('fetchWithRetry failed');
-}
+let glowInitialized = false;
 
-async function ensureConnected(): Promise<Browser> {
-  if (browser && browser.isConnected()) {
-    return browser;
-  }
+async function ensureConnected() {
+  const b = await ensureConnectedRaw();
 
-  if (connectingPromise) {
-    return connectingPromise;
-  }
-
-  connectingPromise = (async () => {
-    try {
-      const res = await fetchWithRetry(DEV_BROWSER_URL);
-      if (!res.ok) {
-        throw new Error(`Server returned ${res.status}: ${await res.text()}`);
-      }
-      const info = await res.json() as { wsEndpoint: string; mode?: string };
-      cachedServerMode = info.mode || 'normal';
-      browser = await chromium.connectOverCDP(info.wsEndpoint);
-
-      for (const context of browser.contexts()) {
-        context.on('page', async (page) => {
-          console.error('[dev-browser-mcp] New page detected, injecting glow immediately...');
-          setTimeout(async () => {
-            try {
-              if (!page.isClosed()) {
-                await injectActiveTabGlow(page);
-                console.error('[dev-browser-mcp] Glow injected on new page');
-              }
-            } catch (err) {
-              console.error('[dev-browser-mcp] Failed to inject glow on new page:', err);
-            }
-          }, 100);
-        });
-
-        for (const page of context.pages()) {
-          if (!page.isClosed() && !glowingPage) {
-            try {
-              await injectActiveTabGlow(page);
-            } catch (err) {
-              console.error('[dev-browser-mcp] Failed to inject glow on existing page:', err);
-            }
-          }
-        }
-      }
-
-      return browser;
-    } finally {
-      connectingPromise = null;
-    }
-  })();
-
-  return connectingPromise;
-}
-
-function getFullPageName(pageName?: string): string {
-  const name = pageName || 'main';
-  return `${TASK_ID}-${name}`;
-}
-
-async function findPageByTargetId(b: Browser, targetId: string): Promise<Page | null> {
-  for (const context of b.contexts()) {
-    for (const page of context.pages()) {
-      let cdpSession;
-      try {
-        cdpSession = await context.newCDPSession(page);
-        const { targetInfo } = await cdpSession.send('Target.getTargetInfo');
-        if (targetInfo.targetId === targetId) {
-          return page;
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (!msg.includes('Target closed') && !msg.includes('Session closed')) {
-          console.warn(`Unexpected error checking page target: ${msg}`);
-        }
-      } finally {
-        if (cdpSession) {
+  if (!glowInitialized && getConnectionMode() === 'builtin') {
+    glowInitialized = true;
+    for (const context of b.contexts()) {
+      context.on('page', async (page) => {
+        console.error('[dev-browser-mcp] New page detected, injecting glow immediately...');
+        setTimeout(async () => {
           try {
-            await cdpSession.detach();
-          } catch {
+            if (!page.isClosed()) {
+              await injectActiveTabGlow(page);
+              console.error('[dev-browser-mcp] Glow injected on new page');
+            }
+          } catch (err) {
+            console.error('[dev-browser-mcp] Failed to inject glow on new page:', err);
+          }
+        }, 100);
+      });
+
+      for (const page of context.pages()) {
+        if (!page.isClosed() && !glowingPage) {
+          try {
+            await injectActiveTabGlow(page);
+          } catch (err) {
+            console.error('[dev-browser-mcp] Failed to inject glow on existing page:', err);
           }
         }
       }
     }
   }
-  return null;
-}
 
-interface GetPageRequest {
-  name: string;
-  viewport?: { width: number; height: number };
-}
-
-interface GetPageResponse {
-  targetId: string;
-  url?: string;
+  return b;
 }
 
 async function getPage(pageName?: string): Promise<Page> {
@@ -324,48 +242,7 @@ async function getPage(pageName?: string): Promise<Page> {
     activePageOverride = null;
   }
 
-  const fullName = getFullPageName(pageName);
-
-  const res = await fetchWithRetry(`${DEV_BROWSER_URL}/pages`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: fullName } satisfies GetPageRequest),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to get page: ${await res.text()}`);
-  }
-
-  const pageInfo = await res.json() as GetPageResponse;
-  const { targetId } = pageInfo;
-
-  const b = await ensureConnected();
-
-  const isExtensionMode = cachedServerMode === 'extension';
-
-  if (isExtensionMode) {
-    const allPages = b.contexts().flatMap((ctx) => ctx.pages());
-    if (allPages.length === 0) {
-      throw new Error('No pages available in browser');
-    }
-    if (allPages.length === 1) {
-      return allPages[0]!;
-    }
-    if (pageInfo.url) {
-      const matchingPage = allPages.find((p) => p.url() === pageInfo.url);
-      if (matchingPage) {
-        return matchingPage;
-      }
-    }
-    return allPages[0]!;
-  }
-
-  const page = await findPageByTargetId(b, targetId);
-  if (!page) {
-    throw new Error(`Page "${fullName}" not found in browser contexts`);
-  }
-
-  return page;
+  return getPageRaw(pageName);
 }
 
 async function waitForPageLoad(page: Page, timeout = 3000): Promise<void> {
@@ -2657,14 +2534,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         const { action, page_name } = args as BrowserPagesInput;
 
         if (action === 'list') {
-          const res = await fetchWithRetry(`${DEV_BROWSER_URL}/pages`);
-          const data = await res.json() as { pages: string[] };
-
-          const taskPrefix = `${TASK_ID}-`;
-          const taskPages = data.pages
-            .filter(name => name.startsWith(taskPrefix))
-            .map(name => name.substring(taskPrefix.length));
-
+          const taskPages = await listPages();
           return {
             content: [{
               type: 'text',
@@ -2681,14 +2551,10 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             };
           }
 
-          const fullName = getFullPageName(page_name);
-          const res = await fetchWithRetry(`${DEV_BROWSER_URL}/pages/${encodeURIComponent(fullName)}`, {
-            method: 'DELETE',
-          });
-
-          if (!res.ok) {
+          const closed = await closePage(page_name);
+          if (!closed) {
             return {
-              content: [{ type: 'text', text: `Error: Failed to close page: ${await res.text()}` }],
+              content: [{ type: 'text', text: `Error: Page "${page_name}" not found` }],
               isError: true,
             };
           }
