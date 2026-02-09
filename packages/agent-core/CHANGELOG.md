@@ -1,5 +1,11 @@
 # @accomplish_ai/agent-core
 
+## 0.3.0
+
+### Minor Changes
+
+- ed82a03: Add `BrowserConfig` option to config-generator with three modes: `builtin` (default, existing behavior), `remote` (connect to any CDP endpoint), and `none` (disable browser tools). Extract connection logic from dev-browser-mcp into a dedicated module with switchable strategies.
+
 ## 0.2.2
 
 ### Patch Changes
