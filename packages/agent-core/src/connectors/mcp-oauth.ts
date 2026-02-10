@@ -1,13 +1,21 @@
 import crypto from 'crypto';
 import type { OAuthTokens, OAuthMetadata, OAuthClientRegistration } from '../common/types/connector.js';
 
+const OAUTH_FETCH_TIMEOUT_MS = 30_000;
+
+function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), OAUTH_FETCH_TIMEOUT_MS);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+}
+
 /**
  * Discover OAuth 2.0 authorization server metadata from an MCP server URL.
  * Fetches from {serverUrl}/.well-known/oauth-authorization-server
  */
 export async function discoverOAuthMetadata(serverUrl: string): Promise<OAuthMetadata> {
   const url = new URL('/.well-known/oauth-authorization-server', serverUrl);
-  const response = await fetch(url.toString(), {
+  const response = await fetchWithTimeout(url.toString(), {
     method: 'GET',
     headers: { Accept: 'application/json' },
   });
@@ -50,7 +58,7 @@ export async function registerOAuthClient(
     throw new Error('OAuth server does not support dynamic client registration');
   }
 
-  const response = await fetch(metadata.registrationEndpoint, {
+  const response = await fetchWithTimeout(metadata.registrationEndpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -88,10 +96,7 @@ export async function registerOAuthClient(
 export function generatePkceChallenge(): { codeVerifier: string; codeChallenge: string } {
   // Generate a random 43-character code verifier (base64url-encoded 32 bytes)
   const verifierBytes = crypto.randomBytes(32);
-  const codeVerifier = verifierBytes
-    .toString('base64url')
-    .replace(/[^a-zA-Z0-9\-._~]/g, '')
-    .slice(0, 128);
+  const codeVerifier = verifierBytes.toString('base64url');
 
   // S256: SHA-256 hash of the verifier, base64url-encoded
   const hash = crypto.createHash('sha256').update(codeVerifier).digest();
@@ -147,7 +152,7 @@ export async function exchangeCodeForTokens(params: {
     body.set('client_secret', params.clientSecret);
   }
 
-  const response = await fetch(params.tokenEndpoint, {
+  const response = await fetchWithTimeout(params.tokenEndpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
@@ -197,7 +202,7 @@ export async function refreshAccessToken(params: {
     body.set('client_secret', params.clientSecret);
   }
 
-  const response = await fetch(params.tokenEndpoint, {
+  const response = await fetchWithTimeout(params.tokenEndpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),

@@ -73,7 +73,11 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     if (connector.status !== 'connected') continue;
 
     let tokens = storage.getConnectorTokens(connector.id);
-    if (!tokens?.accessToken) continue;
+    if (!tokens?.accessToken) {
+      console.warn(`[Connectors] Missing access token for ${connector.name}`);
+      storage.setConnectorStatus(connector.id, 'error');
+      continue;
+    }
 
     // Refresh token if expired
     if (isTokenExpired(tokens)) {

@@ -1127,11 +1127,13 @@ export function registerIPCHandlers(): void {
 
     // 5. Store pending flow state
     const state = crypto.randomUUID();
+    cleanupExpiredOAuthFlows();
     pendingOAuthFlows.set(state, {
       connectorId,
       codeVerifier: pkce.codeVerifier,
       metadata,
       clientRegistration: clientReg,
+      createdAt: Date.now(),
     });
 
     // 6. Build authorization URL and open in browser
@@ -1150,6 +1152,7 @@ export function registerIPCHandlers(): void {
   });
 
   handle('connectors:complete-oauth', async (_event, state: string, code: string) => {
+    cleanupExpiredOAuthFlows();
     const flow = pendingOAuthFlows.get(state);
     if (!flow) throw new Error('No pending OAuth flow for this state');
     pendingOAuthFlows.delete(state);
@@ -1188,6 +1191,8 @@ export function registerIPCHandlers(): void {
 }
 
 // In-memory store for pending OAuth flows (keyed by state parameter)
+const OAUTH_FLOW_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
 const pendingOAuthFlows = new Map<
   string,
   {
@@ -1195,5 +1200,15 @@ const pendingOAuthFlows = new Map<
     codeVerifier: string;
     metadata: OAuthMetadata;
     clientRegistration: OAuthClientRegistration;
+    createdAt: number;
   }
 >();
+
+function cleanupExpiredOAuthFlows(): void {
+  const now = Date.now();
+  for (const [state, flow] of pendingOAuthFlows) {
+    if (now - flow.createdAt > OAUTH_FLOW_TTL_MS) {
+      pendingOAuthFlows.delete(state);
+    }
+  }
+}

@@ -74,6 +74,7 @@ export function ConnectorsPanel() {
 
     setAdding(true);
     setAddError(null);
+    setOauthError(null);
     try {
       const name = deriveNameFromUrl(trimmedUrl);
       await addConnector(name, trimmedUrl);
