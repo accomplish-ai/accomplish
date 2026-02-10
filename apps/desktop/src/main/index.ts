@@ -23,8 +23,8 @@ import type { ProviderId } from '@accomplish_ai/agent-core';
 import { disposeTaskManager } from './opencode';
 import { oauthBrowserFlow } from './opencode/auth-browser';
 import { migrateLegacyData } from './store/legacyMigration';
-import { initializeStorage, closeStorage, getStorage } from './store/storage';
-import { getApiKey } from './store/secureStorage';
+import { initializeStorage, closeStorage, getStorage, resetStorageSingleton } from './store/storage';
+import { getApiKey, clearSecureStorage } from './store/secureStorage';
 import { initializeLogCollector, shutdownLogCollector, getLogCollector } from './logging';
 import { skillsManager } from './skills';
 
@@ -46,6 +46,10 @@ if (process.env.CLEAN_START === '1') {
   } catch (err) {
     console.error('[Clean Mode] Failed to clear userData:', err);
   }
+  // Reset singletons outside try/catch — must run even if rmSync partially fails
+  resetStorageSingleton();
+  clearSecureStorage();
+  console.log('[Clean Mode] All singletons reset');
 }
 
 app.setName('Accomplish');
@@ -176,13 +180,15 @@ if (!gotTheLock) {
   app.whenReady().then(async () => {
     console.log('[Main] Electron app ready, version:', app.getVersion());
 
-    try {
-      const didMigrate = migrateLegacyData();
-      if (didMigrate) {
-        console.log('[Main] Migrated data from legacy userData path');
+    if (process.env.CLEAN_START !== '1') {
+      try {
+        const didMigrate = migrateLegacyData();
+        if (didMigrate) {
+          console.log('[Main] Migrated data from legacy userData path');
+        }
+      } catch (err) {
+        console.error('[Main] Legacy data migration failed:', err);
       }
-    } catch (err) {
-      console.error('[Main] Legacy data migration failed:', err);
     }
 
     try {

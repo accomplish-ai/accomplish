@@ -78,4 +78,37 @@ export class ExecutionPage {
       { timeout: TEST_TIMEOUTS.TASK_COMPLETE_WAIT }
     );
   }
+
+  /**
+   * Wait for any terminal state (completed, failed, stopped, cancelled).
+   * For real provider tests with longer timeouts.
+   */
+  async waitForCompleteReal(timeout = 180000) {
+    await this.page.waitForFunction(
+      () => {
+        const badge = document.querySelector('[data-testid="execution-status-badge"]');
+        if (!badge) return false;
+        const text = badge.textContent?.toLowerCase() || '';
+        return text.includes('completed') || text.includes('failed') || text.includes('stopped') || text.includes('cancelled');
+      },
+      { timeout }
+    );
+  }
+
+  /**
+   * Wait for task to complete successfully (not failed/stopped/cancelled).
+   * For real provider tests that expect success.
+   */
+  async waitForCompletedSuccessfully(timeout = 180000) {
+    await this.page.waitForFunction(
+      () => {
+        const badge = document.querySelector('[data-testid="execution-status-badge"]');
+        if (!badge) return false;
+        const text = badge.textContent?.toLowerCase() || '';
+        // Must be completed but not failed/stopped/cancelled
+        return text.includes('completed') && !text.includes('failed') && !text.includes('stopped') && !text.includes('cancelled');
+      },
+      { timeout }
+    );
+  }
 }

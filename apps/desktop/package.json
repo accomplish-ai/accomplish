@@ -37,6 +37,7 @@
     "test:e2e:native:debug": "playwright test --config=e2e/playwright.config.ts --debug",
     "test:e2e:native:fast": "playwright test --config=e2e/playwright.config.ts --project=electron-fast",
     "test:e2e:native:integration": "playwright test --config=e2e/playwright.config.ts --project=electron-integration",
+    "test:e2e:providers": "playwright test --config=e2e/playwright.config.ts --project=provider-e2e",
     "test:local-agent": "npx tsx scripts/test-local-agent-cli.ts"
   },
   "dependencies": {

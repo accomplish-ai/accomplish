@@ -198,8 +198,47 @@ export class SettingsPage {
     await this.disconnectButton.click();
   }
 
+  /**
+   * Select a model by ID. Handles both native <select> and custom SearchableSelect.
+   */
   async selectModel(modelId: string) {
-    await this.modelSelector.selectOption(modelId);
+    const tagName = await this.modelSelector.evaluate(el => el.tagName.toLowerCase());
+
+    if (tagName === 'select') {
+      // Native <select> element
+      await this.modelSelector.selectOption(modelId);
+    } else {
+      // Custom SearchableSelect — click to open, then click the option
+      await this.modelSelector.click();
+      const option = this.page.locator(`[data-model-id="${modelId}"]`);
+      await option.waitFor({ state: 'visible', timeout: 5000 });
+      await option.click();
+    }
+  }
+
+  /**
+   * Select the first available model from a SearchableSelect dropdown.
+   * Useful when you don't know which models are available.
+   */
+  async selectFirstModel() {
+    const tagName = await this.modelSelector.evaluate(el => el.tagName.toLowerCase());
+
+    if (tagName === 'select') {
+      // Native select — pick the first non-empty option
+      await this.modelSelector.evaluate((el) => {
+        const select = el as HTMLSelectElement;
+        if (select.options.length > 1) {
+          select.selectedIndex = 1;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+    } else {
+      // Custom SearchableSelect — click to open, then click first option
+      await this.modelSelector.click();
+      const firstOption = this.page.locator('[data-model-id]').first();
+      await firstOption.waitFor({ state: 'visible', timeout: 5000 });
+      await firstOption.click();
+    }
   }
 
   async toggleDebugMode() {

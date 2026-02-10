@@ -42,6 +42,10 @@ test-results/
 apps/desktop/e2e/test-results/
 apps/desktop/e2e/html-report/
 apps/desktop/e2e/test-results.json
+apps/desktop/e2e/provider-tests/test-results/
+apps/desktop/e2e/provider-tests/html-report/
+apps/desktop/e2e/provider-tests/test-results.json
+apps/desktop/e2e/provider-tests/secrets.json
 
 # Test coverage
 coverage/

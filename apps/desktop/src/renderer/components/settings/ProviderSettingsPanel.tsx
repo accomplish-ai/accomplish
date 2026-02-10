@@ -34,6 +34,17 @@ export function ProviderSettingsPanel({
 }: ProviderSettingsPanelProps) {
   const meta = PROVIDER_META[providerId];
 
+  // Guard against unknown/removed providers
+  if (!meta) {
+    return (
+      <div className="min-h-[260px]">
+        <div className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
+          Unknown provider: {providerId}
+        </div>
+      </div>
+    );
+  }
+
   // Render form content based on provider category
   const renderForm = () => {
     // Handle Z.AI separately (has region selector)
