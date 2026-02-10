@@ -83,6 +83,7 @@ Key packages:
 - Renderer state via Zustand store actions
 - IPC handlers in `src/main/ipc/handlers.ts` must match `window.accomplish` API in preload
 - **Avoid nested ternaries** - Use mapper objects or if/else for readability
+- **No unnecessary comments** - Don't add comments that restate what the code does. Comments should explain *why*, not *what*
 - **Reuse UI components** - Check `src/renderer/components/ui/` before creating new ones
 
 ### Image Assets in Renderer
