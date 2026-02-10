@@ -37,6 +37,7 @@ export function ConnectorsPanel() {
         }
       } catch (err) {
         console.error('Failed to parse OAuth callback URL:', err);
+        setOauthError('Invalid OAuth callback received');
       }
     });
 

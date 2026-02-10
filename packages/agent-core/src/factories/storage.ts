@@ -148,7 +148,13 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
       secureStorage.set(`connector-tokens:${connectorId}`, JSON.stringify(tokens)),
     getConnectorTokens: (connectorId) => {
       const stored = secureStorage.get(`connector-tokens:${connectorId}`);
-      return stored ? (JSON.parse(stored) as OAuthTokens) : null;
+      if (!stored) return null;
+      try {
+        return JSON.parse(stored) as OAuthTokens;
+      } catch {
+        console.error(`Failed to parse connector tokens for ${connectorId}`);
+        return null;
+      }
     },
     deleteConnectorTokens: (connectorId) =>
       secureStorage.delete(`connector-tokens:${connectorId}`),

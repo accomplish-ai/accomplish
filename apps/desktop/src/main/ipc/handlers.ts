@@ -1056,6 +1056,20 @@ export function registerIPCHandlers(): void {
     const sanitizedName = sanitizeString(name, 'connectorName', 128);
     const sanitizedUrl = sanitizeString(url, 'connectorUrl', 512);
 
+    // Validate URL scheme
+    try {
+      const parsed = new URL(sanitizedUrl);
+      if (!parsed.protocol.startsWith('http')) {
+        throw new Error('Connector URL must use http:// or https://');
+      }
+    } catch (err) {
+      throw new Error(
+        err instanceof Error && err.message.includes('http')
+          ? err.message
+          : `Invalid connector URL: ${sanitizedUrl}`
+      );
+    }
+
     const id = `mcp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
     const now = new Date().toISOString();
 

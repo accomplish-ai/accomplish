@@ -76,17 +76,23 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     if (!tokens?.accessToken) continue;
 
     // Refresh token if expired
-    if (isTokenExpired(tokens) && tokens.refreshToken && connector.oauthMetadata && connector.clientRegistration) {
-      try {
-        tokens = await refreshAccessToken({
-          tokenEndpoint: connector.oauthMetadata.tokenEndpoint,
-          refreshToken: tokens.refreshToken,
-          clientId: connector.clientRegistration.clientId,
-          clientSecret: connector.clientRegistration.clientSecret,
-        });
-        storage.storeConnectorTokens(connector.id, tokens);
-      } catch (err) {
-        console.warn(`[Connectors] Token refresh failed for ${connector.name}:`, err);
+    if (isTokenExpired(tokens)) {
+      if (tokens.refreshToken && connector.oauthMetadata && connector.clientRegistration) {
+        try {
+          tokens = await refreshAccessToken({
+            tokenEndpoint: connector.oauthMetadata.tokenEndpoint,
+            refreshToken: tokens.refreshToken,
+            clientId: connector.clientRegistration.clientId,
+            clientSecret: connector.clientRegistration.clientSecret,
+          });
+          storage.storeConnectorTokens(connector.id, tokens);
+        } catch (err) {
+          console.warn(`[Connectors] Token refresh failed for ${connector.name}:`, err);
+          storage.setConnectorStatus(connector.id, 'error');
+          continue;
+        }
+      } else {
+        console.warn(`[Connectors] Access token expired for ${connector.name} and cannot be refreshed`);
         storage.setConnectorStatus(connector.id, 'error');
         continue;
       }

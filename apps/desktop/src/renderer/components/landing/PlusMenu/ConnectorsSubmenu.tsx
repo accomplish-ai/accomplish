@@ -50,6 +50,10 @@ export function ConnectorsSubmenu({ connectors, onToggle, onManageConnectors }: 
 
                 {/* Toggle */}
                 <button
+                  type="button"
+                  role="switch"
+                  aria-checked={connector.isEnabled}
+                  aria-label={`Toggle ${connector.name} connector`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onToggle(connector.id, !connector.isEnabled);

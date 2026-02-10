@@ -19,6 +19,16 @@ interface ConnectorRow {
   updated_at: string;
 }
 
+function safeJsonParse<T>(json: string | null): T | undefined {
+  if (!json) return undefined;
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    console.error('Failed to parse JSON from database:', json.slice(0, 100));
+    return undefined;
+  }
+}
+
 function rowToConnector(row: ConnectorRow): McpConnector {
   return {
     id: row.id,
@@ -26,12 +36,8 @@ function rowToConnector(row: ConnectorRow): McpConnector {
     url: row.url,
     status: row.status as ConnectorStatus,
     isEnabled: row.is_enabled === 1,
-    oauthMetadata: row.oauth_metadata_json
-      ? (JSON.parse(row.oauth_metadata_json) as OAuthMetadata)
-      : undefined,
-    clientRegistration: row.client_registration_json
-      ? (JSON.parse(row.client_registration_json) as OAuthClientRegistration)
-      : undefined,
+    oauthMetadata: safeJsonParse<OAuthMetadata>(row.oauth_metadata_json),
+    clientRegistration: safeJsonParse<OAuthClientRegistration>(row.client_registration_json),
     lastConnectedAt: row.last_connected_at || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

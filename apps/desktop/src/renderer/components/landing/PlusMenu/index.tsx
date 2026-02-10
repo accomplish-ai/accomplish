@@ -144,7 +144,6 @@ export function PlusMenu({ onSkillSelect, onOpenSettings, disabled }: PlusMenuPr
         </DropdownMenuSub>
 
         {connectors.length > 0 && (
-          <>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 <svg
@@ -166,7 +165,6 @@ export function PlusMenu({ onSkillSelect, onOpenSettings, disabled }: PlusMenuPr
                 />
               </DropdownMenuSubContent>
             </DropdownMenuSub>
-          </>
         )}
       </DropdownMenuContent>
     </DropdownMenu>

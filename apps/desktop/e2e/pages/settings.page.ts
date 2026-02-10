@@ -41,7 +41,7 @@ export class SettingsPage {
   }
 
   get connectButton() {
-    return this.page.getByRole('button', { name: 'Connect' });
+    return this.page.getByRole('button', { name: 'Connect', exact: true });
   }
 
   // ===== Model Selection =====

@@ -141,6 +141,28 @@ Use AskUserQuestion tool for user interaction.`,
     ensureAzureFoundryProxy: vi.fn(() => Promise.resolve()),
     ensureMoonshotProxy: vi.fn(() => Promise.resolve()),
 
+    // createStorage - returns mock storage API
+    createStorage: vi.fn(() => ({
+      getAllConnectors: vi.fn(() => []),
+      getEnabledConnectors: vi.fn(() => []),
+      getConnectorById: vi.fn(() => null),
+      upsertConnector: vi.fn(),
+      setConnectorEnabled: vi.fn(),
+      setConnectorStatus: vi.fn(),
+      deleteConnector: vi.fn(),
+      clearAllConnectors: vi.fn(),
+      storeConnectorTokens: vi.fn(),
+      getConnectorTokens: vi.fn(() => null),
+      deleteConnectorTokens: vi.fn(),
+      initialize: vi.fn(),
+      isDatabaseInitialized: vi.fn(() => true),
+      close: vi.fn(),
+    })),
+
+    // Token utilities
+    isTokenExpired: vi.fn(() => false),
+    refreshAccessToken: vi.fn(() => Promise.resolve({ accessToken: 'mock-token' })),
+
     // Bundled Node.js utilities
   getBundledNodePaths: vi.fn(() => null),
   isBundledNodeAvailable: vi.fn(() => false),

@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useState, useEffect } from 'react';
 import type { McpConnector, ConnectorStatus } from '@accomplish_ai/agent-core/common';
 
 interface ConnectorCardProps {
@@ -24,6 +24,14 @@ export const ConnectorCard = memo(function ConnectorCard({
   onDelete,
 }: ConnectorCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Auto-cancel delete confirmation after 3 seconds, cleanup on unmount
+  useEffect(() => {
+    if (!confirmDelete) return;
+    const timer = setTimeout(() => setConfirmDelete(false), 3000);
+    return () => clearTimeout(timer);
+  }, [confirmDelete]);
+
   const status = statusConfig[connector.status];
 
   const hostname = (() => {
@@ -76,9 +84,9 @@ export const ConnectorCard = memo(function ConnectorCard({
             onClick={() => {
               if (confirmDelete) {
                 onDelete(connector.id);
+                setConfirmDelete(false);
               } else {
                 setConfirmDelete(true);
-                setTimeout(() => setConfirmDelete(false), 3000);
               }
             }}
             className={`rounded p-1 transition-colors ${
