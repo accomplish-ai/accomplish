@@ -1,11 +1,12 @@
 /**
  * Translation API Server
  *
- * HTTP server that the translate-content MCP server calls to translate
- * text to/from the user's language. This bridges the MCP server
- * (separate process) with the main translation service.
+ * Localhost HTTP bridge between the translate-content MCP server (child process)
+ * and the main-process translation service. Authenticated via a shared secret
+ * passed to the MCP server as TRANSLATION_API_SECRET env var.
  */
 
+import crypto from 'crypto';
 import http from 'http';
 import {
   getTaskLanguage,
@@ -15,38 +16,29 @@ import {
 
 export const TRANSLATION_API_PORT = 9228;
 
+/** Random per-launch secret; pass to MCP child processes via env. */
+export const TRANSLATION_API_SECRET = crypto.randomBytes(32).toString('hex');
+
 const MAX_BODY_SIZE = 1_000_000; // 1 MB
 
 let getActiveTaskId: (() => string | null) | null = null;
 
-/**
- * Initialize the translation API with dependencies
- */
 export function initTranslationApi(taskIdGetter: () => string | null): void {
   getActiveTaskId = taskIdGetter;
 }
 
-/**
- * Create and start the HTTP server for translation requests
- */
 export function startTranslationApiServer(): http.Server {
   const server = http.createServer(async (req, res) => {
-    // CORS headers for local requests
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    // Handle preflight
-    if (req.method === 'OPTIONS') {
-      res.writeHead(200);
-      res.end();
-      return;
-    }
-
-    // Only handle POST /translate
     if (req.method !== 'POST' || req.url !== '/translate') {
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Not found' }));
+      return;
+    }
+
+    // Verify shared secret
+    if (req.headers['x-translation-secret'] !== TRANSLATION_API_SECRET) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
       return;
     }
 
@@ -63,10 +55,7 @@ export function startTranslationApiServer(): http.Server {
       body += chunk;
     }
 
-    let data: {
-      text?: string;
-      direction?: 'to-user' | 'to-english';
-    };
+    let data: { text?: string; direction?: 'to-user' | 'to-english' };
 
     try {
       data = JSON.parse(body);
@@ -76,17 +65,14 @@ export function startTranslationApiServer(): http.Server {
       return;
     }
 
-    // Validate required fields
     if (!data.text) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'text is required' }));
       return;
     }
 
-    // Default direction is to-user (translate English content to user's language)
     const direction = data.direction || 'to-user';
 
-    // Check if we have the necessary dependencies
     if (!getActiveTaskId) {
       res.writeHead(503, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Translation API not initialized' }));
@@ -95,44 +81,30 @@ export function startTranslationApiServer(): http.Server {
 
     const taskId = getActiveTaskId();
     if (!taskId) {
-      // No active task means we can't determine the user's language
-      // Return original text
+      // No active task — can't determine user language; return original text
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ translatedText: data.text, language: 'unknown' }));
       return;
     }
 
-    // Get the user's language for this task
     const userLanguage = getTaskLanguage(taskId);
     if (!userLanguage || userLanguage === 'en') {
-      // User is using English, no translation needed
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ translatedText: data.text, language: 'en' }));
       return;
     }
 
     try {
-      let translatedText: string;
-
-      if (direction === 'to-user') {
-        // Translate from English to user's language
-        translatedText = await translateFromEnglish(data.text, userLanguage);
-      } else {
-        // Translate from user's language to English
-        translatedText = await translateToEnglish(data.text, userLanguage);
-      }
+      const translatedText =
+        direction === 'to-user'
+          ? await translateFromEnglish(data.text, userLanguage)
+          : await translateToEnglish(data.text, userLanguage);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          translatedText,
-          language: userLanguage,
-          direction,
-        })
-      );
+      res.end(JSON.stringify({ translatedText, language: userLanguage, direction }));
     } catch (error) {
       console.error('[Translation API] Translation failed:', error);
-      // Return original text on error
+      // Graceful degradation — return original text so the agent isn't blocked
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({

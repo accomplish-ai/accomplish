@@ -1,7 +1,7 @@
 /**
  * Translation Service for Multi-Language Support
  *
- * Enables users to interact with Openwork in any language while keeping
+ * Enables users to interact with Accomplish in any language while keeping
  * the agentic pipeline 100% in English. Translation happens transparently
  * at the boundaries.
  *
@@ -183,8 +183,8 @@ export async function translateToEnglish(
     return text;
   }
 
-  // Check cache
-  const cacheKey = getCacheKey(text, 'to-en');
+  // Check cache — include source language so "你好" from zh-CN vs ja produce separate entries
+  const cacheKey = getCacheKey(text, 'to-en', lang);
   const cached = translationCache.get(cacheKey);
   if (cached) {
     console.log('[Translation] Cache hit for to-English translation');

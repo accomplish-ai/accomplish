@@ -1,6 +1,6 @@
 # Internationalization (i18n) Translation Scripts
 
-This directory contains automated translation scripts for Openwork's internationalization support.
+This directory contains automated translation scripts for Accomplish's internationalization support.
 
 ## Overview
 
@@ -33,13 +33,13 @@ Pass the key directly when running the command:
 ANTHROPIC_API_KEY=sk-ant-... pnpm i18n:sync
 ```
 
-### Using Your Existing Openwork API Key
+### Using Your Existing Accomplish API Key
 
-If you're already using Openwork with an Anthropic API key, retrieve it from the app's keychain:
+If you're already using Accomplish with an Anthropic API key, retrieve it from the app's keychain:
 
 ```bash
 # macOS
-ANTHROPIC_API_KEY=$(security find-generic-password -s "openwork-api-key" -w) pnpm i18n:sync
+ANTHROPIC_API_KEY=$(security find-generic-password -s "accomplish-api-key" -w) pnpm i18n:sync
 ```
 
 ## Usage

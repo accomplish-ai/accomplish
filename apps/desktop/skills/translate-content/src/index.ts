@@ -16,6 +16,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 const TRANSLATION_API_PORT = process.env.TRANSLATION_API_PORT || '9228';
+const TRANSLATION_API_SECRET = process.env.TRANSLATION_API_SECRET || '';
 const TRANSLATION_API_URL = `http://localhost:${TRANSLATION_API_PORT}/translate`;
 
 interface TranslateToUserLanguageInput {
@@ -69,20 +70,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
     };
   }
 
-  const args = rawArgs as unknown as TranslateToUserLanguageInput;
-  if (!args.text) {
+  const args = rawArgs as Record<string, unknown>;
+  if (typeof args.text !== 'string' || args.text.length === 0) {
     return {
-      content: [{ type: 'text', text: 'Error: text parameter is required' }],
+      content: [{ type: 'text', text: 'Error: text parameter must be a non-empty string' }],
       isError: true,
     };
   }
 
-  const { text, context } = args;
+  const text = args.text;
+  const context = typeof args.context === 'string' ? args.context : undefined;
 
   try {
     const response = await fetch(TRANSLATION_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Translation-Secret': TRANSLATION_API_SECRET,
+      },
       body: JSON.stringify({
         text,
         direction: 'to-user',
