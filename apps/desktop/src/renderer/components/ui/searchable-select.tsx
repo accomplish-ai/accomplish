@@ -68,6 +68,7 @@ function SelectOption({
       type="button"
       onClick={onSelect}
       data-testid={testId ? `${testId}-option-${item.id}` : undefined}
+      data-model-id={item.id}
       className={`w-full px-3 py-2 text-sm text-left hover:bg-muted ${
         isSelected ? 'bg-muted font-medium' : ''
       }`}

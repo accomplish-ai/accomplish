@@ -115,6 +115,7 @@ export function ZaiProviderForm({
                   <button
                     type="button"
                     onClick={() => setRegion('china')}
+                    data-testid="zai-region-china"
                     className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       region === 'china'
                         ? 'bg-[#4A7C59] text-white'
@@ -126,6 +127,7 @@ export function ZaiProviderForm({
                   <button
                     type="button"
                     onClick={() => setRegion('international')}
+                    data-testid="zai-region-international"
                     className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       region === 'international'
                         ? 'bg-[#4A7C59] text-white'

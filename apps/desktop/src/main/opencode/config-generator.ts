@@ -59,6 +59,21 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     azureFoundryToken,
   });
 
+  // Inject store:false for OpenAI to prevent 403 errors
+  // with project-scoped keys (sk-proj-...) that lack /v1/chat/completions storage permission
+  const openAiApiKey = getApiKey('openai');
+  if (openAiApiKey) {
+    const existingOpenAi = providerConfigs.find(p => p.id === 'openai');
+    if (existingOpenAi) {
+      existingOpenAi.options.store = false;
+    } else {
+      providerConfigs.push({
+        id: 'openai',
+        options: { store: false },
+      });
+    }
+  }
+
   const enabledSkills = await skillsManager.getEnabled();
 
   const result = generateConfig({

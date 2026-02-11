@@ -194,11 +194,26 @@ Use AskUserQuestion tool for user interaction.`,
   })),
   clearAppSettings: vi.fn(),
 
+  // Storage factory (imported by store/storage.ts in the module graph)
+  createStorage: vi.fn(() => ({})),
+
   // Constants needed by config-generator
   PERMISSION_API_PORT: 9226,
   QUESTION_API_PORT: 9227,
   };
 });
+
+// Mock secure storage (delegates to SQLite-backed storage singleton)
+vi.mock('@main/store/secureStorage', () => ({
+  getApiKey: vi.fn(() => null),
+  getAllApiKeys: vi.fn(() => Promise.resolve({})),
+  storeApiKey: vi.fn(),
+  deleteApiKey: vi.fn(() => true),
+  storeBedrockCredentials: vi.fn(),
+  getBedrockCredentials: vi.fn(() => null),
+  hasAnyApiKey: vi.fn(() => Promise.resolve(false)),
+  clearSecureStorage: vi.fn(),
+}));
 
 // Mock skills module (uses SQLite which requires native module)
 vi.mock('@main/skills', () => ({
