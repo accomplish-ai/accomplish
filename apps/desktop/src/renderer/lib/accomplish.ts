@@ -99,13 +99,6 @@ interface AccomplishAPI {
   testAzureFoundryConnection(config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }): Promise<{ success: boolean; error?: string }>;
   saveAzureFoundryConfig(config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }): Promise<void>;
 
-  // Dynamic model fetching (generic, config-driven)
-  fetchProviderModels(providerId: string, options?: { baseUrl?: string; zaiRegion?: string }): Promise<{
-    success: boolean;
-    models?: Array<{ id: string; name: string }>;
-    error?: string;
-  }>;
-
   // OpenRouter configuration
   fetchOpenRouterModels(): Promise<{
     success: boolean;

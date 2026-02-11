@@ -136,13 +136,6 @@ const accomplishAPI = {
   saveAzureFoundryConfig: (config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }): Promise<void> =>
     ipcRenderer.invoke('azure-foundry:save-config', config),
 
-  // Dynamic model fetching (generic, config-driven)
-  fetchProviderModels: (providerId: string, options?: { baseUrl?: string; zaiRegion?: string }): Promise<{
-    success: boolean;
-    models?: Array<{ id: string; name: string }>;
-    error?: string;
-  }> => ipcRenderer.invoke('provider:fetch-models', providerId, options),
-
   // OpenRouter configuration
   fetchOpenRouterModels: (): Promise<{
     success: boolean;

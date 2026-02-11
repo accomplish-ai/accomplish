@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import type { ProviderId, ConnectedProvider, ApiKeyCredentials, OAuthCredentials } from '@accomplish_ai/agent-core/common';
-import { PROVIDER_META, DEFAULT_PROVIDERS } from '@accomplish_ai/agent-core/common';
+import { PROVIDER_META, DEFAULT_PROVIDERS, getDefaultModelForProvider } from '@accomplish_ai/agent-core/common';
 import {
   ModelSelector,
   ConnectButton,
@@ -37,14 +37,10 @@ export function ClassicProviderForm({
   const [error, setError] = useState<string | null>(null);
   const [openAiBaseUrl, setOpenAiBaseUrl] = useState('');
   const [signingIn, setSigningIn] = useState(false);
-  const [fetchedModels, setFetchedModels] = useState<Array<{ id: string; name: string }> | null>(null);
 
   const meta = PROVIDER_META[providerId];
   const providerConfig = DEFAULT_PROVIDERS.find(p => p.id === providerId);
-  const staticModels = providerConfig?.models.map(m => ({ id: m.fullId, name: m.displayName })) || [];
-  const models = connectedProvider?.availableModels?.length
-    ? connectedProvider.availableModels.map(m => ({ id: m.id, name: m.name }))
-    : fetchedModels ?? staticModels;
+  const models = providerConfig?.models.map(m => ({ id: m.fullId, name: m.displayName })) || [];
   const isConnected = connectedProvider?.connectionStatus === 'connected';
   const logoSrc = PROVIDER_LOGOS[providerId];
   const isOpenAI = providerId === 'openai';
@@ -58,22 +54,6 @@ export function ClassicProviderForm({
 
   // Get translated provider name
   const providerName = t(`providers.${providerId}`, { defaultValue: meta.name });
-
-  // Auto-fetch models for already-connected providers that don't have availableModels yet
-  useEffect(() => {
-    if (!isConnected) return;
-    if (connectedProvider?.availableModels?.length) return;
-    if (!providerConfig?.modelsEndpoint) return;
-
-    const accomplish = getAccomplish();
-    accomplish.fetchProviderModels(providerId, {
-      baseUrl: isOpenAI ? openAiBaseUrl.trim() || undefined : undefined,
-    }).then((result) => {
-      if (result.success && result.models?.length) {
-        setFetchedModels(result.models);
-      }
-    }).catch(console.error);
-  }, [isConnected, providerId]);
 
   const handleConnect = async () => {
     if (!apiKey.trim()) {
@@ -101,24 +81,13 @@ export function ClassicProviderForm({
 
       await accomplish.addApiKey(providerId as any, apiKey.trim());
 
-      // Fetch models dynamically if provider has a models endpoint
-      let fetchedModels: Array<{ id: string; name: string }> | undefined;
-      if (providerConfig?.modelsEndpoint) {
-        const fetchResult = await accomplish.fetchProviderModels(providerId, {
-          baseUrl: isOpenAI ? openAiBaseUrl.trim() || undefined : undefined,
-        });
-        if (fetchResult.success && fetchResult.models) {
-          fetchedModels = fetchResult.models;
-        }
-      }
-
-      const defaultModelId = providerConfig?.defaultModelId ?? null;
+      const defaultModel = getDefaultModelForProvider(providerId);
 
       const trimmedKey = apiKey.trim();
       const provider: ConnectedProvider = {
         providerId,
         connectionStatus: 'connected',
-        selectedModelId: defaultModelId,
+        selectedModelId: defaultModel,
         credentials: {
           type: 'api_key',
           keyPrefix: trimmedKey.length > 40
@@ -126,7 +95,6 @@ export function ClassicProviderForm({
             : trimmedKey.substring(0, Math.min(trimmedKey.length, 20)) + '...',
         } as ApiKeyCredentials,
         lastConnectedAt: new Date().toISOString(),
-        ...(fetchedModels ? { availableModels: fetchedModels } : {}),
       };
 
       onConnect(provider);
@@ -147,28 +115,16 @@ export function ClassicProviderForm({
       const status = await accomplish.getOpenAiOauthStatus();
 
       if (status.connected) {
-        // Fetch models dynamically if provider has a models endpoint
-        let fetchedModels: Array<{ id: string; name: string }> | undefined;
-        if (providerConfig?.modelsEndpoint) {
-          const fetchResult = await accomplish.fetchProviderModels(providerId, {
-            baseUrl: isOpenAI ? openAiBaseUrl.trim() || undefined : undefined,
-          });
-          if (fetchResult.success && fetchResult.models) {
-            fetchedModels = fetchResult.models;
-          }
-        }
-
-        const defaultModelId = providerConfig?.defaultModelId ?? null;
+        const defaultModel = getDefaultModelForProvider(providerId);
         const provider: ConnectedProvider = {
           providerId,
           connectionStatus: 'connected',
-          selectedModelId: defaultModelId,
+          selectedModelId: defaultModel,
           credentials: {
             type: 'oauth',
             oauthProvider: 'chatgpt',
           } as OAuthCredentials,
           lastConnectedAt: new Date().toISOString(),
-          ...(fetchedModels ? { availableModels: fetchedModels } : {}),
         };
         onConnect(provider);
       }
