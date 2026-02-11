@@ -1115,12 +1115,12 @@ const SNAPSHOT_SCRIPT = `
         if (maxDepth === undefined) maxDepth = 10;
         if (maxDepth <= 0) return '';
         if (typeof node === 'string') return node.trim();
-        var texts = [];
+        const texts = [];
         if (node.name && node.name.trim()) {
           texts.push(node.name.trim());
         } else if (node.children) {
-          for (var i = 0; i < node.children.length; i++) {
-            var childText = collectTextFromDescendants(node.children[i], maxDepth - 1);
+          for (let i = 0; i < node.children.length; i++) {
+            const childText = collectTextFromDescendants(node.children[i], maxDepth - 1);
             if (childText) texts.push(childText);
           }
         }
@@ -1129,11 +1129,11 @@ const SNAPSHOT_SCRIPT = `
       const promoteTextToInteractive = (node) => {
         if (typeof node === 'string') return;
         if (INTERACTIVE_ROLES.includes(node.role) && !node.name) {
-          var promotedText = collectTextFromDescendants(node);
+          const promotedText = collectTextFromDescendants(node);
           if (promotedText) node.name = promotedText;
         }
         if (node.children) {
-          for (var i = 0; i < node.children.length; i++) promoteTextToInteractive(node.children[i]);
+          for (let i = 0; i < node.children.length; i++) promoteTextToInteractive(node.children[i]);
         }
       };
       nodesToRender.forEach(n => promoteTextToInteractive(n));

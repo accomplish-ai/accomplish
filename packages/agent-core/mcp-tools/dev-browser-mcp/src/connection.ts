@@ -177,7 +177,6 @@ async function connectBuiltin(): Promise<Browser> {
     const cdpSession = await b.newBrowserCDPSession();
     await cdpSession.send('Browser.setDownloadBehavior', { behavior: 'default' });
     await cdpSession.detach();
-    console.error('[dev-browser-mcp] Reset download behavior to Chrome defaults');
   } catch (err) {
     console.error('[dev-browser-mcp] Failed to reset download behavior:', err);
   }
