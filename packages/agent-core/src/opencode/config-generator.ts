@@ -5,6 +5,12 @@ import type { Skill } from '../common/types/skills.js';
 
 export const ACCOMPLISH_AGENT_NAME = 'accomplish';
 
+export interface BrowserConfig {
+  mode: 'builtin' | 'remote' | 'none';
+  cdpEndpoint?: string;
+  cdpHeaders?: Record<string, string>;
+}
+
 export interface ConfigGeneratorOptions {
   platform: NodeJS.Platform;
   mcpToolsPath: string;
@@ -26,6 +32,15 @@ export interface ConfigGeneratorOptions {
   model?: string;
   smallModel?: string;
   enabledProviders?: string[];
+  /** Browser configuration. Defaults to { mode: 'builtin' } */
+  browser?: BrowserConfig;
+  /** Connected MCP remote servers with OAuth access tokens */
+  connectors?: Array<{
+    id: string;
+    name: string;
+    url: string;
+    accessToken: string;
+  }>;
 }
 
 export interface ProviderConfig {
@@ -58,6 +73,7 @@ interface McpServerConfig {
   type?: 'local' | 'remote';
   command?: string[];
   url?: string;
+  headers?: Record<string, string>;
   enabled?: boolean;
   environment?: Record<string, string>;
   timeout?: number;
@@ -455,6 +471,96 @@ Use empty array [] if no skills apply to your task.
       timeout: 30000,
     },
   };
+
+  // Conditionally register dev-browser-mcp based on browser config
+  const browserConfig = options.browser ?? { mode: 'builtin' };
+
+  if (browserConfig.mode !== 'none') {
+    const browserEnv: Record<string, string> = {};
+
+    if (browserConfig.mode === 'remote') {
+      if (browserConfig.cdpEndpoint) {
+        browserEnv.CDP_ENDPOINT = browserConfig.cdpEndpoint;
+      }
+      if (browserConfig.cdpHeaders) {
+        for (const [key, value] of Object.entries(browserConfig.cdpHeaders)) {
+          if (key === 'X-CDP-Secret') {
+            browserEnv.CDP_SECRET = value;
+          }
+        }
+      }
+    }
+
+    mcpServers['dev-browser-mcp'] = {
+      type: 'local',
+      command: resolveMcpCommand(
+        tsxCommand, mcpToolsPath, 'dev-browser-mcp',
+        'src/index.ts', 'dist/index.mjs', isPackaged, nodePath
+      ),
+      enabled: true,
+      ...(Object.keys(browserEnv).length > 0 && { environment: browserEnv }),
+      timeout: 30000,
+    };
+  }
+
+  // Add connected MCP connectors as remote servers
+  if (options.connectors) {
+    for (const connector of options.connectors) {
+      // Use short sanitized name + ID suffix as key to prevent collisions
+      const sanitized = connector.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 20);
+      const baseName = sanitized || 'mcp-remote';
+      const idSuffix = connector.id.slice(0, 6);
+      let key = `connector-${baseName}-${idSuffix}`;
+      // Guard against unlikely collision with existing keys
+      if (mcpServers[key]) {
+        let i = 1;
+        while (mcpServers[`${key}-${i}`]) i += 1;
+        key = `${key}-${i}`;
+      }
+      mcpServers[key] = {
+        type: 'remote',
+        url: connector.url,
+        headers: { Authorization: `Bearer ${connector.accessToken}` },
+        enabled: true,
+      };
+    }
+  }
+
+  // Fill browser-specific template sections based on mode
+  const hasBrowser = browserConfig.mode !== 'none';
+  systemPrompt = systemPrompt
+    .replace('{{AGENT_ROLE}}', hasBrowser ? 'browser automation' : 'task automation')
+    .replace('{{BROWSER_CAPABILITY}}', hasBrowser
+      ? '- **Browser Automation**: Control web browsers, navigate sites, fill forms, click buttons\n'
+      : '')
+    .replace('{{BROWSER_BEHAVIOR}}', hasBrowser
+      ? `- **NEVER use shell commands (open, xdg-open, start, subprocess, webbrowser) to open browsers or URLs** - these open the user's default browser, not the automation-controlled Chrome. ALL browser operations MUST use browser_* MCP tools.
+- For multi-step browser workflows, prefer \`browser_script\` over individual tools - it's faster and auto-returns page state.
+- **For collecting data from multiple pages** (e.g. comparing listings, gathering info from search results), use \`browser_batch_actions\` to extract data from multiple URLs in ONE call instead of visiting each page individually with click/snapshot loops. First collect the URLs from the search results page, then pass them all to \`browser_batch_actions\` with a JS extraction script.
+
+**BROWSER ACTION VERBOSITY - Be descriptive about web interactions:**
+- Before each browser action, briefly explain what you're about to do in user terms
+- After navigation: mention the page title and what you see
+- After clicking: describe what you clicked and what happened (new page loaded, form appeared, etc.)
+- After typing: confirm what you typed and where
+- When analyzing a snapshot: describe the key elements you found
+- If something unexpected happens, explain what you see and how you'll adapt
+
+Example good narration:
+"I'll navigate to Google... The search page is loaded. I can see the search box. Let me search for 'cute animals'... Typing in the search field and pressing Enter... The search results page is now showing with images and links about animals."
+
+Example bad narration (too terse):
+"Done." or "Navigated." or "Clicked."
+
+- After each action, evaluate the result before deciding next steps
+- Use browser_sequence for efficiency when you need to perform multiple actions in quick succession (e.g., filling a form with multiple fields)
+`
+      : '');
 
   const providerConfig: Record<string, Omit<ProviderConfig, 'id'>> = {};
   for (const provider of providerConfigs) {

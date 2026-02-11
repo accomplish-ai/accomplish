@@ -354,6 +354,26 @@ export type {
 // Skills types
 export type { SkillSource, Skill, SkillFrontmatter } from './common/types/skills.js';
 
+// Connector types
+export type {
+  ConnectorStatus,
+  OAuthTokens,
+  OAuthMetadata,
+  OAuthClientRegistration,
+  McpConnector,
+} from './common/types/connector.js';
+
+// MCP OAuth
+export {
+  discoverOAuthMetadata,
+  registerOAuthClient,
+  generatePkceChallenge,
+  buildAuthorizationUrl,
+  exchangeCodeForTokens,
+  refreshAccessToken,
+  isTokenExpired,
+} from './connectors/mcp-oauth.js';
+
 // Other types
 export type { TodoItem } from './common/types/todo.js';
 export type { LogLevel, LogSource, LogEntry } from './common/types/logging.js';

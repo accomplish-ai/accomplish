@@ -98,3 +98,14 @@ export {
   deleteSkill,
   clearAllSkills,
 } from './repositories/index.js';
+
+export {
+  getAllConnectors,
+  getEnabledConnectors,
+  getConnectorById,
+  upsertConnector,
+  setConnectorEnabled,
+  setConnectorStatus,
+  deleteConnector,
+  clearAllConnectors,
+} from './repositories/index.js';

@@ -2,7 +2,7 @@ import type { Database } from 'better-sqlite3';
 import type { Migration } from './index.js';
 
 export const migration: Migration = {
-  version: 7,
+  version: 8,
   up(db: Database) {
     // Check if language column already exists
     const tableInfo = db.prepare('PRAGMA table_info(app_settings)').all() as Array<{ name: string }>;

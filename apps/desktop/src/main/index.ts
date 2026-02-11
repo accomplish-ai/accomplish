@@ -171,7 +171,9 @@ if (!gotTheLock) {
         const protocolUrl = commandLine.find((arg) => arg.startsWith('accomplish://'));
         if (protocolUrl) {
           console.log('[Main] Received protocol URL from second-instance:', protocolUrl);
-          if (protocolUrl.startsWith('accomplish://callback')) {
+          if (protocolUrl.startsWith('accomplish://callback/mcp')) {
+            mainWindow.webContents.send('auth:mcp-callback', protocolUrl);
+          } else if (protocolUrl.startsWith('accomplish://callback')) {
             mainWindow.webContents.send('auth:callback', protocolUrl);
           }
         }
@@ -289,7 +291,9 @@ function handleProtocolUrlFromArgs(): void {
       app.whenReady().then(() => {
         setTimeout(() => {
           if (mainWindow && !mainWindow.isDestroyed()) {
-            if (protocolUrl.startsWith('accomplish://callback')) {
+            if (protocolUrl.startsWith('accomplish://callback/mcp')) {
+              mainWindow.webContents.send('auth:mcp-callback', protocolUrl);
+            } else if (protocolUrl.startsWith('accomplish://callback')) {
               mainWindow.webContents.send('auth:callback', protocolUrl);
             }
           }
@@ -303,7 +307,9 @@ handleProtocolUrlFromArgs();
 
 app.on('open-url', (event, url) => {
   event.preventDefault();
-  if (url.startsWith('accomplish://callback')) {
+  if (url.startsWith('accomplish://callback/mcp')) {
+    mainWindow?.webContents?.send('auth:mcp-callback', url);
+  } else if (url.startsWith('accomplish://callback')) {
     mainWindow?.webContents?.send('auth:callback', url);
   }
 });

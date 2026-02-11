@@ -23,6 +23,7 @@ import type {
   TodoItem,
   ToolSupportStatus,
   Skill,
+  McpConnector,
 } from '@accomplish_ai/agent-core/common';
 
 // Define the API interface
@@ -215,6 +216,16 @@ interface AccomplishAPI {
   resyncSkills(): Promise<Skill[]>;
   openSkillInEditor(filePath: string): Promise<void>;
   showSkillInFolder(filePath: string): Promise<void>;
+
+  // MCP Connectors
+  getConnectors(): Promise<McpConnector[]>;
+  addConnector(name: string, url: string): Promise<McpConnector>;
+  deleteConnector(id: string): Promise<void>;
+  setConnectorEnabled(id: string, enabled: boolean): Promise<void>;
+  startConnectorOAuth(connectorId: string): Promise<{ state: string; authUrl: string }>;
+  completeConnectorOAuth(state: string, code: string): Promise<McpConnector>;
+  disconnectConnector(connectorId: string): Promise<void>;
+  onMcpAuthCallback?(callback: (url: string) => void): () => void;
 
   // i18n
   i18n: {

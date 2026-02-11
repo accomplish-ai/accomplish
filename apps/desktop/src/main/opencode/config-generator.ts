@@ -6,8 +6,11 @@ import {
   buildProviderConfigs,
   syncApiKeysToOpenCodeAuth as coreSyncApiKeysToOpenCodeAuth,
   getOpenCodeAuthPath,
+  isTokenExpired,
+  refreshAccessToken,
 } from '@accomplish_ai/agent-core';
 import { getApiKey, getAllApiKeys } from '../store/secureStorage';
+import { getStorage } from '../store/storage';
 import { getNodePath } from '../utils/bundled-node';
 import { skillsManager } from '../skills';
 import { PERMISSION_API_PORT, QUESTION_API_PORT } from '@accomplish_ai/agent-core';
@@ -76,6 +79,52 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
 
   const enabledSkills = await skillsManager.getEnabled();
 
+  // Fetch enabled connectors with valid tokens
+  const storage = getStorage();
+  const enabledConnectors = storage.getEnabledConnectors();
+  const connectors: Array<{ id: string; name: string; url: string; accessToken: string }> = [];
+
+  for (const connector of enabledConnectors) {
+    if (connector.status !== 'connected') continue;
+
+    let tokens = storage.getConnectorTokens(connector.id);
+    if (!tokens?.accessToken) {
+      console.warn(`[Connectors] Missing access token for ${connector.name}`);
+      storage.setConnectorStatus(connector.id, 'error');
+      continue;
+    }
+
+    // Refresh token if expired
+    if (isTokenExpired(tokens)) {
+      if (tokens.refreshToken && connector.oauthMetadata && connector.clientRegistration) {
+        try {
+          tokens = await refreshAccessToken({
+            tokenEndpoint: connector.oauthMetadata.tokenEndpoint,
+            refreshToken: tokens.refreshToken,
+            clientId: connector.clientRegistration.clientId,
+            clientSecret: connector.clientRegistration.clientSecret,
+          });
+          storage.storeConnectorTokens(connector.id, tokens);
+        } catch (err) {
+          console.warn(`[Connectors] Token refresh failed for ${connector.name}:`, err);
+          storage.setConnectorStatus(connector.id, 'error');
+          continue;
+        }
+      } else {
+        console.warn(`[Connectors] Access token expired for ${connector.name} and cannot be refreshed`);
+        storage.setConnectorStatus(connector.id, 'error');
+        continue;
+      }
+    }
+
+    connectors.push({
+      id: connector.id,
+      name: connector.name,
+      url: connector.url,
+      accessToken: tokens.accessToken,
+    });
+  }
+
   const result = generateConfig({
     platform: process.platform,
     mcpToolsPath,
@@ -89,6 +138,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     enabledProviders,
     model: modelOverride?.model,
     smallModel: modelOverride?.smallModel,
+    connectors: connectors.length > 0 ? connectors : undefined,
   });
 
   process.env.OPENCODE_CONFIG = result.configPath;
