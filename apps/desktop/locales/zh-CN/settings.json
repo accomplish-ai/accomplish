@@ -83,7 +83,8 @@
     "fetchingModels": "获取模型列表...",
     "selectModelToComplete": "选择模型以完成设置",
     "error": "发生错误",
-    "connectionFailed": "连接失败"
+    "connectionFailed": "连接失败",
+    "signInFailed": "登录失败"
   },
   "buttons": {
     "connect": "连接",

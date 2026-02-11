@@ -83,7 +83,8 @@
     "fetchingModels": "Fetching models...",
     "selectModelToComplete": "Select a model to complete setup",
     "error": "An error has occurred",
-    "connectionFailed": "Connection failed"
+    "connectionFailed": "Connection failed",
+    "signInFailed": "Sign-in failed"
   },
   "buttons": {
     "connect": "Connect",

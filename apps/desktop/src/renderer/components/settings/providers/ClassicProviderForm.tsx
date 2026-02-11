@@ -129,7 +129,7 @@ export function ClassicProviderForm({
         onConnect(provider);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign-in failed');
+      setError(err instanceof Error ? err.message : t('status.signInFailed'));
     } finally {
       setSigningIn(false);
     }

@@ -160,7 +160,7 @@ export function LMStudioProviderForm({
       const result = await accomplish.testLMStudioConnection(serverUrl);
 
       if (!result.success) {
-        setError(result.error || 'Connection failed');
+        setError(result.error || t('status.connectionFailed'));
         setConnecting(false);
         return;
       }
@@ -186,7 +186,7 @@ export function LMStudioProviderForm({
 
       onConnect(provider);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connection failed');
+      setError(err instanceof Error ? err.message : t('status.connectionFailed'));
     } finally {
       setConnecting(false);
     }
