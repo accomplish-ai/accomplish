@@ -46,9 +46,10 @@ if (process.env.CLEAN_START === '1') {
   } catch (err) {
     console.error('[Clean Mode] Failed to clear userData:', err);
   }
-  // Reset singletons outside try/catch — must run even if rmSync partially fails
-  resetStorageSingleton();
+  // Clear secure storage first (while singleton still exists), then null the reference.
+  // Reversing this order would cause getStorage() to re-create the singleton.
   clearSecureStorage();
+  resetStorageSingleton();
   console.log('[Clean Mode] All singletons reset');
 }
 
@@ -114,7 +115,8 @@ function createWindow() {
   mainWindow.maximize();
 
   const isE2EMode = (global as Record<string, unknown>).E2E_SKIP_AUTH === true;
-  if (!app.isPackaged && !isE2EMode) {
+  const isTestEnv = process.env.NODE_ENV === 'test';
+  if (!app.isPackaged && !isE2EMode && !isTestEnv) {
     mainWindow.webContents.openDevTools({ mode: 'right' });
   }
 

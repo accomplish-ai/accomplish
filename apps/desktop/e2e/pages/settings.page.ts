@@ -165,8 +165,8 @@ export class SettingsPage {
 
   async selectProvider(providerId: string) {
     await this.getProviderCard(providerId).click();
-    // Wait for panel to appear
-    await this.page.waitForTimeout(300);
+    // Wait for provider settings panel to render
+    await this.connectButton.or(this.connectionStatus).waitFor({ state: 'visible', timeout: 5000 });
   }
 
   async searchProvider(query: string) {
@@ -192,6 +192,11 @@ export class SettingsPage {
 
   async clickConnect() {
     await this.connectButton.click();
+  }
+
+  async waitForConnection(timeout = 30000) {
+    await this.page.locator('[data-testid="connection-status"][data-status="connected"]')
+      .waitFor({ state: 'visible', timeout });
   }
 
   async clickDisconnect() {
@@ -247,6 +252,7 @@ export class SettingsPage {
 
   async closeDialog() {
     await this.doneButton.click();
+    await this.settingsDialog.waitFor({ state: 'hidden', timeout: 5000 });
   }
 
   async pressEscapeToClose() {

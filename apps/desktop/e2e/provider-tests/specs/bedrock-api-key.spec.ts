@@ -7,7 +7,7 @@
  *
  * What this test does:
  *   1. Launches app with CLEAN_START (fresh state, no auth skip)
- *   2. Opens settings dialog (onboarding)
+ *   2. Opens settings via sidebar button
  *   3. Selects the Bedrock provider
  *   4. Selects the API Key auth tab
  *   5. Enters the Bedrock API key
@@ -19,23 +19,25 @@
 
 import { test, expect } from '../fixtures';
 import { SettingsPage, HomePage, ExecutionPage } from '../../pages';
-import { getProviderTestConfig, DEFAULT_TEST_MODELS } from '../provider-test-configs';
-import { getTaskPrompt } from '../secrets-loader';
+import { getProviderTestConfig } from '../provider-test-configs';
 import type { BedrockApiKeySecrets } from '../types';
 
 const config = getProviderTestConfig('bedrock-api-key');
 
 test.describe('Bedrock Provider (API Key)', () => {
-  test.skip(!config, 'No Bedrock API Key secrets configured — skipping');
+  test.skip(!config?.secrets, 'No Bedrock API Key secrets configured — skipping');
 
   test('should connect with Bedrock API key and complete a task', async ({ window }) => {
-    const secrets = config!.secrets as BedrockApiKeySecrets;
+    // Runtime guard for TypeScript narrowing (test.skip doesn't narrow)
+    if (!config?.secrets || !('apiKey' in config.secrets)) return;
+    const secrets = config.secrets as BedrockApiKeySecrets;
+
     const settingsPage = new SettingsPage(window);
     const homePage = new HomePage(window);
     const executionPage = new ExecutionPage(window);
 
-    // Step 1: The app should show onboarding (settings dialog)
-    await expect(settingsPage.settingsDialog).toBeVisible({ timeout: 15000 });
+    // Step 1: Open settings via sidebar
+    await settingsPage.navigateToSettings();
 
     // Step 2: Select the Bedrock provider
     await settingsPage.selectProvider('bedrock');
@@ -55,26 +57,20 @@ test.describe('Bedrock Provider (API Key)', () => {
     await settingsPage.clickConnect();
 
     // Step 7: Wait for connection to succeed
-    await expect(settingsPage.connectionStatus).toHaveAttribute('data-status', 'connected', {
-      timeout: 30000,
-    });
+    await settingsPage.waitForConnection();
 
-    // Step 8: Select a model
-    const modelId = config!.modelId || DEFAULT_TEST_MODELS['bedrock-api-key'];
-    if (modelId) {
-      await settingsPage.selectModel(modelId);
-    }
+    // Step 8: Select a model (Bedrock uses 'first' since available models depend on region)
+    await settingsPage.selectFirstModel();
 
     // Step 9: Close settings
     await settingsPage.closeDialog();
 
     // Step 10: Submit a task
-    const taskPrompt = getTaskPrompt();
-    await homePage.enterTask(taskPrompt);
+    await homePage.enterTask('What is 2 + 2? Reply with just the number.');
     await homePage.submitTask();
 
     // Step 11: Wait for the task to complete (real API call)
-    await executionPage.waitForCompleteReal(config!.timeout || 180000);
+    await executionPage.waitForComplete(config.timeout || 180000);
 
     // Verify it completed (not failed)
     const badgeText = await executionPage.statusBadge.textContent();

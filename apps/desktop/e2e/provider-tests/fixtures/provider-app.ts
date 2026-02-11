@@ -25,16 +25,19 @@ type ProviderTestFixtures = {
 /** Time to wait for single-instance lock release between app launches */
 const APP_RESTART_DELAY = 1500;
 
-/** Time to wait for the onboarding screen to appear */
-const ONBOARDING_TIMEOUT = 15000;
+/** Time to wait for the home screen to appear */
+const HOME_SCREEN_TIMEOUT = 30000;
 
 export const test = base.extend<ProviderTestFixtures>({
   electronApp: async ({}, use) => {
-    const mainPath = resolve(__dirname, '../../../dist-electron/main/index.js');
+    // Pass the app directory (not the compiled entry file) so that
+    // app.getAppPath() returns 'apps/desktop/' — needed for correct
+    // MCP tool path resolution in getMcpToolsPath().
+    const appDir = resolve(__dirname, '../../..');
 
     const app = await electron.launch({
       args: [
-        mainPath,
+        appDir,
         // No --e2e-skip-auth: we need the real onboarding flow
         // No --e2e-mock-tasks: we need real task execution
         ...(process.env.DOCKER_ENV === '1' ? ['--no-sandbox', '--disable-gpu'] : []),
@@ -44,6 +47,17 @@ export const test = base.extend<ProviderTestFixtures>({
         CLEAN_START: '1',
         NODE_ENV: 'test',
       },
+    });
+
+    // Capture main process stdout/stderr for debugging
+    const proc = app.process();
+    proc.stdout?.on('data', (data: Buffer) => {
+      const msg = data.toString().trim();
+      if (msg) console.log('[Electron stdout]', msg);
+    });
+    proc.stderr?.on('data', (data: Buffer) => {
+      const msg = data.toString().trim();
+      if (msg) console.log('[Electron stderr]', msg);
     });
 
     await use(app);
@@ -56,16 +70,12 @@ export const test = base.extend<ProviderTestFixtures>({
     const window = await electronApp.firstWindow();
     await window.waitForLoadState('load');
 
-    // In provider tests, the first screen is the onboarding/settings dialog
-    // Wait for either the settings dialog or the task input to appear
-    await window.waitForFunction(
-      () => {
-        const settingsDialog = document.querySelector('[data-testid="settings-dialog"]');
-        const taskInput = document.querySelector('[data-testid="task-input-textarea"]');
-        return settingsDialog !== null || taskInput !== null;
-      },
-      { timeout: ONBOARDING_TIMEOUT }
-    );
+    // The app always starts at the Home screen (no auto-opening settings dialog).
+    // Wait for the task input to confirm the renderer is fully loaded.
+    await window.waitForSelector('[data-testid="task-input-textarea"]', {
+      state: 'visible',
+      timeout: HOME_SCREEN_TIMEOUT,
+    });
 
     await use(window);
   },

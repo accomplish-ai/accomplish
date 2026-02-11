@@ -109,6 +109,7 @@ test.describe('Home Page', () => {
         const input = document.querySelector('[data-testid="task-input-textarea"]') as HTMLTextAreaElement;
         return input && input.value.length > 0;
       },
+      null,
       { timeout: TEST_TIMEOUTS.NAVIGATION }
     );
 
