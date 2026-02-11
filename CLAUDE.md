@@ -124,7 +124,7 @@ packages/shared/        # Shared TypeScript types and constants
 **Storage Module** (`storage/`):
 - `database.ts` - SQLite with better-sqlite3 (WAL mode, foreign keys)
 - `secure-storage.ts` - AES-256-GCM encrypted storage for API keys
-- `migrations/` - Schema migrations v001-v006
+- `migrations/` - Schema migrations v001-v007
 - `repositories/` - Data access layer (appSettings, providerSettings, taskHistory, skills)
 
 **Other Modules**:
@@ -185,10 +185,38 @@ Renderer (taskStore subscriptions)
 | `todo:update` | Todo list updates |
 | `auth:error` | OAuth token expiry |
 | `debug:log` | Debug log entries |
+| `i18n:language-changed` | Language preference updated |
 
 ### Supported Providers
 
 16 providers: anthropic, openai, google, xai, deepseek, moonshot, zai, bedrock, azure-foundry, ollama, openrouter, litellm, minimax, lmstudio, custom
+
+### Internationalization (i18n)
+
+**Locale Files**: `apps/desktop/locales/{en,zh-CN}/` with 7 namespace files:
+`common.json`, `settings.json`, `execution.json`, `history.json`, `home.json`, `sidebar.json`, `errors.json`
+
+**Language Preference Storage**: Migration v007 (`v007-language.ts`) adds a `language TEXT NOT NULL DEFAULT 'auto'` column to `app_settings`. Accessed via `getLanguage()`/`setLanguage()` in the appSettings repository.
+
+**Process Initialization**:
+- **Main** (`main/i18n/index.ts`): Custom lightweight module — loads translations synchronously from filesystem, supports `{{variable}}` interpolation, falls back to English. Initialized at app startup with stored preference or system locale (`app.getLocale()`).
+- **Renderer** (`renderer/i18n/index.ts`): Uses `i18next` + `react-i18next`. Loads translations from main via IPC on startup, subscribes to `i18n:language-changed` for hot switching.
+- **Preload**: Bridges renderer to main via `window.accomplish.i18n` (6 methods).
+
+**i18n IPC Channels**:
+
+| Channel | Direction | Purpose |
+|---------|-----------|---------|
+| `i18n:get-language` | Renderer → Main | Read stored language preference |
+| `i18n:set-language` | Renderer → Main | Persist preference, broadcast change |
+| `i18n:get-translations` | Renderer → Main | Load all namespace translations |
+| `i18n:get-supported-languages` | Renderer → Main | List supported language codes |
+| `i18n:get-resolved-language` | Renderer → Main | Resolve 'auto' to concrete code |
+| `i18n:language-changed` | Main → Renderer | Notify renderer of language switch |
+
+**Translation Service** (`main/services/translationService.ts`): Translates agent I/O at the boundary so the agentic pipeline stays 100% English. Detects user language via character-range analysis on the first message, then caches per task. Tries providers in order: Anthropic (Haiku) → OpenAI (GPT-4o-mini) → Google (Gemini Flash) → xAI (Grok) → DeepSeek. In-memory LRU cache (max 500 entries). 10s timeout per API call.
+
+**MCP Translation Skill** (`skills/translate-content/`): Exposes a `translate_to_user_language` tool so the agent can translate English content (docs, notes) to the user's language. Communicates with the main process via HTTP (`POST http://127.0.0.1:9228/translate`), which is served by `main/translation-api.ts`.
 
 ## Code Conventions
 
@@ -308,7 +336,8 @@ packages/core/src/storage/
 │   ├── v003-lmstudio.ts         # LM Studio support
 │   ├── v004-openai-base-url.ts  # Custom OpenAI base URL
 │   ├── v005-task-todos.ts       # Task todos table
-│   └── v006-skills.ts           # Skills table
+│   ├── v006-skills.ts           # Skills table
+│   └── v007-language.ts         # Language preference persistence
 └── repositories/
     ├── appSettings.ts           # Debug mode, onboarding, selected model
     ├── providerSettings.ts      # Connected providers, active provider
@@ -324,7 +353,7 @@ import type { Database } from 'better-sqlite3';
 import type { Migration } from './index';
 
 export const migration: Migration = {
-  version: 7,  // Increment from CURRENT_VERSION
+  version: 8,  // Increment from CURRENT_VERSION
   up(db: Database): void {
     db.exec(`ALTER TABLE app_settings ADD COLUMN new_field TEXT`);
   },
@@ -335,7 +364,7 @@ export const migration: Migration = {
 ```typescript
 import { migration as v007 } from './v007-description';
 
-export const CURRENT_VERSION = 7;  // Update this
+export const CURRENT_VERSION = 8;  // Update this
 
 const migrations: Migration[] = [...existingMigrations, v007];  // Add to array
 ```
