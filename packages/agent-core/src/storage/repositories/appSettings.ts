@@ -146,6 +146,7 @@ export function setLMStudioConfig(config: LMStudioConfig | null): void {
   );
 }
 
+/** Get the user's preferred UI language from app settings. */
 export function getLanguage(): UILanguage {
   const row = getRow();
   const lang = row.language;
@@ -155,6 +156,7 @@ export function getLanguage(): UILanguage {
   return 'auto';
 }
 
+/** Persist the user's preferred UI language to app settings. */
 export function setLanguage(language: UILanguage): void {
   const db = getDatabase();
   db.prepare('UPDATE app_settings SET language = ? WHERE id = 1').run(language);
@@ -171,6 +173,7 @@ export function setOpenAiBaseUrl(baseUrl: string): void {
 }
 
 
+/** Retrieve all app settings as a typed object. */
 export function getAppSettings(): AppSettings {
   const row = getRow();
   const lang = row.language;
@@ -188,6 +191,7 @@ export function getAppSettings(): AppSettings {
   };
 }
 
+/** Reset all app settings to their default values. */
 export function clearAppSettings(): void {
   const db = getDatabase();
   db.prepare(

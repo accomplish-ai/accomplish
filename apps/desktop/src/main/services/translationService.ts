@@ -347,6 +347,7 @@ async function callProviderForTranslation(
   }
 }
 
+/** Send a translation prompt to the Anthropic API using Haiku. */
 async function callAnthropic(apiKey: string, prompt: string): Promise<string> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -377,6 +378,7 @@ async function callAnthropic(apiKey: string, prompt: string): Promise<string> {
   return data.content?.[0]?.text?.trim() || '';
 }
 
+/** Send a translation prompt to the OpenAI API using GPT-4o-mini. */
 async function callOpenAI(apiKey: string, prompt: string): Promise<string> {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -406,6 +408,7 @@ async function callOpenAI(apiKey: string, prompt: string): Promise<string> {
   return data.choices?.[0]?.message?.content?.trim() || '';
 }
 
+/** Send a translation prompt to the Google Gemini API using Gemini Flash. */
 async function callGoogle(apiKey: string, prompt: string): Promise<string> {
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
@@ -437,6 +440,7 @@ async function callGoogle(apiKey: string, prompt: string): Promise<string> {
   return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 }
 
+/** Send a translation prompt to the xAI API using Grok. */
 async function callXAI(apiKey: string, prompt: string): Promise<string> {
   const response = await fetch('https://api.x.ai/v1/chat/completions', {
     method: 'POST',
@@ -466,6 +470,7 @@ async function callXAI(apiKey: string, prompt: string): Promise<string> {
   return data.choices?.[0]?.message?.content?.trim() || '';
 }
 
+/** Send a translation prompt to the DeepSeek API. */
 async function callDeepSeek(apiKey: string, prompt: string): Promise<string> {
   const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
     method: 'POST',

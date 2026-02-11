@@ -55,6 +55,7 @@ const TOOL_DISPLAY_NAMES: Record<string, Record<string, string>> = {
   },
 };
 
+/** Extract the base tool name by stripping MCP server prefixes (e.g. "server_Read" → "Read"). */
 function getBaseToolName(toolName: string): string {
   let base = toolName;
   let idx = 0;
@@ -66,11 +67,13 @@ function getBaseToolName(toolName: string): string {
   return base;
 }
 
+/** Convert a snake_case tool name to a human-readable title (e.g. "read_file" → "Read file"). */
 function humanizeToolName(name: string): string {
   const base = getBaseToolName(name);
   return base.charAt(0).toUpperCase() + base.slice(1).replace(/_/g, ' ');
 }
 
+/** Look up a translated display name for a tool, falling back to the base name lookup. */
 function getToolDisplayName(toolName: string, language: string): string | null {
   const langMap = TOOL_DISPLAY_NAMES[language] || TOOL_DISPLAY_NAMES['en'];
   // Try exact name first, then base name
@@ -86,6 +89,7 @@ export interface TaskCallbacksOptions {
   sender: Electron.WebContents;
 }
 
+/** Create the set of callbacks that bridge OpenCode task events to the renderer via IPC. */
 export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallbacks {
   const { taskId, window, sender } = options;
 
