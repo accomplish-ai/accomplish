@@ -215,6 +215,16 @@ interface AccomplishAPI {
   resyncSkills(): Promise<Skill[]>;
   openSkillInEditor(filePath: string): Promise<void>;
   showSkillInFolder(filePath: string): Promise<void>;
+
+  // i18n
+  i18n: {
+    getLanguage(): Promise<'en' | 'zh-CN' | 'auto'>;
+    setLanguage(language: 'en' | 'zh-CN' | 'auto'): Promise<void>;
+    getTranslations(language?: string): Promise<{ language: string; translations: Record<string, Record<string, unknown>> }>;
+    getSupportedLanguages(): Promise<readonly string[]>;
+    getResolvedLanguage(): Promise<string>;
+    onLanguageChange(callback: (data: { language: string; resolvedLanguage: string }) => void): () => void;
+  };
 }
 
 interface AccomplishShell {
