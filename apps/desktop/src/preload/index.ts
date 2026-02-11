@@ -189,6 +189,12 @@ const accomplishAPI = {
     models?: Array<{ id: string; name: string; toolSupport: 'supported' | 'unsupported' | 'unknown' }>;
   } | null): Promise<void> => ipcRenderer.invoke('lmstudio:set-config', config),
 
+  // Custom OpenAI-compatible endpoint configuration
+  testCustomConnection: (baseUrl: string, apiKey?: string): Promise<{
+    success: boolean;
+    error?: string;
+  }> => ipcRenderer.invoke('custom:test-connection', baseUrl, apiKey),
+
   // Bedrock
   validateBedrockCredentials: (credentials: string) =>
     ipcRenderer.invoke('bedrock:validate', credentials),

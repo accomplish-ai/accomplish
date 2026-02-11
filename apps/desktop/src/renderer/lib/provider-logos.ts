@@ -13,6 +13,7 @@ import openrouterLogo from '/assets/ai-logos/openrouter.svg';
 import litellmLogo from '/assets/ai-logos/litellm.svg';
 import minimaxLogo from '/assets/ai-logos/minimax.svg';
 import lmstudioLogo from '/assets/ai-logos/lmstudio.png';
+import customLogo from '/assets/ai-logos/custom.svg';
 
 export const PROVIDER_LOGOS: Record<ProviderId, string> = {
   anthropic: anthropicLogo,
@@ -29,6 +30,7 @@ export const PROVIDER_LOGOS: Record<ProviderId, string> = {
   litellm: litellmLogo,
   minimax: minimaxLogo,
   lmstudio: lmstudioLogo,
+  custom: customLogo,
 };
 
 export function getProviderLogo(providerId: ProviderId): string | undefined {

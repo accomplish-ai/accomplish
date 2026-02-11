@@ -167,6 +167,8 @@ export {
   validateLMStudioConfig,
 } from './providers/lmstudio.js';
 
+export { testCustomConnection } from './providers/custom.js';
+
 // -----------------------------------------------------------------------------
 // Utils Module (from ./utils/)
 // -----------------------------------------------------------------------------
@@ -298,6 +300,7 @@ export type {
   LMStudioCredentials,
   AzureFoundryCredentials,
   OAuthCredentials,
+  CustomCredentials,
   ProviderCredentials,
   ToolSupportStatus,
   ConnectedProvider,
