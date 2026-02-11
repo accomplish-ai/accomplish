@@ -266,6 +266,7 @@ export default function SettingsDialog({
         <DialogContent
           className="max-w-2xl max-h-[90vh] overflow-y-auto"
           data-testid="settings-dialog"
+          aria-describedby={undefined}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHeader>
@@ -284,6 +285,7 @@ export default function SettingsDialog({
       <DialogContent
         className="max-w-2xl max-h-[90vh] overflow-y-auto"
         data-testid="settings-dialog"
+        aria-describedby={undefined}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
@@ -519,7 +521,7 @@ export default function SettingsDialog({
           {/* Security Tab */}
           {activeTab === 'security' && (
             <div className="space-y-6">
-              <SecurityPanel />
+              <SecurityPanel onApplied={() => onOpenChange(false)} />
             </div>
           )}
 
@@ -561,18 +563,20 @@ export default function SettingsDialog({
           )}
 
           {/* Done Button */}
-          <div className="flex justify-end">
-            <button
-              onClick={handleDone}
-              className="flex items-center gap-2 rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              data-testid="settings-done-button"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Done
-            </button>
-          </div>
+          {activeTab !== 'security' && (
+            <div className="flex justify-end">
+              <button
+                onClick={handleDone}
+                className="flex items-center gap-2 rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                data-testid="settings-done-button"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Done
+              </button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

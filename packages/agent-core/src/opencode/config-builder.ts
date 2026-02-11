@@ -125,7 +125,18 @@ export async function buildProviderConfigs(
   let enabledProviders = baseProviders;
 
   if (connectedIds.length > 0) {
-    const mappedProviders = connectedIds.map(id => PROVIDER_ID_TO_OPENCODE[id]);
+    const mappedProviders = connectedIds
+      .map(id => PROVIDER_ID_TO_OPENCODE[id])
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
+    const invalidProviderIds = connectedIds.filter(
+      id => !PROVIDER_ID_TO_OPENCODE[id]
+    );
+    if (invalidProviderIds.length > 0) {
+      console.warn(
+        '[OpenCode Config Builder] Ignoring unknown connected providers:',
+        invalidProviderIds
+      );
+    }
     enabledProviders = [...new Set([...baseProviders, ...mappedProviders])];
     console.log('[OpenCode Config Builder] Using connected providers:', mappedProviders);
   } else {

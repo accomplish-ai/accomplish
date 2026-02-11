@@ -8,7 +8,12 @@ import {
   getTaskManager,
   disposeTaskManager,
 } from '../opencode';
-import { isSandboxActive, updateSandboxConfig } from '../opencode/electron-options';
+import {
+  isSandboxActive,
+  normalizeSandboxConfig,
+  shutdownSandbox,
+  updateSandboxConfig,
+} from '../opencode/electron-options';
 import { getLogCollector } from '../logging';
 import {
   validateApiKey,
@@ -73,6 +78,7 @@ import type {
   LiteLLMConfig,
   LMStudioConfig,
   ToolSupportStatus,
+  SandboxConfig,
 } from '@accomplish_ai/agent-core';
 import { DEFAULT_PROVIDERS, ALLOWED_API_KEY_PROVIDERS, STANDARD_VALIDATION_PROVIDERS } from '@accomplish_ai/agent-core';
 import {
@@ -835,16 +841,41 @@ export function registerIPCHandlers(): void {
 
   // Sandbox configuration
   handle('settings:sandbox-config:get', async (_event: IpcMainInvokeEvent) => {
-    return storage.getSandboxConfig();
+    const rawConfig = storage.getSandboxConfig();
+
+    try {
+      const normalizedConfig = normalizeSandboxConfig(rawConfig);
+
+      // Self-heal legacy/partial persisted configs so renderer always gets full shape.
+      if (
+        rawConfig &&
+        normalizedConfig &&
+        JSON.stringify(rawConfig) !== JSON.stringify(normalizedConfig)
+      ) {
+        storage.setSandboxConfig(normalizedConfig);
+      }
+
+      return normalizedConfig;
+    } catch (error) {
+      console.warn('[Sandbox] Invalid stored sandbox config in settings:get, resetting:', error);
+      storage.setSandboxConfig(null);
+      return null;
+    }
   });
 
   handle('settings:sandbox-config:set', async (_event: IpcMainInvokeEvent, config: unknown) => {
-    storage.setSandboxConfig(config as import('@accomplish_ai/agent-core').SandboxConfig | null);
+    const normalizedConfig = normalizeSandboxConfig(config);
+    storage.setSandboxConfig(normalizedConfig);
 
-    if (config && isSandboxActive()) {
-      const cfg = config as import('@accomplish_ai/agent-core').SandboxConfig;
+    if (normalizedConfig?.enabled === false && isSandboxActive()) {
+      await shutdownSandbox();
+      return;
+    }
+
+    if (normalizedConfig && isSandboxActive()) {
+      const cfg: SandboxConfig = normalizedConfig;
       updateSandboxConfig({
-        additionalAllowedDomains: cfg.allowedDomains,
+        allowedDomains: cfg.allowedDomains,
         additionalAllowWrite: cfg.additionalWritePaths,
         additionalDenyRead: cfg.denyReadPaths,
         allowPty: cfg.allowPty,

@@ -17,6 +17,11 @@ import type {
 export interface SandboxConfig {
   enabled: boolean;
   allowedDomains: string[];
+  /**
+   * Version marker for allowedDomains semantics.
+   * `2` means `allowedDomains` is the full effective list (not "additional only").
+   */
+  allowedDomainsVersion?: number;
   additionalWritePaths: string[];
   denyReadPaths: string[];
   allowPty: boolean;

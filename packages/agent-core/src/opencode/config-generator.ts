@@ -95,6 +95,17 @@ interface OpenCodeConfigFile {
   plugin?: string[];
 }
 
+function sanitizeEnabledProviders(
+  providers: Array<string | null | undefined>,
+): string[] {
+  return [...new Set(
+    providers
+      .filter((provider): provider is string => typeof provider === 'string')
+      .map(provider => provider.trim())
+      .filter(Boolean)
+  )];
+}
+
 function getPlatformEnvironmentInstructions(platform: NodeJS.Platform): string {
   if (platform === 'win32') {
     return `<environment>
@@ -506,13 +517,19 @@ Example bad narration (too terse):
 
   let enabledProviders: string[];
   if (customEnabledProviders) {
-    enabledProviders = [...new Set([...customEnabledProviders, ...Object.keys(providerConfig)])];
+    enabledProviders = sanitizeEnabledProviders([
+      ...customEnabledProviders,
+      ...Object.keys(providerConfig),
+    ]);
   } else {
     const baseProviders = [
       'anthropic', 'openai', 'openrouter', 'google', 'xai',
       'deepseek', 'moonshot', 'zai-coding-plan', 'amazon-bedrock', 'minimax'
     ];
-    enabledProviders = [...new Set([...baseProviders, ...Object.keys(providerConfig)])];
+    enabledProviders = sanitizeEnabledProviders([
+      ...baseProviders,
+      ...Object.keys(providerConfig),
+    ]);
   }
 
   const config: OpenCodeConfigFile = {

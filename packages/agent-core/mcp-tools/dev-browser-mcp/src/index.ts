@@ -24,14 +24,32 @@ import {
   getFullPageName,
   getConnectionMode,
 } from './connection.js';
+import {
+  parseAllowedDomainsFromEnv,
+  normalizeNavigationUrl,
+  assertNavigationAllowed,
+} from './url-policy.js';
 
 console.error('[dev-browser-mcp] All imports completed successfully');
 
 const connectionConfig = configureFromEnv();
 const TASK_ID = connectionConfig.taskId;
+const allowedNavigationDomains = parseAllowedDomainsFromEnv(
+  process.env.ACCOMPLISH_ALLOWED_DOMAINS_JSON,
+);
+
+if (allowedNavigationDomains !== null) {
+  console.error(
+    `[dev-browser-mcp] Navigation allowlist active (${allowedNavigationDomains.length} domains)`,
+  );
+}
 
 function toAIFriendlyError(error: unknown, selector: string): Error {
   const message = error instanceof Error ? error.message : String(error);
+
+  if (message.includes('blocked by sandbox allowlist')) {
+    return new Error(message);
+  }
 
   if (message.includes('strict mode violation')) {
     const countMatch = message.match(/resolved to (\d+) elements/);
@@ -2264,10 +2282,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
       case 'browser_navigate': {
         const { url, page_name } = args as BrowserNavigateInput;
 
-        let fullUrl = url;
-        if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
-          fullUrl = 'https://' + fullUrl;
-        }
+        const fullUrl = normalizeNavigationUrl(url);
+        assertNavigationAllowed(fullUrl, allowedNavigationDomains);
 
         resetSnapshotManager();
 
@@ -2701,10 +2717,8 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             switch (step.action) {
               case 'goto': {
                 if (!step.url) throw new Error('goto requires url parameter');
-                let fullUrl = step.url;
-                if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
-                  fullUrl = 'https://' + fullUrl;
-                }
+                const fullUrl = normalizeNavigationUrl(step.url);
+                assertNavigationAllowed(fullUrl, allowedNavigationDomains);
                 await page.goto(fullUrl, { waitUntil: 'domcontentloaded', timeout: step.timeout || 30000 });
                 results.push(`${stepNum}. Navigated to ${fullUrl}`);
                 break;
@@ -3711,10 +3725,8 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             continue;
           }
 
-          let fullUrl = url;
-          if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
-            fullUrl = 'https://' + fullUrl;
-          }
+          const fullUrl = normalizeNavigationUrl(url);
+          assertNavigationAllowed(fullUrl, allowedNavigationDomains);
 
           const remainingTime = BATCH_TIMEOUT_MS - (Date.now() - batchStart);
           const effectiveTimeout = Math.min(30000, remainingTime);

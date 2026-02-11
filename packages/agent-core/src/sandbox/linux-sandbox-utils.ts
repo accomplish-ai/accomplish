@@ -56,6 +56,8 @@ export interface LinuxSandboxParams {
   seccompConfig?: { bpfPath?: string; applyPath?: string }
   /** Abort signal to cancel the ripgrep scan */
   abortSignal?: AbortSignal
+  /** Task working directory used to resolve relative restriction paths */
+  workingDirectory?: string
 }
 
 /** Default max depth for searching dangerous files */
@@ -165,8 +167,11 @@ async function linuxGetMandatoryDenyPaths(
   maxDepth: number = DEFAULT_MANDATORY_DENY_SEARCH_DEPTH,
   allowGitConfig = false,
   abortSignal?: AbortSignal,
+  workingDirectory?: string,
 ): Promise<string[]> {
-  const cwd = process.cwd()
+  const cwd = workingDirectory
+    ? path.resolve(workingDirectory)
+    : process.cwd()
   // Use provided signal or create a fallback controller
   const fallbackController = new AbortController()
   const signal = abortSignal ?? fallbackController.signal
@@ -639,6 +644,7 @@ async function generateFilesystemArgs(
   mandatoryDenySearchDepth: number = DEFAULT_MANDATORY_DENY_SEARCH_DEPTH,
   allowGitConfig = false,
   abortSignal?: AbortSignal,
+  workingDirectory?: string,
 ): Promise<string[]> {
   const args: string[] = []
   // fs already imported
@@ -653,7 +659,10 @@ async function generateFilesystemArgs(
 
     // Allow writes to specific paths
     for (const pathPattern of writeConfig.allowOnly || []) {
-      const normalizedPath = normalizePathForSandbox(pathPattern)
+      const normalizedPath = normalizePathForSandbox(
+        pathPattern,
+        workingDirectory,
+      )
 
       logForDebugging(
         `[Sandbox Linux] Processing write path: ${pathPattern} -> ${normalizedPath}`,
@@ -684,11 +693,15 @@ async function generateFilesystemArgs(
         mandatoryDenySearchDepth,
         allowGitConfig,
         abortSignal,
+        workingDirectory,
       )),
     ]
 
     for (const pathPattern of denyPaths) {
-      const normalizedPath = normalizePathForSandbox(pathPattern)
+      const normalizedPath = normalizePathForSandbox(
+        pathPattern,
+        workingDirectory,
+      )
 
       // Skip /dev/* paths since --dev /dev already handles them
       if (normalizedPath.startsWith('/dev/')) {
@@ -807,7 +820,10 @@ async function generateFilesystemArgs(
   }
 
   for (const pathPattern of readDenyPaths) {
-    const normalizedPath = normalizePathForSandbox(pathPattern)
+    const normalizedPath = normalizePathForSandbox(
+      pathPattern,
+      workingDirectory,
+    )
     if (!fs.existsSync(normalizedPath)) {
       logForDebugging(
         `[Sandbox Linux] Skipping non-existent read deny path: ${normalizedPath}`,
@@ -893,6 +909,7 @@ export async function wrapCommandWithSandboxLinux(
     allowGitConfig = false,
     seccompConfig,
     abortSignal,
+    workingDirectory,
   } = params
 
   // Determine if we have restrictions to apply
@@ -1025,6 +1042,7 @@ export async function wrapCommandWithSandboxLinux(
       mandatoryDenySearchDepth,
       allowGitConfig,
       abortSignal,
+      workingDirectory,
     )
     bwrapArgs.push(...fsArgs)
 

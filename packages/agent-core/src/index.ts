@@ -398,6 +398,8 @@ export {
   cleanupAfterTask,
   updateSandboxConfig,
   shutdownSandbox,
+  buildAccomplishSandboxConfig,
+  DEFAULT_ALLOWED_DOMAINS,
 } from './sandbox/index.js';
 export type { AccomplishSandboxOptions } from './sandbox/index.js';
 export type { SandboxConfig } from './types/storage.js';

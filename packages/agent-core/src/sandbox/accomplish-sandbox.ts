@@ -80,6 +80,8 @@ export async function wrapCommand(
       command,
       undefined, // binShell - let sandbox detect
       customConfig,
+      undefined,
+      workingDirectory,
     )
   } catch (error) {
     logForDebugging(

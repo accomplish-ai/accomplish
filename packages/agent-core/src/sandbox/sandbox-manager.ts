@@ -223,16 +223,16 @@ async function initialize(
     return
   }
 
-  // Store config for use by other functions
-  config = runtimeConfig
-
   // Check dependencies
-  const deps = checkDependencies()
+  const deps = checkDependencies(runtimeConfig.ripgrep, runtimeConfig.seccomp)
   if (deps.errors.length > 0) {
     throw new Error(
       `Sandbox dependencies not available: ${deps.errors.join(', ')}`,
     )
   }
+
+  // Store config for use by other functions after dependency validation
+  config = structuredClone(runtimeConfig)
 
   // Start log monitor for macOS if enabled
   if (enableLogMonitor && getPlatform() === 'macos') {
@@ -284,6 +284,7 @@ async function initialize(
       logForDebugging('Network infrastructure initialized')
       return context
     } catch (error) {
+      config = undefined
       initializationPromise = undefined
       managerContext = undefined
       reset().catch(e => {
@@ -313,6 +314,9 @@ function isSandboxingEnabled(): boolean {
 function checkDependencies(ripgrepConfig?: {
   command: string
   args?: string[]
+}, seccompConfig?: {
+  bpfPath?: string
+  applyPath?: string
 }): SandboxDependencyCheck {
   if (!isSupportedPlatform()) {
     return { errors: ['Unsupported platform'], warnings: [] }
@@ -328,7 +332,7 @@ function checkDependencies(ripgrepConfig?: {
 
   const platform = getPlatform()
   if (platform === 'linux') {
-    const linuxDeps = checkLinuxDependencies(config?.seccomp)
+    const linuxDeps = checkLinuxDependencies(seccompConfig ?? config?.seccomp)
     errors.push(...linuxDeps.errors)
     warnings.push(...linuxDeps.warnings)
   }
@@ -485,6 +489,7 @@ async function wrapWithSandbox(
   binShell?: string,
   customConfig?: Partial<SandboxRuntimeConfig>,
   abortSignal?: AbortSignal,
+  workingDirectory?: string,
 ): Promise<string> {
   const platform = getPlatform()
 
@@ -540,6 +545,7 @@ async function wrapWithSandbox(
         allowGitConfig: getAllowGitConfig(),
         enableWeakerNetworkIsolation: getEnableWeakerNetworkIsolation(),
         binShell,
+        workingDirectory,
       })
 
     case 'linux':
@@ -568,6 +574,7 @@ async function wrapWithSandbox(
         allowGitConfig: getAllowGitConfig(),
         seccompConfig: getSeccompConfig(),
         abortSignal,
+        workingDirectory,
       })
 
     default:
@@ -739,6 +746,8 @@ async function reset(): Promise<void> {
   socksProxyServer = undefined
   managerContext = undefined
   initializationPromise = undefined
+  config = undefined
+  sandboxViolationStore.clear()
 }
 
 function getSandboxViolationStore() {
@@ -806,6 +815,9 @@ export interface ISandboxManager {
   checkDependencies(ripgrepConfig?: {
     command: string
     args?: string[]
+  }, seccompConfig?: {
+    bpfPath?: string
+    applyPath?: string
   }): SandboxDependencyCheck
   getFsReadConfig(): FsReadRestrictionConfig
   getFsWriteConfig(): FsWriteRestrictionConfig
@@ -824,6 +836,7 @@ export interface ISandboxManager {
     binShell?: string,
     customConfig?: Partial<SandboxRuntimeConfig>,
     abortSignal?: AbortSignal,
+    workingDirectory?: string,
   ): Promise<string>
   getSandboxViolationStore(): SandboxViolationStore
   annotateStderrWithSandboxFailures(command: string, stderr: string): string

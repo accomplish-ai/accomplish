@@ -25,13 +25,67 @@ import {
   cleanupAfterTask,
   shutdownSandbox,
   updateSandboxConfig,
+  buildAccomplishSandboxConfig,
+  DEFAULT_ALLOWED_DOMAINS,
 } from '@accomplish_ai/agent-core';
-import type { AccomplishSandboxOptions } from '@accomplish_ai/agent-core';
+import type { AccomplishSandboxOptions, SandboxConfig } from '@accomplish_ai/agent-core';
 import { getStorage } from '../store/storage';
 import { getAllApiKeys, getBedrockCredentials } from '../store/secureStorage';
 import { generateOpenCodeConfig, getMcpToolsPath, syncApiKeysToOpenCodeAuth } from './config-generator';
 import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo } from '../utils/bundled-node';
+
+function normalizeSandboxBoolean(
+  value: unknown,
+  defaultValue: boolean,
+): boolean {
+  return typeof value === 'boolean' ? value : defaultValue;
+}
+
+function normalizeSandboxStringArray(
+  value: unknown,
+): string[] {
+  if (!Array.isArray(value)) return [];
+
+  const normalized = value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set(normalized));
+}
+
+export function normalizeSandboxConfig(config: unknown): SandboxConfig | null {
+  if (config === null || config === undefined) {
+    return null;
+  }
+  if (typeof config !== 'object' || Array.isArray(config)) {
+    throw new Error('Invalid sandbox config: expected an object');
+  }
+
+  const raw = config as Record<string, unknown>;
+  const rawAllowedDomains = raw.allowedDomains ?? raw.additionalAllowedDomains;
+  const normalizedAllowedDomains = normalizeSandboxStringArray(rawAllowedDomains);
+  const normalizedVersion =
+    typeof raw.allowedDomainsVersion === 'number' && raw.allowedDomainsVersion >= 2 ? 2 : 1;
+  const allowedDomains = normalizedVersion >= 2
+    ? normalizedAllowedDomains
+    : Array.from(new Set([...DEFAULT_ALLOWED_DOMAINS, ...normalizedAllowedDomains]));
+  const rawAdditionalWritePaths = raw.additionalWritePaths ?? raw.additionalAllowWrite;
+  const rawDenyReadPaths = raw.denyReadPaths ?? raw.additionalDenyRead ?? raw.denyRead;
+
+  return {
+    enabled: normalizeSandboxBoolean(raw.enabled, true),
+    allowedDomains,
+    allowedDomainsVersion: 2,
+    additionalWritePaths: normalizeSandboxStringArray(rawAdditionalWritePaths),
+    denyReadPaths: normalizeSandboxStringArray(rawDenyReadPaths),
+    allowPty: normalizeSandboxBoolean(raw.allowPty, true),
+    allowLocalBinding: normalizeSandboxBoolean(raw.allowLocalBinding, true),
+    allowAllUnixSockets: normalizeSandboxBoolean(raw.allowAllUnixSockets, true),
+    enableWeakerNestedSandbox: normalizeSandboxBoolean(raw.enableWeakerNestedSandbox, false),
+  };
+}
 
 function getCliResolverConfig(): CliResolverConfig {
   return {
@@ -151,6 +205,25 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
   // Use the core function to set API keys and credentials
   env = buildOpenCodeEnvironment(env, envConfig);
 
+  // Enforce the same sandbox domain allowlist for browser MCP navigation.
+  let sandboxConfig: SandboxConfig | null = null;
+  try {
+    sandboxConfig = normalizeSandboxConfig(storage.getSandboxConfig());
+  } catch (error) {
+    console.warn('[Sandbox] Invalid sandbox config while building environment:', error);
+  }
+
+  if (sandboxConfig?.enabled === false) {
+    delete env.ACCOMPLISH_ALLOWED_DOMAINS_JSON;
+  } else {
+    const sandboxRuntimeConfig = buildAccomplishSandboxConfig({
+      allowedDomains: sandboxConfig?.allowedDomains,
+    });
+    env.ACCOMPLISH_ALLOWED_DOMAINS_JSON = JSON.stringify(
+      sandboxRuntimeConfig.network.allowedDomains
+    );
+  }
+
   if (taskId) {
     console.log('[OpenCode CLI] Task ID in environment:', taskId);
   }
@@ -183,9 +256,18 @@ export async function isCliAvailable(): Promise<boolean> {
 
 export async function onBeforeStart(): Promise<void> {
   const storage = getStorage();
-  const sandboxConfig = storage.getSandboxConfig();
+  let sandboxConfig: SandboxConfig | null = null;
+  try {
+    sandboxConfig = normalizeSandboxConfig(storage.getSandboxConfig());
+  } catch (error) {
+    console.warn('[Sandbox] Invalid stored sandbox config, resetting to defaults:', error);
+    storage.setSandboxConfig(null);
+  }
 
   if (sandboxConfig?.enabled === false) {
+    if (isSandboxActive()) {
+      await shutdownSandbox();
+    }
     console.log('[Sandbox] Sandbox disabled by user configuration');
   } else if (!isSandboxActive()) {
     const sandboxOptions: AccomplishSandboxOptions = {
@@ -194,7 +276,7 @@ export async function onBeforeStart(): Promise<void> {
       allowLocalBinding: sandboxConfig?.allowLocalBinding ?? true,
       allowAllUnixSockets: sandboxConfig?.allowAllUnixSockets ?? true,
       enableWeakerNestedSandbox: sandboxConfig?.enableWeakerNestedSandbox ?? false,
-      additionalAllowedDomains: sandboxConfig?.allowedDomains,
+      allowedDomains: sandboxConfig?.allowedDomains,
       additionalAllowWrite: sandboxConfig?.additionalWritePaths,
       additionalDenyRead: sandboxConfig?.denyReadPaths,
     };

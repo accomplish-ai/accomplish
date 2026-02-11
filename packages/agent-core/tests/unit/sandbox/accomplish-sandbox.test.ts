@@ -67,6 +67,8 @@ describe('AccomplishSandbox', () => {
             allowWrite: expect.arrayContaining(['/tmp', '/my/project']),
           }),
         }),
+        undefined,
+        '/my/project',
       );
       expect(result).toBe('sandbox-exec echo hello');
     });

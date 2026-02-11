@@ -35,5 +35,6 @@ export {
 } from './accomplish-sandbox.js'
 export {
   buildAccomplishSandboxConfig,
+  DEFAULT_ALLOWED_DOMAINS,
 } from './accomplish-sandbox-config.js'
 export type { AccomplishSandboxOptions } from './accomplish-sandbox-config.js'

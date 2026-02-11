@@ -22,6 +22,10 @@ interface AppSettingsRow {
   sandbox_config: string | null;
 }
 
+interface TableInfoRow {
+  name: string;
+}
+
 export interface AppSettings {
   debugMode: boolean;
   onboardingComplete: boolean;
@@ -37,6 +41,26 @@ export interface AppSettings {
 function getRow(): AppSettingsRow {
   const db = getDatabase();
   return db.prepare('SELECT * FROM app_settings WHERE id = 1').get() as AppSettingsRow;
+}
+
+function hasSandboxConfigColumn(): boolean {
+  const db = getDatabase();
+  const columns = db
+    .prepare('PRAGMA table_info(app_settings)')
+    .all() as TableInfoRow[];
+  return columns.some((column) => column.name === 'sandbox_config');
+}
+
+function ensureSandboxConfigColumn(): void {
+  if (hasSandboxConfigColumn()) {
+    return;
+  }
+
+  const db = getDatabase();
+  db.exec('ALTER TABLE app_settings ADD COLUMN sandbox_config TEXT');
+  console.warn(
+    '[Storage] Added missing sandbox_config column to app_settings (legacy schema auto-repair)'
+  );
 }
 
 export function getDebugMode(): boolean {
@@ -155,6 +179,7 @@ export function setOpenAiBaseUrl(baseUrl: string): void {
 }
 
 export function getSandboxConfig(): SandboxConfig | null {
+  ensureSandboxConfigColumn();
   const row = getRow();
   if (!row.sandbox_config) return null;
   try {
@@ -165,6 +190,7 @@ export function getSandboxConfig(): SandboxConfig | null {
 }
 
 export function setSandboxConfig(config: SandboxConfig | null): void {
+  ensureSandboxConfigColumn();
   const db = getDatabase();
   db.prepare('UPDATE app_settings SET sandbox_config = ? WHERE id = 1').run(
     config ? JSON.stringify(config) : null
@@ -187,6 +213,7 @@ export function getAppSettings(): AppSettings {
 }
 
 export function clearAppSettings(): void {
+  ensureSandboxConfigColumn();
   const db = getDatabase();
   db.prepare(
     `UPDATE app_settings SET

@@ -35,14 +35,20 @@ export interface MacOSSandboxParams {
   allowGitConfig?: boolean
   enableWeakerNetworkIsolation?: boolean
   binShell?: string
+  workingDirectory?: string
 }
 
 /**
  * Get mandatory deny patterns as glob patterns (no filesystem scanning).
  * macOS sandbox profile supports regex/glob matching directly via globToRegex().
  */
-export function macGetMandatoryDenyPatterns(allowGitConfig = false): string[] {
-  const cwd = process.cwd()
+export function macGetMandatoryDenyPatterns(
+  allowGitConfig = false,
+  workingDirectory?: string,
+): string[] {
+  const cwd = workingDirectory
+    ? path.resolve(workingDirectory)
+    : process.cwd()
   const denyPaths: string[] = []
 
   // Dangerous files - static paths in CWD + glob patterns for subtree
@@ -125,11 +131,15 @@ function getAncestorDirectories(pathStr: string): string[] {
 function generateMoveBlockingRules(
   pathPatterns: string[],
   logTag: string,
+  workingDirectory?: string,
 ): string[] {
   const rules: string[] = []
 
   for (const pathPattern of pathPatterns) {
-    const normalizedPath = normalizePathForSandbox(pathPattern)
+    const normalizedPath = normalizePathForSandbox(
+      pathPattern,
+      workingDirectory,
+    )
 
     if (containsGlobChars(normalizedPath)) {
       // Use regex matching for glob patterns
@@ -197,6 +207,7 @@ function generateMoveBlockingRules(
 function generateReadRules(
   config: FsReadRestrictionConfig | undefined,
   logTag: string,
+  workingDirectory?: string,
 ): string[] {
   if (!config) {
     return [`(allow file-read*)`]
@@ -209,7 +220,10 @@ function generateReadRules(
 
   // Then deny specific paths
   for (const pathPattern of config.denyOnly || []) {
-    const normalizedPath = normalizePathForSandbox(pathPattern)
+    const normalizedPath = normalizePathForSandbox(
+      pathPattern,
+      workingDirectory,
+    )
 
     if (containsGlobChars(normalizedPath)) {
       // Use regex matching for glob patterns
@@ -230,7 +244,13 @@ function generateReadRules(
   }
 
   // Block file movement to prevent bypass via mv/rename
-  rules.push(...generateMoveBlockingRules(config.denyOnly || [], logTag))
+  rules.push(
+    ...generateMoveBlockingRules(
+      config.denyOnly || [],
+      logTag,
+      workingDirectory,
+    ),
+  )
 
   return rules
 }
@@ -242,6 +262,7 @@ function generateWriteRules(
   config: FsWriteRestrictionConfig | undefined,
   logTag: string,
   allowGitConfig = false,
+  workingDirectory?: string,
 ): string[] {
   if (!config) {
     return [`(allow file-write*)`]
@@ -252,7 +273,10 @@ function generateWriteRules(
   // Automatically allow TMPDIR parent on macOS when write restrictions are enabled
   const tmpdirParents = getTmpdirParentIfMacOSPattern()
   for (const tmpdirParent of tmpdirParents) {
-    const normalizedPath = normalizePathForSandbox(tmpdirParent)
+    const normalizedPath = normalizePathForSandbox(
+      tmpdirParent,
+      workingDirectory,
+    )
     rules.push(
       `(allow file-write*`,
       `  (subpath ${escapePath(normalizedPath)})`,
@@ -262,7 +286,10 @@ function generateWriteRules(
 
   // Generate allow rules
   for (const pathPattern of config.allowOnly || []) {
-    const normalizedPath = normalizePathForSandbox(pathPattern)
+    const normalizedPath = normalizePathForSandbox(
+      pathPattern,
+      workingDirectory,
+    )
 
     if (containsGlobChars(normalizedPath)) {
       // Use regex matching for glob patterns
@@ -285,11 +312,14 @@ function generateWriteRules(
   // Combine user-specified and mandatory deny patterns (no ripgrep needed on macOS)
   const denyPaths = [
     ...(config.denyWithinAllow || []),
-    ...macGetMandatoryDenyPatterns(allowGitConfig),
+    ...macGetMandatoryDenyPatterns(allowGitConfig, workingDirectory),
   ]
 
   for (const pathPattern of denyPaths) {
-    const normalizedPath = normalizePathForSandbox(pathPattern)
+    const normalizedPath = normalizePathForSandbox(
+      pathPattern,
+      workingDirectory,
+    )
 
     if (containsGlobChars(normalizedPath)) {
       // Use regex matching for glob patterns
@@ -310,7 +340,7 @@ function generateWriteRules(
   }
 
   // Block file movement to prevent bypass via mv/rename
-  rules.push(...generateMoveBlockingRules(denyPaths, logTag))
+  rules.push(...generateMoveBlockingRules(denyPaths, logTag, workingDirectory))
 
   return rules
 }
@@ -331,6 +361,7 @@ function generateSandboxProfile({
   allowGitConfig = false,
   enableWeakerNetworkIsolation = false,
   logTag,
+  workingDirectory,
 }: {
   readConfig: FsReadRestrictionConfig | undefined
   writeConfig: FsWriteRestrictionConfig | undefined
@@ -344,6 +375,7 @@ function generateSandboxProfile({
   allowGitConfig?: boolean
   enableWeakerNetworkIsolation?: boolean
   logTag: string
+  workingDirectory?: string
 }): string {
   const profile: string[] = [
     '(version 1)',
@@ -521,7 +553,10 @@ function generateSandboxProfile({
     } else if (allowUnixSockets && allowUnixSockets.length > 0) {
       // Allow specific Unix socket paths
       for (const socketPath of allowUnixSockets) {
-        const normalizedPath = normalizePathForSandbox(socketPath)
+        const normalizedPath = normalizePathForSandbox(
+          socketPath,
+          workingDirectory,
+        )
         profile.push(`(allow network* (subpath ${escapePath(normalizedPath)}))`)
       }
     }
@@ -557,12 +592,19 @@ function generateSandboxProfile({
 
   // Read rules
   profile.push('; File read')
-  profile.push(...generateReadRules(readConfig, logTag))
+  profile.push(...generateReadRules(readConfig, logTag, workingDirectory))
   profile.push('')
 
   // Write rules
   profile.push('; File write')
-  profile.push(...generateWriteRules(writeConfig, logTag, allowGitConfig))
+  profile.push(
+    ...generateWriteRules(
+      writeConfig,
+      logTag,
+      allowGitConfig,
+      workingDirectory,
+    ),
+  )
 
   // Pseudo-terminal (pty) support
   if (allowPty) {
@@ -634,6 +676,7 @@ export function wrapCommandWithSandboxMacOS(
     allowGitConfig = false,
     enableWeakerNetworkIsolation = false,
     binShell,
+    workingDirectory,
   } = params
 
   // Determine if we have restrictions to apply
@@ -666,6 +709,7 @@ export function wrapCommandWithSandboxMacOS(
     allowGitConfig,
     enableWeakerNetworkIsolation,
     logTag,
+    workingDirectory,
   })
 
   // Generate proxy environment variables using shared utility

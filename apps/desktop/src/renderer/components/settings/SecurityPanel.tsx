@@ -35,7 +35,8 @@ const DEFAULT_PROTECTED_PATHS = [
 
 const DEFAULT_CONFIG: SandboxConfig = {
   enabled: true,
-  allowedDomains: [],
+  allowedDomains: [...DEFAULT_ALLOWED_DOMAINS],
+  allowedDomainsVersion: 2,
   additionalWritePaths: [],
   denyReadPaths: [],
   allowPty: true,
@@ -43,6 +44,51 @@ const DEFAULT_CONFIG: SandboxConfig = {
   allowAllUnixSockets: true,
   enableWeakerNestedSandbox: false,
 };
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const normalized = value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set(normalized));
+}
+
+function normalizeBoolean(value: unknown, defaultValue: boolean): boolean {
+  return typeof value === 'boolean' ? value : defaultValue;
+}
+
+function normalizeSandboxConfigForUI(config: unknown): SandboxConfig {
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    return { ...DEFAULT_CONFIG };
+  }
+
+  const raw = config as Record<string, unknown>;
+  const rawAllowedDomains = raw.allowedDomains ?? raw.additionalAllowedDomains;
+  const hasAllowedDomains = rawAllowedDomains !== undefined && rawAllowedDomains !== null;
+  const normalizedAllowedDomains = normalizeStringArray(rawAllowedDomains);
+  const rawAdditionalWritePaths = raw.additionalWritePaths ?? raw.additionalAllowWrite;
+  const rawDenyReadPaths = raw.denyReadPaths ?? raw.additionalDenyRead ?? raw.denyRead;
+
+  return {
+    enabled: normalizeBoolean(raw.enabled, DEFAULT_CONFIG.enabled),
+    allowedDomains: hasAllowedDomains ? normalizedAllowedDomains : [...DEFAULT_ALLOWED_DOMAINS],
+    allowedDomainsVersion: 2,
+    additionalWritePaths: normalizeStringArray(rawAdditionalWritePaths),
+    denyReadPaths: normalizeStringArray(rawDenyReadPaths),
+    allowPty: normalizeBoolean(raw.allowPty, DEFAULT_CONFIG.allowPty),
+    allowLocalBinding: normalizeBoolean(raw.allowLocalBinding, DEFAULT_CONFIG.allowLocalBinding),
+    allowAllUnixSockets: normalizeBoolean(raw.allowAllUnixSockets, DEFAULT_CONFIG.allowAllUnixSockets),
+    enableWeakerNestedSandbox: normalizeBoolean(
+      raw.enableWeakerNestedSandbox,
+      DEFAULT_CONFIG.enableWeakerNestedSandbox
+    ),
+  };
+}
 
 function Toggle({ checked, onChange, variant = 'primary' }: {
   checked: boolean;
@@ -74,10 +120,11 @@ function EditableList({ items, onAdd, onRemove, placeholder, mono = false }: {
   mono?: boolean;
 }) {
   const [inputValue, setInputValue] = useState('');
+  const normalizedItems = Array.isArray(items) ? items : [];
 
   const handleAdd = () => {
     const trimmed = inputValue.trim();
-    if (trimmed && !items.includes(trimmed)) {
+    if (trimmed && !normalizedItems.includes(trimmed)) {
       onAdd(trimmed);
       setInputValue('');
     }
@@ -101,9 +148,9 @@ function EditableList({ items, onAdd, onRemove, placeholder, mono = false }: {
           <Plus className="h-4 w-4" />
         </button>
       </div>
-      {items.length > 0 && (
+      {normalizedItems.length > 0 && (
         <div className="space-y-1.5">
-          {items.map((item) => (
+          {normalizedItems.map((item) => (
             <div
               key={item}
               className="flex items-center justify-between rounded-md bg-muted px-3 py-2"
@@ -123,8 +170,11 @@ function EditableList({ items, onAdd, onRemove, placeholder, mono = false }: {
   );
 }
 
-export function SecurityPanel() {
-  const accomplish = getAccomplish();
+interface SecurityPanelProps {
+  onApplied?: () => void;
+}
+
+export function SecurityPanel({ onApplied }: SecurityPanelProps = {}) {
   const [config, setConfig] = useState<SandboxConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -132,21 +182,24 @@ export function SecurityPanel() {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
-    accomplish.getSandboxConfig().then((stored) => {
-      if (stored) setConfig(stored);
+    getAccomplish().getSandboxConfig().then((stored) => {
+      setConfig(normalizeSandboxConfigForUI(stored));
     }).catch((err) => {
       console.error('Failed to load sandbox config:', err);
     }).finally(() => {
       setLoading(false);
     });
-  }, [accomplish]);
+  }, []);
 
   const saveConfig = async () => {
     setSaving(true);
     setSaveStatus('idle');
     try {
-      await accomplish.setSandboxConfig(config);
+      const normalizedConfig = normalizeSandboxConfigForUI(config);
+      setConfig(normalizedConfig);
+      await getAccomplish().setSandboxConfig(normalizedConfig);
       setSaveStatus('success');
+      onApplied?.();
       setTimeout(() => setSaveStatus('idle'), 2000);
     } catch {
       setSaveStatus('error');
@@ -191,7 +244,7 @@ export function SecurityPanel() {
           </div>
           <Toggle
             checked={config.enabled}
-            onChange={() => setConfig({ ...config, enabled: !config.enabled })}
+            onChange={() => setConfig((prev) => ({ ...prev, enabled: !prev.enabled }))}
           />
         </div>
         {!config.enabled && (
@@ -208,23 +261,25 @@ export function SecurityPanel() {
       <div className="rounded-lg border border-border bg-card p-5">
         <h3 className="font-medium text-foreground mb-4">Network Access</h3>
 
-        <div className="mb-4">
-          <div className="text-sm font-medium text-muted-foreground mb-2">
-            Default Allowed Domains (always included)
-          </div>
-          <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground max-h-24 overflow-y-auto">
-            {DEFAULT_ALLOWED_DOMAINS.join(', ')}
-          </div>
-        </div>
-
         <div>
           <div className="text-sm font-medium text-foreground mb-2">
-            Additional Allowed Domains
+            Allowed Domains
           </div>
           <EditableList
             items={config.allowedDomains}
-            onAdd={(domain) => setConfig({ ...config, allowedDomains: [...config.allowedDomains, domain] })}
-            onRemove={(domain) => setConfig({ ...config, allowedDomains: config.allowedDomains.filter(d => d !== domain) })}
+            onAdd={(domain) => setConfig((prev) => {
+              if (prev.allowedDomains.includes(domain)) {
+                return prev;
+              }
+              return {
+                ...prev,
+                allowedDomains: [...prev.allowedDomains, domain],
+              };
+            })}
+            onRemove={(domain) => setConfig((prev) => ({
+              ...prev,
+              allowedDomains: prev.allowedDomains.filter(d => d !== domain),
+            }))}
             placeholder="example.com or *.example.com"
           />
         </div>
@@ -243,8 +298,14 @@ export function SecurityPanel() {
           </p>
           <EditableList
             items={config.additionalWritePaths}
-            onAdd={(p) => setConfig({ ...config, additionalWritePaths: [...config.additionalWritePaths, p] })}
-            onRemove={(p) => setConfig({ ...config, additionalWritePaths: config.additionalWritePaths.filter(x => x !== p) })}
+            onAdd={(p) => setConfig((prev) => ({
+              ...prev,
+              additionalWritePaths: [...prev.additionalWritePaths, p],
+            }))}
+            onRemove={(p) => setConfig((prev) => ({
+              ...prev,
+              additionalWritePaths: prev.additionalWritePaths.filter(x => x !== p),
+            }))}
             placeholder="/path/to/directory"
             mono
           />
@@ -268,8 +329,14 @@ export function SecurityPanel() {
           </p>
           <EditableList
             items={config.denyReadPaths}
-            onAdd={(p) => setConfig({ ...config, denyReadPaths: [...config.denyReadPaths, p] })}
-            onRemove={(p) => setConfig({ ...config, denyReadPaths: config.denyReadPaths.filter(x => x !== p) })}
+            onAdd={(p) => setConfig((prev) => ({
+              ...prev,
+              denyReadPaths: [...prev.denyReadPaths, p],
+            }))}
+            onRemove={(p) => setConfig((prev) => ({
+              ...prev,
+              denyReadPaths: prev.denyReadPaths.filter(x => x !== p),
+            }))}
             placeholder="/path/to/sensitive/directory"
             mono
           />
@@ -309,7 +376,7 @@ export function SecurityPanel() {
                 </div>
                 <Toggle
                   checked={config.allowPty}
-                  onChange={() => setConfig({ ...config, allowPty: !config.allowPty })}
+                  onChange={() => setConfig((prev) => ({ ...prev, allowPty: !prev.allowPty }))}
                 />
               </div>
 
@@ -322,7 +389,10 @@ export function SecurityPanel() {
                 </div>
                 <Toggle
                   checked={config.allowLocalBinding}
-                  onChange={() => setConfig({ ...config, allowLocalBinding: !config.allowLocalBinding })}
+                  onChange={() => setConfig((prev) => ({
+                    ...prev,
+                    allowLocalBinding: !prev.allowLocalBinding,
+                  }))}
                 />
               </div>
 
@@ -335,7 +405,10 @@ export function SecurityPanel() {
                 </div>
                 <Toggle
                   checked={config.allowAllUnixSockets}
-                  onChange={() => setConfig({ ...config, allowAllUnixSockets: !config.allowAllUnixSockets })}
+                  onChange={() => setConfig((prev) => ({
+                    ...prev,
+                    allowAllUnixSockets: !prev.allowAllUnixSockets,
+                  }))}
                 />
               </div>
 
@@ -353,7 +426,10 @@ export function SecurityPanel() {
                 </div>
                 <Toggle
                   checked={config.enableWeakerNestedSandbox}
-                  onChange={() => setConfig({ ...config, enableWeakerNestedSandbox: !config.enableWeakerNestedSandbox })}
+                  onChange={() => setConfig((prev) => ({
+                    ...prev,
+                    enableWeakerNestedSandbox: !prev.enableWeakerNestedSandbox,
+                  }))}
                   variant="warning"
                 />
               </div>

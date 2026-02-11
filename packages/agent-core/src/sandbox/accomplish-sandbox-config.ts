@@ -6,6 +6,8 @@ import { getDefaultWritePaths } from './sandbox-utils.js'
 export interface AccomplishSandboxOptions {
   /** Working directory for the task (added to allowWrite) */
   workingDirectory?: string
+  /** Full effective list of allowed domains */
+  allowedDomains?: string[]
   /** Additional domains to allow network access to */
   additionalAllowedDomains?: string[]
   /** Additional paths to allow writing to */
@@ -22,7 +24,7 @@ export interface AccomplishSandboxOptions {
   enableWeakerNestedSandbox?: boolean
 }
 
-const DEFAULT_ALLOWED_DOMAINS = [
+export const DEFAULT_ALLOWED_DOMAINS = [
   // LLM providers
   'api.anthropic.com',
   'api.openai.com',
@@ -66,6 +68,7 @@ export function buildAccomplishSandboxConfig(
 ): SandboxRuntimeConfig {
   const {
     workingDirectory,
+    allowedDomains,
     additionalAllowedDomains = [],
     additionalAllowWrite = [],
     additionalDenyRead = [],
@@ -93,9 +96,16 @@ export function buildAccomplishSandboxConfig(
     allowWrite.push(workingDirectory)
   }
 
+  const effectiveAllowedDomains = Array.from(
+    new Set(
+      allowedDomains ??
+        [...DEFAULT_ALLOWED_DOMAINS, ...additionalAllowedDomains],
+    ),
+  )
+
   return {
     network: {
-      allowedDomains: [...DEFAULT_ALLOWED_DOMAINS, ...additionalAllowedDomains],
+      allowedDomains: effectiveAllowedDomains,
       deniedDomains: [],
       allowAllUnixSockets,
       allowLocalBinding,

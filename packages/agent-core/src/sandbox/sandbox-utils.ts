@@ -204,8 +204,11 @@ export function isSymlinkOutsideBoundary(
  *
  * Returns the absolute path with symlinks resolved (or normalized glob pattern)
  */
-export function normalizePathForSandbox(pathPattern: string): string {
-  const cwd = process.cwd()
+export function normalizePathForSandbox(
+  pathPattern: string,
+  baseDirectory?: string,
+): string {
+  const cwd = baseDirectory ? path.resolve(baseDirectory) : process.cwd()
   let normalizedPath = pathPattern
 
   // Expand ~ to home directory
