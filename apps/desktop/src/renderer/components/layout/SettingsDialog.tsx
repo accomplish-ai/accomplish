@@ -512,6 +512,37 @@ export default function SettingsDialog({
                   </motion.section>
                 )}
               </AnimatePresence>
+
+              {/* Language Settings */}
+              <div className="rounded-lg border border-border bg-card p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="font-medium text-foreground">{t('language.title')}</div>
+                    <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                      {t('language.description')}
+                    </p>
+                  </div>
+                  <div className="ml-4">
+                    <select
+                      value={language}
+                      onChange={(e) => handleLanguageChange(e.target.value as 'en' | 'zh-CN' | 'auto')}
+                      className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      data-testid="language-select"
+                    >
+                      <option value="auto" disabled={!systemLanguageSupported}>
+                        {(() => {
+                          if (!systemLanguageSupported) return 'Auto (Unsupported)';
+                          const sysLang = navigator.language;
+                          if (sysLang.startsWith('zh')) return '自动 (系统)';
+                          return 'Auto (System)';
+                        })()}
+                      </option>
+                      <option value="en">English</option>
+                      <option value="zh-CN">简体中文</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -563,41 +594,9 @@ export default function SettingsDialog({
                   {t('about.allRightsReserved')}
                 </div>
               </div>
+
             </div>
           )}
-
-          {/* Language Settings Section - always visible outside tabs */}
-          <section>
-            <div className="rounded-lg border border-border bg-card p-5">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="font-medium text-foreground">{t('language.title')}</div>
-                  <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-                    {t('language.description')}
-                  </p>
-                </div>
-                <div className="ml-4">
-                  <select
-                    value={language}
-                    onChange={(e) => handleLanguageChange(e.target.value as 'en' | 'zh-CN' | 'auto')}
-                    className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    data-testid="language-select"
-                  >
-                    <option value="auto" disabled={!systemLanguageSupported}>
-                      {(() => {
-                        if (!systemLanguageSupported) return 'Auto (Unsupported)';
-                        const sysLang = navigator.language;
-                        if (sysLang.startsWith('zh')) return '自动 (系统)';
-                        return 'Auto (System)';
-                      })()}
-                    </option>
-                    <option value="en">English</option>
-                    <option value="zh-CN">简体中文</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </section>
 
           {/* Done Button */}
           <div className="flex justify-end">
