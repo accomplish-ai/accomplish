@@ -314,6 +314,7 @@
     "title": "语言",
     "description": "选择您偏好的显示语言。",
     "auto": "自动（跟随系统）",
+    "autoUnsupported": "自动（不支持）",
     "en": "English",
     "zhCN": "简体中文"
   },

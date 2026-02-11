@@ -314,6 +314,7 @@
     "title": "Language",
     "description": "Choose your preferred display language.",
     "auto": "Auto (System)",
+    "autoUnsupported": "Auto (Unsupported)",
     "en": "English",
     "zhCN": "Simplified Chinese"
   },

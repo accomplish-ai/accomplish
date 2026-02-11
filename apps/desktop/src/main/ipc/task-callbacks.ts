@@ -12,8 +12,7 @@ import { getStorage } from '../store/storage';
 import { translateFromEnglish, clearTaskLanguage } from '../services/translationService';
 import { getLanguage as getI18nLanguage } from '../i18n';
 
-// Human-readable tool display names per language.
-// Known tools get curated labels; unknown tools are translated dynamically via the translation service.
+// Localized display labels shown in the UI when tools execute; unknown tools fall back to dynamic translation.
 const TOOL_DISPLAY_NAMES: Record<string, Record<string, string>> = {
   en: {
     invalid: 'Retrying...', Read: 'Reading files', Glob: 'Finding files', Grep: 'Searching code',
@@ -89,6 +88,9 @@ export interface TaskCallbacksOptions {
   sender: Electron.WebContents;
 }
 
+// Serializes batch processing per task so translations from earlier batches always arrive before later ones.
+const taskProcessingQueue = new Map<string, Promise<void>>();
+
 /** Create the set of callbacks that bridge OpenCode task events to the renderer via IPC. */
 export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallbacks {
   const { taskId, window, sender } = options;
@@ -104,62 +106,59 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
 
   return {
     onBatchedMessages: (messages: TaskMessage[]) => {
-      const language = getI18nLanguage();
-      const translations: Promise<void>[] = [];
+      const workPromise = async () => {
+        const language = getI18nLanguage();
+        const translations: Promise<void>[] = [];
 
-      for (const msg of messages) {
-        // Translate assistant message content
-        if (language !== 'en' && msg.type === 'assistant' && msg.content) {
-          translations.push(
-            translateFromEnglish(msg.content, language)
-              .then((t) => { msg.content = t; })
-              .catch(() => {})
-          );
-        }
-
-        // Resolve tool display names and translate descriptions
-        if (msg.type === 'tool') {
-          const input = (msg.toolInput || {}) as Record<string, unknown>;
-          if (msg.toolName) {
-            const displayName = getToolDisplayName(msg.toolName, language);
-            if (displayName) {
-              input._translatedToolName = displayName;
-            } else if (language !== 'en') {
-              const humanized = humanizeToolName(msg.toolName);
-              translations.push(
-                translateFromEnglish(humanized, language)
-                  .then((t) => { input._translatedToolName = t; })
-                  .catch(() => { input._translatedToolName = humanized; })
-              );
-            } else {
-              input._translatedToolName = humanizeToolName(msg.toolName);
-            }
-          }
-          if (language !== 'en' && typeof input.description === 'string') {
+        for (const msg of messages) {
+          if (language !== 'en' && msg.type === 'assistant' && msg.content) {
             translations.push(
-              translateFromEnglish(input.description, language)
-                .then((t) => { input.description = t; })
+              translateFromEnglish(msg.content, language)
+                .then((t) => { msg.content = t; })
                 .catch(() => {})
             );
           }
-          msg.toolInput = input;
-        }
-      }
 
-      if (translations.length > 0) {
-        Promise.all(translations).then(() => {
-          forwardToRenderer('task:update:batch', { taskId, messages });
-          for (const msg of messages) {
-            storage.addTaskMessage(taskId, msg);
+          if (msg.type === 'tool') {
+            const input = (msg.toolInput || {}) as Record<string, unknown>;
+            if (msg.toolName) {
+              const displayName = getToolDisplayName(msg.toolName, language);
+              if (displayName) {
+                input._translatedToolName = displayName;
+              } else if (language !== 'en') {
+                const humanized = humanizeToolName(msg.toolName);
+                translations.push(
+                  translateFromEnglish(humanized, language)
+                    .then((t) => { input._translatedToolName = t; })
+                    .catch(() => { input._translatedToolName = humanized; })
+                );
+              } else {
+                input._translatedToolName = humanizeToolName(msg.toolName);
+              }
+            }
+            if (language !== 'en' && typeof input.description === 'string') {
+              translations.push(
+                translateFromEnglish(input.description, language)
+                  .then((t) => { input.description = t; })
+                  .catch(() => {})
+              );
+            }
+            msg.toolInput = input;
           }
-        });
-        return;
-      }
+        }
 
-      forwardToRenderer('task:update:batch', { taskId, messages });
-      for (const msg of messages) {
-        storage.addTaskMessage(taskId, msg);
-      }
+        if (translations.length > 0) {
+          await Promise.all(translations);
+        }
+
+        forwardToRenderer('task:update:batch', { taskId, messages });
+        for (const msg of messages) {
+          storage.addTaskMessage(taskId, msg);
+        }
+      };
+
+      const previous = taskProcessingQueue.get(taskId) || Promise.resolve();
+      taskProcessingQueue.set(taskId, previous.then(() => workPromise()).catch(() => {}));
     },
 
     onProgress: (progress: { stage: string; message?: string }) => {

@@ -18,28 +18,17 @@ const MAX_CACHE_SIZE = 500;
 // Language codes we support detecting/translating
 type LanguageCode = 'en' | 'zh' | 'he' | 'ar' | 'ru' | 'ja' | 'ko' | string;
 
-/**
- * Track detected language per task
- */
+// Per-task detected language cache. Set on first user message detection, cleared on task completion/error.
 const taskLanguageMap = new Map<string, LanguageCode>();
 
-/**
- * Get the detected language for a task
- */
 export function getTaskLanguage(taskId: string): LanguageCode | undefined {
   return taskLanguageMap.get(taskId);
 }
 
-/**
- * Set the detected language for a task
- */
 export function setTaskLanguage(taskId: string, language: LanguageCode): void {
   taskLanguageMap.set(taskId, language);
 }
 
-/**
- * Clear the language tracking for a task (call on task complete/error)
- */
 export function clearTaskLanguage(taskId: string): void {
   taskLanguageMap.delete(taskId);
 }

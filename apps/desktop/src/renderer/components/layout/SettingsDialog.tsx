@@ -205,9 +205,15 @@ export default function SettingsDialog({
 
   // Handle language change
   const handleLanguageChange = useCallback(async (newLanguage: 'en' | 'zh-CN' | 'auto') => {
+    const previousLanguage = language;
     setLanguageState(newLanguage);
-    await changeLanguage(newLanguage);
-  }, []);
+    try {
+      await changeLanguage(newLanguage);
+    } catch (err) {
+      console.error('[Settings] Language change failed:', err);
+      setLanguageState(previousLanguage);
+    }
+  }, [language]);
 
   // Handle log export
   const handleExportLogs = useCallback(async () => {
@@ -531,10 +537,10 @@ export default function SettingsDialog({
                     >
                       <option value="auto" disabled={!systemLanguageSupported}>
                         {(() => {
-                          if (!systemLanguageSupported) return 'Auto (Unsupported)';
-                          const sysLang = navigator.language;
-                          if (sysLang.startsWith('zh')) return '自动 (系统)';
-                          return 'Auto (System)';
+                          if (!systemLanguageSupported) return t('language.autoUnsupported');
+                          return navigator.language.startsWith('zh')
+                            ? t('language.auto', { lng: 'zh-CN' })
+                            : t('language.auto', { lng: 'en' });
                         })()}
                       </option>
                       <option value="en">English</option>
