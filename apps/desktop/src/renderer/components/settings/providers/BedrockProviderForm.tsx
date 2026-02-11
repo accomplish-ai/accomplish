@@ -157,7 +157,7 @@ export function BedrockProviderForm({
                       : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  {t('bedrock.apiKey')}
+                  {t('bedrockApiKey.label')}
                 </button>
                 <button
                   onClick={() => setAuthTab('accessKey')}
