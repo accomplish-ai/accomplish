@@ -17,8 +17,8 @@ export type {
   TaskResult,
   TaskProgress,
   TaskUpdateEvent,
-} from './common/types/task.js';
-export { STARTUP_STAGES } from './common/types/task.js';
+} from "./common/types/task.js";
+export { STARTUP_STAGES } from "./common/types/task.js";
 
 // Permission types
 export type {
@@ -26,12 +26,12 @@ export type {
   PermissionRequest,
   PermissionOption,
   PermissionResponse,
-} from './common/types/permission.js';
+} from "./common/types/permission.js";
 export {
   FILE_OPERATIONS,
   FILE_PERMISSION_REQUEST_PREFIX,
   QUESTION_REQUEST_PREFIX,
-} from './common/types/permission.js';
+} from "./common/types/permission.js";
 
 // Provider types
 export type {
@@ -45,14 +45,14 @@ export type {
   LiteLLMModel,
   LiteLLMConfig,
   LMStudioConfig,
-} from './common/types/provider.js';
+} from "./common/types/provider.js";
 export {
   DEFAULT_PROVIDERS,
   DEFAULT_MODEL,
   ALLOWED_API_KEY_PROVIDERS,
   STANDARD_VALIDATION_PROVIDERS,
   ZAI_ENDPOINTS,
-} from './common/types/provider.js';
+} from "./common/types/provider.js";
 
 // Provider settings types
 export type {
@@ -75,7 +75,7 @@ export type {
   ToolSupportStatus,
   ConnectedProvider,
   ProviderSettings,
-} from './common/types/providerSettings.js';
+} from "./common/types/providerSettings.js";
 export {
   PROVIDER_META,
   DEFAULT_MODELS,
@@ -84,7 +84,7 @@ export {
   hasAnyReadyProvider,
   getActiveProvider,
   getDefaultModelForProvider,
-} from './common/types/providerSettings.js';
+} from "./common/types/providerSettings.js";
 
 // Auth types
 export type {
@@ -93,7 +93,7 @@ export type {
   BedrockAccessKeyCredentials,
   BedrockProfileCredentials,
   BedrockApiKeyCredentials,
-} from './common/types/auth.js';
+} from "./common/types/auth.js";
 
 // OpenCode message types
 export type {
@@ -106,15 +106,29 @@ export type {
   OpenCodeToolResultMessage,
   OpenCodeStepFinishMessage,
   OpenCodeErrorMessage,
-} from './common/types/opencode.js';
+} from "./common/types/opencode.js";
 
 // Skills types
-export type { SkillSource, Skill, SkillFrontmatter } from './common/types/skills.js';
+export type {
+  SkillSource,
+  Skill,
+  SkillFrontmatter,
+} from "./common/types/skills.js";
+
+// Workspace types
+export type {
+  Workspace,
+  WorkspaceCreateInput,
+  WorkspaceUpdateInput,
+} from "./common/types/workspace.js";
 
 // Other types
-export type { TodoItem } from './common/types/todo.js';
-export type { LogLevel, LogSource, LogEntry } from './common/types/logging.js';
-export type { ThoughtEvent, CheckpointEvent } from './common/types/thought-stream.js';
+export type { TodoItem } from "./common/types/todo.js";
+export type { LogLevel, LogSource, LogEntry } from "./common/types/logging.js";
+export type {
+  ThoughtEvent,
+  CheckpointEvent,
+} from "./common/types/thought-stream.js";
 
 // === CONSTANTS ===
 export {
@@ -128,13 +142,13 @@ export {
   LOG_RETENTION_DAYS,
   LOG_BUFFER_FLUSH_INTERVAL_MS,
   LOG_BUFFER_MAX_ENTRIES,
-} from './common/constants.js';
+} from "./common/constants.js";
 
 export {
   MODEL_DISPLAY_NAMES,
   PROVIDER_PREFIXES,
   getModelDisplayName,
-} from './common/constants/model-display.js';
+} from "./common/constants/model-display.js";
 
 // === BROWSER-SAFE UTILS ===
 export {
@@ -144,10 +158,13 @@ export {
   createQuestionRequestId,
   isFilePermissionRequest,
   isQuestionRequest,
-} from './common/utils/id.js';
+} from "./common/utils/id.js";
 
-export { isWaitingForUser } from './common/utils/waiting-detection.js';
-export { detectLogSource, LOG_SOURCE_PATTERNS } from './common/utils/log-source-detector.js';
+export { isWaitingForUser } from "./common/utils/waiting-detection.js";
+export {
+  detectLogSource,
+  LOG_SOURCE_PATTERNS,
+} from "./common/utils/log-source-detector.js";
 
 // === SCHEMAS ===
 export {
@@ -155,4 +172,4 @@ export {
   permissionResponseSchema,
   resumeSessionSchema,
   validate,
-} from './common/schemas/validation.js';
+} from "./common/schemas/validation.js";

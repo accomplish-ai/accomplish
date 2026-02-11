@@ -1,6 +1,6 @@
-import { app } from 'electron';
-import { createStorage, type StorageAPI } from '@accomplish_ai/agent-core';
-import type { ApiKeyProvider } from '@accomplish_ai/agent-core';
+import { app } from "electron";
+import { createStorage, type StorageAPI } from "@accomplish_ai/agent-core";
+import type { ApiKeyProvider } from "@accomplish_ai/agent-core";
 
 export type { ApiKeyProvider };
 
@@ -9,8 +9,10 @@ let _storage: StorageAPI | null = null;
 function getStorage(): StorageAPI {
   if (!_storage) {
     _storage = createStorage({
-      userDataPath: app.getPath('userData'),
-      secureStorageFileName: app.isPackaged ? 'secure-storage.json' : 'secure-storage-dev.json',
+      userDataPath: app.getPath("userData"),
+      secureStorageFileName: app.isPackaged
+        ? "secure-storage.json"
+        : "secure-storage-dev.json",
     });
   }
   return _storage;
@@ -28,7 +30,9 @@ export function deleteApiKey(provider: string): boolean {
   return getStorage().deleteApiKey(provider);
 }
 
-export async function getAllApiKeys(): Promise<Record<ApiKeyProvider, string | null>> {
+export async function getAllApiKeys(): Promise<
+  Record<ApiKeyProvider, string | null>
+> {
   return getStorage().getAllApiKeys();
 }
 

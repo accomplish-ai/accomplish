@@ -1,22 +1,24 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useTaskStore } from '@/stores/taskStore';
-import { getAccomplish } from '@/lib/accomplish';
-import { staggerContainer } from '@/lib/animations';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import ConversationListItem from './ConversationListItem';
-import SettingsDialog from './SettingsDialog';
-import { Settings, MessageSquarePlus, Search } from 'lucide-react';
-import logoImage from '/assets/logo-1.png';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { useTaskStore } from "@/stores/taskStore";
+import { getAccomplish } from "@/lib/accomplish";
+import { staggerContainer } from "@/lib/animations";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import ConversationListItem from "./ConversationListItem";
+import SettingsDialog from "./SettingsDialog";
+import { Settings, MessageSquarePlus, Search } from "lucide-react";
+import logoImage from "/assets/logo-1.png";
+import WorkspaceSelector from "./WorkspaceSelector";
 
 export default function Sidebar() {
   const navigate = useNavigate();
   const [showSettings, setShowSettings] = useState(false);
-  const { tasks, loadTasks, updateTaskStatus, addTaskUpdate, openLauncher } = useTaskStore();
+  const { tasks, loadTasks, updateTaskStatus, addTaskUpdate, openLauncher } =
+    useTaskStore();
   const accomplish = getAccomplish();
 
   useEffect(() => {
@@ -41,12 +43,17 @@ export default function Sidebar() {
   }, [updateTaskStatus, addTaskUpdate, accomplish]);
 
   const handleNewConversation = () => {
-    navigate('/');
+    navigate("/");
   };
 
   return (
     <>
       <div className="flex h-screen w-[260px] flex-col border-r border-border bg-card pt-12">
+        {/* Workspace Selector */}
+        <div className="px-3 pt-3 pb-1">
+          <WorkspaceSelector onManageWorkspaces={() => setShowSettings(true)} />
+        </div>
+
         {/* Action Buttons */}
         <div className="px-3 py-3 border-b border-border flex gap-2">
           <Button
@@ -109,7 +116,7 @@ export default function Sidebar() {
             <img
               src={logoImage}
               alt="Accomplish"
-              style={{ height: '20px', paddingLeft: '6px' }}
+              style={{ height: "20px", paddingLeft: "6px" }}
             />
           </div>
 

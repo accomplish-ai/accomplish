@@ -1,5 +1,5 @@
-import { app } from 'electron';
-import path from 'path';
+import { app } from "electron";
+import path from "path";
 import {
   getDatabase as coreGetDatabase,
   initializeDatabase as coreInitializeDatabase,
@@ -7,12 +7,12 @@ import {
   resetDatabase as coreResetDatabase,
   databaseExists as coreDatabaseExists,
   isDatabaseInitialized,
-} from '@accomplish_ai/agent-core';
-import { importLegacyElectronStoreData } from './electronStoreImport';
+} from "@accomplish_ai/agent-core";
+import { importLegacyElectronStoreData } from "./electronStoreImport";
 
 export function getDatabasePath(): string {
-  const dbName = app.isPackaged ? 'accomplish.db' : 'accomplish-dev.db';
-  return path.join(app.getPath('userData'), dbName);
+  const dbName = app.isPackaged ? "accomplish.db" : "accomplish-dev.db";
+  return path.join(app.getPath("userData"), dbName);
 }
 
 export function getDatabase() {
