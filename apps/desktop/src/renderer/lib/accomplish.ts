@@ -16,6 +16,7 @@ import type {
   ApiKeyConfig,
   TaskMessage,
   BedrockCredentials,
+  VertexCredentials,
   ProviderSettings,
   ProviderId,
   ConnectedProvider,
@@ -150,6 +151,14 @@ interface AccomplishAPI {
   getBedrockCredentials(): Promise<BedrockCredentials | null>;
   fetchBedrockModels(credentials: string): Promise<{ success: boolean; models: Array<{ id: string; name: string; provider: string }>; error?: string }>;
 
+  // Vertex AI configuration
+  validateVertexCredentials(credentials: string): Promise<{ valid: boolean; error?: string }>;
+  saveVertexCredentials(credentials: string): Promise<ApiKeyConfig>;
+  getVertexCredentials(): Promise<VertexCredentials | null>;
+  fetchVertexModels(credentials: string): Promise<{ success: boolean; models: Array<{ id: string; name: string; provider: string }>; error?: string }>;
+  detectVertexProject(): Promise<{ success: boolean; projectId: string | null }>;
+  listVertexProjects(): Promise<{ success: boolean; projects: Array<{ projectId: string; name: string }>; error?: string }>;
+
   // E2E Testing
   isE2EMode(): Promise<boolean>;
 
@@ -246,6 +255,24 @@ export function getAccomplish() {
     },
 
     fetchBedrockModels: (credentials: string) => window.accomplish!.fetchBedrockModels(credentials),
+
+    validateVertexCredentials: async (credentials: VertexCredentials): Promise<{ valid: boolean; error?: string }> => {
+      return window.accomplish!.validateVertexCredentials(JSON.stringify(credentials));
+    },
+
+    saveVertexCredentials: async (credentials: VertexCredentials): Promise<ApiKeyConfig> => {
+      return window.accomplish!.saveVertexCredentials(JSON.stringify(credentials));
+    },
+
+    getVertexCredentials: async (): Promise<VertexCredentials | null> => {
+      return window.accomplish!.getVertexCredentials();
+    },
+
+    fetchVertexModels: (credentials: string) => window.accomplish!.fetchVertexModels(credentials),
+
+    detectVertexProject: () => window.accomplish!.detectVertexProject(),
+
+    listVertexProjects: () => window.accomplish!.listVertexProjects(),
   };
 }
 

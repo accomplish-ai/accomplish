@@ -7,6 +7,7 @@ import deepseekLogo from '/assets/ai-logos/deepseek.svg';
 import moonshotLogo from '/assets/ai-logos/moonshot.svg';
 import zaiLogo from '/assets/ai-logos/zai.svg';
 import bedrockLogo from '/assets/ai-logos/bedrock.svg';
+import vertexLogo from '/assets/ai-logos/vertex.svg';
 import azureLogo from '/assets/ai-logos/azure.svg';
 import ollamaLogo from '/assets/ai-logos/ollama.svg';
 import openrouterLogo from '/assets/ai-logos/openrouter.svg';
@@ -23,6 +24,7 @@ export const PROVIDER_LOGOS: Record<ProviderId, string> = {
   moonshot: moonshotLogo,
   zai: zaiLogo,
   bedrock: bedrockLogo,
+  vertex: vertexLogo,
   'azure-foundry': azureLogo,
   ollama: ollamaLogo,
   openrouter: openrouterLogo,

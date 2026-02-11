@@ -20,7 +20,7 @@ import {
   startThoughtStreamServer,
 } from './thought-stream-api';
 import type { ProviderId } from '@accomplish_ai/agent-core';
-import { disposeTaskManager } from './opencode';
+import { disposeTaskManager, cleanupVertexServiceAccountKey } from './opencode';
 import { oauthBrowserFlow } from './opencode/auth-browser';
 import { migrateLegacyData } from './store/legacyMigration';
 import { initializeStorage, closeStorage, getStorage } from './store/storage';
@@ -260,6 +260,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   disposeTaskManager(); // Also cleans up proxies internally
+  cleanupVertexServiceAccountKey();
   oauthBrowserFlow.dispose();
   closeStorage();
   shutdownLogCollector();

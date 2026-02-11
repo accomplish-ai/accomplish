@@ -564,6 +564,10 @@ export function buildCliArgs(options: BuildCliArgsOptions): string[] {
     } else if (selectedModel.provider === 'lmstudio') {
       const modelId = selectedModel.model.replace(/^lmstudio\//, '');
       args.push('--model', `lmstudio/${modelId}`);
+    } else if (selectedModel.provider === 'vertex') {
+      // Model IDs stored as "vertex/{publisher}/{model}" — strip publisher for @ai-sdk/google-vertex
+      const modelId = selectedModel.model.replace(/^vertex\/[^/]+\//, '');
+      args.push('--model', `vertex/${modelId}`);
     } else {
       args.push('--model', selectedModel.model);
     }

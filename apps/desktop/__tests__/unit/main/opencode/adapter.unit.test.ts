@@ -690,6 +690,7 @@ vi.mock('@accomplish_ai/agent-core', async () => {
 // Mock child_process for execSync
 vi.mock('child_process', () => ({
   execSync: vi.fn(() => '/usr/local/bin/opencode'),
+  execFile: vi.fn(),
 }));
 
 // Mock secure storage

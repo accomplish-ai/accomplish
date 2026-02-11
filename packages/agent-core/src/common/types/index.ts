@@ -4,6 +4,9 @@ export type {
   BedrockProfileCredentials,
   BedrockApiKeyCredentials,
   BedrockCredentials,
+  VertexServiceAccountCredentials,
+  VertexAdcCredentials,
+  VertexCredentials,
 } from './auth.js';
 
 export type { LogLevel, LogSource, LogEntry } from './logging.js';
@@ -76,6 +79,7 @@ export type {
   ZaiRegion,
   ZaiCredentials,
   LMStudioCredentials,
+  VertexProviderCredentials,
   AzureFoundryCredentials,
   OAuthCredentials,
   ProviderCredentials,

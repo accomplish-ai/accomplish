@@ -1,0 +1,1 @@
+export { registerVertexHandlers } from './vertex';

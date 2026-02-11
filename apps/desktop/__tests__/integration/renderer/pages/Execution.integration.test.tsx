@@ -626,7 +626,7 @@ describe('Execution Page Integration', () => {
       renderWithRouter('task-123');
 
       // Assert
-      expect(screen.getByPlaceholderText(/give new instructions/i)).toBeInTheDocument();
+      expect(screen.getByTestId('execution-follow-up-input')).toBeInTheDocument();
     });
 
     it('should show follow-up input for interrupted task with session', () => {
@@ -639,7 +639,7 @@ describe('Execution Page Integration', () => {
       renderWithRouter('task-123');
 
       // Assert
-      expect(screen.getByPlaceholderText(/give new instructions/i)).toBeInTheDocument();
+      expect(screen.getByTestId('execution-follow-up-input')).toBeInTheDocument();
     });
 
     it('should show "Start New Task" button for completed task without session', () => {
@@ -662,7 +662,7 @@ describe('Execution Page Integration', () => {
       renderWithRouter('task-123');
 
       // Act
-      const input = screen.getByPlaceholderText(/give new instructions/i);
+      const input = screen.getByTestId('execution-follow-up-input');
       fireEvent.change(input, { target: { value: 'Continue with the next step' } });
 
       const sendButton = screen.getByRole('button', { name: /send/i });
@@ -683,7 +683,7 @@ describe('Execution Page Integration', () => {
       renderWithRouter('task-123');
 
       // Act
-      const input = screen.getByPlaceholderText(/give new instructions/i);
+      const input = screen.getByTestId('execution-follow-up-input');
       fireEvent.change(input, { target: { value: 'Do more work' } });
       fireEvent.keyDown(input, { key: 'Enter', shiftKey: false });
 
@@ -704,7 +704,7 @@ describe('Execution Page Integration', () => {
       renderWithRouter('task-123');
 
       // Assert
-      const input = screen.getByPlaceholderText(/give new instructions/i);
+      const input = screen.getByTestId('execution-follow-up-input');
       expect(input).toBeDisabled();
     });
 
@@ -1350,7 +1350,7 @@ describe('Execution Page Integration', () => {
       renderWithRouter('task-123');
 
       // Assert
-      const input = screen.getByPlaceholderText(/give new instructions/i);
+      const input = screen.getByTestId('execution-follow-up-input');
       expect(input).toBeInTheDocument();
     });
   });
@@ -1383,7 +1383,7 @@ describe('Execution Page Integration', () => {
       renderWithRouter('task-123');
 
       // Act
-      const input = screen.getByPlaceholderText(/give new instructions/i);
+      const input = screen.getByTestId('execution-follow-up-input');
       fireEvent.change(input, { target: { value: '   ' } });
       fireEvent.keyDown(input, { key: 'Enter', shiftKey: false });
 

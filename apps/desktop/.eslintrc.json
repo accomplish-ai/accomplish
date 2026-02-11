@@ -25,6 +25,7 @@
   "ignorePatterns": ["dist", "dist-electron", "release", "node_modules"],
   "rules": {
     "react/react-in-jsx-scope": "off",
-    "react/prop-types": "off"
+    "react/prop-types": "off",
+    "curly": ["error", "all"]
   }
 }

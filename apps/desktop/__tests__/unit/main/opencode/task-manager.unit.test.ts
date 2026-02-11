@@ -239,6 +239,7 @@ vi.mock('child_process', () => ({
     }),
     unref: vi.fn(),
   })),
+  execFile: vi.fn(),
 }));
 
 // Helper function to create mock TaskManagerOptions

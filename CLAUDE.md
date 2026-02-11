@@ -198,6 +198,7 @@ Renderer (taskStore subscriptions)
 - Core business logic goes in `packages/core/src/`
 - Renderer state via Zustand store actions
 - IPC handlers in `src/main/ipc/handlers.ts` must match `window.accomplish` API in preload
+- **Always use braces for `if`/`else`/`for`/`while`** - No single-line braceless statements (enforced by `curly` ESLint rule)
 - **Avoid nested ternaries** - Use mapper objects or if/else for readability
 - **Reuse UI components** - Check `src/renderer/components/ui/` before creating new ones
 

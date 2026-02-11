@@ -199,6 +199,20 @@ const accomplishAPI = {
   fetchBedrockModels: (credentials: string): Promise<{ success: boolean; models: Array<{ id: string; name: string; provider: string }>; error?: string }> =>
     ipcRenderer.invoke('bedrock:fetch-models', credentials),
 
+  // Vertex AI
+  validateVertexCredentials: (credentials: string) =>
+    ipcRenderer.invoke('vertex:validate', credentials),
+  saveVertexCredentials: (credentials: string) =>
+    ipcRenderer.invoke('vertex:save', credentials),
+  getVertexCredentials: () =>
+    ipcRenderer.invoke('vertex:get-credentials'),
+  fetchVertexModels: (credentials: string): Promise<{ success: boolean; models: Array<{ id: string; name: string; provider: string }>; error?: string }> =>
+    ipcRenderer.invoke('vertex:fetch-models', credentials),
+  detectVertexProject: (): Promise<{ success: boolean; projectId: string | null }> =>
+    ipcRenderer.invoke('vertex:detect-project'),
+  listVertexProjects: (): Promise<{ success: boolean; projects: Array<{ projectId: string; name: string }>; error?: string }> =>
+    ipcRenderer.invoke('vertex:list-projects'),
+
   // E2E Testing
   isE2EMode: (): Promise<boolean> =>
     ipcRenderer.invoke('app:is-e2e-mode'),
