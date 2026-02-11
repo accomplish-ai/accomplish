@@ -1,5 +1,6 @@
 export const MODEL_DISPLAY_NAMES: Record<string, string> = {
   // Anthropic
+  'claude-opus-4-6': 'Claude Opus 4.6',
   'claude-opus-4-5': 'Claude Opus 4.5',
   'claude-sonnet-4-5': 'Claude Sonnet 4.5',
   'claude-haiku-4-5': 'Claude Haiku 4.5',

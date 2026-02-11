@@ -70,15 +70,18 @@ export async function testOllamaConnection(url: string): Promise<OllamaConnectio
       return { success: true, models: [] };
     }
 
+    const BATCH_SIZE = 5;
     const models: OllamaModel[] = [];
-    for (const m of rawModels) {
-      const toolSupport = await testOllamaModelToolSupport(sanitizedUrl, m.name);
-      models.push({
-        id: m.name,
-        displayName: m.name,
-        size: m.size,
-        toolSupport,
-      });
+
+    for (let i = 0; i < rawModels.length; i += BATCH_SIZE) {
+      const batch = rawModels.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(
+        batch.map(async (m) => {
+          const toolSupport = await testOllamaModelToolSupport(sanitizedUrl, m.name);
+          return { id: m.name, displayName: m.name, size: m.size, toolSupport };
+        })
+      );
+      models.push(...results);
     }
 
     return { success: true, models };

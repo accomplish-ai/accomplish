@@ -55,3 +55,8 @@ export {
   type LMStudioConnectionOptions,
   type LMStudioFetchModelsOptions,
 } from './lmstudio.js';
+export {
+  fetchProviderModels,
+  type FetchProviderModelsResult,
+  type FetchProviderModelsOptions,
+} from './fetch-models.js';
