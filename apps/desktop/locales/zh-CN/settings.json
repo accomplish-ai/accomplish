@@ -53,7 +53,8 @@
     "minimax": "MiniMax",
     "moonshot": "Moonshot",
     "litellm": "LiteLLM",
-    "vertex": "Vertex AI"
+    "vertex": "Vertex AI",
+    "azure-foundry": "Azure AI Foundry"
   },
   "providerLabels": {
     "anthropic": "Claude 系列模型",
@@ -69,7 +70,8 @@
     "minimax": "MiniMax 系列模型",
     "moonshot": "Kimi 系列模型",
     "litellm": "统一代理",
-    "vertex": "Google Cloud"
+    "vertex": "谷歌云平台",
+    "azure-foundry": "Azure 服务"
   },
   "status": {
     "connected": "已连接",
@@ -112,6 +114,50 @@
   "lmstudio": {
     "serverUrl": "LM Studio 服务器地址",
     "serverHint": "启动 LM Studio 并在开发者设置中启用本地服务器"
+  },
+  "vertex": {
+    "serviceAccountTab": "服务账号",
+    "adcTab": "应用默认凭据",
+    "authMethod": "认证方式",
+    "serviceAccountDisplay": "服务账号",
+    "adcDisplay": "应用默认凭据",
+    "serviceAccountLabel": "服务账号",
+    "project": "项目",
+    "location": "区域",
+    "addCustomModel": "添加自定义模型",
+    "publisherModelPlaceholder": "发布者/模型ID",
+    "add": "添加",
+    "customModelHint": "例如 anthropic/claude-sonnet-4-5、google/gemini-2.0-flash",
+    "customModels": "自定义模型",
+    "removeModel": "移除模型",
+    "formatError": "格式：发布者/模型ID（例如 anthropic/claude-sonnet-4-5）",
+    "modelAlreadyExists": "模型已在列表中",
+    "invalidCredentials": "凭据无效",
+    "connectionFailed": "连接失败",
+    "serviceAccountKey": "服务账号密钥",
+    "uploadFile": "上传文件",
+    "pasteJson": "粘贴 JSON",
+    "pasteJsonPlaceholder": "在此粘贴服务账号 JSON 密钥...",
+    "dropJsonHere": "将服务账号 JSON 密钥文件拖放到此处",
+    "browseFiles": "浏览文件",
+    "remove": "移除",
+    "missingFields": "缺少必需字段（type、project_id、private_key、client_email）",
+    "invalidJson": "JSON 格式无效",
+    "dropJsonFile": "请拖放 .json 文件",
+    "projectId": "项目 ID",
+    "projectIdPlaceholder": "my-gcp-project",
+    "selectLocation": "选择区域...",
+    "searchLocations": "搜索区域...",
+    "noLocationsFound": "未找到区域",
+    "adcDescription": "使用以下命令的凭据",
+    "adcCommand": "gcloud auth application-default login",
+    "noProjectsError": "未找到项目。请确保已安装 gcloud 并配置了 ADC。",
+    "loadProjectsFailed": "加载项目失败。是否已安装 gcloud 并配置了 ADC？",
+    "selectProject": "选择项目...",
+    "searchProjects": "搜索项目...",
+    "loadingProjects": "正在加载项目...",
+    "noProjectsFound": "未找到项目",
+    "fetchingProjects": "正在从您的账户获取 GCP 项目..."
   },
   "ollama": {
     "description": "连接到本地 Ollama 服务器，使用在本机运行的模型。",
@@ -182,7 +228,7 @@
   },
   "azure": {
     "apiKey": "API 密钥",
-    "entraId": "Entra ID",
+    "entraId": "Entra ID 身份验证",
     "entraIdHelp": "使用您的 Azure CLI 凭据。先运行",
     "entraIdHelpCommand": "az login",
     "entraIdHelpSuffix": "。",
@@ -194,7 +240,7 @@
     "endpointLabel": "端点",
     "deploymentLabel": "部署",
     "authentication": "身份验证",
-    "entraIdDisplay": "Entra ID (Azure CLI)",
+    "entraIdDisplay": "Entra ID（Azure CLI）",
     "endpointAndDeploymentRequired": "端点 URL 和部署名称为必填项",
     "apiKeyRequired": "API 密钥身份验证需要 API 密钥"
   },

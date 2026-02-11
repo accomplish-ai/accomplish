@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { getAccomplish } from '@/lib/accomplish';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import type { ConnectedProvider, VertexProviderCredentials } from '@accomplish_ai/agent-core/common';
@@ -30,6 +31,7 @@ export function VertexProviderForm({
   onModelChange,
   showModelError,
 }: VertexProviderFormProps) {
+  const { t } = useTranslation('settings');
   const [authTab, setAuthTab] = useState<'serviceAccount' | 'adc'>('serviceAccount');
   const [serviceAccountJson, setServiceAccountJson] = useState('');
   const [projectId, setProjectId] = useState('');
@@ -65,7 +67,7 @@ export function VertexProviderForm({
       const validation = await accomplish.validateVertexCredentials(credentials);
 
       if (!validation.valid) {
-        setError(validation.error || 'Invalid credentials');
+        setError(validation.error || t('vertex.invalidCredentials'));
         setConnecting(false);
         return;
       }
@@ -111,7 +113,7 @@ export function VertexProviderForm({
       onConnect(provider);
       setServiceAccountJson('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connection failed');
+      setError(err instanceof Error ? err.message : t('vertex.connectionFailed'));
     } finally {
       setConnecting(false);
     }
@@ -126,7 +128,7 @@ export function VertexProviderForm({
     // Expect format: publisher/model-id (e.g. anthropic/claude-sonnet-4-5)
     const parts = input.split('/');
     if (parts.length !== 2 || !parts[0] || !parts[1]) {
-      setCustomModelError('Format: publisher/model-id (e.g. anthropic/claude-sonnet-4-5)');
+      setCustomModelError(t('vertex.formatError'));
       return;
     }
 
@@ -136,7 +138,7 @@ export function VertexProviderForm({
     // Check for duplicates
     const currentModels = connectedProvider?.availableModels || availableModels;
     if (currentModels.some(m => m.id === fullId)) {
-      setCustomModelError('Model already in list');
+      setCustomModelError(t('vertex.modelAlreadyExists'));
       return;
     }
 
@@ -213,7 +215,7 @@ export function VertexProviderForm({
                       : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  Service Account
+                  {t('vertex.serviceAccountTab')}
                 </button>
                 <button
                   onClick={() => setAuthTab('adc')}
@@ -224,7 +226,7 @@ export function VertexProviderForm({
                       : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  ADC
+                  {t('vertex.adcTab')}
                 </button>
               </div>
 
@@ -262,13 +264,13 @@ export function VertexProviderForm({
               {/* Display saved credentials info */}
               <div className="space-y-3">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">Auth Method</label>
+                  <label className="mb-2 block text-sm font-medium text-foreground">{t('vertex.authMethod')}</label>
                   <input
                     type="text"
                     value={
                       (connectedProvider?.credentials as VertexProviderCredentials)?.authMethod === 'serviceAccount'
-                        ? 'Service Account'
-                        : 'Application Default Credentials'
+                        ? t('vertex.serviceAccountDisplay')
+                        : t('vertex.adcDisplay')
                     }
                     disabled
                     className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
@@ -276,7 +278,7 @@ export function VertexProviderForm({
                 </div>
                 {(connectedProvider?.credentials as VertexProviderCredentials)?.serviceAccountEmail && (
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground">Service Account</label>
+                    <label className="mb-2 block text-sm font-medium text-foreground">{t('vertex.serviceAccountLabel')}</label>
                     <input
                       type="text"
                       value={(connectedProvider?.credentials as VertexProviderCredentials)?.serviceAccountEmail || ''}
@@ -286,7 +288,7 @@ export function VertexProviderForm({
                   </div>
                 )}
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">Project</label>
+                  <label className="mb-2 block text-sm font-medium text-foreground">{t('vertex.project')}</label>
                   <input
                     type="text"
                     value={(connectedProvider?.credentials as VertexProviderCredentials)?.projectId || ''}
@@ -295,7 +297,7 @@ export function VertexProviderForm({
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">Location</label>
+                  <label className="mb-2 block text-sm font-medium text-foreground">{t('vertex.location')}</label>
                   <input
                     type="text"
                     value={(connectedProvider?.credentials as VertexProviderCredentials)?.location || ''}
@@ -317,7 +319,7 @@ export function VertexProviderForm({
 
               {/* Custom model input */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Add Custom Model</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">{t('vertex.addCustomModel')}</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -331,7 +333,7 @@ export function VertexProviderForm({
                         handleAddCustomModel();
                       }
                     }}
-                    placeholder="publisher/model-id"
+                    placeholder={t('vertex.publisherModelPlaceholder')}
                     data-testid="vertex-custom-model-input"
                     className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
@@ -340,21 +342,21 @@ export function VertexProviderForm({
                     data-testid="vertex-add-model-btn"
                     className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                   >
-                    Add
+                    {t('vertex.add')}
                   </button>
                 </div>
                 {customModelError && (
                   <p className="mt-1 text-xs text-destructive">{customModelError}</p>
                 )}
                 <p className="mt-1 text-xs text-muted-foreground">
-                  e.g. anthropic/claude-sonnet-4-5, google/gemini-2.0-flash
+                  {t('vertex.customModelHint')}
                 </p>
               </div>
 
               {/* Custom models list with remove buttons */}
               {customModels.length > 0 && (
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">Custom Models</label>
+                  <label className="mb-2 block text-sm font-medium text-foreground">{t('vertex.customModels')}</label>
                   <div className="space-y-1">
                     {customModels.map((model) => (
                       <div
@@ -365,7 +367,7 @@ export function VertexProviderForm({
                         <button
                           onClick={() => handleRemoveCustomModel(model.id)}
                           className="ml-2 text-muted-foreground transition-colors hover:text-destructive"
-                          title="Remove model"
+                          title={t('vertex.removeModel')}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18" />

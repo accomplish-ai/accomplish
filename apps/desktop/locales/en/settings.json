@@ -53,7 +53,8 @@
     "minimax": "MiniMax",
     "moonshot": "Moonshot",
     "litellm": "LiteLLM",
-    "vertex": "Vertex AI"
+    "vertex": "Vertex AI",
+    "azure-foundry": "Azure AI Foundry"
   },
   "providerLabels": {
     "anthropic": "Claude models",
@@ -69,7 +70,8 @@
     "minimax": "MiniMax models",
     "moonshot": "Kimi models",
     "litellm": "Unified proxy",
-    "vertex": "Google Cloud"
+    "vertex": "Google Cloud",
+    "azure-foundry": "Azure Service"
   },
   "status": {
     "connected": "Connected",
@@ -112,6 +114,50 @@
   "lmstudio": {
     "serverUrl": "LM Studio Server URL",
     "serverHint": "Start LM Studio and enable the local server in Developer settings"
+  },
+  "vertex": {
+    "serviceAccountTab": "Service Account",
+    "adcTab": "ADC",
+    "authMethod": "Auth Method",
+    "serviceAccountDisplay": "Service Account",
+    "adcDisplay": "Application Default Credentials",
+    "serviceAccountLabel": "Service Account",
+    "project": "Project",
+    "location": "Location",
+    "addCustomModel": "Add Custom Model",
+    "publisherModelPlaceholder": "publisher/model-id",
+    "add": "Add",
+    "customModelHint": "e.g. anthropic/claude-sonnet-4-5, google/gemini-2.0-flash",
+    "customModels": "Custom Models",
+    "removeModel": "Remove model",
+    "formatError": "Format: publisher/model-id (e.g. anthropic/claude-sonnet-4-5)",
+    "modelAlreadyExists": "Model already in list",
+    "invalidCredentials": "Invalid credentials",
+    "connectionFailed": "Connection failed",
+    "serviceAccountKey": "Service Account Key",
+    "uploadFile": "Upload file",
+    "pasteJson": "Paste JSON",
+    "pasteJsonPlaceholder": "Paste your service account JSON key here...",
+    "dropJsonHere": "Drop your service account JSON key here",
+    "browseFiles": "Browse files",
+    "remove": "Remove",
+    "missingFields": "Missing required fields (type, project_id, private_key, client_email)",
+    "invalidJson": "Invalid JSON format",
+    "dropJsonFile": "Please drop a .json file",
+    "projectId": "Project ID",
+    "projectIdPlaceholder": "my-gcp-project",
+    "selectLocation": "Select location...",
+    "searchLocations": "Search locations...",
+    "noLocationsFound": "No locations found",
+    "adcDescription": "Uses credentials from",
+    "adcCommand": "gcloud auth application-default login",
+    "noProjectsError": "No projects found. Make sure gcloud is installed and ADC is configured.",
+    "loadProjectsFailed": "Failed to load projects. Is gcloud installed and ADC configured?",
+    "selectProject": "Select a project...",
+    "searchProjects": "Search projects...",
+    "loadingProjects": "Loading projects...",
+    "noProjectsFound": "No projects found",
+    "fetchingProjects": "Fetching GCP projects from your account..."
   },
   "ollama": {
     "description": "Connect to a local Ollama server to use models running on your machine.",
