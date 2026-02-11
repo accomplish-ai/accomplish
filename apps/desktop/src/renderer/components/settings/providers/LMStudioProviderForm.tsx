@@ -218,7 +218,7 @@ export function LMStudioProviderForm({
               className="space-y-3"
             >
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">LM Studio Server URL</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">{t('lmstudio.serverUrl')}</label>
                 <input
                   type="text"
                   value={serverUrl}
@@ -228,7 +228,7 @@ export function LMStudioProviderForm({
                   className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Start LM Studio and enable the local server in Developer settings
+                  {t('lmstudio.serverHint')}
                 </p>
               </div>
 
@@ -246,7 +246,7 @@ export function LMStudioProviderForm({
               className="space-y-3"
             >
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">LM Studio Server URL</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">{t('lmstudio.serverUrl')}</label>
                 <input
                   type="text"
                   value={(connectedProvider?.credentials as LMStudioCredentials)?.serverUrl || 'http://localhost:1234'}

@@ -1,6 +1,6 @@
 {
   "title": "Settings",
-  "setupTitle": "Set up Openwork",
+  "setupTitle": "Set up Accomplish",
   "model": {
     "title": "Model",
     "cloudProviders": "Cloud Providers",
@@ -62,6 +62,7 @@
     "bedrock": "AWS managed",
     "ollama": "Local inference",
     "openrouter": "200+ models",
+    "lmstudio": "Local Models",
     "litellm": "Unified proxy",
     "vertex": "Google Cloud"
   },
@@ -102,6 +103,10 @@
     "functionCallingVerified": "Function calling verified",
     "contextLengthWarning": "Context length requirement",
     "contextLengthWarningDetail": "Ensure your model is loaded with a large enough context length (max available recommended) in LM Studio settings."
+  },
+  "lmstudio": {
+    "serverUrl": "LM Studio Server URL",
+    "serverHint": "Start LM Studio and enable the local server in Developer settings"
   },
   "ollama": {
     "description": "Connect to a local Ollama server to use models running on your machine.",

@@ -1,6 +1,6 @@
 {
   "title": "设置",
-  "setupTitle": "设置 Openwork",
+  "setupTitle": "设置 Accomplish",
   "model": {
     "title": "模型",
     "cloudProviders": "云服务商",
@@ -62,6 +62,7 @@
     "bedrock": "AWS 托管服务",
     "ollama": "本地推理",
     "openrouter": "200+ 模型",
+    "lmstudio": "本地模型",
     "litellm": "统一代理",
     "vertex": "Google Cloud"
   },
@@ -102,6 +103,10 @@
     "functionCallingVerified": "函数调用已验证",
     "contextLengthWarning": "上下文长度要求",
     "contextLengthWarningDetail": "请确保在 LM Studio 设置中加载模型时使用足够大的上下文长度（建议使用最大可用长度）。"
+  },
+  "lmstudio": {
+    "serverUrl": "LM Studio 服务器地址",
+    "serverHint": "启动 LM Studio 并在开发者设置中启用本地服务器"
   },
   "ollama": {
     "description": "连接到本地 Ollama 服务器，使用在本机运行的模型。",
