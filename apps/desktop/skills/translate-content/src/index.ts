@@ -28,7 +28,6 @@ const server = new Server(
   { capabilities: { tools: {} } }
 );
 
-// List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
@@ -54,7 +53,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   ],
 }));
 
-// Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
   if (request.params.name !== 'translate_to_user_language') {
     return {
@@ -63,19 +61,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
     };
   }
 
-  const args = request.params.arguments as unknown as TranslateToUserLanguageInput;
-  const { text, context } = args;
+  const rawArgs = request.params.arguments;
+  if (!rawArgs || typeof rawArgs !== 'object') {
+    return {
+      content: [{ type: 'text', text: 'Error: arguments object is required' }],
+      isError: true,
+    };
+  }
 
-  // Validate required fields
-  if (!text) {
+  const args = rawArgs as unknown as TranslateToUserLanguageInput;
+  if (!args.text) {
     return {
       content: [{ type: 'text', text: 'Error: text parameter is required' }],
       isError: true,
     };
   }
 
+  const { text, context } = args;
+
   try {
-    // Call Electron main process HTTP endpoint
     const response = await fetch(TRANSLATION_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -103,24 +107,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
     };
 
     if (result.error) {
-      // Translation failed but we got original text back
       return {
         content: [
           {
             type: 'text',
             text: `Warning: ${result.error}\n\nOriginal text:\n${result.translatedText}`,
-          },
-        ],
-      };
-    }
-
-    // If language is English, no translation was needed
-    if (result.language === 'en') {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: result.translatedText,
           },
         ],
       };
@@ -143,7 +134,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   }
 });
 
-// Start the MCP server
+/** Start the MCP server over stdio. */
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

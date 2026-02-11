@@ -18,7 +18,11 @@ import { getSnapshotManager, resetSnapshotManager } from './snapshot/index.js';
 
 console.error('[dev-browser-mcp] All imports completed successfully');
 
-const DEV_BROWSER_PORT = parseInt(process.env.DEV_BROWSER_PORT || '9224', 10);
+const DEV_BROWSER_PORT = (() => {
+  const parsed = parseInt(process.env.DEV_BROWSER_PORT || '9224', 10);
+  if (Number.isNaN(parsed) || parsed < 1 || parsed > 65535) return 9224;
+  return parsed;
+})();
 const DEV_BROWSER_URL = `http://localhost:${DEV_BROWSER_PORT}`;
 const TASK_ID = process.env.ACCOMPLISH_TASK_ID || 'default';
 
@@ -196,24 +200,30 @@ async function fetchWithRetry(
   url: string,
   options?: RequestInit,
   maxRetries = 3,
-  baseDelayMs = 100
+  baseDelayMs = 100,
+  timeoutMs = 10_000
 ): Promise<Response> {
   let lastError: Error | null = null;
   for (let i = 0; i < maxRetries; i++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const res = await fetch(url, options);
+      const res = await fetch(url, { ...options, signal: controller.signal });
       return res;
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      const isConnectionError = lastError.message.includes('fetch failed') ||
+      const isRetryable = lastError.name === 'AbortError' ||
+        lastError.message.includes('fetch failed') ||
         lastError.message.includes('ECONNREFUSED') ||
         lastError.message.includes('socket') ||
         lastError.message.includes('UND_ERR');
-      if (!isConnectionError || i >= maxRetries - 1) {
+      if (!isRetryable || i >= maxRetries - 1) {
         throw lastError;
       }
       const delay = baseDelayMs * Math.pow(2, i) + Math.random() * 50;
       await new Promise((resolve) => setTimeout(resolve, delay));
+    } finally {
+      clearTimeout(timer);
     }
   }
   throw lastError || new Error('fetchWithRetry failed');

@@ -15,7 +15,8 @@ import {
 
 export const TRANSLATION_API_PORT = 9228;
 
-// Store reference to active task ID getter
+const MAX_BODY_SIZE = 1_000_000; // 1 MB
+
 let getActiveTaskId: (() => string | null) | null = null;
 
 /**
@@ -49,9 +50,16 @@ export function startTranslationApiServer(): http.Server {
       return;
     }
 
-    // Parse request body
     let body = '';
+    let bytesRead = 0;
     for await (const chunk of req) {
+      bytesRead += (chunk as string | Buffer).length;
+      if (bytesRead > MAX_BODY_SIZE) {
+        req.destroy();
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Payload too large' }));
+        return;
+      }
       body += chunk;
     }
 

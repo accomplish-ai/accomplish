@@ -84,7 +84,7 @@ pnpm i18n:sync:zh
 
 1. **Source of Truth**: English translation files in `apps/desktop/locales/en/`
 2. **Detection**: Script compares English keys with target language keys
-3. **Translation**: Missing keys are translated using Claude 3.5 Sonnet
+3. **Translation**: Missing keys are translated using Claude Sonnet 4
 4. **Preservation**: Existing translations are never overwritten
 5. **Structure**: JSON structure and {{placeholders}} are preserved exactly
 
@@ -231,7 +231,7 @@ That's it! The language is now fully supported in the app.
 
 ## Translation Quality
 
-The script uses Claude 3.5 Sonnet with specific instructions to:
+The script uses Claude Sonnet 4 with specific instructions to:
 - Maintain consistent terminology
 - Use natural, native phrasing appropriate for UI
 - Preserve technical terms (API, URL, etc.)

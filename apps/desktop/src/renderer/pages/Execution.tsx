@@ -47,7 +47,6 @@ const SpinningIcon = ({ className }: { className?: string }) => (
   />
 );
 
-// Action-oriented thinking phrases
 const THINKING_PHRASE_KEYS = [
   'thinkingPhrases.doing',
   'thinkingPhrases.executing',
@@ -56,7 +55,6 @@ const THINKING_PHRASE_KEYS = [
   'thinkingPhrases.accomplishing',
 ];
 
-// Tool name to icon mapping
 const TOOL_ICON_MAP: Record<string, typeof FileText> = {
   // Special error case - OpenCode returns "invalid" when LLM makes invalid tool call
   invalid: AlertCircle,

@@ -49,17 +49,34 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate language input
+        id: validate
+        run: |
+          INPUT="${{ github.event.inputs.languages }}"
+          if [ "$INPUT" = "all" ] || [ -z "$INPUT" ]; then
+            echo "mode=all" >> $GITHUB_OUTPUT
+          elif echo "$INPUT" | grep -qP '^[A-Za-z0-9_,-]+$'; then
+            echo "mode=selected" >> $GITHUB_OUTPUT
+            echo "languages=$INPUT" >> $GITHUB_OUTPUT
+          else
+            echo "::error::Invalid language input: only letters, digits, hyphens, and underscores are allowed"
+            exit 1
+          fi
+
       - name: Run translation sync
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          if [ "${{ github.event.inputs.languages }}" = "all" ] || [ -z "${{ github.event.inputs.languages }}" ]; then
+          if [ "${{ steps.validate.outputs.mode }}" = "all" ]; then
             echo "Syncing all languages..."
             pnpm i18n:sync
           else
-            echo "Syncing selected languages: ${{ github.event.inputs.languages }}"
-            IFS=',' read -ra LANGS <<< "${{ github.event.inputs.languages }}"
+            IFS=',' read -ra LANGS <<< "${{ steps.validate.outputs.languages }}"
             for lang in "${LANGS[@]}"; do
+              if ! echo "$lang" | grep -qP '^[A-Za-z0-9_-]+$'; then
+                echo "::error::Skipping invalid language code: $lang"
+                continue
+              fi
               echo "Syncing $lang..."
               pnpm i18n:sync -- "$lang"
             done

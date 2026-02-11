@@ -49,6 +49,9 @@
     "bedrock": "Amazon Bedrock",
     "ollama": "Ollama",
     "openrouter": "OpenRouter",
+    "lmstudio": "LM Studio",
+    "minimax": "MiniMax",
+    "moonshot": "Moonshot",
     "litellm": "LiteLLM",
     "vertex": "Vertex AI"
   },
@@ -63,6 +66,8 @@
     "ollama": "本地推理",
     "openrouter": "200+ 模型",
     "lmstudio": "本地模型",
+    "minimax": "MiniMax 系列模型",
+    "moonshot": "Kimi 系列模型",
     "litellm": "统一代理",
     "vertex": "Google Cloud"
   },
@@ -269,7 +274,7 @@
   "about": {
     "title": "关于",
     "version": "版本 {{version}}",
-    "description": "Openwork 是一款本地计算机使用 AI 助手，适用于 Mac。它可以读取您的文件、创建文档并自动化重复性知识工作——完全开源，支持您选择的 AI 模型。",
+    "description": "Accomplish 是一款本地计算机使用 AI 助手，适用于 Mac。它可以读取您的文件、创建文档并自动化重复性知识工作——完全开源，支持您选择的 AI 模型。",
     "contact": "有问题或反馈？点击此处联系我们",
     "visitUs": "访问我们",
     "haveQuestion": "有问题？",

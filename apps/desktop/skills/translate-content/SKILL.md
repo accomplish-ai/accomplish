@@ -45,7 +45,7 @@ The tool automatically detects the user's language from their input:
 
 ### Creating meeting notes in user's language
 
-```
+```text
 translate_to_user_language({
   "text": "## Meeting Notes - January 29, 2026\n\n### Attendees\n- John Smith\n- Jane Doe\n\n### Discussion Points\n1. Project timeline review\n2. Budget allocation\n3. Next steps\n\n### Action Items\n- John: Update project plan by Feb 1\n- Jane: Send budget proposal",
   "context": "meeting notes"
@@ -54,7 +54,7 @@ translate_to_user_language({
 
 ### Creating README for a project
 
-```
+```text
 translate_to_user_language({
   "text": "# Project Name\n\nA brief description of what this project does.\n\n## Installation\n\n```bash\nnpm install\n```\n\n## Usage\n\nRun the following command to start:\n\n```bash\nnpm start\n```",
   "context": "README documentation"
@@ -65,7 +65,7 @@ translate_to_user_language({
 
 The tool returns the translated text directly:
 
-```
+```text
 ## 会议记录 - 2026年1月29日
 
 ### 参会人员
@@ -92,7 +92,7 @@ When user asks (in Chinese): "Create meeting notes for today's discussion"
 2. **Translate before writing** - Call `translate_to_user_language` with your English draft
 3. **Write the file** - Use the translated content when creating the file
 
-```
+```text
 // Step 1: Draft in English (internal)
 englishContent = "## Meeting Notes..."
 

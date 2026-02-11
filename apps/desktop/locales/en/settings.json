@@ -49,6 +49,9 @@
     "bedrock": "Amazon Bedrock",
     "ollama": "Ollama",
     "openrouter": "OpenRouter",
+    "lmstudio": "LM Studio",
+    "minimax": "MiniMax",
+    "moonshot": "Moonshot",
     "litellm": "LiteLLM",
     "vertex": "Vertex AI"
   },
@@ -63,6 +66,8 @@
     "ollama": "Local inference",
     "openrouter": "200+ models",
     "lmstudio": "Local Models",
+    "minimax": "MiniMax models",
+    "moonshot": "Kimi models",
     "litellm": "Unified proxy",
     "vertex": "Google Cloud"
   },
@@ -269,7 +274,7 @@
   "about": {
     "title": "About",
     "version": "Version {{version}}",
-    "description": "Openwork is a local computer-use AI agent for your Mac that reads your files, creates documents, and automates repetitive knowledge work—all open-source with your AI models of choice.",
+    "description": "Accomplish is a local computer-use AI agent for your Mac that reads your files, creates documents, and automates repetitive knowledge work—all open-source with your AI models of choice.",
     "contact": "Any questions or feedback? Click here to contact us",
     "visitUs": "Visit us",
     "haveQuestion": "Have a question?",

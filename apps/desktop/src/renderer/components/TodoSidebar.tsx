@@ -13,8 +13,8 @@ export function TodoSidebar({ todos }: TodoSidebarProps) {
 
   if (todos.length === 0) return null;
 
-  const completed = todos.filter(t => t.status === 'completed').length;
-  const cancelled = todos.filter(t => t.status === 'cancelled').length;
+  const completed = todos.filter(todo => todo.status === 'completed').length;
+  const cancelled = todos.filter(todo => todo.status === 'cancelled').length;
   const total = todos.length;
   const progress = ((completed + cancelled) / total) * 100;
 

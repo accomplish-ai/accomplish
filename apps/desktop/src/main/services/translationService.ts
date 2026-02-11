@@ -347,10 +347,22 @@ async function callProviderForTranslation(
   }
 }
 
+const TRANSLATION_TIMEOUT_MS = 10_000;
+
+/** Create an AbortController that auto-aborts after the given timeout. */
+function createTimeoutController(ms: number): { controller: AbortController; clear: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return { controller, clear: () => clearTimeout(timer) };
+}
+
 /** Send a translation prompt to the Anthropic API using Haiku. */
 async function callAnthropic(apiKey: string, prompt: string): Promise<string> {
+  const { controller, clear } = createTimeoutController(TRANSLATION_TIMEOUT_MS);
+  try {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
+    signal: controller.signal,
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
@@ -376,12 +388,16 @@ async function callAnthropic(apiKey: string, prompt: string): Promise<string> {
     content: Array<{ type: string; text?: string }>;
   };
   return data.content?.[0]?.text?.trim() || '';
+  } finally { clear(); }
 }
 
 /** Send a translation prompt to the OpenAI API using GPT-4o-mini. */
 async function callOpenAI(apiKey: string, prompt: string): Promise<string> {
+  const { controller, clear } = createTimeoutController(TRANSLATION_TIMEOUT_MS);
+  try {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
+    signal: controller.signal,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
@@ -406,14 +422,18 @@ async function callOpenAI(apiKey: string, prompt: string): Promise<string> {
     choices: Array<{ message: { content: string } }>;
   };
   return data.choices?.[0]?.message?.content?.trim() || '';
+  } finally { clear(); }
 }
 
 /** Send a translation prompt to the Google Gemini API using Gemini Flash. */
 async function callGoogle(apiKey: string, prompt: string): Promise<string> {
+  const { controller, clear } = createTimeoutController(TRANSLATION_TIMEOUT_MS);
+  try {
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -438,12 +458,16 @@ async function callGoogle(apiKey: string, prompt: string): Promise<string> {
     candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
   };
   return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+  } finally { clear(); }
 }
 
 /** Send a translation prompt to the xAI API using Grok. */
 async function callXAI(apiKey: string, prompt: string): Promise<string> {
+  const { controller, clear } = createTimeoutController(TRANSLATION_TIMEOUT_MS);
+  try {
   const response = await fetch('https://api.x.ai/v1/chat/completions', {
     method: 'POST',
+    signal: controller.signal,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
@@ -468,12 +492,16 @@ async function callXAI(apiKey: string, prompt: string): Promise<string> {
     choices: Array<{ message: { content: string } }>;
   };
   return data.choices?.[0]?.message?.content?.trim() || '';
+  } finally { clear(); }
 }
 
 /** Send a translation prompt to the DeepSeek API. */
 async function callDeepSeek(apiKey: string, prompt: string): Promise<string> {
+  const { controller, clear } = createTimeoutController(TRANSLATION_TIMEOUT_MS);
+  try {
   const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
     method: 'POST',
+    signal: controller.signal,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
@@ -498,6 +526,7 @@ async function callDeepSeek(apiKey: string, prompt: string): Promise<string> {
     choices: Array<{ message: { content: string } }>;
   };
   return data.choices?.[0]?.message?.content?.trim() || '';
+  } finally { clear(); }
 }
 
 /**

@@ -9,11 +9,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { app } from 'electron';
 
-// Supported languages
 export const SUPPORTED_LANGUAGES = ['en', 'zh-CN'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
-// Translation namespaces
 export const NAMESPACES = [
   'common',
   'home',
@@ -25,11 +23,9 @@ export const NAMESPACES = [
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
-// Translation cache
 type TranslationData = Record<string, unknown>;
 const translationCache: Record<string, Record<string, TranslationData>> = {};
 
-// Current language (defaults to system language or 'en')
 let currentLanguage: SupportedLanguage = 'en';
 
 /**

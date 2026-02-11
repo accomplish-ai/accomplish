@@ -35,7 +35,7 @@ When adding UI text:
 
 See [Translation Guide](scripts/README-i18n.md) for details.
 
-**Native speakers welcome!** Help improve translations by [opening an issue](https://github.com/accomplish-ai/openwork/issues/new) with suggestions, or edit `locales/{language-code}/*.json` files directly.
+**Native speakers welcome!** Help improve translations by [opening an issue](https://github.com/accomplish-ai/accomplish/issues/new) with suggestions, or edit `locales/{language-code}/*.json` files directly.
 
 ## Pull Request Process
 

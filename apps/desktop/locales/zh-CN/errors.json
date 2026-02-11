@@ -75,7 +75,7 @@
     "tryAgain": "请重试"
   },
   "app": {
-    "mustRunInDesktop": "此应用程序必须在 Openwork 桌面应用内运行。",
+    "mustRunInDesktop": "此应用程序必须在 Accomplish 桌面应用内运行。",
     "unableToStart": "无法启动"
   },
   "auth": {
