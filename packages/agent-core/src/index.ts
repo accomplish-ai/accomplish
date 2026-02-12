@@ -40,6 +40,7 @@ export type {
   StorageOptions,
   StoredTask,
   AppSettings,
+  ThemePreference,
   TaskStorageAPI,
   AppSettingsAPI,
   ProviderSettingsAPI,
@@ -147,6 +148,12 @@ export {
   validateBedrockCredentials,
   fetchBedrockModels,
 } from './providers/bedrock.js';
+
+export {
+  validateVertexCredentials,
+  fetchVertexModels,
+  VertexClient,
+} from './providers/vertex.js';
 
 export {
   validateAzureFoundry,
@@ -294,6 +301,7 @@ export type {
   ConnectionStatus,
   ApiKeyCredentials,
   BedrockProviderCredentials,
+  VertexProviderCredentials,
   OllamaCredentials,
   OpenRouterCredentials,
   LiteLLMCredentials,
@@ -324,6 +332,9 @@ export type {
   BedrockAccessKeyCredentials,
   BedrockProfileCredentials,
   BedrockApiKeyCredentials,
+  VertexCredentials,
+  VertexServiceAccountCredentials,
+  VertexAdcCredentials,
 } from './common/types/auth.js';
 
 // OpenCode message types
@@ -341,6 +352,26 @@ export type {
 
 // Skills types
 export type { SkillSource, Skill, SkillFrontmatter } from './common/types/skills.js';
+
+// Connector types
+export type {
+  ConnectorStatus,
+  OAuthTokens,
+  OAuthMetadata,
+  OAuthClientRegistration,
+  McpConnector,
+} from './common/types/connector.js';
+
+// MCP OAuth
+export {
+  discoverOAuthMetadata,
+  registerOAuthClient,
+  generatePkceChallenge,
+  buildAuthorizationUrl,
+  exchangeCodeForTokens,
+  refreshAccessToken,
+  isTokenExpired,
+} from './connectors/mcp-oauth.js';
 
 // Other types
 export type { TodoItem } from './common/types/todo.js';

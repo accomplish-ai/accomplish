@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import { app, BrowserWindow, shell, ipcMain, nativeImage, dialog } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, nativeImage, dialog, nativeTheme } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -20,11 +20,11 @@ import {
   startThoughtStreamServer,
 } from './thought-stream-api';
 import type { ProviderId } from '@accomplish_ai/agent-core';
-import { disposeTaskManager } from './opencode';
+import { disposeTaskManager, cleanupVertexServiceAccountKey } from './opencode';
 import { oauthBrowserFlow } from './opencode/auth-browser';
 import { migrateLegacyData } from './store/legacyMigration';
-import { initializeStorage, closeStorage, getStorage } from './store/storage';
-import { getApiKey } from './store/secureStorage';
+import { initializeStorage, closeStorage, getStorage, resetStorageSingleton } from './store/storage';
+import { getApiKey, clearSecureStorage } from './store/secureStorage';
 import { initializeLogCollector, shutdownLogCollector, getLogCollector } from './logging';
 import { skillsManager } from './skills';
 
@@ -46,6 +46,11 @@ if (process.env.CLEAN_START === '1') {
   } catch (err) {
     console.error('[Clean Mode] Failed to clear userData:', err);
   }
+  // Clear secure storage first (while singleton still exists), then null the reference.
+  // Reversing this order would cause getStorage() to re-create the singleton.
+  clearSecureStorage();
+  resetStorageSingleton();
+  console.log('[Clean Mode] All singletons reset');
 }
 
 app.setName('Accomplish');
@@ -91,6 +96,7 @@ function createWindow() {
     minHeight: 600,
     title: 'Accomplish',
     icon: icon.isEmpty() ? undefined : icon,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#171717' : '#f9f9f9',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     trafficLightPosition: { x: 16, y: 16 },
     webPreferences: {
@@ -110,7 +116,8 @@ function createWindow() {
   mainWindow.maximize();
 
   const isE2EMode = (global as Record<string, unknown>).E2E_SKIP_AUTH === true;
-  if (!app.isPackaged && !isE2EMode) {
+  const isTestEnv = process.env.NODE_ENV === 'test';
+  if (!app.isPackaged && !isE2EMode && !isTestEnv) {
     mainWindow.webContents.openDevTools({ mode: 'right' });
   }
 
@@ -165,7 +172,9 @@ if (!gotTheLock) {
         const protocolUrl = commandLine.find((arg) => arg.startsWith('accomplish://'));
         if (protocolUrl) {
           console.log('[Main] Received protocol URL from second-instance:', protocolUrl);
-          if (protocolUrl.startsWith('accomplish://callback')) {
+          if (protocolUrl.startsWith('accomplish://callback/mcp')) {
+            mainWindow.webContents.send('auth:mcp-callback', protocolUrl);
+          } else if (protocolUrl.startsWith('accomplish://callback')) {
             mainWindow.webContents.send('auth:callback', protocolUrl);
           }
         }
@@ -176,13 +185,15 @@ if (!gotTheLock) {
   app.whenReady().then(async () => {
     console.log('[Main] Electron app ready, version:', app.getVersion());
 
-    try {
-      const didMigrate = migrateLegacyData();
-      if (didMigrate) {
-        console.log('[Main] Migrated data from legacy userData path');
+    if (process.env.CLEAN_START !== '1') {
+      try {
+        const didMigrate = migrateLegacyData();
+        if (didMigrate) {
+          console.log('[Main] Migrated data from legacy userData path');
+        }
+      } catch (err) {
+        console.error('[Main] Legacy data migration failed:', err);
       }
-    } catch (err) {
-      console.error('[Main] Legacy data migration failed:', err);
     }
 
     try {
@@ -233,6 +244,14 @@ if (!gotTheLock) {
       }
     }
 
+    // Must run before createWindow() so backgroundColor matches the theme
+    try {
+      const storage = getStorage();
+      nativeTheme.themeSource = storage.getTheme();
+    } catch {
+      // First launch or corrupt DB — nativeTheme stays 'system'
+    }
+
     registerIPCHandlers();
     console.log('[Main] IPC handlers registered');
 
@@ -260,6 +279,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   disposeTaskManager(); // Also cleans up proxies internally
+  cleanupVertexServiceAccountKey();
   oauthBrowserFlow.dispose();
   closeStorage();
   shutdownLogCollector();
@@ -280,7 +300,9 @@ function handleProtocolUrlFromArgs(): void {
       app.whenReady().then(() => {
         setTimeout(() => {
           if (mainWindow && !mainWindow.isDestroyed()) {
-            if (protocolUrl.startsWith('accomplish://callback')) {
+            if (protocolUrl.startsWith('accomplish://callback/mcp')) {
+              mainWindow.webContents.send('auth:mcp-callback', protocolUrl);
+            } else if (protocolUrl.startsWith('accomplish://callback')) {
               mainWindow.webContents.send('auth:callback', protocolUrl);
             }
           }
@@ -294,7 +316,9 @@ handleProtocolUrlFromArgs();
 
 app.on('open-url', (event, url) => {
   event.preventDefault();
-  if (url.startsWith('accomplish://callback')) {
+  if (url.startsWith('accomplish://callback/mcp')) {
+    mainWindow?.webContents?.send('auth:mcp-callback', url);
+  } else if (url.startsWith('accomplish://callback')) {
     mainWindow?.webContents?.send('auth:callback', url);
   }
 });

@@ -3,6 +3,7 @@ import tailwindcssAnimate from 'tailwindcss-animate';
 import tailwindcssTypography from '@tailwindcss/typography';
 
 const config: Config = {
+  darkMode: 'class',
   content: [
     './index.html',
     './src/renderer/**/*.{js,ts,jsx,tsx}',
@@ -63,11 +64,19 @@ const config: Config = {
         },
         warning: {
           DEFAULT: '#EE7909',
-          subtle: '#fef4e6',
+          subtle: 'hsl(var(--warning-subtle))',
         },
         success: {
           DEFAULT: '#019E55',
-          subtle: '#e6f7ef',
+          subtle: 'hsl(var(--success-subtle))',
+        },
+        provider: {
+          bg: 'hsl(var(--provider-bg))',
+          'bg-active': 'hsl(var(--provider-bg-active))',
+          'bg-hover': 'hsl(var(--provider-bg-hover))',
+          'border-active': 'hsl(var(--provider-border-active))',
+          accent: 'hsl(var(--provider-accent))',
+          'accent-text': 'hsl(var(--provider-accent-text))',
         },
       },
       boxShadow: {

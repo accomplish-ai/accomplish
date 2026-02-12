@@ -65,6 +65,44 @@
   --input: 0 0% 84.7%; /* #d8d8d8 */
   --ring: 20 25% 33%; /* #644a40 */
   --radius: 0.5rem;
+  --warning-subtle: 36 95% 95%;
+  --success-subtle: 152 60% 93%;
+  --provider-bg: 40 20% 93%;
+  --provider-bg-active: 130 40% 93%;
+  --provider-bg-hover: 40 15% 96%;
+  --provider-border-active: 40 30% 25%;
+  --provider-accent: 123 30% 30%;
+  --provider-accent-text: 123 30% 15%;
+}
+
+.dark {
+  --background: 0 0% 9%;
+  --foreground: 0 0% 95%;
+  --card: 0 0% 11%;
+  --card-foreground: 0 0% 95%;
+  --popover: 0 0% 11%;
+  --popover-foreground: 0 0% 95%;
+  --primary: 123 30% 45%;
+  --primary-foreground: 0 0% 9%;
+  --secondary: 120 10% 20%;
+  --secondary-foreground: 120 14% 85%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 64%;
+  --accent: 0 0% 18%;
+  --accent-foreground: 0 0% 95%;
+  --destructive: 8 78% 54%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 20%;
+  --input: 0 0% 25%;
+  --ring: 20 25% 55%;
+  --warning-subtle: 30 60% 15%;
+  --success-subtle: 150 40% 12%;
+  --provider-bg: 0 0% 15%;
+  --provider-bg-active: 130 20% 15%;
+  --provider-bg-hover: 0 0% 13%;
+  --provider-border-active: 40 30% 50%;
+  --provider-accent: 123 30% 45%;
+  --provider-accent-text: 123 30% 75%;
 }
 
 /* Custom scrollbar */

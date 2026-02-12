@@ -106,7 +106,7 @@ export function OpenRouterProviderForm({
 
   return (
     <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
-      <ProviderFormHeader logoSrc={openrouterLogo} providerName="OpenRouter" />
+      <ProviderFormHeader logoSrc={openrouterLogo} providerName="OpenRouter" invertInDark />
 
       <div className="space-y-3">
         <AnimatePresence mode="wait">

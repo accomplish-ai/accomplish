@@ -48,3 +48,14 @@ export function closeStorage(): void {
     _storage = null;
   }
 }
+
+/**
+ * Reset the storage singleton after CLEAN_START deletes the userData directory.
+ * Closes the open database handle before nulling the reference.
+ */
+export function resetStorageSingleton(): void {
+  if (_storage) {
+    _storage.close();
+    _storage = null;
+  }
+}

@@ -169,6 +169,7 @@ export async function validateApiKey(
 
       case 'ollama':
       case 'bedrock':
+      case 'vertex':
       case 'azure-foundry':
       case 'litellm':
       case 'lmstudio':

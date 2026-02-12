@@ -49,6 +49,8 @@ export {
   setLMStudioConfig,
   getOpenAiBaseUrl,
   setOpenAiBaseUrl,
+  getTheme,
+  setTheme,
   getAppSettings,
   clearAppSettings,
   type AppSettings,
@@ -97,4 +99,15 @@ export {
   setSkillEnabled,
   deleteSkill,
   clearAllSkills,
+} from './repositories/index.js';
+
+export {
+  getAllConnectors,
+  getEnabledConnectors,
+  getConnectorById,
+  upsertConnector,
+  setConnectorEnabled,
+  setConnectorStatus,
+  deleteConnector,
+  clearAllConnectors,
 } from './repositories/index.js';

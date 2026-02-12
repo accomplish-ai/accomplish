@@ -117,7 +117,7 @@ export function ModelIndicator({
         <button
           className={cn(
             'flex items-center gap-1 px-2 py-1 rounded-md transition-all duration-150',
-            'hover:bg-black/[0.04] focus:outline-none',
+            'hover:bg-black/[0.04] dark:hover:bg-white/[0.08] focus:outline-none',
             isWarning && 'text-warning',
             className
           )}
