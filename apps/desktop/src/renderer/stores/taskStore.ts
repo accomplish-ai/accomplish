@@ -11,6 +11,7 @@ import {
   type TaskMessage,
   type TodoItem,
 } from '@accomplish_ai/agent-core/common';
+import type { StoredFavorite } from '@accomplish_ai/agent-core';
 import { getAccomplish } from '../lib/accomplish';
 
 interface TaskUpdateBatchEvent {
@@ -42,6 +43,10 @@ interface TaskState {
 
   // Task history
   tasks: Task[];
+  favorites: StoredFavorite[];
+  loadFavorites: () => Promise<void>;
+  addFavorite: (taskId: string) => Promise<void>;
+  removeFavorite: (taskId: string) => Promise<void>;
 
   // Permission handling
   permissionRequest: PermissionRequest | null;
@@ -87,6 +92,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   isLoading: false,
   error: null,
   tasks: [],
+  favorites: [],
   permissionRequest: null,
   setupProgress: null,
   setupProgressTaskId: null,
@@ -482,6 +488,59 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const accomplish = getAccomplish();
     await accomplish.clearTaskHistory();
     set({ tasks: [] });
+  },
+
+  loadFavorites: async () => {
+    const accomplish = getAccomplish();
+    const favorites = await accomplish.listFavorites();
+    set({ favorites });
+  },
+
+  addFavorite: async (taskId: string) => {
+    const accomplish = getAccomplish();
+    const { tasks, currentTask, favorites } = get();
+    if (favorites.some((f) => f.taskId === taskId)) {
+      return;
+    }
+    const task = currentTask?.id === taskId ? currentTask : tasks.find((t) => t.id === taskId);
+    const entry: StoredFavorite =
+      task != null
+        ? {
+            taskId,
+            prompt: task.prompt,
+            summary: task.summary,
+            favoritedAt: new Date().toISOString(),
+          }
+        : { taskId, prompt: '', favoritedAt: new Date().toISOString() };
+
+    set({ favorites: [...favorites, entry] });
+
+    try {
+      await accomplish.addFavorite(taskId);
+    } catch {
+      set((state) => ({
+        favorites: state.favorites.filter((f) => f.taskId !== taskId),
+      }));
+    }
+  },
+
+  removeFavorite: async (taskId: string) => {
+    const { favorites } = get();
+    const removed = favorites.find((f) => f.taskId === taskId);
+    set({ favorites: favorites.filter((f) => f.taskId !== taskId) });
+
+    try {
+      const accomplish = getAccomplish();
+      await accomplish.removeFavorite(taskId);
+    } catch {
+      if (removed) {
+        set((state) => ({
+          favorites: [...state.favorites, removed].sort(
+            (a, b) => new Date(b.favoritedAt).getTime() - new Date(a.favoritedAt).getTime()
+          ),
+        }));
+      }
+    }
   },
 
   reset: () => {

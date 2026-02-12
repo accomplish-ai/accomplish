@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Star } from 'lucide-react';
 import { useTaskStore } from '../../stores/taskStore';
 import type { Task } from '@accomplish_ai/agent-core/common';
 
@@ -9,11 +10,15 @@ interface TaskHistoryProps {
 }
 
 export default function TaskHistory({ limit, showTitle = true }: TaskHistoryProps) {
-  const { tasks, loadTasks, deleteTask, clearHistory } = useTaskStore();
+  const { tasks, favorites, loadTasks, loadFavorites, addFavorite, removeFavorite, deleteTask, clearHistory } = useTaskStore();
 
   useEffect(() => {
     loadTasks();
   }, [loadTasks]);
+
+  useEffect(() => {
+    loadFavorites();
+  }, [loadFavorites]);
 
   const displayedTasks = limit ? tasks.slice(0, limit) : tasks;
 
@@ -50,6 +55,14 @@ export default function TaskHistory({ limit, showTitle = true }: TaskHistoryProp
           <TaskHistoryItem
             key={task.id}
             task={task}
+            isFavorited={favorites.some((f) => f.taskId === task.id)}
+            onToggleFavorite={async () => {
+              if (favorites.some((f) => f.taskId === task.id)) {
+                await removeFavorite(task.id);
+              } else {
+                await addFavorite(task.id);
+              }
+            }}
             onDelete={() => deleteTask(task.id)}
           />
         ))}
@@ -67,11 +80,17 @@ export default function TaskHistory({ limit, showTitle = true }: TaskHistoryProp
   );
 }
 
+const COMPLETED_OR_INTERRUPTED: Array<string> = ['completed', 'interrupted'];
+
 function TaskHistoryItem({
   task,
+  isFavorited,
+  onToggleFavorite,
   onDelete,
 }: {
   task: Task;
+  isFavorited: boolean;
+  onToggleFavorite: () => Promise<void>;
   onDelete: () => void;
 }) {
   const statusConfig: Record<string, { color: string; label: string }> = {
@@ -81,10 +100,12 @@ function TaskHistoryItem({
     cancelled: { color: 'bg-text-muted', label: 'Cancelled' },
     pending: { color: 'bg-warning', label: 'Pending' },
     waiting_permission: { color: 'bg-warning', label: 'Waiting' },
+    interrupted: { color: 'bg-text-muted', label: 'Stopped' },
   };
 
   const config = statusConfig[task.status] || statusConfig.pending;
   const timeAgo = getTimeAgo(task.createdAt);
+  const canFavorite = COMPLETED_OR_INTERRUPTED.includes(task.status);
 
   return (
     <Link
@@ -100,6 +121,19 @@ function TaskHistoryItem({
           {config.label} · {timeAgo} · {task.messages.length} messages
         </p>
       </div>
+      {canFavorite && (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void onToggleFavorite();
+          }}
+          className="p-2 text-text-muted hover:text-foreground transition-colors"
+          title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          <Star className={`h-4 w-4 ${isFavorited ? 'fill-current' : ''}`} />
+        </button>
+      )}
       <button
         onClick={(e) => {
           e.preventDefault();

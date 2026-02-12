@@ -258,6 +258,27 @@ export function registerIPCHandlers(): void {
     return storage.getTodosForTask(taskId);
   });
 
+  const allowedFavoriteStatuses: Array<'completed' | 'interrupted'> = ['completed', 'interrupted'];
+  handle('task:favorite:add', async (_event: IpcMainInvokeEvent, taskId: string) => {
+    const task = storage.getTask(taskId);
+    if (!task || !allowedFavoriteStatuses.includes(task.status as 'completed' | 'interrupted')) {
+      return;
+    }
+    storage.addFavorite(taskId, task.prompt, task.summary);
+  });
+
+  handle('task:favorite:remove', async (_event: IpcMainInvokeEvent, taskId: string) => {
+    storage.removeFavorite(taskId);
+  });
+
+  handle('task:favorite:list', async () => {
+    return storage.getFavorites();
+  });
+
+  handle('task:favorite:has', async (_event: IpcMainInvokeEvent, taskId: string) => {
+    return storage.isFavorite(taskId);
+  });
+
   handle('permission:respond', async (_event: IpcMainInvokeEvent, response: PermissionResponse) => {
     const parsedResponse = validate(permissionResponseSchema, response);
     const { taskId, decision, requestId } = parsedResponse;

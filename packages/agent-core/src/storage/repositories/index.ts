@@ -56,6 +56,13 @@ export {
 } from './taskHistory.js';
 
 export {
+  addFavorite,
+  removeFavorite,
+  getFavorites,
+  isFavorite,
+} from './favorites.js';
+
+export {
   getAllSkills,
   getEnabledSkills,
   getSkillById,
