@@ -14,6 +14,7 @@ import { migration as v004 } from './v004-openai-base-url.js';
 import { migration as v005 } from './v005-task-todos.js';
 import { migration as v006 } from './v006-skills.js';
 import { migration as v007 } from './v007-connectors.js';
+import { migration as v008 } from './v008-theme.js';
 
 const migrations: Migration[] = [
   v001,
@@ -23,6 +24,7 @@ const migrations: Migration[] = [
   v005,
   v006,
   v007,
+  v008,
 ];
 
 export function registerMigration(migration: Migration): void {
@@ -30,7 +32,7 @@ export function registerMigration(migration: Migration): void {
   migrations.sort((a, b) => a.version - b.version);
 }
 
-export const CURRENT_VERSION = 7;
+export const CURRENT_VERSION = 8;
 
 export function getStoredVersion(db: Database): number {
   try {

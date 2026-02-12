@@ -66,6 +66,21 @@ export const STANDARD_VALIDATION_PROVIDERS: ReadonlySet<string> = new Set<string
   'minimax',
 ]);
 
+export interface ModelsEndpointConfig {
+  /** Full URL to the models listing endpoint */
+  url: string;
+  /** How the API key is passed in the request */
+  authStyle: 'bearer' | 'x-api-key' | 'query-param';
+  /** Additional headers to include (e.g., anthropic-version) */
+  extraHeaders?: Record<string, string>;
+  /** Which response shape parser to use */
+  responseFormat: 'openai' | 'anthropic' | 'google';
+  /** Prefix prepended to model IDs (e.g., 'anthropic/') */
+  modelIdPrefix?: string;
+  /** Optional regex to filter model IDs */
+  modelFilter?: RegExp;
+}
+
 export interface ProviderConfig {
   id: ProviderType;
   name: string;
@@ -73,6 +88,10 @@ export interface ProviderConfig {
   requiresApiKey: boolean;
   apiKeyEnvVar?: string;
   baseUrl?: string;
+  /** Auto-selected model when connecting (e.g., 'anthropic/claude-opus-4-6') */
+  defaultModelId?: string;
+  /** Config for dynamically fetching models from the provider API */
+  modelsEndpoint?: ModelsEndpointConfig;
 }
 
 export interface ModelConfig {
@@ -147,96 +166,44 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     name: 'Anthropic',
     requiresApiKey: true,
     apiKeyEnvVar: 'ANTHROPIC_API_KEY',
-    models: [
-      {
-        id: 'claude-haiku-4-5',
-        displayName: 'Claude Haiku 4.5',
-        provider: 'anthropic',
-        fullId: 'anthropic/claude-haiku-4-5',
-        contextWindow: 200000,
-        supportsVision: true,
-      },
-      {
-        id: 'claude-sonnet-4-5',
-        displayName: 'Claude Sonnet 4.5',
-        provider: 'anthropic',
-        fullId: 'anthropic/claude-sonnet-4-5',
-        contextWindow: 200000,
-        supportsVision: true,
-      },
-      {
-        id: 'claude-opus-4-5',
-        displayName: 'Claude Opus 4.5',
-        provider: 'anthropic',
-        fullId: 'anthropic/claude-opus-4-5',
-        contextWindow: 200000,
-        supportsVision: true,
-      },
-    ],
+    defaultModelId: 'anthropic/claude-opus-4-6',
+    modelsEndpoint: {
+      url: 'https://api.anthropic.com/v1/models',
+      authStyle: 'x-api-key',
+      extraHeaders: { 'anthropic-version': '2023-06-01' },
+      responseFormat: 'anthropic',
+      modelIdPrefix: 'anthropic/',
+    },
+    models: [],
   },
   {
     id: 'openai',
     name: 'OpenAI',
     requiresApiKey: true,
     apiKeyEnvVar: 'OPENAI_API_KEY',
-    models: [
-      {
-        id: 'gpt-5.2',
-        displayName: 'GPT 5.2',
-        provider: 'openai',
-        fullId: 'openai/gpt-5.2',
-        contextWindow: 400000,
-        supportsVision: true,
-      },
-      {
-        id: 'gpt-5.2-codex',
-        displayName: 'GPT 5.2 Codex',
-        provider: 'openai',
-        fullId: 'openai/gpt-5.2-codex',
-        contextWindow: 400000,
-        supportsVision: true,
-      },
-      {
-        id: 'gpt-5.1-codex-max',
-        displayName: 'GPT 5.1 Codex Max',
-        provider: 'openai',
-        fullId: 'openai/gpt-5.1-codex-max',
-        contextWindow: 272000,
-        supportsVision: true,
-      },
-      {
-        id: 'gpt-5.1-codex-mini',
-        displayName: 'GPT 5.1 Codex Mini',
-        provider: 'openai',
-        fullId: 'openai/gpt-5.1-codex-mini',
-        contextWindow: 400000,
-        supportsVision: true,
-      },
-    ],
+    defaultModelId: 'openai/gpt-5.2',
+    modelsEndpoint: {
+      url: 'https://api.openai.com/v1/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'openai/',
+      modelFilter: /^gpt-|^o[134]|^chatgpt-/,
+    },
+    models: [],
   },
   {
     id: 'google',
     name: 'Google AI',
     requiresApiKey: true,
     apiKeyEnvVar: 'GOOGLE_GENERATIVE_AI_API_KEY',
-    models: [
-      {
-        id: 'gemini-3-pro-preview',
-        displayName: 'Gemini 3 Pro',
-        provider: 'google',
-        fullId: 'google/gemini-3-pro-preview',
-        contextWindow: 2000000,
-        supportsVision: true,
-      },
-      {
-        id: 'gemini-3-flash-preview',
-        displayName: 'Gemini 3 Flash',
-        provider: 'google',
-        fullId: 'google/gemini-3-flash-preview',
-        contextWindow: 1000000,
-        supportsVision: true,
-      },
-    ],
+    defaultModelId: 'google/gemini-3-pro-preview',
+    modelsEndpoint: {
+      url: 'https://generativelanguage.googleapis.com/v1beta/models',
+      authStyle: 'query-param',
+      responseFormat: 'google',
+      modelIdPrefix: 'google/',
+    },
+    models: [],
   },
   {
     id: 'xai',
@@ -244,24 +211,14 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     requiresApiKey: true,
     apiKeyEnvVar: 'XAI_API_KEY',
     baseUrl: 'https://api.x.ai',
-    models: [
-      {
-        id: 'grok-4',
-        displayName: 'Grok 4',
-        provider: 'xai',
-        fullId: 'xai/grok-4',
-        contextWindow: 256000,
-        supportsVision: true,
-      },
-      {
-        id: 'grok-3',
-        displayName: 'Grok 3',
-        provider: 'xai',
-        fullId: 'xai/grok-3',
-        contextWindow: 131000,
-        supportsVision: false,
-      },
-    ],
+    defaultModelId: 'xai/grok-4',
+    modelsEndpoint: {
+      url: 'https://api.x.ai/v1/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'xai/',
+    },
+    models: [],
   },
   {
     id: 'deepseek',
@@ -269,24 +226,14 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     requiresApiKey: true,
     apiKeyEnvVar: 'DEEPSEEK_API_KEY',
     baseUrl: 'https://api.deepseek.com',
-    models: [
-      {
-        id: 'deepseek-chat',
-        displayName: 'DeepSeek Chat (V3)',
-        provider: 'deepseek',
-        fullId: 'deepseek/deepseek-chat',
-        contextWindow: 64000,
-        supportsVision: false,
-      },
-      {
-        id: 'deepseek-reasoner',
-        displayName: 'DeepSeek Reasoner (R1)',
-        provider: 'deepseek',
-        fullId: 'deepseek/deepseek-reasoner',
-        contextWindow: 64000,
-        supportsVision: false,
-      },
-    ],
+    defaultModelId: 'deepseek/deepseek-chat',
+    modelsEndpoint: {
+      url: 'https://api.deepseek.com/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'deepseek/',
+    },
+    models: [],
   },
   {
     id: 'moonshot',
@@ -294,29 +241,14 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     requiresApiKey: true,
     apiKeyEnvVar: 'MOONSHOT_API_KEY',
     baseUrl: 'https://api.moonshot.ai/v1',
-    models: [
-      {
-        id: 'kimi-k2.5',
-        displayName: 'Kimi K2.5',
-        provider: 'moonshot',
-        fullId: 'moonshot/kimi-k2.5',
-        contextWindow: 256000,
-        supportsVision: true,
-      },
-      {
-        id: 'kimi-k2-turbo-preview',
-        displayName: 'Kimi K2 Turbo (Preview)',
-        provider: 'moonshot',
-        fullId: 'moonshot/kimi-k2-turbo-preview',
-        contextWindow: 256000,
-      },
-      {
-        id: 'kimi-latest',
-        displayName: 'Kimi Latest',
-        provider: 'moonshot',
-        fullId: 'moonshot/kimi-latest',
-      },
-    ],
+    defaultModelId: 'moonshot/kimi-k2.5',
+    modelsEndpoint: {
+      url: 'https://api.moonshot.ai/v1/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'moonshot/',
+    },
+    models: [],
   },
   {
     id: 'zai',
@@ -324,48 +256,14 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     requiresApiKey: true,
     apiKeyEnvVar: 'ZAI_API_KEY',
     baseUrl: 'https://open.bigmodel.cn',
-    models: [
-      {
-        id: 'glm-4.7-flashx',
-        displayName: 'GLM-4.7 FlashX (Latest)',
-        provider: 'zai',
-        fullId: 'zai/glm-4.7-flashx',
-        contextWindow: 200000,
-        supportsVision: false,
-      },
-      {
-        id: 'glm-4.7',
-        displayName: 'GLM-4.7',
-        provider: 'zai',
-        fullId: 'zai/glm-4.7',
-        contextWindow: 200000,
-        supportsVision: false,
-      },
-      {
-        id: 'glm-4.7-flash',
-        displayName: 'GLM-4.7 Flash',
-        provider: 'zai',
-        fullId: 'zai/glm-4.7-flash',
-        contextWindow: 200000,
-        supportsVision: false,
-      },
-      {
-        id: 'glm-4.6',
-        displayName: 'GLM-4.6',
-        provider: 'zai',
-        fullId: 'zai/glm-4.6',
-        contextWindow: 200000,
-        supportsVision: false,
-      },
-      {
-        id: 'glm-4.5-flash',
-        displayName: 'GLM-4.5 Flash',
-        provider: 'zai',
-        fullId: 'zai/glm-4.5-flash',
-        contextWindow: 128000,
-        supportsVision: false,
-      },
-    ],
+    defaultModelId: 'zai/glm-4.7-flashx',
+    modelsEndpoint: {
+      url: 'https://open.bigmodel.cn/api/paas/v4/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'zai/',
+    },
+    models: [],
   },
   {
     id: 'bedrock',
@@ -385,6 +283,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     requiresApiKey: true,
     apiKeyEnvVar: 'MINIMAX_API_KEY',
     baseUrl: 'https://api.minimax.io',
+    defaultModelId: 'minimax/MiniMax-M2',
     models: [
       {
         id: 'MiniMax-M2',
@@ -408,5 +307,5 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
 
 export const DEFAULT_MODEL: SelectedModel = {
   provider: 'anthropic',
-  model: 'anthropic/claude-opus-4-5',
+  model: 'anthropic/claude-opus-4-6',
 };

@@ -209,7 +209,7 @@ export function VertexProviderForm({
                   data-testid="vertex-auth-tab-sa"
                   className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     authTab === 'serviceAccount'
-                      ? 'bg-[#4A7C59] text-white'
+                      ? 'bg-provider-accent text-white'
                       : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -220,7 +220,7 @@ export function VertexProviderForm({
                   data-testid="vertex-auth-tab-adc"
                   className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     authTab === 'adc'
-                      ? 'bg-[#4A7C59] text-white'
+                      ? 'bg-provider-accent text-white'
                       : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >

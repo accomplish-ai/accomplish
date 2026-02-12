@@ -56,7 +56,10 @@ interface AccomplishAPI {
   removeApiKey(id: string): Promise<void>;
   getDebugMode(): Promise<boolean>;
   setDebugMode(enabled: boolean): Promise<void>;
-  getAppSettings(): Promise<{ debugMode: boolean; onboardingComplete: boolean }>;
+  getTheme(): Promise<string>;
+  setTheme(theme: string): Promise<void>;
+  onThemeChange?(callback: (data: { theme: string; resolved: string }) => void): () => void;
+  getAppSettings(): Promise<{ debugMode: boolean; onboardingComplete: boolean; theme: string }>;
   getOpenAiBaseUrl(): Promise<string>;
   setOpenAiBaseUrl(baseUrl: string): Promise<void>;
   getOpenAiOauthStatus(): Promise<{ connected: boolean; expires?: number }>;
@@ -100,6 +103,13 @@ interface AccomplishAPI {
   setAzureFoundryConfig(config: { baseUrl: string; deploymentName: string; authType: 'api-key' | 'entra-id'; enabled: boolean; lastValidated?: number } | null): Promise<void>;
   testAzureFoundryConnection(config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }): Promise<{ success: boolean; error?: string }>;
   saveAzureFoundryConfig(config: { endpoint: string; deploymentName: string; authType: 'api-key' | 'entra-id'; apiKey?: string }): Promise<void>;
+
+  // Dynamic model fetching (generic, config-driven)
+  fetchProviderModels(providerId: string, options?: { baseUrl?: string; zaiRegion?: string }): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string }>;
+    error?: string;
+  }>;
 
   // OpenRouter configuration
   fetchOpenRouterModels(): Promise<{

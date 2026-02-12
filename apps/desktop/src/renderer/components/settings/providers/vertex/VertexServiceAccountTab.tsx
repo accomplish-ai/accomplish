@@ -114,9 +114,9 @@ export function VertexServiceAccountTab({
             onDrop={handleDrop}
             className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${
               isDragOver
-                ? 'border-[#4A7C59] bg-[#4A7C59]/5'
+                ? 'border-provider-accent bg-provider-accent/5'
                 : serviceAccountJson
-                  ? 'border-[#4A7C59]/50 bg-[#4A7C59]/5'
+                  ? 'border-provider-accent/50 bg-provider-accent/5'
                   : 'border-muted-foreground/30 hover:border-muted-foreground/50'
             }`}
           >
@@ -142,7 +142,7 @@ export function VertexServiceAccountTab({
                 <button
                   type="button"
                   onClick={handleBrowse}
-                  className="text-sm font-medium text-[#4A7C59] hover:text-[#3d6649]"
+                  className="text-sm font-medium text-provider-accent hover:text-provider-accent-text"
                 >
                   Browse files
                 </button>

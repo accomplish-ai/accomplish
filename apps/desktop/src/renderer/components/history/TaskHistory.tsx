@@ -76,7 +76,7 @@ function TaskHistoryItem({
 }) {
   const statusConfig: Record<string, { color: string; label: string }> = {
     completed: { color: 'bg-success', label: 'Completed' },
-    running: { color: 'bg-accent-blue', label: 'Running' },
+    running: { color: 'bg-primary', label: 'Running' },
     failed: { color: 'bg-danger', label: 'Failed' },
     cancelled: { color: 'bg-text-muted', label: 'Cancelled' },
     pending: { color: 'bg-warning', label: 'Pending' },

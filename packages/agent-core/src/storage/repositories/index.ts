@@ -15,6 +15,8 @@ export {
   setLMStudioConfig,
   getOpenAiBaseUrl,
   setOpenAiBaseUrl,
+  getTheme,
+  setTheme,
   getAppSettings,
   clearAppSettings,
   type AppSettings,

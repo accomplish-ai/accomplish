@@ -68,7 +68,7 @@ export default function ConversationListItem({ task }: ConversationListItemProps
       title={task.summary || task.prompt}
       className={cn(
         'w-full text-left px-3 py-2 rounded-md text-sm transition-colors duration-200',
-        'text-zinc-700 hover:bg-accent hover:text-accent-foreground',
+        'text-foreground hover:bg-accent hover:text-accent-foreground',
         'flex items-center gap-2 group relative cursor-pointer',
         isActive && 'bg-accent text-accent-foreground'
       )}

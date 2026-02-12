@@ -42,6 +42,7 @@ export interface SnapshotOptions {
   viewportOnly?: boolean;
   maxTokens?: number;
   includeHistory?: boolean;
+  includeBoundingBoxes?: boolean;
 }
 
 export const DEFAULT_SNAPSHOT_OPTIONS: Required<SnapshotOptions> = {

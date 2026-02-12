@@ -442,15 +442,26 @@ export async function buildProviderConfigs(
   // Z.AI provider
   const zaiKey = getApiKey('zai');
   if (zaiKey) {
-    const zaiCredentials = providerSettings.connectedProviders.zai?.credentials as ZaiCredentials | undefined;
+    const zaiProvider = providerSettings.connectedProviders.zai;
+    const zaiCredentials = zaiProvider?.credentials as ZaiCredentials | undefined;
     const zaiRegion = zaiCredentials?.region || 'international';
     const zaiEndpoint = ZAI_ENDPOINTS[zaiRegion];
 
-    const zaiProviderConfig = DEFAULT_PROVIDERS.find(p => p.id === 'zai');
     const zaiModels: Record<string, ProviderModelConfig> = {};
-    if (zaiProviderConfig) {
-      for (const model of zaiProviderConfig.models) {
-        zaiModels[model.id] = { name: model.displayName, tools: true };
+
+    // Prefer dynamically fetched models from connected provider
+    if (zaiProvider?.availableModels && zaiProvider.availableModels.length > 0) {
+      for (const model of zaiProvider.availableModels) {
+        const modelId = model.id.replace(/^zai\//, '');
+        zaiModels[modelId] = { name: model.name, tools: true };
+      }
+    } else {
+      // Fall back to static models from DEFAULT_PROVIDERS
+      const zaiProviderConfig = DEFAULT_PROVIDERS.find(p => p.id === 'zai');
+      if (zaiProviderConfig) {
+        for (const model of zaiProviderConfig.models) {
+          zaiModels[model.id] = { name: model.displayName, tools: true };
+        }
       }
     }
 
