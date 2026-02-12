@@ -11,7 +11,7 @@ import {
   ProviderFormHeader,
   FormError,
 } from '../shared';
-import { PROVIDER_LOGOS } from '@/lib/provider-logos';
+import { PROVIDER_LOGOS, DARK_INVERT_PROVIDERS } from '@/lib/provider-logos';
 
 interface ClassicProviderFormProps {
   providerId: ProviderId;
@@ -132,7 +132,7 @@ export function ClassicProviderForm({
 
   return (
     <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
-      <ProviderFormHeader logoSrc={logoSrc} providerName={meta.name} />
+      <ProviderFormHeader logoSrc={logoSrc} providerName={meta.name} invertInDark={DARK_INVERT_PROVIDERS.has(providerId)} />
 
       {isOpenAI && !isConnected && (
         <div className="space-y-4">
@@ -143,7 +143,7 @@ export function ClassicProviderForm({
             data-testid="openai-oauth-signin"
             className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
           >
-            <img src={PROVIDER_LOGOS['openai']} alt="" className="h-5 w-5" />
+            <img src={PROVIDER_LOGOS['openai']} alt="" className="h-5 w-5 dark:invert" />
             {signingIn ? 'Signing in...' : 'Login with OpenAI'}
           </button>
 

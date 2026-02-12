@@ -150,13 +150,13 @@ function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T 
 // Helper for file operation badge colors
 function getOperationBadgeClasses(operation?: string): string {
   switch (operation) {
-    case 'delete': return 'bg-red-500/10 text-red-600';
-    case 'overwrite': return 'bg-orange-500/10 text-orange-600';
-    case 'modify': return 'bg-yellow-500/10 text-yellow-600';
-    case 'create': return 'bg-green-500/10 text-green-600';
+    case 'delete': return 'bg-red-500/10 text-red-600 dark:text-red-400';
+    case 'overwrite': return 'bg-orange-500/10 text-orange-600 dark:text-orange-400';
+    case 'modify': return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400';
+    case 'create': return 'bg-green-500/10 text-green-600 dark:text-green-400';
     case 'rename':
-    case 'move': return 'bg-blue-500/10 text-blue-600';
-    default: return 'bg-gray-500/10 text-gray-600';
+    case 'move': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400';
+    default: return 'bg-gray-500/10 text-gray-600 dark:text-gray-400';
   }
 }
 

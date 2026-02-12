@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { ipcMain, BrowserWindow, shell, app, dialog } from 'electron';
+import { ipcMain, BrowserWindow, shell, app, dialog, nativeTheme } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import { URL } from 'url';
 import fs from 'fs';
@@ -835,6 +835,26 @@ export function registerIPCHandlers(): void {
     storage.setDebugMode(enabled);
     for (const win of BrowserWindow.getAllWindows()) {
       win.webContents.send('settings:debug-mode-changed', { enabled });
+    }
+  });
+
+  handle('settings:theme', async (_event: IpcMainInvokeEvent) => {
+    return storage.getTheme();
+  });
+
+  handle('settings:set-theme', async (_event: IpcMainInvokeEvent, theme: string) => {
+    if (!['system', 'light', 'dark'].includes(theme)) {
+      throw new Error('Invalid theme value');
+    }
+    storage.setTheme(theme as 'system' | 'light' | 'dark');
+    nativeTheme.themeSource = theme as 'system' | 'light' | 'dark';
+
+    const resolved = theme === 'system'
+      ? (nativeTheme.shouldUseDarkColors ? 'dark' : 'light')
+      : theme;
+
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.send('settings:theme-changed', { theme, resolved });
     }
   });
 

@@ -109,6 +109,7 @@ export default function Sidebar() {
             <img
               src={logoImage}
               alt="Accomplish"
+              className="dark:invert"
               style={{ height: '20px', paddingLeft: '6px' }}
             />
           </div>

@@ -116,7 +116,7 @@ export function ZaiProviderForm({
                     data-testid="zai-region-china"
                     className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       region === 'china'
-                        ? 'bg-[#4A7C59] text-white'
+                        ? 'bg-provider-accent text-white'
                         : 'bg-muted text-muted-foreground hover:text-foreground'
                     }`}
                   >
@@ -128,7 +128,7 @@ export function ZaiProviderForm({
                     data-testid="zai-region-international"
                     className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       region === 'international'
-                        ? 'bg-[#4A7C59] text-white'
+                        ? 'bg-provider-accent text-white'
                         : 'bg-muted text-muted-foreground hover:text-foreground'
                     }`}
                   >

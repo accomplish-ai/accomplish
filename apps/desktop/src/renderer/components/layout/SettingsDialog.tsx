@@ -18,6 +18,7 @@ import { ProviderSettingsPanel } from '@/components/settings/ProviderSettingsPan
 import { SpeechSettingsForm } from '@/components/settings/SpeechSettingsForm';
 import { SkillsPanel, AddSkillDropdown } from '@/components/settings/skills';
 import { ConnectorsPanel } from '@/components/settings/connectors';
+import { applyTheme } from '@/lib/theme';
 
 // First 4 providers shown in collapsed view (matches PROVIDER_ORDER in ProviderGrid)
 const FIRST_FOUR_PROVIDERS: ProviderId[] = ['openai', 'anthropic', 'google', 'bedrock'];
@@ -30,7 +31,7 @@ interface SettingsDialogProps {
   /**
    * Initial tab to show when dialog opens ('providers' or 'voice')
    */
-  initialTab?: 'providers' | 'connectors' | 'voice' | 'skills' | 'about';
+  initialTab?: 'providers' | 'connectors' | 'voice' | 'skills' | 'appearance' | 'about';
 }
 
 export default function SettingsDialog({
@@ -44,7 +45,7 @@ export default function SettingsDialog({
   const [gridExpanded, setGridExpanded] = useState(false);
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'providers' | 'connectors' | 'voice' | 'skills' | 'about'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'providers' | 'connectors' | 'voice' | 'skills' | 'appearance' | 'about'>(initialTab);
   const [appVersion, setAppVersion] = useState<string>('');
   const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
 
@@ -58,6 +59,7 @@ export default function SettingsDialog({
     refetch,
   } = useProviderSettings();
 
+  const [theme, setThemeState] = useState<string>('system');
   // Debug mode state - stored in appSettings, not providerSettings
   const [debugMode, setDebugModeState] = useState(false);
   const [exportStatus, setExportStatus] = useState<'idle' | 'exporting' | 'success' | 'error'>('idle');
@@ -67,7 +69,7 @@ export default function SettingsDialog({
   useEffect(() => {
     if (!open) return;
     refetch();
-    // Load debug mode from appSettings (correct store)
+    accomplish.getTheme().then(setThemeState);
     accomplish.getDebugMode().then(setDebugModeState);
     // Load app version
     accomplish.getVersion().then(setAppVersion);
@@ -177,6 +179,12 @@ export default function SettingsDialog({
     setShowModelError(false);
     onApiKeySaved?.();
   }, [selectedProvider, updateModel, settings, setActiveProvider, onApiKeySaved]);
+
+  const handleThemeChange = useCallback(async (value: string) => {
+    setThemeState(value);
+    applyTheme(value);
+    await accomplish.setTheme(value);
+  }, [accomplish]);
 
   // Handle debug mode toggle - writes to appSettings (correct store)
   const handleDebugToggle = useCallback(async () => {
@@ -333,6 +341,16 @@ export default function SettingsDialog({
                 }`}
               >
                 Voice Input
+              </button>
+              <button
+                onClick={() => setActiveTab('appearance')}
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${
+                  activeTab === 'appearance'
+                    ? 'text-foreground border-b-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Appearance
               </button>
               <button
                 onClick={() => setActiveTab('about')}
@@ -520,6 +538,56 @@ export default function SettingsDialog({
           {activeTab === 'voice' && (
             <div className="space-y-6">
               <SpeechSettingsForm onSave={() => {}} onChange={() => {}} />
+            </div>
+          )}
+
+          {/* Appearance Tab */}
+          {activeTab === 'appearance' && (
+            <div className="space-y-6">
+              <div className="rounded-lg border border-border bg-card p-5">
+                <div className="font-medium text-foreground">Theme</div>
+                <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                  Choose how Accomplish looks. Select System to match your operating system setting.
+                </p>
+                <div
+                  className="mt-4 flex rounded-lg border border-border bg-muted p-1"
+                  role="radiogroup"
+                  aria-label="Theme preference"
+                >
+                  {([
+                    { value: 'system', label: 'System', icon: (
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
+                      </svg>
+                    )},
+                    { value: 'light', label: 'Light', icon: (
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+                      </svg>
+                    )},
+                    { value: 'dark', label: 'Dark', icon: (
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                      </svg>
+                    )},
+                  ] as const).map((option) => (
+                    <button
+                      key={option.value}
+                      role="radio"
+                      aria-checked={theme === option.value}
+                      onClick={() => handleThemeChange(option.value)}
+                      className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                        theme === option.value
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {option.icon}
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import { app, BrowserWindow, shell, ipcMain, nativeImage, dialog } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, nativeImage, dialog, nativeTheme } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -96,6 +96,7 @@ function createWindow() {
     minHeight: 600,
     title: 'Accomplish',
     icon: icon.isEmpty() ? undefined : icon,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#171717' : '#f9f9f9',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     trafficLightPosition: { x: 16, y: 16 },
     webPreferences: {
@@ -241,6 +242,14 @@ if (!gotTheLock) {
       if (!icon.isEmpty()) {
         app.dock.setIcon(icon);
       }
+    }
+
+    // Must run before createWindow() so backgroundColor matches the theme
+    try {
+      const storage = getStorage();
+      nativeTheme.themeSource = storage.getTheme();
+    } catch {
+      // First launch or corrupt DB — nativeTheme stays 'system'
     }
 
     registerIPCHandlers();

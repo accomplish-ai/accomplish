@@ -3,7 +3,8 @@ import type { ProviderId, ConnectedProvider } from '@accomplish_ai/agent-core/co
 import { PROVIDER_META, isProviderReady } from '@accomplish_ai/agent-core/common';
 import { AnimatePresence, motion } from 'framer-motion';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
-import { PROVIDER_LOGOS } from '@/lib/provider-logos';
+import { PROVIDER_LOGOS, DARK_INVERT_PROVIDERS } from '@/lib/provider-logos';
+import { cn } from '@/lib/utils';
 import connectedKeyIcon from '/assets/icons/connected-key.svg';
 
 interface ProviderCardProps {
@@ -40,10 +41,10 @@ export const ProviderCard = memo(function ProviderCard({
       data-testid={`provider-card-${providerId}`}
       className={`relative flex flex-col items-center justify-center rounded-xl border p-4 w-[130px] h-[110px] transition-[background-color,border-color] duration-150 ${
         showGreenBackground
-          ? 'border-[#4a4330] border-2 bg-[#e9f7e7]'
+          ? 'border-provider-border-active border-2 bg-provider-bg-active'
           : isSelected
-            ? 'border-[#4a4330] border-2 bg-[#f9f8f6]'
-            : 'border-border bg-[#f9f8f6] hover:border-ring'
+            ? 'border-provider-border-active border-2 bg-provider-bg-hover'
+            : 'border-border bg-provider-bg-hover hover:border-ring'
       }`}
     >
       <AnimatePresence>
@@ -71,7 +72,7 @@ export const ProviderCard = memo(function ProviderCard({
         <img
           src={logoSrc}
           alt={`${meta.name} logo`}
-          className="h-8 w-8 object-contain"
+          className={cn('h-8 w-8 object-contain', DARK_INVERT_PROVIDERS.has(providerId) && 'dark:invert')}
         />
       </div>
 

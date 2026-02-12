@@ -56,7 +56,16 @@ const accomplishAPI = {
     ipcRenderer.invoke('settings:debug-mode'),
   setDebugMode: (enabled: boolean): Promise<void> =>
     ipcRenderer.invoke('settings:set-debug-mode', enabled),
-  getAppSettings: (): Promise<{ debugMode: boolean; onboardingComplete: boolean }> =>
+  getTheme: (): Promise<string> =>
+    ipcRenderer.invoke('settings:theme'),
+  setTheme: (theme: string): Promise<void> =>
+    ipcRenderer.invoke('settings:set-theme', theme),
+  onThemeChange: (callback: (data: { theme: string; resolved: string }) => void) => {
+    const listener = (_: unknown, data: { theme: string; resolved: string }) => callback(data);
+    ipcRenderer.on('settings:theme-changed', listener);
+    return () => ipcRenderer.removeListener('settings:theme-changed', listener);
+  },
+  getAppSettings: (): Promise<{ debugMode: boolean; onboardingComplete: boolean; theme: string }> =>
     ipcRenderer.invoke('settings:app-settings'),
   getOpenAiBaseUrl: (): Promise<string> =>
     ipcRenderer.invoke('settings:openai-base-url:get'),
