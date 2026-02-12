@@ -12,6 +12,11 @@ import type {
   ProviderSettings,
   ConnectedProvider,
 } from '../common/types/providerSettings.js';
+import type {
+  McpConnector,
+  ConnectorStatus,
+  OAuthTokens,
+} from '../common/types/connector.js';
 
 /** Options for creating a Storage instance */
 export interface StorageOptions {
@@ -180,6 +185,32 @@ export interface SecureStorageAPI {
   clearSecureStorage(): void;
 }
 
+/** API for MCP connector management and OAuth token storage */
+export interface ConnectorStorageAPI {
+  /** Get all connectors */
+  getAllConnectors(): McpConnector[];
+  /** Get only enabled connectors */
+  getEnabledConnectors(): McpConnector[];
+  /** Get a connector by ID */
+  getConnectorById(id: string): McpConnector | null;
+  /** Create or update a connector */
+  upsertConnector(connector: McpConnector): void;
+  /** Enable or disable a connector */
+  setConnectorEnabled(id: string, enabled: boolean): void;
+  /** Update a connector's status */
+  setConnectorStatus(id: string, status: ConnectorStatus): void;
+  /** Delete a connector */
+  deleteConnector(id: string): void;
+  /** Delete all connectors */
+  clearAllConnectors(): void;
+  /** Store OAuth tokens for a connector (encrypted) */
+  storeConnectorTokens(connectorId: string, tokens: OAuthTokens): void;
+  /** Retrieve OAuth tokens for a connector */
+  getConnectorTokens(connectorId: string): OAuthTokens | null;
+  /** Delete OAuth tokens for a connector */
+  deleteConnectorTokens(connectorId: string): void;
+}
+
 /** API for database initialization and lifecycle management */
 export interface DatabaseLifecycleAPI {
   /** Initialize the database, creating it if needed and running migrations */
@@ -192,12 +223,13 @@ export interface DatabaseLifecycleAPI {
   getDatabasePath(): string | null;
 }
 
-/** Unified storage API combining task, settings, provider, secure storage, and database lifecycle operations */
+/** Unified storage API combining task, settings, provider, secure storage, connector, and database lifecycle operations */
 export interface StorageAPI
   extends TaskStorageAPI,
     AppSettingsAPI,
     ProviderSettingsAPI,
     SecureStorageAPI,
+    ConnectorStorageAPI,
     DatabaseLifecycleAPI {}
 
 export type {
@@ -213,4 +245,7 @@ export type {
   ProviderId,
   ProviderSettings,
   ConnectedProvider,
+  McpConnector,
+  ConnectorStatus,
+  OAuthTokens,
 };

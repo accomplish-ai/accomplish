@@ -53,7 +53,18 @@ import {
   hasReadyProvider,
   getConnectedProviderIds,
 } from '../storage/repositories/providerSettings.js';
+import {
+  getAllConnectors,
+  getEnabledConnectors,
+  getConnectorById,
+  upsertConnector,
+  setConnectorEnabled,
+  setConnectorStatus,
+  deleteConnector,
+  clearAllConnectors,
+} from '../storage/repositories/connectors.js';
 import { SecureStorage } from '../internal/classes/SecureStorage.js';
+import type { OAuthTokens } from '../common/types/connector.js';
 import type { StorageAPI, StorageOptions } from '../types/storage.js';
 
 export function createStorage(options: StorageOptions = {}): StorageAPI {
@@ -123,6 +134,30 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     getActiveProviderModel: () => getActiveProviderModel(),
     hasReadyProvider: () => hasReadyProvider(),
     getConnectedProviderIds: () => getConnectedProviderIds(),
+
+    // Connectors
+    getAllConnectors: () => getAllConnectors(),
+    getEnabledConnectors: () => getEnabledConnectors(),
+    getConnectorById: (id) => getConnectorById(id),
+    upsertConnector: (connector) => upsertConnector(connector),
+    setConnectorEnabled: (id, enabled) => setConnectorEnabled(id, enabled),
+    setConnectorStatus: (id, status) => setConnectorStatus(id, status),
+    deleteConnector: (id) => deleteConnector(id),
+    clearAllConnectors: () => clearAllConnectors(),
+    storeConnectorTokens: (connectorId, tokens) =>
+      secureStorage.set(`connector-tokens:${connectorId}`, JSON.stringify(tokens)),
+    getConnectorTokens: (connectorId) => {
+      const stored = secureStorage.get(`connector-tokens:${connectorId}`);
+      if (!stored) return null;
+      try {
+        return JSON.parse(stored) as OAuthTokens;
+      } catch {
+        console.error(`Failed to parse connector tokens for ${connectorId}`);
+        return null;
+      }
+    },
+    deleteConnectorTokens: (connectorId) =>
+      secureStorage.delete(`connector-tokens:${connectorId}`),
 
     // Secure Storage
     storeApiKey: (provider, apiKey) => secureStorage.storeApiKey(provider, apiKey),

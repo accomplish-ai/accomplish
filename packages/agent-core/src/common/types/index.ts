@@ -4,6 +4,9 @@ export type {
   BedrockProfileCredentials,
   BedrockApiKeyCredentials,
   BedrockCredentials,
+  VertexServiceAccountCredentials,
+  VertexAdcCredentials,
+  VertexCredentials,
 } from './auth.js';
 
 export type { LogLevel, LogSource, LogEntry } from './logging.js';
@@ -76,6 +79,7 @@ export type {
   ZaiRegion,
   ZaiCredentials,
   LMStudioCredentials,
+  VertexProviderCredentials,
   AzureFoundryCredentials,
   OAuthCredentials,
   ProviderCredentials,
@@ -85,6 +89,14 @@ export type {
 } from './providerSettings.js';
 
 export type { SkillSource, Skill, SkillFrontmatter } from './skills.js';
+
+export type {
+  ConnectorStatus,
+  OAuthTokens,
+  OAuthMetadata,
+  OAuthClientRegistration,
+  McpConnector,
+} from './connector.js';
 
 export { STARTUP_STAGES } from './task.js';
 export type {

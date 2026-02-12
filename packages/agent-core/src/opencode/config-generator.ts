@@ -39,6 +39,13 @@ export interface ConfigGeneratorOptions {
   enabledProviders?: string[];
   /** Browser configuration. Defaults to { mode: 'builtin' } */
   browser?: BrowserConfig;
+  /** Connected MCP remote servers with OAuth access tokens */
+  connectors?: Array<{
+    id: string;
+    name: string;
+    url: string;
+    accessToken: string;
+  }>;
 }
 
 export interface ProviderConfig {
@@ -71,6 +78,7 @@ interface McpServerConfig {
   type?: 'local' | 'remote';
   command?: string[];
   url?: string;
+  headers?: Record<string, string>;
   enabled?: boolean;
   environment?: Record<string, string>;
   timeout?: number;
@@ -467,6 +475,34 @@ Use empty array [] if no skills apply to your task.
     };
   }
 
+  // Add connected MCP connectors as remote servers
+  if (options.connectors) {
+    for (const connector of options.connectors) {
+      // Use short sanitized name + ID suffix as key to prevent collisions
+      const sanitized = connector.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 20);
+      const baseName = sanitized || 'mcp-remote';
+      const idSuffix = connector.id.slice(0, 6);
+      let key = `connector-${baseName}-${idSuffix}`;
+      // Guard against unlikely collision with existing keys
+      if (mcpServers[key]) {
+        let i = 1;
+        while (mcpServers[`${key}-${i}`]) i += 1;
+        key = `${key}-${i}`;
+      }
+      mcpServers[key] = {
+        type: 'remote',
+        url: connector.url,
+        headers: { Authorization: `Bearer ${connector.accessToken}` },
+        enabled: true,
+      };
+    }
+  }
+
   // Fill browser-specific template sections based on mode
   const hasBrowser = browserConfig.mode !== 'none';
   systemPrompt = systemPrompt
@@ -606,6 +642,10 @@ export function buildCliArgs(options: BuildCliArgsOptions): string[] {
     } else if (selectedModel.provider === 'lmstudio') {
       const modelId = selectedModel.model.replace(/^lmstudio\//, '');
       args.push('--model', `lmstudio/${modelId}`);
+    } else if (selectedModel.provider === 'vertex') {
+      // Model IDs stored as "vertex/{publisher}/{model}" — strip publisher for @ai-sdk/google-vertex
+      const modelId = selectedModel.model.replace(/^vertex\/[^/]+\//, '');
+      args.push('--model', `vertex/${modelId}`);
     } else {
       args.push('--model', selectedModel.model);
     }

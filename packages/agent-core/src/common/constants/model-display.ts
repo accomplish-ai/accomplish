@@ -63,6 +63,7 @@ export const PROVIDER_PREFIXES = [
   'minimax/',
   'lmstudio/',
   'azure-foundry/',
+  'vertex/',
 ];
 
 /**

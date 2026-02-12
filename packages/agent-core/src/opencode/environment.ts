@@ -1,4 +1,4 @@
-import type { BedrockCredentials } from '../common/types/auth.js';
+import type { BedrockCredentials, VertexCredentials } from '../common/types/auth.js';
 
 /**
  * API keys for various providers.
@@ -14,6 +14,10 @@ export interface EnvironmentConfig {
   apiKeys: ApiKeys;
   /** AWS Bedrock credentials (optional) */
   bedrockCredentials?: BedrockCredentials;
+  /** Vertex AI credentials (optional) */
+  vertexCredentials?: VertexCredentials;
+  /** Path to service account key file for Vertex AI (optional) */
+  vertexServiceAccountKeyPath?: string;
   /** Path to bundled Node.js bin directory (optional) */
   bundledNodeBinPath?: string;
   /** Task ID to set in ACCOMPLISH_TASK_ID (optional) */
@@ -75,6 +79,18 @@ function setBedrockEnvironment(env: NodeJS.ProcessEnv, credentials: BedrockCrede
 }
 
 /**
+ * Sets Vertex AI credential environment variables.
+ */
+function setVertexEnvironment(env: NodeJS.ProcessEnv, credentials: VertexCredentials, serviceAccountKeyPath?: string): void {
+  env.GOOGLE_CLOUD_PROJECT = credentials.projectId;
+  env.GOOGLE_CLOUD_LOCATION = credentials.location;
+
+  if (credentials.authType === 'serviceAccount' && serviceAccountKeyPath) {
+    env.GOOGLE_APPLICATION_CREDENTIALS = serviceAccountKeyPath;
+  }
+}
+
+/**
  * Sets the bundled Node.js bin path in environment.
  */
 function setBundledNodeEnvironment(env: NodeJS.ProcessEnv, bundledNodeBinPath: string): void {
@@ -124,6 +140,11 @@ export function buildOpenCodeEnvironment(
   // Set Bedrock credentials if provided
   if (config.bedrockCredentials) {
     setBedrockEnvironment(env, config.bedrockCredentials);
+  }
+
+  // Set Vertex AI credentials if provided
+  if (config.vertexCredentials) {
+    setVertexEnvironment(env, config.vertexCredentials, config.vertexServiceAccountKeyPath);
   }
 
   // Set bundled Node.js path if provided

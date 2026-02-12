@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import type { ProviderId, ZaiCredentials } from '../common/types/providerSettings.js';
+import type { ProviderId, ZaiCredentials, VertexProviderCredentials } from '../common/types/providerSettings.js';
 import type { BedrockCredentials } from '../common/types/auth.js';
 import type { ProviderSettings } from '../common/types/providerSettings.js';
 import {
@@ -121,7 +121,7 @@ export async function buildProviderConfigs(
   const activeModel = getActiveProviderModel();
   const providerConfigs: ProviderConfig[] = [];
 
-  const baseProviders = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'moonshot', 'zai-coding-plan', 'amazon-bedrock', 'minimax'];
+  const baseProviders = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'moonshot', 'zai-coding-plan', 'amazon-bedrock', 'vertex', 'minimax'];
   let enabledProviders = baseProviders;
 
   if (connectedIds.length > 0) {
@@ -298,6 +298,43 @@ export async function buildProviderConfigs(
       smallModel: activeModel.model,
     };
     console.log('[OpenCode Config Builder] Bedrock model override:', modelOverride);
+  }
+
+  // Vertex AI provider
+  const vertexProvider = providerSettings.connectedProviders.vertex;
+  if (vertexProvider?.connectionStatus === 'connected' && vertexProvider.credentials.type === 'vertex') {
+    const creds = vertexProvider.credentials as VertexProviderCredentials;
+    const vertexOptions: Record<string, string> = {
+      project: creds.projectId,
+      location: creds.location,
+    };
+
+    const vertexModels: Record<string, ProviderModelConfig> = {};
+    if (activeModel?.provider === 'vertex' && activeModel.model) {
+      // Model IDs are stored as "vertex/{publisher}/{model}" (e.g. "vertex/google/gemini-2.5-flash")
+      // but @ai-sdk/google-vertex expects just the model name (e.g. "gemini-2.5-flash")
+      const modelId = activeModel.model.replace(/^vertex\/[^/]+\//, '');
+      vertexModels[modelId] = { name: modelId, tools: true };
+    }
+
+    providerConfigs.push({
+      id: 'vertex',
+      npm: '@ai-sdk/google-vertex',
+      name: 'Google Vertex AI',
+      options: vertexOptions,
+      ...(Object.keys(vertexModels).length > 0 ? { models: vertexModels } : {}),
+    });
+    console.log('[OpenCode Config Builder] Vertex AI configured:', vertexOptions, 'models:', Object.keys(vertexModels));
+  }
+
+  if (activeModel?.provider === 'vertex' && activeModel.model) {
+    // Strip publisher from "vertex/{publisher}/{model}" → "vertex/{model}"
+    const vertexModelId = activeModel.model.replace(/^vertex\/[^/]+\//, '');
+    modelOverride = {
+      model: `vertex/${vertexModelId}`,
+      smallModel: `vertex/${vertexModelId}`,
+    };
+    console.log('[OpenCode Config Builder] Vertex model override:', modelOverride);
   }
 
   // LiteLLM provider

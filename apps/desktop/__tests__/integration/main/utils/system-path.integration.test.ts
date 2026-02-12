@@ -39,6 +39,7 @@ const mockExecSync = vi.fn();
 
 vi.mock('child_process', () => ({
   execSync: mockExecSync,
+  execFile: vi.fn(),
 }));
 
 describe('System PATH Utilities', () => {

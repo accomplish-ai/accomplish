@@ -23,6 +23,7 @@ export {
   getOpenCodeCliPath,
   isOpenCodeBundled,
   getBundledOpenCodeVersion,
+  cleanupVertexServiceAccountKey,
 } from './electron-options';
 
 export {

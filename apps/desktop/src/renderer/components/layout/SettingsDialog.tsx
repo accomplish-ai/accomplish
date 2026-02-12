@@ -17,6 +17,7 @@ import { ProviderGrid } from '@/components/settings/ProviderGrid';
 import { ProviderSettingsPanel } from '@/components/settings/ProviderSettingsPanel';
 import { SpeechSettingsForm } from '@/components/settings/SpeechSettingsForm';
 import { SkillsPanel, AddSkillDropdown } from '@/components/settings/skills';
+import { ConnectorsPanel } from '@/components/settings/connectors';
 
 // First 4 providers shown in collapsed view (matches PROVIDER_ORDER in ProviderGrid)
 const FIRST_FOUR_PROVIDERS: ProviderId[] = ['openai', 'anthropic', 'google', 'bedrock'];
@@ -29,7 +30,7 @@ interface SettingsDialogProps {
   /**
    * Initial tab to show when dialog opens ('providers' or 'voice')
    */
-  initialTab?: 'providers' | 'voice' | 'skills' | 'about';
+  initialTab?: 'providers' | 'connectors' | 'voice' | 'skills' | 'about';
 }
 
 export default function SettingsDialog({
@@ -43,7 +44,7 @@ export default function SettingsDialog({
   const [gridExpanded, setGridExpanded] = useState(false);
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'providers' | 'voice' | 'skills' | 'about'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'providers' | 'connectors' | 'voice' | 'skills' | 'about'>(initialTab);
   const [appVersion, setAppVersion] = useState<string>('');
   const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
 
@@ -304,6 +305,16 @@ export default function SettingsDialog({
                 Providers
               </button>
               <button
+                onClick={() => setActiveTab('connectors')}
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${
+                  activeTab === 'connectors'
+                    ? 'text-foreground border-b-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Connectors
+              </button>
+              <button
                 onClick={() => setActiveTab('skills')}
                 className={`pb-3 px-1 font-medium text-sm transition-colors ${
                   activeTab === 'skills'
@@ -488,6 +499,13 @@ export default function SettingsDialog({
                   </motion.section>
                 )}
               </AnimatePresence>
+            </div>
+          )}
+
+          {/* Connectors Tab */}
+          {activeTab === 'connectors' && (
+            <div className="space-y-6">
+              <ConnectorsPanel />
             </div>
           )}
 

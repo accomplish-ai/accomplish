@@ -3,8 +3,10 @@
  * Configures testing-library matchers and global test utilities
  */
 
-import '@testing-library/jest-dom/vitest';
-import { vi } from 'vitest';
+import { expect, vi } from 'vitest';
+import * as matchers from '@testing-library/jest-dom/matchers';
+
+expect.extend(matchers);
 
 // Mock scrollIntoView for jsdom (not implemented in jsdom)
 // Only apply when running in jsdom environment (Element is defined)

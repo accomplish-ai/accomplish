@@ -10,6 +10,8 @@ export function ConnectedControls({ onDisconnect }: ConnectedControlsProps) {
   return (
     <div className="flex gap-4">
       <button
+        data-testid="connection-status"
+        data-status="connected"
         className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-[#e6e3dd] bg-[#e9f7e7] px-4 py-2.5 text-sm font-semibold text-[#244325] shadow-sm"
         disabled
       >

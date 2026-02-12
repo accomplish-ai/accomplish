@@ -13,6 +13,7 @@ const PROVIDER_ORDER: ProviderId[] = [
   'anthropic',
   'google',
   'bedrock',
+  'vertex',
   'moonshot',
   'azure-foundry',
   'deepseek',

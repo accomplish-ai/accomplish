@@ -6,7 +6,7 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ProviderType, Skill, TodoItem } from '@accomplish_ai/agent-core';
+import type { ProviderType, Skill, TodoItem, McpConnector } from '@accomplish_ai/agent-core';
 
 // Expose the accomplish API to the renderer
 const accomplishAPI = {
@@ -199,6 +199,20 @@ const accomplishAPI = {
   fetchBedrockModels: (credentials: string): Promise<{ success: boolean; models: Array<{ id: string; name: string; provider: string }>; error?: string }> =>
     ipcRenderer.invoke('bedrock:fetch-models', credentials),
 
+  // Vertex AI
+  validateVertexCredentials: (credentials: string) =>
+    ipcRenderer.invoke('vertex:validate', credentials),
+  saveVertexCredentials: (credentials: string) =>
+    ipcRenderer.invoke('vertex:save', credentials),
+  getVertexCredentials: () =>
+    ipcRenderer.invoke('vertex:get-credentials'),
+  fetchVertexModels: (credentials: string): Promise<{ success: boolean; models: Array<{ id: string; name: string; provider: string }>; error?: string }> =>
+    ipcRenderer.invoke('vertex:fetch-models', credentials),
+  detectVertexProject: (): Promise<{ success: boolean; projectId: string | null }> =>
+    ipcRenderer.invoke('vertex:detect-project'),
+  listVertexProjects: (): Promise<{ success: boolean; projects: Array<{ projectId: string; name: string }>; error?: string }> =>
+    ipcRenderer.invoke('vertex:list-projects'),
+
   // E2E Testing
   isE2EMode: (): Promise<boolean> =>
     ipcRenderer.invoke('app:is-e2e-mode'),
@@ -318,6 +332,25 @@ const accomplishAPI = {
   resyncSkills: (): Promise<Skill[]> => ipcRenderer.invoke('skills:resync'),
   openSkillInEditor: (filePath: string): Promise<void> => ipcRenderer.invoke('skills:open-in-editor', filePath),
   showSkillInFolder: (filePath: string): Promise<void> => ipcRenderer.invoke('skills:show-in-folder', filePath),
+
+  // MCP Connectors
+  getConnectors: (): Promise<McpConnector[]> => ipcRenderer.invoke('connectors:list'),
+  addConnector: (name: string, url: string): Promise<McpConnector> =>
+    ipcRenderer.invoke('connectors:add', name, url),
+  deleteConnector: (id: string): Promise<void> => ipcRenderer.invoke('connectors:delete', id),
+  setConnectorEnabled: (id: string, enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('connectors:set-enabled', id, enabled),
+  startConnectorOAuth: (connectorId: string): Promise<{ state: string; authUrl: string }> =>
+    ipcRenderer.invoke('connectors:start-oauth', connectorId),
+  completeConnectorOAuth: (state: string, code: string): Promise<McpConnector> =>
+    ipcRenderer.invoke('connectors:complete-oauth', state, code),
+  disconnectConnector: (connectorId: string): Promise<void> =>
+    ipcRenderer.invoke('connectors:disconnect', connectorId),
+  onMcpAuthCallback: (callback: (url: string) => void) => {
+    const listener = (_: unknown, url: string) => callback(url);
+    ipcRenderer.on('auth:mcp-callback', listener);
+    return () => { ipcRenderer.removeListener('auth:mcp-callback', listener); };
+  },
 };
 
 // Expose the API to the renderer

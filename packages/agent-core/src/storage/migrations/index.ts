@@ -13,6 +13,7 @@ import { migration as v003 } from './v003-lmstudio.js';
 import { migration as v004 } from './v004-openai-base-url.js';
 import { migration as v005 } from './v005-task-todos.js';
 import { migration as v006 } from './v006-skills.js';
+import { migration as v007 } from './v007-connectors.js';
 
 const migrations: Migration[] = [
   v001,
@@ -21,6 +22,7 @@ const migrations: Migration[] = [
   v004,
   v005,
   v006,
+  v007,
 ];
 
 export function registerMigration(migration: Migration): void {
@@ -28,7 +30,7 @@ export function registerMigration(migration: Migration): void {
   migrations.sort((a, b) => a.version - b.version);
 }
 
-export const CURRENT_VERSION = 6;
+export const CURRENT_VERSION = 7;
 
 export function getStoredVersion(db: Database): number {
   try {

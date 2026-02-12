@@ -62,6 +62,7 @@ export type {
   ConnectionStatus,
   ApiKeyCredentials,
   BedrockProviderCredentials,
+  VertexProviderCredentials,
   OllamaCredentials,
   OpenRouterCredentials,
   LiteLLMCredentials,
@@ -92,6 +93,9 @@ export type {
   BedrockAccessKeyCredentials,
   BedrockProfileCredentials,
   BedrockApiKeyCredentials,
+  VertexCredentials,
+  VertexServiceAccountCredentials,
+  VertexAdcCredentials,
 } from './common/types/auth.js';
 
 // OpenCode message types
@@ -109,6 +113,15 @@ export type {
 
 // Skills types
 export type { SkillSource, Skill, SkillFrontmatter } from './common/types/skills.js';
+
+// Connector types
+export type {
+  ConnectorStatus,
+  OAuthTokens,
+  OAuthMetadata,
+  OAuthClientRegistration,
+  McpConnector,
+} from './common/types/connector.js';
 
 // Other types
 export type { TodoItem } from './common/types/todo.js';

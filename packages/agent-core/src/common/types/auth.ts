@@ -1,6 +1,6 @@
 export interface ApiKeyConfig {
   id: string;
-  provider: 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock';
+  provider: 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'vertex';
   label?: string;
   keyPrefix?: string;
   isActive: boolean;
@@ -32,3 +32,18 @@ export type BedrockCredentials =
   | BedrockAccessKeyCredentials
   | BedrockProfileCredentials
   | BedrockApiKeyCredentials;
+
+export interface VertexServiceAccountCredentials {
+  authType: 'serviceAccount';
+  serviceAccountJson: string;
+  projectId: string;
+  location: string;
+}
+
+export interface VertexAdcCredentials {
+  authType: 'adc';
+  projectId: string;
+  location: string;
+}
+
+export type VertexCredentials = VertexServiceAccountCredentials | VertexAdcCredentials;

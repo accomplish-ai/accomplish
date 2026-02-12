@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { ipcMain, BrowserWindow, shell, app, dialog } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import { URL } from 'url';
@@ -7,6 +8,7 @@ import {
   getOpenCodeCliVersion,
   getTaskManager,
   disposeTaskManager,
+  cleanupVertexServiceAccountKey,
 } from '../opencode';
 import { getLogCollector } from '../logging';
 import {
@@ -45,7 +47,14 @@ import {
   getOpenAiOauthStatus,
 } from '@accomplish_ai/agent-core';
 import { loginOpenAiWithChatGpt } from '../opencode/auth-browser';
-import type { ProviderId, ConnectedProvider, BedrockCredentials } from '@accomplish_ai/agent-core';
+import type { ProviderId, ConnectedProvider, BedrockCredentials, McpConnector, OAuthMetadata, OAuthClientRegistration } from '@accomplish_ai/agent-core';
+import {
+  discoverOAuthMetadata,
+  registerOAuthClient,
+  generatePkceChallenge,
+  buildAuthorizationUrl,
+  exchangeCodeForTokens,
+} from '@accomplish_ai/agent-core';
 import { getDesktopConfig } from '../config';
 import {
   startPermissionApiServer,
@@ -89,6 +98,7 @@ import {
   detectScenarioFromPrompt,
 } from '../test-utils/mock-task-flow';
 import { skillsManager } from '../skills';
+import { registerVertexHandlers } from '../providers';
 
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
 
@@ -356,15 +366,31 @@ export function registerIPCHandlers(): void {
           } else {
             keyPrefix = 'AWS Credentials';
           }
+        } else if (provider === 'vertex') {
+          try {
+            const vertexCreds = apiKey ? JSON.parse(apiKey) : null;
+            if (vertexCreds?.projectId) {
+              keyPrefix = `${vertexCreds.projectId} (${vertexCreds.location || 'unknown'})`;
+            } else {
+              keyPrefix = 'GCP Credentials';
+            }
+          } catch {
+            keyPrefix = 'GCP Credentials';
+          }
         } else {
           keyPrefix =
             apiKey && apiKey.length > 0 ? `${apiKey.substring(0, 8)}...` : '';
         }
 
+        const labelMap: Record<string, string> = {
+          bedrock: 'AWS Credentials',
+          vertex: 'GCP Credentials',
+        };
+
         return {
           id: `local-${provider}`,
           provider,
-          label: provider === 'bedrock' ? 'AWS Credentials' : 'Local API Key',
+          label: labelMap[provider] || 'Local API Key',
           keyPrefix,
           isActive: true,
           createdAt: new Date().toISOString(),
@@ -572,6 +598,9 @@ export function registerIPCHandlers(): void {
       return null;
     }
   });
+
+  // Vertex AI handlers
+  registerVertexHandlers(handle);
 
   handle('api-key:clear', async (_event: IpcMainInvokeEvent) => {
     await deleteApiKey('anthropic');
@@ -925,6 +954,9 @@ export function registerIPCHandlers(): void {
 
   handle('provider-settings:remove-connected', async (_event: IpcMainInvokeEvent, providerId: ProviderId) => {
     storage.removeConnectedProvider(providerId);
+    if (providerId === 'vertex') {
+      cleanupVertexServiceAccountKey();
+    }
   });
 
   handle('provider-settings:update-model', async (_event: IpcMainInvokeEvent, providerId: ProviderId, modelId: string | null) => {
@@ -1037,4 +1069,170 @@ export function registerIPCHandlers(): void {
   handle('skills:show-in-folder', async (_event, filePath: string) => {
     shell.showItemInFolder(filePath);
   });
+
+  // ── MCP Connectors ──────────────────────────────────────────────────
+
+  handle('connectors:list', async () => {
+    return storage.getAllConnectors();
+  });
+
+  handle('connectors:add', async (_event, name: string, url: string) => {
+    const sanitizedName = sanitizeString(name, 'connectorName', 128);
+    const sanitizedUrl = sanitizeString(url, 'connectorUrl', 512);
+
+    // Validate URL scheme
+    try {
+      const parsed = new URL(sanitizedUrl);
+      if (!parsed.protocol.startsWith('http')) {
+        throw new Error('Connector URL must use http:// or https://');
+      }
+    } catch (err) {
+      throw new Error(
+        err instanceof Error && err.message.includes('http')
+          ? err.message
+          : `Invalid connector URL: ${sanitizedUrl}`
+      );
+    }
+
+    const id = `mcp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    const now = new Date().toISOString();
+
+    const connector: McpConnector = {
+      id,
+      name: sanitizedName,
+      url: sanitizedUrl,
+      status: 'disconnected',
+      isEnabled: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    storage.upsertConnector(connector);
+    return connector;
+  });
+
+  handle('connectors:delete', async (_event, id: string) => {
+    storage.deleteConnectorTokens(id);
+    storage.deleteConnector(id);
+  });
+
+  handle('connectors:set-enabled', async (_event, id: string, enabled: boolean) => {
+    storage.setConnectorEnabled(id, enabled);
+  });
+
+  handle('connectors:start-oauth', async (_event, connectorId: string) => {
+    const connector = storage.getConnectorById(connectorId);
+    if (!connector) throw new Error('Connector not found');
+
+    // 1. Discover OAuth metadata
+    const metadata = await discoverOAuthMetadata(connector.url);
+
+    // 2. Register client dynamically
+    let clientReg = connector.clientRegistration;
+    if (!clientReg) {
+      clientReg = await registerOAuthClient(
+        metadata,
+        'accomplish://callback/mcp',
+        'Accomplish Desktop',
+      );
+    }
+
+    // 3. Save metadata and client registration
+    storage.upsertConnector({
+      ...connector,
+      oauthMetadata: metadata,
+      clientRegistration: clientReg,
+      status: 'connecting',
+      updatedAt: new Date().toISOString(),
+    });
+
+    // 4. Generate PKCE
+    const pkce = generatePkceChallenge();
+
+    // 5. Store pending flow state
+    const state = crypto.randomUUID();
+    cleanupExpiredOAuthFlows();
+    pendingOAuthFlows.set(state, {
+      connectorId,
+      codeVerifier: pkce.codeVerifier,
+      metadata,
+      clientRegistration: clientReg,
+      createdAt: Date.now(),
+    });
+
+    // 6. Build authorization URL and open in browser
+    const authUrl = buildAuthorizationUrl({
+      authorizationEndpoint: metadata.authorizationEndpoint,
+      clientId: clientReg.clientId,
+      redirectUri: 'accomplish://callback/mcp',
+      codeChallenge: pkce.codeChallenge,
+      state,
+      scope: metadata.scopesSupported?.join(' '),
+    });
+
+    await shell.openExternal(authUrl);
+
+    return { state, authUrl };
+  });
+
+  handle('connectors:complete-oauth', async (_event, state: string, code: string) => {
+    cleanupExpiredOAuthFlows();
+    const flow = pendingOAuthFlows.get(state);
+    if (!flow) throw new Error('No pending OAuth flow for this state');
+    pendingOAuthFlows.delete(state);
+
+    // Exchange code for tokens
+    const tokens = await exchangeCodeForTokens({
+      tokenEndpoint: flow.metadata.tokenEndpoint,
+      code,
+      codeVerifier: flow.codeVerifier,
+      clientId: flow.clientRegistration.clientId,
+      clientSecret: flow.clientRegistration.clientSecret,
+      redirectUri: 'accomplish://callback/mcp',
+    });
+
+    // Store tokens securely
+    storage.storeConnectorTokens(flow.connectorId, tokens);
+
+    // Update connector status
+    const connector = storage.getConnectorById(flow.connectorId);
+    if (connector) {
+      storage.upsertConnector({
+        ...connector,
+        status: 'connected',
+        lastConnectedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    return storage.getConnectorById(flow.connectorId);
+  });
+
+  handle('connectors:disconnect', async (_event, connectorId: string) => {
+    storage.deleteConnectorTokens(connectorId);
+    storage.setConnectorStatus(connectorId, 'disconnected');
+  });
+}
+
+// In-memory store for pending OAuth flows (keyed by state parameter)
+const OAUTH_FLOW_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+const pendingOAuthFlows = new Map<
+  string,
+  {
+    connectorId: string;
+    codeVerifier: string;
+    metadata: OAuthMetadata;
+    clientRegistration: OAuthClientRegistration;
+    createdAt: number;
+  }
+>();
+
+function cleanupExpiredOAuthFlows(): void {
+  const now = Date.now();
+  for (const [state, flow] of pendingOAuthFlows) {
+    if (now - flow.createdAt > OAUTH_FLOW_TTL_MS) {
+      pendingOAuthFlows.delete(state);
+    }
+  }
 }
