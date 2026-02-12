@@ -167,8 +167,24 @@ async function connectBuiltin(): Promise<Browser> {
   }
   const info = await res.json() as { wsEndpoint: string; mode?: string };
   cachedServerMode = info.mode || 'normal';
-  return chromium.connectOverCDP(info.wsEndpoint);
+  const b = await chromium.connectOverCDP(info.wsEndpoint);
+
+  // Playwright's connectOverCDP sends Browser.setDownloadBehavior('allowAndName')
+  // which hijacks downloads to a temp dir with UUID filenames. Since the MCP server
+  // has no page.on('download') handler, this causes downloads to silently disappear.
+  // Reset to Chrome's native behavior so downloads go to the user's Downloads folder.
+  try {
+    const cdpSession = await b.newBrowserCDPSession();
+    await cdpSession.send('Browser.setDownloadBehavior', { behavior: 'default' });
+    await cdpSession.detach();
+  } catch (err) {
+    console.error('[dev-browser-mcp] Failed to reset download behavior:', err);
+  }
+
+  return b;
 }
+
+const DEFAULT_VIEWPORT = { width: 1280, height: 720 };
 
 async function getPageBuiltin(pageName?: string): Promise<Page> {
   const fullName = getFullPageName(pageName);
@@ -176,7 +192,7 @@ async function getPageBuiltin(pageName?: string): Promise<Page> {
   const res = await fetchWithRetry(`${config.devBrowserUrl}/pages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: fullName }),
+    body: JSON.stringify({ name: fullName, viewport: DEFAULT_VIEWPORT }),
   });
 
   if (!res.ok) {

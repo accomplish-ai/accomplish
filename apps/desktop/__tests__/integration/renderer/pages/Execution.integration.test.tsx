@@ -1340,7 +1340,7 @@ describe('Execution Page Integration', () => {
       expect(input).toBeInTheDocument();
     });
 
-    it('should show retry placeholder for interrupted task with session', () => {
+    it('should show reply placeholder for interrupted task with session', () => {
       // Arrange
       const task = createMockTask('task-123', 'Stopped', 'interrupted');
       task.sessionId = 'session-abc';
