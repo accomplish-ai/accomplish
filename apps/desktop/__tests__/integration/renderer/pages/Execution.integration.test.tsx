@@ -163,6 +163,18 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+// Mock Radix Tooltip to render content directly (portals don't work in jsdom)
+vi.mock('@/components/ui/tooltip', () => ({
+  Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children, ...props }: { children: React.ReactNode; asChild?: boolean; [key: string]: unknown }) => (
+    <span data-slot="tooltip-trigger" {...props}>{children}</span>
+  ),
+  TooltipContent: ({ children }: { children: React.ReactNode }) => (
+    <span role="tooltip" data-slot="tooltip-content">{children}</span>
+  ),
+  TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 // Mock StreamingText component
 vi.mock('@/components/ui/streaming-text', () => ({
   StreamingText: ({ text, children }: { text: string; children: (text: string) => React.ReactNode }) => (
@@ -1454,7 +1466,21 @@ describe('Execution Page Integration', () => {
       });
     });
 
-    it('should wrap send button in a tooltip trigger', () => {
+    it('should show "Enter a message" tooltip when follow-up is empty', () => {
+      // Arrange
+      const task = createMockTask('task-123', 'Done', 'completed');
+      task.sessionId = 'session-abc';
+      mockStoreState.currentTask = task;
+
+      renderWithRouter('task-123');
+
+      // Assert
+      const tooltips = screen.getAllByRole('tooltip');
+      const sendTooltip = tooltips.find(t => t.textContent === 'Enter a message');
+      expect(sendTooltip).toBeDefined();
+    });
+
+    it('should show "Message is too long" tooltip when follow-up exceeds limit', () => {
       // Arrange
       const task = createMockTask('task-123', 'Done', 'completed');
       task.sessionId = 'session-abc';
@@ -1467,9 +1493,28 @@ describe('Execution Page Integration', () => {
       const oversizedValue = 'a'.repeat(PROMPT_DEFAULT_MAX_LENGTH + 1);
       fireEvent.change(input, { target: { value: oversizedValue } });
 
-      // Assert - button has tooltip trigger data attribute from Radix
-      const sendButton = screen.getByRole('button', { name: /send/i });
-      expect(sendButton).toHaveAttribute('data-slot', 'tooltip-trigger');
+      // Assert
+      const tooltips = screen.getAllByRole('tooltip');
+      const sendTooltip = tooltips.find(t => t.textContent === 'Message is too long');
+      expect(sendTooltip).toBeDefined();
+    });
+
+    it('should show "Send" tooltip when follow-up is valid', () => {
+      // Arrange
+      const task = createMockTask('task-123', 'Done', 'completed');
+      task.sessionId = 'session-abc';
+      mockStoreState.currentTask = task;
+
+      renderWithRouter('task-123');
+
+      // Act
+      const input = screen.getByTestId('execution-follow-up-input');
+      fireEvent.change(input, { target: { value: 'Normal follow-up' } });
+
+      // Assert
+      const tooltips = screen.getAllByRole('tooltip');
+      const sendTooltip = tooltips.find(t => t.textContent === 'Send');
+      expect(sendTooltip).toBeDefined();
     });
   });
 });

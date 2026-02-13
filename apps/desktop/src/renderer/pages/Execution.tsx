@@ -1411,7 +1411,7 @@ export default function ExecutionPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <span>{isFollowUpOverLimit ? 'Message is too long' : 'Send'}</span>
+                    <span>{isFollowUpOverLimit ? 'Message is too long' : !followUp.trim() ? 'Enter a message' : 'Send'}</span>
                   </TooltipContent>
                 </Tooltip>
                 </div>

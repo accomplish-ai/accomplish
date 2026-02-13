@@ -50,6 +50,18 @@ vi.mock('@/lib/accomplish', () => ({
   getAccomplish: () => mockAccomplish,
 }));
 
+// Mock Radix Tooltip to render content directly (portals don't work in jsdom)
+vi.mock('@/components/ui/tooltip', () => ({
+  Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children, ...props }: { children: React.ReactNode; asChild?: boolean; [key: string]: unknown }) => (
+    <span data-slot="tooltip-trigger" {...props}>{children}</span>
+  ),
+  TooltipContent: ({ children }: { children: React.ReactNode }) => (
+    <span role="tooltip" data-slot="tooltip-content">{children}</span>
+  ),
+  TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 describe('TaskInputBar Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -550,7 +562,26 @@ describe('TaskInputBar Integration', () => {
       expect(onSubmit).not.toHaveBeenCalled();
     });
 
-    it('should wrap submit button in a tooltip trigger', () => {
+    it('should show "Enter a message" tooltip when input is empty', () => {
+      // Arrange
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+
+      renderWithRouter(
+        <TaskInputBar
+          value=""
+          onChange={onChange}
+          onSubmit={onSubmit}
+        />
+      );
+
+      // Assert
+      const tooltips = screen.getAllByRole('tooltip');
+      const submitTooltip = tooltips.find(t => t.textContent === 'Enter a message');
+      expect(submitTooltip).toBeDefined();
+    });
+
+    it('should show "Message is too long" tooltip when message exceeds limit', () => {
       // Arrange
       const onChange = vi.fn();
       const onSubmit = vi.fn();
@@ -564,9 +595,29 @@ describe('TaskInputBar Integration', () => {
         />
       );
 
-      // Assert - button has tooltip trigger data attribute from Radix
-      const submitButton = screen.getByTestId('task-input-submit');
-      expect(submitButton).toHaveAttribute('data-slot', 'tooltip-trigger');
+      // Assert
+      const tooltips = screen.getAllByRole('tooltip');
+      const submitTooltip = tooltips.find(t => t.textContent === 'Message is too long');
+      expect(submitTooltip).toBeDefined();
+    });
+
+    it('should show "Submit" tooltip when message is valid', () => {
+      // Arrange
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+
+      renderWithRouter(
+        <TaskInputBar
+          value="Normal message"
+          onChange={onChange}
+          onSubmit={onSubmit}
+        />
+      );
+
+      // Assert
+      const tooltips = screen.getAllByRole('tooltip');
+      const submitTooltip = tooltips.find(t => t.textContent === 'Submit');
+      expect(submitTooltip).toBeDefined();
     });
   });
 

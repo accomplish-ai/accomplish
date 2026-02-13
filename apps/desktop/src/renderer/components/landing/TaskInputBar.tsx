@@ -238,7 +238,7 @@ export default function TaskInputBar({
               </button>
             </TooltipTrigger>
             <TooltipContent>
-              <span>{isOverLimit ? 'Message is too long' : 'Submit'}</span>
+              <span>{isOverLimit ? 'Message is too long' : !value.trim() ? 'Enter a message' : 'Submit'}</span>
             </TooltipContent>
           </Tooltip>
           </div>
