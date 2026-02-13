@@ -51,16 +51,17 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   private logWatcher: OpenCodeLogWatcher | null = null;
   private currentSessionId: string | null = null;
   private currentTaskId: string | null = null;
+  private currentModelId: string | null = null;
+  private browserFrameBuffer: string = '';
   private messages: TaskMessage[] = [];
   private hasCompleted: boolean = false;
   private isDisposed: boolean = false;
   private wasInterrupted: boolean = false;
   private completionEnforcer: CompletionEnforcer;
   private lastWorkingDirectory: string | undefined;
-  private currentModelId: string | null = null;
-  private waitingTransitionTimer: ReturnType<typeof setTimeout> | null = null;
   private hasReceivedFirstTool: boolean = false;
   private startTaskCalled: boolean = false;
+  private waitingTransitionTimer: ReturnType<typeof setTimeout> | null = null;
   private options: AdapterOptions;
 
   constructor(options: AdapterOptions, taskId?: string) {
@@ -141,16 +142,18 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   }
 
   private checkForBrowserFrame(data: string): void {
-    // Look for browser-frame JSON messages in the output
-    // They come from dev-browser-mcp screencast handler
     try {
-      // Split by lines to handle multiple JSON objects in a single data chunk
-      const lines = data.split('\n');
+      const combined = `${this.browserFrameBuffer}${data}`;
+      const lines = combined.split('\n');
+      // Buffer incomplete tail so split JSON chunks can be reassembled on the next data event
+      this.browserFrameBuffer = lines.pop() ?? '';
+
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed) continue;
+        if (!trimmed) {
+          continue;
+        }
 
-        // Try to parse as JSON and check if it's a browser-frame message
         try {
           const parsed = JSON.parse(trimmed);
           if (parsed.type === 'browser-frame' && parsed.frame && parsed.pageName) {
@@ -174,6 +177,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       throw new Error('Adapter has been disposed and cannot start new tasks');
     }
 
+    this.browserFrameBuffer = '';
     const taskId = config.taskId || this.generateTaskId();
     this.currentTaskId = taskId;
     this.currentSessionId = null;
@@ -266,7 +270,6 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           .replace(/\x1B\][^\x07]*\x07/g, '')
           .replace(/\x1B\][^\x1B]*\x1B\\/g, '');
         if (cleanData.trim()) {
-          // Check for browser-frame JSON messages from dev-browser-mcp screencast
           this.checkForBrowserFrame(cleanData);
 
           const truncated = cleanData.substring(0, 500) + (cleanData.length > 500 ? '...' : '');
@@ -362,6 +365,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     console.log(`[OpenCode Adapter] Disposing adapter for task ${this.currentTaskId}`);
     this.isDisposed = true;
+    this.browserFrameBuffer = '';
 
     if (this.logWatcher) {
       this.logWatcher.stop().catch((err) => {
@@ -434,6 +438,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     switch (message.type) {
       case 'step_start':
+        this.browserFrameBuffer = '';
         this.currentSessionId = message.part.sessionID;
         const modelDisplayName = this.currentModelId && this.options.getModelDisplayName
           ? this.options.getModelDisplayName(this.currentModelId)

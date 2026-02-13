@@ -133,7 +133,8 @@ export async function getCDPSession(pageName?: string): Promise<CDPSession> {
   const fullName = getFullPageName(pageName);
   let state = pageSessionRegistry.get(fullName);
 
-  if (!state) {
+  if (!state || state.page.isClosed()) {
+    pageSessionRegistry.delete(fullName);
     const page = await getPage(pageName);
     const context = page.context();
     const cdpSession = await context.newCDPSession(page);
@@ -332,7 +333,7 @@ async function getPageRemote(pageName?: string): Promise<Page> {
   page.on('close', () => {
     localPageRegistry.delete(fullName);
 
-    // Clean up CDP session when page closes
+    // Detach any CDP session for this page to avoid leaking sessions after close
     const state = pageSessionRegistry.get(fullName);
     if (state && state.cdpSession) {
       try {

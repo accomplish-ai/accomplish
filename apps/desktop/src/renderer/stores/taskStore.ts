@@ -37,8 +37,8 @@ export interface StartupStageInfo {
 interface BrowserFrame {
   data: string; // base64 JPEG
   timestamp: number;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
 }
 
 interface TaskState {
@@ -509,7 +509,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       todos: [],
       todosTaskId: null,
       authError: null,
+      browserFrames: new Map(),
       isLauncherOpen: false,
+      launcherInitialPrompt: null,
     });
   },
 
@@ -620,8 +622,6 @@ if (typeof window !== 'undefined' && window.accomplish) {
     useTaskStore.getState().setBrowserFrame(event.taskId, {
       data: event.frame,
       timestamp: event.timestamp,
-      width: 800,
-      height: 600,
     });
   });
 }
