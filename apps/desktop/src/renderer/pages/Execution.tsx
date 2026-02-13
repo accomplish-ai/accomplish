@@ -8,7 +8,7 @@ import { getAccomplish } from '../lib/accomplish';
 import { springs } from '../lib/animations';
 import type { TaskMessage } from '@accomplish_ai/agent-core/common';
 import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
-import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core';
+import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
