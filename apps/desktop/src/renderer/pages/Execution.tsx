@@ -1411,7 +1411,7 @@ export default function ExecutionPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <span>{isFollowUpOverLimit ? `Message exceeds maximum length of ${PROMPT_DEFAULT_MAX_LENGTH.toLocaleString()} characters` : 'Send'}</span>
+                    <span>{isFollowUpOverLimit ? 'Message is too long' : 'Send'}</span>
                   </TooltipContent>
                 </Tooltip>
                 </div>

@@ -227,7 +227,7 @@ export default function TaskInputBar({
                   });
                   onSubmit();
                 }}
-                disabled={!value.trim() || isDisabled || speechInput.isRecording || isOverLimit}
+                disabled={isDisabled || speechInput.isRecording || isOverLimit}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all duration-200 ease-accomplish hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {isLoading ? (
@@ -238,7 +238,7 @@ export default function TaskInputBar({
               </button>
             </TooltipTrigger>
             <TooltipContent>
-              <span>{isOverLimit ? `Message exceeds maximum length of ${PROMPT_DEFAULT_MAX_LENGTH.toLocaleString()} characters` : 'Submit'}</span>
+              <span>{isOverLimit ? 'Message is too long' : 'Submit'}</span>
             </TooltipContent>
           </Tooltip>
           </div>

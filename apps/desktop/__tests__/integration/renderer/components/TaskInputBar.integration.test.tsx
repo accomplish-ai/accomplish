@@ -219,7 +219,7 @@ describe('TaskInputBar Integration', () => {
   });
 
   describe('submit button behavior', () => {
-    it('should disable submit button when value is empty', () => {
+    it('should not disable submit button when value is empty', () => {
       // Arrange
       const onChange = vi.fn();
       const onSubmit = vi.fn();
@@ -235,10 +235,10 @@ describe('TaskInputBar Integration', () => {
 
       // Assert
       const submitButton = screen.getByRole('button', { name: /submit/i });
-      expect(submitButton).toBeDisabled();
+      expect(submitButton).not.toBeDisabled();
     });
 
-    it('should disable submit button when value is only whitespace', () => {
+    it('should not disable submit button when value is only whitespace', () => {
       // Arrange
       const onChange = vi.fn();
       const onSubmit = vi.fn();
@@ -254,7 +254,7 @@ describe('TaskInputBar Integration', () => {
 
       // Assert
       const submitButton = screen.getByRole('button', { name: /submit/i });
-      expect(submitButton).toBeDisabled();
+      expect(submitButton).not.toBeDisabled();
     });
 
     it('should enable submit button when value has content', () => {
@@ -339,7 +339,7 @@ describe('TaskInputBar Integration', () => {
       expect(onSubmit).not.toHaveBeenCalled();
     });
 
-    it('should not submit when clicking disabled button', () => {
+    it('should call onSubmit when clicking submit button with empty value', () => {
       // Arrange
       const onChange = vi.fn();
       const onSubmit = vi.fn();
@@ -356,8 +356,8 @@ describe('TaskInputBar Integration', () => {
       const submitButton = screen.getByRole('button', { name: /submit/i });
       fireEvent.click(submitButton);
 
-      // Assert
-      expect(onSubmit).not.toHaveBeenCalled();
+      // Assert - button is not disabled for empty, parent handles validation
+      expect(onSubmit).toHaveBeenCalledTimes(1);
     });
   });
 
