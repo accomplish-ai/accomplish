@@ -133,7 +133,8 @@ export async function getCDPSession(pageName?: string): Promise<CDPSession> {
   const fullName = getFullPageName(pageName);
   let state = pageSessionRegistry.get(fullName);
 
-  if (!state) {
+  if (!state || state.page.isClosed()) {
+    pageSessionRegistry.delete(fullName);
     const page = await getPage(pageName);
     const context = page.context();
     const cdpSession = await context.newCDPSession(page);

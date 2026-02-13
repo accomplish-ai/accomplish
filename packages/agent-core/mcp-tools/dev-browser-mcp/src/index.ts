@@ -298,7 +298,6 @@ async function startScreencast(pageName?: string): Promise<void> {
   try {
     const session = await getCDPSession(pageName);
 
-    // Start screencast with throttling parameters
     await session.send('Page.startScreencast', {
       format: 'jpeg',
       quality: 50,
@@ -307,13 +306,12 @@ async function startScreencast(pageName?: string): Promise<void> {
     } as any);
 
     let lastFrameTime = 0;
-    const FRAME_INTERVAL_MS = 100; // 10 FPS target
+    const FRAME_INTERVAL_MS = 100; // 10 FPS target to limit stdout volume and CPU
 
     const frameHandler = async (event: any) => {
       try {
         const now = Date.now();
 
-        // Throttle frames to ~10 FPS
         if (now - lastFrameTime < FRAME_INTERVAL_MS) {
           try {
             await session.send('Page.screencastFrameAck', { sessionId: event.sessionId } as any);
@@ -325,7 +323,6 @@ async function startScreencast(pageName?: string): Promise<void> {
 
         lastFrameTime = now;
 
-        // Send frame to renderer via stdout
         const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
         console.log(JSON.stringify({
           type: 'browser-frame',
@@ -345,7 +342,6 @@ async function startScreencast(pageName?: string): Promise<void> {
       }
     };
 
-    // Attach screencast frame listener
     session.on('Page.screencastFrame', frameHandler);
 
     // Store timestamp for this page
@@ -2435,7 +2431,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   try {
     switch (name) {
       case 'browser_navigate': {
-        const { url, page_name } = args as BrowserNavigateInput;
+        const { url, page_name } = args as unknown as BrowserNavigateInput;
 
         let fullUrl = url;
         if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
@@ -2640,7 +2636,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_type': {
-        const { ref, selector, text, press_enter, page_name } = args as BrowserTypeInput;
+        const { ref, selector, text, press_enter, page_name } = args as unknown as BrowserTypeInput;
         const page = await getPage(page_name);
 
         try {
@@ -2749,7 +2745,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_evaluate': {
-        const { script, page_name } = args as BrowserEvaluateInput;
+        const { script, page_name } = args as unknown as BrowserEvaluateInput;
         const page = await getPage(page_name);
 
         const wrappedScript = `(async () => { ${script} })()`;
@@ -2764,7 +2760,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_pages': {
-        const { action, page_name } = args as BrowserPagesInput;
+        const { action, page_name } = args as unknown as BrowserPagesInput;
 
         if (action === 'list') {
           const taskPages = await listPages();
@@ -2804,7 +2800,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_keyboard': {
-        const { text, key, typing_delay, page_name } = args as BrowserKeyboardInput;
+        const { text, key, typing_delay, page_name } = args as unknown as BrowserKeyboardInput;
         const page = await getPage(page_name);
 
         if (!text && !key) {
@@ -2832,7 +2828,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_sequence': {
-        const { actions, page_name } = args as BrowserSequenceInput;
+        const { actions, page_name } = args as unknown as BrowserSequenceInput;
         const page = await getPage(page_name);
         const results: string[] = [];
 
@@ -2920,7 +2916,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_script': {
-        const { actions, page_name } = args as BrowserScriptInput;
+        const { actions, page_name } = args as unknown as BrowserScriptInput;
         let page = await getPage(page_name);
         const results: string[] = [];
         let snapshotResult = '';
@@ -3315,7 +3311,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_wait': {
-        const { condition, selector, script, timeout, page_name } = args as BrowserWaitInput;
+        const { condition, selector, script, timeout, page_name } = args as unknown as BrowserWaitInput;
         const page = await getPage(page_name);
         const waitTimeout = timeout || 30000;
 
@@ -3392,7 +3388,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_file_upload': {
-        const { ref, selector, files, page_name } = args as BrowserFileUploadInput;
+        const { ref, selector, files, page_name } = args as unknown as BrowserFileUploadInput;
         const page = await getPage(page_name);
 
         if (!files || files.length === 0) {
@@ -3722,7 +3718,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_iframe': {
-        const { action, ref, selector, page_name } = args as BrowserIframeInput;
+        const { action, ref, selector, page_name } = args as unknown as BrowserIframeInput;
         const page = await getPage(page_name);
 
         if (action === 'enter') {
@@ -3776,7 +3772,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_tabs': {
-        const { action, index, timeout, page_name } = args as BrowserTabsInput;
+        const { action, index, timeout, page_name } = args as unknown as BrowserTabsInput;
         const b = await ensureConnected();
 
         if (action === 'list') {
@@ -3874,7 +3870,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_canvas_type': {
-        const { text, position, page_name } = args as BrowserCanvasTypeInput;
+        const { text, position, page_name } = args as unknown as BrowserCanvasTypeInput;
         const page = await getPage(page_name);
         const jumpToStart = position !== 'current';
 
@@ -3901,7 +3897,7 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
       }
 
       case 'browser_highlight': {
-        const { enabled, page_name } = args as BrowserHighlightInput;
+        const { enabled, page_name } = args as unknown as BrowserHighlightInput;
         const page = await getPage(page_name);
 
         if (enabled) {

@@ -1638,7 +1638,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
   const [streamComplete, setStreamComplete] = useState(!shouldStream);
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const currentTask = useTaskStore(state => state.currentTask);
+  const currentTaskId = useTaskStore(state => state.currentTask?.id);
   const isUser = message.type === 'user';
   const isTool = message.type === 'tool';
   const isSystem = message.type === 'system';
@@ -1718,8 +1718,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
             actions={(message.toolInput as { actions: Array<{ action: string; url?: string; selector?: string; ref?: string; text?: string; key?: string }> }).actions}
             isRunning={isLastMessage && isRunning}
           />
-          {/* Live browser preview */}
-          {currentTask && <BrowserPreview taskId={currentTask.id} />}
+          {currentTaskId && <BrowserPreview taskId={currentTaskId} />}
         </>
       ) : (
       <div
