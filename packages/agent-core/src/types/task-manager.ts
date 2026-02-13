@@ -48,6 +48,8 @@ export interface TaskCallbacks {
   onTodoUpdate?: (todos: TodoItem[]) => void;
   /** Called when an auth error occurs */
   onAuthError?: (error: { providerId: string; message: string }) => void;
+  /** Called when a browser frame is captured for live preview */
+  onBrowserFrame?: (data: { pageName: string; frame: string; timestamp: number }) => void;
 }
 
 /** Adapter options for the underlying CLI adapter */

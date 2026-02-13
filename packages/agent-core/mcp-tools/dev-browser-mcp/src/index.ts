@@ -23,6 +23,7 @@ import {
   closePage,
   getFullPageName,
   getConnectionMode,
+  getCDPSession,
 } from './connection.js';
 
 console.error('[dev-browser-mcp] All imports completed successfully');
@@ -285,6 +286,87 @@ async function waitForPageLoad(page: Page, timeout = 3000): Promise<void> {
   try {
     await page.waitForLoadState('domcontentloaded', { timeout });
   } catch {
+  }
+}
+
+// Screencast state tracking per page
+const screencastFrameTimestamps = new Map<string, number>();
+
+async function startScreencast(pageName?: string): Promise<void> {
+  const fullPageName = getFullPageName(pageName);
+
+  try {
+    const session = await getCDPSession(pageName);
+
+    // Start screencast with throttling parameters
+    await session.send('Page.startScreencast', {
+      format: 'jpeg',
+      quality: 50,
+      maxWidth: 800,
+      everyNthFrame: 1,
+    } as any);
+
+    let lastFrameTime = 0;
+    const FRAME_INTERVAL_MS = 100; // 10 FPS target
+
+    const frameHandler = async (event: any) => {
+      try {
+        const now = Date.now();
+
+        // Throttle frames to ~10 FPS
+        if (now - lastFrameTime < FRAME_INTERVAL_MS) {
+          try {
+            await session.send('Page.screencastFrameAck', { sessionId: event.sessionId } as any);
+          } catch {
+            // Session may be detached, ignore
+          }
+          return;
+        }
+
+        lastFrameTime = now;
+
+        // Send frame to renderer via stdout
+        const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
+        console.log(JSON.stringify({
+          type: 'browser-frame',
+          taskId,
+          pageName: pageName || 'main',
+          frame: event.data,
+          timestamp: now,
+        }));
+
+        try {
+          await session.send('Page.screencastFrameAck', { sessionId: event.sessionId } as any);
+        } catch {
+          // Session may be detached, ignore
+        }
+      } catch (err) {
+        console.error('[dev-browser-mcp] Error handling screencast frame:', err);
+      }
+    };
+
+    // Attach screencast frame listener
+    session.on('Page.screencastFrame', frameHandler);
+
+    // Store timestamp for this page
+    screencastFrameTimestamps.set(fullPageName, Date.now());
+
+    console.error(`[dev-browser-mcp] Screencast started for page: ${fullPageName}`);
+  } catch (err) {
+    console.error(`[dev-browser-mcp] Failed to start screencast for ${fullPageName}:`, err);
+  }
+}
+
+async function stopScreencast(pageName?: string): Promise<void> {
+  const fullPageName = getFullPageName(pageName);
+
+  try {
+    const session = await getCDPSession(pageName);
+    await session.send('Page.stopScreencast');
+    screencastFrameTimestamps.delete(fullPageName);
+    console.error(`[dev-browser-mcp] Screencast stopped for page: ${fullPageName}`);
+  } catch (err) {
+    console.error(`[dev-browser-mcp] Failed to stop screencast for ${fullPageName}:`, err);
   }
 }
 
@@ -2366,6 +2448,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
         await page.goto(fullUrl);
         await waitForPageLoad(page);
         await injectActiveTabGlow(page);
+
+        // Auto-start screencast for live preview
+        void startScreencast(page_name);
 
         const title = await page.title();
         const currentUrl = page.url();

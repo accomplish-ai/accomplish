@@ -20,6 +20,7 @@ import ReactMarkdown from 'react-markdown';
 import { StreamingText } from '../components/ui/streaming-text';
 import { isWaitingForUser } from '../lib/waiting-detection';
 import { BrowserScriptCard } from '../components/BrowserScriptCard';
+import { BrowserPreview } from '../components/BrowserPreview';
 import loadingSymbol from '/assets/loading-symbol.svg';
 import SettingsDialog from '../components/layout/SettingsDialog';
 import { TodoSidebar } from '../components/TodoSidebar';
@@ -1637,6 +1638,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
   const [streamComplete, setStreamComplete] = useState(!shouldStream);
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const currentTask = useTaskStore(state => state.currentTask);
   const isUser = message.type === 'user';
   const isTool = message.type === 'tool';
   const isSystem = message.type === 'system';
@@ -1711,10 +1713,14 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
     >
       {/* Browser Script tool: render card directly without wrapper */}
       {isTool && toolName?.endsWith('browser_script') && (message.toolInput as { actions?: unknown[] })?.actions ? (
-        <BrowserScriptCard
-          actions={(message.toolInput as { actions: Array<{ action: string; url?: string; selector?: string; ref?: string; text?: string; key?: string }> }).actions}
-          isRunning={isLastMessage && isRunning}
-        />
+        <>
+          <BrowserScriptCard
+            actions={(message.toolInput as { actions: Array<{ action: string; url?: string; selector?: string; ref?: string; text?: string; key?: string }> }).actions}
+            isRunning={isLastMessage && isRunning}
+          />
+          {/* Live browser preview */}
+          {currentTask && <BrowserPreview taskId={currentTask.id} />}
+        </>
       ) : (
       <div
         className={cn(

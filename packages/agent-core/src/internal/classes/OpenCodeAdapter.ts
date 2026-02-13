@@ -42,6 +42,7 @@ export interface OpenCodeAdapterEvents {
   debug: [{ type: string; message: string; data?: unknown }];
   'todo:update': [TodoItem[]];
   'auth-error': [{ providerId: string; message: string }];
+  'browser-frame': [{ pageName: string; frame: string; timestamp: number }];
 }
 
 export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
@@ -137,6 +138,35 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         }
       }
     });
+  }
+
+  private checkForBrowserFrame(data: string): void {
+    // Look for browser-frame JSON messages in the output
+    // They come from dev-browser-mcp screencast handler
+    try {
+      // Split by lines to handle multiple JSON objects in a single data chunk
+      const lines = data.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        // Try to parse as JSON and check if it's a browser-frame message
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (parsed.type === 'browser-frame' && parsed.frame && parsed.pageName) {
+            this.emit('browser-frame', {
+              pageName: parsed.pageName,
+              frame: parsed.frame,
+              timestamp: parsed.timestamp || Date.now(),
+            });
+          }
+        } catch {
+          // Not JSON, skip
+        }
+      }
+    } catch {
+      // Ignore errors in frame detection
+    }
   }
 
   async startTask(config: TaskConfig): Promise<Task> {
@@ -236,6 +266,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           .replace(/\x1B\][^\x07]*\x07/g, '')
           .replace(/\x1B\][^\x1B]*\x1B\\/g, '');
         if (cleanData.trim()) {
+          // Check for browser-frame JSON messages from dev-browser-mcp screencast
+          this.checkForBrowserFrame(cleanData);
+
           const truncated = cleanData.substring(0, 500) + (cleanData.length > 500 ? '...' : '');
           console.log('[OpenCode CLI stdout]:', truncated);
           this.emit('debug', { type: 'stdout', message: cleanData });
