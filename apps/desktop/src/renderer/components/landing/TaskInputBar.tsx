@@ -60,6 +60,7 @@ export default function TaskInputBar({
 }: TaskInputBarProps) {
   const isDisabled = disabled || isLoading;
   const isOverLimit = value.length > PROMPT_DEFAULT_MAX_LENGTH;
+  const canSubmit = !!value.trim() && !isDisabled && !isOverLimit;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingAutoSubmitRef = useRef<string | null>(null);
   const accomplish = getAccomplish();
@@ -95,14 +96,14 @@ export default function TaskInputBar({
 
   // Auto-submit once the parent value reflects the transcription.
   useEffect(() => {
-    if (!autoSubmitOnTranscription || isDisabled) {
+    if (!autoSubmitOnTranscription || isDisabled || isOverLimit) {
       return;
     }
     if (pendingAutoSubmitRef.current && value === pendingAutoSubmitRef.current) {
       pendingAutoSubmitRef.current = null;
       onSubmit();
     }
-  }, [autoSubmitOnTranscription, isDisabled, onSubmit, value]);
+  }, [autoSubmitOnTranscription, isDisabled, isOverLimit, onSubmit, value]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -118,7 +119,9 @@ export default function TaskInputBar({
     if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      onSubmit();
+      if (canSubmit) {
+        onSubmit();
+      }
     }
   };
 
@@ -227,7 +230,7 @@ export default function TaskInputBar({
                   });
                   onSubmit();
                 }}
-                disabled={!value.trim() || isDisabled || speechInput.isRecording || isOverLimit}
+                disabled={!canSubmit || speechInput.isRecording}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all duration-200 ease-accomplish hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {isLoading ? (

@@ -502,7 +502,7 @@ export default function ExecutionPage() {
   }, [canFollowUp]);
 
   const handleFollowUp = async () => {
-    if (!followUp.trim()) return;
+    if (!followUp.trim() || isFollowUpOverLimit) return;
 
     // Check if any provider is ready before sending (skip in E2E mode)
     const isE2EMode = await accomplish.isE2EMode();
