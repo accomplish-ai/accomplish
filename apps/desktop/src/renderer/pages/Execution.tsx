@@ -192,6 +192,8 @@ export default function ExecutionPage() {
   const [debugPanelOpen, setDebugPanelOpen] = useState(false);
   const [debugModeEnabled, setDebugModeEnabled] = useState(false);
   const [debugExported, setDebugExported] = useState(false);
+  const [bugReportGenerating, setBugReportGenerating] = useState(false);
+  const [bugReportSaved, setBugReportSaved] = useState(false);
   const [debugSearchQuery, setDebugSearchQuery] = useState('');
   const [debugSearchIndex, setDebugSearchIndex] = useState(0); // Current focused match index
   const debugPanelRef = useRef<HTMLDivElement>(null);
@@ -605,6 +607,60 @@ export default function ExecutionPage() {
     setDebugExported(true);
     setTimeout(() => setDebugExported(false), 2000);
   }, [debugLogs, id]);
+
+  const handleGenerateBugReport = useCallback(async () => {
+    if (!currentTask || bugReportGenerating) {
+      return;
+    }
+    setBugReportGenerating(true);
+    try {
+      const [screenshotBase64, axtreeJson] = await Promise.all([
+        accomplish.captureScreenshot().catch(() => undefined),
+        accomplish.captureAxtree().catch(() => undefined),
+      ]);
+
+      const result = await accomplish.generateBugReport({
+        taskId: currentTask.id,
+        screenshotBase64,
+        axtreeJson,
+        debugLogs: debugLogs.length > 0 ? debugLogs : undefined,
+      });
+
+      if (result.success) {
+        setBugReportSaved(true);
+        setTimeout(() => setBugReportSaved(false), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to generate bug report:', err);
+    } finally {
+      setBugReportGenerating(false);
+    }
+  }, [currentTask, debugLogs, bugReportGenerating, accomplish]);
+
+  const handleRepeatAndReport = useCallback(async () => {
+    if (!currentTask) {
+      return;
+    }
+    const prompt = currentTask.prompt;
+    navigate('/');
+    setTimeout(async () => {
+      const { startTask } = useTaskStore.getState();
+      const task = await startTask({ prompt });
+      if (task) {
+        navigate(`/execution/${task.id}`);
+      }
+    }, 100);
+  }, [currentTask, navigate]);
+
+  const getBugReportLabel = () => {
+    if (bugReportGenerating) {
+      return 'Generating...';
+    }
+    if (bugReportSaved) {
+      return 'Saved!';
+    }
+    return 'Bug Report';
+  };
 
   const handlePermissionResponse = async (allowed: boolean) => {
     if (!permissionRequest || !currentTask) return;
@@ -1427,9 +1483,28 @@ export default function ExecutionPage() {
           <p className="text-sm text-muted-foreground mb-3">
             Task {currentTask.status === 'interrupted' ? 'stopped' : currentTask.status}
           </p>
-          <Button onClick={() => navigate('/')}>
-            Start New Task
-          </Button>
+          <div className="flex items-center justify-center gap-2">
+            <Button onClick={() => navigate('/')}>
+              Start New Task
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleRepeatAndReport}
+              className="gap-1.5"
+            >
+              <Play className="h-3 w-3" />
+              Repeat Task
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleGenerateBugReport}
+              disabled={bugReportGenerating}
+              className="gap-1.5"
+            >
+              <Bug className="h-3 w-3" />
+              {getBugReportLabel()}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -1461,6 +1536,19 @@ export default function ExecutionPage() {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleGenerateBugReport();
+                }}
+                disabled={bugReportGenerating}
+              >
+                <Bug className="h-3 w-3 mr-1" />
+                {getBugReportLabel()}
+              </Button>
               {debugLogs.length > 0 && (
                 <>
                   <Button

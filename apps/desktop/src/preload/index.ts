@@ -349,6 +349,19 @@ const accomplishAPI = {
   openSkillInEditor: (filePath: string): Promise<void> => ipcRenderer.invoke('skills:open-in-editor', filePath),
   showSkillInFolder: (filePath: string): Promise<void> => ipcRenderer.invoke('skills:show-in-folder', filePath),
 
+  // Debug / Bug Report
+  captureScreenshot: (): Promise<string> =>
+    ipcRenderer.invoke('debug:capture-screenshot'),
+  captureAxtree: (): Promise<string> =>
+    ipcRenderer.invoke('debug:capture-axtree'),
+  generateBugReport: (data: {
+    taskId: string;
+    screenshotBase64?: string;
+    axtreeJson?: string;
+    debugLogs?: Array<{ timestamp: string; type: string; message: string; data?: unknown }>;
+  }): Promise<{ success: boolean; path?: string; error?: string; reason?: string }> =>
+    ipcRenderer.invoke('debug:generate-bug-report', data),
+
   // MCP Connectors
   getConnectors: (): Promise<McpConnector[]> => ipcRenderer.invoke('connectors:list'),
   addConnector: (name: string, url: string): Promise<McpConnector> =>

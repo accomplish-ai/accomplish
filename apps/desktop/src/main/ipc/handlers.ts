@@ -1,4 +1,6 @@
 import crypto from 'crypto';
+import os from 'os';
+import path from 'path';
 import { ipcMain, BrowserWindow, shell, app, dialog, nativeTheme } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import { URL } from 'url';
@@ -1117,6 +1119,127 @@ export function registerIPCHandlers(): void {
 
   handle('skills:show-in-folder', async (_event, filePath: string) => {
     shell.showItemInFolder(filePath);
+  });
+
+  // ── Debug / Bug Report ─────────────────────────────────────────────
+
+  handle('debug:capture-screenshot', async (event: IpcMainInvokeEvent) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) {
+      throw new Error('No window found');
+    }
+    const image = await window.webContents.capturePage();
+    return image.toPNG().toString('base64');
+  });
+
+  handle('debug:capture-axtree', async (event: IpcMainInvokeEvent) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) {
+      throw new Error('No window found');
+    }
+    const axtree = await window.webContents.executeJavaScript(`
+      (function serializeAx(el, depth) {
+        if (depth > 6) return null;
+        var role = el.getAttribute ? (el.getAttribute('role') || el.tagName.toLowerCase()) : '';
+        var label = el.getAttribute ? (el.getAttribute('aria-label') || el.getAttribute('alt') || '') : '';
+        var text = '';
+        if (el.childNodes.length === 1 && el.childNodes[0].nodeType === 3) {
+          text = el.childNodes[0].textContent.trim().slice(0, 120);
+        }
+        var children = [];
+        for (var i = 0; i < el.children.length && i < 50; i++) {
+          var c = serializeAx(el.children[i], depth + 1);
+          if (c) children.push(c);
+        }
+        if (!role && !label && !text && children.length === 0) return null;
+        var node = { role: role };
+        if (label) node.label = label;
+        if (text) node.text = text;
+        if (children.length > 0) node.children = children;
+        return node;
+      })(document.body, 0);
+    `);
+    return JSON.stringify(axtree, null, 2);
+  });
+
+  handle('debug:generate-bug-report', async (
+    event: IpcMainInvokeEvent,
+    data: {
+      taskId: string;
+      screenshotBase64?: string;
+      axtreeJson?: string;
+      debugLogs?: Array<{ timestamp: string; type: string; message: string; data?: unknown }>;
+    }
+  ) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) {
+      throw new Error('No window found');
+    }
+
+    const task = storage.getTask(data.taskId);
+    const appVersion = app.getVersion();
+    const platform = process.platform;
+    const osVersion = os.release();
+
+    const report = {
+      meta: {
+        appVersion,
+        platform,
+        osVersion,
+        generatedAt: new Date().toISOString(),
+      },
+      task: task ? {
+        id: task.id,
+        prompt: task.prompt,
+        status: task.status,
+        createdAt: task.createdAt,
+        completedAt: task.completedAt,
+        messageCount: task.messages.length,
+        messages: task.messages.map((m) => ({
+          id: m.id,
+          type: m.type,
+          content: m.content.slice(0, 2000),
+          toolName: m.toolName,
+          timestamp: m.timestamp,
+        })),
+      } : null,
+      debugLogs: data.debugLogs || [],
+      axtree: data.axtreeJson ? JSON.parse(data.axtreeJson) : null,
+      screenshotIncluded: !!data.screenshotBase64,
+    };
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const defaultDir = app.getPath('downloads');
+    const folderName = `accomplish-bug-report-${timestamp}`;
+    const defaultPath = path.join(defaultDir, folderName);
+
+    const result = await dialog.showSaveDialog(window, {
+      title: 'Save Bug Report',
+      defaultPath: path.join(defaultDir, `${folderName}.json`),
+      filters: [
+        { name: 'JSON Files', extensions: ['json'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    });
+
+    if (result.canceled || !result.filePath) {
+      return { success: false, reason: 'cancelled' };
+    }
+
+    try {
+      fs.writeFileSync(result.filePath, JSON.stringify(report, null, 2));
+
+      if (data.screenshotBase64) {
+        const { dir, name } = path.parse(result.filePath);
+        const screenshotPath = path.join(dir, `${name}-screenshot.png`);
+        fs.writeFileSync(screenshotPath, Buffer.from(data.screenshotBase64, 'base64'));
+      }
+
+      return { success: true, path: result.filePath };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, error: message };
+    }
   });
 
   // ── MCP Connectors ──────────────────────────────────────────────────
