@@ -9,6 +9,15 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
+// Static English locale imports — bundled by Vite, always available as fallback
+import enCommon from '../../../locales/en/common.json';
+import enHome from '../../../locales/en/home.json';
+import enSettings from '../../../locales/en/settings.json';
+import enExecution from '../../../locales/en/execution.json';
+import enHistory from '../../../locales/en/history.json';
+import enErrors from '../../../locales/en/errors.json';
+import enSidebar from '../../../locales/en/sidebar.json';
+
 // Supported languages and namespaces
 export const SUPPORTED_LANGUAGES = ['en', 'zh-CN'] as const;
 export const NAMESPACES = [
@@ -79,17 +88,16 @@ export async function initI18n(): Promise<void> {
   initializationPromise = (async () => {
     const api = getAccomplishAPI();
 
-    // Default fallback resources (minimal English)
+    // Default fallback resources — full English from static imports
     let initialResources: Record<string, Record<string, Record<string, unknown>>> = {
       en: {
-        common: {
-          app: { name: 'Openwork' },
-          buttons: {
-            send: 'Send',
-            cancel: 'Cancel',
-            save: 'Save',
-          },
-        },
+        common: enCommon as Record<string, unknown>,
+        home: enHome as Record<string, unknown>,
+        settings: enSettings as Record<string, unknown>,
+        execution: enExecution as Record<string, unknown>,
+        history: enHistory as Record<string, unknown>,
+        errors: enErrors as Record<string, unknown>,
+        sidebar: enSidebar as Record<string, unknown>,
       },
     };
     let initialLanguage: SupportedLanguage = 'en';

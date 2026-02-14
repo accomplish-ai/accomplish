@@ -135,7 +135,7 @@ export function ProviderGrid({
           className="text-sm text-muted-foreground hover:text-foreground font-medium"
           data-testid="show-all-toggle"
         >
-          {expanded ? t('providers.showLess') : t('providers.showMore')}
+          {expanded ? t('providers.hide') : t('providers.showAll')}
         </button>
       </div>
     </div>
