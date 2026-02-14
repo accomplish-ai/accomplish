@@ -123,7 +123,7 @@ export default function TaskInputBar({
   const pendingAutoSubmitRef = useRef<string | null>(null);
   const accomplish = getAccomplish();
 
-  const processFiles = useCallback(async (files: File[]): Promise<FileAttachment[]> => {
+  const processFiles = useCallback(async (files: File[]): Promise<{ valid: FileAttachment[]; errors: string[] }> => {
     const valid: FileAttachment[] = [];
     const errors: string[] = [];
     for (const file of files) {
@@ -151,12 +151,7 @@ export default function TaskInputBar({
         size: file.size,
       });
     }
-    if (errors.length > 0) {
-      setAttachmentError(errors.join('; '));
-    } else {
-      setAttachmentError(null);
-    }
-    return valid;
+    return { valid, errors };
   }, []);
 
   // Speech input hook (must be before handleDrop/handleDragOver which use speechInput.isRecording)
@@ -191,10 +186,15 @@ export default function TaskInputBar({
       const currentCount = attachments.length;
       const remaining = MAX_ATTACHMENTS - currentCount;
       const toProcess = files.slice(0, remaining);
-      if (files.length > remaining) {
-        setAttachmentError(`Maximum ${MAX_ATTACHMENTS} files. Only first ${remaining} added.`);
-      }
-      const newAttachments = await processFiles(toProcess);
+      const countLimitError =
+        files.length > remaining
+          ? `Maximum ${MAX_ATTACHMENTS} files. Only first ${remaining} added.`
+          : null;
+      const { valid: newAttachments, errors: processErrors } = await processFiles(toProcess);
+      const allErrors = [countLimitError, processErrors.length > 0 ? processErrors.join('; ') : null]
+        .filter(Boolean)
+        .join('; ');
+      setAttachmentError(allErrors || null);
       setAttachments((prev) => {
         const combined = [...prev, ...newAttachments];
         return combined.slice(0, MAX_ATTACHMENTS);
