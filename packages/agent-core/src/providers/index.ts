@@ -60,3 +60,7 @@ export {
   type FetchProviderModelsResult,
   type FetchProviderModelsOptions,
 } from './fetch-models.js';
+export {
+  validateBrowserbaseCredentials,
+  type BrowserbaseValidationResult,
+} from './browserbase.js';

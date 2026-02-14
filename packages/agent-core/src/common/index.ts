@@ -110,6 +110,13 @@ export type {
 // Skills types
 export type { SkillSource, Skill, SkillFrontmatter } from './types/skills.js';
 
+// Cloud browser types
+export type {
+  CloudBrowserProviderId,
+  BrowserbaseConfig,
+  CloudBrowserConfig,
+} from './types/cloudBrowser.js';
+
 // Other types
 export type { TodoItem } from './types/todo.js';
 export type { LogLevel, LogSource, LogEntry } from './types/logging.js';

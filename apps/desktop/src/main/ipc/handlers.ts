@@ -25,6 +25,7 @@ import {
   sanitizeString,
   generateTaskSummary,
   validateTaskConfig,
+  validateBrowserbaseCredentials,
 } from '@accomplish_ai/agent-core';
 import { createTaskId, createMessageId } from '@accomplish_ai/agent-core';
 import {
@@ -1260,6 +1261,45 @@ export function registerIPCHandlers(): void {
   handle('connectors:disconnect', async (_event, connectorId: string) => {
     storage.deleteConnectorTokens(connectorId);
     storage.setConnectorStatus(connectorId, 'disconnected');
+  });
+
+  // ── Cloud Browsers ───────────────────────────────────────────────────────
+
+  handle('cloud-browsers:get-browserbase', async () => {
+    const config = storage.getBrowserbaseConfig();
+    const apiKey = getApiKey('browserbase');
+    return {
+      config,
+      hasApiKey: Boolean(apiKey),
+      keyPrefix: apiKey ? `${apiKey.substring(0, 8)}...` : null,
+    };
+  });
+
+  handle('cloud-browsers:validate-browserbase', async (_event, apiKey: string, projectId: string) => {
+    const sanitizedKey = sanitizeString(apiKey, 'apiKey', 256);
+    const sanitizedProjectId = sanitizeString(projectId, 'projectId', 128);
+    if (!sanitizedProjectId.trim()) {
+      return { valid: false, error: 'Project ID is required' };
+    }
+    return validateBrowserbaseCredentials(sanitizedKey, sanitizedProjectId, API_KEY_VALIDATION_TIMEOUT_MS);
+  });
+
+  handle('cloud-browsers:connect-browserbase', async (_event, apiKey: string, projectId: string) => {
+    const sanitizedKey = sanitizeString(apiKey, 'apiKey', 256);
+    const sanitizedProjectId = sanitizeString(projectId, 'projectId', 128);
+    if (!sanitizedProjectId.trim()) {
+      throw new Error('Project ID is required');
+    }
+    const result = await validateBrowserbaseCredentials(sanitizedKey, sanitizedProjectId, API_KEY_VALIDATION_TIMEOUT_MS);
+    if (!result.valid) {
+      throw new Error(result.error ?? 'Validation failed');
+    }
+    storage.setBrowserbaseConfig(sanitizedKey, sanitizedProjectId, true);
+    storage.setBrowserbaseLastValidated(Date.now());
+  });
+
+  handle('cloud-browsers:disconnect-browserbase', async () => {
+    storage.deleteBrowserbaseConfig();
   });
 }
 

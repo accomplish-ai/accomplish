@@ -18,6 +18,7 @@ import { ProviderSettingsPanel } from '@/components/settings/ProviderSettingsPan
 import { SpeechSettingsForm } from '@/components/settings/SpeechSettingsForm';
 import { SkillsPanel, AddSkillDropdown } from '@/components/settings/skills';
 import { ConnectorsPanel } from '@/components/settings/connectors';
+import { CloudBrowsersPanel } from '@/components/settings/cloud-browsers/CloudBrowsersPanel';
 import { applyTheme } from '@/lib/theme';
 
 // First 4 providers shown in collapsed view (matches PROVIDER_ORDER in ProviderGrid)
@@ -31,7 +32,7 @@ interface SettingsDialogProps {
   /**
    * Initial tab to show when dialog opens ('providers' or 'voice')
    */
-  initialTab?: 'providers' | 'connectors' | 'voice' | 'skills' | 'appearance' | 'about';
+  initialTab?: 'providers' | 'connectors' | 'cloudBrowsers' | 'voice' | 'skills' | 'appearance' | 'about';
 }
 
 export default function SettingsDialog({
@@ -45,7 +46,7 @@ export default function SettingsDialog({
   const [gridExpanded, setGridExpanded] = useState(false);
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'providers' | 'connectors' | 'voice' | 'skills' | 'appearance' | 'about'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'providers' | 'connectors' | 'cloudBrowsers' | 'voice' | 'skills' | 'appearance' | 'about'>(initialTab);
   const [appVersion, setAppVersion] = useState<string>('');
   const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
 
@@ -323,6 +324,16 @@ export default function SettingsDialog({
                 Connectors
               </button>
               <button
+                onClick={() => setActiveTab('cloudBrowsers')}
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${
+                  activeTab === 'cloudBrowsers'
+                    ? 'text-foreground border-b-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Cloud Browsers
+              </button>
+              <button
                 onClick={() => setActiveTab('skills')}
                 className={`pb-3 px-1 font-medium text-sm transition-colors ${
                   activeTab === 'skills'
@@ -524,6 +535,13 @@ export default function SettingsDialog({
           {activeTab === 'connectors' && (
             <div className="space-y-6">
               <ConnectorsPanel />
+            </div>
+          )}
+
+          {/* Cloud Browsers Tab */}
+          {activeTab === 'cloudBrowsers' && (
+            <div className="space-y-6">
+              <CloudBrowsersPanel />
             </div>
           )}
 

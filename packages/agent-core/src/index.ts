@@ -143,6 +143,10 @@ export { FutureSchemaError } from './storage/migrations/errors.js';
 
 // Validation functions
 export { validateApiKey } from './providers/validation.js';
+export {
+  validateBrowserbaseCredentials,
+  type BrowserbaseValidationResult,
+} from './providers/browserbase.js';
 
 export {
   validateBedrockCredentials,

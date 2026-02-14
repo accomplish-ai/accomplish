@@ -17,6 +17,7 @@ import type {
   ConnectorStatus,
   OAuthTokens,
 } from '../common/types/connector.js';
+import type { CloudBrowserConfig } from '../common/types/cloudBrowser.js';
 
 /** Options for creating a Storage instance */
 export interface StorageOptions {
@@ -218,6 +219,18 @@ export interface ConnectorStorageAPI {
   deleteConnectorTokens(connectorId: string): void;
 }
 
+/** API for cloud browser configuration */
+export interface CloudBrowserStorageAPI {
+  /** Get Browserbase configuration */
+  getBrowserbaseConfig(): CloudBrowserConfig | null;
+  /** Set Browserbase credentials and config */
+  setBrowserbaseConfig(apiKey: string, projectId: string, enabled: boolean): void;
+  /** Update last validated timestamp for Browserbase */
+  setBrowserbaseLastValidated(timestamp: number): void;
+  /** Remove Browserbase configuration */
+  deleteBrowserbaseConfig(): void;
+}
+
 /** API for database initialization and lifecycle management */
 export interface DatabaseLifecycleAPI {
   /** Initialize the database, creating it if needed and running migrations */
@@ -230,13 +243,14 @@ export interface DatabaseLifecycleAPI {
   getDatabasePath(): string | null;
 }
 
-/** Unified storage API combining task, settings, provider, secure storage, connector, and database lifecycle operations */
+/** Unified storage API combining task, settings, provider, secure storage, connector, cloud browser, and database lifecycle operations */
 export interface StorageAPI
   extends TaskStorageAPI,
     AppSettingsAPI,
     ProviderSettingsAPI,
     SecureStorageAPI,
     ConnectorStorageAPI,
+    CloudBrowserStorageAPI,
     DatabaseLifecycleAPI {}
 
 export type {
