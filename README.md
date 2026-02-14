@@ -128,6 +128,7 @@ Accomplish is an open source AI desktop agent that automates file management, do
 - Automate browser workflows like research and form entry
 - Generate weekly updates from files and notes
 - Prepare meeting materials from docs and calendars
+- Dark mode (Settings → Appearance) for low-light comfort and accessibility
 
 <br />
 
