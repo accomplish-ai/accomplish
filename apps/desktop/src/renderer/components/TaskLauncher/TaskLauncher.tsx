@@ -128,6 +128,14 @@ export default function TaskLauncher() {
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    const currentTarget = e.currentTarget as HTMLElement;
+    const relatedTarget = e.relatedTarget as Node | null;
+
+    // Only clear dragging state when the drag actually leaves the root element,
+    // not when moving between its children.
+    if (relatedTarget && currentTarget.contains(relatedTarget)) {
+      return;
+    }
     setIsDragging(false);
   }, []);
 
