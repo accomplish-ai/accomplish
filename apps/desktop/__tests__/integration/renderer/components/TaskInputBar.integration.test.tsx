@@ -639,7 +639,7 @@ describe('TaskInputBar Integration', () => {
       expect(screen.getByTestId('task-input-drop-zone')).toBeInTheDocument();
     });
 
-    it('should call onSubmit with prompt override when provided', () => {
+    it('should call onSubmit with undefined when no attachments', () => {
       const onChange = vi.fn();
       const onSubmit = vi.fn();
 
