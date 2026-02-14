@@ -208,9 +208,43 @@
   },
   "tabs": {
     "providers": "服务商",
+    "connectors": "连接器",
     "skills": "技能",
     "voiceInput": "语音输入",
+    "appearance": "外观",
     "about": "关于"
+  },
+  "appearance": {
+    "title": "主题",
+    "description": "选择 Accomplish 的外观。选择「系统」以匹配操作系统设置。",
+    "ariaLabel": "主题偏好",
+    "system": "系统",
+    "light": "浅色",
+    "dark": "深色"
+  },
+  "connectors": {
+    "description": "通过 OAuth 连接远程 MCP 服务器。目前仅支持支持 OAuth 2.0 授权流程的服务器。",
+    "loading": "加载连接器...",
+    "placeholder": "https://mcp-server.example.com",
+    "add": "添加",
+    "empty": "尚未连接任何 MCP 服务器",
+    "defaultName": "MCP 服务器",
+    "urlMustBeHttp": "URL 必须以 http:// 或 https:// 开头",
+    "invalidUrl": "请输入有效的 URL",
+    "addFailed": "添加连接器失败",
+    "oauthStartFailed": "启动 OAuth 流程失败",
+    "oauthCompletionFailed": "OAuth 完成失败",
+    "invalidOauthCallback": "收到无效的 OAuth 回调",
+    "status": {
+      "connected": "已连接",
+      "disconnected": "未连接",
+      "connecting": "连接中...",
+      "error": "错误"
+    },
+    "enable": "启用",
+    "disable": "禁用",
+    "confirmDelete": "再次点击确认",
+    "delete": "删除"
   },
   "zai": {
     "region": "地区",

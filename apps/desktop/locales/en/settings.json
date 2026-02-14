@@ -236,9 +236,43 @@
   },
   "tabs": {
     "providers": "Providers",
+    "connectors": "Connectors",
     "skills": "Skills",
     "voiceInput": "Voice Input",
+    "appearance": "Appearance",
     "about": "About"
+  },
+  "appearance": {
+    "title": "Theme",
+    "description": "Choose how Accomplish looks. Select System to match your operating system setting.",
+    "ariaLabel": "Theme preference",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "connectors": {
+    "description": "Connect remote MCP servers using OAuth. Only servers that support the OAuth 2.0 authorization flow are currently supported.",
+    "loading": "Loading connectors...",
+    "placeholder": "https://mcp-server.example.com",
+    "add": "Add",
+    "empty": "No MCP servers connected yet",
+    "defaultName": "MCP Server",
+    "urlMustBeHttp": "URL must start with http:// or https://",
+    "invalidUrl": "Please enter a valid URL",
+    "addFailed": "Failed to add connector",
+    "oauthStartFailed": "Failed to start OAuth flow",
+    "oauthCompletionFailed": "OAuth completion failed",
+    "invalidOauthCallback": "Invalid OAuth callback received",
+    "status": {
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "connecting": "Connecting...",
+      "error": "Error"
+    },
+    "enable": "Enable",
+    "disable": "Disable",
+    "confirmDelete": "Click again to confirm",
+    "delete": "Delete"
   },
   "zai": {
     "region": "Region",
