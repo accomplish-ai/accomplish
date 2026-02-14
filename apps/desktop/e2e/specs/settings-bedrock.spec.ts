@@ -61,8 +61,8 @@ test.describe('Settings - Amazon Bedrock', () => {
     // Verify API Key tab is selected (has active styling)
     const apiKeyTab = settingsPage.bedrockApiKeyTab;
     await expect(apiKeyTab).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
-    // API Key tab should have active styling (bg-[#4A7C59])
-    await expect(apiKeyTab).toHaveClass(/bg-\[#4A7C59\]/);
+    // API Key tab should have active styling
+    await expect(apiKeyTab).toHaveClass(/bg-provider-accent/);
 
     // Verify API Key input is visible (default tab content)
     await expect(settingsPage.bedrockApiKeyInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });

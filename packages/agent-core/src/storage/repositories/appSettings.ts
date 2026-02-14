@@ -5,6 +5,7 @@ import type {
   AzureFoundryConfig,
   LMStudioConfig,
 } from '../../common/types/provider.js';
+import type { ThemePreference } from '../../types/storage.js';
 import { getDatabase } from '../database.js';
 import { safeParseJsonWithFallback } from '../../utils/json.js';
 
@@ -22,6 +23,7 @@ interface AppSettingsRow {
   language: string;
   lmstudio_config: string | null;
   openai_base_url: string | null;
+  theme: string;
 }
 
 export interface AppSettings {
@@ -34,6 +36,7 @@ export interface AppSettings {
   language: UILanguage;
   lmstudioConfig: LMStudioConfig | null;
   openaiBaseUrl: string;
+  theme: ThemePreference;
 }
 
 function getRow(): AppSettingsRow {
@@ -172,6 +175,24 @@ export function setOpenAiBaseUrl(baseUrl: string): void {
   db.prepare('UPDATE app_settings SET openai_base_url = ? WHERE id = 1').run(baseUrl || '');
 }
 
+const VALID_THEMES: ThemePreference[] = ['system', 'light', 'dark'];
+
+export function getTheme(): ThemePreference {
+  const row = getRow();
+  const value = row.theme as ThemePreference;
+  if (VALID_THEMES.includes(value)) {
+    return value;
+  }
+  return 'system';
+}
+
+export function setTheme(theme: ThemePreference): void {
+  if (!VALID_THEMES.includes(theme)) {
+    throw new Error(`Invalid theme value: ${theme}`);
+  }
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET theme = ? WHERE id = 1').run(theme);
+}
 
 /** Retrieve all app settings as a typed object. */
 export function getAppSettings(): AppSettings {
@@ -188,6 +209,7 @@ export function getAppSettings(): AppSettings {
     language: validLang,
     lmstudioConfig: safeParseJsonWithFallback<LMStudioConfig>(row.lmstudio_config),
     openaiBaseUrl: row.openai_base_url || '',
+    theme: VALID_THEMES.includes(row.theme as ThemePreference) ? (row.theme as ThemePreference) : 'system',
   };
 }
 
@@ -204,7 +226,8 @@ export function clearAppSettings(): void {
       azure_foundry_config = NULL,
       language = 'auto',
       lmstudio_config = NULL,
-      openai_base_url = ''
+      openai_base_url = '',
+      theme = 'system'
     WHERE id = 1`
   ).run();
 }

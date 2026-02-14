@@ -241,7 +241,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      const indicator = document.querySelector('.bg-accent-blue');
+      const indicator = document.querySelector('.bg-primary');
       expect(indicator).toBeInTheDocument();
     });
 

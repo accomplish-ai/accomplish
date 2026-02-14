@@ -636,29 +636,21 @@ test.describe('Settings Dialog', () => {
     // Click Show All to see all providers including Z-AI
     await settingsPage.toggleShowAll();
 
-    // Define color constants
-    const GREEN_BACKGROUND = 'rgb(233, 247, 231)'; // #e9f7e7 - for active+ready providers only
-    const DEFAULT_BACKGROUND = 'rgb(249, 248, 246)'; // #f9f8f6 - for unselected providers
-
     // Get the Anthropic card
     const anthropicCard = settingsPage.getProviderCard('anthropic');
     await expect(anthropicCard).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
-    // In E2E test environment, no provider is active+ready, so Anthropic should have default bg
-    const anthropicBgBefore = await anthropicCard.evaluate((el) => {
-      return window.getComputedStyle(el).backgroundColor;
-    });
-    expect(anthropicBgBefore).toBe(DEFAULT_BACKGROUND);
+    // In E2E test environment, no provider is active+ready, so Anthropic should have default bg class
+    await expect(anthropicCard).toHaveClass(/bg-provider-bg-hover/);
+    await expect(anthropicCard).not.toHaveClass(/bg-provider-bg-active/);
 
     // Get the Z-AI card
     const zaiCard = settingsPage.getProviderCard('zai');
     await expect(zaiCard).toBeVisible();
 
-    // Verify Z-AI has the default background before clicking
-    const zaiBgBefore = await zaiCard.evaluate((el) => {
-      return window.getComputedStyle(el).backgroundColor;
-    });
-    expect(zaiBgBefore).toBe(DEFAULT_BACKGROUND);
+    // Verify Z-AI has default bg class before clicking
+    await expect(zaiCard).toHaveClass(/bg-provider-bg-hover/);
+    await expect(zaiCard).not.toHaveClass(/bg-provider-bg-active/);
 
     // Click on Z-AI to select it (but it's not connected/ready)
     await settingsPage.selectProvider('zai');
@@ -667,13 +659,8 @@ test.describe('Settings Dialog', () => {
     // The bug was that isSelected triggered the green background, which is incorrect.
     // Green background should ONLY appear for active+ready providers (isActive && isProviderReady).
     // A selected-but-not-ready provider should only get a selection border, not green background.
-    const zaiBgAfter = await zaiCard.evaluate((el) => {
-      return window.getComputedStyle(el).backgroundColor;
-    });
-
-    // This assertion will FAIL if the bug exists (zai gets green background when selected)
-    // and PASS once the bug is fixed (zai keeps default background when selected)
-    expect(zaiBgAfter).toBe(DEFAULT_BACKGROUND);
+    await expect(zaiCard).toHaveClass(/bg-provider-bg-hover/);
+    await expect(zaiCard).not.toHaveClass(/bg-provider-bg-active/);
 
     // Capture for verification
     await captureForAI(

@@ -40,6 +40,7 @@ export type {
   StorageOptions,
   StoredTask,
   AppSettings,
+  ThemePreference,
   TaskStorageAPI,
   AppSettingsAPI,
   ProviderSettingsAPI,
@@ -179,6 +180,9 @@ export {
   validateLMStudioConfig,
 } from './providers/lmstudio.js';
 
+export { fetchProviderModels } from './providers/fetch-models.js';
+export type { FetchProviderModelsResult } from './providers/fetch-models.js';
+
 // -----------------------------------------------------------------------------
 // Utils Module (from ./utils/)
 // -----------------------------------------------------------------------------
@@ -199,7 +203,7 @@ export type { BundledNodePathsExtended } from './utils/bundled-node.js';
 export { getExtendedNodePath, findCommandInPath } from './utils/system-path.js';
 
 // Sanitization functions
-export { sanitizeString } from './utils/sanitize.js';
+export { sanitizeString, PROMPT_DEFAULT_MAX_LENGTH } from './utils/sanitize.js';
 
 // URL validation functions
 export { validateHttpUrl } from './utils/url.js';
@@ -277,6 +281,7 @@ export {
 export type {
   ProviderType,
   ApiKeyProvider,
+  ModelsEndpointConfig,
   ProviderConfig,
   ModelConfig,
   SelectedModel,

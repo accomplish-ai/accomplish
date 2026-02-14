@@ -1,9 +1,9 @@
-const DEFAULT_MAX_LENGTH = 8000;
+export const PROMPT_DEFAULT_MAX_LENGTH = 60_000;
 
 export function sanitizeString(
   input: unknown,
   fieldName: string,
-  maxLength = DEFAULT_MAX_LENGTH
+  maxLength = PROMPT_DEFAULT_MAX_LENGTH
 ): string {
   if (typeof input !== 'string') {
     throw new Error(`${fieldName} must be a string`);
@@ -21,7 +21,7 @@ export function sanitizeString(
 export function sanitizeOptionalString(
   input: unknown,
   fieldName: string,
-  maxLength = DEFAULT_MAX_LENGTH
+  maxLength = PROMPT_DEFAULT_MAX_LENGTH
 ): string | undefined {
   if (input === null || input === undefined) {
     return undefined;

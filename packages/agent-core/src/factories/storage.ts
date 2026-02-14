@@ -35,6 +35,8 @@ import {
   setLMStudioConfig,
   getOpenAiBaseUrl,
   setOpenAiBaseUrl,
+  getTheme,
+  setTheme,
   getAppSettings,
   clearAppSettings,
 } from '../storage/repositories/appSettings.js';
@@ -117,6 +119,8 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     setLMStudioConfig: (config) => setLMStudioConfig(config),
     getOpenAiBaseUrl: () => getOpenAiBaseUrl(),
     setOpenAiBaseUrl: (baseUrl) => setOpenAiBaseUrl(baseUrl),
+    getTheme: () => getTheme(),
+    setTheme: (theme) => setTheme(theme),
     getAppSettings: () => getAppSettings(),
     clearAppSettings: () => clearAppSettings(),
 

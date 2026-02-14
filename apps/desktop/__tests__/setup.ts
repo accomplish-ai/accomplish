@@ -14,6 +14,15 @@ if (typeof Element !== 'undefined') {
   Element.prototype.scrollIntoView = () => {};
 }
 
+// Mock ResizeObserver for jsdom (not implemented, required by Radix UI tooltips)
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 // Mock better-sqlite3 native module (not available in test environment)
 // This prevents the native module from being loaded, which would fail in CI
 vi.mock('better-sqlite3', () => {

@@ -37,6 +37,7 @@ export {
 export type {
   ProviderType,
   ApiKeyProvider,
+  ModelsEndpointConfig,
   ProviderConfig,
   ModelConfig,
   SelectedModel,
@@ -147,6 +148,9 @@ export {
   PROVIDER_PREFIXES,
   getModelDisplayName,
 } from './common/constants/model-display.js';
+
+// === SANITIZATION ===
+export { PROMPT_DEFAULT_MAX_LENGTH } from './utils/sanitize.js';
 
 // === BROWSER-SAFE UTILS ===
 export {

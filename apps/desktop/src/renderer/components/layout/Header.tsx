@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
 
 export default function Header() {
   const location = useLocation();
@@ -51,7 +52,11 @@ function NavLink({
   return (
     <Link
       to={to}
-      className={`nav-link ${active ? 'nav-link-active' : ''}`}
+      className={cn(
+        'no-drag px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+        'text-muted-foreground hover:text-foreground hover:bg-accent',
+        active && 'text-foreground bg-accent'
+      )}
     >
       {children}
     </Link>

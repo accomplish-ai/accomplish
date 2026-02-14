@@ -4,9 +4,11 @@ import { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAccomplish } from '../../lib/accomplish';
 import { CornerDownLeft, Loader2, AlertCircle } from 'lucide-react';
+import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
 import { useSpeechInput } from '../../hooks/useSpeechInput';
 import { SpeechInputButton } from '../ui/SpeechInputButton';
 import { ModelIndicator } from '../ui/ModelIndicator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PlusMenu } from './PlusMenu';
 
@@ -59,6 +61,8 @@ export default function TaskInputBar({
 }: TaskInputBarProps) {
   const { t } = useTranslation('common');
   const isDisabled = disabled || isLoading;
+  const isOverLimit = value.length > PROMPT_DEFAULT_MAX_LENGTH;
+  const canSubmit = !!value.trim() && !isDisabled && !isOverLimit;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingAutoSubmitRef = useRef<string | null>(null);
   const accomplish = getAccomplish();
@@ -94,14 +98,14 @@ export default function TaskInputBar({
 
   // Auto-submit once the parent value reflects the transcription.
   useEffect(() => {
-    if (!autoSubmitOnTranscription || isDisabled) {
+    if (!autoSubmitOnTranscription || isDisabled || isOverLimit) {
       return;
     }
     if (pendingAutoSubmitRef.current && value === pendingAutoSubmitRef.current) {
       pendingAutoSubmitRef.current = null;
       onSubmit();
     }
-  }, [autoSubmitOnTranscription, isDisabled, onSubmit, value]);
+  }, [autoSubmitOnTranscription, isDisabled, isOverLimit, onSubmit, value]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -117,7 +121,9 @@ export default function TaskInputBar({
     if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      onSubmit();
+      if (canSubmit) {
+        onSubmit();
+      }
     }
   };
 
@@ -212,27 +218,34 @@ export default function TaskInputBar({
           />
 
           {/* Submit button */}
-          <button
-            data-testid="task-input-submit"
-            type="button"
-            onClick={() => {
-              accomplish.logEvent({
-                level: 'info',
-                message: 'Task input submit clicked',
-                context: { prompt: value },
-              });
-              onSubmit();
-            }}
-            disabled={!value.trim() || isDisabled || speechInput.isRecording}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all duration-200 ease-accomplish hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
-            title={t('buttons.submit')}
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CornerDownLeft className="h-4 w-4" />
-            )}
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                data-testid="task-input-submit"
+                type="button"
+                aria-label={t('buttons.submit')}
+                onClick={() => {
+                  accomplish.logEvent({
+                    level: 'info',
+                    message: 'Task input submit clicked',
+                    context: { prompt: value },
+                  });
+                  onSubmit();
+                }}
+                disabled={!canSubmit || speechInput.isRecording}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all duration-200 ease-accomplish hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CornerDownLeft className="h-4 w-4" />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>{isOverLimit ? 'Message is too long' : !value.trim() ? 'Enter a message' : 'Submit'}</span>
+            </TooltipContent>
+          </Tooltip>
           </div>
         </div>
       </div>

@@ -1,12 +1,12 @@
 // apps/desktop/src/renderer/components/settings/providers/ZaiProviderForm.tsx
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import type { ConnectedProvider, ZaiCredentials, ZaiRegion } from '@accomplish_ai/agent-core/common';
-import { PROVIDER_META, DEFAULT_PROVIDERS, getDefaultModelForProvider } from '@accomplish_ai/agent-core/common';
+import { PROVIDER_META, DEFAULT_PROVIDERS } from '@accomplish_ai/agent-core/common';
 import {
   ModelSelector,
   ConnectButton,
@@ -37,11 +37,37 @@ export function ZaiProviderForm({
   const [region, setRegion] = useState<ZaiRegion>('international');
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fetchedModels, setFetchedModels] = useState<Array<{ id: string; name: string }> | null>(null);
 
   const meta = PROVIDER_META['zai'];
   const providerConfig = DEFAULT_PROVIDERS.find(p => p.id === 'zai');
-  const models = providerConfig?.models.map(m => ({ id: m.fullId, name: m.displayName })) || [];
+  const staticModels = providerConfig?.models.map(m => ({ id: m.fullId, name: m.displayName })) || [];
+  const models = connectedProvider?.availableModels?.length
+    ? connectedProvider.availableModels.map(m => ({ id: m.id, name: m.name }))
+    : fetchedModels ?? staticModels;
   const isConnected = connectedProvider?.connectionStatus === 'connected';
+
+  const storedCredentials = connectedProvider?.credentials as ZaiCredentials | undefined;
+
+  // Auto-fetch models for already-connected providers that don't have availableModels yet
+  useEffect(() => {
+    if (!isConnected) return;
+    if (connectedProvider?.availableModels?.length) return;
+    if (!providerConfig?.modelsEndpoint) return;
+
+    const accomplish = getAccomplish();
+    const storedRegion = storedCredentials?.region || 'international';
+    accomplish.fetchProviderModels('zai', { zaiRegion: storedRegion }).then((result) => {
+      if (result.success && result.models?.length) {
+        setFetchedModels(result.models);
+        // Persist to connected provider so we don't re-fetch next time
+        accomplish.setConnectedProvider('zai', {
+          ...connectedProvider!,
+          availableModels: result.models,
+        }).catch(console.error);
+      }
+    }).catch(console.error);
+  }, [isConnected]);
 
   const handleConnect = async () => {
     if (!apiKey.trim()) {
@@ -64,13 +90,22 @@ export function ZaiProviderForm({
 
       await accomplish.addApiKey('zai', apiKey.trim());
 
-      const defaultModel = getDefaultModelForProvider('zai');
+      // Fetch models dynamically
+      let fetchedModels: Array<{ id: string; name: string }> | undefined;
+      if (providerConfig?.modelsEndpoint) {
+        const fetchResult = await accomplish.fetchProviderModels('zai', { zaiRegion: region });
+        if (fetchResult.success && fetchResult.models) {
+          fetchedModels = fetchResult.models;
+        }
+      }
+
+      const defaultModelId = providerConfig?.defaultModelId ?? null;
       const trimmedKey = apiKey.trim();
 
       const provider: ConnectedProvider = {
         providerId: 'zai',
         connectionStatus: 'connected',
-        selectedModelId: defaultModel,
+        selectedModelId: defaultModelId,
         credentials: {
           type: 'zai',
           keyPrefix: trimmedKey.length > 40
@@ -79,6 +114,7 @@ export function ZaiProviderForm({
           region,
         } as ZaiCredentials,
         lastConnectedAt: new Date().toISOString(),
+        ...(fetchedModels ? { availableModels: fetchedModels } : {}),
       };
 
       onConnect(provider);
@@ -89,8 +125,6 @@ export function ZaiProviderForm({
       setConnecting(false);
     }
   };
-
-  const storedCredentials = connectedProvider?.credentials as ZaiCredentials | undefined;
 
   return (
     <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
@@ -118,7 +152,7 @@ export function ZaiProviderForm({
                     data-testid="zai-region-china"
                     className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       region === 'china'
-                        ? 'bg-[#4A7C59] text-white'
+                        ? 'bg-provider-accent text-white'
                         : 'bg-muted text-muted-foreground hover:text-foreground'
                     }`}
                   >
@@ -130,7 +164,7 @@ export function ZaiProviderForm({
                     data-testid="zai-region-international"
                     className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       region === 'international'
-                        ? 'bg-[#4A7C59] text-white'
+                        ? 'bg-provider-accent text-white'
                         : 'bg-muted text-muted-foreground hover:text-foreground'
                     }`}
                   >

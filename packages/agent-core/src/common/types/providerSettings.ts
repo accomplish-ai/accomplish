@@ -155,13 +155,21 @@ export function getActiveProvider(settings: ProviderSettings | null | undefined)
   return settings.connectedProviders?.[settings.activeProviderId] ?? null;
 }
 
+/**
+ * Default model for each provider.
+ * For providers with `defaultModelId` in DEFAULT_PROVIDERS, that value is canonical.
+ * This map covers providers that don't have modelsEndpoint (bedrock) or as fallback.
+ */
 export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
-  anthropic: 'anthropic/claude-opus-4-5',
+  anthropic: 'anthropic/claude-opus-4-6',
   openai: 'openai/gpt-5.2',
   google: 'google/gemini-3-pro-preview',
   xai: 'xai/grok-4',
+  deepseek: 'deepseek/deepseek-chat',
+  moonshot: 'moonshot/kimi-k2.5',
+  zai: 'zai/glm-4.7-flashx',
+  minimax: 'minimax/MiniMax-M2',
   bedrock: 'amazon-bedrock/anthropic.claude-opus-4-5-20251101-v1:0',
-  moonshot: 'moonshot/kimi-latest',
 };
 
 export function getDefaultModelForProvider(providerId: ProviderId): string | null {

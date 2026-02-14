@@ -9,6 +9,7 @@ import { getAccomplish } from '../lib/accomplish';
 import { springs } from '../lib/animations';
 import type { TaskMessage } from '@accomplish_ai/agent-core/common';
 import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
+import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
@@ -163,13 +164,13 @@ function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T 
 // Helper for file operation badge colors
 function getOperationBadgeClasses(operation?: string): string {
   switch (operation) {
-    case 'delete': return 'bg-red-500/10 text-red-600';
-    case 'overwrite': return 'bg-orange-500/10 text-orange-600';
-    case 'modify': return 'bg-yellow-500/10 text-yellow-600';
-    case 'create': return 'bg-green-500/10 text-green-600';
+    case 'delete': return 'bg-red-500/10 text-red-600 dark:text-red-400';
+    case 'overwrite': return 'bg-orange-500/10 text-orange-600 dark:text-orange-400';
+    case 'modify': return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400';
+    case 'create': return 'bg-green-500/10 text-green-600 dark:text-green-400';
     case 'rename':
-    case 'move': return 'bg-blue-500/10 text-blue-600';
-    default: return 'bg-gray-500/10 text-gray-600';
+    case 'move': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400';
+    default: return 'bg-gray-500/10 text-gray-600 dark:text-gray-400';
   }
 }
 
@@ -197,6 +198,7 @@ export default function ExecutionPage() {
   const { t: tCommon } = useTranslation('common');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [followUp, setFollowUp] = useState('');
+  const isFollowUpOverLimit = followUp.length > PROMPT_DEFAULT_MAX_LENGTH;
   const followUpInputRef = useRef<HTMLTextAreaElement>(null);
   const [taskRunCount, setTaskRunCount] = useState(0);
   const [currentTool, setCurrentTool] = useState<string | null>(null);
@@ -516,7 +518,7 @@ export default function ExecutionPage() {
   }, [canFollowUp]);
 
   const handleFollowUp = async () => {
-    if (!followUp.trim()) return;
+    if (!followUp.trim() || isFollowUpOverLimit) return;
 
     // Check if any provider is ready before sending (skip in E2E mode)
     const isE2EMode = await accomplish.isE2EMode();
@@ -1420,15 +1422,22 @@ export default function ExecutionPage() {
                   onOpenSettings={handleOpenSpeechSettings}
                   size="md"
                 />
-                <button
-                  type="button"
-                  onClick={handleFollowUp}
-                  disabled={!followUp.trim() || isLoading || speechInput.isRecording}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  title={tCommon('buttons.send')}
-                >
-                  <CornerDownLeft className="h-4 w-4" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={tCommon('buttons.send')}
+                      onClick={handleFollowUp}
+                      disabled={!followUp.trim() || isLoading || speechInput.isRecording || isFollowUpOverLimit}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <CornerDownLeft className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <span>{isFollowUpOverLimit ? 'Message is too long' : !followUp.trim() ? 'Enter a message' : 'Send'}</span>
+                  </TooltipContent>
+                </Tooltip>
                 </div>
               </div>
             </div>

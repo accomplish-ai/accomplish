@@ -77,6 +77,42 @@ function toAIFriendlyError(error: unknown, selector: string): Error {
   );
 }
 
+// Canvas-heavy apps that render to <canvas> instead of DOM — mouse events
+// are used instead of DOM click since ARIA trees are empty/unhelpful.
+const CANVAS_APPS = [
+  { pattern: /docs\.google\.com/, name: 'Google Docs' },
+  { pattern: /sheets\.google\.com/, name: 'Google Sheets' },
+  { pattern: /slides\.google\.com/, name: 'Google Slides' },
+  { pattern: /figma\.com/, name: 'Figma' },
+  { pattern: /canva\.com/, name: 'Canva' },
+  { pattern: /miro\.com/, name: 'Miro' },
+];
+
+function isCanvasApp(url: string): string | null {
+  const match = CANVAS_APPS.find(app => app.pattern.test(url));
+  return match ? match.name : null;
+}
+
+async function getElementCoordinates(element: ElementHandle): Promise<{
+  x: number; y: number; width: number; height: number;
+  centerX: number; centerY: number;
+} | null> {
+  try {
+    const box = await element.boundingBox();
+    if (!box) return null;
+    return {
+      x: Math.round(box.x),
+      y: Math.round(box.y),
+      width: Math.round(box.width),
+      height: Math.round(box.height),
+      centerX: Math.round(box.x + box.width / 2),
+      centerY: Math.round(box.y + box.height / 2),
+    };
+  } catch {
+    return null;
+  }
+}
+
 let browser: Browser | null = null;
 let connectingPromise: Promise<Browser> | null = null;
 let cachedServerMode: string | null = null;
@@ -1180,7 +1216,56 @@ const SNAPSHOT_SCRIPT = `
     const lines = [];
     let nodesToRender = ariaSnapshot.root.role === "fragment" ? ariaSnapshot.root.children : [ariaSnapshot.root];
 
-    const scoredElements = collectScoredElements(ariaSnapshot.root, snapshotOptions);
+    const USELESS_ROLES = ['generic', 'none', 'presentation'];
+    const pruneTree = (node) => {
+      if (typeof node === 'string') return node;
+      if (node.children && node.children.length > 0) {
+        node.children = node.children.map(child => pruneTree(child)).filter(child => child !== null);
+      }
+      const isUselessRole = USELESS_ROLES.includes(node.role);
+      const hasNoLabel = !node.name;
+      const childCount = node.children ? node.children.length : 0;
+      if (isUselessRole && hasNoLabel && childCount === 1) return node.children[0];
+      if (isUselessRole && hasNoLabel && childCount === 0) return null;
+      return node;
+    };
+    if (!snapshotOptions.rawTree) {
+      nodesToRender = nodesToRender.map(n => pruneTree(n)).filter(n => n !== null);
+    }
+
+    if (snapshotOptions.interactiveOnly) {
+      const collectTextFromDescendants = (node, maxDepth) => {
+        if (maxDepth === undefined) maxDepth = 10;
+        if (maxDepth <= 0) return '';
+        if (typeof node === 'string') return node.trim();
+        const texts = [];
+        if (node.name && node.name.trim()) {
+          texts.push(node.name.trim());
+        } else if (node.children) {
+          for (let i = 0; i < node.children.length; i++) {
+            const childText = collectTextFromDescendants(node.children[i], maxDepth - 1);
+            if (childText) texts.push(childText);
+          }
+        }
+        return texts.join(' ').replace(/\\s+/g, ' ').trim().slice(0, 100);
+      };
+      const promoteTextToInteractive = (node) => {
+        if (typeof node === 'string') return;
+        if (INTERACTIVE_ROLES.includes(node.role) && !node.name) {
+          const promotedText = collectTextFromDescendants(node);
+          if (promotedText) node.name = promotedText;
+        }
+        if (node.children) {
+          for (let i = 0; i < node.children.length; i++) promoteTextToInteractive(node.children[i]);
+        }
+      };
+      nodesToRender.forEach(n => promoteTextToInteractive(n));
+    }
+
+    const prunedRoot = ariaSnapshot.root.role === "fragment"
+      ? { ...ariaSnapshot.root, children: nodesToRender }
+      : (nodesToRender[0] || ariaSnapshot.root);
+    const scoredElements = collectScoredElements(prunedRoot, snapshotOptions);
 
     const truncateResult = truncateWithBudget(scoredElements, maxElements, maxTokens);
 
@@ -1224,6 +1309,10 @@ const SNAPSHOT_SCRIPT = `
       if (ariaNode.ref) {
         key += " [ref=" + ariaNode.ref + "]";
         if (renderCursorPointer && hasPointerCursor(ariaNode)) key += " [cursor=pointer]";
+      }
+      if (snapshotOptions.includeBoundingBoxes !== false && ariaNode.box?.rect) {
+        const r = ariaNode.box.rect;
+        key += " [" + Math.round(r.x) + ", " + Math.round(r.y) + ", " + Math.round(r.width) + ", " + Math.round(r.height) + "]";
       }
       return key;
     };
@@ -1304,6 +1393,8 @@ interface SnapshotOptions {
   viewportOnly?: boolean;
   maxTokens?: number;
   fullSnapshot?: boolean;
+  rawTree?: boolean;
+  includeBoundingBoxes?: boolean;
 }
 
 const DEFAULT_SNAPSHOT_OPTIONS: SnapshotOptions = {
@@ -2439,19 +2530,20 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         };
 
         const rawSnapshot = await getAISnapshot(page, snapshotOptions);
-        const viewport = page.viewportSize();
+        let viewport = page.viewportSize();
+        if (!viewport || (viewport.width === 0 && viewport.height === 0)) {
+          try {
+            const windowSize = await page.evaluate(() => ({
+              width: window.innerWidth,
+              height: window.innerHeight,
+            }));
+            viewport = windowSize;
+          } catch { }
+        }
         const url = page.url();
         const title = await page.title();
 
-        const canvasApps = [
-          { pattern: /docs\.google\.com/, name: 'Google Docs' },
-          { pattern: /sheets\.google\.com/, name: 'Google Sheets' },
-          { pattern: /slides\.google\.com/, name: 'Google Slides' },
-          { pattern: /figma\.com/, name: 'Figma' },
-          { pattern: /canva\.com/, name: 'Canva' },
-          { pattern: /miro\.com/, name: 'Miro' },
-        ];
-        const detectedApp = canvasApps.find(app => app.pattern.test(url));
+        const detectedCanvasApp = isCanvasApp(url);
 
         const manager = getSnapshotManager();
         const result = manager.processSnapshot(rawSnapshot, url, title, {
@@ -2479,11 +2571,9 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
           output += `Mode: Interactive elements only (buttons, links, inputs)\n`;
         }
 
-        if (detectedApp) {
-          output += `\n⚠️ CANVAS APP DETECTED: ${detectedApp.name}\n`;
-          output += `This app uses canvas rendering. Element refs may not work for the main content area.\n`;
-          output += `Use: browser_click(position="center-lower") then browser_keyboard(action="type", text="...")\n`;
-          output += `(center-lower avoids UI overlays like Google Docs AI suggestions)\n`;
+        if (detectedCanvasApp) {
+          output += `\n⚠️ CANVAS APP DETECTED: ${detectedCanvasApp}\n`;
+          output += `This app uses canvas rendering. Ref-based clicks auto-fallback to coordinate clicks.\n`;
         }
 
         if (result.type === 'diff') {
@@ -2541,9 +2631,32 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
                 isError: true,
               };
             }
-            await element.click(clickOptions);
-            await waitForPageLoad(page);
-            return { content: [{ type: 'text' as const, text: `Clicked element [ref=${ref}]${clickDesc}` }] };
+            const canvasApp = isCanvasApp(page.url());
+            if (canvasApp) {
+              const coords = await getElementCoordinates(element);
+              if (!coords) {
+                return {
+                  content: [{ type: 'text', text: `Element [ref=${ref}] has no bounding box on ${canvasApp} canvas app. Try browser_click with explicit x/y coordinates or position="center".` }],
+                  isError: true,
+                };
+              }
+              await page.mouse.click(coords.centerX, coords.centerY, clickOptions);
+              await waitForPageLoad(page);
+              return { content: [{ type: 'text' as const, text: `Clicked element [ref=${ref}] at (${coords.centerX}, ${coords.centerY}) [box: ${coords.x}, ${coords.y}, ${coords.width}, ${coords.height}]${clickDesc} (canvas app: ${canvasApp})` }] };
+            }
+            try {
+              await element.click(clickOptions);
+              await waitForPageLoad(page);
+              return { content: [{ type: 'text' as const, text: `Clicked element [ref=${ref}]${clickDesc}` }] };
+            } catch (clickErr) {
+              const coords = await getElementCoordinates(element);
+              if (coords) {
+                await page.mouse.click(coords.centerX, coords.centerY, clickOptions);
+                await waitForPageLoad(page);
+                return { content: [{ type: 'text' as const, text: `Clicked element [ref=${ref}] [box: ${coords.x}, ${coords.y}, ${coords.width}, ${coords.height}]${clickDesc} (coordinate fallback — DOM click failed)` }] };
+              }
+              throw clickErr;
+            }
           } else if (selector) {
             await page.click(selector, clickOptions);
             await waitForPageLoad(page);
@@ -2594,19 +2707,54 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
             };
           }
 
-          await element.click();
-          await element.fill(text);
-
-          if (press_enter) {
-            await element.press('Enter');
-            await waitForPageLoad(page);
-          }
-
           const target = ref ? `[ref=${ref}]` : `"${selector}"`;
           const enterNote = press_enter ? ' and pressed Enter' : '';
-          return {
-            content: [{ type: 'text', text: `Typed "${text}" into ${target}${enterNote}` }],
-          };
+
+          const canvasApp = isCanvasApp(page.url());
+          if (canvasApp) {
+            const coords = await getElementCoordinates(element);
+            if (!coords) {
+              return {
+                content: [{ type: 'text', text: `Element ${target} has no bounding box on ${canvasApp} canvas app. Try browser_click(position="center-lower") then browser_keyboard(action="type", text="...").` }],
+                isError: true,
+              };
+            }
+            await page.mouse.click(coords.centerX, coords.centerY);
+            await page.keyboard.type(text);
+            if (press_enter) {
+              await page.keyboard.press('Enter');
+              await waitForPageLoad(page);
+            }
+            return {
+              content: [{ type: 'text', text: `Typed "${text}" into ${target} [box: ${coords.x}, ${coords.y}, ${coords.width}, ${coords.height}]${enterNote} (canvas app: ${canvasApp})` }],
+            };
+          }
+
+          try {
+            await element.click();
+            await element.fill(text);
+            if (press_enter) {
+              await element.press('Enter');
+              await waitForPageLoad(page);
+            }
+            return {
+              content: [{ type: 'text', text: `Typed "${text}" into ${target}${enterNote}` }],
+            };
+          } catch (fillErr) {
+            const coords = await getElementCoordinates(element);
+            if (coords) {
+              await page.mouse.click(coords.centerX, coords.centerY);
+              await page.keyboard.type(text);
+              if (press_enter) {
+                await page.keyboard.press('Enter');
+                await waitForPageLoad(page);
+              }
+              return {
+                content: [{ type: 'text', text: `Typed "${text}" into ${target} [box: ${coords.x}, ${coords.y}, ${coords.width}, ${coords.height}]${enterNote} (coordinate fallback — DOM fill failed)` }],
+              };
+            }
+            throw fillErr;
+          }
         } catch (err) {
           const targetDesc = ref ? `[ref=${ref}]` : selector || 'element';
           const friendlyError = toAIFriendlyError(err, targetDesc);
@@ -3125,10 +3273,29 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
               isError: true,
             };
           }
-          await element.hover();
-          return {
-            content: [{ type: 'text', text: `Hovered over [ref=${ref}]` }],
-          };
+          const hoverCanvasApp = isCanvasApp(page.url());
+          if (hoverCanvasApp) {
+            const coords = await getElementCoordinates(element);
+            if (coords) {
+              await page.mouse.move(coords.centerX, coords.centerY);
+              return { content: [{ type: 'text', text: `Hovered over [ref=${ref}] at (${coords.centerX}, ${coords.centerY}) [box: ${coords.x}, ${coords.y}, ${coords.width}, ${coords.height}] (coordinate hover — ${hoverCanvasApp} canvas app)` }] };
+            }
+            return {
+              content: [{ type: 'text', text: `Element [ref=${ref}] has no bounding box — cannot coordinate-hover on ${hoverCanvasApp} canvas app. Try browser_hover with explicit x/y coordinates.` }],
+              isError: true,
+            };
+          }
+          try {
+            await element.hover();
+            return { content: [{ type: 'text', text: `Hovered over [ref=${ref}]` }] };
+          } catch (hoverErr) {
+            const coords = await getElementCoordinates(element);
+            if (coords) {
+              await page.mouse.move(coords.centerX, coords.centerY);
+              return { content: [{ type: 'text', text: `Hovered over [ref=${ref}] at (${coords.centerX}, ${coords.centerY}) [box: ${coords.x}, ${coords.y}, ${coords.width}, ${coords.height}] (coordinate fallback — DOM hover failed)` }] };
+            }
+            throw hoverErr;
+          }
         }
 
         if (selector) {

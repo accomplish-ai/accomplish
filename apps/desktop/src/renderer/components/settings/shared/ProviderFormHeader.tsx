@@ -1,13 +1,15 @@
 // apps/desktop/src/renderer/components/settings/shared/ProviderFormHeader.tsx
 
 import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
 
 interface ProviderFormHeaderProps {
   logoSrc: string;
   providerName: string;
+  invertInDark?: boolean;
 }
 
-export function ProviderFormHeader({ logoSrc, providerName }: ProviderFormHeaderProps) {
+export function ProviderFormHeader({ logoSrc, providerName, invertInDark }: ProviderFormHeaderProps) {
   const { t } = useTranslation('settings');
 
   return (
@@ -17,7 +19,7 @@ export function ProviderFormHeader({ logoSrc, providerName }: ProviderFormHeader
         <img
           src={logoSrc}
           alt={t('providers.formLogo', { provider: providerName })}
-          className="h-6 w-6 object-contain"
+          className={cn('h-6 w-6 object-contain', invertInDark && 'dark:invert')}
         />
       </div>
       <span className="text-base font-medium text-foreground">{t('providers.formTitle', { provider: providerName })}</span>

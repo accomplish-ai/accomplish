@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { ipcMain, BrowserWindow, shell, app, dialog } from 'electron';
+import { ipcMain, BrowserWindow, shell, app, dialog, nativeTheme } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import { URL } from 'url';
 import fs from 'fs';
@@ -18,6 +18,7 @@ import {
   validateAzureFoundry,
   testAzureFoundryConnection,
   fetchOpenRouterModels,
+  fetchProviderModels,
   testLiteLLMConnection,
   fetchLiteLLMModels,
   validateHttpUrl,
@@ -85,7 +86,7 @@ import type {
   LMStudioConfig,
   ToolSupportStatus,
 } from '@accomplish_ai/agent-core';
-import { DEFAULT_PROVIDERS, ALLOWED_API_KEY_PROVIDERS, STANDARD_VALIDATION_PROVIDERS } from '@accomplish_ai/agent-core';
+import { DEFAULT_PROVIDERS, ALLOWED_API_KEY_PROVIDERS, STANDARD_VALIDATION_PROVIDERS, ZAI_ENDPOINTS } from '@accomplish_ai/agent-core';
 import {
   normalizeIpcError,
   permissionResponseSchema,
@@ -814,6 +815,34 @@ export function registerIPCHandlers(): void {
     storage.setLMStudioConfig(config);
   });
 
+  handle('provider:fetch-models', async (_event: IpcMainInvokeEvent, providerId: string, options?: { baseUrl?: string; zaiRegion?: string }) => {
+    const providerConfig = DEFAULT_PROVIDERS.find(p => p.id === providerId);
+    if (!providerConfig?.modelsEndpoint) {
+      return { success: false, error: 'No models endpoint configured for this provider' };
+    }
+
+    const apiKey = getApiKey(providerId);
+    if (!apiKey) {
+      return { success: false, error: 'No API key found for this provider' };
+    }
+
+    let urlOverride: string | undefined;
+    if (providerId === 'openai' && options?.baseUrl) {
+      urlOverride = `${options.baseUrl.replace(/\/+$/, '')}/models`;
+    }
+    if (providerId === 'zai' && options?.zaiRegion) {
+      const region = options.zaiRegion as import('@accomplish_ai/agent-core').ZaiRegion;
+      urlOverride = `${ZAI_ENDPOINTS[region]}/models`;
+    }
+
+    return fetchProviderModels({
+      endpointConfig: providerConfig.modelsEndpoint,
+      apiKey,
+      urlOverride,
+      timeout: API_KEY_VALIDATION_TIMEOUT_MS,
+    });
+  });
+
   handle('api-keys:all', async (_event: IpcMainInvokeEvent) => {
     const keys = await getAllApiKeys();
     const masked: Record<string, { exists: boolean; prefix?: string }> = {};
@@ -846,6 +875,26 @@ export function registerIPCHandlers(): void {
     storage.setDebugMode(enabled);
     for (const win of BrowserWindow.getAllWindows()) {
       win.webContents.send('settings:debug-mode-changed', { enabled });
+    }
+  });
+
+  handle('settings:theme', async (_event: IpcMainInvokeEvent) => {
+    return storage.getTheme();
+  });
+
+  handle('settings:set-theme', async (_event: IpcMainInvokeEvent, theme: string) => {
+    if (!['system', 'light', 'dark'].includes(theme)) {
+      throw new Error('Invalid theme value');
+    }
+    storage.setTheme(theme as 'system' | 'light' | 'dark');
+    nativeTheme.themeSource = theme as 'system' | 'light' | 'dark';
+
+    const resolved = theme === 'system'
+      ? (nativeTheme.shouldUseDarkColors ? 'dark' : 'light')
+      : theme;
+
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.send('settings:theme-changed', { theme, resolved });
     }
   });
 

@@ -33,6 +33,8 @@ export const PROVIDER_LOGOS: Record<ProviderId, string> = {
   lmstudio: lmstudioLogo,
 };
 
+export const DARK_INVERT_PROVIDERS = new Set<ProviderId>(['openai', 'xai', 'ollama', 'openrouter']);
+
 export function getProviderLogo(providerId: ProviderId): string | undefined {
   return PROVIDER_LOGOS[providerId];
 }

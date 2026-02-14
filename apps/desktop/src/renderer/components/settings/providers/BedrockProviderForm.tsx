@@ -153,7 +153,7 @@ export function BedrockProviderForm({
                   data-testid="bedrock-auth-tab-apikey"
                   className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     authTab === 'apiKey'
-                      ? 'bg-[#4A7C59] text-white'
+                      ? 'bg-provider-accent text-white'
                       : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -164,7 +164,7 @@ export function BedrockProviderForm({
                   data-testid="bedrock-auth-tab-accesskey"
                   className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     authTab === 'accessKey'
-                      ? 'bg-[#4A7C59] text-white'
+                      ? 'bg-provider-accent text-white'
                       : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -175,7 +175,7 @@ export function BedrockProviderForm({
                   data-testid="bedrock-auth-tab-profile"
                   className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     authTab === 'profile'
-                      ? 'bg-[#4A7C59] text-white'
+                      ? 'bg-provider-accent text-white'
                       : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >

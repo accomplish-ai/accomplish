@@ -134,7 +134,7 @@ describe('Header Integration', () => {
 
       // Assert
       const homeLink = screen.getByRole('link', { name: /^home$/i });
-      expect(homeLink.className).toContain('nav-link-active');
+      expect(homeLink.className).toContain('bg-accent');
     });
 
     it('should mark History link as active when on history route', () => {
@@ -147,7 +147,7 @@ describe('Header Integration', () => {
 
       // Assert
       const historyLink = screen.getByRole('link', { name: /history/i });
-      expect(historyLink.className).toContain('nav-link-active');
+      expect(historyLink.className).toContain('bg-accent');
     });
 
     it('should mark Settings link as active when on settings route', () => {
@@ -160,7 +160,7 @@ describe('Header Integration', () => {
 
       // Assert
       const settingsLink = screen.getByRole('link', { name: /settings/i });
-      expect(settingsLink.className).toContain('nav-link-active');
+      expect(settingsLink.className).toContain('bg-accent');
     });
 
     it('should not mark Home link as active when on other routes', () => {
@@ -173,10 +173,10 @@ describe('Header Integration', () => {
 
       // Assert
       const homeLink = screen.getByRole('link', { name: /^home$/i });
-      expect(homeLink.className).not.toContain('nav-link-active');
+      expect(homeLink.className).toContain('text-muted-foreground');
     });
 
-    it('should have nav-link class on all navigation links', () => {
+    it('should have nav link styles on all navigation links', () => {
       // Arrange & Act
       render(
         <MemoryRouter initialEntries={['/']}>
@@ -189,9 +189,9 @@ describe('Header Integration', () => {
       const historyLink = screen.getByRole('link', { name: /history/i });
       const settingsLink = screen.getByRole('link', { name: /settings/i });
 
-      expect(homeLink.className).toContain('nav-link');
-      expect(historyLink.className).toContain('nav-link');
-      expect(settingsLink.className).toContain('nav-link');
+      expect(homeLink.className).toContain('rounded-md');
+      expect(historyLink.className).toContain('rounded-md');
+      expect(settingsLink.className).toContain('rounded-md');
     });
   });
 

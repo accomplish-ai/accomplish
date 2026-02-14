@@ -194,7 +194,7 @@ describe('Home Page Integration', () => {
       );
 
       // Assert
-      const submitButton = screen.getByTitle('Submit');
+      const submitButton = screen.getByTestId('task-input-submit');
       expect(submitButton).toBeInTheDocument();
     });
 
@@ -268,7 +268,7 @@ describe('Home Page Integration', () => {
       const textarea = screen.getByPlaceholderText(/describe a task/i);
       fireEvent.change(textarea, { target: { value: 'Submit this task' } });
 
-      const submitButton = screen.getByTitle('Submit');
+      const submitButton = screen.getByTestId('task-input-submit');
       fireEvent.click(submitButton);
 
       // Assert - should check provider settings (via isE2EMode and getProviderSettings)
@@ -295,7 +295,7 @@ describe('Home Page Integration', () => {
       const textarea = screen.getByPlaceholderText(/describe a task/i);
       fireEvent.change(textarea, { target: { value: 'Submit without provider' } });
 
-      const submitButton = screen.getByTitle('Submit');
+      const submitButton = screen.getByTestId('task-input-submit');
       fireEvent.click(submitButton);
 
       // Assert
@@ -320,7 +320,7 @@ describe('Home Page Integration', () => {
       const textarea = screen.getByPlaceholderText(/describe a task/i);
       fireEvent.change(textarea, { target: { value: 'My task' } });
 
-      const submitButton = screen.getByTitle('Submit');
+      const submitButton = screen.getByTestId('task-input-submit');
       fireEvent.click(submitButton);
 
       // Assert
@@ -338,7 +338,7 @@ describe('Home Page Integration', () => {
       );
 
       // Act
-      const submitButton = screen.getByTitle('Submit');
+      const submitButton = screen.getByTestId('task-input-submit');
       fireEvent.click(submitButton);
 
       // Assert - empty tasks return early, no provider check or task start
@@ -360,7 +360,7 @@ describe('Home Page Integration', () => {
       const textarea = screen.getByPlaceholderText(/describe a task/i);
       fireEvent.change(textarea, { target: { value: '   ' } });
 
-      const submitButton = screen.getByTitle('Submit');
+      const submitButton = screen.getByTestId('task-input-submit');
       fireEvent.click(submitButton);
 
       // Assert - whitespace-only input should not trigger any API calls
@@ -390,7 +390,7 @@ describe('Home Page Integration', () => {
       const textarea = screen.getByPlaceholderText(/describe a task/i);
       fireEvent.change(textarea, { target: { value: 'My task' } });
 
-      const submitButton = screen.getByTitle('Submit');
+      const submitButton = screen.getByTestId('task-input-submit');
       fireEvent.click(submitButton);
 
       // Wait for dialog
@@ -438,7 +438,7 @@ describe('Home Page Integration', () => {
       );
 
       // Assert
-      const submitButton = screen.getByTitle('Submit');
+      const submitButton = screen.getByTestId('task-input-submit');
       expect(submitButton).toBeDisabled();
     });
 
@@ -453,7 +453,7 @@ describe('Home Page Integration', () => {
       );
 
       // The textarea is disabled, so we can't really type, but test submit
-      const submitButton = screen.getByTitle('Submit');
+      const submitButton = screen.getByTestId('task-input-submit');
       fireEvent.click(submitButton);
 
       // Assert
@@ -567,7 +567,7 @@ describe('Home Page Integration', () => {
       const textarea = screen.getByPlaceholderText(/describe a task/i);
       fireEvent.change(textarea, { target: { value: 'My task' } });
 
-      const submitButton = screen.getByTitle('Submit');
+      const submitButton = screen.getByTestId('task-input-submit');
       fireEvent.click(submitButton);
 
       await waitFor(() => {
