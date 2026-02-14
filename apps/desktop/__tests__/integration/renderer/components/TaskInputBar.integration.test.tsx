@@ -94,6 +94,7 @@ describe('TaskInputBar Integration', () => {
           value=""
           onChange={onChange}
           onSubmit={onSubmit}
+          placeholder="Assign a task or ask anything"
         />
       );
 

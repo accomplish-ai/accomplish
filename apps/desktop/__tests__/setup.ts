@@ -5,6 +5,30 @@
 
 import { expect, vi } from 'vitest';
 import * as matchers from '@testing-library/jest-dom/matchers';
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+
+// Load English locale files so renderer tests using useTranslation() get real strings
+import common from '../locales/en/common.json';
+import settings from '../locales/en/settings.json';
+import home from '../locales/en/home.json';
+import execution from '../locales/en/execution.json';
+import history from '../locales/en/history.json';
+import errors from '../locales/en/errors.json';
+import sidebar from '../locales/en/sidebar.json';
+
+// Initialize i18next for tests (only when in jsdom environment)
+i18n.use(initReactI18next).init({
+  lng: 'en',
+  fallbackLng: 'en',
+  defaultNS: 'common',
+  ns: ['common', 'settings', 'home', 'execution', 'history', 'errors', 'sidebar'],
+  resources: {
+    en: { common, settings, home, execution, history, errors, sidebar },
+  },
+  interpolation: { escapeValue: false },
+  react: { useSuspense: false },
+});
 
 expect.extend(matchers);
 

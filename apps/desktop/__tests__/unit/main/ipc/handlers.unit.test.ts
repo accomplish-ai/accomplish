@@ -303,6 +303,17 @@ vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
     validateLMStudioConfig: vi.fn(),
     validateAzureFoundryConnection: vi.fn(() => Promise.resolve({ valid: true })),
     validateMoonshotApiKey: vi.fn(() => Promise.resolve({ valid: true })),
+
+    // Language preference (i18n)
+    getLanguage: vi.fn(() => 'auto'),
+    setLanguage: vi.fn(),
+
+    // Ollama tool support
+    testOllamaModelToolSupport: vi.fn(() => Promise.resolve({ supported: true })),
+    testOllamaConnection: vi.fn(() => Promise.resolve({ valid: true })),
+
+    // Provider model fetching
+    fetchProviderModels: vi.fn(() => Promise.resolve({ success: true, models: [] })),
   };
 });
 
@@ -338,6 +349,42 @@ vi.mock('@main/store/secureStorage', () => ({
 }));
 
 // Note: App settings and provider settings are now mocked via @accomplish/core mock above
+
+// Mock i18n module
+vi.mock('@main/i18n', () => ({
+  initializeI18n: vi.fn(),
+  getLanguage: vi.fn(() => 'en'),
+  setLanguage: vi.fn(),
+  getAllTranslations: vi.fn(() => ({})),
+  SUPPORTED_LANGUAGES: [{ code: 'en', name: 'English' }],
+}));
+
+// Mock skills manager
+vi.mock('@main/skills', () => ({
+  skillsManager: {
+    initialize: vi.fn(),
+    getSkills: vi.fn(() => []),
+    getSkill: vi.fn(() => null),
+    createSkill: vi.fn(),
+    deleteSkill: vi.fn(),
+    toggleSkill: vi.fn(),
+    refreshSkills: vi.fn(),
+    importFromGitHub: vi.fn(),
+    getSkillsDir: vi.fn(() => '/tmp/skills'),
+  },
+}));
+
+// Mock Vertex handlers
+vi.mock('@main/providers', () => ({
+  registerVertexHandlers: vi.fn(),
+}));
+
+// Mock logging
+vi.mock('@main/logging', () => ({
+  getLogCollector: vi.fn(() => ({
+    exportLogs: vi.fn(() => Promise.resolve('/tmp/logs.zip')),
+  })),
+}));
 
 // Mock config
 vi.mock('@main/config', () => ({
