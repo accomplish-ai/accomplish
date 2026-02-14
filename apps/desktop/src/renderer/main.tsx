@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
 import App from './App';
 import { initTheme } from './lib/theme';
+import './i18n/i18n'; // Initialize i18n before app renders
 import './styles/globals.css';
 
 initTheme();

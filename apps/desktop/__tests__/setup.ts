@@ -5,21 +5,32 @@
 
 import { expect, vi } from 'vitest';
 import * as matchers from '@testing-library/jest-dom/matchers';
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+
+// Initialize i18n for tests with English translations
+import en from '../src/renderer/i18n/locales/en/translation.json';
+i18n.use(initReactI18next).init({
+  resources: { en: { translation: en } },
+  lng: 'en',
+  fallbackLng: 'en',
+  interpolation: { escapeValue: false },
+});
 
 expect.extend(matchers);
 
 // Mock scrollIntoView for jsdom (not implemented in jsdom)
 // Only apply when running in jsdom environment (Element is defined)
 if (typeof Element !== 'undefined') {
-  Element.prototype.scrollIntoView = () => {};
+  Element.prototype.scrollIntoView = () => { };
 }
 
 // Mock ResizeObserver for jsdom (not implemented, required by Radix UI tooltips)
 if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
+    observe() { }
+    unobserve() { }
+    disconnect() { }
   };
 }
 
@@ -49,4 +60,4 @@ declare global {
   // Add any global test utilities here if needed
 }
 
-export {};
+export { };

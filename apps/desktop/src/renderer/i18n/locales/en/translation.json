@@ -1,0 +1,58 @@
+{
+    "common": {
+        "submit": "Submit",
+        "cancel": "Cancel",
+        "done": "Done",
+        "retry": "Retry",
+        "loading": "Loading...",
+        "closeAnyway": "Close Anyway"
+    },
+    "home": {
+        "title": "What will you accomplish today?",
+        "placeholder": "Describe a task and let AI handle the rest",
+        "examplePrompts": "Example prompts"
+    },
+    "history": {
+        "title": "Task History"
+    },
+    "taskInput": {
+        "defaultPlaceholder": "Assign a task or ask anything",
+        "tooltipSubmit": "Submit",
+        "tooltipEnterMessage": "Enter a message",
+        "tooltipMessageTooLong": "Message is too long"
+    },
+    "settings": {
+        "title": "Set up Accomplish",
+        "tabs": {
+            "providers": "Providers",
+            "connectors": "Connectors",
+            "skills": "Skills",
+            "voice": "Voice Input",
+            "appearance": "Appearance",
+            "about": "About"
+        },
+        "appearance": {
+            "theme": "Theme",
+            "themeDescription": "Choose how Accomplish looks. Select System to match your operating system setting.",
+            "system": "System",
+            "light": "Light",
+            "dark": "Dark",
+            "language": "Language",
+            "languageDescription": "Choose the display language for the interface."
+        },
+        "providers": {
+            "debugMode": "Debug Mode",
+            "debugModeDescription": "Show detailed backend logs in the task view.",
+            "debugModeWarning": "Debug mode is enabled. Backend logs will appear in the task view when running tasks.",
+            "exportLogs": "Export Logs",
+            "noProviderReady": "No provider ready",
+            "noProviderReadyDescription": "You need to connect a provider and select a model before you can run tasks."
+        },
+        "about": {
+            "visitUs": "Visit us",
+            "haveQuestion": "Have a question?",
+            "version": "Version",
+            "copyright": "Accomplish™ All rights reserved."
+        }
+    }
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getAccomplish } from '../../lib/accomplish';
 import { CornerDownLeft, Loader2, AlertCircle } from 'lucide-react';
 import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
@@ -58,6 +59,7 @@ export default function TaskInputBar({
   hideModelWhenNoModel = false,
   autoSubmitOnTranscription = true,
 }: TaskInputBarProps) {
+  const { t } = useTranslation();
   const isDisabled = disabled || isLoading;
   const isOverLimit = value.length > PROMPT_DEFAULT_MAX_LENGTH;
   const canSubmit = !!value.trim() && !isDisabled && !isOverLimit;
@@ -152,7 +154,7 @@ export default function TaskInputBar({
                 className="ml-2 underline hover:no-underline"
                 type="button"
               >
-                Retry
+                {t('common.retry')}
               </button>
             )}
           </AlertDescription>
@@ -187,63 +189,63 @@ export default function TaskInputBar({
 
           {/* Right side controls */}
           <div className="flex items-center gap-2">
-          {/* Model Indicator */}
-          {onOpenModelSettings && (
-            <ModelIndicator
-              isRunning={false}
-              onOpenSettings={onOpenModelSettings}
-              hideWhenNoModel={hideModelWhenNoModel}
+            {/* Model Indicator */}
+            {onOpenModelSettings && (
+              <ModelIndicator
+                isRunning={false}
+                onOpenSettings={onOpenModelSettings}
+                hideWhenNoModel={hideModelWhenNoModel}
+              />
+            )}
+
+            {/* Divider */}
+            <div className="w-px h-6 bg-border" />
+
+            {/* Speech Input Button */}
+            <SpeechInputButton
+              isRecording={speechInput.isRecording}
+              isTranscribing={speechInput.isTranscribing}
+              recordingDuration={speechInput.recordingDuration}
+              error={speechInput.error}
+              isConfigured={speechInput.isConfigured}
+              disabled={isDisabled}
+              onStartRecording={() => speechInput.startRecording()}
+              onStopRecording={() => speechInput.stopRecording()}
+              onCancel={() => speechInput.cancelRecording()}
+              onRetry={() => speechInput.retry()}
+              onOpenSettings={onOpenSpeechSettings}
+              size="md"
             />
-          )}
 
-          {/* Divider */}
-          <div className="w-px h-6 bg-border" />
-
-          {/* Speech Input Button */}
-          <SpeechInputButton
-            isRecording={speechInput.isRecording}
-            isTranscribing={speechInput.isTranscribing}
-            recordingDuration={speechInput.recordingDuration}
-            error={speechInput.error}
-            isConfigured={speechInput.isConfigured}
-            disabled={isDisabled}
-            onStartRecording={() => speechInput.startRecording()}
-            onStopRecording={() => speechInput.stopRecording()}
-            onCancel={() => speechInput.cancelRecording()}
-            onRetry={() => speechInput.retry()}
-            onOpenSettings={onOpenSpeechSettings}
-            size="md"
-          />
-
-          {/* Submit button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                data-testid="task-input-submit"
-                type="button"
-                aria-label="Submit"
-                onClick={() => {
-                  accomplish.logEvent({
-                    level: 'info',
-                    message: 'Task input submit clicked',
-                    context: { prompt: value },
-                  });
-                  onSubmit();
-                }}
-                disabled={!canSubmit || speechInput.isRecording}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all duration-200 ease-accomplish hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CornerDownLeft className="h-4 w-4" />
-                )}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <span>{isOverLimit ? 'Message is too long' : !value.trim() ? 'Enter a message' : 'Submit'}</span>
-            </TooltipContent>
-          </Tooltip>
+            {/* Submit button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  data-testid="task-input-submit"
+                  type="button"
+                  aria-label="Submit"
+                  onClick={() => {
+                    accomplish.logEvent({
+                      level: 'info',
+                      message: 'Task input submit clicked',
+                      context: { prompt: value },
+                    });
+                    onSubmit();
+                  }}
+                  disabled={!canSubmit || speechInput.isRecording}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all duration-200 ease-accomplish hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CornerDownLeft className="h-4 w-4" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <span>{isOverLimit ? t('taskInput.tooltipMessageTooLong') : !value.trim() ? t('taskInput.tooltipEnterMessage') : t('taskInput.tooltipSubmit')}</span>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>

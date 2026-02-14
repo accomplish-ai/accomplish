@@ -2,8 +2,10 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { getAccomplish } from '@/lib/accomplish';
+import { SUPPORTED_LANGUAGES, saveLanguage } from '@/i18n/i18n';
 import {
   Dialog,
   DialogContent,
@@ -64,6 +66,7 @@ export default function SettingsDialog({
   const [debugMode, setDebugModeState] = useState(false);
   const [exportStatus, setExportStatus] = useState<'idle' | 'exporting' | 'success' | 'error'>('idle');
   const accomplish = getAccomplish();
+  const { t, i18n } = useTranslation();
 
   // Refetch settings and debug mode when dialog opens
   useEffect(() => {
@@ -277,7 +280,7 @@ export default function SettingsDialog({
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle>Set up Accomplish</DialogTitle>
+            <DialogTitle>{t('settings.title')}</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center py-12">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -295,7 +298,7 @@ export default function SettingsDialog({
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Set up Accomplish</DialogTitle>
+          <DialogTitle>{t('settings.title')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
@@ -304,63 +307,57 @@ export default function SettingsDialog({
             <div className="flex gap-4">
               <button
                 onClick={() => setActiveTab('providers')}
-                className={`pb-3 px-1 font-medium text-sm transition-colors ${
-                  activeTab === 'providers'
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${activeTab === 'providers'
                     ? 'text-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
-                Providers
+                {t('settings.tabs.providers')}
               </button>
               <button
                 onClick={() => setActiveTab('connectors')}
-                className={`pb-3 px-1 font-medium text-sm transition-colors ${
-                  activeTab === 'connectors'
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${activeTab === 'connectors'
                     ? 'text-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
-                Connectors
+                {t('settings.tabs.connectors')}
               </button>
               <button
                 onClick={() => setActiveTab('skills')}
-                className={`pb-3 px-1 font-medium text-sm transition-colors ${
-                  activeTab === 'skills'
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${activeTab === 'skills'
                     ? 'text-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
-                Skills
+                {t('settings.tabs.skills')}
               </button>
               <button
                 onClick={() => setActiveTab('voice')}
-                className={`pb-3 px-1 font-medium text-sm transition-colors ${
-                  activeTab === 'voice'
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${activeTab === 'voice'
                     ? 'text-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
-                Voice Input
+                {t('settings.tabs.voice')}
               </button>
               <button
                 onClick={() => setActiveTab('appearance')}
-                className={`pb-3 px-1 font-medium text-sm transition-colors ${
-                  activeTab === 'appearance'
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${activeTab === 'appearance'
                     ? 'text-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
-                Appearance
+                {t('settings.tabs.appearance')}
               </button>
               <button
                 onClick={() => setActiveTab('about')}
-                className={`pb-3 px-1 font-medium text-sm transition-colors ${
-                  activeTab === 'about'
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${activeTab === 'about'
                     ? 'text-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
-                About
+                {t('settings.tabs.about')}
               </button>
             </div>
             {activeTab === 'skills' && (
@@ -389,16 +386,16 @@ export default function SettingsDialog({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-warning">No provider ready</p>
+                    <p className="text-sm font-medium text-warning">{t('settings.providers.noProviderReady')}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      You need to connect a provider and select a model before you can run tasks.
+                      {t('settings.providers.noProviderReadyDescription')}
                     </p>
                     <div className="mt-3 flex gap-2">
                       <button
                         onClick={handleForceClose}
                         className="rounded-md px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
                       >
-                        Close Anyway
+                        {t('common.closeAnyway')}
                       </button>
                     </div>
                   </div>
@@ -457,9 +454,9 @@ export default function SettingsDialog({
                     <div className="rounded-lg border border-border bg-card p-5">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="font-medium text-foreground">Debug Mode</div>
+                          <div className="font-medium text-foreground">{t('settings.providers.debugMode')}</div>
                           <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-                            Show detailed backend logs in the task view.
+                            {t('settings.providers.debugModeDescription')}
                           </p>
                         </div>
                         <div className="ml-4 flex items-center gap-3">
@@ -480,13 +477,12 @@ export default function SettingsDialog({
                             onClick={handleExportLogs}
                             disabled={exportStatus === 'exporting'}
                             title="Export Logs"
-                            className={`rounded-md p-1.5 transition-colors ${
-                              exportStatus === 'success'
+                            className={`rounded-md p-1.5 transition-colors ${exportStatus === 'success'
                                 ? 'text-green-500'
                                 : exportStatus === 'error'
-                                ? 'text-destructive'
-                                : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                                  ? 'text-destructive'
+                                  : 'text-muted-foreground hover:text-foreground'
+                              }`}
                           >
                             {exportStatus === 'exporting' ? (
                               <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -508,8 +504,7 @@ export default function SettingsDialog({
                       {debugMode && (
                         <div className="mt-4 rounded-xl bg-warning/10 p-3.5">
                           <p className="text-sm text-warning">
-                            Debug mode is enabled. Backend logs will appear in the task view
-                            when running tasks.
+                            {t('settings.providers.debugModeWarning')}
                           </p>
                         </div>
                       )}
@@ -537,7 +532,7 @@ export default function SettingsDialog({
           {/* Voice Input Tab */}
           {activeTab === 'voice' && (
             <div className="space-y-6">
-              <SpeechSettingsForm onSave={() => {}} onChange={() => {}} />
+              <SpeechSettingsForm onSave={() => { }} onChange={() => { }} />
             </div>
           )}
 
@@ -545,9 +540,9 @@ export default function SettingsDialog({
           {activeTab === 'appearance' && (
             <div className="space-y-6">
               <div className="rounded-lg border border-border bg-card p-5">
-                <div className="font-medium text-foreground">Theme</div>
+                <div className="font-medium text-foreground">{t('settings.appearance.theme')}</div>
                 <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-                  Choose how Accomplish looks. Select System to match your operating system setting.
+                  {t('settings.appearance.themeDescription')}
                 </p>
                 <div
                   className="mt-4 flex rounded-lg border border-border bg-muted p-1"
@@ -555,37 +550,67 @@ export default function SettingsDialog({
                   aria-label="Theme preference"
                 >
                   {([
-                    { value: 'system', label: 'System', icon: (
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
-                      </svg>
-                    )},
-                    { value: 'light', label: 'Light', icon: (
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
-                      </svg>
-                    )},
-                    { value: 'dark', label: 'Dark', icon: (
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
-                      </svg>
-                    )},
+                    {
+                      value: 'system', label: t('settings.appearance.system'), icon: (
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
+                        </svg>
+                      )
+                    },
+                    {
+                      value: 'light', label: t('settings.appearance.light'), icon: (
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+                        </svg>
+                      )
+                    },
+                    {
+                      value: 'dark', label: t('settings.appearance.dark'), icon: (
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                        </svg>
+                      )
+                    },
                   ] as const).map((option) => (
                     <button
                       key={option.value}
                       role="radio"
                       aria-checked={theme === option.value}
                       onClick={() => handleThemeChange(option.value)}
-                      className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                        theme === option.value
+                      className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${theme === option.value
                           ? 'bg-background text-foreground shadow-sm'
                           : 'text-muted-foreground hover:text-foreground'
-                      }`}
+                        }`}
                     >
                       {option.icon}
                       {option.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Language Selector */}
+              <div className="mt-6 rounded-lg border border-border bg-card p-5">
+                <div className="font-medium text-foreground">{t('settings.appearance.language')}</div>
+                <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                  {t('settings.appearance.languageDescription')}
+                </p>
+                <div className="mt-4">
+                  <select
+                    value={i18n.language}
+                    onChange={(e) => {
+                      const lang = e.target.value;
+                      i18n.changeLanguage(lang);
+                      saveLanguage(lang);
+                    }}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    {SUPPORTED_LANGUAGES.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.nativeName} ({lang.name})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -597,7 +622,7 @@ export default function SettingsDialog({
               <div className="rounded-lg border border-border bg-card p-6">
                 <div className="space-y-4">
                   <div>
-                    <div className="text-sm text-muted-foreground">Visit us</div>
+                    <div className="text-sm text-muted-foreground">{t('settings.about.visitUs')}</div>
                     <a
                       href="https://www.accomplish.ai"
                       target="_blank"
@@ -608,7 +633,7 @@ export default function SettingsDialog({
                     </a>
                   </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">Have a question?</div>
+                    <div className="text-sm text-muted-foreground">{t('settings.about.haveQuestion')}</div>
                     <a
                       href="mailto:support@accomplish.ai"
                       className="text-primary hover:underline"
@@ -617,12 +642,12 @@ export default function SettingsDialog({
                     </a>
                   </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">Version</div>
-                    <div className="font-medium">{appVersion || 'Loading...'}</div>
+                    <div className="text-sm text-muted-foreground">{t('settings.about.version')}</div>
+                    <div className="font-medium">{appVersion || t('common.loading')}</div>
                   </div>
                 </div>
                 <div className="mt-6 pt-4 border-t border-border text-xs text-muted-foreground">
-                  Accomplish™ All rights reserved.
+                  {t('settings.about.copyright')}
                 </div>
               </div>
             </div>
@@ -638,7 +663,7 @@ export default function SettingsDialog({
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              Done
+              {t('common.done')}
             </button>
           </div>
         </div>
