@@ -105,18 +105,23 @@ export default function HomePage() {
     };
   }, [addTaskUpdate, setPermissionRequest, accomplish]);
 
-  const executeTask = useCallback(async () => {
-    if (!prompt.trim() || isLoading) return;
+  const executeTask = useCallback(
+    async (promptOverride?: string) => {
+      const promptToUse = promptOverride ?? prompt.trim();
+      if (!promptToUse || isLoading) return;
 
-    const taskId = `task_${Date.now()}`;
-    const task = await startTask({ prompt: prompt.trim(), taskId });
-    if (task) {
-      navigate(`/execution/${task.id}`);
-    }
-  }, [prompt, isLoading, startTask, navigate]);
+      const taskId = `task_${Date.now()}`;
+      const task = await startTask({ prompt: promptToUse, taskId });
+      if (task) {
+        navigate(`/execution/${task.id}`);
+      }
+    },
+    [prompt, isLoading, startTask, navigate]
+  );
 
-  const handleSubmit = async () => {
-    if (!prompt.trim() || isLoading) return;
+  const handleSubmit = async (overrides?: { prompt?: string }) => {
+    const promptToUse = overrides?.prompt ?? prompt.trim();
+    if (!promptToUse || isLoading) return;
 
     // Check if any provider is ready before sending (skip in E2E mode)
     const isE2EMode = await accomplish.isE2EMode();
@@ -129,7 +134,7 @@ export default function HomePage() {
       }
     }
 
-    await executeTask();
+    await executeTask(promptToUse);
   };
 
   const handleSettingsDialogChange = (open: boolean) => {

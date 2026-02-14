@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
-import TaskInputBar from '@/components/landing/TaskInputBar';
+import TaskInputBar, { buildPromptWithAttachments, type FileAttachment } from '@/components/landing/TaskInputBar';
 
 // Helper to render with Router context (required for PlusMenu -> CreateSkillModal -> useNavigate)
 const renderWithRouter = (ui: React.ReactElement) => {
@@ -579,6 +579,82 @@ describe('TaskInputBar Integration', () => {
 
       const textarea = screen.getByRole('textbox');
       expect(textarea.className).toContain('text-[15px]');
+    });
+  });
+
+  describe('buildPromptWithAttachments', () => {
+    it('should return prompt unchanged when no attachments', () => {
+      const prompt = 'Summarize this';
+      expect(buildPromptWithAttachments(prompt, [])).toBe(prompt);
+    });
+
+    it('should append text file content to prompt', () => {
+      const prompt = 'Review this file';
+      const attachments: FileAttachment[] = [
+        {
+          id: '1',
+          name: 'notes.txt',
+          path: '/path/notes.txt',
+          type: 'text',
+          content: 'File content here',
+          size: 100,
+        },
+      ];
+      const result = buildPromptWithAttachments(prompt, attachments);
+      expect(result).toContain(prompt);
+      expect(result).toContain('[Contents of notes.txt]');
+      expect(result).toContain('File content here');
+    });
+
+    it('should append file path for non-text attachments', () => {
+      const prompt = 'Analyze this image';
+      const attachments: FileAttachment[] = [
+        {
+          id: '1',
+          name: 'photo.png',
+          path: '/path/photo.png',
+          type: 'image',
+          size: 1024,
+        },
+      ];
+      const result = buildPromptWithAttachments(prompt, attachments);
+      expect(result).toContain(prompt);
+      expect(result).toContain('[Attached file: photo.png at /path/photo.png]');
+    });
+  });
+
+  describe('file attachments', () => {
+    it('should have drop zone for drag-and-drop', () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+
+      renderWithRouter(
+        <TaskInputBar
+          value="Review this"
+          onChange={onChange}
+          onSubmit={onSubmit}
+        />
+      );
+
+      expect(screen.getByTestId('task-input-drop-zone')).toBeInTheDocument();
+    });
+
+    it('should call onSubmit with undefined when no attachments', () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+
+      renderWithRouter(
+        <TaskInputBar
+          value="Base prompt"
+          onChange={onChange}
+          onSubmit={onSubmit}
+        />
+      );
+
+      const submitButton = screen.getByTestId('task-input-submit');
+      fireEvent.click(submitButton);
+
+      expect(onSubmit).toHaveBeenCalledWith(undefined);
     });
   });
 });
