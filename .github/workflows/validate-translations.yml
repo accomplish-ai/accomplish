@@ -12,6 +12,9 @@ on:
     paths:
       - 'apps/desktop/locales/**'
 
+permissions:
+  pull-requests: write
+
 jobs:
   validate:
     name: Validate Translation Files
