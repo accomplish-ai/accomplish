@@ -13,6 +13,8 @@ export {
   setAzureFoundryConfig,
   getLMStudioConfig,
   setLMStudioConfig,
+  getCloudBrowserConfig,
+  setCloudBrowserConfig,
   getOpenAiBaseUrl,
   setOpenAiBaseUrl,
   getTheme,

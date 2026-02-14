@@ -24,6 +24,7 @@ import type {
   ToolSupportStatus,
   Skill,
   McpConnector,
+  CloudBrowserConfig,
 } from '@accomplish_ai/agent-core/common';
 
 // Define the API interface
@@ -154,7 +155,12 @@ interface AccomplishAPI {
     enabled: boolean;
     lastValidated?: number;
     models?: Array<{ id: string; name: string; toolSupport: ToolSupportStatus }>;
-  } | null): Promise<void>;
+  } | undefined | null): Promise<void>;
+
+  // Cloud Browser configuration
+  getCloudBrowserConfig(): Promise<CloudBrowserConfig | null>;
+  setCloudBrowserConfig(config: CloudBrowserConfig | null): Promise<void>;
+  testCloudBrowserConnection(providerId: string, apiKey: string, projectId: string): Promise<{ success: boolean; error?: string }>;
 
   // Bedrock configuration
   validateBedrockCredentials(credentials: string): Promise<{ valid: boolean; error?: string }>;
@@ -294,6 +300,13 @@ export function getAccomplish() {
     detectVertexProject: () => window.accomplish!.detectVertexProject(),
 
     listVertexProjects: () => window.accomplish!.listVertexProjects(),
+
+    getCloudBrowserConfig: () => window.accomplish!.getCloudBrowserConfig(),
+
+    setCloudBrowserConfig: (config: CloudBrowserConfig | null) => window.accomplish!.setCloudBrowserConfig(config),
+
+    testCloudBrowserConnection: (providerId: string, apiKey: string, projectId: string) =>
+      window.accomplish!.testCloudBrowserConnection(providerId, apiKey, projectId),
   };
 }
 

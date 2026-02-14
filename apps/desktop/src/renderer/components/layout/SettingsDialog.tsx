@@ -18,6 +18,7 @@ import { ProviderSettingsPanel } from '@/components/settings/ProviderSettingsPan
 import { SpeechSettingsForm } from '@/components/settings/SpeechSettingsForm';
 import { SkillsPanel, AddSkillDropdown } from '@/components/settings/skills';
 import { ConnectorsPanel } from '@/components/settings/connectors';
+import { CloudBrowsersPanel } from '@/components/settings/cloud-browsers';
 import { applyTheme } from '@/lib/theme';
 
 // First 4 providers shown in collapsed view (matches PROVIDER_ORDER in ProviderGrid)
@@ -31,7 +32,7 @@ interface SettingsDialogProps {
   /**
    * Initial tab to show when dialog opens ('providers' or 'voice')
    */
-  initialTab?: 'providers' | 'connectors' | 'voice' | 'skills' | 'appearance' | 'about';
+  initialTab?: 'providers' | 'connectors' | 'cloud-browsers' | 'voice' | 'skills' | 'appearance' | 'about';
 }
 
 export default function SettingsDialog({
@@ -45,7 +46,7 @@ export default function SettingsDialog({
   const [gridExpanded, setGridExpanded] = useState(false);
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'providers' | 'connectors' | 'voice' | 'skills' | 'appearance' | 'about'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'providers' | 'connectors' | 'cloud-browsers' | 'voice' | 'skills' | 'appearance' | 'about'>(initialTab);
   const [appVersion, setAppVersion] = useState<string>('');
   const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
 
@@ -304,61 +305,64 @@ export default function SettingsDialog({
             <div className="flex gap-4">
               <button
                 onClick={() => setActiveTab('providers')}
-                className={`pb-3 px-1 font-medium text-sm transition-colors ${
-                  activeTab === 'providers'
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${activeTab === 'providers'
                     ? 'text-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
                 Providers
               </button>
               <button
                 onClick={() => setActiveTab('connectors')}
-                className={`pb-3 px-1 font-medium text-sm transition-colors ${
-                  activeTab === 'connectors'
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${activeTab === 'connectors'
                     ? 'text-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
                 Connectors
               </button>
               <button
-                onClick={() => setActiveTab('skills')}
-                className={`pb-3 px-1 font-medium text-sm transition-colors ${
-                  activeTab === 'skills'
+                onClick={() => setActiveTab('cloud-browsers')}
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${activeTab === 'cloud-browsers'
                     ? 'text-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
+              >
+                Cloud Browsers
+              </button>
+              <button
+                onClick={() => setActiveTab('skills')}
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${activeTab === 'skills'
+                    ? 'text-foreground border-b-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 Skills
               </button>
               <button
                 onClick={() => setActiveTab('voice')}
-                className={`pb-3 px-1 font-medium text-sm transition-colors ${
-                  activeTab === 'voice'
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${activeTab === 'voice'
                     ? 'text-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
                 Voice Input
               </button>
               <button
                 onClick={() => setActiveTab('appearance')}
-                className={`pb-3 px-1 font-medium text-sm transition-colors ${
-                  activeTab === 'appearance'
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${activeTab === 'appearance'
                     ? 'text-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
                 Appearance
               </button>
               <button
                 onClick={() => setActiveTab('about')}
-                className={`pb-3 px-1 font-medium text-sm transition-colors ${
-                  activeTab === 'about'
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${activeTab === 'about'
                     ? 'text-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
                 About
               </button>
@@ -480,13 +484,12 @@ export default function SettingsDialog({
                             onClick={handleExportLogs}
                             disabled={exportStatus === 'exporting'}
                             title="Export Logs"
-                            className={`rounded-md p-1.5 transition-colors ${
-                              exportStatus === 'success'
+                            className={`rounded-md p-1.5 transition-colors ${exportStatus === 'success'
                                 ? 'text-green-500'
                                 : exportStatus === 'error'
-                                ? 'text-destructive'
-                                : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                                  ? 'text-destructive'
+                                  : 'text-muted-foreground hover:text-foreground'
+                              }`}
                           >
                             {exportStatus === 'exporting' ? (
                               <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -527,6 +530,13 @@ export default function SettingsDialog({
             </div>
           )}
 
+          {/* Cloud Browsers Tab */}
+          {activeTab === 'cloud-browsers' && (
+            <div className="space-y-6">
+              <CloudBrowsersPanel />
+            </div>
+          )}
+
           {/* Skills Tab */}
           {activeTab === 'skills' && (
             <div className="space-y-6">
@@ -537,7 +547,7 @@ export default function SettingsDialog({
           {/* Voice Input Tab */}
           {activeTab === 'voice' && (
             <div className="space-y-6">
-              <SpeechSettingsForm onSave={() => {}} onChange={() => {}} />
+              <SpeechSettingsForm onSave={() => { }} onChange={() => { }} />
             </div>
           )}
 
@@ -555,32 +565,37 @@ export default function SettingsDialog({
                   aria-label="Theme preference"
                 >
                   {([
-                    { value: 'system', label: 'System', icon: (
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
-                      </svg>
-                    )},
-                    { value: 'light', label: 'Light', icon: (
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
-                      </svg>
-                    )},
-                    { value: 'dark', label: 'Dark', icon: (
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
-                      </svg>
-                    )},
+                    {
+                      value: 'system', label: 'System', icon: (
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
+                        </svg>
+                      )
+                    },
+                    {
+                      value: 'light', label: 'Light', icon: (
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+                        </svg>
+                      )
+                    },
+                    {
+                      value: 'dark', label: 'Dark', icon: (
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                        </svg>
+                      )
+                    },
                   ] as const).map((option) => (
                     <button
                       key={option.value}
                       role="radio"
                       aria-checked={theme === option.value}
                       onClick={() => handleThemeChange(option.value)}
-                      className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                        theme === option.value
+                      className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${theme === option.value
                           ? 'bg-background text-foreground shadow-sm'
                           : 'text-muted-foreground hover:text-foreground'
-                      }`}
+                        }`}
                     >
                       {option.icon}
                       {option.label}

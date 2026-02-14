@@ -13,5 +13,8 @@
     "@modelcontextprotocol/sdk": "^1.0.0",
     "tsx": "^4.21.0",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@accomplish/desktop": "file:../../../../apps/desktop"
   }
 }

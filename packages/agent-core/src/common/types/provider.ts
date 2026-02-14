@@ -160,6 +160,26 @@ export interface LMStudioConfig {
   models?: LMStudioModel[];
 }
 
+export type CloudBrowserProviderType = 'browserbase';
+
+export type CloudBrowserStatus = 'connected' | 'disconnected' | 'connecting' | 'error';
+
+export interface CloudBrowserProvider {
+  id: string;
+  name: string;
+  type: CloudBrowserProviderType;
+  apiKey: string;
+  projectId: string;
+  isEnabled: boolean;
+  status: CloudBrowserStatus;
+  lastError?: string;
+  lastValidated?: number;
+}
+
+export interface CloudBrowserConfig {
+  providers: CloudBrowserProvider[];
+}
+
 export const DEFAULT_PROVIDERS: ProviderConfig[] = [
   {
     id: 'anthropic',
