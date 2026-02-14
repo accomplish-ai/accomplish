@@ -7,6 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import * as path from 'path';
 
 // Mock electron — i18n uses app.getAppPath() for locale files and app.getLocale() for system language
 vi.mock('electron', () => ({
@@ -44,7 +45,7 @@ import {
 function mockMultipleLocaleFiles(files: Array<{ lang: string; ns: string; data: Record<string, unknown> }>) {
   const fileMap = new Map<string, string>();
   for (const { lang, ns, data } of files) {
-    fileMap.set(`/mock/desktop/locales/${lang}/${ns}.json`, JSON.stringify(data));
+    fileMap.set(path.join('/mock/desktop', 'locales', lang, `${ns}.json`), JSON.stringify(data));
   }
 
   mockExistsSync.mockImplementation((p: string) => fileMap.has(p));
