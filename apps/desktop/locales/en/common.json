@@ -1,0 +1,63 @@
+{
+  "app": {
+    "name": "Accomplish"
+  },
+  "buttons": {
+    "send": "Send",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "close": "Close",
+    "save": "Save",
+    "delete": "Delete",
+    "deleteAll": "Delete All",
+    "allow": "Allow",
+    "deny": "Deny",
+    "continue": "Continue",
+    "doneContinue": "Done, Continue",
+    "goHome": "Go Home",
+    "startNewTask": "Start New Task",
+    "test": "Test",
+    "testing": "Testing...",
+    "saving": "Saving...",
+    "validating": "Validating...",
+    "export": "Export",
+    "exported": "Exported",
+    "clear": "Clear",
+    "clearAll": "Clear all",
+    "yes": "Yes",
+    "no": "No",
+    "retry": "Retry",
+    "saveApiKey": "Save API Key",
+    "copyToClipboard": "Copy to clipboard",
+    "dismiss": "Dismiss"
+  },
+  "aria": {
+    "scrollToBottom": "Scroll to bottom",
+    "customResponse": "Custom response"
+  },
+  "status": {
+    "running": "Running",
+    "completed": "Completed",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "queued": "Queued",
+    "pending": "Pending",
+    "waiting": "Waiting",
+    "stopped": "Stopped",
+    "interrupted": "Interrupted"
+  },
+  "time": {
+    "justNow": "just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "nav": {
+    "home": "Home",
+    "history": "History",
+    "settings": "Settings"
+  },
+  "messages": "{{count}} messages"
+}

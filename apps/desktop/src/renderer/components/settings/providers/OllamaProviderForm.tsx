@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
@@ -27,10 +28,10 @@ interface OllamaProviderFormProps {
   showModelError: boolean;
 }
 
-function ToolSupportBadge({ status }: { status: ToolSupportStatus }) {
+function ToolSupportBadge({ status, t }: { status: ToolSupportStatus; t: (key: string) => string }) {
   const config = {
     supported: {
-      label: 'Tools',
+      label: t('toolBadge.supported'),
       className: 'bg-green-500/20 text-green-400 border-green-500/30',
       icon: (
         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -39,7 +40,7 @@ function ToolSupportBadge({ status }: { status: ToolSupportStatus }) {
       ),
     },
     unsupported: {
-      label: 'No Tools',
+      label: t('toolBadge.unsupported'),
       className: 'bg-red-500/20 text-red-400 border-red-500/30',
       icon: (
         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -48,7 +49,7 @@ function ToolSupportBadge({ status }: { status: ToolSupportStatus }) {
       ),
     },
     unknown: {
-      label: 'Unknown',
+      label: t('toolBadge.unknown'),
       className: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
       icon: (
         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -79,6 +80,7 @@ function OllamaModelSelector({
   onChange: (modelId: string) => void;
   error: boolean;
 }) {
+  const { t } = useTranslation('settings');
   const sortedModels = [...models].sort((a, b) => {
     const order: Record<ToolSupportStatus, number> = { supported: 0, unknown: 1, unsupported: 2 };
     const aOrder = order[a.toolSupport || 'unknown'];
@@ -114,8 +116,8 @@ function OllamaModelSelector({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div>
-            <p className="font-medium">This model does not support tool/function calling</p>
-            <p className="text-red-400/80 mt-1">Tasks requiring browser automation or file operations will not work correctly.</p>
+            <p className="font-medium">{t('common.toolUnsupported')}</p>
+            <p className="text-red-400/80 mt-1">{t('common.toolUnsupportedDetail')}</p>
           </div>
         </div>
       )}
@@ -126,8 +128,8 @@ function OllamaModelSelector({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <p className="font-medium">Tool support could not be verified</p>
-            <p className="text-yellow-400/80 mt-1">This model may or may not support tool/function calling. Test it to confirm.</p>
+            <p className="font-medium">{t('common.toolUnknown')}</p>
+            <p className="text-yellow-400/80 mt-1">{t('common.toolUnknownDetail')}</p>
           </div>
         </div>
       )}
@@ -142,6 +144,7 @@ export function OllamaProviderForm({
   onModelChange,
   showModelError,
 }: OllamaProviderFormProps) {
+  const { t } = useTranslation('settings');
   const [serverUrl, setServerUrl] = useState('http://localhost:11434');
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -158,7 +161,7 @@ export function OllamaProviderForm({
       const result = await accomplish.testOllamaConnection(serverUrl);
 
       if (!result.success) {
-        setError(result.error || 'Connection failed');
+        setError(result.error || t('status.connectionFailed'));
         setConnecting(false);
         return;
       }
@@ -188,7 +191,7 @@ export function OllamaProviderForm({
 
       onConnect(provider);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connection failed');
+      setError(err instanceof Error ? err.message : t('status.connectionFailed'));
     } finally {
       setConnecting(false);
     }
@@ -202,7 +205,7 @@ export function OllamaProviderForm({
 
   return (
     <div className="rounded-xl border border-border bg-card p-5" data-testid="provider-settings-panel">
-      <ProviderFormHeader logoSrc={ollamaLogo} providerName="Ollama" invertInDark />
+      <ProviderFormHeader logoSrc={ollamaLogo} providerName={t('providers.ollama')} invertInDark />
 
       <div className="space-y-3">
         <AnimatePresence mode="wait">
@@ -217,7 +220,7 @@ export function OllamaProviderForm({
               className="space-y-3"
             >
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Ollama Server URL</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">{t('ollama.serverUrl')}</label>
                 <input
                   type="text"
                   value={serverUrl}
@@ -242,7 +245,7 @@ export function OllamaProviderForm({
               className="space-y-3"
             >
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Ollama Server URL</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">{t('ollama.serverUrl')}</label>
                 <input
                   type="text"
                   value={(connectedProvider?.credentials as OllamaCredentials)?.serverUrl || 'http://localhost:11434'}
@@ -262,8 +265,8 @@ export function OllamaProviderForm({
 
               <div className="flex items-center gap-3 pt-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <ToolSupportBadge status="supported" />
-                  <span>Function calling verified</span>
+                  <ToolSupportBadge status="supported" t={t} />
+                  <span>{t('common.functionCallingVerified')}</span>
                 </span>
               </div>
             </motion.div>

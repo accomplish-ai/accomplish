@@ -140,10 +140,6 @@ export async function buildProviderConfigs(
   if (ollamaProvider?.connectionStatus === 'connected' && ollamaProvider.credentials.type === 'ollama') {
     if (ollamaProvider.selectedModelId) {
       const modelId = ollamaProvider.selectedModelId.replace(/^ollama\//, '');
-      const ollamaModelInfo = ollamaProvider.availableModels?.find(
-        m => m.id === ollamaProvider.selectedModelId || m.id === modelId
-      );
-      const ollamaSupportsTools = (ollamaModelInfo as { toolSupport?: string })?.toolSupport === 'supported';
       providerConfigs.push({
         id: 'ollama',
         npm: '@ai-sdk/openai-compatible',
@@ -152,10 +148,10 @@ export async function buildProviderConfigs(
           baseURL: `${ollamaProvider.credentials.serverUrl}/v1`,
         },
         models: {
-          [modelId]: { name: modelId, tools: ollamaSupportsTools },
+          [modelId]: { name: modelId, tools: true },
         },
       });
-      console.log(`[OpenCode Config Builder] Ollama configured: ${modelId} (tools: ${ollamaSupportsTools})`);
+      console.log('[OpenCode Config Builder] Ollama configured:', modelId);
     }
   } else {
     const ollamaConfig = getOllamaConfig();
@@ -163,9 +159,7 @@ export async function buildProviderConfigs(
     if (ollamaConfig?.enabled && ollamaModels && ollamaModels.length > 0) {
       const models: Record<string, ProviderModelConfig> = {};
       for (const model of ollamaModels) {
-        // Respect toolSupport when available; default to true for legacy configs without it
-        const legacyToolSupport = model.toolSupport === 'supported' || model.toolSupport === undefined;
-        models[model.id] = { name: model.displayName, tools: legacyToolSupport };
+        models[model.id] = { name: model.displayName, tools: true };
       }
       providerConfigs.push({
         id: 'ollama',

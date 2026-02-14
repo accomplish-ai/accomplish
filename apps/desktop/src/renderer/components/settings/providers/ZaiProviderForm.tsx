@@ -1,6 +1,7 @@
 // apps/desktop/src/renderer/components/settings/providers/ZaiProviderForm.tsx
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
@@ -31,6 +32,7 @@ export function ZaiProviderForm({
   onModelChange,
   showModelError,
 }: ZaiProviderFormProps) {
+  const { t } = useTranslation('settings');
   const [apiKey, setApiKey] = useState('');
   const [region, setRegion] = useState<ZaiRegion>('international');
   const [connecting, setConnecting] = useState(false);
@@ -69,7 +71,7 @@ export function ZaiProviderForm({
 
   const handleConnect = async () => {
     if (!apiKey.trim()) {
-      setError('Please enter an API key');
+      setError(t('apiKey.enterKeyRequired'));
       return;
     }
 
@@ -81,7 +83,7 @@ export function ZaiProviderForm({
       const validation = await accomplish.validateApiKeyForProvider('zai', apiKey.trim(), { region });
 
       if (!validation.valid) {
-        setError(validation.error || 'Invalid API key');
+        setError(validation.error || t('apiKey.invalidKey'));
         setConnecting(false);
         return;
       }
@@ -118,7 +120,7 @@ export function ZaiProviderForm({
       onConnect(provider);
       setApiKey('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connection failed');
+      setError(err instanceof Error ? err.message : t('status.connectionFailed'));
     } finally {
       setConnecting(false);
     }
@@ -142,7 +144,7 @@ export function ZaiProviderForm({
             >
               {/* Region Selector */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Region</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">{t('zai.region')}</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -154,7 +156,7 @@ export function ZaiProviderForm({
                         : 'bg-muted text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    China
+                    {t('zai.china')}
                   </button>
                   <button
                     type="button"
@@ -166,7 +168,7 @@ export function ZaiProviderForm({
                         : 'bg-muted text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    International
+                    {t('zai.international')}
                   </button>
                 </div>
               </div>
@@ -174,7 +176,7 @@ export function ZaiProviderForm({
               {/* API Key Section */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-foreground">API Key</label>
+                  <label className="text-sm font-medium text-foreground">{t('apiKey.title')}</label>
                   {meta.helpUrl && (
                     <a
                       href={meta.helpUrl}
@@ -182,7 +184,7 @@ export function ZaiProviderForm({
                       rel="noopener noreferrer"
                       className="text-sm text-muted-foreground hover:text-primary underline"
                     >
-                      How can I find it?
+                      {t('help.findApiKey')}
                     </a>
                   )}
                 </div>
@@ -191,7 +193,7 @@ export function ZaiProviderForm({
                     type="password"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Enter API Key"
+                    placeholder={t('apiKey.enterKey')}
                     disabled={connecting}
                     data-testid="api-key-input"
                     className="flex-1 rounded-md border border-input bg-background px-3 py-2.5 text-sm disabled:opacity-50"
@@ -224,10 +226,10 @@ export function ZaiProviderForm({
             >
               {/* Display stored region */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Region</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">{t('zai.region')}</label>
                 <input
                   type="text"
-                  value={storedCredentials?.region === 'china' ? 'China' : 'International'}
+                  value={storedCredentials?.region === 'china' ? t('zai.china') : t('zai.international')}
                   disabled
                   className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />
@@ -235,10 +237,10 @@ export function ZaiProviderForm({
 
               {/* Display stored API key */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">API Key</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">{t('apiKey.title')}</label>
                 <input
                   type="text"
-                  value={storedCredentials?.keyPrefix || 'API key saved'}
+                  value={storedCredentials?.keyPrefix || t('zai.apiKeySaved')}
                   disabled
                   data-testid="api-key-display"
                   className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"

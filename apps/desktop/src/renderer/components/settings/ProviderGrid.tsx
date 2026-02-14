@@ -1,6 +1,7 @@
 // apps/desktop/src/renderer/components/settings/ProviderGrid.tsx
 
 import { useState, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ProviderId, ProviderSettings } from '@accomplish_ai/agent-core/common';
 import { PROVIDER_META } from '@accomplish_ai/agent-core/common';
@@ -41,6 +42,7 @@ export function ProviderGrid({
   expanded,
   onToggleExpanded,
 }: ProviderGridProps) {
+  const { t } = useTranslation('settings');
   const [search, setSearch] = useState('');
 
   const filteredProviders = useMemo(() => {
@@ -56,7 +58,7 @@ export function ProviderGrid({
     <div className="rounded-xl border border-border bg-provider-bg p-4" data-testid="provider-grid">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <span className="text-sm font-medium text-foreground">Providers</span>
+        <span className="text-sm font-medium text-foreground">{t('providers.title')}</span>
         <div className="relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -65,7 +67,7 @@ export function ProviderGrid({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search Providers"
+            placeholder={t('providers.search')}
             data-testid="provider-search-input"
             className="w-48 rounded-md border border-input bg-background pl-9 pr-3 py-1.5 text-sm"
           />
@@ -133,7 +135,7 @@ export function ProviderGrid({
           className="text-sm text-muted-foreground hover:text-foreground font-medium"
           data-testid="show-all-toggle"
         >
-          {expanded ? 'Hide' : 'Show All'}
+          {expanded ? t('providers.hide') : t('providers.showAll')}
         </button>
       </div>
     </div>

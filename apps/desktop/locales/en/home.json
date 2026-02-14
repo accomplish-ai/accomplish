@@ -1,0 +1,52 @@
+{
+  "title": "What will you accomplish today?",
+  "inputPlaceholder": "Describe a task and let AI handle the rest",
+  "examplePrompts": "Example prompts",
+  "useCases": {
+    "calendarPrepNotes": {
+      "title": "Calendar Prep Notes",
+      "description": "Review tomorrow's meetings and draft a prep notes doc.",
+      "prompt": "Check my Google Calendar for tomorrow's meetings and draft preparation notes in a new Google Doc."
+    },
+    "inboxPromoCleanup": {
+      "title": "Inbox Promo Cleanup",
+      "description": "Clear promotional emails from the last 24 hours.",
+      "prompt": "Go to my Gmail inbox and delete all promotional emails from the last 24 hours."
+    },
+    "competitorPricingDeck": {
+      "title": "Competitor Pricing Deck",
+      "description": "Analyze competitor pricing and draft a slide with recommendations.",
+      "prompt": "Pull pricing and features from these 5 competitor sites [list URLs], save to a CSV, analyze our pricing gaps, and draft a recommendation slide in Google Slides for Monday's meeting."
+    },
+    "notionApiAudit": {
+      "title": "Notion API Audit",
+      "description": "Scan a Notion wiki for old API mentions with direct links.",
+      "prompt": "Read through this Notion wiki at [URL] and find all mentions of the old API, listing them with page links."
+    },
+    "stagingVsProdVisual": {
+      "title": "Staging vs Prod Visual Check",
+      "description": "Compare staging and production visuals with screenshots.",
+      "prompt": "Compare my staging site at [URL] to production at [URL] and screenshot any visual differences."
+    },
+    "prodBrokenLinks": {
+      "title": "Production Broken Links",
+      "description": "Check my website for broken links.",
+      "prompt": "Open [URL], click through every link, and report any 404 errors."
+    },
+    "portfolioMonitoring": {
+      "title": "Portfolio Monitoring",
+      "description": "Watch stock prices, and alert on drops and spikes.",
+      "prompt": "Monitor my stock portfolio on [broker site], alert on price drops and spikes."
+    },
+    "jobApplicationAutomation": {
+      "title": "Job Application Automation",
+      "description": "Filter jobs and submit applications with saved profiles.",
+      "prompt": "Find job listings from Indeed for [query], sort by salary, and apply to the top 5 using my profile."
+    },
+    "eventCalendarBuilder": {
+      "title": "Event Calendar Builder",
+      "description": "Select top events and add them to the calendar.",
+      "prompt": "Scrape event listings from Eventbrite, filter by location, and add top 5 to my calendar."
+    }
+  }
+}

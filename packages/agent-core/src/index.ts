@@ -112,8 +112,6 @@ export {
   ACCOMPLISH_AGENT_NAME,
 } from './opencode/config-generator.js';
 
-export type { BrowserConfig } from './opencode/config-generator.js';
-
 export { buildOpenCodeEnvironment } from './opencode/environment.js';
 
 export type { EnvironmentConfig } from './opencode/environment.js';
@@ -136,6 +134,14 @@ export {
 
 // Errors
 export { FutureSchemaError } from './storage/migrations/errors.js';
+
+// i18n language settings (standalone, not on StorageAPI)
+export {
+  getLanguage,
+  setLanguage,
+  type UILanguage,
+} from './storage/repositories/appSettings.js';
+
 
 // -----------------------------------------------------------------------------
 // Providers Module (from ./providers/)

@@ -64,6 +64,7 @@ const mockAccomplish = {
   getTheme: vi.fn().mockResolvedValue('system'),
   setTheme: vi.fn().mockResolvedValue(undefined),
   onThemeChange: vi.fn().mockReturnValue(() => {}),
+  fetchProviderModels: vi.fn().mockResolvedValue({ success: true, models: [] }),
 };
 
 // Mock the accomplish module

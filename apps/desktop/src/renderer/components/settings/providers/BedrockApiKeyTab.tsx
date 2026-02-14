@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { RegionSelector } from '../shared';
 
 interface BedrockApiKeyTabProps {
@@ -13,18 +14,19 @@ export function BedrockApiKeyTab({
   onApiKeyChange,
   onRegionChange,
 }: BedrockApiKeyTabProps) {
+  const { t } = useTranslation('settings');
   return (
     <>
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-medium text-foreground">API Key</label>
+          <label className="text-sm font-medium text-foreground">{t('bedrockApiKey.label')}</label>
           <a
             href="https://console.aws.amazon.com/bedrock/home#/api-keys"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-muted-foreground hover:text-primary"
           >
-            How to get it?
+            {t('bedrockApiKey.howToGetIt')}
           </a>
         </div>
         <div className="relative">
@@ -32,7 +34,7 @@ export function BedrockApiKeyTab({
             type="password"
             value={apiKey}
             onChange={(e) => onApiKeyChange(e.target.value)}
-            placeholder="Enter Bedrock API key"
+            placeholder={t('bedrockApiKey.placeholder')}
             data-testid="bedrock-api-key-input"
             className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm pr-10"
           />

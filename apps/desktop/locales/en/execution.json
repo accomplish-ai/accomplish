@@ -1,0 +1,98 @@
+{
+  "status": {
+    "queued": "Queued",
+    "running": "Running",
+    "completed": "Completed",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "stopped": "Stopped"
+  },
+  "waiting": {
+    "title": "Waiting for another task",
+    "description": "Your task is queued and will start automatically when the current task completes.",
+    "followUpDescription": "Your follow-up will continue automatically"
+  },
+  "thinking": "Thinking...",
+  "thinkingPhrases": {
+    "doing": "Doing...",
+    "executing": "Executing...",
+    "running": "Running...",
+    "handling": "Handling it...",
+    "accomplishing": "Accomplishing..."
+  },
+  "loadingAgent": "Loading agent...",
+  "waitingForResponse": "Waiting for response...",
+  "connectingToModel": "Connecting to {{modelName}}...",
+  "coldStartHint": "First task takes a bit longer...",
+  "agentWorking": "Agent is working...",
+  "stopAgent": "Stop agent (Ctrl+C)",
+  "followUp": {
+    "interruptedPlaceholder": "Give new instructions...",
+    "noSessionPlaceholder": "Send a new instruction to retry...",
+    "completedPlaceholder": "Give new instructions...",
+    "defaultPlaceholder": "Ask for something..."
+  },
+  "taskStatus": "Task {{status}}",
+  "processing": "Processing",
+  "system": "System",
+  "copyToClipboard": "Copy to clipboard",
+  "permission": {
+    "title": "Permission Required",
+    "fileTitle": "File Permission Required",
+    "fileDeleteTitle": "File Deletion Warning",
+    "questionTitle": "Question",
+    "toolQuestion": "Allow {{toolName}}?",
+    "tool": "Tool",
+    "previewContent": "Preview content",
+    "backToOptions": "← Back to options",
+    "typeResponse": "Type your response...",
+    "orTypeOwn": "or type your own",
+    "enterDifferentOption": "Enter a different option...",
+    "cannotBeUndone": "This action cannot be undone.",
+    "deleteWarningSingle": "This file will be permanently deleted:",
+    "deleteWarningMultiple": "{{count}} files will be permanently deleted:",
+    "operations": {
+      "delete": "DELETE",
+      "overwrite": "OVERWRITE",
+      "modify": "MODIFY",
+      "create": "CREATE",
+      "rename": "RENAME",
+      "move": "MOVE"
+    }
+  },
+  "browserInstall": {
+    "title": "Chrome not installed",
+    "description": "Installing browser for automation...",
+    "downloading": "Downloading...",
+    "oneTimeSetup": "One-time setup (~250 MB total)"
+  },
+  "debug": {
+    "title": "Debug Logs",
+    "noLogs": "No debug logs yet. Run a task to see logs."
+  },
+  "browserScript": {
+    "title": "Browser Actions",
+    "actions": {
+      "navigateTo": "Navigate to {{hostname}}",
+      "navigate": "Navigate",
+      "fill": "Fill \"{{text}}\"",
+      "fillField": "Fill field",
+      "click": "Click {{target}}",
+      "press": "Press {{key}}",
+      "capturePage": "Capture page",
+      "screenshot": "Screenshot",
+      "waitForElement": "Wait for element",
+      "waitForPage": "Wait for page",
+      "waitForNavigation": "Wait for navigation",
+      "runScript": "Run script"
+    },
+    "showMore": "+{{count}} more",
+    "showLess": "Show less",
+    "showFewerActions": "Show fewer actions",
+    "showMoreActions": "Show {{count}} more actions"
+  },
+  "todos": {
+    "title": "Tasks",
+    "progress": "{{completed}} of {{total}}"
+  }
+}

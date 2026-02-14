@@ -349,6 +349,7 @@ describe('Execution Page Integration', () => {
           type: 'tool',
           content: 'Reading files',
           toolName: 'Read',
+          toolInput: { _toolDisplayName: 'Reading files' },
           timestamp: new Date().toISOString(),
         },
       ];
@@ -978,7 +979,7 @@ describe('Execution Page Integration', () => {
       fireEvent.click(continueButton);
 
       await waitFor(() => {
-        expect(mockSendFollowUp).toHaveBeenCalledWith('continue');
+        expect(mockSendFollowUp).toHaveBeenCalledWith('Continue');
       });
     });
   });
@@ -1016,6 +1017,7 @@ describe('Execution Page Integration', () => {
           type: 'tool',
           content: 'Finding files',
           toolName: 'Glob',
+          toolInput: { _toolDisplayName: 'Finding files' },
           timestamp: new Date().toISOString(),
         },
       ];
@@ -1033,6 +1035,7 @@ describe('Execution Page Integration', () => {
           type: 'tool',
           content: 'Searching code',
           toolName: 'Grep',
+          toolInput: { _toolDisplayName: 'Searching code' },
           timestamp: new Date().toISOString(),
         },
       ];
@@ -1050,6 +1053,7 @@ describe('Execution Page Integration', () => {
           type: 'tool',
           content: 'Writing file',
           toolName: 'Write',
+          toolInput: { _toolDisplayName: 'Writing file' },
           timestamp: new Date().toISOString(),
         },
       ];
@@ -1067,6 +1071,7 @@ describe('Execution Page Integration', () => {
           type: 'tool',
           content: 'Editing file',
           toolName: 'Edit',
+          toolInput: { _toolDisplayName: 'Editing file' },
           timestamp: new Date().toISOString(),
         },
       ];
@@ -1084,6 +1089,7 @@ describe('Execution Page Integration', () => {
           type: 'tool',
           content: 'Running agent',
           toolName: 'Task',
+          toolInput: { _toolDisplayName: 'Running agent' },
           timestamp: new Date().toISOString(),
         },
       ];
@@ -1101,6 +1107,7 @@ describe('Execution Page Integration', () => {
           type: 'tool',
           content: 'Executing browser action',
           toolName: 'dev_browser_execute',
+          toolInput: { _toolDisplayName: 'Executing browser action' },
           timestamp: new Date().toISOString(),
         },
       ];

@@ -36,6 +36,9 @@ import {
   getBedrockCredentials,
 } from '../store/secureStorage';
 import {
+  getLanguage,
+  setLanguage,
+  type UILanguage,
   testOllamaModelToolSupport,
   testOllamaConnection,
   testLMStudioConnection,
@@ -99,6 +102,14 @@ import {
   detectScenarioFromPrompt,
 } from '../test-utils/mock-task-flow';
 import { skillsManager } from '../skills';
+import {
+  initializeI18n,
+  getLanguage as getI18nLanguage,
+  setLanguage as setI18nLanguage,
+  getAllTranslations,
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguage,
+} from '../i18n';
 import { registerVertexHandlers } from '../providers';
 
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
@@ -950,6 +961,64 @@ export function registerIPCHandlers(): void {
       throw error;
     }
   });
+
+  // ==================== i18n Handlers ====================
+
+  // Initialize i18n with stored language preference
+  const storedLanguagePref = getLanguage();
+  initializeI18n(storedLanguagePref === 'auto' ? null : storedLanguagePref);
+
+  handle('i18n:get-language', async (_event: IpcMainInvokeEvent) => {
+    return getLanguage();
+  });
+
+  handle('i18n:set-language', async (_event: IpcMainInvokeEvent, language: UILanguage) => {
+    if (language !== 'auto' && !SUPPORTED_LANGUAGES.includes(language as SupportedLanguage)) {
+      throw new Error('Unsupported language');
+    }
+    setLanguage(language);
+
+    if (language === 'auto') {
+      initializeI18n(null);
+    } else {
+      setI18nLanguage(language as SupportedLanguage);
+    }
+
+    const resolvedLanguage = getI18nLanguage();
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.send('i18n:language-changed', {
+        language,
+        resolvedLanguage,
+      });
+    }
+
+    console.log(`[i18n] Language set to: ${language} (resolved: ${resolvedLanguage})`);
+  });
+
+  handle('i18n:get-translations', async (_event: IpcMainInvokeEvent, language?: string) => {
+    let targetLanguage: SupportedLanguage;
+
+    if (language && SUPPORTED_LANGUAGES.includes(language as SupportedLanguage)) {
+      targetLanguage = language as SupportedLanguage;
+    } else {
+      targetLanguage = getI18nLanguage();
+    }
+
+    return {
+      language: targetLanguage,
+      translations: getAllTranslations(targetLanguage),
+    };
+  });
+
+  handle('i18n:get-supported-languages', async (_event: IpcMainInvokeEvent) => {
+    return SUPPORTED_LANGUAGES;
+  });
+
+  handle('i18n:get-resolved-language', async (_event: IpcMainInvokeEvent) => {
+    return getI18nLanguage();
+  });
+
+  // ==================== End i18n Handlers ====================
 
   handle(
     'log:event',

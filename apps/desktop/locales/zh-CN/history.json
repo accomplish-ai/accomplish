@@ -1,0 +1,8 @@
+{
+  "title": "任务历史",
+  "recentTasks": "最近任务",
+  "noTasks": "暂无任务。请描述您想完成的事情开始使用。",
+  "viewAll": "查看全部 {{count}} 个任务",
+  "confirmClear": "确定要清除所有任务历史吗？",
+  "confirmDelete": "删除此任务？"
+}

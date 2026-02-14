@@ -1,5 +1,6 @@
 // apps/desktop/src/renderer/components/settings/ProviderSettingsPanel.tsx
 
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ProviderId, ConnectedProvider } from '@accomplish_ai/agent-core/common';
 import { PROVIDER_META } from '@accomplish_ai/agent-core/common';
@@ -33,6 +34,7 @@ export function ProviderSettingsPanel({
   onModelChange,
   showModelError,
 }: ProviderSettingsPanelProps) {
+  const { t } = useTranslation('settings');
   const meta = PROVIDER_META[providerId];
 
 
@@ -145,7 +147,7 @@ export function ProviderSettingsPanel({
         );
 
       default:
-        return <div>Unknown provider type</div>;
+        return <div>{t('providers.unknownType')}</div>;
     }
   };
 

@@ -25,6 +25,18 @@ pnpm lint         # Run linting
 - Use meaningful variable and function names
 - Keep functions focused and small
 
+## Contributing Translations
+
+When adding UI text:
+1. Add English to `apps/desktop/locales/en/*.json`
+2. Use `t('key')` in components
+3. Run `pnpm i18n:sync` to auto-translate
+4. Commit all translation files together
+
+See [Translation Guide](scripts/README-i18n.md) for details.
+
+**Native speakers welcome!** Help improve translations by [opening an issue](https://github.com/accomplish-ai/accomplish/issues/new) with suggestions, or edit `locales/{language-code}/*.json` files directly.
+
 ## Pull Request Process
 
 1. Ensure your code builds without errors (`pnpm build`)

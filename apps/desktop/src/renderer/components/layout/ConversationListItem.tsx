@@ -1,6 +1,7 @@
 'use client';
 
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { Task } from '@accomplish_ai/agent-core/common';
 import { cn } from '@/lib/utils';
 import { Loader2, CheckCircle2, XCircle, Clock, Square, PauseCircle, X } from 'lucide-react';
@@ -13,6 +14,7 @@ interface ConversationListItemProps {
 export default function ConversationListItem({ task }: ConversationListItemProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation('sidebar');
   const isActive = location.pathname === `/execution/${task.id}`;
   const deleteTask = useTaskStore((state) => state.deleteTask);
 
@@ -23,7 +25,7 @@ export default function ConversationListItem({ task }: ConversationListItemProps
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (!window.confirm('Are you sure you want to delete this task?')) {
+    if (!window.confirm(t('confirmDelete'))) {
       return;
     }
 
@@ -83,7 +85,7 @@ export default function ConversationListItem({ task }: ConversationListItemProps
           'text-zinc-400 hover:text-red-600 dark:hover:text-red-400',
           'shrink-0'
         )}
-        aria-label="Delete task"
+        aria-label={t('deleteTask')}
       >
         <X className="h-3 w-3" />
       </button>

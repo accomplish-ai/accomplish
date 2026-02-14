@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getAccomplish } from '../../lib/accomplish';
 import { CornerDownLeft, Loader2, AlertCircle } from 'lucide-react';
 import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
@@ -47,7 +48,7 @@ export default function TaskInputBar({
   value,
   onChange,
   onSubmit,
-  placeholder = 'Assign a task or ask anything',
+  placeholder,
   isLoading = false,
   disabled = false,
   large = false,
@@ -58,6 +59,7 @@ export default function TaskInputBar({
   hideModelWhenNoModel = false,
   autoSubmitOnTranscription = true,
 }: TaskInputBarProps) {
+  const { t } = useTranslation('common');
   const isDisabled = disabled || isLoading;
   const isOverLimit = value.length > PROMPT_DEFAULT_MAX_LENGTH;
   const canSubmit = !!value.trim() && !isDisabled && !isOverLimit;
@@ -152,7 +154,7 @@ export default function TaskInputBar({
                 className="ml-2 underline hover:no-underline"
                 type="button"
               >
-                Retry
+                {t('buttons.retry')}
               </button>
             )}
           </AlertDescription>
@@ -221,7 +223,7 @@ export default function TaskInputBar({
               <button
                 data-testid="task-input-submit"
                 type="button"
-                aria-label="Submit"
+                aria-label={t('buttons.submit')}
                 onClick={() => {
                   accomplish.logEvent({
                     level: 'info',

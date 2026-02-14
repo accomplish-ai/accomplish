@@ -1,0 +1,98 @@
+{
+  "status": {
+    "queued": "排队中",
+    "running": "运行中",
+    "completed": "已完成",
+    "failed": "失败",
+    "cancelled": "已取消",
+    "stopped": "已停止"
+  },
+  "waiting": {
+    "title": "等待其他任务完成",
+    "description": "您的任务已排队，将在当前任务完成后自动开始。",
+    "followUpDescription": "您的后续操作将自动继续"
+  },
+  "thinking": "思考中...",
+  "thinkingPhrases": {
+    "doing": "执行中...",
+    "executing": "运行中...",
+    "running": "处理中...",
+    "handling": "处理中...",
+    "accomplishing": "完成中..."
+  },
+  "coldStartHint": "首次任务需要更长时间...",
+  "agentWorking": "智能体工作中...",
+  "stopAgent": "停止智能体 (Ctrl+C)",
+  "followUp": {
+    "interruptedPlaceholder": "输入新指令...",
+    "noSessionPlaceholder": "发送新指令重试...",
+    "completedPlaceholder": "输入新指令...",
+    "defaultPlaceholder": "输入内容..."
+  },
+  "taskStatus": "任务{{status}}",
+  "processing": "处理中",
+  "system": "系统",
+  "permission": {
+    "title": "需要权限",
+    "fileTitle": "需要文件权限",
+    "fileDeleteTitle": "文件删除警告",
+    "questionTitle": "问题",
+    "toolQuestion": "允许 {{toolName}}？",
+    "tool": "工具",
+    "previewContent": "预览内容",
+    "backToOptions": "← 返回选项",
+    "typeResponse": "输入您的回复...",
+    "orTypeOwn": "或输入自定义内容",
+    "deleteWarningSingle": "此文件将被永久删除：",
+    "deleteWarningMultiple": "{{count}} 个文件将被永久删除：",
+    "operations": {
+      "delete": "删除",
+      "overwrite": "覆盖",
+      "modify": "修改",
+      "create": "创建",
+      "rename": "重命名",
+      "move": "移动"
+    },
+    "enterDifferentOption": "输入其他选项...",
+    "cannotBeUndone": "此操作无法撤销。"
+  },
+  "browserInstall": {
+    "title": "Chrome 未安装",
+    "description": "正在安装自动化浏览器...",
+    "downloading": "下载中...",
+    "oneTimeSetup": "一次性安装（约 250 MB）"
+  },
+  "debug": {
+    "title": "调试日志",
+    "noLogs": "暂无调试日志。运行任务后将显示日志。"
+  },
+  "browserScript": {
+    "title": "浏览器操作",
+    "actions": {
+      "navigateTo": "导航到 {{hostname}}",
+      "navigate": "导航",
+      "fill": "填写 \"{{text}}\"",
+      "fillField": "填写字段",
+      "click": "点击 {{target}}",
+      "press": "按 {{key}}",
+      "capturePage": "捕获页面",
+      "screenshot": "截图",
+      "waitForElement": "等待元素",
+      "waitForPage": "等待页面",
+      "waitForNavigation": "等待导航",
+      "runScript": "运行脚本"
+    },
+    "showMore": "+{{count}} 更多",
+    "showLess": "收起",
+    "showFewerActions": "显示更少操作",
+    "showMoreActions": "显示 {{count}} 更多操作"
+  },
+  "loadingAgent": "正在加载代理...",
+  "waitingForResponse": "等待响应中...",
+  "connectingToModel": "正在连接到 {{modelName}}...",
+  "todos": {
+    "title": "任务",
+    "progress": "{{completed}} / {{total}}"
+  },
+  "copyToClipboard": "复制到剪贴板"
+}
