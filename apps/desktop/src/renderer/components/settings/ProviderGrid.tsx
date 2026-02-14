@@ -24,6 +24,10 @@ const PROVIDER_ORDER: ProviderId[] = [
   'openrouter',
   'litellm',
   'minimax',
+  'groq',
+  'together',
+  'fireworks',
+  'nebius',
 ];
 
 interface ProviderGridProps {

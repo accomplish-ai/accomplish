@@ -31,6 +31,10 @@ const PROVIDER_COLORS: Record<string, string> = {
   lmstudio: 'bg-[#3B82F6]',  // Blue
   'azure-foundry': 'bg-[#0078D4]', // Azure blue
   custom: 'bg-[#6B7280]',    // Gray
+  groq: 'bg-[#7C3AED]',      // Violet
+  together: 'bg-[#0EA5E9]',  // Sky blue
+  fireworks: 'bg-[#F59E0B]', // Amber
+  nebius: 'bg-[#10B981]',    // Emerald
 };
 
 /**
@@ -52,6 +56,10 @@ const PROVIDER_INITIALS: Record<string, string> = {
   lmstudio: 'L',
   'azure-foundry': 'A',
   custom: 'C',
+  groq: 'G',
+  together: 'T',
+  fireworks: 'F',
+  nebius: 'N',
 };
 
 const SIZE_CLASSES = {

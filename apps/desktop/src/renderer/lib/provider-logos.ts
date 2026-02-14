@@ -31,6 +31,10 @@ export const PROVIDER_LOGOS: Record<ProviderId, string> = {
   litellm: litellmLogo,
   minimax: minimaxLogo,
   lmstudio: lmstudioLogo,
+  groq: openrouterLogo,
+  together: openrouterLogo,
+  fireworks: openrouterLogo,
+  nebius: openrouterLogo,
 };
 
 export const DARK_INVERT_PROVIDERS = new Set<ProviderId>(['openai', 'xai', 'ollama', 'openrouter']);
