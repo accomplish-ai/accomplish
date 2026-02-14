@@ -1,4 +1,4 @@
-import { chromium, type Browser, type Page } from 'playwright';
+import { chromium, type Browser, type Page, type CDPSession } from 'playwright';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -18,6 +18,12 @@ export interface ConnectionConfig {
   taskId: string;
 }
 
+interface PageSessionState {
+  page: Page;
+  cdpSession: CDPSession | null;
+  screencastActive: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // Shared state
 // ---------------------------------------------------------------------------
@@ -26,6 +32,7 @@ let browser: Browser | null = null;
 let connectingPromise: Promise<Browser> | null = null;
 let cachedServerMode: string | null = null;
 const localPageRegistry = new Map<string, Page>();
+const pageSessionRegistry = new Map<string, PageSessionState>();
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -122,11 +129,35 @@ export async function closePage(pageName: string): Promise<boolean> {
   return closePageBuiltin(pageName);
 }
 
+export async function getCDPSession(pageName?: string): Promise<CDPSession> {
+  const fullName = getFullPageName(pageName);
+  let state = pageSessionRegistry.get(fullName);
+
+  if (!state || state.page.isClosed()) {
+    pageSessionRegistry.delete(fullName);
+    const page = await getPage(pageName);
+    const context = page.context();
+    const cdpSession = await context.newCDPSession(page);
+    state = { page, cdpSession, screencastActive: false };
+    pageSessionRegistry.set(fullName, state);
+  }
+
+  if (!state.cdpSession) {
+    const page = state.page;
+    const context = page.context();
+    const cdpSession = await context.newCDPSession(page);
+    state.cdpSession = cdpSession;
+  }
+
+  return state.cdpSession;
+}
+
 export function resetConnection(): void {
   browser = null;
   connectingPromise = null;
   cachedServerMode = null;
   localPageRegistry.clear();
+  pageSessionRegistry.clear();
 }
 
 // ---------------------------------------------------------------------------
@@ -301,6 +332,15 @@ async function getPageRemote(pageName?: string): Promise<Page> {
 
   page.on('close', () => {
     localPageRegistry.delete(fullName);
+
+    // Detach any CDP session for this page to avoid leaking sessions after close
+    const state = pageSessionRegistry.get(fullName);
+    if (state && state.cdpSession) {
+      try {
+        state.cdpSession.detach().catch(() => {});
+      } catch {}
+    }
+    pageSessionRegistry.delete(fullName);
   });
 
   return page;

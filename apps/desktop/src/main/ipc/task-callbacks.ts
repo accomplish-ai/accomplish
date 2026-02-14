@@ -103,5 +103,12 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
     onAuthError: (error: { providerId: string; message: string }) => {
       forwardToRenderer('auth:error', error);
     },
+
+    onBrowserFrame: (data: { pageName: string; frame: string; timestamp: number }) => {
+      forwardToRenderer('browser:frame', {
+        taskId,
+        ...data,
+      });
+    },
   };
 }

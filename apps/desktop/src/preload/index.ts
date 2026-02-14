@@ -308,6 +308,17 @@ const accomplishAPI = {
     ipcRenderer.on('auth:error', listener);
     return () => ipcRenderer.removeListener('auth:error', listener);
   },
+  // Browser frame events (live preview from screencast)
+  onBrowserFrame: (callback: (event: {
+    taskId: string;
+    pageName: string;
+    frame: string;
+    timestamp: number;
+  }) => void) => {
+    const listener = (_: unknown, event: unknown) => callback(event as any);
+    ipcRenderer.on('browser:frame', listener);
+    return () => ipcRenderer.removeListener('browser:frame', listener);
+  },
 
   logEvent: (payload: { level?: string; message: string; context?: Record<string, unknown> }) =>
     ipcRenderer.invoke('log:event', payload),

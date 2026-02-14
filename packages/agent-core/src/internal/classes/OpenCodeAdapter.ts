@@ -42,6 +42,7 @@ export interface OpenCodeAdapterEvents {
   debug: [{ type: string; message: string; data?: unknown }];
   'todo:update': [TodoItem[]];
   'auth-error': [{ providerId: string; message: string }];
+  'browser-frame': [{ pageName: string; frame: string; timestamp: number }];
 }
 
 export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
@@ -50,16 +51,17 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   private logWatcher: OpenCodeLogWatcher | null = null;
   private currentSessionId: string | null = null;
   private currentTaskId: string | null = null;
+  private currentModelId: string | null = null;
+  private browserFrameBuffer: string = '';
   private messages: TaskMessage[] = [];
   private hasCompleted: boolean = false;
   private isDisposed: boolean = false;
   private wasInterrupted: boolean = false;
   private completionEnforcer: CompletionEnforcer;
   private lastWorkingDirectory: string | undefined;
-  private currentModelId: string | null = null;
-  private waitingTransitionTimer: ReturnType<typeof setTimeout> | null = null;
   private hasReceivedFirstTool: boolean = false;
   private startTaskCalled: boolean = false;
+  private waitingTransitionTimer: ReturnType<typeof setTimeout> | null = null;
   private options: AdapterOptions;
 
   constructor(options: AdapterOptions, taskId?: string) {
@@ -139,11 +141,43 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     });
   }
 
+  private checkForBrowserFrame(data: string): void {
+    try {
+      const combined = `${this.browserFrameBuffer}${data}`;
+      const lines = combined.split('\n');
+      // Buffer incomplete tail so split JSON chunks can be reassembled on the next data event
+      this.browserFrameBuffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          continue;
+        }
+
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (parsed.type === 'browser-frame' && parsed.frame && parsed.pageName) {
+            this.emit('browser-frame', {
+              pageName: parsed.pageName,
+              frame: parsed.frame,
+              timestamp: parsed.timestamp || Date.now(),
+            });
+          }
+        } catch {
+          // Not JSON, skip
+        }
+      }
+    } catch {
+      // Ignore errors in frame detection
+    }
+  }
+
   async startTask(config: TaskConfig): Promise<Task> {
     if (this.isDisposed) {
       throw new Error('Adapter has been disposed and cannot start new tasks');
     }
 
+    this.browserFrameBuffer = '';
     const taskId = config.taskId || this.generateTaskId();
     this.currentTaskId = taskId;
     this.currentSessionId = null;
@@ -236,6 +270,8 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           .replace(/\x1B\][^\x07]*\x07/g, '')
           .replace(/\x1B\][^\x1B]*\x1B\\/g, '');
         if (cleanData.trim()) {
+          this.checkForBrowserFrame(cleanData);
+
           const truncated = cleanData.substring(0, 500) + (cleanData.length > 500 ? '...' : '');
           console.log('[OpenCode CLI stdout]:', truncated);
           this.emit('debug', { type: 'stdout', message: cleanData });
@@ -329,6 +365,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     console.log(`[OpenCode Adapter] Disposing adapter for task ${this.currentTaskId}`);
     this.isDisposed = true;
+    this.browserFrameBuffer = '';
 
     if (this.logWatcher) {
       this.logWatcher.stop().catch((err) => {
@@ -401,6 +438,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     switch (message.type) {
       case 'step_start':
+        this.browserFrameBuffer = '';
         this.currentSessionId = message.part.sessionID;
         const modelDisplayName = this.currentModelId && this.options.getModelDisplayName
           ? this.options.getModelDisplayName(this.currentModelId)

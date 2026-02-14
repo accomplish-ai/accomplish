@@ -25,6 +25,7 @@ export interface TaskCallbacks {
   onDebug?: (log: { type: string; message: string; data?: unknown }) => void;
   onTodoUpdate?: (todos: TodoItem[]) => void;
   onAuthError?: (error: { providerId: string; message: string }) => void;
+  onBrowserFrame?: (data: { pageName: string; frame: string; timestamp: number }) => void;
 }
 
 export interface TaskManagerOptions {
@@ -193,6 +194,10 @@ export class TaskManager {
       callbacks.onAuthError?.(error);
     };
 
+    const onBrowserFrame = (data: { pageName: string; frame: string; timestamp: number }) => {
+      callbacks.onBrowserFrame?.(data);
+    };
+
     adapter.on('message', onMessage);
     adapter.on('progress', onProgress);
     adapter.on('permission-request', onPermissionRequest);
@@ -201,6 +206,7 @@ export class TaskManager {
     adapter.on('debug', onDebug);
     adapter.on('todo:update', onTodoUpdate);
     adapter.on('auth-error', onAuthError);
+    adapter.on('browser-frame', onBrowserFrame);
 
     const cleanup = () => {
       adapter.off('message', onMessage);
@@ -211,6 +217,7 @@ export class TaskManager {
       adapter.off('debug', onDebug);
       adapter.off('todo:update', onTodoUpdate);
       adapter.off('auth-error', onAuthError);
+      adapter.off('browser-frame', onBrowserFrame);
       adapter.dispose();
     };
 

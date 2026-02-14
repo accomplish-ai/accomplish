@@ -197,6 +197,12 @@ interface AccomplishAPI {
   onTaskSummary?(callback: (data: { taskId: string; summary: string }) => void): () => void;
   onTodoUpdate?(callback: (data: { taskId: string; todos: TodoItem[] }) => void): () => void;
   onAuthError?(callback: (data: { providerId: string; message: string }) => void): () => void;
+  onBrowserFrame?(callback: (event: {
+    taskId: string;
+    pageName: string;
+    frame: string;
+    timestamp: number;
+  }) => void): () => void;
 
   // Speech-to-Text
   speechIsConfigured(): Promise<boolean>;

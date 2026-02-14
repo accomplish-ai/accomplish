@@ -34,6 +34,13 @@ export interface StartupStageInfo {
   startTime: number;
 }
 
+interface BrowserFrame {
+  data: string; // base64 JPEG
+  timestamp: number;
+  width?: number;
+  height?: number;
+}
+
 interface TaskState {
   // Current task
   currentTask: Task | null;
@@ -53,6 +60,7 @@ interface TaskState {
   todos: TodoItem[];
   todosTaskId: string | null;
   authError: { providerId: string; message: string } | null;
+  browserFrames: Map<string, BrowserFrame>;
   isLauncherOpen: boolean;
   launcherInitialPrompt: string | null;
   openLauncher: () => void;
@@ -80,6 +88,8 @@ interface TaskState {
   clearTodos: () => void;
   setAuthError: (error: { providerId: string; message: string }) => void;
   clearAuthError: () => void;
+  setBrowserFrame: (taskId: string, frame: BrowserFrame) => void;
+  clearBrowserFrame: (taskId: string) => void;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -96,6 +106,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   todos: [],
   todosTaskId: null,
   authError: null,
+  browserFrames: new Map(),
   isLauncherOpen: false,
   launcherInitialPrompt: null,
 
@@ -498,7 +509,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       todos: [],
       todosTaskId: null,
       authError: null,
+      browserFrames: new Map(),
       isLauncherOpen: false,
+      launcherInitialPrompt: null,
     });
   },
 
@@ -516,6 +529,22 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   clearAuthError: () => {
     set({ authError: null });
+  },
+
+  setBrowserFrame: (taskId: string, frame: BrowserFrame) => {
+    set(state => {
+      const frames = new Map(state.browserFrames);
+      frames.set(taskId, frame);
+      return { browserFrames: frames };
+    });
+  },
+
+  clearBrowserFrame: (taskId: string) => {
+    set(state => {
+      const frames = new Map(state.browserFrames);
+      frames.delete(taskId);
+      return { browserFrames: frames };
+    });
   },
 
   openLauncher: () => set({ isLauncherOpen: true, launcherInitialPrompt: null }),
@@ -564,6 +593,8 @@ if (typeof window !== 'undefined' && window.accomplish) {
         state.setSetupProgress(null, null);
       }
       state.clearStartupStage(updateEvent.taskId);
+      // Clear browser frames when task completes
+      state.clearBrowserFrame(updateEvent.taskId);
     }
   });
 
@@ -580,5 +611,17 @@ if (typeof window !== 'undefined' && window.accomplish) {
 
   window.accomplish.onAuthError?.((data: { providerId: string; message: string }) => {
     useTaskStore.getState().setAuthError(data);
+  });
+
+  window.accomplish.onBrowserFrame?.((event: {
+    taskId: string;
+    pageName: string;
+    frame: string;
+    timestamp: number;
+  }) => {
+    useTaskStore.getState().setBrowserFrame(event.taskId, {
+      data: event.frame,
+      timestamp: event.timestamp,
+    });
   });
 }
