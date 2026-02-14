@@ -948,7 +948,7 @@ export default function ExecutionPage() {
                       <span className="text-sm">
                         {currentTool
                           ? ((currentToolInput as { description?: string })?.description
-                            || (currentToolInput as { _translatedToolName?: string })?._translatedToolName
+                            || (currentToolInput as { _toolDisplayName?: string })?._toolDisplayName
                             || humanizeToolName(getBaseToolName(currentTool)))
                           : (startupStageTaskId === id && startupStage)
                             ? startupStage.stage === 'loading'
@@ -962,7 +962,7 @@ export default function ExecutionPage() {
                       </span>
                       {currentTool && !(currentToolInput as { description?: string })?.description && (
                         <span className="text-xs text-muted-foreground/60">
-                          ({(currentToolInput as { _translatedToolName?: string })?._translatedToolName || humanizeToolName(getBaseToolName(currentTool))})
+                          ({(currentToolInput as { _toolDisplayName?: string })?._toolDisplayName || humanizeToolName(getBaseToolName(currentTool))})
                         </span>
                       )}
                       {/* Elapsed time - only show during startup stages when valid */}
@@ -1758,7 +1758,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
         {isTool ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
             {ToolIcon ? <ToolIcon className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
-            <span>{(message.toolInput as { _translatedToolName?: string })?._translatedToolName
+            <span>{(message.toolInput as { _toolDisplayName?: string })?._toolDisplayName
               || (baseToolName ? humanizeToolName(baseToolName) : (toolName ? humanizeToolName(toolName) : t('processing')))}</span>
             {isLastMessage && isRunning && (
               <SpinningIcon className="h-3.5 w-3.5 ml-1" />

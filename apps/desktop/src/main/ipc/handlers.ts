@@ -101,7 +101,6 @@ import {
   detectScenarioFromPrompt,
 } from '../test-utils/mock-task-flow';
 import { skillsManager } from '../skills';
-import { detectLanguage, setTaskLanguage, clearTaskLanguage, translateFromEnglish } from '../services/translationService';
 import {
   initializeI18n,
   getLanguage as getI18nLanguage,
@@ -203,11 +202,6 @@ export function registerIPCHandlers(): void {
 
     const task = await taskManager.startTask(taskId, validatedConfig, callbacks);
 
-    const detectedLang = detectLanguage(validatedConfig.prompt);
-    if (detectedLang !== 'en') {
-      setTaskLanguage(taskId, detectedLang);
-    }
-
     const initialUserMessage: TaskMessage = {
       id: createMessageId(),
       type: 'user',
@@ -219,13 +213,10 @@ export function registerIPCHandlers(): void {
     storage.saveTask(task);
 
     generateTaskSummary(validatedConfig.prompt, getApiKey)
-      .then(async (summary) => {
-        const language = getI18nLanguage();
-        const translatedSummary =
-          language !== 'en' ? await translateFromEnglish(summary, language) : summary;
-        storage.updateTaskSummary(taskId, translatedSummary);
+      .then((summary) => {
+        storage.updateTaskSummary(taskId, summary);
         if (!window.isDestroyed() && !sender.isDestroyed()) {
-          sender.send('task:summary', { taskId, summary: translatedSummary });
+          sender.send('task:summary', { taskId, summary });
         }
       })
       .catch((err) => {
@@ -241,14 +232,12 @@ export function registerIPCHandlers(): void {
     if (taskManager.isTaskQueued(taskId)) {
       taskManager.cancelQueuedTask(taskId);
       storage.updateTaskStatus(taskId, 'cancelled', new Date().toISOString());
-      clearTaskLanguage(taskId);
       return;
     }
 
     if (taskManager.hasActiveTask(taskId)) {
       await taskManager.cancelTask(taskId);
       storage.updateTaskStatus(taskId, 'cancelled', new Date().toISOString());
-      clearTaskLanguage(taskId);
     }
   });
 
@@ -360,11 +349,6 @@ export function registerIPCHandlers(): void {
       taskId,
       modelId: selectedModelForResume?.model,
     }, callbacks);
-
-    const detectedLangResume = detectLanguage(validatedPrompt);
-    if (detectedLangResume !== 'en') {
-      setTaskLanguage(taskId, detectedLangResume);
-    }
 
     if (validatedExistingTaskId) {
       storage.updateTaskStatus(validatedExistingTaskId, task.status, new Date().toISOString());
