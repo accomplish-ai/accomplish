@@ -1,5 +1,15 @@
 export type SkillSource = 'official' | 'community' | 'custom';
 
+export interface SkillParameter {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'date' | 'select';
+  description: string;
+  required: boolean;
+  defaultValue?: string | number | boolean;
+  options?: string[]; // For select type
+  placeholder?: string;
+}
+
 export interface Skill {
   id: string;
   name: string;
@@ -12,6 +22,7 @@ export interface Skill {
   filePath: string;
   githubUrl?: string;
   updatedAt: string;
+  parameters?: SkillParameter[];
 }
 
 export interface SkillFrontmatter {
@@ -20,4 +31,5 @@ export interface SkillFrontmatter {
   command?: string;
   verified?: boolean;
   hidden?: boolean;
+  parameters?: SkillParameter[];
 }

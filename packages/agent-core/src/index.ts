@@ -215,6 +215,20 @@ export { redact } from './utils/redact.js';
 
 export { mapResultToStatus } from './utils/task-status.js';
 
+// Onboarding missions and progress functions
+export {
+  ONBOARDING_MISSIONS,
+  calculateOnboardingProgress,
+  getAvailableMissions,
+  getAllMissionsWithStatus,
+  getMissionsByCategory,
+} from './utils/onboarding-missions.js';
+
+export type { 
+  OnboardingMission, 
+  OnboardingProgress,
+} from './utils/onboarding-missions.js';
+
 // Logging - use createLogWriter factory from ./factories/log-writer.js instead
 
 // -----------------------------------------------------------------------------
@@ -351,7 +365,15 @@ export type {
 } from './common/types/opencode.js';
 
 // Skills types
-export type { SkillSource, Skill, SkillFrontmatter } from './common/types/skills.js';
+export type { SkillSource, Skill, SkillFrontmatter, SkillParameter } from './common/types/skills.js';
+export { 
+  getAllTemplates, 
+  getTemplatesByCategory, 
+  getTemplateById, 
+  templateToSkill,
+  SKILL_TEMPLATES,
+  type SkillTemplate 
+} from './utils/skill-templates.js';
 
 // Connector types
 export type {

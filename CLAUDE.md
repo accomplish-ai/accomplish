@@ -152,6 +152,69 @@ Static assets go in `apps/desktop/public/assets/`.
 - `E2E_MOCK_TASK_EVENTS=1` - Mock task events (for testing)
 - `ACCOMPLISH_BUNDLED_MCP=1` - Bundle MCP tools in packaged build (used in package/release scripts)
 
+## Troubleshooting
+
+### Native Module Build Errors
+
+Accomplish depends on native Node.js modules (`better-sqlite3`, `node-pty`, `keytar`) that must be compiled for your platform.
+
+**Common issues:**
+
+1. **Missing build tools:**
+   - **macOS:** Install Xcode Command Line Tools: `xcode-select --install`
+   - **Linux:** Install `build-essential` and `python3`: `sudo apt install build-essential python3`
+   - **Windows:** Install Visual Studio Build Tools with C++ workload
+
+2. **Node version mismatch:**
+   - Ensure you're using Node 20+: `node --version`
+   - Use `nvm` to switch versions if needed
+
+3. **Rebuild after install:**
+   ```bash
+   pnpm install
+   pnpm rebuild better-sqlite3 --recursive
+   npx electron-rebuild -f
+   ```
+
+4. **Clean rebuild:**
+   ```bash
+   pnpm clean
+   rm -rf node_modules pnpm-lock.yaml
+   pnpm install
+   ```
+
+5. **Electron version mismatch:**
+   - Run `npx electron-rebuild -f` after any Electron updates
+
+**Platform-specific notes:**
+- **macOS Apple Silicon:** Native modules are built for arm64 by default
+- **Windows:** Requires Windows 10/11 SDK and MSVC tools
+- **Linux:** May need `libsecret-1-dev` for keytar: `sudo apt install libsecret-1-dev`
+
+### Development Server Issues
+
+1. **Port already in use:**
+   - Check if Vite dev server port (default 5173) is in use
+   - Kill the process: `lsof -ti:5173 | xargs kill -9` (macOS/Linux)
+
+2. **Hot reload not working:**
+   - Check Vite config in `apps/desktop/vite.config.ts`
+   - Restart dev server: `pnpm dev`
+
+3. **Electron won't start:**
+   - Check for errors in `dist-electron/` build output
+   - Clear cache: `pnpm dev:clean`
+
+### Testing Issues
+
+1. **E2E tests timeout:**
+   - Increase timeout in `e2e/playwright.config.ts`
+   - Check Docker daemon is running for Docker-based E2E tests
+
+2. **Coverage thresholds not met:**
+   - Check `vitest.config.ts` for thresholds (80% stmt/fn/line, 70% branch)
+   - Add tests for uncovered code
+
 ## Testing
 
 ### E2E Tests (Playwright)

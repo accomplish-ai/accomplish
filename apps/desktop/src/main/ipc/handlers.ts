@@ -887,6 +887,66 @@ export function registerIPCHandlers(): void {
     }
   });
 
+  handle('settings:safety-level', async (_event: IpcMainInvokeEvent) => {
+    return storage.getSafetyLevel();
+  });
+
+  handle('settings:set-safety-level', async (_event: IpcMainInvokeEvent, level: string) => {
+    if (!['paranoid', 'normal', 'fast'].includes(level)) {
+      throw new Error('Invalid safety level');
+    }
+    storage.setSafetyLevel(level as 'paranoid' | 'normal' | 'fast');
+  });
+
+  handle('settings:dry-run-mode', async (_event: IpcMainInvokeEvent) => {
+    return storage.getDryRunMode();
+  });
+
+  handle('settings:set-dry-run-mode', async (_event: IpcMainInvokeEvent, enabled: boolean) => {
+    if (typeof enabled !== 'boolean') {
+      throw new Error('Invalid dry-run mode flag');
+    }
+    storage.setDryRunMode(enabled);
+  });
+
+  handle('settings:provider-profile', async (_event: IpcMainInvokeEvent) => {
+    return storage.getProviderProfile();
+  });
+
+  handle('settings:set-provider-profile', async (_event: IpcMainInvokeEvent, profile: string) => {
+    if (!['fast', 'balanced', 'quality', 'local'].includes(profile)) {
+      throw new Error('Invalid provider profile');
+    }
+    storage.setProviderProfile(profile as 'fast' | 'balanced' | 'quality' | 'local');
+  });
+
+  handle('settings:auto-fallback', async (_event: IpcMainInvokeEvent) => {
+    return storage.getAutoFallback();
+  });
+
+  handle('settings:set-auto-fallback', async (_event: IpcMainInvokeEvent, enabled: boolean) => {
+    if (typeof enabled !== 'boolean') {
+      throw new Error('Invalid auto-fallback flag');
+    }
+    storage.setAutoFallback(enabled);
+  });
+
+  // Onboarding missions
+  handle('onboarding:get-progress', async (_event: IpcMainInvokeEvent) => {
+    return storage.getProgress();
+  });
+
+  handle('onboarding:complete-mission', async (_event: IpcMainInvokeEvent, missionId: string) => {
+    if (typeof missionId !== 'string' || !missionId) {
+      throw new Error('Invalid mission ID');
+    }
+    storage.completeMission(missionId);
+  });
+
+  handle('onboarding:reset-progress', async (_event: IpcMainInvokeEvent) => {
+    storage.resetProgress();
+  });
+
   handle('settings:app-settings', async (_event: IpcMainInvokeEvent) => {
     return storage.getAppSettings();
   });

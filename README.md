@@ -295,6 +295,41 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture documentation.
 
 <br />
 
+## Troubleshooting
+
+**Native Module Build Errors**
+
+Accomplish requires native Node.js modules that must be compiled for your platform.
+
+**Quick fixes:**
+
+1. **Install build tools:**
+   - **macOS:** `xcode-select --install`
+   - **Linux:** `sudo apt install build-essential python3`
+   - **Windows:** Install Visual Studio Build Tools with C++ workload
+
+2. **Rebuild native modules:**
+   ```bash
+   pnpm install
+   pnpm rebuild better-sqlite3 --recursive
+   npx electron-rebuild -f
+   ```
+
+3. **Clean rebuild:**
+   ```bash
+   pnpm clean
+   rm -rf node_modules pnpm-lock.yaml
+   pnpm install
+   ```
+
+For more troubleshooting help, see [CLAUDE.md](CLAUDE.md#troubleshooting).
+
+<br />
+
+---
+
+<br />
+
 ## Contributing
 
 Contributions welcome! Feel free to open a PR.

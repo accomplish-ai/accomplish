@@ -13,9 +13,18 @@ interface SkillRow {
   file_path: string;
   github_url: string | null;
   updated_at: string;
+  parameters: string | null;
 }
 
 function rowToSkill(row: SkillRow): Skill {
+  let parameters;
+  if (row.parameters) {
+    try {
+      parameters = JSON.parse(row.parameters);
+    } catch {
+      parameters = undefined;
+    }
+  }
   return {
     id: row.id,
     name: row.name,
@@ -28,6 +37,7 @@ function rowToSkill(row: SkillRow): Skill {
     filePath: row.file_path,
     githubUrl: row.github_url || undefined,
     updatedAt: row.updated_at,
+    parameters,
   };
 }
 
@@ -54,8 +64,8 @@ export function getSkillById(id: string): Skill | null {
 export function upsertSkill(skill: Skill): void {
   const db = getDatabase();
   db.prepare(`
-    INSERT INTO skills (id, name, command, description, source, is_enabled, is_verified, is_hidden, file_path, github_url, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO skills (id, name, command, description, source, is_enabled, is_verified, is_hidden, file_path, github_url, updated_at, parameters)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       name = excluded.name,
       command = excluded.command,
@@ -65,7 +75,8 @@ export function upsertSkill(skill: Skill): void {
       is_hidden = excluded.is_hidden,
       file_path = excluded.file_path,
       github_url = excluded.github_url,
-      updated_at = excluded.updated_at
+      updated_at = excluded.updated_at,
+      parameters = excluded.parameters
   `).run(
     skill.id,
     skill.name,
@@ -77,7 +88,8 @@ export function upsertSkill(skill: Skill): void {
     skill.isHidden ? 1 : 0,
     skill.filePath,
     skill.githubUrl || null,
-    skill.updatedAt
+    skill.updatedAt,
+    skill.parameters ? JSON.stringify(skill.parameters) : null
   );
 }
 

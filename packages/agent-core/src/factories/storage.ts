@@ -3,6 +3,7 @@ import {
   closeDatabase,
   isDatabaseInitialized,
   getDatabasePath,
+  getDatabase,
 } from '../storage/database.js';
 import {
   getTasks,
@@ -37,6 +38,14 @@ import {
   setOpenAiBaseUrl,
   getTheme,
   setTheme,
+  getSafetyLevel,
+  setSafetyLevel,
+  getDryRunMode,
+  setDryRunMode,
+  getProviderProfile,
+  setProviderProfile,
+  getAutoFallback,
+  setAutoFallback,
   getAppSettings,
   clearAppSettings,
 } from '../storage/repositories/appSettings.js';
@@ -65,6 +74,7 @@ import {
   deleteConnector,
   clearAllConnectors,
 } from '../storage/repositories/connectors.js';
+import { createOnboardingProgressRepository } from '../storage/repositories/onboardingProgress.js';
 import { SecureStorage } from '../internal/classes/SecureStorage.js';
 import type { OAuthTokens } from '../common/types/connector.js';
 import type { StorageAPI, StorageOptions } from '../types/storage.js';
@@ -121,6 +131,14 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     setOpenAiBaseUrl: (baseUrl) => setOpenAiBaseUrl(baseUrl),
     getTheme: () => getTheme(),
     setTheme: (theme) => setTheme(theme),
+    getSafetyLevel: () => getSafetyLevel(),
+    setSafetyLevel: (level) => setSafetyLevel(level),
+    getDryRunMode: () => getDryRunMode(),
+    setDryRunMode: (enabled) => setDryRunMode(enabled),
+    getProviderProfile: () => getProviderProfile(),
+    setProviderProfile: (profile) => setProviderProfile(profile),
+    getAutoFallback: () => getAutoFallback(),
+    setAutoFallback: (enabled) => setAutoFallback(enabled),
     getAppSettings: () => getAppSettings(),
     clearAppSettings: () => clearAppSettings(),
 
@@ -148,6 +166,13 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     setConnectorStatus: (id, status) => setConnectorStatus(id, status),
     deleteConnector: (id) => deleteConnector(id),
     clearAllConnectors: () => clearAllConnectors(),
+    
+    // Onboarding Progress
+    getProgress: () => createOnboardingProgressRepository(getDatabase()).getProgress(),
+    completeMission: (missionId) => 
+      createOnboardingProgressRepository(getDatabase()).completeMission(missionId),
+    resetProgress: () => createOnboardingProgressRepository(getDatabase()).resetProgress(),
+
     storeConnectorTokens: (connectorId, tokens) =>
       secureStorage.set(`connector-tokens:${connectorId}`, JSON.stringify(tokens)),
     getConnectorTokens: (connectorId) => {

@@ -17,6 +17,14 @@ export {
   setOpenAiBaseUrl,
   getTheme,
   setTheme,
+  getSafetyLevel,
+  setSafetyLevel,
+  getDryRunMode,
+  setDryRunMode,
+  getProviderProfile,
+  setProviderProfile,
+  getAutoFallback,
+  setAutoFallback,
   getAppSettings,
   clearAppSettings,
   type AppSettings,
@@ -77,3 +85,5 @@ export {
   deleteConnector,
   clearAllConnectors,
 } from './connectors.js';
+
+export type { OnboardingProgressAPI } from './onboardingProgress.js';

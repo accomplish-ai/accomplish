@@ -18,6 +18,7 @@ import { ProviderSettingsPanel } from '@/components/settings/ProviderSettingsPan
 import { SpeechSettingsForm } from '@/components/settings/SpeechSettingsForm';
 import { SkillsPanel, AddSkillDropdown } from '@/components/settings/skills';
 import { ConnectorsPanel } from '@/components/settings/connectors';
+import { OnboardingMissions } from '@/components/onboarding/OnboardingMissions';
 import { applyTheme } from '@/lib/theme';
 
 // First 4 providers shown in collapsed view (matches PROVIDER_ORDER in ProviderGrid)
@@ -31,7 +32,7 @@ interface SettingsDialogProps {
   /**
    * Initial tab to show when dialog opens ('providers' or 'voice')
    */
-  initialTab?: 'providers' | 'connectors' | 'voice' | 'skills' | 'appearance' | 'about';
+  initialTab?: 'providers' | 'connectors' | 'voice' | 'skills' | 'appearance' | 'advanced' | 'onboarding' | 'about';
 }
 
 export default function SettingsDialog({
@@ -45,9 +46,15 @@ export default function SettingsDialog({
   const [gridExpanded, setGridExpanded] = useState(false);
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'providers' | 'connectors' | 'voice' | 'skills' | 'appearance' | 'about'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'providers' | 'connectors' | 'voice' | 'skills' | 'appearance' | 'advanced' | 'onboarding' | 'about'>(initialTab);
   const [appVersion, setAppVersion] = useState<string>('');
   const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
+
+  // Advanced settings state
+  const [safetyLevel, setSafetyLevelState] = useState<string>('normal');
+  const [dryRunMode, setDryRunModeState] = useState<boolean>(false);
+  const [providerProfile, setProviderProfileState] = useState<string>('balanced');
+  const [autoFallback, setAutoFallbackState] = useState<boolean>(true);
 
   const {
     settings,
@@ -73,6 +80,11 @@ export default function SettingsDialog({
     accomplish.getDebugMode().then(setDebugModeState);
     // Load app version
     accomplish.getVersion().then(setAppVersion);
+    // Load advanced settings
+    accomplish.getSafetyLevel().then(setSafetyLevelState);
+    accomplish.getDryRunMode().then(setDryRunModeState);
+    accomplish.getProviderProfile().then(setProviderProfileState);
+    accomplish.getAutoFallback().then(setAutoFallbackState);
   }, [open, refetch, accomplish]);
 
   // Auto-select active provider (or initialProvider) and expand grid if needed when dialog opens
@@ -192,6 +204,32 @@ export default function SettingsDialog({
     await accomplish.setDebugMode(newValue);
     setDebugModeState(newValue);
   }, [debugMode, accomplish]);
+
+  // Handle safety level change
+  const handleSafetyLevelChange = useCallback(async (level: string) => {
+    setSafetyLevelState(level);
+    await accomplish.setSafetyLevel(level);
+  }, [accomplish]);
+
+  // Handle dry-run mode toggle
+  const handleDryRunToggle = useCallback(async () => {
+    const newValue = !dryRunMode;
+    setDryRunModeState(newValue);
+    await accomplish.setDryRunMode(newValue);
+  }, [dryRunMode, accomplish]);
+
+  // Handle provider profile change
+  const handleProviderProfileChange = useCallback(async (profile: string) => {
+    setProviderProfileState(profile);
+    await accomplish.setProviderProfile(profile);
+  }, [accomplish]);
+
+  // Handle auto-fallback toggle
+  const handleAutoFallbackToggle = useCallback(async () => {
+    const newValue = !autoFallback;
+    setAutoFallbackState(newValue);
+    await accomplish.setAutoFallback(newValue);
+  }, [autoFallback, accomplish]);
 
   // Handle log export
   const handleExportLogs = useCallback(async () => {
@@ -351,6 +389,26 @@ export default function SettingsDialog({
                 }`}
               >
                 Appearance
+              </button>
+              <button
+                onClick={() => setActiveTab('advanced')}
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${
+                  activeTab === 'advanced'
+                    ? 'text-foreground border-b-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Advanced
+              </button>
+              <button
+                onClick={() => setActiveTab('onboarding')}
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${
+                  activeTab === 'onboarding'
+                    ? 'text-foreground border-b-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Missions
               </button>
               <button
                 onClick={() => setActiveTab('about')}
@@ -588,6 +646,139 @@ export default function SettingsDialog({
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Advanced Tab */}
+          {activeTab === 'advanced' && (
+            <div className="space-y-6">
+              {/* Safety Level */}
+              <div className="rounded-lg border border-border bg-card p-5">
+                <div className="font-medium text-foreground">Safety Level</div>
+                <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                  Control how often Accomplish asks for confirmation before taking actions.
+                </p>
+                <div
+                  className="mt-4 flex rounded-lg border border-border bg-muted p-1"
+                  role="radiogroup"
+                  aria-label="Safety level"
+                >
+                  {([
+                    { value: 'paranoid', label: 'Paranoid', description: 'Confirm every action' },
+                    { value: 'normal', label: 'Normal', description: 'Balanced safety' },
+                    { value: 'fast', label: 'Fast', description: 'Minimal confirmations' },
+                  ] as const).map((option) => (
+                    <button
+                      key={option.value}
+                      role="radio"
+                      aria-checked={safetyLevel === option.value}
+                      onClick={() => handleSafetyLevelChange(option.value)}
+                      className={`flex flex-1 flex-col items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                        safetyLevel === option.value
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                      title={option.description}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Provider Profile */}
+              <div className="rounded-lg border border-border bg-card p-5">
+                <div className="font-medium text-foreground">Provider Profile</div>
+                <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                  Choose a preset that automatically selects suitable models based on your preference.
+                </p>
+                <div
+                  className="mt-4 grid grid-cols-2 gap-2"
+                  role="radiogroup"
+                  aria-label="Provider profile"
+                >
+                  {([
+                    { value: 'fast', label: 'Fast', description: 'Fastest responses, lower cost' },
+                    { value: 'balanced', label: 'Balanced', description: 'Good balance of speed and quality' },
+                    { value: 'quality', label: 'Quality', description: 'Highest quality responses' },
+                    { value: 'local', label: 'Local', description: 'Privacy-focused local models' },
+                  ] as const).map((option) => (
+                    <button
+                      key={option.value}
+                      role="radio"
+                      aria-checked={providerProfile === option.value}
+                      onClick={() => handleProviderProfileChange(option.value)}
+                      className={`flex flex-col items-start rounded-md border px-4 py-3 text-left transition-colors ${
+                        providerProfile === option.value
+                          ? 'border-primary bg-primary/5 text-foreground'
+                          : 'border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                      }`}
+                    >
+                      <div className="font-medium text-sm">{option.label}</div>
+                      <div className="text-xs mt-0.5 opacity-70">{option.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dry Run Mode */}
+              <div className="rounded-lg border border-border bg-card p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="font-medium text-foreground">Dry Run Mode</div>
+                    <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                      Preview all planned actions before executing them. Useful for reviewing complex workflows.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleDryRunToggle}
+                    className={`ml-4 relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                      dryRunMode ? 'bg-primary' : 'bg-muted'
+                    }`}
+                    role="switch"
+                    aria-checked={dryRunMode}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        dryRunMode ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* Auto Fallback */}
+              <div className="rounded-lg border border-border bg-card p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="font-medium text-foreground">Auto Fallback</div>
+                    <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                      Automatically switch to a fallback provider if the current one fails or hits rate limits.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleAutoFallbackToggle}
+                    className={`ml-4 relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                      autoFallback ? 'bg-primary' : 'bg-muted'
+                    }`}
+                    role="switch"
+                    aria-checked={autoFallback}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        autoFallback ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Onboarding Tab */}
+          {activeTab === 'onboarding' && (
+            <div>
+              <OnboardingMissions />
             </div>
           )}
 

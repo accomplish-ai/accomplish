@@ -128,6 +128,7 @@ export type {
 export type { TodoItem } from './common/types/todo.js';
 export type { LogLevel, LogSource, LogEntry } from './common/types/logging.js';
 export type { ThoughtEvent, CheckpointEvent } from './common/types/thought-stream.js';
+export type { ThemePreference, SafetyLevel, ProviderProfile } from './types/storage.js';
 
 // === CONSTANTS ===
 export {

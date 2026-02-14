@@ -59,7 +59,19 @@ interface AccomplishAPI {
   getTheme(): Promise<string>;
   setTheme(theme: string): Promise<void>;
   onThemeChange?(callback: (data: { theme: string; resolved: string }) => void): () => void;
+  getSafetyLevel(): Promise<string>;
+  setSafetyLevel(level: string): Promise<void>;
+  getDryRunMode(): Promise<boolean>;
+  setDryRunMode(enabled: boolean): Promise<void>;
+  getProviderProfile(): Promise<string>;
+  setProviderProfile(profile: string): Promise<void>;
+  getAutoFallback(): Promise<boolean>;
+  setAutoFallback(enabled: boolean): Promise<void>;
+  getOnboardingProgress(): Promise<{ completedMissionIds: string[]; totalPoints: number; level: number }>;
+  completeMission(missionId: string): Promise<void>;
+  resetOnboardingProgress(): Promise<void>;
   getAppSettings(): Promise<{ debugMode: boolean; onboardingComplete: boolean; theme: string }>;
+
   getOpenAiBaseUrl(): Promise<string>;
   setOpenAiBaseUrl(baseUrl: string): Promise<void>;
   getOpenAiOauthStatus(): Promise<{ connected: boolean; expires?: number }>;

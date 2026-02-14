@@ -103,6 +103,7 @@ function createWindow() {
       preload: preloadPath,
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
     },
   });
 
@@ -138,14 +139,70 @@ process.on('uncaughtException', (error) => {
       name: error.name,
       stack: error.stack,
     });
-  } catch {}
+    
+    // Write crash report to a separate file
+    const crashLogPath = path.join(app.getPath('userData'), 'crash-reports');
+    if (!fs.existsSync(crashLogPath)) {
+      fs.mkdirSync(crashLogPath, { recursive: true });
+    }
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const crashFile = path.join(crashLogPath, `crash-${timestamp}.log`);
+    const crashReport = {
+      timestamp: new Date().toISOString(),
+      type: 'uncaughtException',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      },
+      system: {
+        platform: process.platform,
+        arch: process.arch,
+        nodeVersion: process.version,
+        electronVersion: process.versions.electron,
+        appVersion: app.getVersion(),
+      },
+    };
+    
+    fs.writeFileSync(crashFile, JSON.stringify(crashReport, null, 2));
+    console.error('[Crash Report] Written to:', crashFile);
+  } catch (crashError) {
+    console.error('[Crash Report] Failed to write crash report:', crashError);
+  }
 });
 
 process.on('unhandledRejection', (reason) => {
   try {
     const collector = getLogCollector();
     collector.log('ERROR', 'main', 'Unhandled promise rejection', { reason });
-  } catch {}
+    
+    // Write crash report for unhandled rejections
+    const crashLogPath = path.join(app.getPath('userData'), 'crash-reports');
+    if (!fs.existsSync(crashLogPath)) {
+      fs.mkdirSync(crashLogPath, { recursive: true });
+    }
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const crashFile = path.join(crashLogPath, `rejection-${timestamp}.log`);
+    const crashReport = {
+      timestamp: new Date().toISOString(),
+      type: 'unhandledRejection',
+      reason: String(reason),
+      system: {
+        platform: process.platform,
+        arch: process.arch,
+        nodeVersion: process.version,
+        electronVersion: process.versions.electron,
+        appVersion: app.getVersion(),
+      },
+    };
+    
+    fs.writeFileSync(crashFile, JSON.stringify(crashReport, null, 2));
+    console.error('[Crash Report] Written to:', crashFile);
+  } catch (crashError) {
+    console.error('[Crash Report] Failed to write crash report:', crashError);
+  }
 });
 
 const gotTheLock = app.requestSingleInstanceLock();

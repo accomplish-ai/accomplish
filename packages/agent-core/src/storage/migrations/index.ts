@@ -15,6 +15,9 @@ import { migration as v005 } from './v005-task-todos.js';
 import { migration as v006 } from './v006-skills.js';
 import { migration as v007 } from './v007-connectors.js';
 import { migration as v008 } from './v008-theme.js';
+import { migration as v009 } from './v009-advanced-settings.js';
+import { migration as v010 } from './v010-skill-parameters.js';
+import { migration as v011 } from './v011-onboarding-progress.js';
 
 const migrations: Migration[] = [
   v001,
@@ -25,6 +28,9 @@ const migrations: Migration[] = [
   v006,
   v007,
   v008,
+  v009,
+  v010,
+  v011,
 ];
 
 export function registerMigration(migration: Migration): void {
@@ -32,7 +38,7 @@ export function registerMigration(migration: Migration): void {
   migrations.sort((a, b) => a.version - b.version);
 }
 
-export const CURRENT_VERSION = 8;
+export const CURRENT_VERSION = 11;
 
 export function getStoredVersion(db: Database): number {
   try {

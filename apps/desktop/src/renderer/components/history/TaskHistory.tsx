@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTaskStore } from '../../stores/taskStore';
 import type { Task } from '@accomplish_ai/agent-core/common';
+import { Input } from '../ui/input';
+import { Search } from 'lucide-react';
 
 interface TaskHistoryProps {
   limit?: number;
@@ -10,14 +12,26 @@ interface TaskHistoryProps {
 
 export default function TaskHistory({ limit, showTitle = true }: TaskHistoryProps) {
   const { tasks, loadTasks, deleteTask, clearHistory } = useTaskStore();
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadTasks();
   }, [loadTasks]);
 
-  const displayedTasks = limit ? tasks.slice(0, limit) : tasks;
+  // Filter tasks based on search query
+  const filteredTasks = searchQuery.trim()
+    ? tasks.filter(task => {
+        const query = searchQuery.toLowerCase();
+        return (
+          (task.summary || task.prompt).toLowerCase().includes(query) ||
+          task.status.toLowerCase().includes(query)
+        );
+      })
+    : tasks;
 
-  if (displayedTasks.length === 0) {
+  const displayedTasks = limit ? filteredTasks.slice(0, limit) : filteredTasks;
+
+  if (displayedTasks.length === 0 && !searchQuery.trim()) {
     return (
       <div className="text-center py-8">
         <p className="text-text-muted">No tasks yet. Start by describing what you want to accomplish.</p>
@@ -45,23 +59,45 @@ export default function TaskHistory({ limit, showTitle = true }: TaskHistoryProp
         </div>
       )}
 
-      <div className="space-y-2">
-        {displayedTasks.map((task) => (
-          <TaskHistoryItem
-            key={task.id}
-            task={task}
-            onDelete={() => deleteTask(task.id)}
+      {/* Search Input */}
+      {!limit && tasks.length > 0 && (
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+          <Input
+            type="text"
+            placeholder="Search tasks..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
           />
-        ))}
-      </div>
+        </div>
+      )}
 
-      {limit && tasks.length > limit && (
-        <Link
-          to="/history"
-          className="block mt-4 text-center text-sm text-text-muted hover:text-text transition-colors"
-        >
-          View all {tasks.length} tasks
-        </Link>
+      {displayedTasks.length === 0 && searchQuery.trim() ? (
+        <div className="text-center py-8">
+          <p className="text-text-muted">No tasks found matching "{searchQuery}"</p>
+        </div>
+      ) : (
+        <>
+          <div className="space-y-2">
+            {displayedTasks.map((task) => (
+              <TaskHistoryItem
+                key={task.id}
+                task={task}
+                onDelete={() => deleteTask(task.id)}
+              />
+            ))}
+          </div>
+
+          {limit && tasks.length > limit && (
+            <Link
+              to="/history"
+              className="block mt-4 text-center text-sm text-text-muted hover:text-text transition-colors"
+            >
+              View all {tasks.length} tasks
+            </Link>
+          )}
+        </>
       )}
     </div>
   );

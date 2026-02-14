@@ -1,4 +1,4 @@
-import type { BrowserWindow } from 'electron';
+import { type BrowserWindow, Notification } from 'electron';
 import type {
   TaskMessage,
   TaskResult,
@@ -64,6 +64,28 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
 
       if (result.status === 'success') {
         storage.clearTodosForTask(taskId);
+      }
+
+      // Send desktop notification on task completion
+      if (Notification.isSupported() && !window.isFocused()) {
+        const task = storage.getTask(taskId);
+        const title = result.status === 'success' ? 'Task Completed' : 'Task Failed';
+        const body = task?.summary || task?.prompt || 'Your task has finished';
+        
+        const notification = new Notification({
+          title,
+          body,
+          silent: false,
+        });
+
+        notification.on('click', () => {
+          if (!window.isDestroyed()) {
+            window.show();
+            window.focus();
+          }
+        });
+
+        notification.show();
       }
     },
 

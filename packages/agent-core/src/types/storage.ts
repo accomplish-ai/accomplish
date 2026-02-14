@@ -17,6 +17,7 @@ import type {
   ConnectorStatus,
   OAuthTokens,
 } from '../common/types/connector.js';
+import type { OnboardingProgressAPI } from '../storage/repositories/onboardingProgress.js';
 
 /** Options for creating a Storage instance */
 export interface StorageOptions {
@@ -47,6 +48,10 @@ export interface StoredTask {
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 
+export type SafetyLevel = 'paranoid' | 'normal' | 'fast';
+
+export type ProviderProfile = 'fast' | 'balanced' | 'quality' | 'local';
+
 /** Application settings snapshot */
 export interface AppSettings {
   debugMode: boolean;
@@ -58,6 +63,10 @@ export interface AppSettings {
   lmstudioConfig: LMStudioConfig | null;
   openaiBaseUrl: string;
   theme: ThemePreference;
+  safetyLevel: SafetyLevel;
+  dryRunMode: boolean;
+  providerProfile: ProviderProfile;
+  autoFallback: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +139,22 @@ export interface AppSettingsAPI {
   getTheme(): ThemePreference;
   /** Set the theme preference */
   setTheme(theme: ThemePreference): void;
+  /** Get the current safety level */
+  getSafetyLevel(): SafetyLevel;
+  /** Set the safety level */
+  setSafetyLevel(level: SafetyLevel): void;
+  /** Get whether dry-run mode is enabled */
+  getDryRunMode(): boolean;
+  /** Enable or disable dry-run mode */
+  setDryRunMode(enabled: boolean): void;
+  /** Get the current provider profile */
+  getProviderProfile(): ProviderProfile;
+  /** Set the provider profile */
+  setProviderProfile(profile: ProviderProfile): void;
+  /** Get whether auto-fallback is enabled */
+  getAutoFallback(): boolean;
+  /** Enable or disable auto-fallback */
+  setAutoFallback(enabled: boolean): void;
   /** Get all application settings as a snapshot */
   getAppSettings(): AppSettings;
   /** Reset all application settings to defaults */
@@ -230,13 +255,14 @@ export interface DatabaseLifecycleAPI {
   getDatabasePath(): string | null;
 }
 
-/** Unified storage API combining task, settings, provider, secure storage, connector, and database lifecycle operations */
+/** Unified storage API combining task, settings, provider, secure storage, connector, onboarding, and database lifecycle operations */
 export interface StorageAPI
   extends TaskStorageAPI,
     AppSettingsAPI,
     ProviderSettingsAPI,
     SecureStorageAPI,
     ConnectorStorageAPI,
+    OnboardingProgressAPI,
     DatabaseLifecycleAPI {}
 
 export type {

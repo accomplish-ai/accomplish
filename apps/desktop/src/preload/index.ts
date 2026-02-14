@@ -65,6 +65,28 @@ const accomplishAPI = {
     ipcRenderer.on('settings:theme-changed', listener);
     return () => ipcRenderer.removeListener('settings:theme-changed', listener);
   },
+  getSafetyLevel: (): Promise<string> =>
+    ipcRenderer.invoke('settings:safety-level'),
+  setSafetyLevel: (level: string): Promise<void> =>
+    ipcRenderer.invoke('settings:set-safety-level', level),
+  getDryRunMode: (): Promise<boolean> =>
+    ipcRenderer.invoke('settings:dry-run-mode'),
+  setDryRunMode: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('settings:set-dry-run-mode', enabled),
+  getProviderProfile: (): Promise<string> =>
+    ipcRenderer.invoke('settings:provider-profile'),
+  setProviderProfile: (profile: string): Promise<void> =>
+    ipcRenderer.invoke('settings:set-provider-profile', profile),
+  getAutoFallback: (): Promise<boolean> =>
+    ipcRenderer.invoke('settings:auto-fallback'),
+  setAutoFallback: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('settings:set-auto-fallback', enabled),
+  getOnboardingProgress: (): Promise<{ completedMissionIds: string[]; totalPoints: number; level: number }> =>
+    ipcRenderer.invoke('onboarding:get-progress'),
+  completeMission: (missionId: string): Promise<void> =>
+    ipcRenderer.invoke('onboarding:complete-mission', missionId),
+  resetOnboardingProgress: (): Promise<void> =>
+    ipcRenderer.invoke('onboarding:reset-progress'),
   getAppSettings: (): Promise<{ debugMode: boolean; onboardingComplete: boolean; theme: string }> =>
     ipcRenderer.invoke('settings:app-settings'),
   getOpenAiBaseUrl: (): Promise<string> =>

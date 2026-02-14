@@ -5,7 +5,7 @@ import type {
   AzureFoundryConfig,
   LMStudioConfig,
 } from '../../common/types/provider.js';
-import type { ThemePreference } from '../../types/storage.js';
+import type { ThemePreference, SafetyLevel, ProviderProfile } from '../../types/storage.js';
 import { getDatabase } from '../database.js';
 import { safeParseJsonWithFallback } from '../../utils/json.js';
 
@@ -20,6 +20,10 @@ interface AppSettingsRow {
   lmstudio_config: string | null;
   openai_base_url: string | null;
   theme: string;
+  safety_level: string;
+  dry_run_mode: number;
+  provider_profile: string;
+  auto_fallback: number;
 }
 
 export interface AppSettings {
@@ -32,6 +36,10 @@ export interface AppSettings {
   lmstudioConfig: LMStudioConfig | null;
   openaiBaseUrl: string;
   theme: ThemePreference;
+  safetyLevel: SafetyLevel;
+  dryRunMode: boolean;
+  providerProfile: ProviderProfile;
+  autoFallback: boolean;
 }
 
 function getRow(): AppSettingsRow {
@@ -173,6 +181,66 @@ export function setTheme(theme: ThemePreference): void {
   db.prepare('UPDATE app_settings SET theme = ? WHERE id = 1').run(theme);
 }
 
+// Safety Level
+const VALID_SAFETY_LEVELS: SafetyLevel[] = ['paranoid', 'normal', 'fast'];
+
+export function getSafetyLevel(): SafetyLevel {
+  const row = getRow();
+  const value = row.safety_level as SafetyLevel;
+  if (VALID_SAFETY_LEVELS.includes(value)) {
+    return value;
+  }
+  return 'normal';
+}
+
+export function setSafetyLevel(level: SafetyLevel): void {
+  if (!VALID_SAFETY_LEVELS.includes(level)) {
+    throw new Error(`Invalid safety level: ${level}`);
+  }
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET safety_level = ? WHERE id = 1').run(level);
+}
+
+// Dry Run Mode
+export function getDryRunMode(): boolean {
+  return getRow().dry_run_mode === 1;
+}
+
+export function setDryRunMode(enabled: boolean): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET dry_run_mode = ? WHERE id = 1').run(enabled ? 1 : 0);
+}
+
+// Provider Profile
+const VALID_PROVIDER_PROFILES: ProviderProfile[] = ['fast', 'balanced', 'quality', 'local'];
+
+export function getProviderProfile(): ProviderProfile {
+  const row = getRow();
+  const value = row.provider_profile as ProviderProfile;
+  if (VALID_PROVIDER_PROFILES.includes(value)) {
+    return value;
+  }
+  return 'balanced';
+}
+
+export function setProviderProfile(profile: ProviderProfile): void {
+  if (!VALID_PROVIDER_PROFILES.includes(profile)) {
+    throw new Error(`Invalid provider profile: ${profile}`);
+  }
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET provider_profile = ? WHERE id = 1').run(profile);
+}
+
+// Auto Fallback
+export function getAutoFallback(): boolean {
+  return getRow().auto_fallback === 1;
+}
+
+export function setAutoFallback(enabled: boolean): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET auto_fallback = ? WHERE id = 1').run(enabled ? 1 : 0);
+}
+
 export function getAppSettings(): AppSettings {
   const row = getRow();
   return {
@@ -185,6 +253,10 @@ export function getAppSettings(): AppSettings {
     lmstudioConfig: safeParseJsonWithFallback<LMStudioConfig>(row.lmstudio_config),
     openaiBaseUrl: row.openai_base_url || '',
     theme: VALID_THEMES.includes(row.theme as ThemePreference) ? (row.theme as ThemePreference) : 'system',
+    safetyLevel: VALID_SAFETY_LEVELS.includes(row.safety_level as SafetyLevel) ? (row.safety_level as SafetyLevel) : 'normal',
+    dryRunMode: row.dry_run_mode === 1,
+    providerProfile: VALID_PROVIDER_PROFILES.includes(row.provider_profile as ProviderProfile) ? (row.provider_profile as ProviderProfile) : 'balanced',
+    autoFallback: row.auto_fallback === 1,
   };
 }
 
@@ -200,7 +272,11 @@ export function clearAppSettings(): void {
       azure_foundry_config = NULL,
       lmstudio_config = NULL,
       openai_base_url = '',
-      theme = 'system'
+      theme = 'system',
+      safety_level = 'normal',
+      dry_run_mode = 0,
+      provider_profile = 'balanced',
+      auto_fallback = 1
     WHERE id = 1`
   ).run();
 }

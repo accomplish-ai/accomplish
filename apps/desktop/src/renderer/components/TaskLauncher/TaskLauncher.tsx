@@ -17,6 +17,7 @@ export default function TaskLauncher() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   const {
     isLauncherOpen,
@@ -118,6 +119,49 @@ export default function TaskLauncher() {
     }
   }, [totalItems, selectedIndex, handleSelect, closeLauncher]);
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) {
+      return;
+    }
+
+    // Build a prompt with file paths
+    const filePaths = files.map(f => f.path).join(', ');
+    const prompt = `Process these files: ${filePaths}`;
+
+    // Check if any provider is ready
+    const settings = await accomplish.getProviderSettings();
+    if (!hasAnyReadyProvider(settings)) {
+      closeLauncher();
+      navigate('/');
+      return;
+    }
+
+    // Start the task
+    closeLauncher();
+    const taskId = `task_${Date.now()}`;
+    const task = await startTask({ prompt, taskId });
+    if (task) {
+      navigate(`/execution/${task.id}`);
+    }
+  }, [accomplish, closeLauncher, navigate, startTask]);
+
   return (
     <DialogPrimitive.Root open={isLauncherOpen} onOpenChange={handleOpenChange}>
       <AnimatePresence>
@@ -144,8 +188,24 @@ export default function TaskLauncher() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -10 }}
                 transition={springs.bouncy}
-                className="w-full max-w-lg bg-card border border-border rounded-lg shadow-2xl overflow-hidden"
+                className={cn(
+                  "w-full max-w-lg bg-card border rounded-lg shadow-2xl overflow-hidden",
+                  isDragging ? "border-primary border-2" : "border-border"
+                )}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
               >
+                {/* Drag Overlay */}
+                {isDragging && (
+                  <div className="absolute inset-0 z-10 bg-primary/10 backdrop-blur-sm flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-4xl mb-2">📁</div>
+                      <p className="text-sm font-medium text-foreground">Drop files to process</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Search Input */}
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
                   <Search className="h-4 w-4 text-muted-foreground shrink-0" />
