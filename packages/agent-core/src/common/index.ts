@@ -41,6 +41,10 @@ export type {
   LiteLLMModel,
   LiteLLMConfig,
   LMStudioConfig,
+  CloudBrowserConfig,
+  CloudBrowserProvider,
+  CloudBrowserProviderType,
+  CloudBrowserStatus,
 } from './types/provider.js';
 export {
   DEFAULT_PROVIDERS,

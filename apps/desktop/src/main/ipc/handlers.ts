@@ -81,6 +81,7 @@ import type {
   AzureFoundryConfig,
   LiteLLMConfig,
   LMStudioConfig,
+  CloudBrowserConfig,
   ToolSupportStatus,
 } from '@accomplish_ai/agent-core';
 import { DEFAULT_PROVIDERS, ALLOWED_API_KEY_PROVIDERS, STANDARD_VALIDATION_PROVIDERS, ZAI_ENDPOINTS } from '@accomplish_ai/agent-core';
@@ -799,9 +800,65 @@ export function registerIPCHandlers(): void {
 
   handle('lmstudio:set-config', async (_event: IpcMainInvokeEvent, config: LMStudioConfig | null) => {
     if (config !== null) {
-      validateLMStudioConfig(config);
+      if (typeof config.baseUrl !== 'string' || typeof config.enabled !== 'boolean') {
+        throw new Error('Invalid LM Studio configuration');
+      }
+      validateHttpUrl(config.baseUrl, 'LM Studio base URL');
     }
     storage.setLMStudioConfig(config);
+  });
+
+  handle('cloud-browser:get-config', async (_event: IpcMainInvokeEvent) => {
+    return storage.getCloudBrowserConfig();
+  });
+
+  handle('cloud-browser:set-config', async (_event: IpcMainInvokeEvent, config: CloudBrowserConfig | null) => {
+    storage.setCloudBrowserConfig(config);
+  });
+
+  handle('cloud-browser:test-connection', async (_event: IpcMainInvokeEvent, providerId: string, apiKey: string, projectId: string) => {
+    // Currently only supports Browserbase
+    if (!apiKey || !projectId) {
+      return { success: false, error: 'API Key and Project ID are required' };
+    }
+
+    try {
+      const response = await fetch('https://api.browserbase.com/v1/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-bb-api-key': apiKey,
+        },
+        body: JSON.stringify({ projectId }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `API returned ${response.status}`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorJson.error || errorMessage;
+        } catch {
+          if (errorText) errorMessage = errorText;
+        }
+        return { success: false, error: errorMessage };
+      }
+
+      const session = await response.json();
+      // Clean up test session
+      try {
+        await fetch(`https://api.browserbase.com/v1/sessions/${session.id}`, {
+          method: 'DELETE',
+          headers: { 'x-bb-api-key': apiKey },
+        });
+      } catch {
+        // Ignore cleanup errors
+      }
+
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Connection failed' };
+    }
   });
 
   handle('provider:fetch-models', async (_event: IpcMainInvokeEvent, providerId: string, options?: { baseUrl?: string; zaiRegion?: string }) => {

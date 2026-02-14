@@ -8,6 +8,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@accomplish/desktop": "file:../../../../apps/desktop",
     "playwright": "npm:rebrowser-playwright@^1.52.0"
   },
   "devDependencies": {

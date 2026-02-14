@@ -6,6 +6,7 @@ import type {
   LiteLLMConfig,
   AzureFoundryConfig,
   LMStudioConfig,
+  CloudBrowserConfig,
 } from '../common/types/provider.js';
 import type {
   ProviderId,
@@ -56,6 +57,7 @@ export interface AppSettings {
   litellmConfig: LiteLLMConfig | null;
   azureFoundryConfig: AzureFoundryConfig | null;
   lmstudioConfig: LMStudioConfig | null;
+  cloudBrowserConfig: CloudBrowserConfig | null;
   openaiBaseUrl: string;
   theme: ThemePreference;
 }
@@ -122,6 +124,10 @@ export interface AppSettingsAPI {
   getLMStudioConfig(): LMStudioConfig | null;
   /** Set the LM Studio configuration */
   setLMStudioConfig(config: LMStudioConfig | null): void;
+  /** Get the Cloud Browser configuration */
+  getCloudBrowserConfig(): CloudBrowserConfig | null;
+  /** Set the Cloud Browser configuration */
+  setCloudBrowserConfig(config: CloudBrowserConfig | null): void;
   /** Get the custom OpenAI base URL */
   getOpenAiBaseUrl(): string;
   /** Set the custom OpenAI base URL */
@@ -233,11 +239,11 @@ export interface DatabaseLifecycleAPI {
 /** Unified storage API combining task, settings, provider, secure storage, connector, and database lifecycle operations */
 export interface StorageAPI
   extends TaskStorageAPI,
-    AppSettingsAPI,
-    ProviderSettingsAPI,
-    SecureStorageAPI,
-    ConnectorStorageAPI,
-    DatabaseLifecycleAPI {}
+  AppSettingsAPI,
+  ProviderSettingsAPI,
+  SecureStorageAPI,
+  ConnectorStorageAPI,
+  DatabaseLifecycleAPI { }
 
 export type {
   Task,

@@ -6,7 +6,7 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ProviderType, Skill, TodoItem, McpConnector } from '@accomplish_ai/agent-core';
+import type { ProviderType, Skill, TodoItem, McpConnector, CloudBrowserConfig } from '@accomplish_ai/agent-core';
 
 // Expose the accomplish API to the renderer
 const accomplishAPI = {
@@ -204,6 +204,16 @@ const accomplishAPI = {
     lastValidated?: number;
     models?: Array<{ id: string; name: string; toolSupport: 'supported' | 'unsupported' | 'unknown' }>;
   } | null): Promise<void> => ipcRenderer.invoke('lmstudio:set-config', config),
+
+  // Cloud Browser configuration
+  getCloudBrowserConfig: (): Promise<CloudBrowserConfig | null> =>
+    ipcRenderer.invoke('cloud-browser:get-config'),
+
+  setCloudBrowserConfig: (config: CloudBrowserConfig | null): Promise<void> =>
+    ipcRenderer.invoke('cloud-browser:set-config', config),
+
+  testCloudBrowserConnection: (providerId: string, apiKey: string, projectId: string): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('cloud-browser:test-connection', providerId, apiKey, projectId),
 
   // Bedrock
   validateBedrockCredentials: (credentials: string) =>
