@@ -214,9 +214,6 @@ Renderer (taskStore subscriptions)
 | `i18n:get-resolved-language` | Renderer → Main | Resolve 'auto' to concrete code |
 | `i18n:language-changed` | Main → Renderer | Notify renderer of language switch |
 
-**Translation Service** (`main/services/translationService.ts`): Translates agent I/O at the boundary so the agentic pipeline stays 100% English. Detects user language via character-range analysis on the first message, then caches per task. Tries providers in order: Anthropic (Haiku) → OpenAI (GPT-4o-mini) → Google (Gemini Flash) → xAI (Grok) → DeepSeek. In-memory LRU cache (max 500 entries). 10s timeout per API call.
-
-**MCP Translation Skill** (`skills/translate-content/`): Exposes a `translate_to_user_language` tool so the agent can translate English content (docs, notes) to the user's language. Communicates with the main process via HTTP (`POST http://127.0.0.1:9228/translate`), which is served by `main/translation-api.ts`.
 
 ## Code Conventions
 

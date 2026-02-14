@@ -285,83 +285,14 @@ apps/desktop/locales/zh-CN/common.json
 
 The app will use English as a fallback for any missing keys.
 
-## CI/CD Integration
+## Validation
 
-### GitHub Actions
-
-A GitHub Actions workflow is included at `.github/workflows/validate-translations.yml` that:
-
-1. **Runs on Pull Requests** that modify:
-   - Translation files (`apps/desktop/locales/**`)
-   - Source code files (`apps/desktop/src/**/*.tsx`, `*.ts`)
-
-2. **Validates** all translation files:
-   - Checks JSON validity
-   - Verifies all keys are present
-   - Reports missing translations
-
-3. **Comments on PR** with validation results
-
-4. **Fails the build** if translations are incomplete
-
-### Manual Translation Sync via GitHub Actions
-
-A **manually-triggered** workflow is available at `.github/workflows/sync-translations.yml` for maintainers:
-
-**To use:**
-1. Add `ANTHROPIC_API_KEY` to GitHub Secrets (Settings → Secrets and variables → Actions)
-2. Go to **Actions** tab → **Sync Translations** → **Run workflow**
-3. Choose languages to sync (default: all)
-
-**When to use:**
-- Before releasing a new version
-- After merging UI text changes
-- When translations fall behind
-
-**Benefits:**
-- ✅ Controlled by maintainer (no surprise costs)
-- ✅ Can sync specific languages or all at once
-- ✅ Commits translations back to main branch
-- ✅ Optional auto-run on releases (commented out by default)
-
-### Adding to Your CI Pipeline
-
-You can add translation validation to any CI system:
-
-```yaml
-# Example for GitHub Actions
-- name: Validate translations
-  run: pnpm i18n:validate
-
-# Example for GitLab CI
-validate-translations:
-  script:
-    - pnpm i18n:validate
-
-# Example for CircleCI
-- run:
-    name: Validate translations
-    command: pnpm i18n:validate
-```
-
-### Pre-commit Hook (Optional)
-
-You can add a pre-commit hook to validate translations locally:
+You can validate translation files locally:
 
 ```bash
-# .husky/pre-commit
-#!/bin/sh
 pnpm i18n:validate
 ```
 
-This ensures translations are always complete before committing.
+This checks JSON validity and verifies all keys are present across languages.
 
-### Workflow Example
-
-1. Developer adds new UI text in English (`locales/en/common.json`)
-2. Developer commits and pushes to PR
-3. **CI validation fails** (missing translations detected)
-4. Developer runs `pnpm i18n:sync` locally
-5. Auto-generated translations are committed
-6. **CI validation passes** ✅
-7. PR can be merged
+CI/CD workflows for automated validation and sync will be added in a future PR.
