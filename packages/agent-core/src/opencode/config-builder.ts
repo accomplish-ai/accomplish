@@ -121,7 +121,7 @@ export async function buildProviderConfigs(
   const activeModel = getActiveProviderModel();
   const providerConfigs: ProviderConfig[] = [];
 
-  const baseProviders = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'moonshot', 'zai-coding-plan', 'amazon-bedrock', 'vertex', 'minimax'];
+  const baseProviders = ['anthropic', 'openai', 'openrouter', 'google', 'xai', 'deepseek', 'moonshot', 'zai-coding-plan', 'amazon-bedrock', 'vertex', 'minimax', 'groq', 'together', 'fireworks', 'nebius'];
   let enabledProviders = baseProviders;
 
   if (connectedIds.length > 0) {
@@ -208,6 +208,39 @@ export async function buildProviderConfigs(
           },
         });
         console.log('[OpenCode Config Builder] OpenRouter (legacy) configured:', modelId);
+      }
+    }
+  }
+
+  // OpenAI-compatible providers (Groq, Together, Fireworks, Nebius)
+  const openaiCompatibleProviders: Array<{
+    id: string;
+    name: string;
+    baseUrl: string;
+    prefix: string;
+  }> = [
+    { id: 'groq', name: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', prefix: 'groq/' },
+    { id: 'together', name: 'Together AI', baseUrl: 'https://api.together.xyz/v1', prefix: 'together/' },
+    { id: 'fireworks', name: 'Fireworks AI', baseUrl: 'https://api.fireworks.ai/inference/v1', prefix: 'fireworks/' },
+    { id: 'nebius', name: 'Nebius AI', baseUrl: 'https://api.studio.nebius.ai/v1', prefix: 'nebius/' },
+  ];
+
+  for (const { id, name, baseUrl, prefix } of openaiCompatibleProviders) {
+    const prov = providerSettings.connectedProviders[id as keyof typeof providerSettings.connectedProviders];
+    if (prov?.connectionStatus === 'connected' && prov.selectedModelId) {
+      const modelId = (prov.selectedModelId as string).replace(new RegExp(`^${prefix.replace('/', '\\/')}`), '');
+      const apiKey = getApiKey(id);
+      if (apiKey) {
+        providerConfigs.push({
+          id,
+          npm: '@ai-sdk/openai-compatible',
+          name,
+          options: { baseURL: baseUrl, apiKey },
+          models: {
+            [modelId]: { name: modelId, tools: true },
+          },
+        });
+        console.log(`[OpenCode Config Builder] ${name} configured:`, modelId);
       }
     }
   }

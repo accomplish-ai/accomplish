@@ -167,6 +167,58 @@ export async function validateApiKey(
         );
         break;
 
+      case 'groq':
+        response = await fetchWithTimeout(
+          'https://api.groq.com/openai/v1/models',
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+            },
+          },
+          timeout
+        );
+        break;
+
+      case 'together':
+        response = await fetchWithTimeout(
+          'https://api.together.xyz/v1/models',
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+            },
+          },
+          timeout
+        );
+        break;
+
+      case 'fireworks':
+        response = await fetchWithTimeout(
+          'https://api.fireworks.ai/inference/v1/models',
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+            },
+          },
+          timeout
+        );
+        break;
+
+      case 'nebius':
+        response = await fetchWithTimeout(
+          'https://api.studio.nebius.ai/v1/models',
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+            },
+          },
+          timeout
+        );
+        break;
+
       case 'ollama':
       case 'bedrock':
       case 'vertex':

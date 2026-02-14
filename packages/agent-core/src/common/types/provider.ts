@@ -5,7 +5,7 @@ export const ZAI_ENDPOINTS: Record<ZaiRegion, string> = {
   international: 'https://api.z.ai/api/coding/paas/v4',
 };
 
-export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'minimax' | 'lmstudio' | 'vertex';
+export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'minimax' | 'lmstudio' | 'vertex' | 'groq' | 'together' | 'fireworks' | 'nebius';
 
 export type ApiKeyProvider =
   | 'anthropic'
@@ -23,7 +23,11 @@ export type ApiKeyProvider =
   | 'minimax'
   | 'lmstudio'
   | 'vertex'
-  | 'elevenlabs';
+  | 'elevenlabs'
+  | 'groq'
+  | 'together'
+  | 'fireworks'
+  | 'nebius';
 
 /**
  * Providers that accept API key storage via the setApiKey IPC handler.
@@ -47,6 +51,10 @@ export const ALLOWED_API_KEY_PROVIDERS: ReadonlySet<string> = new Set<string>([
   'lmstudio',
   'vertex',
   'elevenlabs',
+  'groq',
+  'together',
+  'fireworks',
+  'nebius',
 ]);
 
 /**
@@ -64,6 +72,10 @@ export const STANDARD_VALIDATION_PROVIDERS: ReadonlySet<string> = new Set<string
   'moonshot',
   'zai',
   'minimax',
+  'groq',
+  'together',
+  'fireworks',
+  'nebius',
 ]);
 
 export interface ModelsEndpointConfig {
@@ -302,6 +314,66 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
         supportsVision: false,
       },
     ],
+  },
+  {
+    id: 'groq',
+    name: 'Groq',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'GROQ_API_KEY',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    defaultModelId: 'groq/llama-3.3-70b-versatile',
+    modelsEndpoint: {
+      url: 'https://api.groq.com/openai/v1/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'groq/',
+    },
+    models: [],
+  },
+  {
+    id: 'together',
+    name: 'Together AI',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'TOGETHER_API_KEY',
+    baseUrl: 'https://api.together.xyz/v1',
+    defaultModelId: 'together/meta-llama/Llama-3.3-70B-Instruct-Turbo',
+    modelsEndpoint: {
+      url: 'https://api.together.xyz/v1/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'together/',
+    },
+    models: [],
+  },
+  {
+    id: 'fireworks',
+    name: 'Fireworks AI',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'FIREWORKS_API_KEY',
+    baseUrl: 'https://api.fireworks.ai/inference/v1',
+    defaultModelId: 'fireworks/llama-v3p1-70b-instruct',
+    modelsEndpoint: {
+      url: 'https://api.fireworks.ai/inference/v1/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'fireworks/',
+    },
+    models: [],
+  },
+  {
+    id: 'nebius',
+    name: 'Nebius AI',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'NEBIUS_API_KEY',
+    baseUrl: 'https://api.studio.nebius.ai/v1',
+    defaultModelId: 'nebius/llama-3.1-70b-instruct',
+    modelsEndpoint: {
+      url: 'https://api.studio.nebius.ai/v1/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'nebius/',
+    },
+    models: [],
   },
 ];
 
