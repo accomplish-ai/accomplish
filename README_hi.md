@@ -275,7 +275,7 @@ pnpm dev
 <details>
 <summary><strong>आर्किटेक्चर</strong></summary>
 
-```
+```text
 apps/
   desktop/        # Electron ऐप (main + preload + renderer)
 packages/
