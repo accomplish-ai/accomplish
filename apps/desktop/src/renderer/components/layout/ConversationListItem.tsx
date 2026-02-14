@@ -1,10 +1,13 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { Task } from '@accomplish_ai/agent-core/common';
 import { cn } from '@/lib/utils';
-import { Loader2, CheckCircle2, XCircle, Clock, Square, PauseCircle, X } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Clock, Square, PauseCircle, X, Star } from 'lucide-react';
 import { useTaskStore } from '@/stores/taskStore';
+
+const COMPLETED_OR_INTERRUPTED: Array<string> = ['completed', 'interrupted'];
 
 interface ConversationListItemProps {
   task: Task;
@@ -14,7 +17,16 @@ export default function ConversationListItem({ task }: ConversationListItemProps
   const navigate = useNavigate();
   const location = useLocation();
   const isActive = location.pathname === `/execution/${task.id}`;
-  const deleteTask = useTaskStore((state) => state.deleteTask);
+  const { deleteTask, favorites, loadFavorites, addFavorite, removeFavorite } = useTaskStore();
+  const favoritesList = Array.isArray(favorites) ? favorites : [];
+  const isFavorited = favoritesList.some((f) => f.taskId === task.id);
+  const canFavorite = COMPLETED_OR_INTERRUPTED.includes(task.status);
+
+  useEffect(() => {
+    if (typeof loadFavorites === 'function') {
+      loadFavorites();
+    }
+  }, [loadFavorites]);
 
   const handleClick = () => {
     navigate(`/execution/${task.id}`);
@@ -75,6 +87,28 @@ export default function ConversationListItem({ task }: ConversationListItemProps
     >
       {getStatusIcon()}
       <span className="block truncate flex-1">{task.summary || task.prompt}</span>
+      {canFavorite && (
+        <button
+          onClick={async (e) => {
+            e.stopPropagation();
+            if (isFavorited) {
+              await removeFavorite(task.id);
+            } else {
+              await addFavorite(task.id);
+            }
+          }}
+          className={cn(
+            'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+            'p-1 rounded hover:bg-accent',
+            'shrink-0',
+            isFavorited && 'opacity-100 text-amber-500'
+          )}
+          title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+          aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          <Star className={cn('h-3 w-3', isFavorited && 'fill-current')} />
+        </button>
+      )}
       <button
         onClick={handleDelete}
         className={cn(

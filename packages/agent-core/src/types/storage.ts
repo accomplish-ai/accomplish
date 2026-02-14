@@ -45,6 +45,13 @@ export interface StoredTask {
   completedAt?: string;
 }
 
+/** A favorited (starred) completed task, stored for quick reuse on the home page */
+export interface StoredFavorite {
+  taskId: string;
+  prompt: string;
+  summary?: string;
+  favoritedAt: string;
+}
 export type ThemePreference = 'system' | 'light' | 'dark';
 
 /** Application settings snapshot */
@@ -90,6 +97,14 @@ export interface TaskStorageAPI {
   saveTodosForTask(taskId: string, todos: TodoItem[]): void;
   /** Remove all todo items for a specific task */
   clearTodosForTask(taskId: string): void;
+  /** Add a completed task to favorites (by taskId; prompt/summary stored for display) */
+  addFavorite(taskId: string, prompt: string, summary?: string): void;
+  /** Remove a task from favorites */
+  removeFavorite(taskId: string): void;
+  /** Get all favorites, ordered by favoritedAt descending */
+  getFavorites(): StoredFavorite[];
+  /** Check if a task is in favorites */
+  isFavorite(taskId: string): boolean;
 }
 
 /** API for reading and writing application settings */

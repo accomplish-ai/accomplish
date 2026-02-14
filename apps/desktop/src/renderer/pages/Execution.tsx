@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check, Copy, Globe, MousePointer2, Type, Image, Keyboard, ArrowUpDown, ListChecks, Layers, Highlighter, ListOrdered, Upload, Move, Frame, ShieldCheck, MessageCircleQuestion, CheckCircle, Lightbulb, Flag } from 'lucide-react';
+import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check, Copy, Globe, MousePointer2, Type, Image, Keyboard, ArrowUpDown, ListChecks, Layers, Highlighter, ListOrdered, Upload, Move, Frame, ShieldCheck, MessageCircleQuestion, CheckCircle, Lightbulb, Flag, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { StreamingText } from '../components/ui/streaming-text';
@@ -175,6 +175,54 @@ function getDisplayFilePaths(request: { filePath?: string; filePaths?: string[] 
     return [request.filePath];
   }
   return [];
+}
+
+function ExecutionCompleteFooter({ taskId, onStartNewTask }: { taskId: string; onStartNewTask: () => void }) {
+  const { currentTask, favorites, loadFavorites, addFavorite, removeFavorite } = useTaskStore();
+  const favoritesList = Array.isArray(favorites) ? favorites : [];
+  const isFavorited = favoritesList.some((f) => f.taskId === taskId);
+
+  useEffect(() => {
+    if (typeof loadFavorites === 'function') {
+      loadFavorites();
+    }
+  }, [loadFavorites]);
+
+  const handleToggleFavorite = useCallback(async () => {
+    if (isFavorited) {
+      await removeFavorite(taskId);
+    } else {
+      await addFavorite(taskId);
+    }
+  }, [taskId, isFavorited, addFavorite, removeFavorite]);
+
+  const statusLabel = currentTask?.status === 'interrupted' ? 'stopped' : currentTask?.status ?? '';
+  const canFavorite = currentTask?.status === 'completed' || currentTask?.status === 'interrupted';
+
+  return (
+    <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4 flex flex-col items-center gap-3">
+      <p className="text-sm text-muted-foreground">
+        Task {statusLabel}
+      </p>
+      <div className="flex items-center gap-2">
+        {canFavorite && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void handleToggleFavorite()}
+            className="gap-2"
+            title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            <Star className={`h-4 w-4 ${isFavorited ? 'fill-current' : ''}`} />
+            {isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+          </Button>
+        )}
+        <Button onClick={onStartNewTask}>
+          Start New Task
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 export default function ExecutionPage() {
@@ -1421,16 +1469,11 @@ export default function ExecutionPage() {
         </div>
       )}
 
-      {/* Completed/Failed state (no session to continue) */}
-      {isComplete && !canFollowUp && (
-        <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4 text-center">
-          <p className="text-sm text-muted-foreground mb-3">
-            Task {currentTask.status === 'interrupted' ? 'stopped' : currentTask.status}
-          </p>
-          <Button onClick={() => navigate('/')}>
-            Start New Task
-          </Button>
-        </div>
+      {['completed', 'interrupted', 'failed', 'cancelled'].includes(currentTask?.status ?? '') && (
+        <ExecutionCompleteFooter
+          taskId={currentTask.id}
+          onStartNewTask={() => navigate('/')}
+        />
       )}
 
       {/* Debug Panel - Only visible when debug mode is enabled */}

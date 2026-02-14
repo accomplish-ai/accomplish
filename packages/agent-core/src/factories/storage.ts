@@ -19,6 +19,12 @@ import {
   clearTodosForTask,
 } from '../storage/repositories/taskHistory.js';
 import {
+  addFavorite,
+  removeFavorite,
+  getFavorites,
+  isFavorite,
+} from '../storage/repositories/favorites.js';
+import {
   getDebugMode,
   setDebugMode,
   getOnboardingComplete,
@@ -101,6 +107,10 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     getTodosForTask: (taskId) => getTodosForTask(taskId),
     saveTodosForTask: (taskId, todos) => saveTodosForTask(taskId, todos),
     clearTodosForTask: (taskId) => clearTodosForTask(taskId),
+    addFavorite: (taskId, prompt, summary) => addFavorite(taskId, prompt, summary),
+    removeFavorite: (taskId) => removeFavorite(taskId),
+    getFavorites: () => getFavorites(),
+    isFavorite: (taskId) => isFavorite(taskId),
 
     // App Settings
     getDebugMode: () => getDebugMode(),

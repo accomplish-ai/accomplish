@@ -935,7 +935,8 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText(/task cancelled/i)).toBeInTheDocument();
+      // Assert
+      expect(screen.getByRole('heading', { name: /cancelled/i })).toBeInTheDocument();
     });
 
     it('should show Continue button for interrupted task with session and messages', () => {

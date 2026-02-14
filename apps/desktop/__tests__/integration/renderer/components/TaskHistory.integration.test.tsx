@@ -14,11 +14,18 @@ import type { Task, TaskStatus } from '@accomplish_ai/agent-core';
 const mockLoadTasks = vi.fn();
 const mockDeleteTask = vi.fn();
 const mockClearHistory = vi.fn();
+const mockLoadFavorites = vi.fn();
+const mockAddFavorite = vi.fn().mockResolvedValue(undefined);
+const mockRemoveFavorite = vi.fn().mockResolvedValue(undefined);
 
 // Create a store state holder for testing
 let mockStoreState = {
   tasks: [] as Task[],
+  favorites: [] as { taskId: string; prompt: string; summary?: string; favoritedAt: string }[],
   loadTasks: mockLoadTasks,
+  loadFavorites: mockLoadFavorites,
+  addFavorite: mockAddFavorite,
+  removeFavorite: mockRemoveFavorite,
   deleteTask: mockDeleteTask,
   clearHistory: mockClearHistory,
 };
@@ -59,7 +66,11 @@ describe('TaskHistory Integration', () => {
     // Reset store state
     mockStoreState = {
       tasks: [],
+      favorites: [],
       loadTasks: mockLoadTasks,
+      loadFavorites: mockLoadFavorites,
+      addFavorite: mockAddFavorite,
+      removeFavorite: mockRemoveFavorite,
       deleteTask: mockDeleteTask,
       clearHistory: mockClearHistory,
     };
@@ -381,11 +392,8 @@ describe('TaskHistory Integration', () => {
         </MemoryRouter>
       );
 
-      const taskCard = screen.getByText('Deletable task').closest('a');
-      const deleteButton = taskCard?.querySelector('button');
-      if (deleteButton) {
-        fireEvent.click(deleteButton);
-      }
+      const deleteButton = screen.getByTestId('task-delete-button');
+      fireEvent.click(deleteButton);
 
       // Assert
       expect(confirmSpy).toHaveBeenCalledWith('Delete this task?');
@@ -403,11 +411,8 @@ describe('TaskHistory Integration', () => {
         </MemoryRouter>
       );
 
-      const taskCard = screen.getByText('Deletable task').closest('a');
-      const deleteButton = taskCard?.querySelector('button');
-      if (deleteButton) {
-        fireEvent.click(deleteButton);
-      }
+      const deleteButton = screen.getByTestId('task-delete-button');
+      fireEvent.click(deleteButton);
 
       // Assert
       expect(mockDeleteTask).toHaveBeenCalledWith('task-1');
@@ -425,11 +430,8 @@ describe('TaskHistory Integration', () => {
         </MemoryRouter>
       );
 
-      const taskCard = screen.getByText('Deletable task').closest('a');
-      const deleteButton = taskCard?.querySelector('button');
-      if (deleteButton) {
-        fireEvent.click(deleteButton);
-      }
+      const deleteButton = screen.getByTestId('task-delete-button');
+      fireEvent.click(deleteButton);
 
       // Assert
       expect(mockDeleteTask).not.toHaveBeenCalled();
@@ -447,11 +449,8 @@ describe('TaskHistory Integration', () => {
         </MemoryRouter>
       );
 
-      const taskCard = screen.getByText('Deletable task').closest('a');
-      const deleteButton = taskCard?.querySelector('button');
-      if (deleteButton) {
-        fireEvent.click(deleteButton);
-      }
+      const deleteButton = screen.getByTestId('task-delete-button');
+      fireEvent.click(deleteButton);
 
       // Assert - Delete should be called but no navigation
       expect(mockDeleteTask).toHaveBeenCalled();

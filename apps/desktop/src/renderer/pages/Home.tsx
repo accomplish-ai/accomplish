@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import TaskInputBar from '../components/landing/TaskInputBar';
 import SettingsDialog from '../components/layout/SettingsDialog';
@@ -9,7 +9,7 @@ import { useTaskStore } from '../stores/taskStore';
 import { getAccomplish } from '../lib/accomplish';
 import { springs, staggerContainer, staggerItem } from '../lib/animations';
 import { Card, CardContent } from '@/components/ui/card';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
 
 // Import use case images for proper bundling in production
@@ -80,14 +80,34 @@ const USE_CASE_EXAMPLES = [
   },
 ];
 
+const FAVORITES_PREVIEW_COUNT = 6;
+
 export default function HomePage() {
   const [prompt, setPrompt] = useState('');
   const [showExamples, setShowExamples] = useState(true);
+  const [showAllFavorites, setShowAllFavorites] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<'providers' | 'voice' | 'skills' | 'connectors'>('providers');
+  const location = useLocation();
+  const favorites = useTaskStore((state) => state.favorites);
+  const favoritesList = Array.isArray(favorites) ? favorites : [];
+  const loadFavorites = useTaskStore((state) => state.loadFavorites);
+  const removeFavorite = useTaskStore((state) => state.removeFavorite);
   const { startTask, isLoading, addTaskUpdate, setPermissionRequest } = useTaskStore();
   const navigate = useNavigate();
   const accomplish = getAccomplish();
+
+  useEffect(() => {
+    if (typeof loadFavorites === 'function') {
+      loadFavorites();
+    }
+  }, [loadFavorites]);
+
+  useEffect(() => {
+    if (location.pathname === '/' && typeof loadFavorites === 'function') {
+      loadFavorites();
+    }
+  }, [location.pathname, loadFavorites]);
 
   // Subscribe to task events
   useEffect(() => {
@@ -162,6 +182,11 @@ export default function HomePage() {
     setPrompt(examplePrompt);
   };
 
+  const displayedFavorites = showAllFavorites
+    ? favoritesList
+    : favoritesList.slice(0, FAVORITES_PREVIEW_COUNT);
+  const hasMoreFavorites = favoritesList.length > FAVORITES_PREVIEW_COUNT;
+
   return (
     <>
       <SettingsDialog
@@ -211,6 +236,67 @@ export default function HomePage() {
                 hideModelWhenNoModel={true}
               />
             </CardContent>
+
+            {favoritesList.length > 0 && (
+              <div className="border-t border-border">
+                <div className="px-6 py-3 flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">Favorites</span>
+                </div>
+                <div className="px-6 pb-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    <AnimatePresence>
+                      {displayedFavorites.map((fav) => (
+                        <motion.div
+                          key={fav.taskId}
+                          role="button"
+                          tabIndex={0}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={springs.gentle}
+                          whileHover={{ scale: 1.03, transition: { duration: 0.15 } }}
+                          whileTap={{ scale: 0.97 }}
+                          layout
+                          onClick={() => setPrompt(fav.prompt)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setPrompt(fav.prompt);
+                            }
+                          }}
+                          className="group relative flex flex-col items-center justify-center gap-2 p-3 rounded-lg border border-border bg-card hover:border-ring hover:bg-muted/50 text-left w-full min-h-[4rem] cursor-pointer"
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void removeFavorite(fav.taskId);
+                            }}
+                            className="absolute top-1.5 right-1.5 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-card"
+                            title="Remove from favorites"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                          <p className="text-xs font-medium text-foreground text-center line-clamp-2 w-full px-5">
+                            {fav.summary || fav.prompt.slice(0, 60)}
+                            {(fav.summary || fav.prompt).length > 60 ? '…' : ''}
+                          </p>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                  {hasMoreFavorites && !showAllFavorites && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllFavorites(true)}
+                      className="mt-2 text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      Show all {favoritesList.length} favorites
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Examples Toggle */}
             <div className="border-t border-border">
