@@ -1,0 +1,72 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "cron"
+      cronjob: "0 8 * * 0,3"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    versioning-strategy: "increase-if-necessary"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      npm-production-minor-patch:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+        patterns:
+          - "*"
+      npm-development-minor-patch:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+        patterns:
+          - "*"
+      npm-production-major:
+        dependency-type: "production"
+        update-types:
+          - "major"
+        patterns:
+          - "*"
+      npm-development-major:
+        dependency-type: "development"
+        update-types:
+          - "major"
+        patterns:
+          - "*"
+      npm-catch-all:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "cron"
+      cronjob: "0 8 * * 0,3"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      github-actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+        patterns:
+          - "*"
+      github-actions-major:
+        update-types:
+          - "major"
+        patterns:
+          - "*"
+      github-actions-catch-all:
+        patterns:
+          - "*"
