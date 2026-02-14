@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { getAccomplish } from '../../lib/accomplish';
-import { CornerDownLeft, Loader2, AlertCircle } from 'lucide-react';
+import { CornerDownLeft, Loader2, AlertCircle, Upload } from 'lucide-react';
 import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
 import { useSpeechInput } from '../../hooks/useSpeechInput';
 import { SpeechInputButton } from '../ui/SpeechInputButton';
@@ -10,6 +10,13 @@ import { ModelIndicator } from '../ui/ModelIndicator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PlusMenu } from './PlusMenu';
+import {
+  FileAttachmentChip,
+  getFileType,
+  MAX_ATTACHMENTS,
+  MAX_FILE_SIZE_BYTES,
+  type FileAttachment,
+} from './FileAttachmentChip';
 
 interface TaskInputBarProps {
   value: string;
@@ -41,6 +48,14 @@ interface TaskInputBarProps {
    * Automatically submit after a successful transcription.
    */
   autoSubmitOnTranscription?: boolean;
+  /**
+   * Current file attachments from drag-and-drop
+   */
+  attachments?: FileAttachment[];
+  /**
+   * Called when attachments change (add/remove)
+   */
+  onAttachmentsChange?: (attachments: FileAttachment[]) => void;
 }
 
 export default function TaskInputBar({
@@ -57,10 +72,15 @@ export default function TaskInputBar({
   onOpenModelSettings,
   hideModelWhenNoModel = false,
   autoSubmitOnTranscription = true,
+  attachments = [],
+  onAttachmentsChange,
 }: TaskInputBarProps) {
   const isDisabled = disabled || isLoading;
   const isOverLimit = value.length > PROMPT_DEFAULT_MAX_LENGTH;
-  const canSubmit = !!value.trim() && !isDisabled && !isOverLimit;
+  const hasContent = !!value.trim() || attachments.length > 0;
+  const canSubmit = hasContent && !isDisabled && !isOverLimit;
+  const [dragOver, setDragOver] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingAutoSubmitRef = useRef<string | null>(null);
   const accomplish = getAccomplish();
@@ -135,9 +155,68 @@ export default function TaskInputBar({
     }, 0);
   };
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes('Files')) {
+      setDragOver(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    setAttachmentError(null);
+
+    if (isDisabled || !onAttachmentsChange) {
+      return;
+    }
+
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length === 0) {
+      return;
+    }
+
+    const totalAfterDrop = attachments.length + droppedFiles.length;
+    if (totalAfterDrop > MAX_ATTACHMENTS) {
+      setAttachmentError(`Maximum ${MAX_ATTACHMENTS} files allowed. You tried to add ${droppedFiles.length} to ${attachments.length} existing.`);
+      return;
+    }
+
+    const oversizedFiles = droppedFiles.filter(f => f.size > MAX_FILE_SIZE_BYTES);
+    if (oversizedFiles.length > 0) {
+      setAttachmentError(`Files must be under 10MB. Too large: ${oversizedFiles.map(f => f.name).join(', ')}`);
+      return;
+    }
+
+    const newAttachments: FileAttachment[] = droppedFiles.map(file => ({
+      id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      name: file.name,
+      path: (file as File & { path?: string }).path || file.name,
+      type: getFileType(file.name),
+      size: file.size,
+    }));
+
+    onAttachmentsChange([...attachments, ...newAttachments]);
+  }, [isDisabled, attachments, onAttachmentsChange]);
+
+  const handleRemoveAttachment = useCallback((id: string) => {
+    if (onAttachmentsChange) {
+      onAttachmentsChange(attachments.filter(a => a.id !== id));
+    }
+    setAttachmentError(null);
+  }, [attachments, onAttachmentsChange]);
+
   return (
     <div className="w-full space-y-2">
-      {/* Error message */}
+      {/* Speech error message */}
       {speechInput.error && (
         <Alert
           variant="destructive"
@@ -159,8 +238,42 @@ export default function TaskInputBar({
         </Alert>
       )}
 
+      {/* Attachment error message */}
+      {attachmentError && (
+        <Alert
+          variant="destructive"
+          className="py-2 px-3 flex items-center gap-2 [&>svg]:static [&>svg~*]:pl-0"
+        >
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription data-testid="attachment-error" className="text-xs leading-tight">
+            {attachmentError}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Input container - two rows: textarea top, toolbar bottom */}
-      <div className="rounded-xl border border-border bg-background shadow-sm transition-all duration-200 ease-accomplish focus-within:border-ring focus-within:ring-1 focus-within:ring-ring">
+      <div
+        className={`rounded-xl border bg-background shadow-sm transition-all duration-200 ease-accomplish focus-within:border-ring focus-within:ring-1 focus-within:ring-ring relative ${dragOver
+            ? 'border-primary border-dashed border-2 ring-2 ring-primary/20'
+            : 'border-border'
+          }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {/* Drop zone overlay */}
+        {dragOver && (
+          <div
+            data-testid="drop-zone-overlay"
+            className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-primary/5 pointer-events-none"
+          >
+            <div className="flex items-center gap-2 text-primary font-medium text-sm">
+              <Upload className="h-5 w-5" />
+              <span>Drop files here</span>
+            </div>
+          </div>
+        )}
+
         {/* Textarea area */}
         <div className="px-4 pt-3 pb-2">
           <textarea
@@ -169,12 +282,26 @@ export default function TaskInputBar({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
+            placeholder={attachments.length > 0 ? 'Add a message or submit with files...' : placeholder}
             disabled={isDisabled || speechInput.isRecording}
             rows={1}
             className="w-full max-h-[160px] resize-none bg-transparent text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           />
         </div>
+
+        {/* File attachment chips */}
+        {attachments.length > 0 && (
+          <div data-testid="attachment-chips" className="flex flex-wrap gap-1.5 px-4 pb-2">
+            {attachments.map((attachment) => (
+              <FileAttachmentChip
+                key={attachment.id}
+                attachment={attachment}
+                onRemove={handleRemoveAttachment}
+                disabled={isDisabled}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Toolbar - fixed at bottom */}
         <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-border/50">
@@ -187,63 +314,63 @@ export default function TaskInputBar({
 
           {/* Right side controls */}
           <div className="flex items-center gap-2">
-          {/* Model Indicator */}
-          {onOpenModelSettings && (
-            <ModelIndicator
-              isRunning={false}
-              onOpenSettings={onOpenModelSettings}
-              hideWhenNoModel={hideModelWhenNoModel}
+            {/* Model Indicator */}
+            {onOpenModelSettings && (
+              <ModelIndicator
+                isRunning={false}
+                onOpenSettings={onOpenModelSettings}
+                hideWhenNoModel={hideModelWhenNoModel}
+              />
+            )}
+
+            {/* Divider */}
+            <div className="w-px h-6 bg-border" />
+
+            {/* Speech Input Button */}
+            <SpeechInputButton
+              isRecording={speechInput.isRecording}
+              isTranscribing={speechInput.isTranscribing}
+              recordingDuration={speechInput.recordingDuration}
+              error={speechInput.error}
+              isConfigured={speechInput.isConfigured}
+              disabled={isDisabled}
+              onStartRecording={() => speechInput.startRecording()}
+              onStopRecording={() => speechInput.stopRecording()}
+              onCancel={() => speechInput.cancelRecording()}
+              onRetry={() => speechInput.retry()}
+              onOpenSettings={onOpenSpeechSettings}
+              size="md"
             />
-          )}
 
-          {/* Divider */}
-          <div className="w-px h-6 bg-border" />
-
-          {/* Speech Input Button */}
-          <SpeechInputButton
-            isRecording={speechInput.isRecording}
-            isTranscribing={speechInput.isTranscribing}
-            recordingDuration={speechInput.recordingDuration}
-            error={speechInput.error}
-            isConfigured={speechInput.isConfigured}
-            disabled={isDisabled}
-            onStartRecording={() => speechInput.startRecording()}
-            onStopRecording={() => speechInput.stopRecording()}
-            onCancel={() => speechInput.cancelRecording()}
-            onRetry={() => speechInput.retry()}
-            onOpenSettings={onOpenSpeechSettings}
-            size="md"
-          />
-
-          {/* Submit button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                data-testid="task-input-submit"
-                type="button"
-                aria-label="Submit"
-                onClick={() => {
-                  accomplish.logEvent({
-                    level: 'info',
-                    message: 'Task input submit clicked',
-                    context: { prompt: value },
-                  });
-                  onSubmit();
-                }}
-                disabled={!canSubmit || speechInput.isRecording}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all duration-200 ease-accomplish hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CornerDownLeft className="h-4 w-4" />
-                )}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <span>{isOverLimit ? 'Message is too long' : !value.trim() ? 'Enter a message' : 'Submit'}</span>
-            </TooltipContent>
-          </Tooltip>
+            {/* Submit button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  data-testid="task-input-submit"
+                  type="button"
+                  aria-label="Submit"
+                  onClick={() => {
+                    accomplish.logEvent({
+                      level: 'info',
+                      message: 'Task input submit clicked',
+                      context: { prompt: value },
+                    });
+                    onSubmit();
+                  }}
+                  disabled={!canSubmit || speechInput.isRecording}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all duration-200 ease-accomplish hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CornerDownLeft className="h-4 w-4" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <span>{isOverLimit ? 'Message is too long' : !value.trim() ? 'Enter a message' : 'Submit'}</span>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>

@@ -53,7 +53,7 @@ vi.mock('@/lib/accomplish', () => ({
 // Mock Radix Tooltip to render content directly (portals don't work in jsdom)
 vi.mock('@/components/ui/tooltip', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  TooltipTrigger: ({ children, ...props }: { children: React.ReactNode; asChild?: boolean; [key: string]: unknown }) => (
+  TooltipTrigger: ({ children, ...props }: { children: React.ReactNode; asChild?: boolean;[key: string]: unknown }) => (
     <span data-slot="tooltip-trigger" {...props}>{children}</span>
   ),
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
@@ -579,6 +579,282 @@ describe('TaskInputBar Integration', () => {
 
       const textarea = screen.getByRole('textbox');
       expect(textarea.className).toContain('text-[15px]');
+    });
+  });
+
+  describe('drag and drop attachments', () => {
+    const createMockFile = (name: string, size: number, type = 'application/octet-stream') => {
+      const file = new File(['x'.repeat(Math.min(size, 100))], name, { type });
+      Object.defineProperty(file, 'size', { value: size });
+      Object.defineProperty(file, 'path', { value: `/mock/path/${name}` });
+      return file;
+    };
+
+    const createMockDataTransfer = (files: File[]) => {
+      return {
+        files,
+        types: ['Files'],
+        items: files.map(f => ({ kind: 'file', type: f.type, getAsFile: () => f })),
+      };
+    };
+
+    it('should show drop zone overlay on drag over', () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+      const onAttachmentsChange = vi.fn();
+
+      renderWithRouter(
+        <TaskInputBar
+          value=""
+          onChange={onChange}
+          onSubmit={onSubmit}
+          attachments={[]}
+          onAttachmentsChange={onAttachmentsChange}
+        />
+      );
+
+      const inputContainer = screen.getByTestId('task-input-textarea').closest('.rounded-xl')!;
+      fireEvent.dragOver(inputContainer, {
+        dataTransfer: { types: ['Files'] },
+      });
+
+      expect(screen.getByTestId('drop-zone-overlay')).toBeTruthy();
+      expect(screen.getByText('Drop files here')).toBeTruthy();
+    });
+
+    it('should hide drop zone overlay on drag leave', () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+      const onAttachmentsChange = vi.fn();
+
+      renderWithRouter(
+        <TaskInputBar
+          value=""
+          onChange={onChange}
+          onSubmit={onSubmit}
+          attachments={[]}
+          onAttachmentsChange={onAttachmentsChange}
+        />
+      );
+
+      const inputContainer = screen.getByTestId('task-input-textarea').closest('.rounded-xl')!;
+      fireEvent.dragOver(inputContainer, {
+        dataTransfer: { types: ['Files'] },
+      });
+      expect(screen.getByTestId('drop-zone-overlay')).toBeTruthy();
+
+      fireEvent.dragLeave(inputContainer);
+      expect(screen.queryByTestId('drop-zone-overlay')).toBeNull();
+    });
+
+    it('should call onAttachmentsChange when files are dropped', () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+      const onAttachmentsChange = vi.fn();
+
+      renderWithRouter(
+        <TaskInputBar
+          value=""
+          onChange={onChange}
+          onSubmit={onSubmit}
+          attachments={[]}
+          onAttachmentsChange={onAttachmentsChange}
+        />
+      );
+
+      const inputContainer = screen.getByTestId('task-input-textarea').closest('.rounded-xl')!;
+      const mockFile = createMockFile('test.txt', 1024);
+
+      fireEvent.drop(inputContainer, {
+        dataTransfer: createMockDataTransfer([mockFile]),
+      });
+
+      expect(onAttachmentsChange).toHaveBeenCalledTimes(1);
+      const newAttachments = onAttachmentsChange.mock.calls[0][0];
+      expect(newAttachments).toHaveLength(1);
+      expect(newAttachments[0].name).toBe('test.txt');
+      expect(newAttachments[0].path).toBe('/mock/path/test.txt');
+      expect(newAttachments[0].type).toBe('text');
+      expect(newAttachments[0].size).toBe(1024);
+    });
+
+    it('should render file attachment chips when attachments are provided', () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+      const onAttachmentsChange = vi.fn();
+      const attachments = [
+        { id: 'file_1', name: 'readme.md', path: '/path/readme.md', type: 'text' as const, size: 2048 },
+        { id: 'file_2', name: 'logo.png', path: '/path/logo.png', type: 'image' as const, size: 5120 },
+      ];
+
+      renderWithRouter(
+        <TaskInputBar
+          value=""
+          onChange={onChange}
+          onSubmit={onSubmit}
+          attachments={attachments}
+          onAttachmentsChange={onAttachmentsChange}
+        />
+      );
+
+      expect(screen.getByTestId('attachment-chips')).toBeTruthy();
+      expect(screen.getByTestId('file-chip-file_1')).toBeTruthy();
+      expect(screen.getByTestId('file-chip-file_2')).toBeTruthy();
+      expect(screen.getByText('readme.md')).toBeTruthy();
+      expect(screen.getByText('logo.png')).toBeTruthy();
+    });
+
+    it('should call onAttachmentsChange when removing a file chip', () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+      const onAttachmentsChange = vi.fn();
+      const attachments = [
+        { id: 'file_1', name: 'readme.md', path: '/path/readme.md', type: 'text' as const, size: 2048 },
+        { id: 'file_2', name: 'logo.png', path: '/path/logo.png', type: 'image' as const, size: 5120 },
+      ];
+
+      renderWithRouter(
+        <TaskInputBar
+          value=""
+          onChange={onChange}
+          onSubmit={onSubmit}
+          attachments={attachments}
+          onAttachmentsChange={onAttachmentsChange}
+        />
+      );
+
+      const removeButton = screen.getByTestId('file-chip-remove-file_1');
+      fireEvent.click(removeButton);
+
+      expect(onAttachmentsChange).toHaveBeenCalledTimes(1);
+      const updatedAttachments = onAttachmentsChange.mock.calls[0][0];
+      expect(updatedAttachments).toHaveLength(1);
+      expect(updatedAttachments[0].id).toBe('file_2');
+    });
+
+    it('should show error when dropping more than 5 files', () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+      const onAttachmentsChange = vi.fn();
+
+      renderWithRouter(
+        <TaskInputBar
+          value=""
+          onChange={onChange}
+          onSubmit={onSubmit}
+          attachments={[]}
+          onAttachmentsChange={onAttachmentsChange}
+        />
+      );
+
+      const inputContainer = screen.getByTestId('task-input-textarea').closest('.rounded-xl')!;
+      const files = Array.from({ length: 6 }, (_, i) => createMockFile(`file${i}.txt`, 1024));
+
+      fireEvent.drop(inputContainer, {
+        dataTransfer: createMockDataTransfer(files),
+      });
+
+      expect(onAttachmentsChange).not.toHaveBeenCalled();
+      expect(screen.getByTestId('attachment-error')).toBeTruthy();
+      expect(screen.getByTestId('attachment-error').textContent).toContain('Maximum 5 files');
+    });
+
+    it('should show error when dropping a file over 10MB', () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+      const onAttachmentsChange = vi.fn();
+
+      renderWithRouter(
+        <TaskInputBar
+          value=""
+          onChange={onChange}
+          onSubmit={onSubmit}
+          attachments={[]}
+          onAttachmentsChange={onAttachmentsChange}
+        />
+      );
+
+      const inputContainer = screen.getByTestId('task-input-textarea').closest('.rounded-xl')!;
+      const largeFile = createMockFile('huge.zip', 11 * 1024 * 1024);
+
+      fireEvent.drop(inputContainer, {
+        dataTransfer: createMockDataTransfer([largeFile]),
+      });
+
+      expect(onAttachmentsChange).not.toHaveBeenCalled();
+      expect(screen.getByTestId('attachment-error')).toBeTruthy();
+      expect(screen.getByTestId('attachment-error').textContent).toContain('under 10MB');
+    });
+
+    it('should enable submit with attachments even when text is empty', () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+      const onAttachmentsChange = vi.fn();
+      const attachments = [
+        { id: 'file_1', name: 'data.csv', path: '/path/data.csv', type: 'text' as const, size: 512 },
+      ];
+
+      renderWithRouter(
+        <TaskInputBar
+          value=""
+          onChange={onChange}
+          onSubmit={onSubmit}
+          attachments={attachments}
+          onAttachmentsChange={onAttachmentsChange}
+        />
+      );
+
+      const submitButton = screen.getByRole('button', { name: /submit/i });
+      expect(submitButton).not.toBeDisabled();
+    });
+
+    it('should update placeholder when attachments exist', () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+      const onAttachmentsChange = vi.fn();
+      const attachments = [
+        { id: 'file_1', name: 'test.txt', path: '/path/test.txt', type: 'text' as const, size: 100 },
+      ];
+
+      renderWithRouter(
+        <TaskInputBar
+          value=""
+          onChange={onChange}
+          onSubmit={onSubmit}
+          placeholder="Original placeholder"
+          attachments={attachments}
+          onAttachmentsChange={onAttachmentsChange}
+        />
+      );
+
+      const textarea = screen.getByRole('textbox');
+      expect(textarea.getAttribute('placeholder')).toBe('Add a message or submit with files...');
+    });
+
+    it('should not add files when disabled', () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+      const onAttachmentsChange = vi.fn();
+
+      renderWithRouter(
+        <TaskInputBar
+          value=""
+          onChange={onChange}
+          onSubmit={onSubmit}
+          disabled={true}
+          attachments={[]}
+          onAttachmentsChange={onAttachmentsChange}
+        />
+      );
+
+      const inputContainer = screen.getByTestId('task-input-textarea').closest('.rounded-xl')!;
+      const mockFile = createMockFile('test.txt', 1024);
+
+      fireEvent.drop(inputContainer, {
+        dataTransfer: createMockDataTransfer([mockFile]),
+      });
+
+      expect(onAttachmentsChange).not.toHaveBeenCalled();
     });
   });
 });
