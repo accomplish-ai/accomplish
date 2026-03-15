@@ -88,5 +88,13 @@
     "changeModel": "Сменить модель"
   },
   "messages": "{{count}} сообщений",
-  "favorite": "Избранное"
+  "favorite": "Избранное",
+  "theme": {
+    "switchToLight": "Светлая тема",
+    "switchToDark": "Тёмная тема",
+    "switchToSystem": "Системная тема",
+    "lightMode": "Светлый",
+    "darkMode": "Тёмный",
+    "systemMode": "Система"
+  }
 }
