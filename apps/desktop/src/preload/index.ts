@@ -34,8 +34,13 @@ const accomplishAPI = {
     ipcRenderer.invoke('permission:respond', response),
 
   // Session management
-  resumeSession: (sessionId: string, prompt: string, taskId?: string): Promise<unknown> =>
-    ipcRenderer.invoke('session:resume', sessionId, prompt, taskId),
+  resumeSession: (
+    sessionId: string,
+    prompt: string,
+    taskId?: string,
+    attachments?: unknown[],
+  ): Promise<unknown> =>
+    ipcRenderer.invoke('session:resume', sessionId, prompt, taskId, attachments),
 
   // Settings
   getApiKeys: (): Promise<unknown[]> => ipcRenderer.invoke('settings:api-keys'),
@@ -449,9 +454,21 @@ const accomplishAPI = {
   showSkillInFolder: (filePath: string): Promise<void> =>
     ipcRenderer.invoke('skills:show-in-folder', filePath),
 
+  // Favorites
+  listFavorites: (): Promise<unknown[]> => ipcRenderer.invoke('favorites:list'),
+  addFavorite: (taskId: string): Promise<void> => ipcRenderer.invoke('favorites:add', taskId),
+  removeFavorite: (taskId: string): Promise<void> => ipcRenderer.invoke('favorites:remove', taskId),
+
+  // File attachments
+  pickFiles: (): Promise<unknown[]> => ipcRenderer.invoke('files:pick'),
+  processDroppedFiles: (filePaths: string[]): Promise<unknown[]> =>
+    ipcRenderer.invoke('files:process-dropped', filePaths),
+  getFilePath: (file: File): string | undefined =>
+    'path' in file ? (file as File & { path: string }).path : undefined,
+
   // Sandbox configuration
   getSandboxConfig: (): Promise<{
-    mode: string;
+    mode: 'disabled' | 'native' | 'docker';
     allowedPaths: string[];
     networkRestricted: boolean;
     allowedHosts: string[];
@@ -459,7 +476,7 @@ const accomplishAPI = {
     networkPolicy?: { allowOutbound: boolean; allowedHosts?: string[] };
   }> => ipcRenderer.invoke('sandbox:get-config'),
   setSandboxConfig: (config: {
-    mode: string;
+    mode: 'disabled' | 'native' | 'docker';
     allowedPaths: string[];
     networkRestricted: boolean;
     allowedHosts: string[];

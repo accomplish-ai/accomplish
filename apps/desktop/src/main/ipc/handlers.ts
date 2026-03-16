@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import path from 'path';
 import { ipcMain, BrowserWindow, shell, app, dialog, nativeTheme } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import { URL } from 'url';
@@ -81,6 +82,7 @@ import type {
   AzureFoundryConfig,
   LiteLLMConfig,
   LMStudioConfig,
+  FileAttachmentInfo,
 } from '@accomplish_ai/agent-core';
 import {
   DEFAULT_PROVIDERS,
@@ -306,6 +308,7 @@ export function registerIPCHandlers(): void {
       sessionId: string,
       prompt: string,
       existingTaskId?: string,
+      attachments?: FileAttachmentInfo[],
     ) => {
       const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
       const sender = event.sender;
@@ -349,6 +352,7 @@ export function registerIPCHandlers(): void {
           sessionId: validatedSessionId,
           taskId,
           modelId: selectedModelForResume?.model,
+          files: attachments,
         },
         callbacks,
       );
@@ -1212,7 +1216,7 @@ export function registerIPCHandlers(): void {
 
   // Debug Bug Report Handlers
   handle('debug:capture-screenshot', async (event: IpcMainInvokeEvent) => {
-let window: BrowserWindow;
+    let window: BrowserWindow;
     try {
       window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
     } catch (error) {
@@ -1232,7 +1236,7 @@ let window: BrowserWindow;
   });
 
   handle('debug:capture-axtree', async (event: IpcMainInvokeEvent) => {
-let window: BrowserWindow;
+    let window: BrowserWindow;
     try {
       window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
     } catch (error) {
@@ -1299,7 +1303,7 @@ let window: BrowserWindow;
         platform?: string;
       },
     ) => {
-let window: BrowserWindow;
+      let window: BrowserWindow;
       try {
         window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
       } catch (error) {
@@ -1363,14 +1367,15 @@ let window: BrowserWindow;
 
         if (screenshotBuffer) {
           const parsed = path.parse(result.filePath);
-let screenshotPath = path.join(parsed.dir, `${parsed.name}.png`);
+          let screenshotPath = path.join(parsed.dir, `${parsed.name}.png`);
           // Avoid silently overwriting an existing PNG sidecar.
           let suffix = 0;
           while (fs.existsSync(screenshotPath)) {
             suffix += 1;
             screenshotPath = path.join(parsed.dir, `${parsed.name}-${suffix}.png`);
           }
-          fs.writeFileSync(screenshotPath, Buffer.from(reportData.screenshot, 'base64'));        }
+          fs.writeFileSync(screenshotPath, screenshotBuffer);
+        }
 
         return { success: true, path: result.filePath };
       } catch (error) {
@@ -1379,6 +1384,132 @@ let screenshotPath = path.join(parsed.dir, `${parsed.name}.png`);
       }
     },
   );
+
+  // Favorites handlers
+  handle('favorites:list', async () => {
+    return storage.getFavorites();
+  });
+
+  handle('favorites:add', async (_event: IpcMainInvokeEvent, taskId: string) => {
+    const task = storage.getTask(taskId);
+    storage.addFavorite(taskId, task?.prompt ?? '', task?.summary);
+  });
+
+  handle('favorites:remove', async (_event: IpcMainInvokeEvent, taskId: string) => {
+    storage.removeFavorite(taskId);
+  });
+
+  // File attachment handlers
+  handle('files:pick', async (event: IpcMainInvokeEvent) => {
+    const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
+    const result = await dialog.showOpenDialog(window, {
+      properties: ['openFile', 'multiSelections'],
+    });
+    if (result.canceled) return [];
+    return result.filePaths.map((filePath) => {
+      const stat = fs.statSync(filePath);
+      const ext = path.extname(filePath).toLowerCase().slice(1);
+      const textExts = ['txt', 'md', 'json', 'yaml', 'yml', 'toml', 'csv', 'xml', 'html', 'css'];
+      const codeExts = [
+        'ts',
+        'tsx',
+        'js',
+        'jsx',
+        'py',
+        'rb',
+        'go',
+        'rs',
+        'java',
+        'c',
+        'cpp',
+        'h',
+        'cs',
+        'swift',
+        'kt',
+        'sh',
+        'bash',
+        'zsh',
+        'fish',
+      ];
+      const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'];
+      const pdfExts = ['pdf'];
+      type FileType = 'image' | 'text' | 'code' | 'pdf' | 'other';
+      let type: FileType = 'other';
+      if (imageExts.includes(ext)) type = 'image';
+      else if (pdfExts.includes(ext)) type = 'pdf';
+      else if (codeExts.includes(ext)) type = 'code';
+      else if (textExts.includes(ext)) type = 'text';
+
+      const info: FileAttachmentInfo = {
+        id: crypto.randomUUID(),
+        name: path.basename(filePath),
+        path: filePath,
+        type,
+        size: stat.size,
+      };
+      if (type === 'text' || type === 'code') {
+        try {
+          info.content = fs.readFileSync(filePath, 'utf-8');
+        } catch {
+          // Non-fatal: content stays undefined
+        }
+      }
+      return info;
+    });
+  });
+
+  handle('files:process-dropped', async (_event: IpcMainInvokeEvent, filePaths: string[]) => {
+    return filePaths.map((filePath) => {
+      const stat = fs.statSync(filePath);
+      const ext = path.extname(filePath).toLowerCase().slice(1);
+      const textExts = ['txt', 'md', 'json', 'yaml', 'yml', 'toml', 'csv', 'xml', 'html', 'css'];
+      const codeExts = [
+        'ts',
+        'tsx',
+        'js',
+        'jsx',
+        'py',
+        'rb',
+        'go',
+        'rs',
+        'java',
+        'c',
+        'cpp',
+        'h',
+        'cs',
+        'swift',
+        'kt',
+        'sh',
+        'bash',
+        'zsh',
+        'fish',
+      ];
+      const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'];
+      const pdfExts = ['pdf'];
+      type FileType = 'image' | 'text' | 'code' | 'pdf' | 'other';
+      let type: FileType = 'other';
+      if (imageExts.includes(ext)) type = 'image';
+      else if (pdfExts.includes(ext)) type = 'pdf';
+      else if (codeExts.includes(ext)) type = 'code';
+      else if (textExts.includes(ext)) type = 'text';
+
+      const info: FileAttachmentInfo = {
+        id: crypto.randomUUID(),
+        name: path.basename(filePath),
+        path: filePath,
+        type,
+        size: stat.size,
+      };
+      if (type === 'text' || type === 'code') {
+        try {
+          info.content = fs.readFileSync(filePath, 'utf-8');
+        } catch {
+          // Non-fatal: content stays undefined
+        }
+      }
+      return info;
+    });
+  });
 
   handle('skills:list', async () => {
     return skillsManager.getAll();
