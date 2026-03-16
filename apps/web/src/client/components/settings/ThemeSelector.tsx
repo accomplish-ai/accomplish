@@ -44,12 +44,14 @@ export function ThemeSelector() {
   useEffect(() => {
     const accomplish = getAccomplish();
 
-    // Load the authoritative theme value from the backend and sync the selector.
+    // Load the authoritative theme value from the backend and sync both the
+    // selector state and the DOM (applyTheme writes localStorage + applies class).
     accomplish
       .getTheme()
       .then((theme) => {
         if (isThemeValue(theme)) {
           setCurrent(theme);
+          applyTheme(theme);
         }
       })
       .catch(() => {
@@ -60,6 +62,7 @@ export function ThemeSelector() {
     const unsubscribe = accomplish.onThemeChange?.((data) => {
       if (isThemeValue(data.theme)) {
         setCurrent(data.theme);
+        applyTheme(data.theme);
       }
     });
 
