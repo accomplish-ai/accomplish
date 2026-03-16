@@ -538,6 +538,10 @@ export function ExecutionPage() {
     if (!currentTask) {
       return;
     }
+    const activeStatuses = ['pending', 'queued', 'running', 'waiting_permission', 'waiting'];
+    if (activeStatuses.includes(currentTask.status)) {
+      return;
+    }
     setRepeatingTask(true);
     try {
       const newTask = await accomplish.startTask({ prompt: currentTask.prompt });

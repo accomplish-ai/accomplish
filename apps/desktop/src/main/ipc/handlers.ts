@@ -1388,7 +1388,7 @@ export function registerIPCHandlers(): void {
           messages: reportData.messages,
           debugLogs: reportData.debugLogs,
           axtree: reportData.axtree,
-          screenshotPath: screenshotPath ?? null,
+          screenshotFile: screenshotPath ? path.basename(screenshotPath) : null,
           hasScreenshot: Boolean(screenshotPath),
         };
 
