@@ -77,10 +77,8 @@ export function ThemeSelector() {
       const requestId = ++requestSeqRef.current;
 
       const previousTheme = current;
-      const previousStored =
-        typeof localStorage !== 'undefined' ? localStorage.getItem(THEME_KEY) : null;
 
-      // Optimistically update UI and localStorage.
+      // Optimistically update UI and localStorage (applyTheme writes THEME_KEY).
       setCurrent(value);
       applyTheme(value);
 
@@ -92,15 +90,8 @@ export function ThemeSelector() {
         if (requestSeqRef.current !== requestId) {
           return;
         }
-        // Revert UI and localStorage to the previous state on IPC failure.
+        // Revert UI state; applyTheme(previousTheme) also restores localStorage.
         setCurrent(previousTheme);
-        if (typeof localStorage !== 'undefined') {
-          if (previousStored !== null) {
-            localStorage.setItem(THEME_KEY, previousStored);
-          } else {
-            localStorage.removeItem(THEME_KEY);
-          }
-        }
         applyTheme(previousTheme);
       }
     },
