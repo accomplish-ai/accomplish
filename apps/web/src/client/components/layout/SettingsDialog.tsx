@@ -13,6 +13,7 @@ import { SpeechSettingsForm } from '@/components/settings/SpeechSettingsForm';
 import { SkillsPanel, AddSkillDropdown } from '@/components/settings/skills';
 import { AboutTab } from '@/components/settings/AboutTab';
 import { DebugSection } from '@/components/settings/DebugSection';
+import { SandboxSection } from '@/components/settings/SandboxSection';
 import { ConnectorsPanel } from '@/components/settings/connectors';
 import { Key, Lightning, Microphone, Info, Plugs } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
@@ -421,6 +422,9 @@ export function SettingsDialog({
                       </motion.section>
                     )}
                   </AnimatePresence>
+
+                  {/* Sandbox Toggle - always visible in providers tab */}
+                  <SandboxSection visible={!!selectedProvider} />
                 </div>
               )}
 

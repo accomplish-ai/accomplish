@@ -1381,4 +1381,73 @@ describe('Execution Page Integration', () => {
       expect(sendTooltip).toBeDefined();
     });
   });
+
+  describe('Escape key to stop running task', () => {
+    it('should call interruptTask when Escape is pressed while task is running', () => {
+      mockStoreState.currentTask = createMockTask('task-123', 'Running task', 'running');
+      mockStoreState.isLoading = false;
+
+      renderWithRouter('task-123');
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(mockInterruptTask).toHaveBeenCalledTimes(1);
+    });
+
+    it('should NOT call interruptTask when Escape is pressed on a completed task', () => {
+      const task = createMockTask('task-123', 'Done', 'completed');
+      task.sessionId = 'session-abc';
+      mockStoreState.currentTask = task;
+      mockStoreState.isLoading = false;
+
+      renderWithRouter('task-123');
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(mockInterruptTask).not.toHaveBeenCalled();
+    });
+
+    it('should NOT call interruptTask for non-Escape keys while task is running', () => {
+      mockStoreState.currentTask = createMockTask('task-123', 'Running task', 'running');
+      mockStoreState.isLoading = false;
+
+      renderWithRouter('task-123');
+
+      fireEvent.keyDown(document, { key: 'Enter' });
+      fireEvent.keyDown(document, { key: 'Space' });
+      fireEvent.keyDown(document, { key: 's' });
+
+      expect(mockInterruptTask).not.toHaveBeenCalled();
+    });
+
+    it('should NOT call interruptTask when a permission dialog is open', () => {
+      mockStoreState.currentTask = createMockTask('task-123', 'Running task', 'running');
+      mockStoreState.isLoading = false;
+      mockStoreState.permissionRequest = {
+        id: 'req-1',
+        taskId: 'task-123',
+        type: 'question',
+        question: 'Allow this action?',
+        options: [{ label: 'Yes' }, { label: 'No' }],
+        createdAt: new Date().toISOString(),
+      };
+
+      renderWithRouter('task-123');
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(mockInterruptTask).not.toHaveBeenCalled();
+    });
+
+    it('should NOT call interruptTask when Escape key is held down (repeat event)', () => {
+      mockStoreState.currentTask = createMockTask('task-123', 'Running task', 'running');
+      mockStoreState.isLoading = false;
+
+      renderWithRouter('task-123');
+
+      fireEvent.keyDown(document, { key: 'Escape', repeat: true });
+
+      expect(mockInterruptTask).not.toHaveBeenCalled();
+    });
+  });
 });

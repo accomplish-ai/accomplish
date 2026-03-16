@@ -6,7 +6,13 @@
  */
 
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import type { ProviderType, Skill, TodoItem, McpConnector } from '@accomplish_ai/agent-core';
+import type {
+  ProviderType,
+  Skill,
+  TodoItem,
+  McpConnector,
+  SandboxConfig,
+} from '@accomplish_ai/agent-core';
 
 // Expose the accomplish API to the renderer
 const accomplishAPI = {
@@ -466,6 +472,11 @@ const accomplishAPI = {
     ipcRenderer.invoke('skills:open-in-editor', filePath),
   showSkillInFolder: (filePath: string): Promise<void> =>
     ipcRenderer.invoke('skills:show-in-folder', filePath),
+
+  // Sandbox configuration
+  getSandboxConfig: (): Promise<SandboxConfig> => ipcRenderer.invoke('sandbox:get-config'),
+  setSandboxConfig: (config: SandboxConfig): Promise<void> =>
+    ipcRenderer.invoke('sandbox:set-config', config),
 
   // MCP Connectors
   getConnectors: (): Promise<McpConnector[]> => ipcRenderer.invoke('connectors:list'),

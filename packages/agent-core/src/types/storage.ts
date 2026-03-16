@@ -13,6 +13,7 @@ import type {
   ConnectedProvider,
 } from '../common/types/providerSettings.js';
 import type { McpConnector, ConnectorStatus, OAuthTokens } from '../common/types/connector.js';
+import type { SandboxConfig } from '../common/types/sandbox.js';
 
 /** Options for creating a Storage instance */
 export interface StorageOptions {
@@ -145,6 +146,10 @@ export interface AppSettingsAPI {
   getAppSettings(): AppSettings;
   /** Reset all application settings to defaults */
   clearAppSettings(): void;
+  /** Get the current sandbox configuration */
+  getSandboxConfig(): SandboxConfig;
+  /** Set the sandbox configuration */
+  setSandboxConfig(config: SandboxConfig): void;
 }
 
 /** API for managing AI provider configurations */

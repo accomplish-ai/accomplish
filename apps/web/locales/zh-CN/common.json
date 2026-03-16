@@ -88,5 +88,13 @@
     "changeModel": "更换模型"
   },
   "messages": "{{count}} 条消息",
-  "favorite": "收藏"
+  "favorite": "收藏",
+  "theme": {
+    "switchToLight": "切换到浅色模式",
+    "switchToDark": "切换到深色模式",
+    "switchToSystem": "跟随系统",
+    "lightMode": "浅色模式",
+    "darkMode": "深色模式",
+    "systemMode": "跟随系统"
+  }
 }

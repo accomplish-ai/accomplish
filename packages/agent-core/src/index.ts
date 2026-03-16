@@ -23,6 +23,8 @@ export {
   createSpeechService,
 } from './factories/index.js';
 
+export { createSandboxProvider } from './factories/sandbox.js';
+
 // -----------------------------------------------------------------------------
 // API Interfaces (NEW - Public contracts)
 // -----------------------------------------------------------------------------
@@ -370,6 +372,21 @@ export {
 export type { TodoItem } from './common/types/todo.js';
 export type { LogLevel, LogSource, LogEntry } from './common/types/logging.js';
 export type { ThoughtEvent, CheckpointEvent } from './common/types/thought-stream.js';
+
+// Sandbox types
+export type {
+  SandboxMode,
+  SandboxConfig,
+  SandboxProvider,
+  SpawnArgs,
+  // SandboxPaths contributed by preeeetham (PR #430)
+  SandboxPaths,
+  // SandboxNetworkPolicy contributed by SaaiAravindhRaja (PR #612)
+  SandboxNetworkPolicy,
+} from './common/types/sandbox.js';
+export { DEFAULT_SANDBOX_CONFIG } from './common/types/sandbox.js';
+// DockerSandboxProvider contributed by preeeetham (#430) + SaaiAravindhRaja (#612)
+export { DockerSandboxProvider } from './sandbox/docker-provider.js';
 
 // Constants
 export {
