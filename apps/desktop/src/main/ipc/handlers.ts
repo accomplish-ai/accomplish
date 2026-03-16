@@ -1449,10 +1449,7 @@ export function registerIPCHandlers(): void {
 
   // Debug Bug Report Handlers
   handle('debug:capture-screenshot', async (event: IpcMainInvokeEvent) => {
-    const window = BrowserWindow.fromWebContents(event.sender);
-    if (!window) {
-      return { success: false, error: 'No window found' };
-    }
+    const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
 
     try {
       const image = await window.webContents.capturePage();
@@ -1467,10 +1464,7 @@ export function registerIPCHandlers(): void {
   });
 
   handle('debug:capture-axtree', async (event: IpcMainInvokeEvent) => {
-    const window = BrowserWindow.fromWebContents(event.sender);
-    if (!window) {
-      return { success: false, error: 'No window found' };
-    }
+    const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
 
     try {
       const axtree = await window.webContents.executeJavaScript(`
@@ -1532,10 +1526,7 @@ export function registerIPCHandlers(): void {
         platform?: string;
       },
     ) => {
-      const window = BrowserWindow.fromWebContents(event.sender);
-      if (!window) {
-        return { success: false, error: 'No window found' };
-      }
+      const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
 
       try {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -1554,6 +1545,24 @@ export function registerIPCHandlers(): void {
           return { success: false, reason: 'cancelled' };
         }
 
+        // Validate screenshot before writing: enforce 10 MB base64 limit and PNG magic bytes
+        let screenshotBuffer: Buffer | null = null;
+        if (reportData.screenshot) {
+          const MAX_SCREENSHOT_B64_LEN = 10 * 1024 * 1024 * (4 / 3); // ~13.4 MB b64 for 10 MB binary
+          if (reportData.screenshot.length > MAX_SCREENSHOT_B64_LEN) {
+            return { success: false, error: 'Screenshot data exceeds maximum allowed size' };
+          }
+          screenshotBuffer = Buffer.from(reportData.screenshot, 'base64');
+          // PNG magic bytes: 0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A
+          const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+          const isValidPng =
+            screenshotBuffer.length >= 8 &&
+            PNG_MAGIC.every((byte, i) => screenshotBuffer![i] === byte);
+          if (!isValidPng) {
+            return { success: false, error: 'Screenshot data is not a valid PNG' };
+          }
+        }
+
         const report = {
           version: 1,
           generatedAt: new Date().toISOString(),
@@ -1569,15 +1578,15 @@ export function registerIPCHandlers(): void {
           messages: reportData.messages,
           debugLogs: reportData.debugLogs,
           axtree: reportData.axtree,
-          hasScreenshot: Boolean(reportData.screenshot),
+          hasScreenshot: Boolean(screenshotBuffer),
         };
 
         fs.writeFileSync(result.filePath, JSON.stringify(report, null, 2));
 
-        if (reportData.screenshot) {
+        if (screenshotBuffer) {
           const parsed = path.parse(result.filePath);
           const screenshotPath = path.join(parsed.dir, `${parsed.name}.png`);
-          fs.writeFileSync(screenshotPath, Buffer.from(reportData.screenshot, 'base64'));
+          fs.writeFileSync(screenshotPath, screenshotBuffer);
         }
 
         return { success: true, path: result.filePath };
