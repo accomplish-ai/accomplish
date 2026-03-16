@@ -24,9 +24,7 @@ import type {
   ToolSupportStatus,
   Skill,
   McpConnector,
-  FileAttachmentInfo,
 } from '@accomplish_ai/agent-core/common';
-import type { StoredFavorite, SandboxConfig } from '@accomplish_ai/agent-core';
 
 // Define the API interface
 interface AccomplishAPI {
@@ -45,24 +43,12 @@ interface AccomplishAPI {
   listTasks(): Promise<Task[]>;
   deleteTask(taskId: string): Promise<void>;
   clearTaskHistory(): Promise<void>;
-  addFavorite(taskId: string): Promise<void>;
-  removeFavorite(taskId: string): Promise<void>;
-  listFavorites(): Promise<StoredFavorite[]>;
-  isFavorite(taskId: string): Promise<boolean>;
-  pickFiles(): Promise<FileAttachmentInfo[]>;
-  getFilePath(file: File): string;
-  processDroppedFiles(paths: string[]): Promise<FileAttachmentInfo[]>;
 
   // Permission responses
   respondToPermission(response: PermissionResponse): Promise<void>;
 
   // Session management
-  resumeSession(
-    sessionId: string,
-    prompt: string,
-    taskId?: string,
-    attachments?: FileAttachmentInfo[],
-  ): Promise<Task>;
+  resumeSession(sessionId: string, prompt: string, taskId?: string): Promise<Task>;
 
   // Settings
   getApiKeys(): Promise<ApiKeyConfig[]>;
@@ -395,8 +381,22 @@ interface AccomplishAPI {
   showSkillInFolder(filePath: string): Promise<void>;
 
   // Sandbox configuration
-  getSandboxConfig(): Promise<SandboxConfig>;
-  setSandboxConfig(config: SandboxConfig): Promise<void>;
+  getSandboxConfig(): Promise<{
+    mode: string;
+    allowedPaths: string[];
+    networkRestricted: boolean;
+    allowedHosts: string[];
+    dockerImage?: string;
+    networkPolicy?: { allowOutbound: boolean; allowedHosts?: string[] };
+  }>;
+  setSandboxConfig(config: {
+    mode: string;
+    allowedPaths: string[];
+    networkRestricted: boolean;
+    allowedHosts: string[];
+    dockerImage?: string;
+    networkPolicy?: { allowOutbound: boolean; allowedHosts?: string[] };
+  }): Promise<void>;
 
   // MCP Connectors
   getConnectors(): Promise<McpConnector[]>;

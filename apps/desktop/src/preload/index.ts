@@ -5,19 +5,11 @@
  * for communicating with the Electron main process via IPC.
  */
 
-import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import type {
-  ProviderType,
-  Skill,
-  TodoItem,
-  McpConnector,
-  SandboxConfig,
-} from '@accomplish_ai/agent-core';
+import { contextBridge, ipcRenderer } from 'electron';
+import type { ProviderType, Skill, TodoItem, McpConnector } from '@accomplish_ai/agent-core';
 
 // Expose the accomplish API to the renderer
 const accomplishAPI = {
-  // Utility for safely extracting native paths from DOM File objects in drop events
-  getFilePath: (file: File): string => webUtils.getPathForFile(file),
   // App info
   getVersion: (): Promise<string> => ipcRenderer.invoke('app:version'),
   getPlatform: (): Promise<string> => ipcRenderer.invoke('app:platform'),
@@ -36,30 +28,14 @@ const accomplishAPI = {
   clearTaskHistory: (): Promise<void> => ipcRenderer.invoke('task:clear-history'),
   getTodosForTask: (taskId: string): Promise<TodoItem[]> =>
     ipcRenderer.invoke('task:get-todos', taskId),
-  addFavorite: (taskId: string): Promise<void> => ipcRenderer.invoke('task:favorite:add', taskId),
-  removeFavorite: (taskId: string): Promise<void> =>
-    ipcRenderer.invoke('task:favorite:remove', taskId),
-  listFavorites: (): Promise<unknown[]> => ipcRenderer.invoke('task:favorite:list'),
-  isFavorite: (taskId: string): Promise<boolean> => ipcRenderer.invoke('task:favorite:has', taskId),
-  pickFiles: (): Promise<import('@accomplish_ai/agent-core/common').FileAttachmentInfo[]> =>
-    ipcRenderer.invoke('task:pick-files'),
-  processDroppedFiles: (
-    paths: string[],
-  ): Promise<import('@accomplish_ai/agent-core/common').FileAttachmentInfo[]> =>
-    ipcRenderer.invoke('task:process-dropped-files', paths),
 
   // Permission responses
   respondToPermission: (response: { taskId: string; allowed: boolean }): Promise<void> =>
     ipcRenderer.invoke('permission:respond', response),
 
   // Session management
-  resumeSession: (
-    sessionId: string,
-    prompt: string,
-    taskId?: string,
-    attachments?: import('@accomplish_ai/agent-core/common').FileAttachmentInfo[],
-  ): Promise<unknown> =>
-    ipcRenderer.invoke('session:resume', sessionId, prompt, taskId, attachments),
+  resumeSession: (sessionId: string, prompt: string, taskId?: string): Promise<unknown> =>
+    ipcRenderer.invoke('session:resume', sessionId, prompt, taskId),
 
   // Settings
   getApiKeys: (): Promise<unknown[]> => ipcRenderer.invoke('settings:api-keys'),
@@ -474,9 +450,22 @@ const accomplishAPI = {
     ipcRenderer.invoke('skills:show-in-folder', filePath),
 
   // Sandbox configuration
-  getSandboxConfig: (): Promise<SandboxConfig> => ipcRenderer.invoke('sandbox:get-config'),
-  setSandboxConfig: (config: SandboxConfig): Promise<void> =>
-    ipcRenderer.invoke('sandbox:set-config', config),
+  getSandboxConfig: (): Promise<{
+    mode: string;
+    allowedPaths: string[];
+    networkRestricted: boolean;
+    allowedHosts: string[];
+    dockerImage?: string;
+    networkPolicy?: { allowOutbound: boolean; allowedHosts?: string[] };
+  }> => ipcRenderer.invoke('sandbox:get-config'),
+  setSandboxConfig: (config: {
+    mode: string;
+    allowedPaths: string[];
+    networkRestricted: boolean;
+    allowedHosts: string[];
+    dockerImage?: string;
+    networkPolicy?: { allowOutbound: boolean; allowedHosts?: string[] };
+  }): Promise<void> => ipcRenderer.invoke('sandbox:set-config', config),
 
   // MCP Connectors
   getConnectors: (): Promise<McpConnector[]> => ipcRenderer.invoke('connectors:list'),

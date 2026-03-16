@@ -114,6 +114,7 @@ export function ExecutionPage() {
   const [debugModeEnabled, setDebugModeEnabled] = useState(false);
   const [bugReporting, setBugReporting] = useState(false);
   const [bugReportSaved, setBugReportSaved] = useState(false);
+  const bugSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [repeatingTask, setRepeatingTask] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
@@ -517,7 +518,11 @@ export function ExecutionPage() {
       });
       if (result.success) {
         setBugReportSaved(true);
-        setTimeout(() => setBugReportSaved(false), 2500);
+        if (bugSavedTimerRef.current) clearTimeout(bugSavedTimerRef.current);
+        bugSavedTimerRef.current = setTimeout(() => {
+          setBugReportSaved(false);
+          bugSavedTimerRef.current = null;
+        }, 2500);
       }
     } catch (err) {
       console.error('[Execution] Bug report failed:', err);
