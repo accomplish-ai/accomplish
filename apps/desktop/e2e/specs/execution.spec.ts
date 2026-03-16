@@ -806,16 +806,14 @@ test.describe('Execution Page', () => {
 
     await codeBlockContainer.scrollIntoViewIfNeeded();
 
-    const initialClasses = await firstCodeBlockCopyButton.getAttribute('class');
-    expect(initialClasses).toContain('opacity-0');
+    // Assert rendered CSS opacity (more reliable than class token checks since
+    // Tailwind variant classes remain in the DOM regardless of hover state)
+    await expect(firstCodeBlockCopyButton).toHaveCSS('opacity', '0');
 
     await codeBlockContainer.hover();
     await window.waitForTimeout(100);
 
-    // Assert the class change: opacity-0 should be gone after hover
-    // (waitFor({ state: 'visible' }) is not reliable for opacity-0 elements in Playwright)
-    const hoverClasses = await firstCodeBlockCopyButton.getAttribute('class');
-    expect(hoverClasses).not.toContain('opacity-0');
+    await expect(firstCodeBlockCopyButton).toHaveCSS('opacity', '1');
 
     const buttonText = await firstCodeBlockCopyButton.textContent();
     expect(buttonText).toContain('Copy');

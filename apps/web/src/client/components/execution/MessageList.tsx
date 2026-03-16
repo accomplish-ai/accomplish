@@ -122,7 +122,10 @@ export const MessageBubble = memo(
           (className ? className.split(' ') : []);
         const langClass = classes.find((c) => c.startsWith('language-'));
         const language = langClass ? langClass.slice('language-'.length) : undefined;
-        const inline = typeof className === 'undefined' && !code.includes('\n');
+        // Guard against single-line fenced blocks without a language identifier:
+        // they also have no className but should NOT be treated as inline code.
+        const hasLanguageClass = classes.some((c) => c.startsWith('language-'));
+        const inline = typeof className === 'undefined' && !hasLanguageClass && !code.includes('\n');
 
         return (
           <CodeBlock language={language} inline={inline} {...props}>
