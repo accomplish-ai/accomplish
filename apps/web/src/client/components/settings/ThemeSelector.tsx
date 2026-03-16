@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sun, Moon, Desktop, CaretDown } from '@phosphor-icons/react';
 import { applyTheme } from '@/lib/theme';
@@ -39,6 +39,7 @@ export function ThemeSelector() {
   // The real value is loaded async from the backend in the effect below.
   const [current, setCurrent] = useState<ThemeValue>(getStoredTheme);
   const [open, setOpen] = useState(false);
+  const requestSeqRef = useRef(0);
 
   useEffect(() => {
     const accomplish = getAccomplish();
@@ -73,6 +74,8 @@ export function ThemeSelector() {
         return;
       }
 
+      const requestId = ++requestSeqRef.current;
+
       const previousTheme = current;
       const previousStored =
         typeof localStorage !== 'undefined' ? localStorage.getItem(THEME_KEY) : null;
@@ -85,6 +88,10 @@ export function ThemeSelector() {
       try {
         await accomplish.setTheme(value);
       } catch {
+        // Guard against stale async rollback: only revert if this is still the latest request.
+        if (requestSeqRef.current !== requestId) {
+          return;
+        }
         // Revert UI and localStorage to the previous state on IPC failure.
         setCurrent(previousTheme);
         if (typeof localStorage !== 'undefined') {
