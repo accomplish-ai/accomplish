@@ -2255,6 +2255,9 @@ describe('IPC Handlers Integration', () => {
         filePath: '/tmp/bug-report.json',
       });
 
+      // Enable debug mode for all debug handler tests
+      mockDebugMode = true;
+
       // Reset fs mocks
       (fs.writeFileSync as Mock).mockReset();
       (fs.promises.writeFile as unknown as Mock).mockReset();

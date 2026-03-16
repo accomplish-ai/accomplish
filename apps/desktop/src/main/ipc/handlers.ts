@@ -1215,8 +1215,15 @@ export function registerIPCHandlers(): void {
     }
   });
 
+  const assertDebugModeEnabled = () => {
+    if (!storage.getDebugMode()) {
+      throw new Error('Debug mode is disabled');
+    }
+  };
+
   // Debug Bug Report Handlers
   handle('debug:capture-screenshot', async (event: IpcMainInvokeEvent) => {
+    try { assertDebugModeEnabled(); } catch (e) { return { success: false, error: (e as Error).message }; }
     let window: BrowserWindow;
     try {
       window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
@@ -1237,6 +1244,7 @@ export function registerIPCHandlers(): void {
   });
 
   handle('debug:capture-axtree', async (event: IpcMainInvokeEvent) => {
+    try { assertDebugModeEnabled(); } catch (e) { return { success: false, error: (e as Error).message }; }
     let window: BrowserWindow;
     try {
       window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
@@ -1304,6 +1312,7 @@ export function registerIPCHandlers(): void {
         platform?: string;
       },
     ) => {
+      try { assertDebugModeEnabled(); } catch (e) { return { success: false, error: (e as Error).message }; }
       let window: BrowserWindow;
       try {
         window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
