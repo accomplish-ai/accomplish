@@ -88,5 +88,13 @@
     "changeModel": "Changer de modèle"
   },
   "messages": "{{count}} messages",
-  "favorite": "Favori"
+  "favorite": "Favori",
+  "theme": {
+    "switchToLight": "Passer au mode clair",
+    "switchToDark": "Passer au mode sombre",
+    "switchToSystem": "Suivre le système",
+    "lightMode": "Mode clair",
+    "darkMode": "Mode sombre",
+    "systemMode": "Système"
+  }
 }

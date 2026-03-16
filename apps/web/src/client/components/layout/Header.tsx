@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '../ui/ThemeToggle';
 
 export default function Header() {
   const location = useLocation();
@@ -43,8 +44,10 @@ export default function Header() {
           </NavLink>
         </nav>
 
-        {/* Spacer for balance */}
-        <div className="w-24" />
+        {/* Theme toggle — right-aligned to balance the logo */}
+        <div className="no-drag flex items-center justify-end w-24">
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
