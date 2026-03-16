@@ -512,7 +512,6 @@ export function ExecutionPage() {
         taskPrompt: currentTask.prompt,
         taskStatus: currentTask.status,
         taskCreatedAt: currentTask.createdAt,
-        taskUpdatedAt: currentTask.updatedAt,
         taskCompletedAt: currentTask.completedAt,
         messages: currentTask.messages as unknown[],
         debugLogs: debugLogs as unknown[],

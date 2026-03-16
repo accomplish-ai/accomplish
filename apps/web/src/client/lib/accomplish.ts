@@ -376,7 +376,6 @@ interface AccomplishAPI {
     taskPrompt?: string;
     taskStatus?: string;
     taskCreatedAt?: string;
-    taskUpdatedAt?: string;
     taskCompletedAt?: string;
     messages?: unknown[];
     debugLogs?: unknown[];

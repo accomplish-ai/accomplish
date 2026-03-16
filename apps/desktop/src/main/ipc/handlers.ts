@@ -1314,7 +1314,6 @@ export function registerIPCHandlers(): void {
         taskPrompt?: string;
         taskStatus?: string;
         taskCreatedAt?: string;
-        taskUpdatedAt?: string;
         taskCompletedAt?: string;
         messages?: unknown[];
         debugLogs?: unknown[];
