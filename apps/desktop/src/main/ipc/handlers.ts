@@ -1313,6 +1313,9 @@ export function registerIPCHandlers(): void {
         taskId?: string;
         taskPrompt?: string;
         taskStatus?: string;
+        taskCreatedAt?: string;
+        taskUpdatedAt?: string;
+        taskCompletedAt?: string;
         messages?: unknown[];
         debugLogs?: unknown[];
         screenshot?: string;
@@ -1350,22 +1353,20 @@ export function registerIPCHandlers(): void {
           return { success: false, reason: 'cancelled' };
         }
 
-        // Validate screenshot before writing: enforce 10 MB base64 limit and PNG magic bytes
-        let screenshotBuffer: Buffer | null = null;
+        // Write PNG sidecar first (collision-safe) so hasScreenshot in the
+        // JSON is only true when the file was actually written.
+        let screenshotPath: string | undefined;
         if (reportData.screenshot) {
-          const MAX_SCREENSHOT_B64_LEN = 10 * 1024 * 1024 * (4 / 3); // ~13.4 MB b64 for 10 MB binary
-          if (reportData.screenshot.length > MAX_SCREENSHOT_B64_LEN) {
-            return { success: false, error: 'Screenshot data exceeds maximum allowed size' };
+          const parsed = path.parse(result.filePath);
+          const candidate = path.join(parsed.dir, `${parsed.name}.png`);
+          try {
+            await fs.promises.access(candidate);
+            // File exists — use a timestamped name to avoid silent overwrite.
+            screenshotPath = path.join(parsed.dir, `${parsed.name}-${Date.now()}.png`);
+          } catch {
+            screenshotPath = candidate;
           }
-          screenshotBuffer = Buffer.from(reportData.screenshot, 'base64');
-          // PNG magic bytes: 0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A
-          const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-          const isValidPng =
-            screenshotBuffer.length >= 8 &&
-            PNG_MAGIC.every((byte, i) => screenshotBuffer![i] === byte);
-          if (!isValidPng) {
-            return { success: false, error: 'Screenshot data is not a valid PNG' };
-          }
+          await fs.promises.writeFile(screenshotPath, Buffer.from(reportData.screenshot, 'base64'));
         }
 
         const report = {
@@ -1379,26 +1380,19 @@ export function registerIPCHandlers(): void {
             id: reportData.taskId,
             prompt: reportData.taskPrompt,
             status: reportData.taskStatus,
+            createdAt: reportData.taskCreatedAt,
+            updatedAt: reportData.taskUpdatedAt,
+            completedAt: reportData.taskCompletedAt,
+            messageCount: Array.isArray(reportData.messages) ? reportData.messages.length : 0,
           },
           messages: reportData.messages,
           debugLogs: reportData.debugLogs,
           axtree: reportData.axtree,
-          hasScreenshot: Boolean(screenshotBuffer),
+          screenshotPath: screenshotPath ?? null,
+          hasScreenshot: Boolean(screenshotPath),
         };
 
         await fs.promises.writeFile(result.filePath, JSON.stringify(report, null, 2), 'utf-8');
-
-        if (screenshotBuffer) {
-          const parsed = path.parse(result.filePath);
-          let screenshotPath = path.join(parsed.dir, `${parsed.name}.png`);
-          // Avoid silently overwriting an existing PNG sidecar.
-          let suffix = 0;
-          while (fs.existsSync(screenshotPath)) {
-            suffix += 1;
-            screenshotPath = path.join(parsed.dir, `${parsed.name}-${suffix}.png`);
-          }
-          await fs.promises.writeFile(screenshotPath, screenshotBuffer);
-        }
 
         return { success: true, path: result.filePath };
       } catch (error) {
