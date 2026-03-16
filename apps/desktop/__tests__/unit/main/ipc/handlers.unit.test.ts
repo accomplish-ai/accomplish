@@ -63,6 +63,13 @@ vi.mock('electron', () => {
         webContents: {
           send: vi.fn(),
           isDestroyed: vi.fn(() => false),
+          capturePage: vi.fn(() =>
+            Promise.resolve({
+              toPNG: () => Buffer.from('fake-png-data'),
+              getSize: () => ({ width: 1920, height: 1080 }),
+            }),
+          ),
+          executeJavaScript: vi.fn(() => Promise.resolve('{"tag":"body","children":[]}')),
         },
       })),
       getFocusedWindow: vi.fn(() => ({
@@ -71,12 +78,23 @@ vi.mock('electron', () => {
       })),
       getAllWindows: vi.fn(() => [{ id: 1, webContents: { send: vi.fn() } }]),
     },
+    dialog: {
+      showSaveDialog: vi.fn(() =>
+        Promise.resolve({ canceled: false, filePath: '/tmp/bug-report.json' }),
+      ),
+      showOpenDialog: vi.fn(() => Promise.resolve({ canceled: false, filePaths: [] })),
+    },
+    nativeTheme: {
+      themeSource: 'system',
+      shouldUseDarkColors: false,
+    },
     shell: {
       openExternal: vi.fn(),
     },
     app: {
       isPackaged: false,
       getPath: vi.fn(() => '/tmp/test-app'),
+      getVersion: vi.fn(() => '1.0.0-test'),
     },
   };
 });
@@ -388,9 +406,27 @@ vi.mock('@main/permission-api', () => ({
   QUESTION_API_PORT: 9227,
 }));
 
+// Mock fs module for bug report file writes
+vi.mock('fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('fs')>();
+  return {
+    ...actual,
+    default: {
+      ...actual,
+      writeFileSync: vi.fn(),
+      existsSync: vi.fn(() => false),
+      copyFileSync: vi.fn(),
+    },
+    writeFileSync: vi.fn(),
+    existsSync: vi.fn(() => false),
+    copyFileSync: vi.fn(),
+  };
+});
+
 // Import after mocks are set up
 import { registerIPCHandlers } from '@main/ipc/handlers';
-import { ipcMain, BrowserWindow as _BrowserWindow, shell } from 'electron';
+import { ipcMain, BrowserWindow as _BrowserWindow, shell, dialog } from 'electron';
+import fs from 'fs';
 
 // Type the mocked ipcMain with helpers
 type MockedIpcMain = typeof ipcMain & {
@@ -2199,4 +2235,250 @@ describe('IPC Handlers Integration', () => {
   // The callback logic is exercised through the task lifecycle tests above.
   // The utility functions (extractScreenshots, sanitizeToolOutput)
   // are tested in handlers-utils.unit.test.ts as pure function tests.
+
+  describe('Debug Bug Report Handlers', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      mockedIpcMain._clear();
+
+      // Reset BrowserWindow mock to include capturePage and executeJavaScript
+      (_BrowserWindow.fromWebContents as Mock).mockReturnValue({
+        id: 1,
+        isDestroyed: vi.fn(() => false),
+        webContents: {
+          send: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+          capturePage: vi.fn(() =>
+            Promise.resolve({
+              toPNG: () => Buffer.from('fake-png-data'),
+              getSize: () => ({ width: 1920, height: 1080 }),
+            }),
+          ),
+          executeJavaScript: vi.fn(() => Promise.resolve('{"tag":"body","children":[]}')),
+        },
+      });
+      (_BrowserWindow.getFocusedWindow as Mock).mockReturnValue({
+        id: 1,
+        isDestroyed: () => false,
+      });
+      (_BrowserWindow.getAllWindows as Mock).mockReturnValue([
+        { id: 1, webContents: { send: vi.fn() } },
+      ]);
+
+      // Reset dialog mock
+      (dialog.showSaveDialog as Mock).mockResolvedValue({
+        canceled: false,
+        filePath: '/tmp/bug-report.json',
+      });
+
+      // Reset fs mocks
+      (fs.writeFileSync as Mock).mockReset();
+
+      registerIPCHandlers();
+    });
+
+    it('should register all three debug handlers', () => {
+      const handlers = mockedIpcMain._getHandlers();
+      expect(handlers.has('debug:capture-screenshot')).toBe(true);
+      expect(handlers.has('debug:capture-axtree')).toBe(true);
+      expect(handlers.has('debug:generate-bug-report')).toBe(true);
+    });
+
+    it('debug:capture-screenshot should return base64 PNG data', async () => {
+      const result = (await invokeHandler('debug:capture-screenshot')) as {
+        success: boolean;
+        data: string;
+        width: number;
+        height: number;
+      };
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBe(Buffer.from('fake-png-data').toString('base64'));
+      expect(result.width).toBe(1920);
+      expect(result.height).toBe(1080);
+    });
+
+    it('debug:capture-screenshot should handle errors gracefully', async () => {
+      (_BrowserWindow.fromWebContents as Mock).mockReturnValue({
+        id: 1,
+        isDestroyed: vi.fn(() => false),
+        webContents: {
+          send: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+          capturePage: vi.fn(() => Promise.reject(new Error('Capture failed'))),
+          executeJavaScript: vi.fn(),
+        },
+      });
+
+      const result = (await invokeHandler('debug:capture-screenshot')) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Capture failed');
+    });
+
+    it('debug:capture-axtree should return JSON string', async () => {
+      const result = (await invokeHandler('debug:capture-axtree')) as {
+        success: boolean;
+        data: string;
+      };
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBe('{"tag":"body","children":[]}');
+    });
+
+    it('debug:capture-axtree should handle errors gracefully', async () => {
+      (_BrowserWindow.fromWebContents as Mock).mockReturnValue({
+        id: 1,
+        isDestroyed: vi.fn(() => false),
+        webContents: {
+          send: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+          capturePage: vi.fn(),
+          executeJavaScript: vi.fn(() => Promise.reject(new Error('Script execution failed'))),
+        },
+      });
+
+      const result = (await invokeHandler('debug:capture-axtree')) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Script execution failed');
+    });
+
+    it('debug:generate-bug-report should save report via dialog and return success', async () => {
+      const reportData = {
+        taskId: 'task_123',
+        taskPrompt: 'Test prompt',
+        taskStatus: 'completed',
+        messages: [{ type: 'user', content: 'hello' }],
+        debugLogs: [{ type: 'info', message: 'log entry' }],
+      };
+
+      const result = (await invokeHandler('debug:generate-bug-report', reportData)) as {
+        success: boolean;
+        path: string;
+      };
+
+      expect(result.success).toBe(true);
+      expect(result.path).toBe('/tmp/bug-report.json');
+      expect(dialog.showSaveDialog).toHaveBeenCalled();
+      expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
+
+      const writtenContent = JSON.parse(
+        (fs.writeFileSync as Mock).mock.calls[0][1] as string,
+      ) as { task: { id: string; prompt: string }; hasScreenshot: boolean };
+      expect(writtenContent.task.id).toBe('task_123');
+      expect(writtenContent.task.prompt).toBe('Test prompt');
+      expect(writtenContent.hasScreenshot).toBe(false);
+    });
+
+    it('debug:generate-bug-report should handle dialog cancellation', async () => {
+      (dialog.showSaveDialog as Mock).mockResolvedValue({
+        canceled: true,
+        filePath: undefined,
+      });
+
+      const result = (await invokeHandler('debug:generate-bug-report', {})) as {
+        success: boolean;
+        reason: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('cancelled');
+      expect(fs.writeFileSync).not.toHaveBeenCalled();
+    });
+
+    it('debug:generate-bug-report should handle write errors', async () => {
+      (fs.writeFileSync as Mock).mockImplementation(() => {
+        throw new Error('Permission denied');
+      });
+
+      const result = (await invokeHandler('debug:generate-bug-report', {
+        taskId: 'task_err',
+      })) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Permission denied');
+    });
+
+    it('debug:generate-bug-report should save screenshot file when provided', async () => {
+      const screenshotBase64 = Buffer.from('screenshot-png-data').toString('base64');
+      const reportData = {
+        taskId: 'task_with_screenshot',
+        taskPrompt: 'Screenshot test',
+        taskStatus: 'failed',
+        screenshot: screenshotBase64,
+      };
+
+      const result = (await invokeHandler('debug:generate-bug-report', reportData)) as {
+        success: boolean;
+        path: string;
+      };
+
+      expect(result.success).toBe(true);
+      // Should write both the JSON report and the PNG screenshot
+      expect(fs.writeFileSync).toHaveBeenCalledTimes(2);
+
+      // First call: JSON report
+      const jsonContent = JSON.parse(
+        (fs.writeFileSync as Mock).mock.calls[0][1] as string,
+      ) as { hasScreenshot: boolean };
+      expect(jsonContent.hasScreenshot).toBe(true);
+
+      // Second call: PNG screenshot
+      const screenshotCall = (fs.writeFileSync as Mock).mock.calls[1] as [
+        string,
+        Buffer,
+        ...unknown[],
+      ];
+      expect(screenshotCall[0]).toBe('/tmp/bug-report.png');
+      expect(Buffer.isBuffer(screenshotCall[1])).toBe(true);
+    });
+
+    it('debug:capture-screenshot should return error when no window found', async () => {
+      (_BrowserWindow.fromWebContents as Mock).mockReturnValue(null);
+
+      const result = (await invokeHandler('debug:capture-screenshot')) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('No window found');
+    });
+
+    it('debug:capture-axtree should return error when no window found', async () => {
+      (_BrowserWindow.fromWebContents as Mock).mockReturnValue(null);
+
+      const result = (await invokeHandler('debug:capture-axtree')) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('No window found');
+    });
+
+    it('debug:generate-bug-report should return error when no window found', async () => {
+      (_BrowserWindow.fromWebContents as Mock).mockReturnValue(null);
+
+      const result = (await invokeHandler('debug:generate-bug-report', {
+        taskId: 'test',
+      })) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('No window found');
+    });
+  });
 });

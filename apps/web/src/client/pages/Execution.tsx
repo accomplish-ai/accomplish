@@ -112,6 +112,9 @@ export function ExecutionPage() {
   const [currentToolInput, setCurrentToolInput] = useState<unknown>(null);
   const [debugLogs, setDebugLogs] = useState<DebugLogEntry[]>([]);
   const [debugModeEnabled, setDebugModeEnabled] = useState(false);
+  const [bugReporting, setBugReporting] = useState(false);
+  const [bugReportSaved, setBugReportSaved] = useState(false);
+  const [repeatingTask, setRepeatingTask] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
     'providers' | 'voice' | 'skills' | 'connectors'
@@ -492,6 +495,51 @@ export function ExecutionPage() {
       console.error('Failed to process dropped files:', err);
     }
   };
+
+  const handleBugReport = useCallback(async () => {
+    if (!currentTask || !id) {
+      return;
+    }
+    setBugReporting(true);
+    try {
+      const [screenshotResult, axtreeResult] = await Promise.all([
+        accomplish.captureScreenshot(),
+        accomplish.captureAxtree(),
+      ]);
+      const result = await accomplish.generateBugReport({
+        taskId: currentTask.id,
+        taskPrompt: currentTask.prompt,
+        taskStatus: currentTask.status,
+        messages: currentTask.messages as unknown[],
+        debugLogs: debugLogs as unknown[],
+        screenshot: screenshotResult.success ? screenshotResult.data : undefined,
+        axtree: axtreeResult.success ? axtreeResult.data : undefined,
+      });
+      if (result.success) {
+        setBugReportSaved(true);
+        setTimeout(() => setBugReportSaved(false), 2500);
+      }
+    } catch (err) {
+      console.error('[Execution] Bug report failed:', err);
+    } finally {
+      setBugReporting(false);
+    }
+  }, [accomplish, currentTask, debugLogs, id]);
+
+  const handleRepeatTask = useCallback(async () => {
+    if (!currentTask) {
+      return;
+    }
+    setRepeatingTask(true);
+    try {
+      const newTask = await accomplish.startTask({ prompt: currentTask.prompt });
+      navigate(`/execution/${newTask.id}`);
+    } catch (err) {
+      console.error('[Execution] Failed to repeat task:', err);
+    } finally {
+      setRepeatingTask(false);
+    }
+  }, [accomplish, currentTask, navigate]);
 
   if (error) {
     return (
@@ -1034,7 +1082,17 @@ export function ExecutionPage() {
 
         {/* Debug Panel */}
         {debugModeEnabled && (
-          <DebugPanel debugLogs={debugLogs} taskId={id} onClearLogs={() => setDebugLogs([])} />
+          <DebugPanel
+            debugLogs={debugLogs}
+            taskId={id}
+            onClearLogs={() => setDebugLogs([])}
+            onBugReport={handleBugReport}
+            bugReporting={bugReporting}
+            bugReportSaved={bugReportSaved}
+            onRepeatTask={handleRepeatTask}
+            repeatingTask={repeatingTask}
+            isRunning={currentTask?.status === 'running'}
+          />
         )}
       </div>
     </>

@@ -498,6 +498,31 @@ const accomplishAPI = {
       ipcRenderer.removeListener('auth:mcp-callback', listener);
     };
   },
+
+  // Debug bug reporting
+  captureScreenshot: (): Promise<{
+    success: boolean;
+    data?: string;
+    width?: number;
+    height?: number;
+    error?: string;
+  }> => ipcRenderer.invoke('debug:capture-screenshot'),
+
+  captureAxtree: (): Promise<{ success: boolean; data?: string; error?: string }> =>
+    ipcRenderer.invoke('debug:capture-axtree'),
+
+  generateBugReport: (data: {
+    taskId?: string;
+    taskPrompt?: string;
+    taskStatus?: string;
+    messages?: unknown[];
+    debugLogs?: unknown[];
+    screenshot?: string;
+    axtree?: string;
+    appVersion?: string;
+    platform?: string;
+  }): Promise<{ success: boolean; path?: string; error?: string; reason?: string }> =>
+    ipcRenderer.invoke('debug:generate-bug-report', data),
 };
 
 // Expose the API to the renderer

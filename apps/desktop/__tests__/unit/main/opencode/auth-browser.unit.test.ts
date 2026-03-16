@@ -84,8 +84,8 @@ vi.mock('node-pty', () => ({
   spawn: mockPtySpawn,
 }));
 
-// Mock cli-path
-vi.mock('@main/opencode/cli-path', () => ({
+// Mock electron-options (where getOpenCodeCliPath actually lives)
+vi.mock('@main/opencode/electron-options', () => ({
   getOpenCodeCliPath: vi.fn(() => ({ command: '/mock/opencode', args: [] })),
 }));
 
