@@ -2104,6 +2104,81 @@ describe('IPC Handlers Integration', () => {
   // The utility functions (extractScreenshots, sanitizeToolOutput)
   // are tested in handlers-utils.unit.test.ts as pure function tests.
 
+
+  describe('Favorites Handlers', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      mockedIpcMain._clear();
+      registerIPCHandlers();
+    });
+
+    it('favorites:add should add a completed task to favorites', async () => {
+      const taskId = 'task_fav_add';
+      mockTasks.push({
+        id: taskId,
+        prompt: 'Complete me',
+        summary: 'Done',
+        status: 'completed',
+        messages: [],
+        createdAt: new Date().toISOString(),
+      });
+
+      await invokeHandler('favorites:add', taskId);
+
+      expect(mockStorage.addFavorite).toHaveBeenCalledWith(taskId, 'Complete me', 'Done');
+    });
+
+    it('favorites:add should add an interrupted task to favorites', async () => {
+      const taskId = 'task_fav_interrupted';
+      mockTasks.push({
+        id: taskId,
+        prompt: 'Resume later',
+        summary: 'WIP',
+        status: 'interrupted',
+        messages: [],
+        createdAt: new Date().toISOString(),
+      });
+
+      await invokeHandler('favorites:add', taskId);
+
+      expect(mockStorage.addFavorite).toHaveBeenCalledWith(taskId, 'Resume later', 'WIP');
+    });
+
+    it('favorites:add should reject when task not found', async () => {
+      await expect(invokeHandler('favorites:add', 'task_nonexistent')).rejects.toThrow(
+        'Favorite failed: task not found (taskId: task_nonexistent)',
+      );
+      expect(mockStorage.addFavorite).not.toHaveBeenCalled();
+    });
+
+    it('favorites:add should reject when task status is not completed or interrupted', async () => {
+      const taskId = 'task_running';
+      mockTasks.push({
+        id: taskId,
+        prompt: 'Running',
+        status: 'running',
+        messages: [],
+        createdAt: new Date().toISOString(),
+      });
+
+      await expect(invokeHandler('favorites:add', taskId)).rejects.toThrow(
+        'Favorite failed: invalid status (taskId: task_running, status: running)',
+      );
+      expect(mockStorage.addFavorite).not.toHaveBeenCalled();
+    });
+
+    it('favorites:remove should remove task from favorites', async () => {
+      await invokeHandler('favorites:remove', 'task_to_unfav');
+      expect(mockStorage.removeFavorite).toHaveBeenCalledWith('task_to_unfav');
+    });
+
+    it('favorites:list should return favorites list', async () => {
+      const result = await invokeHandler('favorites:list');
+      expect(mockStorage.getFavorites).toHaveBeenCalled();
+      expect(Array.isArray(result)).toBe(true);
+    });
+  });
+
   describe('Debug Bug Report Handlers', () => {
     beforeEach(() => {
       vi.clearAllMocks();

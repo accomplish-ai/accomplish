@@ -1216,6 +1216,12 @@ export function registerIPCHandlers(): void {
     }
   });
 
+  const assertDebugModeEnabled = () => {
+    if (!storage.getDebugMode()) {
+      throw new Error('Debug mode is disabled');
+    }
+  };
+
   // Debug Bug Report Handlers
   handle('debug:capture-screenshot', async (event: IpcMainInvokeEvent) => {
     let window: BrowserWindow;
