@@ -248,7 +248,12 @@
     "ariaLabel": "Настройка темы",
     "system": "Система",
     "light": "Светлая",
-    "dark": "Тёмная"
+    "dark": "Тёмная",
+    "themeTitle": "Внешний вид",
+    "themeDescription": "Выберите предпочтительную цветовую тему.",
+    "themeSystem": "Системная",
+    "themeLight": "Светлая",
+    "themeDark": "Тёмная"
   },
   "connectors": {
     "description": "Подключайте удалённые MCP-серверы через OAuth. Сейчас поддерживаются только серверы с OAuth 2.0.",
