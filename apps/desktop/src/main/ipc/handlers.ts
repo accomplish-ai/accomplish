@@ -1222,6 +1222,7 @@ export function registerIPCHandlers(): void {
   };
 
   // Debug Bug Report Handlers
+
   handle('debug:capture-screenshot', async (event: IpcMainInvokeEvent) => {
     try {
       assertDebugModeEnabled();
@@ -1385,7 +1386,7 @@ export function registerIPCHandlers(): void {
           hasScreenshot: Boolean(screenshotBuffer),
         };
 
-        await fs.promises.writeFile(result.filePath, JSON.stringify(report, null, 2));
+        await fs.promises.writeFile(result.filePath, JSON.stringify(report, null, 2), 'utf-8');
 
         if (screenshotBuffer) {
           const parsed = path.parse(result.filePath);
