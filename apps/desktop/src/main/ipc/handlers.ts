@@ -1223,7 +1223,11 @@ export function registerIPCHandlers(): void {
 
   // Debug Bug Report Handlers
   handle('debug:capture-screenshot', async (event: IpcMainInvokeEvent) => {
-    try { assertDebugModeEnabled(); } catch (e) { return { success: false, error: (e as Error).message }; }
+    try {
+      assertDebugModeEnabled();
+    } catch (e) {
+      return { success: false, error: (e as Error).message };
+    }
     let window: BrowserWindow;
     try {
       window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
@@ -1244,7 +1248,11 @@ export function registerIPCHandlers(): void {
   });
 
   handle('debug:capture-axtree', async (event: IpcMainInvokeEvent) => {
-    try { assertDebugModeEnabled(); } catch (e) { return { success: false, error: (e as Error).message }; }
+    try {
+      assertDebugModeEnabled();
+    } catch (e) {
+      return { success: false, error: (e as Error).message };
+    }
     let window: BrowserWindow;
     try {
       window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
@@ -1312,7 +1320,11 @@ export function registerIPCHandlers(): void {
         platform?: string;
       },
     ) => {
-      try { assertDebugModeEnabled(); } catch (e) { return { success: false, error: (e as Error).message }; }
+      try {
+        assertDebugModeEnabled();
+      } catch (e) {
+        return { success: false, error: (e as Error).message };
+      }
       let window: BrowserWindow;
       try {
         window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
@@ -1373,7 +1385,7 @@ export function registerIPCHandlers(): void {
           hasScreenshot: Boolean(screenshotBuffer),
         };
 
-        fs.writeFileSync(result.filePath, JSON.stringify(report, null, 2));
+        await fs.promises.writeFile(result.filePath, JSON.stringify(report, null, 2));
 
         if (screenshotBuffer) {
           const parsed = path.parse(result.filePath);
@@ -1384,7 +1396,7 @@ export function registerIPCHandlers(): void {
             suffix += 1;
             screenshotPath = path.join(parsed.dir, `${parsed.name}-${suffix}.png`);
           }
-          fs.writeFileSync(screenshotPath, screenshotBuffer);
+          await fs.promises.writeFile(screenshotPath, screenshotBuffer);
         }
 
         return { success: true, path: result.filePath };
