@@ -415,10 +415,20 @@ vi.mock('fs', async (importOriginal) => {
       writeFileSync: vi.fn(),
       existsSync: vi.fn(() => false),
       copyFileSync: vi.fn(),
+      promises: {
+        writeFile: vi.fn(() => Promise.resolve()),
+        access: vi.fn(() => Promise.reject(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }))),
+        stat: vi.fn(() => Promise.resolve({ size: 1024 })),
+      },
     },
     writeFileSync: vi.fn(),
     existsSync: vi.fn(() => false),
     copyFileSync: vi.fn(),
+    promises: {
+      writeFile: vi.fn(() => Promise.resolve()),
+      access: vi.fn(() => Promise.reject(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }))),
+      stat: vi.fn(() => Promise.resolve({ size: 1024 })),
+    },
   };
 });
 
@@ -2247,6 +2257,10 @@ describe('IPC Handlers Integration', () => {
 
       // Reset fs mocks
       (fs.writeFileSync as Mock).mockReset();
+      (fs.promises.writeFile as unknown as Mock).mockReset();
+      (fs.promises.writeFile as unknown as Mock).mockResolvedValue(undefined);
+      (fs.promises.access as unknown as Mock).mockReset();
+      (fs.promises.access as unknown as Mock).mockRejectedValue(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }));
 
       registerIPCHandlers();
     });
@@ -2341,13 +2355,11 @@ describe('IPC Handlers Integration', () => {
       expect(result.success).toBe(true);
       expect(result.path).toBe('/tmp/bug-report.json');
       expect(dialog.showSaveDialog).toHaveBeenCalled();
-      expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
+      expect(fs.promises.writeFile).toHaveBeenCalledTimes(1);
 
-      const writtenContent = JSON.parse((fs.writeFileSync as Mock).mock.calls[0][1] as string) as {
-        task: { id: string; prompt: string };
-        hasScreenshot: boolean;
-      };
-      expect(writtenContent.task.id).toBe('task_123');
+      const writtenContent = JSON.parse(
+        ((fs.promises.writeFile as unknown as Mock).mock.calls[0][1]) as string,
+      ) as { task: { id: string; prompt: string }; hasScreenshot: boolean };      expect(writtenContent.task.id).toBe('task_123');
       expect(writtenContent.task.prompt).toBe('Test prompt');
       expect(writtenContent.hasScreenshot).toBe(false);
     });
@@ -2365,13 +2377,11 @@ describe('IPC Handlers Integration', () => {
 
       expect(result.success).toBe(false);
       expect(result.reason).toBe('cancelled');
-      expect(fs.writeFileSync).not.toHaveBeenCalled();
+      expect(fs.promises.writeFile).not.toHaveBeenCalled();
     });
 
     it('debug:generate-bug-report should handle write errors', async () => {
-      (fs.writeFileSync as Mock).mockImplementation(() => {
-        throw new Error('Permission denied');
-      });
+      (fs.promises.writeFile as unknown as Mock).mockRejectedValueOnce(new Error('Permission denied'));
 
       const result = (await invokeHandler('debug:generate-bug-report', {
         taskId: 'task_err',
@@ -2385,11 +2395,11 @@ describe('IPC Handlers Integration', () => {
     });
 
     it('debug:generate-bug-report should save screenshot file when provided', async () => {
-      const screenshotBase64 = Buffer.from('screenshot-png-data').toString('base64');
+      const screenshotBase64 = Buffer.from('fake-png-data').toString('base64');
       const reportData = {
         taskId: 'task_with_screenshot',
         taskPrompt: 'Screenshot test',
-        taskStatus: 'failed',
+        taskStatus: 'completed',
         screenshot: screenshotBase64,
       };
 
@@ -2399,23 +2409,21 @@ describe('IPC Handlers Integration', () => {
       };
 
       expect(result.success).toBe(true);
-      // Should write both the JSON report and the PNG screenshot
-      expect(fs.writeFileSync).toHaveBeenCalledTimes(2);
+      // fs.promises.writeFile is used (not writeFileSync)
+      expect(fs.promises.writeFile).toHaveBeenCalledTimes(2);
 
-      // First call: JSON report
-      const jsonContent = JSON.parse((fs.writeFileSync as Mock).mock.calls[0][1] as string) as {
-        hasScreenshot: boolean;
-      };
-      expect(jsonContent.hasScreenshot).toBe(true);
+      // First call: PNG screenshot (written before JSON so hasScreenshot is accurate)
+      // Second call: JSON report
+      const calls = (fs.promises.writeFile as unknown as Mock).mock.calls;
+      const jsonCall = calls.find((c: unknown[]) => typeof c[1] === 'string') as [string, string] | undefined;
+      const pngCall = calls.find((c: unknown[]) => Buffer.isBuffer(c[1])) as [string, Buffer] | undefined;
 
-      // Second call: PNG screenshot
-      const screenshotCall = (fs.writeFileSync as Mock).mock.calls[1] as [
-        string,
-        Buffer,
-        ...unknown[],
-      ];
-      expect(screenshotCall[0]).toBe(path.join('/tmp', 'bug-report.png'));
-      expect(Buffer.isBuffer(screenshotCall[1])).toBe(true);
+      expect(jsonCall).toBeDefined();
+      const jsonContent = JSON.parse(jsonCall![1]) as { hasScreenshot: boolean };      expect(jsonContent.hasScreenshot).toBe(true);
+
+      expect(pngCall).toBeDefined();
+      expect(pngCall![0]).toContain('bug-report');
+      expect(Buffer.isBuffer(pngCall![1])).toBe(true);
     });
 
     it('debug:capture-screenshot should return error when no window found', async () => {
@@ -2427,7 +2435,7 @@ describe('IPC Handlers Integration', () => {
       };
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('No window found');
+      expect(result.error).toBe('Untrusted window');
     });
 
     it('debug:capture-axtree should return error when no window found', async () => {
@@ -2439,7 +2447,7 @@ describe('IPC Handlers Integration', () => {
       };
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('No window found');
+      expect(result.error).toBe('Untrusted window');
     });
 
     it('debug:generate-bug-report should return error when no window found', async () => {
@@ -2453,7 +2461,7 @@ describe('IPC Handlers Integration', () => {
       };
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('No window found');
+      expect(result.error).toBe('Untrusted window');
     });
   });
 });

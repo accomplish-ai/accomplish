@@ -1412,6 +1412,10 @@ export function registerIPCHandlers(): void {
     storage.removeFavorite(taskId);
   });
 
+  handle('favorites:has', async (_event: IpcMainInvokeEvent, taskId: string) => {
+    return storage.isFavorite(taskId);
+  });
+
   // File attachment handlers
   handle('files:pick', async (event: IpcMainInvokeEvent) => {
     const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));

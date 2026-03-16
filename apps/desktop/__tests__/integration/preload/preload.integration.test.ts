@@ -147,28 +147,28 @@ describe('Preload Script Integration', () => {
         expect(mockInvoke).toHaveBeenCalledWith('task:clear-history');
       });
 
-      it('addFavorite should invoke task:favorite:add with taskId', async () => {
+      it('addFavorite should invoke favorites:add with taskId', async () => {
         await (capturedAccomplishAPI.addFavorite as (taskId: string) => Promise<void>)('task_123');
-        expect(mockInvoke).toHaveBeenCalledWith('task:favorite:add', 'task_123');
+        expect(mockInvoke).toHaveBeenCalledWith('favorites:add', 'task_123');
       });
 
-      it('removeFavorite should invoke task:favorite:remove with taskId', async () => {
+      it('removeFavorite should invoke favorites:remove with taskId', async () => {
         await (capturedAccomplishAPI.removeFavorite as (taskId: string) => Promise<void>)(
           'task_123',
         );
-        expect(mockInvoke).toHaveBeenCalledWith('task:favorite:remove', 'task_123');
+        expect(mockInvoke).toHaveBeenCalledWith('favorites:remove', 'task_123');
       });
 
-      it('listFavorites should invoke task:favorite:list', async () => {
+      it('listFavorites should invoke favorites:list', async () => {
         await (capturedAccomplishAPI.listFavorites as () => Promise<unknown[]>)();
-        expect(mockInvoke).toHaveBeenCalledWith('task:favorite:list');
+        expect(mockInvoke).toHaveBeenCalledWith('favorites:list');
       });
 
-      it('isFavorite should invoke task:favorite:has with taskId', async () => {
+      it('isFavorite should invoke favorites:has with taskId', async () => {
         await (capturedAccomplishAPI.isFavorite as (taskId: string) => Promise<boolean>)(
           'task_123',
         );
-        expect(mockInvoke).toHaveBeenCalledWith('task:favorite:has', 'task_123');
+        expect(mockInvoke).toHaveBeenCalledWith('favorites:has', 'task_123');
       });
     });
 
