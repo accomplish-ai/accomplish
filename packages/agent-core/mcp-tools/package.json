@@ -7,7 +7,7 @@
     "@hono/node-ws": "^1.2.0",
     "@modelcontextprotocol/sdk": "^1.27.0",
     "express": "^4.21.0",
-    "hono": "^4.12.4",
+    "hono": "^4.12.7",
     "playwright": "npm:rebrowser-playwright@^1.52.0"
   }
 }
