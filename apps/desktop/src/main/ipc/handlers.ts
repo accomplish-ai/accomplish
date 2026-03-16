@@ -1380,7 +1380,6 @@ export function registerIPCHandlers(): void {
             prompt: reportData.taskPrompt,
             status: reportData.taskStatus,
             createdAt: reportData.taskCreatedAt,
-            updatedAt: reportData.taskUpdatedAt,
             completedAt: reportData.taskCompletedAt,
             messageCount: Array.isArray(reportData.messages) ? reportData.messages.length : 0,
           },
