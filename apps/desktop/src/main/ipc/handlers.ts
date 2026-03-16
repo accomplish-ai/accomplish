@@ -138,6 +138,8 @@ function handle<Args extends unknown[], ReturnType = unknown>(
   });
 }
 
+const MAX_ATTACHMENT_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
 export function registerIPCHandlers(): void {
   const storage = getStorage();
   const taskManager = getTaskManager();
@@ -1392,7 +1394,16 @@ export function registerIPCHandlers(): void {
 
   handle('favorites:add', async (_event: IpcMainInvokeEvent, taskId: string) => {
     const task = storage.getTask(taskId);
-    storage.addFavorite(taskId, task?.prompt ?? '', task?.summary);
+    if (!task) {
+      throw new Error(`Favorite failed: task not found (taskId: ${taskId})`);
+    }
+    const allowedFavoriteStatuses: Array<'completed' | 'interrupted'> = ['completed', 'interrupted'];
+    if (!allowedFavoriteStatuses.includes(task.status as 'completed' | 'interrupted')) {
+      throw new Error(
+        `Favorite failed: invalid status (taskId: ${taskId}, status: ${task.status})`,
+      );
+    }
+    storage.addFavorite(taskId, task.prompt, task.summary);
   });
 
   handle('favorites:remove', async (_event: IpcMainInvokeEvent, taskId: string) => {
@@ -1406,6 +1417,16 @@ export function registerIPCHandlers(): void {
       properties: ['openFile', 'multiSelections'],
     });
     if (result.canceled) return [];
+    if (result.filePaths.length > 5) {
+      throw new Error('You can only select a maximum of 5 files.');
+    }
+    const attachments = [];
+    for (const filePath of result.filePaths) {
+      const stat = fs.statSync(filePath);
+      if (stat.size > MAX_ATTACHMENT_FILE_SIZE) {
+        throw new Error(`File ${path.basename(filePath)} exceeds the 10 MB size limit.`);
+      }
+    }
     return result.filePaths.map((filePath) => {
       const stat = fs.statSync(filePath);
       const ext = path.extname(filePath).toLowerCase().slice(1);
