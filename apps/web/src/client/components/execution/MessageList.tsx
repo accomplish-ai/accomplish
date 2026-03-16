@@ -114,13 +114,18 @@ export const MessageBubble = memo(
     // Custom renderer so fenced code blocks get syntax highlighting and a copy
     // button while inline backtick code keeps the simple prose style.
     const markdownComponents: Components = {
-      code({ className, children, ...props }) {
+      code({ className, children, node, ...props }) {
         const code = String(children).replace(/\n$/, '');
-        const match = /language-([\w-]+)/.exec(className || '');
+        // Use node.properties.className array to correctly parse languages like c++, c#, etc.
+        const classes: string[] =
+          (node?.properties?.className as string[] | undefined) ??
+          (className ? className.split(' ') : []);
+        const langClass = classes.find((c) => c.startsWith('language-'));
+        const language = langClass ? langClass.slice('language-'.length) : undefined;
         const inline = typeof className === 'undefined' && !code.includes('\n');
 
         return (
-          <CodeBlock language={match ? match[1] : undefined} inline={inline} {...props}>
+          <CodeBlock language={language} inline={inline} {...props}>
             {code}
           </CodeBlock>
         );

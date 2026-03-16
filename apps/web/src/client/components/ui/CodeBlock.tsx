@@ -90,8 +90,11 @@ export function CodeBlock({ language, children, inline = false }: CodeBlockProps
               data-testid="code-block-copy-button"
               aria-label="Copy code to clipboard"
               className={cn(
-                'flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors',
-                'opacity-0 group-hover/code:opacity-100',
+                'flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors transition-opacity',
+                'opacity-0 pointer-events-none',
+                'group-hover/code:opacity-100 group-hover/code:pointer-events-auto',
+                'group-focus-within/code:opacity-100 group-focus-within/code:pointer-events-auto',
+                'focus-visible:opacity-100 focus-visible:pointer-events-auto',
                 'text-muted-foreground hover:bg-accent hover:text-foreground',
                 copied && '!text-green-600 dark:!text-green-400',
               )}

@@ -812,7 +812,10 @@ test.describe('Execution Page', () => {
     await codeBlockContainer.hover();
     await window.waitForTimeout(100);
 
-    await firstCodeBlockCopyButton.waitFor({ state: 'visible', timeout: 5000 });
+    // Assert the class change: opacity-0 should be gone after hover
+    // (waitFor({ state: 'visible' }) is not reliable for opacity-0 elements in Playwright)
+    const hoverClasses = await firstCodeBlockCopyButton.getAttribute('class');
+    expect(hoverClasses).not.toContain('opacity-0');
 
     const buttonText = await firstCodeBlockCopyButton.textContent();
     expect(buttonText).toContain('Copy');
