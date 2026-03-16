@@ -5,11 +5,13 @@
  * for communicating with the Electron main process via IPC.
  */
 
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { ProviderType, Skill, TodoItem, McpConnector } from '@accomplish_ai/agent-core';
 
 // Expose the accomplish API to the renderer
 const accomplishAPI = {
+  // Utility for safely extracting native paths from DOM File objects in drop events
+  getFilePath: (file: File): string => webUtils.getPathForFile(file),
   // App info
   getVersion: (): Promise<string> => ipcRenderer.invoke('app:version'),
   getPlatform: (): Promise<string> => ipcRenderer.invoke('app:platform'),
@@ -455,16 +457,17 @@ const accomplishAPI = {
     ipcRenderer.invoke('skills:show-in-folder', filePath),
 
   // Favorites
-  listFavorites: (): Promise<unknown[]> => ipcRenderer.invoke('favorites:list'),
   addFavorite: (taskId: string): Promise<void> => ipcRenderer.invoke('favorites:add', taskId),
   removeFavorite: (taskId: string): Promise<void> => ipcRenderer.invoke('favorites:remove', taskId),
+  listFavorites: (): Promise<unknown[]> => ipcRenderer.invoke('favorites:list'),
 
   // File attachments
-  pickFiles: (): Promise<unknown[]> => ipcRenderer.invoke('files:pick'),
-  processDroppedFiles: (filePaths: string[]): Promise<unknown[]> =>
-    ipcRenderer.invoke('files:process-dropped', filePaths),
-  getFilePath: (file: File): string | undefined =>
-    'path' in file ? (file as File & { path: string }).path : undefined,
+  pickFiles: (): Promise<import('@accomplish_ai/agent-core/common').FileAttachmentInfo[]> =>
+    ipcRenderer.invoke('files:pick'),
+  processDroppedFiles: (
+    paths: string[],
+  ): Promise<import('@accomplish_ai/agent-core/common').FileAttachmentInfo[]> =>
+    ipcRenderer.invoke('files:process-dropped', paths),
 
   // Sandbox configuration
   getSandboxConfig: (): Promise<{

@@ -102,6 +102,7 @@ import { skillsManager } from '../skills';
 import { registerVertexHandlers } from '../providers';
 
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
+const MAX_ATTACHMENT_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 function assertTrustedWindow(window: BrowserWindow | null): BrowserWindow {
   if (!window || window.isDestroyed()) {
@@ -137,8 +138,6 @@ function handle<Args extends unknown[], ReturnType = unknown>(
     }
   });
 }
-
-const MAX_ATTACHMENT_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export function registerIPCHandlers(): void {
   const storage = getStorage();
@@ -1216,12 +1215,6 @@ export function registerIPCHandlers(): void {
     }
   });
 
-  const assertDebugModeEnabled = () => {
-    if (!storage.getDebugMode()) {
-      throw new Error('Debug mode is disabled');
-    }
-  };
-
   // Debug Bug Report Handlers
   handle('debug:capture-screenshot', async (event: IpcMainInvokeEvent) => {
     let window: BrowserWindow;
@@ -1403,7 +1396,10 @@ export function registerIPCHandlers(): void {
     if (!task) {
       throw new Error(`Favorite failed: task not found (taskId: ${taskId})`);
     }
-    const allowedFavoriteStatuses: Array<'completed' | 'interrupted'> = ['completed', 'interrupted'];
+    const allowedFavoriteStatuses: Array<'completed' | 'interrupted'> = [
+      'completed',
+      'interrupted',
+    ];
     if (!allowedFavoriteStatuses.includes(task.status as 'completed' | 'interrupted')) {
       throw new Error(
         `Favorite failed: invalid status (taskId: ${taskId}, status: ${task.status})`,
@@ -1426,7 +1422,6 @@ export function registerIPCHandlers(): void {
     if (result.filePaths.length > 5) {
       throw new Error('You can only select a maximum of 5 files.');
     }
-    const attachments = [];
     for (const filePath of result.filePaths) {
       const stat = fs.statSync(filePath);
       if (stat.size > MAX_ATTACHMENT_FILE_SIZE) {

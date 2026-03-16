@@ -313,14 +313,14 @@ interface AccomplishAPI {
   getTodosForTask(taskId: string): Promise<TodoItem[]>;
 
   // Favorites
-  listFavorites(): Promise<StoredFavorite[]>;
   addFavorite(taskId: string): Promise<void>;
   removeFavorite(taskId: string): Promise<void>;
+  listFavorites(): Promise<StoredFavorite[]>;
 
   // File attachments
   pickFiles(): Promise<FileAttachmentInfo[]>;
-  processDroppedFiles(filePaths: string[]): Promise<FileAttachmentInfo[]>;
-  getFilePath(file: File): string | undefined;
+  getFilePath(file: File): string;
+  processDroppedFiles(paths: string[]): Promise<FileAttachmentInfo[]>;
 
   // Event subscriptions
   onTaskUpdate(callback: (event: TaskUpdateEvent) => void): () => void;
