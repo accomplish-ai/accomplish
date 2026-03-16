@@ -26,7 +26,7 @@ import type {
   McpConnector,
   FileAttachmentInfo,
 } from '@accomplish_ai/agent-core/common';
-import type { StoredFavorite } from '@accomplish_ai/agent-core';
+import type { StoredFavorite, SandboxConfig } from '@accomplish_ai/agent-core';
 
 // Define the API interface
 interface AccomplishAPI {
@@ -372,6 +372,10 @@ interface AccomplishAPI {
   resyncSkills(): Promise<Skill[]>;
   openSkillInEditor(filePath: string): Promise<void>;
   showSkillInFolder(filePath: string): Promise<void>;
+
+  // Sandbox configuration
+  getSandboxConfig(): Promise<SandboxConfig>;
+  setSandboxConfig(config: SandboxConfig): Promise<void>;
 
   // MCP Connectors
   getConnectors(): Promise<McpConnector[]>;

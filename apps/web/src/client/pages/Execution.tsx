@@ -366,6 +366,26 @@ export function ExecutionPage() {
   }, []);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) {
+        return;
+      }
+      if (
+        e.key === 'Escape' &&
+        currentTask?.status === 'running' &&
+        !isComplete &&
+        !permissionRequest &&
+        !showSettingsDialog
+      ) {
+        e.preventDefault();
+        interruptTask();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [currentTask, isComplete, permissionRequest, showSettingsDialog, interruptTask]);
+
+  useEffect(() => {
     if (!pendingSpeechFollowUpRef.current) return;
     if (!canFollowUp || isLoading) return;
     if (followUp !== pendingSpeechFollowUpRef.current) return;

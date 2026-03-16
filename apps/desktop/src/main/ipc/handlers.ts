@@ -1184,6 +1184,77 @@ export function registerIPCHandlers(): void {
     return storage.getAppSettings();
   });
 
+  handle('sandbox:get-config', async (_event: IpcMainInvokeEvent) => {
+    return storage.getSandboxConfig();
+  });
+
+  handle(
+    'sandbox:set-config',
+    async (
+      _event: IpcMainInvokeEvent,
+      config: {
+        mode: string;
+        allowedPaths: string[];
+        networkRestricted: boolean;
+        allowedHosts: string[];
+        dockerImage?: string;
+        networkPolicy?: { allowOutbound: boolean; allowedHosts?: string[] };
+      },
+    ) => {
+      if (!config || typeof config !== 'object') {
+        throw new Error('Invalid sandbox configuration');
+      }
+      if (!['disabled', 'native', 'docker'].includes(config.mode)) {
+        throw new Error('Invalid sandbox mode. Must be "disabled", "native", or "docker".');
+      }
+      if (!Array.isArray(config.allowedPaths)) {
+        throw new Error('allowedPaths must be an array');
+      }
+      if (typeof config.networkRestricted !== 'boolean') {
+        throw new Error('networkRestricted must be a boolean');
+      }
+      if (!Array.isArray(config.allowedHosts)) {
+        throw new Error('allowedHosts must be an array');
+      }
+
+      storage.setSandboxConfig({
+        mode: config.mode as 'disabled' | 'native' | 'docker',
+        allowedPaths: config.allowedPaths.map((p) => sanitizeString(p, 'allowedPath', 512)),
+        networkRestricted: config.networkRestricted,
+        allowedHosts: config.allowedHosts.map((h) => sanitizeString(h, 'allowedHost', 256)),
+        ...(config.dockerImage !== undefined && {
+          dockerImage: sanitizeString(config.dockerImage, 'dockerImage', 256),
+        }),
+        ...(config.networkPolicy !== undefined &&
+          (() => {
+            if (config.networkPolicy === null || typeof config.networkPolicy !== 'object') {
+              throw new Error('Invalid networkPolicy: must be a non-null object');
+            }
+            const { allowOutbound, allowedHosts: npHosts } = config.networkPolicy;
+            if (typeof allowOutbound !== 'boolean') {
+              throw new Error('Invalid networkPolicy.allowOutbound: must be a boolean');
+            }
+            if (
+              npHosts !== undefined &&
+              !(Array.isArray(npHosts) && npHosts.every((h: unknown) => typeof h === 'string'))
+            ) {
+              throw new Error('Invalid networkPolicy.allowedHosts: must be an array of strings');
+            }
+            return {
+              networkPolicy: {
+                allowOutbound,
+                ...(Array.isArray(npHosts) && {
+                  allowedHosts: npHosts.map((h) =>
+                    sanitizeString(h, 'networkPolicy.allowedHost', 256),
+                  ),
+                }),
+              },
+            };
+          })()),
+      });
+    },
+  );
+
   handle('settings:openai-base-url:get', async (_event: IpcMainInvokeEvent) => {
     return storage.getOpenAiBaseUrl();
   });

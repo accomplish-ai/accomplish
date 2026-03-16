@@ -16,15 +16,16 @@ import { migration as v006 } from './v006-skills.js';
 import { migration as v007 } from './v007-connectors.js';
 import { migration as v008 } from './v008-theme.js';
 import { migration as v009 } from './v009-favorites.js';
+import { migration as v010 } from './v010-sandbox.js';
 
-const migrations: Migration[] = [v001, v002, v003, v004, v005, v006, v007, v008, v009];
+const migrations: Migration[] = [v001, v002, v003, v004, v005, v006, v007, v008, v009, v010];
 
 export function registerMigration(migration: Migration): void {
   migrations.push(migration);
   migrations.sort((a, b) => a.version - b.version);
 }
 
-export const CURRENT_VERSION = 9;
+export const CURRENT_VERSION = 10;
 
 export function getStoredVersion(db: Database): number {
   try {
