@@ -15,6 +15,31 @@ import { BrowserScriptCard } from '../BrowserScriptCard';
 import { getToolDisplayInfo } from '../../constants/tool-mappings';
 import { SpinningIcon } from './SpinningIcon';
 
+// Hoisted to module scope — stable reference avoids ReactMarkdown reconciliation on every render.
+// Custom renderer: fenced code blocks get syntax highlighting + copy button;
+// inline backtick code keeps simple prose styling.
+const markdownComponents: Components = {
+  code({ className, children, node, ...props }) {
+    const code = String(children).replace(/\n$/, '');
+    // Use node.properties.className array to correctly parse languages like c++, c#, etc.
+    const classes: string[] =
+      (node?.properties?.className as string[] | undefined) ??
+      (className ? className.split(' ') : []);
+    const langClass = classes.find((c) => c.startsWith('language-'));
+    const language = langClass ? langClass.slice('language-'.length) : undefined;
+    // Guard against single-line fenced blocks without a language identifier:
+    // they also have no className but should NOT be treated as inline code.
+    const hasLanguageClass = classes.some((c) => c.startsWith('language-'));
+    const inline = typeof className === 'undefined' && !hasLanguageClass && !code.includes('\n');
+
+    return (
+      <CodeBlock language={language} inline={inline} {...props}>
+        {code}
+      </CodeBlock>
+    );
+  },
+};
+
 export interface MessageBubbleProps {
   message: TaskMessage;
   shouldStream?: boolean;
@@ -110,30 +135,6 @@ export const MessageBubble = memo(
       'prose-table:w-full prose-thead:border-b prose-thead:border-border prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-foreground prose-th:font-semibold prose-td:px-3 prose-td:py-2 prose-td:text-foreground prose-tr:border-b prose-tr:border-border',
       'break-words',
     );
-
-    // Custom renderer so fenced code blocks get syntax highlighting and a copy
-    // button while inline backtick code keeps the simple prose style.
-    const markdownComponents: Components = {
-      code({ className, children, node, ...props }) {
-        const code = String(children).replace(/\n$/, '');
-        // Use node.properties.className array to correctly parse languages like c++, c#, etc.
-        const classes: string[] =
-          (node?.properties?.className as string[] | undefined) ??
-          (className ? className.split(' ') : []);
-        const langClass = classes.find((c) => c.startsWith('language-'));
-        const language = langClass ? langClass.slice('language-'.length) : undefined;
-        // Guard against single-line fenced blocks without a language identifier:
-        // they also have no className but should NOT be treated as inline code.
-        const hasLanguageClass = classes.some((c) => c.startsWith('language-'));
-        const inline = typeof className === 'undefined' && !hasLanguageClass && !code.includes('\n');
-
-        return (
-          <CodeBlock language={language} inline={inline} {...props}>
-            {code}
-          </CodeBlock>
-        );
-      },
-    };
 
     return (
       <motion.div
