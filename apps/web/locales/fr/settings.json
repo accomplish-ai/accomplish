@@ -248,7 +248,12 @@
     "ariaLabel": "Préférence de thème",
     "system": "Système",
     "light": "Clair",
-    "dark": "Sombre"
+    "dark": "Sombre",
+    "themeTitle": "Apparence",
+    "themeDescription": "Choisissez votre thème de couleur préféré.",
+    "themeSystem": "Système",
+    "themeLight": "Clair",
+    "themeDark": "Sombre"
   },
   "connectors": {
     "description": "Connectez des serveurs MCP distants via OAuth. Seuls les serveurs prenant en charge le flux d'autorisation OAuth 2.0 sont actuellement pris en charge.",
