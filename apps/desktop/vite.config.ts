@@ -68,7 +68,11 @@ export default defineConfig(() => ({
       {
         entry: 'src/main/index.ts',
         onstart({ startup }) {
-          startup();
+          const inspectArg = process.env.ELECTRON_DEBUG
+            ? `--inspect=${process.env.ELECTRON_DEBUG_PORT || '9229'}`
+            : undefined;
+          const argv = ['.', '--no-sandbox', ...(inspectArg ? [inspectArg] : [])];
+          startup(argv);
         },
         vite: {
           resolve: {
@@ -77,6 +81,7 @@ export default defineConfig(() => ({
             },
           },
           build: {
+            sourcemap: true,
             outDir: 'dist-electron/main',
             rollupOptions: {
               external: externalizeNodeModules,

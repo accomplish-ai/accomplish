@@ -524,6 +524,8 @@ const accomplishAPI = {
     taskId?: string;
     taskPrompt?: string;
     taskStatus?: string;
+    taskCreatedAt?: string;
+    taskCompletedAt?: string;
     messages?: unknown[];
     debugLogs?: unknown[];
     screenshot?: string;

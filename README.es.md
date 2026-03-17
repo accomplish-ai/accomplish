@@ -146,6 +146,7 @@ Accomplish es un agente de escritorio de IA de código abierto que automatiza la
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter

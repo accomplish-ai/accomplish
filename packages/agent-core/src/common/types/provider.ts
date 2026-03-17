@@ -21,7 +21,8 @@ export type ProviderType =
   | 'litellm'
   | 'minimax'
   | 'lmstudio'
-  | 'vertex';
+  | 'vertex'
+  | 'venice';
 
 export type ApiKeyProvider =
   | 'anthropic'
@@ -39,6 +40,7 @@ export type ApiKeyProvider =
   | 'minimax'
   | 'lmstudio'
   | 'vertex'
+  | 'venice'
   | 'elevenlabs';
 
 /**
@@ -62,6 +64,7 @@ export const ALLOWED_API_KEY_PROVIDERS: ReadonlySet<string> = new Set<string>([
   'minimax',
   'lmstudio',
   'vertex',
+  'venice',
   'elevenlabs',
 ]);
 
@@ -80,6 +83,7 @@ export const STANDARD_VALIDATION_PROVIDERS: ReadonlySet<string> = new Set<string
   'moonshot',
   'zai',
   'minimax',
+  'venice',
 ]);
 
 export interface ModelsEndpointConfig {
@@ -343,6 +347,21 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
         supportsVision: false,
       },
     ],
+  },
+  {
+    id: 'venice',
+    name: 'Venice AI',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'VENICE_API_KEY',
+    baseUrl: 'https://api.venice.ai/api/v1',
+    defaultModelId: 'venice/llama-3.3-70b',
+    modelsEndpoint: {
+      url: 'https://api.venice.ai/api/v1/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'venice/',
+    },
+    models: [],
   },
 ];
 

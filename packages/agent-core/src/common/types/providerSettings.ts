@@ -13,7 +13,8 @@ export type ProviderId =
   | 'litellm'
   | 'minimax'
   | 'lmstudio'
-  | 'vertex';
+  | 'vertex'
+  | 'venice';
 
 export type ProviderCategory = 'classic' | 'aws' | 'gcp' | 'azure' | 'local' | 'proxy' | 'hybrid';
 
@@ -129,6 +130,14 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     label: 'Local Models',
     logoKey: 'lmstudio',
     helpUrl: 'https://lmstudio.ai/',
+  },
+  venice: {
+    id: 'venice',
+    name: 'Venice AI',
+    category: 'classic',
+    label: 'Service',
+    logoKey: 'venice',
+    helpUrl: 'https://venice.ai/settings/api',
   },
 };
 
@@ -260,6 +269,7 @@ export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
   zai: 'zai/glm-4.7-flashx',
   minimax: 'minimax/MiniMax-M2',
   bedrock: 'amazon-bedrock/anthropic.claude-opus-4-5-20251101-v1:0',
+  venice: 'venice/llama-3.3-70b',
 };
 
 export function getDefaultModelForProvider(providerId: ProviderId): string | null {
@@ -286,4 +296,5 @@ export const PROVIDER_ID_TO_OPENCODE: Record<ProviderId, string> = {
   minimax: 'minimax',
   lmstudio: 'lmstudio',
   vertex: 'vertex',
+  venice: 'venice',
 };

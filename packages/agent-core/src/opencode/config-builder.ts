@@ -132,6 +132,7 @@ export async function buildProviderConfigs(
     'amazon-bedrock',
     'vertex',
     'minimax',
+    'venice',
   ];
   let enabledProviders = baseProviders;
 

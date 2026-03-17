@@ -511,6 +511,8 @@ export function ExecutionPage() {
         taskId: currentTask.id,
         taskPrompt: currentTask.prompt,
         taskStatus: currentTask.status,
+        taskCreatedAt: currentTask.createdAt,
+        taskCompletedAt: currentTask.completedAt,
         messages: currentTask.messages as unknown[],
         debugLogs: debugLogs as unknown[],
         screenshot: screenshotResult.success ? screenshotResult.data : undefined,
@@ -533,6 +535,10 @@ export function ExecutionPage() {
 
   const handleRepeatTask = useCallback(async () => {
     if (!currentTask) {
+      return;
+    }
+    const activeStatuses = ['pending', 'queued', 'running', 'waiting_permission', 'waiting'];
+    if (activeStatuses.includes(currentTask.status)) {
       return;
     }
     setRepeatingTask(true);

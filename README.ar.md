@@ -146,6 +146,7 @@ Accomplish هو وكيل سطح مكتب ذكاء اصطناعي مفتوح ال
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
