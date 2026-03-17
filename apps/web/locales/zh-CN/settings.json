@@ -54,7 +54,11 @@
     "moonshot": "Moonshot",
     "litellm": "LiteLLM",
     "vertex": "Vertex AI",
-    "azure-foundry": "Azure AI Foundry"
+    "azure-foundry": "Azure AI Foundry",
+    "nebius": "Nebius AI",
+    "together": "Together AI",
+    "fireworks": "Fireworks AI",
+    "groq": "Groq"
   },
   "providerLabels": {
     "anthropic": "Claude 系列模型",
@@ -71,7 +75,11 @@
     "moonshot": "Kimi 系列模型",
     "litellm": "统一代理",
     "vertex": "谷歌云平台",
-    "azure-foundry": "Azure 服务"
+    "azure-foundry": "Azure 服务",
+    "nebius": "Llama 和 DeepSeek 模型",
+    "together": "Llama 和 Mixtral 模型",
+    "fireworks": "快速推理模型",
+    "groq": "超快速 Llama 模型"
   },
   "status": {
     "connected": "已连接",
@@ -221,8 +229,8 @@
     "system": "系统",
     "light": "浅色",
     "dark": "深色",
-    "themeTitle": "外观",
-    "themeDescription": "选择您偏好的颜色主题。",
+    "themeTitle": "主题",
+    "themeDescription": "选择 Accomplish 的外观。选择「系统」以匹配操作系统设置。",
     "themeSystem": "跟随系统",
     "themeLight": "浅色",
     "themeDark": "深色"

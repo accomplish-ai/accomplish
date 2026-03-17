@@ -54,7 +54,11 @@
     "moonshot": "Moonshot",
     "litellm": "LiteLLM",
     "vertex": "Vertex AI",
-    "azure-foundry": "Azure AI Foundry"
+    "azure-foundry": "Azure AI Foundry",
+    "nebius": "Nebius AI",
+    "together": "Together AI",
+    "fireworks": "Fireworks AI",
+    "groq": "Groq"
   },
   "providerLabels": {
     "anthropic": "Модели Claude",
@@ -71,7 +75,11 @@
     "moonshot": "Модели Kimi",
     "litellm": "Единый прокси",
     "vertex": "Google Cloud",
-    "azure-foundry": "Сервис Azure"
+    "azure-foundry": "Сервис Azure",
+    "nebius": "Модели Llama и DeepSeek",
+    "together": "Модели Llama и Mixtral",
+    "fireworks": "Модели быстрого вывода",
+    "groq": "Сверхбыстрые модели Llama"
   },
   "status": {
     "connected": "Подключено",
@@ -249,8 +257,8 @@
     "system": "Система",
     "light": "Светлая",
     "dark": "Тёмная",
-    "themeTitle": "Внешний вид",
-    "themeDescription": "Выберите предпочтительную цветовую тему.",
+    "themeTitle": "Тема",
+    "themeDescription": "Выберите внешний вид Accomplish. Выберите «Система» для соответствия настройкам ОС.",
     "themeSystem": "Системная",
     "themeLight": "Светлая",
     "themeDark": "Тёмная"

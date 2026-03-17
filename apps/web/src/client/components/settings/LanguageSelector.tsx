@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 const AUTO_LABELS: Record<string, string> = {
   en: 'Auto (System)',
   'zh-CN': '自动（跟随系统）',
-  ru: 'Авто (Системный)',
+  ru: 'Авто (Система)',
   fr: 'Auto (Système)',
 };
 const AUTO_FALLBACK = 'Auto (System)';

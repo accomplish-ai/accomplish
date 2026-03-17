@@ -19,6 +19,9 @@ import {
   getSelectedModel,
 } from '../storage/repositories/index.js';
 
+/** Providers that use the @ai-sdk/openai-compatible adapter */
+const OPENAI_COMPATIBLE_PROVIDER_IDS = ['nebius', 'together', 'fireworks', 'groq'] as const;
+
 /**
  * Paths required for config generation (Electron-specific resolution stays in desktop)
  */
@@ -132,7 +135,7 @@ export async function buildProviderConfigs(
     'amazon-bedrock',
     'vertex',
     'minimax',
-    'venice',
+    ...OPENAI_COMPATIBLE_PROVIDER_IDS,
   ];
   let enabledProviders = baseProviders;
 
@@ -535,24 +538,73 @@ export async function buildProviderConfigs(
     console.log('[OpenCode Config Builder] Z.AI Coding Plan configured, region:', zaiRegion);
   }
 
+  // OpenAI-compatible cloud providers (Nebius, Together, Fireworks, Groq)
+  for (const providerId of OPENAI_COMPATIBLE_PROVIDER_IDS) {
+    const apiKey = getApiKey(providerId);
+    if (!apiKey) {
+      continue;
+    }
+
+    const providerDef = DEFAULT_PROVIDERS.find((p) => p.id === providerId);
+    if (!providerDef?.modelsEndpoint) {
+      console.warn(
+        `[config-builder] Skipping provider "${providerId}": missing provider definition or modelsEndpoint`,
+      );
+      continue;
+    }
+
+    const baseURL = providerDef.baseUrl
+      ? providerDef.baseUrl.replace(/\/$/, '')
+      : providerDef.modelsEndpoint.url.replace(/\/models$/, '');
+
+    const connectedProvider = providerSettings.connectedProviders[providerId];
+    const models: Record<string, ProviderModelConfig> = {};
+
+    if (connectedProvider?.availableModels && connectedProvider.availableModels.length > 0) {
+      for (const model of connectedProvider.availableModels) {
+        const prefix = `${providerId}/`;
+        const modelId = model.id.startsWith(prefix) ? model.id.slice(prefix.length) : model.id;
+        models[modelId] = { name: model.name, tools: true };
+      }
+    } else if (providerDef.models.length > 0) {
+      for (const model of providerDef.models) {
+        models[model.id] = { name: model.displayName, tools: true };
+      }
+    }
+
+    // Fall back to defaultModelId so the provider always has at least one resolvable model
+    if (Object.keys(models).length === 0 && providerDef.defaultModelId) {
+      const prefix = `${providerId}/`;
+      const modelId = providerDef.defaultModelId.startsWith(prefix)
+        ? providerDef.defaultModelId.slice(prefix.length)
+        : providerDef.defaultModelId;
+      models[modelId] = { name: modelId, tools: true };
+    }
+
+    providerConfigs.push({
+      id: providerId,
+      npm: '@ai-sdk/openai-compatible',
+      name: providerDef.name,
+      options: { baseURL, apiKey },
+      ...(Object.keys(models).length > 0 ? { models } : {}),
+    });
+    console.log(`[OpenCode Config Builder] ${providerDef.name} configured`);
+  }
+
   return { providerConfigs, enabledProviders, modelOverride };
 }
 
-/**
- * API key mapping from internal provider IDs to OpenCode auth.json format.
- * Only providers that need special key mapping in auth.json are included here.
- */
-const _AUTH_KEY_MAPPING: Record<string, string> = {
+const AUTH_KEY_MAPPING: Record<string, string> = {
   deepseek: 'deepseek',
   zai: 'zai-coding-plan',
   minimax: 'minimax',
+  ...Object.fromEntries(OPENAI_COMPATIBLE_PROVIDER_IDS.map((id) => [id, id])),
 };
 
 /**
  * Syncs API keys to OpenCode auth.json file.
  *
- * This function writes API keys to the OpenCode auth.json file so that the CLI
- * can access them. Only specific providers (deepseek, zai, minimax) are synced.
+ * OpenCode auth.json keys must match provider IDs; the mapping bridges internal IDs to those keys.
  *
  * @param authPath - Path to the auth.json file
  * @param apiKeys - Record of provider IDs to API keys (null values are ignored)
@@ -579,27 +631,12 @@ export async function syncApiKeysToOpenCodeAuth(
 
   let updated = false;
 
-  if (apiKeys.deepseek) {
-    if (!auth['deepseek'] || auth['deepseek'].key !== apiKeys.deepseek) {
-      auth['deepseek'] = { type: 'api', key: apiKeys.deepseek };
+  for (const [internalId, authId] of Object.entries(AUTH_KEY_MAPPING)) {
+    const key = apiKeys[internalId];
+    if (key && (!auth[authId] || auth[authId].key !== key)) {
+      auth[authId] = { type: 'api', key };
       updated = true;
-      console.log('[OpenCode Auth] Synced DeepSeek API key');
-    }
-  }
-
-  if (apiKeys.zai) {
-    if (!auth['zai-coding-plan'] || auth['zai-coding-plan'].key !== apiKeys.zai) {
-      auth['zai-coding-plan'] = { type: 'api', key: apiKeys.zai };
-      updated = true;
-      console.log('[OpenCode Auth] Synced Z.AI Coding Plan API key');
-    }
-  }
-
-  if (apiKeys.minimax) {
-    if (!auth.minimax || auth.minimax.key !== apiKeys.minimax) {
-      auth.minimax = { type: 'api', key: apiKeys.minimax };
-      updated = true;
-      console.log('[OpenCode Auth] Synced MiniMax API key');
+      console.log(`[OpenCode Auth] Synced ${internalId} API key`);
     }
   }
 

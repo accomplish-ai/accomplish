@@ -54,7 +54,11 @@
     "moonshot": "Moonshot",
     "litellm": "LiteLLM",
     "vertex": "Vertex AI",
-    "azure-foundry": "Azure AI Foundry"
+    "azure-foundry": "Azure AI Foundry",
+    "nebius": "Nebius AI",
+    "together": "Together AI",
+    "fireworks": "Fireworks AI",
+    "groq": "Groq"
   },
   "providerLabels": {
     "anthropic": "Claude models",
@@ -71,7 +75,11 @@
     "moonshot": "Kimi models",
     "litellm": "Unified proxy",
     "vertex": "Google Cloud",
-    "azure-foundry": "Azure Service"
+    "azure-foundry": "Azure Service",
+    "nebius": "Llama & DeepSeek models",
+    "together": "Llama & Mixtral models",
+    "fireworks": "Fast inference models",
+    "groq": "Ultra-fast Llama models"
   },
   "status": {
     "connected": "Connected",
@@ -249,8 +257,8 @@
     "system": "System",
     "light": "Light",
     "dark": "Dark",
-    "themeTitle": "Appearance",
-    "themeDescription": "Choose your preferred color theme.",
+    "themeTitle": "Theme",
+    "themeDescription": "Choose how Accomplish looks. Select System to match your operating system setting.",
     "themeSystem": "System",
     "themeLight": "Light",
     "themeDark": "Dark"
