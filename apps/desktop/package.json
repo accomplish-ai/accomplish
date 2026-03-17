@@ -22,6 +22,7 @@
     "package": "pnpm download:nodejs && pnpm build:base && pnpm build:mcp-tools:package && node scripts/package.cjs --mac --publish never && npx electron-rebuild -f",
     "package:mac": "pnpm download:nodejs && pnpm build:base && pnpm build:mcp-tools:package && node scripts/package.cjs --mac --publish never && npx electron-rebuild -f",
     "package:win": "pnpm download:nodejs && pnpm build:base && pnpm build:mcp-tools:package && node scripts/package.cjs --win --x64 --publish never",
+    "package:linux": "pnpm download:nodejs && pnpm build:base && ACCOMPLISH_BUNDLED_MCP=1 pnpm build:mcp-tools:package && node scripts/package.cjs --linux --x64 --arm64 --publish never",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
@@ -79,7 +80,13 @@
   "optionalDependencies": {
     "opencode-darwin-arm64": "1.2.27",
     "opencode-darwin-x64": "1.2.27",
-    "opencode-darwin-x64-baseline": "1.2.27"
+    "opencode-darwin-x64-baseline": "1.2.27",
+    "opencode-linux-x64": "1.2.27",
+    "opencode-linux-x64-baseline": "1.2.27",
+    "opencode-linux-x64-musl": "1.2.27",
+    "opencode-linux-x64-baseline-musl": "1.2.27",
+    "opencode-linux-arm64": "1.2.27",
+    "opencode-linux-arm64-musl": "1.2.27"
   },
   "build": {
     "npmRebuild": false,
