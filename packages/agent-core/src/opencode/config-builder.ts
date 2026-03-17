@@ -598,10 +598,7 @@ const AUTH_KEY_MAPPING: Record<string, string> = {
   deepseek: 'deepseek',
   zai: 'zai-coding-plan',
   minimax: 'minimax',
-  nebius: 'nebius',
-  together: 'together',
-  fireworks: 'fireworks',
-  groq: 'groq',
+  ...Object.fromEntries(OPENAI_COMPATIBLE_PROVIDER_IDS.map((id) => [id, id])),
 };
 
 /**
