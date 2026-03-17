@@ -19,6 +19,9 @@ import {
   getSelectedModel,
 } from '../storage/repositories/index.js';
 
+/** Providers that use the @ai-sdk/openai-compatible adapter */
+const OPENAI_COMPATIBLE_PROVIDER_IDS = ['nebius', 'together', 'fireworks', 'groq'] as const;
+
 /**
  * Paths required for config generation (Electron-specific resolution stays in desktop)
  */
@@ -132,10 +135,7 @@ export async function buildProviderConfigs(
     'amazon-bedrock',
     'vertex',
     'minimax',
-    'nebius',
-    'together',
-    'fireworks',
-    'groq',
+    ...OPENAI_COMPATIBLE_PROVIDER_IDS,
   ];
   let enabledProviders = baseProviders;
 
@@ -539,8 +539,7 @@ export async function buildProviderConfigs(
   }
 
   // OpenAI-compatible cloud providers (Nebius, Together, Fireworks, Groq)
-  const openaiCompatibleProviders = ['nebius', 'together', 'fireworks', 'groq'] as const;
-  for (const providerId of openaiCompatibleProviders) {
+  for (const providerId of OPENAI_COMPATIBLE_PROVIDER_IDS) {
     const apiKey = getApiKey(providerId);
     if (!apiKey) {
       continue;
