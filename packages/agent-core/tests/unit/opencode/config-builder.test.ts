@@ -40,7 +40,7 @@ describe('buildProviderConfigs', () => {
         providerSettings: {
           connectedProviders: {
             google: {
-              id: 'google',
+              providerId: 'google',
               connectionStatus: 'connected',
               selectedModelId: 'google/gemini-3.1-flash-lite-preview',
               credentials: { type: 'google' },
@@ -69,11 +69,31 @@ describe('buildProviderConfigs', () => {
         providerSettings: {
           connectedProviders: {
             google: {
-              id: 'google',
+              providerId: 'google',
               connectionStatus: 'connected',
               selectedModelId: 'google/gemini-3.1-flash-lite-preview',
               credentials: { type: 'google' },
               availableModels: [],
+            },
+          },
+        } as never,
+      });
+
+      const googleConfig = result.providerConfigs.find((p) => p.id === 'google');
+      expect(googleConfig).toBeDefined();
+      expect(googleConfig?.models?.['gemini-3.1-flash-lite-preview']).toBeDefined();
+    });
+
+    it('falls back to registering only the selected model when availableModels is undefined', async () => {
+      const result = await buildProviderConfigs({
+        getApiKey: (p) => (p === 'google' ? 'test-google-api-key' : undefined),
+        providerSettings: {
+          connectedProviders: {
+            google: {
+              providerId: 'google',
+              connectionStatus: 'connected',
+              selectedModelId: 'google/gemini-3.1-flash-lite-preview',
+              credentials: { type: 'google' },
             },
           },
         } as never,
@@ -90,7 +110,7 @@ describe('buildProviderConfigs', () => {
         providerSettings: {
           connectedProviders: {
             google: {
-              id: 'google',
+              providerId: 'google',
               connectionStatus: 'connected',
               selectedModelId: 'google/gemini-3-pro-preview',
               credentials: { type: 'google' },
