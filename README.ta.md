@@ -146,6 +146,7 @@ Accomplish என்பது உங்கள் கணினியிலேய�
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
@@ -255,15 +256,17 @@ pnpm dev
 <details>
 <summary><strong>அனைத்து கட்டளைகளும்</strong></summary>
 
-| கட்டளை                                 | விளக்கம்                                    |
-| -------------------------------------- | ------------------------------------------- |
-| `pnpm dev`                             | டெஸ்க்டாப் செயலியை டெவ் பயன்முறையில் இயக்கு |
-| `pnpm dev:clean`                       | சுத்தமான தொடக்கத்துடன் டெவ் பயன்முறை        |
-| `pnpm build`                           | அனைத்து பணியிடங்களையும் உருவாக்கு           |
-| `pnpm build:desktop`                   | டெஸ்க்டாப் செயலியை மட்டும் உருவாக்கு        |
-| `pnpm lint`                            | TypeScript சரிபார்ப்புகள்                   |
-| `pnpm typecheck`                       | வகை சரிபார்ப்பு                             |
-| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2E சோதனைகள்                     |
+| கட்டளை                                      | விளக்கம்                                        |
+| ------------------------------------------- | ----------------------------------------------- |
+| `pnpm dev`                                  | டெஸ்க்டாப் செயலியை டெவ் பயன்முறையில் இயக்கு     |
+| `pnpm dev:clean`                            | சுத்தமான தொடக்கத்துடன் டெவ் பயன்முறை            |
+| `pnpm build`                                | அனைத்து பணியிடங்களையும் உருவாக்கு               |
+| `pnpm build:desktop`                        | டெஸ்க்டாப் செயலியை மட்டும் உருவாக்கு            |
+| `pnpm -F @accomplish/desktop package:win`   | Windows நிறுவி உருவாக்கு (x64)                  |
+| `pnpm -F @accomplish/desktop package:linux` | Linux கலைப்பொருட்கள் உருவாக்கு (AppImage + deb) |
+| `pnpm lint`                                 | TypeScript சரிபார்ப்புகள்                       |
+| `pnpm typecheck`                            | வகை சரிபார்ப்பு                                 |
+| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2E சோதனைகள்                         |
 
 </details>
 

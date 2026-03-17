@@ -146,6 +146,7 @@ Accomplish एक ओपन सोर्स AI डेस्कटॉप एज�
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
@@ -255,15 +256,17 @@ pnpm dev
 <details>
 <summary><strong>सभी कमांड</strong></summary>
 
-| कमांड                                  | विवरण                            |
-| -------------------------------------- | -------------------------------- |
-| `pnpm dev`                             | डेस्कटॉप ऐप को डेव मोड में चलाएँ |
-| `pnpm dev:clean`                       | क्लीन स्टार्ट के साथ डेव मोड     |
-| `pnpm build`                           | सभी वर्कस्पेस बनाएँ              |
-| `pnpm build:desktop`                   | केवल डेस्कटॉप ऐप बनाएँ           |
-| `pnpm lint`                            | TypeScript जाँच                  |
-| `pnpm typecheck`                       | प्रकार सत्यापन                   |
-| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2E परीक्षण           |
+| कमांड                                       | विवरण                                   |
+| ------------------------------------------- | --------------------------------------- |
+| `pnpm dev`                                  | डेस्कटॉप ऐप को डेव मोड में चलाएँ        |
+| `pnpm dev:clean`                            | क्लीन स्टार्ट के साथ डेव मोड            |
+| `pnpm build`                                | सभी वर्कस्पेस बनाएँ                     |
+| `pnpm build:desktop`                        | केवल डेस्कटॉप ऐप बनाएँ                  |
+| `pnpm -F @accomplish/desktop package:win`   | Windows इंस्टॉलर बनाएं (x64)            |
+| `pnpm -F @accomplish/desktop package:linux` | Linux आर्टिफैक्ट बनाएं (AppImage + deb) |
+| `pnpm lint`                                 | TypeScript जाँच                         |
+| `pnpm typecheck`                            | प्रकार सत्यापन                          |
+| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2E परीक्षण                  |
 
 </details>
 

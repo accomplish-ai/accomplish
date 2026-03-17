@@ -256,15 +256,17 @@ Hepsi bu kadar.
 <details>
 <summary><strong>Tüm komutlar</strong></summary>
 
-| Komut                                  | Açıklama                                          |
-| -------------------------------------- | ------------------------------------------------- |
-| `pnpm dev`                             | Masaüstü uygulamasını geliştirme modunda çalıştır |
-| `pnpm dev:clean`                       | Temiz başlangıçla geliştirme modu                 |
-| `pnpm build`                           | Tüm workspace'leri derle                          |
-| `pnpm build:desktop`                   | Sadece masaüstü uygulamasını derle                |
-| `pnpm lint`                            | TypeScript kontrolleri                            |
-| `pnpm typecheck`                       | Tip doğrulama                                     |
-| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2E testleri                           |
+| Komut                                       | Açıklama                                          |
+| ------------------------------------------- | ------------------------------------------------- |
+| `pnpm dev`                                  | Masaüstü uygulamasını geliştirme modunda çalıştır |
+| `pnpm dev:clean`                            | Temiz başlangıçla geliştirme modu                 |
+| `pnpm build`                                | Tüm workspace'leri derle                          |
+| `pnpm build:desktop`                        | Sadece masaüstü uygulamasını derle                |
+| `pnpm -F @accomplish/desktop package:win`   | Windows yükleyicisini derle (x64)                 |
+| `pnpm -F @accomplish/desktop package:linux` | Linux yapıtlarını derle (AppImage + deb)          |
+| `pnpm lint`                                 | TypeScript kontrolleri                            |
+| `pnpm typecheck`                            | Tip doğrulama                                     |
+| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2E testleri                           |
 
 </details>
 

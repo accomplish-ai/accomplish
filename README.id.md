@@ -256,15 +256,17 @@ Itu saja.
 <details>
 <summary><strong>Semua perintah</strong></summary>
 
-| Perintah                               | Deskripsi                                |
-| -------------------------------------- | ---------------------------------------- |
-| `pnpm dev`                             | Jalankan aplikasi desktop dalam mode dev |
-| `pnpm dev:clean`                       | Mode dev dengan start bersih             |
-| `pnpm build`                           | Build semua workspace                    |
-| `pnpm build:desktop`                   | Build aplikasi desktop saja              |
-| `pnpm lint`                            | Pemeriksaan TypeScript                   |
-| `pnpm typecheck`                       | Validasi tipe                            |
-| `pnpm -F @accomplish/desktop test:e2e` | Test E2E Playwright                      |
+| Perintah                                    | Deskripsi                                |
+| ------------------------------------------- | ---------------------------------------- |
+| `pnpm dev`                                  | Jalankan aplikasi desktop dalam mode dev |
+| `pnpm dev:clean`                            | Mode dev dengan start bersih             |
+| `pnpm build`                                | Build semua workspace                    |
+| `pnpm build:desktop`                        | Build aplikasi desktop saja              |
+| `pnpm -F @accomplish/desktop package:win`   | Buat installer Windows (x64)             |
+| `pnpm -F @accomplish/desktop package:linux` | Buat artefak Linux (AppImage + deb)      |
+| `pnpm lint`                                 | Pemeriksaan TypeScript                   |
+| `pnpm typecheck`                            | Validasi tipe                            |
+| `pnpm -F @accomplish/desktop test:e2e`      | Test E2E Playwright                      |
 
 </details>
 
