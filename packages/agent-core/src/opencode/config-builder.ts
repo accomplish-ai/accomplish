@@ -572,6 +572,15 @@ export async function buildProviderConfigs(
       }
     }
 
+    // Fall back to defaultModelId so the provider always has at least one resolvable model
+    if (Object.keys(models).length === 0 && providerDef.defaultModelId) {
+      const prefix = `${providerId}/`;
+      const modelId = providerDef.defaultModelId.startsWith(prefix)
+        ? providerDef.defaultModelId.slice(prefix.length)
+        : providerDef.defaultModelId;
+      models[modelId] = { name: modelId, tools: true };
+    }
+
     providerConfigs.push({
       id: providerId,
       npm: '@ai-sdk/openai-compatible',
