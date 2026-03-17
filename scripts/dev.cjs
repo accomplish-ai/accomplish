@@ -1,61 +1,96 @@
-const { spawn, execSync } = require('child_process');
-const path = require('path');
+const {
+  clearPort,
+  formatChildExit,
+  killChildProcess,
+  resolveExitCode,
+  spawnPnpm,
+  waitForResources,
+} = require('./dev-runtime.cjs');
 
-try {
-  execSync('lsof -ti:5173 | xargs kill -9', { stdio: 'ignore' });
-  console.log('Killed existing process on port 5173');
-} catch {
-  // No process on port 5173
+const args = new Set(process.argv.slice(2));
+const isClean = args.has('--clean') || process.env.CLEAN_START === '1';
+const isCheck = args.has('--check');
+const env = { ...process.env };
+if (isClean) {
+  env.CLEAN_START = '1';
 }
 
-const env = { ...process.env };
-const isClean = process.env.CLEAN_START === '1';
+const clearedPortCount = clearPort(5173);
+if (clearedPortCount > 0) {
+  console.log(`[dev] Cleared ${clearedPortCount} process(es) from port 5173`);
+}
 
-const web = spawn('pnpm', ['-F', '@accomplish/web', 'dev'], {
-  stdio: 'inherit',
-  env,
-  detached: true,
-});
-
-const waitOn = require(path.join(__dirname, '..', 'node_modules', 'wait-on'));
+let web;
 let electron;
+let shuttingDown = false;
 
-waitOn({ resources: ['http://localhost:5173'], timeout: 30000 })
+function shutdown(reason) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  killChildProcess(electron, { force: true });
+  killChildProcess(web, { force: true });
+  clearPort(5173);
+
+  process.exit(resolveExitCode(reason));
+}
+
+function handleChildError(label, error) {
+  if (shuttingDown) return;
+  console.error(`[dev] ${label} failed to start: ${error.message}`);
+  shutdown(error);
+}
+
+function handleChildExit(label, code, signal) {
+  if (shuttingDown) return;
+  const message = `[dev] ${label} exited (${formatChildExit(code, signal)})`;
+  if (typeof code === 'number' && code === 0) {
+    console.log(message);
+  } else {
+    console.error(message);
+  }
+  shutdown(typeof code === 'number' ? code : 1);
+}
+
+web = spawnPnpm(['-F', '@accomplish/web', 'dev'], { env });
+web.on('error', (error) => handleChildError('web dev server', error));
+web.on('exit', (code, signal) => handleChildExit('web dev server', code, signal));
+
+waitForResources(['http://localhost:5173'], 30000)
   .then(() => {
-    const electronCmd = isClean ? 'dev:clean' : 'dev';
-    electron = spawn('pnpm', ['-F', '@accomplish/desktop', electronCmd], {
-      stdio: 'inherit',
-      env,
-      detached: true,
+    if (shuttingDown) return;
+
+    const electronCommand = isClean ? 'dev:clean' : 'dev';
+    const electronArgs = ['-F', '@accomplish/desktop', electronCommand];
+    if (isCheck) {
+      electronArgs.push('--', '--check');
+    }
+
+    electron = spawnPnpm(electronArgs, { env });
+    electron.on('error', (error) => handleChildError('desktop dev runtime', error));
+    electron.on('exit', (code, signal) => {
+      if (shuttingDown) return;
+      if (isCheck && code === 0) {
+        console.log('[dev] Check mode passed');
+        shutdown(0);
+        return;
+      }
+      handleChildExit('desktop dev runtime', code, signal);
     });
-    electron.on('exit', cleanup);
   })
-  .catch((err) => {
-    console.error('Failed waiting for web dev server:', err.message);
-    cleanup();
+  .catch((error) => {
+    if (shuttingDown) return;
+    console.error(`[dev] Failed waiting for web dev server: ${error.message}`);
+    shutdown(error);
   });
 
-function cleanup(codeOrError) {
-  for (const child of [web, electron]) {
-    if (!child || child.killed) continue;
-    try {
-      process.kill(-child.pid, 'SIGTERM');
-    } catch {}
-  }
-  try {
-    execSync('lsof -ti:5173 | xargs kill -9', { stdio: 'ignore' });
-  } catch {}
-  const isError = codeOrError instanceof Error || (codeOrError && typeof codeOrError === 'object');
-  process.exit(isError ? 1 : 0);
-}
-
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
-process.on('uncaughtException', (err) => {
-  console.error(err);
-  cleanup(err);
+process.on('SIGINT', () => shutdown(130));
+process.on('SIGTERM', () => shutdown(143));
+process.on('uncaughtException', (error) => {
+  console.error(error);
+  shutdown(error);
 });
-process.on('unhandledRejection', (err) => {
-  console.error(err);
-  cleanup(err);
+process.on('unhandledRejection', (reason) => {
+  console.error(reason);
+  shutdown(reason);
 });

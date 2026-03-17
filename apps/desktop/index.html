@@ -5,20 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: ws: wss:; font-src 'self' https: data:"
     />
     <title>Accomplish</title>
   </head>
   <body>
     <div id="root"></div>
-    <script>
-      (function () {
-        var t = localStorage.getItem('theme') || 'system';
-        var d =
-          t === 'dark' ||
-          (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        if (d) document.documentElement.classList.add('dark');
-      })();
-    </script>
+    <script src="/theme-init.js"></script>
   </body>
 </html>

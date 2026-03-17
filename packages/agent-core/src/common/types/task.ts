@@ -18,6 +18,27 @@ export interface TaskConfig {
   sessionId?: string;
   /** Model ID for display name in progress events */
   modelId?: string;
+  /**
+   * User-attached files (drag-and-drop or file picker). Ephemeral — paths reference
+   * the host filesystem at submission time and are not persisted with the task.
+   */
+  files?: FileAttachmentInfo[];
+}
+
+/** Metadata for a user-attached file in a task. */
+export interface FileAttachmentInfo {
+  /** Unique identifier for this attachment */
+  id: string;
+  /** Original filename */
+  name: string;
+  /** Absolute or working-directory-relative file path */
+  path: string;
+  /** Categorized file type based on extension */
+  type: 'image' | 'text' | 'code' | 'pdf' | 'other';
+  /** File size in bytes */
+  size: number;
+  /** Pre-read file content for text/code files (populated by IPC handler in Electron) */
+  content?: string;
 }
 
 export interface Task {

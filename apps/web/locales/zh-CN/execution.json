@@ -94,5 +94,6 @@
     "title": "任务",
     "progress": "{{completed}} / {{total}}"
   },
-  "copyToClipboard": "复制到剪贴板"
+  "copyToClipboard": "复制到剪贴板",
+  "startNewTask": "开始新任务"
 }

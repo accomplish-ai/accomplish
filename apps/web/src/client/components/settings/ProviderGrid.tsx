@@ -1,5 +1,3 @@
-// apps/desktop/src/renderer/components/settings/ProviderGrid.tsx
-
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -24,6 +22,10 @@ const PROVIDER_ORDER: ProviderId[] = [
   'openrouter',
   'litellm',
   'minimax',
+  'nebius',
+  'together',
+  'fireworks',
+  'groq',
 ];
 
 interface ProviderGridProps {

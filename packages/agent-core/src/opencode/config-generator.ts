@@ -525,6 +525,7 @@ Example bad narration (too terse):
       'zai-coding-plan',
       'amazon-bedrock',
       'minimax',
+      'venice',
     ];
     enabledProviders = [...new Set([...baseProviders, ...Object.keys(providerConfig)])];
   }

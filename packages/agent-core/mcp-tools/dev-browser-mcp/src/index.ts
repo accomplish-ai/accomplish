@@ -1474,9 +1474,7 @@ async function getAISnapshot(page: Page, options: SnapshotOptions = {}): Promise
   };
 
   const result = await page.evaluate(
-    (opts) => {
-      return (globalThis as any).__devBrowser_getAISnapshot(opts);
-    },
+    (opts) => (globalThis as any).__devBrowser_getAISnapshot(opts),
     optsToSend,
   );
   return result as string;

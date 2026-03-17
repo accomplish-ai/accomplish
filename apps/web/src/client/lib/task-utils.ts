@@ -1,5 +1,8 @@
 import type { Task } from '@accomplish_ai/agent-core/common';
 
+/** Task statuses that support the favorites/bookmarking feature */
+export const FAVORITABLE_STATUSES: readonly string[] = ['completed', 'interrupted'] as const;
+
 export const STATUS_COLORS: Record<string, string> = {
   running: 'border-2 border-muted-foreground',
   completed: 'bg-green-500',

@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useTaskStore } from '@/stores/taskStore';
 import { useNavigate } from 'react-router';
 import { getAccomplish } from '@/lib/accomplish';
+import { buildCreateSkillPrompt } from '@/components/skills/createSkillPrompt';
 
 interface CreateSkillModalProps {
   open: boolean;
@@ -53,9 +54,20 @@ export function CreateSkillModal({ open, onOpenChange, onSettingsClose }: Create
 
     setIsSubmitting(true);
 
-    const prompt = `/skill-creator Name: ${name.trim()}, Description: ${description.trim()}`;
-
     try {
+      const accomplish = getAccomplish();
+      const [skillsBasePath, platform] = await Promise.all([
+        accomplish.getUserSkillsPath(),
+        accomplish.getPlatform(),
+      ]);
+
+      const prompt = buildCreateSkillPrompt({
+        name: name.trim(),
+        description: description.trim(),
+        skillsBasePath,
+        platform,
+      });
+
       const task = await startTask({ prompt });
       if (task) {
         onOpenChange(false);

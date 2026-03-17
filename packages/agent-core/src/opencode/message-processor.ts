@@ -7,6 +7,9 @@ import { isHiddenToolName } from './tool-classification.js';
  * Delay in milliseconds for batching messages before sending to renderer.
  */
 export const MESSAGE_BATCH_DELAY_MS = 50;
+const MAX_TOOL_OUTPUT_LENGTH = 200_000;
+const MAX_SCREENSHOT_ATTACHMENT_COUNT = 1;
+const MAX_SCREENSHOT_ATTACHMENT_LENGTH = 200_000;
 
 /**
  * Attachment extracted from tool output.
@@ -41,11 +44,17 @@ export function extractScreenshots(output: string): {
   const dataUrlRegex = /data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+/g;
   let match;
   while ((match = dataUrlRegex.exec(output)) !== null) {
-    attachments.push({
-      type: 'screenshot',
-      data: match[0],
-      label: 'Browser screenshot',
-    });
+    const screenshotData = match[0];
+    if (
+      attachments.length < MAX_SCREENSHOT_ATTACHMENT_COUNT &&
+      screenshotData.length <= MAX_SCREENSHOT_ATTACHMENT_LENGTH
+    ) {
+      attachments.push({
+        type: 'screenshot',
+        data: screenshotData,
+        label: 'Browser screenshot',
+      });
+    }
   }
 
   const rawBase64Regex =
@@ -62,11 +71,17 @@ export function extractScreenshots(output: string): {
         mimeType = 'image/gif';
       }
 
-      attachments.push({
-        type: 'screenshot',
-        data: `data:${mimeType};base64,${base64Data}`,
-        label: 'Browser screenshot',
-      });
+      const screenshotData = `data:${mimeType};base64,${base64Data}`;
+      if (
+        attachments.length < MAX_SCREENSHOT_ATTACHMENT_COUNT &&
+        screenshotData.length <= MAX_SCREENSHOT_ATTACHMENT_LENGTH
+      ) {
+        attachments.push({
+          type: 'screenshot',
+          data: screenshotData,
+          label: 'Browser screenshot',
+        });
+      }
     }
   }
 
@@ -217,7 +232,11 @@ export function toTaskMessage(message: OpenCodeMessage): TaskMessage | null {
     const status = toolUseMsg.part.state?.status;
 
     if (status === 'completed' || status === 'error') {
-      const { cleanedText, attachments } = extractScreenshots(toolOutput);
+      const wasTruncated = toolOutput.length > MAX_TOOL_OUTPUT_LENGTH;
+      const stableOutput = wasTruncated
+        ? `${toolOutput.slice(0, MAX_TOOL_OUTPUT_LENGTH)}\n[Tool output truncated]`
+        : toolOutput;
+      const { cleanedText, attachments } = extractScreenshots(stableOutput);
       const isError = status === 'error';
       const sanitizedText = sanitizeToolOutput(cleanedText, isError);
       const displayText =
@@ -230,7 +249,7 @@ export function toTaskMessage(message: OpenCodeMessage): TaskMessage | null {
         toolName,
         toolInput,
         timestamp: new Date().toISOString(),
-        attachments: attachments.length > 0 ? attachments : undefined,
+        attachments: !wasTruncated && attachments.length > 0 ? attachments : undefined,
       };
     }
     return null;

@@ -1,0 +1,100 @@
+{
+  "app": {
+    "name": "Accomplish"
+  },
+  "buttons": {
+    "send": "Envoyer",
+    "submit": "Soumettre",
+    "stop": "Arrêter",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "deleteAll": "Tout supprimer",
+    "allow": "Autoriser",
+    "deny": "Refuser",
+    "continue": "Continuer",
+    "doneContinue": "Terminé, continuer",
+    "goHome": "Accueil",
+    "startNewTask": "Nouvelle tâche",
+    "test": "Tester",
+    "testing": "Test en cours...",
+    "saving": "Enregistrement...",
+    "validating": "Validation...",
+    "export": "Exporter",
+    "exported": "Exporté",
+    "clear": "Effacer",
+    "clearAll": "Tout effacer",
+    "yes": "Oui",
+    "no": "Non",
+    "retry": "Réessayer",
+    "saveApiKey": "Enregistrer la clé API",
+    "copyToClipboard": "Copier dans le presse-papiers",
+    "dismiss": "Ignorer",
+    "messageTooLong": "Le message est trop long",
+    "enterMessage": "Saisissez un message",
+    "quit": "Quitter"
+  },
+  "aria": {
+    "scrollToBottom": "Défiler vers le bas",
+    "customResponse": "Réponse personnalisée"
+  },
+  "status": {
+    "running": "En cours",
+    "completed": "Terminé",
+    "failed": "Échoué",
+    "cancelled": "Annulé",
+    "queued": "En file d'attente",
+    "pending": "En attente",
+    "waiting": "En attente",
+    "stopped": "Arrêté",
+    "interrupted": "Interrompu"
+  },
+  "time": {
+    "justNow": "à l'instant",
+    "minutesAgo": "il y a {{count}} min",
+    "hoursAgo": "il y a {{count}} h",
+    "daysAgo": "il y a {{count}} j",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier"
+  },
+  "nav": {
+    "home": "Accueil",
+    "history": "Historique",
+    "settings": "Paramètres"
+  },
+  "labels": {
+    "awsCredentials": "Identifiants AWS",
+    "gcpCredentials": "Identifiants GCP",
+    "localApiKey": "Clé API locale",
+    "azureFoundryEntraId": "Azure Foundry (Entra ID)",
+    "bedrockApiKey": "Clé API Bedrock",
+    "awsAccessKeys": "Clés d'accès AWS",
+    "awsProfile": "Profil AWS : {{name}}"
+  },
+  "contextMenu": {
+    "addToDictionary": "Ajouter au dictionnaire"
+  },
+  "fileFilters": {
+    "text": "Fichiers texte",
+    "log": "Fichiers journaux",
+    "skill": "Fichiers de compétences",
+    "all": "Tous les fichiers"
+  },
+  "model": {
+    "selectModel": "Sélectionner le modèle",
+    "current": "Actuel",
+    "configureModel": "Configurer le modèle",
+    "changeModel": "Changer de modèle"
+  },
+  "messages": "{{count}} messages",
+  "favorite": "Favori",
+  "theme": {
+    "switchToLight": "Passer au mode clair",
+    "switchToDark": "Passer au mode sombre",
+    "switchToSystem": "Suivre le système",
+    "lightMode": "Mode clair",
+    "darkMode": "Mode sombre",
+    "systemMode": "Système"
+  }
+}

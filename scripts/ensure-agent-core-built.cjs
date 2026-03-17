@@ -1,12 +1,13 @@
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { runPnpmSync } = require('./dev-runtime.cjs');
 
 const rootDir = path.join(__dirname, '..');
 const agentCoreDir = path.join(rootDir, 'packages', 'agent-core');
 const agentCorePackageJsonPath = path.join(agentCoreDir, 'package.json');
+const agentCoreSourceDir = path.join(agentCoreDir, 'src');
+const agentCoreTsconfigPath = path.join(agentCoreDir, 'tsconfig.json');
 const desktopNodeResourcesDir = path.join(rootDir, 'apps', 'desktop', 'resources', 'nodejs');
-const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const mcpDistOutputs = [
   'mcp-tools/file-permission/dist/index.mjs',
   'mcp-tools/ask-user-question/dist/index.mjs',
@@ -81,23 +82,91 @@ function collectOutputPaths(entry, outputs) {
   }
 }
 
+function getFileMtimeMs(filePath) {
+  try {
+    return fs.statSync(filePath).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+
+function getNewestFileMtimeMsInDir(dirPath) {
+  let newest = 0;
+  if (!fs.existsSync(dirPath)) {
+    return newest;
+  }
+
+  const stack = [dirPath];
+  while (stack.length > 0) {
+    const currentPath = stack.pop();
+    if (!currentPath) continue;
+
+    let entries;
+    try {
+      entries = fs.readdirSync(currentPath, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      const entryPath = path.join(currentPath, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(entryPath);
+        continue;
+      }
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      const mtimeMs = getFileMtimeMs(entryPath);
+      if (mtimeMs > newest) {
+        newest = mtimeMs;
+      }
+    }
+  }
+
+  return newest;
+}
+
+function isAgentCoreBuildOutdated(outputPaths) {
+  const newestInputMtimeMs = Math.max(
+    getNewestFileMtimeMsInDir(agentCoreSourceDir),
+    getFileMtimeMs(agentCorePackageJsonPath),
+    getFileMtimeMs(agentCoreTsconfigPath),
+  );
+
+  if (!Number.isFinite(newestInputMtimeMs) || newestInputMtimeMs <= 0) {
+    return false;
+  }
+
+  let oldestOutputMtimeMs = Number.POSITIVE_INFINITY;
+  for (const relativeOutputPath of outputPaths) {
+    const outputPath = path.join(agentCoreDir, relativeOutputPath);
+    const outputMtimeMs = getFileMtimeMs(outputPath);
+    if (!Number.isFinite(outputMtimeMs) || outputMtimeMs <= 0) {
+      return true;
+    }
+    oldestOutputMtimeMs = Math.min(oldestOutputMtimeMs, outputMtimeMs);
+  }
+
+  if (!Number.isFinite(oldestOutputMtimeMs)) {
+    return true;
+  }
+
+  return newestInputMtimeMs > oldestOutputMtimeMs;
+}
+
 function runPnpm(args, description) {
   console.log(description);
-  const result = spawnSync(pnpmCommand, args, {
-    cwd: rootDir,
-    env: process.env,
-    stdio: 'inherit',
-  });
-
-  if (result.error) {
-    console.error(`Failed to run pnpm for "${description}":`, result.error.message);
-    process.exit(1);
-  }
-  if (typeof result.status === 'number' && result.status !== 0) {
-    process.exit(result.status);
-  }
-  if (result.status === null && result.signal) {
-    console.error(`pnpm command "${description}" terminated by signal: ${result.signal}`);
+  try {
+    runPnpmSync(args, {
+      cwd: rootDir,
+      env: process.env,
+      stdio: 'inherit',
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Failed to run pnpm for "${description}": ${message}`);
     process.exit(1);
   }
 }
@@ -141,10 +210,15 @@ let missingOutputs = [...outputPaths].filter(
   (relativeOutputPath) => !fs.existsSync(path.join(agentCoreDir, relativeOutputPath)),
 );
 
-if (missingOutputs.length > 0) {
+const needsAgentCoreBuild = missingOutputs.length > 0 || isAgentCoreBuildOutdated(outputPaths);
+if (needsAgentCoreBuild) {
   console.log('Missing @accomplish_ai/agent-core build outputs:');
-  for (const missingOutput of missingOutputs) {
-    console.log(`  - ${missingOutput}`);
+  if (missingOutputs.length > 0) {
+    for (const missingOutput of missingOutputs) {
+      console.log(`  - ${missingOutput}`);
+    }
+  } else {
+    console.log('  - existing outputs are stale relative to source; rebuilding');
   }
   runPnpm(['-F', '@accomplish_ai/agent-core', 'build'], 'Building @accomplish_ai/agent-core...');
 

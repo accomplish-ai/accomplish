@@ -17,6 +17,7 @@ export {
   isCliAvailable,
   onBeforeStart,
   onBeforeTaskStart,
+  recoverDevBrowserServer,
   getOpenCodeCliPath,
   isOpenCodeCliAvailable,
   getBundledOpenCodeVersion,

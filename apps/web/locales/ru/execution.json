@@ -1,0 +1,99 @@
+{
+  "status": {
+    "queued": "В очереди",
+    "running": "Выполняется",
+    "completed": "Завершено",
+    "failed": "Ошибка",
+    "cancelled": "Отменено",
+    "stopped": "Остановлено"
+  },
+  "waiting": {
+    "title": "Ожидание другой задачи",
+    "description": "Ваша задача в очереди и начнётся автоматически после завершения текущей.",
+    "followUpDescription": "Ваше дополнение будет выполнено автоматически"
+  },
+  "thinking": "Думаю...",
+  "thinkingPhrases": {
+    "doing": "Делаю...",
+    "executing": "Выполняю...",
+    "running": "Запускаю...",
+    "handling": "Обрабатываю...",
+    "accomplishing": "Выполняю задачу..."
+  },
+  "loadingAgent": "Загрузка агента...",
+  "waitingForResponse": "Ожидание ответа...",
+  "connectingToModel": "Подключение к {{modelName}}...",
+  "coldStartHint": "Первая задача занимает немного больше времени...",
+  "agentWorking": "Агент работает...",
+  "stopAgent": "Остановить агента (Ctrl+C)",
+  "followUp": {
+    "interruptedPlaceholder": "Дайте новые инструкции...",
+    "noSessionPlaceholder": "Отправьте новую инструкцию для повтора...",
+    "completedPlaceholder": "Дайте новые инструкции...",
+    "defaultPlaceholder": "Попросите что-нибудь..."
+  },
+  "taskStatus": "Задача {{status}}",
+  "processing": "Обработка",
+  "system": "Система",
+  "copyToClipboard": "Копировать в буфер обмена",
+  "permission": {
+    "title": "Требуется разрешение",
+    "fileTitle": "Требуется разрешение на файл",
+    "fileDeleteTitle": "Предупреждение об удалении файла",
+    "questionTitle": "Вопрос",
+    "toolQuestion": "Разрешить {{toolName}}?",
+    "tool": "Инструмент",
+    "previewContent": "Предпросмотр содержимого",
+    "backToOptions": "← Назад к вариантам",
+    "typeResponse": "Введите ответ...",
+    "orTypeOwn": "или введите свой",
+    "enterDifferentOption": "Введите другой вариант...",
+    "cannotBeUndone": "Это действие нельзя отменить.",
+    "deleteWarningSingle": "Этот файл будет удалён безвозвратно:",
+    "deleteWarningMultiple": "{{count}} файлов будут удалены безвозвратно:",
+    "operations": {
+      "delete": "УДАЛИТЬ",
+      "overwrite": "ПЕРЕЗАПИСАТЬ",
+      "modify": "ИЗМЕНИТЬ",
+      "create": "СОЗДАТЬ",
+      "rename": "ПЕРЕИМЕНОВАТЬ",
+      "move": "ПЕРЕМЕСТИТЬ"
+    }
+  },
+  "browserInstall": {
+    "title": "Chrome не установлен",
+    "description": "Установка браузера для автоматизации...",
+    "downloading": "Загрузка...",
+    "oneTimeSetup": "Однократная настройка (~250 МБ)"
+  },
+  "debug": {
+    "title": "Журнал отладки",
+    "noLogs": "Нет записей. Запустите задачу, чтобы увидеть журнал."
+  },
+  "browserScript": {
+    "title": "Действия браузера",
+    "actions": {
+      "navigateTo": "Перейти на {{hostname}}",
+      "navigate": "Перейти",
+      "fill": "Заполнить \"{{text}}\"",
+      "fillField": "Заполнить поле",
+      "click": "Нажать {{target}}",
+      "press": "Нажать {{key}}",
+      "capturePage": "Снимок страницы",
+      "screenshot": "Скриншот",
+      "waitForElement": "Ожидание элемента",
+      "waitForPage": "Ожидание страницы",
+      "waitForNavigation": "Ожидание навигации",
+      "runScript": "Запуск скрипта"
+    },
+    "showMore": "+{{count}} ещё",
+    "showLess": "Свернуть",
+    "showFewerActions": "Показать меньше действий",
+    "showMoreActions": "Показать ещё {{count}} действий"
+  },
+  "todos": {
+    "title": "Задачи",
+    "progress": "{{completed}} из {{total}}"
+  },
+  "startNewTask": "Начать новую задачу"
+}

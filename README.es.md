@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <strong>Español</strong> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a>
+  <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.ru.md">Русский</a> | <strong>Español</strong> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a> | <a href="README.ta.md">தமிழ்</a> | <a href="README.hi.md">हिन्दी</a>
 </p>
 
 <p align="center">
@@ -11,8 +11,10 @@
   <a href="https://github.com/accomplish-ai/accomplish/stargazers"><img src="https://img.shields.io/github/stars/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Stars" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/issues"><img src="https://img.shields.io/github/issues/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Issues" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/commits"><img src="https://img.shields.io/github/last-commit/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="Último Commit" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-0ea5e9?style=flat-square" alt="Descargar para macOS" /></a>
-  <a href="https://discord.gg/MepaTT55"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="Descargar para macOS (Apple Silicon)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="Descargar para macOS (Intel)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Descargar para Windows 11" /></a>
+  <a href="https://discord.gg/YH86b2P8"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
 # Accomplish™ - Agente de Escritorio de IA de Código Abierto
@@ -24,9 +26,11 @@ Accomplish es un agente de escritorio de IA de código abierto que automatiza la
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><strong>Descargar para Mac (Apple Silicon)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><strong>Descargar para Mac (Apple Silicon)</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe"><strong>Descargar para Windows 11</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><strong>Descargar para Mac (Intel)</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><strong>Descargar para Windows 11</strong></a>
   ·
   <a href="https://www.accomplish.ai/">Sitio web de Accomplish</a>
   ·
@@ -142,6 +146,7 @@ Accomplish es un agente de escritorio de IA de código abierto que automatiza la
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
@@ -185,7 +190,7 @@ Accomplish se ejecuta localmente en tu máquina. Tus archivos permanecen en tu d
 
 <div align="center">
 
-[**Descargar para Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg) · [**Descargar para Windows 11**](https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe)
+[**Descargar para Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg) · [**Descargar para Mac (Intel)**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg) · [**Descargar para Windows 11**](https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe)
 
 </div>
 
@@ -251,15 +256,17 @@ Eso es todo.
 <details>
 <summary><strong>Todos los comandos</strong></summary>
 
-| Comando                                | Descripción                                   |
-| -------------------------------------- | --------------------------------------------- |
-| `pnpm dev`                             | Ejecutar app de escritorio en modo desarrollo |
-| `pnpm dev:clean`                       | Modo desarrollo con inicio limpio             |
-| `pnpm build`                           | Compilar todos los workspaces                 |
-| `pnpm build:desktop`                   | Compilar solo app de escritorio               |
-| `pnpm lint`                            | Verificaciones de TypeScript                  |
-| `pnpm typecheck`                       | Validación de tipos                           |
-| `pnpm -F @accomplish/desktop test:e2e` | Pruebas E2E con Playwright                    |
+| Comando                                     | Descripción                                   |
+| ------------------------------------------- | --------------------------------------------- |
+| `pnpm dev`                                  | Ejecutar app de escritorio en modo desarrollo |
+| `pnpm dev:clean`                            | Modo desarrollo con inicio limpio             |
+| `pnpm build`                                | Compilar todos los workspaces                 |
+| `pnpm build:desktop`                        | Compilar solo app de escritorio               |
+| `pnpm -F @accomplish/desktop package:win`   | Compilar instalador de Windows (x64)          |
+| `pnpm -F @accomplish/desktop package:linux` | Compilar artefactos de Linux (AppImage + deb) |
+| `pnpm lint`                                 | Verificaciones de TypeScript                  |
+| `pnpm typecheck`                            | Validación de tipos                           |
+| `pnpm -F @accomplish/desktop test:e2e`      | Pruebas E2E con Playwright                    |
 
 </details>
 

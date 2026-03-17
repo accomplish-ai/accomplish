@@ -162,11 +162,14 @@ function createWindow() {
   }
 
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    // In dev mode, @vitejs/plugin-react injects an inline HMR preamble script that
+    // requires 'unsafe-inline'. This is safe since dev builds are never distributed.
+    const scriptSrc = app.isPackaged ? "'self'" : "'self' 'unsafe-inline'";
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self' https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: ws: wss:; font-src 'self' https: data:",
+          `default-src 'self' https:; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: ws: wss:; font-src 'self' https: data:`,
         ],
       },
     });

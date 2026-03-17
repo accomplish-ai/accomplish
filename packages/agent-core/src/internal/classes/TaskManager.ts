@@ -36,6 +36,7 @@ export interface TaskCallbacks {
   onTodoUpdate?: (todos: TodoItem[]) => void;
   onAuthError?: (error: { providerId: string; message: string }) => void;
   onReasoning?: (text: string) => void;
+  onToolUse?: (toolName: string, toolInput: unknown) => void;
   onToolCallComplete?: (data: {
     toolName: string;
     toolInput: unknown;
@@ -219,6 +220,10 @@ export class TaskManager {
       callbacks.onReasoning?.(text);
     };
 
+    const onToolUse = (toolName: string, toolInput: unknown) => {
+      callbacks.onToolUse?.(toolName, toolInput);
+    };
+
     const onToolCallComplete = (data: {
       toolName: string;
       toolInput: unknown;
@@ -251,6 +256,7 @@ export class TaskManager {
     adapter.on('todo:update', onTodoUpdate);
     adapter.on('auth-error', onAuthError);
     adapter.on('reasoning', onReasoning);
+    adapter.on('tool-use', onToolUse);
     adapter.on('tool-call-complete', onToolCallComplete);
     adapter.on('step-finish', onStepFinish);
 
@@ -264,6 +270,7 @@ export class TaskManager {
       adapter.off('todo:update', onTodoUpdate);
       adapter.off('auth-error', onAuthError);
       adapter.off('reasoning', onReasoning);
+      adapter.off('tool-use', onToolUse);
       adapter.off('tool-call-complete', onToolCallComplete);
       adapter.off('step-finish', onStepFinish);
       adapter.dispose();

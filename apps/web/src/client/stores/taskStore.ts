@@ -11,7 +11,11 @@ import {
   type TaskMessage,
   type TodoItem,
 } from '@accomplish_ai/agent-core/common';
+import type { StoredFavorite } from '@accomplish_ai/agent-core';
 import { getAccomplish } from '../lib/accomplish';
+
+// Request-token counter to guard against stale loadFavorites responses
+let _loadFavoritesToken = 0;
 
 interface TaskUpdateBatchEvent {
   taskId: string;
@@ -42,6 +46,11 @@ interface TaskState {
 
   // Task history
   tasks: Task[];
+  favorites: StoredFavorite[];
+  favoritesLoaded: boolean;
+  loadFavorites: () => Promise<void>;
+  addFavorite: (taskId: string) => Promise<void>;
+  removeFavorite: (taskId: string) => Promise<void>;
 
   // Permission handling
   permissionRequest: PermissionRequest | null;
@@ -68,7 +77,10 @@ interface TaskState {
     isFirstTask?: boolean,
   ) => void;
   clearStartupStage: (taskId: string) => void;
-  sendFollowUp: (message: string) => Promise<void>;
+  sendFollowUp: (
+    message: string,
+    attachments?: import('@accomplish_ai/agent-core/common').FileAttachmentInfo[],
+  ) => Promise<boolean>;
   cancelTask: () => Promise<void>;
   interruptTask: () => Promise<void>;
   setPermissionRequest: (request: PermissionRequest | null) => void;
@@ -93,6 +105,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   isLoading: false,
   error: null,
   tasks: [],
+  favorites: [],
+  favoritesLoaded: false,
   permissionRequest: null,
   setupProgress: null,
   setupProgressTaskId: null,
@@ -164,7 +178,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       void accomplish.logEvent({
         level: 'info',
         message: 'UI start task',
-        context: { prompt: config.prompt, taskId: config.taskId },
+        context: {
+          prompt: config.prompt,
+          taskId: config.taskId,
+          files: config.files?.length,
+        },
       });
       const task = await accomplish.startTask(config);
       const currentTasks = get().tasks;
@@ -193,7 +211,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
   },
 
-  sendFollowUp: async (message: string) => {
+  sendFollowUp: async (
+    message: string,
+    attachments?: import('@accomplish_ai/agent-core/common').FileAttachmentInfo[],
+  ): Promise<boolean> => {
     const accomplish = getAccomplish();
     const { currentTask, startTask } = get();
     if (!currentTask) {
@@ -202,7 +223,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         level: 'warn',
         message: 'UI follow-up failed: no active task',
       });
-      return;
+      return false;
     }
 
     const sessionId = currentTask.result?.sessionId || currentTask.sessionId;
@@ -213,8 +234,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         message: 'UI follow-up: starting fresh task (no session from interrupted task)',
         context: { taskId: currentTask.id },
       });
-      await startTask({ prompt: message });
-      return;
+      const newTask = await startTask({ prompt: message, files: attachments });
+      return newTask !== null;
     }
 
     if (!sessionId) {
@@ -224,7 +245,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         message: 'UI follow-up failed: missing session',
         context: { taskId: currentTask.id },
       });
-      return;
+      return false;
     }
 
     const userMessage: TaskMessage = {
@@ -232,6 +253,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       type: 'user',
       content: message,
       timestamp: new Date().toISOString(),
+      // Add attachments visually to the local store history prior to response
+      attachments: attachments
+        ? attachments.map((a) => ({ type: 'json', data: 'placeholder', label: a.name }))
+        : undefined,
     };
 
     const taskId = currentTask.id;
@@ -255,15 +280,17 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       void accomplish.logEvent({
         level: 'info',
         message: 'UI follow-up sent',
-        context: { taskId: currentTask.id, message },
+        context: { taskId: currentTask.id, message, attachments: attachments?.length },
       });
-      const task = await accomplish.resumeSession(sessionId, message, currentTask.id);
+
+      const task = await accomplish.resumeSession(sessionId, message, currentTask.id, attachments);
 
       set((state) => ({
         currentTask: state.currentTask ? { ...state.currentTask, status: task.status } : null,
         isLoading: task.status === 'queued',
         tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, status: task.status } : t)),
       }));
+      return true;
     } catch (err) {
       set((state) => ({
         error: err instanceof Error ? err.message : 'Failed to send message',
@@ -281,6 +308,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           error: err instanceof Error ? err.message : String(err),
         },
       });
+      return false;
     }
   },
 
@@ -497,6 +525,75 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const accomplish = getAccomplish();
     await accomplish.clearTaskHistory();
     set({ tasks: [] });
+  },
+
+  loadFavorites: async () => {
+    // Skip if already loaded — prevents redundant IPC calls from multiple components
+    if (get().favoritesLoaded) {
+      return;
+    }
+    const accomplish = getAccomplish();
+    // Increment token; stale responses from earlier calls will be ignored
+    const token = ++_loadFavoritesToken;
+    try {
+      const favorites = await accomplish.listFavorites();
+      if (token === _loadFavoritesToken) {
+        set({ favorites, favoritesLoaded: true });
+      }
+    } catch (err) {
+      console.error('[taskStore] Failed to load favorites:', err);
+    }
+  },
+
+  addFavorite: async (taskId: string) => {
+    const accomplish = getAccomplish();
+    // Invalidate any in-flight loadFavorites so its response won't overwrite our optimistic state
+    ++_loadFavoritesToken;
+    const { tasks, currentTask, favorites } = get();
+    if (favorites.some((f) => f.taskId === taskId)) {
+      return;
+    }
+    const task = currentTask?.id === taskId ? currentTask : tasks.find((t) => t.id === taskId);
+    const entry: StoredFavorite =
+      task != null
+        ? {
+            taskId,
+            prompt: task.prompt,
+            summary: task.summary,
+            favoritedAt: new Date().toISOString(),
+          }
+        : { taskId, prompt: '', favoritedAt: new Date().toISOString() };
+
+    set({ favorites: [entry, ...favorites] }); // prepend to match newest-first order from storage
+
+    try {
+      await accomplish.addFavorite(taskId);
+    } catch {
+      set((state) => ({
+        favorites: state.favorites.filter((f) => f.taskId !== taskId),
+      }));
+    }
+  },
+
+  removeFavorite: async (taskId: string) => {
+    // Invalidate any in-flight loadFavorites so its response won't overwrite our optimistic state
+    ++_loadFavoritesToken;
+    const { favorites } = get();
+    const removed = favorites.find((f) => f.taskId === taskId);
+    set({ favorites: favorites.filter((f) => f.taskId !== taskId) });
+
+    try {
+      const accomplish = getAccomplish();
+      await accomplish.removeFavorite(taskId);
+    } catch {
+      if (removed) {
+        set((state) => ({
+          favorites: [...state.favorites, removed].sort(
+            (a, b) => new Date(b.favoritedAt).getTime() - new Date(a.favoritedAt).getTime(),
+          ),
+        }));
+      }
+    }
   },
 
   reset: () => {

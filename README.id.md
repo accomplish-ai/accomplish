@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <strong>Bahasa Indonesia</strong>
+  <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.ru.md">Русский</a> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <strong>Bahasa Indonesia</strong> | <a href="README.ta.md">தமிழ்</a> | <a href="README.hi.md">हिन्दी</a>
 </p>
 
 <p align="center">
@@ -11,8 +11,10 @@
   <a href="https://github.com/accomplish-ai/accomplish/stargazers"><img src="https://img.shields.io/github/stars/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Stars" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/issues"><img src="https://img.shields.io/github/issues/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Issues" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/commits"><img src="https://img.shields.io/github/last-commit/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="Commit Terakhir" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-0ea5e9?style=flat-square" alt="Unduh untuk macOS" /></a>
-  <a href="https://discord.gg/MepaTT55"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="Unduh untuk macOS (Apple Silicon)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="Unduh untuk macOS (Intel)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Unduh untuk Windows 11" /></a>
+  <a href="https://discord.gg/YH86b2P8"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
 # Accomplish™ - Agen Desktop AI Open Source
@@ -24,9 +26,11 @@ Accomplish adalah agen desktop AI open source yang mengotomatisasi manajemen fil
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><strong>Unduh untuk Mac (Apple Silicon)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><strong>Unduh untuk Mac (Apple Silicon)</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe"><strong>Unduh untuk Windows 11</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><strong>Unduh untuk Mac (Intel)</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><strong>Unduh untuk Windows 11</strong></a>
   ·
   <a href="https://www.accomplish.ai/">Website Accomplish</a>
   ·
@@ -142,6 +146,7 @@ Accomplish adalah agen desktop AI open source yang mengotomatisasi manajemen fil
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
@@ -185,7 +190,7 @@ Accomplish berjalan secara lokal di mesin Anda. File Anda tetap di perangkat And
 
 <div align="center">
 
-[**Unduh untuk Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg) · [**Unduh untuk Windows 11**](https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe)
+[**Unduh untuk Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg) · [**Unduh untuk Mac (Intel)**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg) · [**Unduh untuk Windows 11**](https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe)
 
 </div>
 
@@ -251,15 +256,17 @@ Itu saja.
 <details>
 <summary><strong>Semua perintah</strong></summary>
 
-| Perintah                               | Deskripsi                                |
-| -------------------------------------- | ---------------------------------------- |
-| `pnpm dev`                             | Jalankan aplikasi desktop dalam mode dev |
-| `pnpm dev:clean`                       | Mode dev dengan start bersih             |
-| `pnpm build`                           | Build semua workspace                    |
-| `pnpm build:desktop`                   | Build aplikasi desktop saja              |
-| `pnpm lint`                            | Pemeriksaan TypeScript                   |
-| `pnpm typecheck`                       | Validasi tipe                            |
-| `pnpm -F @accomplish/desktop test:e2e` | Test E2E Playwright                      |
+| Perintah                                    | Deskripsi                                |
+| ------------------------------------------- | ---------------------------------------- |
+| `pnpm dev`                                  | Jalankan aplikasi desktop dalam mode dev |
+| `pnpm dev:clean`                            | Mode dev dengan start bersih             |
+| `pnpm build`                                | Build semua workspace                    |
+| `pnpm build:desktop`                        | Build aplikasi desktop saja              |
+| `pnpm -F @accomplish/desktop package:win`   | Buat installer Windows (x64)             |
+| `pnpm -F @accomplish/desktop package:linux` | Buat artefak Linux (AppImage + deb)      |
+| `pnpm lint`                                 | Pemeriksaan TypeScript                   |
+| `pnpm typecheck`                            | Validasi tipe                            |
+| `pnpm -F @accomplish/desktop test:e2e`      | Test E2E Playwright                      |
 
 </details>
 

@@ -37,6 +37,7 @@ export const test = base.extend<ElectronFixtures>({
         ...process.env,
         E2E_SKIP_AUTH: '1',
         E2E_MOCK_TASK_EVENTS: '1',
+        CLEAN_START: '1',
         NODE_ENV: 'test',
       },
     });
