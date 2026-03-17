@@ -262,6 +262,40 @@ export async function buildProviderConfigs(
     console.log('[OpenCode Config Builder] Moonshot configured:', modelId);
   }
 
+  // Google AI provider — register selected model so OpenCode can resolve it.
+  // OpenCode's @ai-sdk/google only knows its built-in model list; dynamically-fetched
+  // models (e.g. "gemini-3.1-flash-lite-preview") would otherwise cause
+  // ProviderModelNotFoundError at runtime.
+  const googleProvider = providerSettings.connectedProviders.google;
+  const googleApiKey = getApiKey('google');
+  if (googleProvider?.connectionStatus === 'connected' && googleApiKey) {
+    const selectedGoogleModelId = googleProvider.selectedModelId;
+    if (selectedGoogleModelId) {
+      const modelId = selectedGoogleModelId.replace(/^google\//, '');
+
+      // Build models map: include all available models fetched from the Google API
+      // so the user can switch between them without a restart.
+      const googleModels: Record<string, ProviderModelConfig> = {};
+
+      if (googleProvider.availableModels && googleProvider.availableModels.length > 0) {
+        for (const model of googleProvider.availableModels) {
+          const mId = model.id.replace(/^google\//, '');
+          googleModels[mId] = { name: model.name, tools: true };
+        }
+      } else {
+        // Fallback: at minimum register the selected model
+        googleModels[modelId] = { name: modelId, tools: true };
+      }
+
+      providerConfigs.push({
+        id: 'google',
+        options: { apiKey: googleApiKey },
+        models: googleModels,
+      });
+      console.log('[OpenCode Config Builder] Google AI configured, selected model:', modelId);
+    }
+  }
+
   let modelOverride: { model: string; smallModel: string } | undefined;
 
   // Bedrock provider
