@@ -54,7 +54,11 @@
     "moonshot": "Moonshot",
     "litellm": "LiteLLM",
     "vertex": "Vertex AI",
-    "azure-foundry": "Azure AI Foundry"
+    "azure-foundry": "Azure AI Foundry",
+    "nebius": "Nebius AI",
+    "together": "Together AI",
+    "fireworks": "Fireworks AI",
+    "groq": "Groq"
   },
   "providerLabels": {
     "anthropic": "Modèles Claude",
@@ -71,7 +75,11 @@
     "moonshot": "Modèles Kimi",
     "litellm": "Proxy unifié",
     "vertex": "Google Cloud",
-    "azure-foundry": "Service Azure"
+    "azure-foundry": "Service Azure",
+    "nebius": "Modèles Llama et DeepSeek",
+    "together": "Modèles Llama et Mixtral",
+    "fireworks": "Modèles d'inférence rapide",
+    "groq": "Modèles Llama ultra-rapides"
   },
   "status": {
     "connected": "Connecté",
@@ -249,8 +257,8 @@
     "system": "Système",
     "light": "Clair",
     "dark": "Sombre",
-    "themeTitle": "Apparence",
-    "themeDescription": "Choisissez votre thème de couleur préféré.",
+    "themeTitle": "Thème",
+    "themeDescription": "Choisissez l'apparence d'Accomplish. Sélectionnez Système pour correspondre aux paramètres de votre système d'exploitation.",
     "themeSystem": "Système",
     "themeLight": "Clair",
     "themeDark": "Sombre"
