@@ -64,13 +64,14 @@
     "better-sqlite3": "catalog:",
     "gray-matter": "^4.0.3",
     "node-pty": "catalog:",
-    "zod": "catalog:",
+    "proxy-from-env": "^1.1.0",
     "undici": "^7.0.0",
-    "proxy-from-env": "^1.1.0"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/better-sqlite3": "catalog:",
     "@types/node": "catalog:",
+    "@types/proxy-from-env": "^1.0.4",
     "typescript": "^5.7.2",
     "vitest": "^4.1.0"
   }

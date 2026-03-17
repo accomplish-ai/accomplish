@@ -64,4 +64,71 @@ describe('fetchWithTimeout proxy support', () => {
     const callArgs = mockFetch.mock.calls[0][1] as Record<string, unknown>;
     expect(callArgs.dispatcher).toBeUndefined();
   });
+
+  it('honors lowercase https_proxy env var', async () => {
+    process.env.https_proxy = 'http://proxy.example.com:8080';
+
+    const mockFetch = vi.fn().mockResolvedValue(new Response('ok', { status: 200 }));
+    vi.stubGlobal('fetch', mockFetch);
+
+    vi.resetModules();
+    const { fetchWithTimeout } = await import('../../../src/utils/fetch.js');
+
+    await fetchWithTimeout('https://api.example.com/test', {}, 5000);
+
+    const callArgs = mockFetch.mock.calls[0][1] as Record<string, unknown>;
+    expect(callArgs.dispatcher).toBeDefined();
+  });
+
+  it('uses HTTP_PROXY for http:// URLs and HTTPS_PROXY for https:// URLs', async () => {
+    process.env.HTTP_PROXY = 'http://http-proxy.example.com:8080';
+    process.env.HTTPS_PROXY = 'http://https-proxy.example.com:8080';
+
+    const mockFetch = vi.fn().mockResolvedValue(new Response('ok', { status: 200 }));
+    vi.stubGlobal('fetch', mockFetch);
+
+    vi.resetModules();
+    const { fetchWithTimeout } = await import('../../../src/utils/fetch.js');
+
+    await fetchWithTimeout('http://api.example.com/test', {}, 5000);
+    const httpCallArgs = mockFetch.mock.calls[0][1] as Record<string, unknown>;
+    expect(httpCallArgs.dispatcher).toBeDefined();
+
+    mockFetch.mockClear();
+    await fetchWithTimeout('https://api.example.com/test', {}, 5000);
+    const httpsCallArgs = mockFetch.mock.calls[0][1] as Record<string, unknown>;
+    expect(httpsCallArgs.dispatcher).toBeDefined();
+  });
+
+  it('skips proxy for NO_PROXY with a leading dot matching subdomains', async () => {
+    process.env.HTTPS_PROXY = 'http://proxy.example.com:8080';
+    process.env.NO_PROXY = '.internal.example.com';
+
+    const mockFetch = vi.fn().mockResolvedValue(new Response('ok', { status: 200 }));
+    vi.stubGlobal('fetch', mockFetch);
+
+    vi.resetModules();
+    const { fetchWithTimeout } = await import('../../../src/utils/fetch.js');
+
+    await fetchWithTimeout('https://api.internal.example.com/test', {}, 5000);
+
+    const callArgs = mockFetch.mock.calls[0][1] as Record<string, unknown>;
+    expect(callArgs.dispatcher).toBeUndefined();
+  });
+
+  it('skips proxy for NO_PROXY with a wildcard pattern', async () => {
+    process.env.HTTPS_PROXY = 'http://proxy.example.com:8080';
+    process.env.NO_PROXY = '*.internal.example.com';
+
+    const mockFetch = vi.fn().mockResolvedValue(new Response('ok', { status: 200 }));
+    vi.stubGlobal('fetch', mockFetch);
+
+    vi.resetModules();
+    const { fetchWithTimeout } = await import('../../../src/utils/fetch.js');
+
+    await fetchWithTimeout('https://api.internal.example.com/test', {}, 5000);
+
+    const callArgs = mockFetch.mock.calls[0][1] as Record<string, unknown>;
+    expect(callArgs.dispatcher).toBeUndefined();
+  });
 });
