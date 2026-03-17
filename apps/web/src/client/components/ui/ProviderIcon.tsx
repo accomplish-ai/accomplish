@@ -32,7 +32,7 @@ const PROVIDER_COLORS: Record<string, string> = {
   'azure-foundry': 'bg-[#0078D4]', // Azure blue
   nebius: 'bg-[#7B61FF]', // Purple
   together: 'bg-[#0EA5E9]', // Sky blue
-  fireworks: 'bg-[#F97316]', // Orange
+  fireworks: 'bg-[#EF4444]', // Red
   groq: 'bg-[#F55036]', // Red-orange
   custom: 'bg-[#6B7280]', // Gray
 };

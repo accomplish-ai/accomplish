@@ -256,7 +256,12 @@
     "ariaLabel": "Theme preference",
     "system": "System",
     "light": "Light",
-    "dark": "Dark"
+    "dark": "Dark",
+    "themeTitle": "Theme",
+    "themeDescription": "Choose how Accomplish looks. Select System to match your operating system setting.",
+    "themeSystem": "System",
+    "themeLight": "Light",
+    "themeDark": "Dark"
   },
   "connectors": {
     "description": "Connect remote MCP servers using OAuth. Only servers that support the OAuth 2.0 authorization flow are currently supported.",

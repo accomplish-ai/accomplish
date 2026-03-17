@@ -373,6 +373,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
       modelIdPrefix: 'nebius/',
     },
     models: [],
+    defaultModelId: 'nebius/meta-llama/Meta-Llama-3.1-70B-Instruct',
   },
   {
     id: 'together',
@@ -387,6 +388,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
       modelIdPrefix: 'together/',
     },
     models: [],
+    defaultModelId: 'together/meta-llama/Llama-3-70b-chat-hf',
   },
   {
     id: 'fireworks',
@@ -401,6 +403,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
       modelIdPrefix: 'fireworks/',
     },
     models: [],
+    defaultModelId: 'fireworks/accounts/fireworks/models/llama-v3-70b-instruct',
   },
   {
     id: 'groq',
@@ -415,6 +418,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
       modelIdPrefix: 'groq/',
     },
     models: [],
+    defaultModelId: 'groq/llama3-70b-8192',
   },
 ];
 
