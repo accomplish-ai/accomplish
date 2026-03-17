@@ -43,8 +43,7 @@
     "test:e2e:native:fast": "playwright test --config=e2e/playwright.config.ts --project=electron-fast",
     "test:e2e:native:integration": "playwright test --config=e2e/playwright.config.ts --project=electron-integration",
     "test:e2e:providers": "playwright test --config=e2e/playwright.config.ts --project=provider-e2e",
-    "test:local-agent": "npx tsx scripts/test-local-agent-cli.ts",
-    "package:linux": "ACCOMPLISH_BUNDLED_MCP=1 pnpm build && node scripts/package.cjs --linux --x64 --arm64 --publish never"
+    "test:local-agent": "npx tsx scripts/test-local-agent-cli.ts"
   },
   "dependencies": {
     "@accomplish_ai/agent-core": "workspace:*",

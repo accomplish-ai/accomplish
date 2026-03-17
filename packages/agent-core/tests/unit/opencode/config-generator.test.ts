@@ -473,8 +473,9 @@ describe('ConfigGenerator', () => {
         },
       });
 
-      expect(args).toContain('--model');
-      expect(args).toContain('zai-coding-plan/glm-5');
+      const modelFlagIndex = args.indexOf('--model');
+      expect(modelFlagIndex).toBeGreaterThanOrEqual(0);
+      expect(args[modelFlagIndex + 1]).toBe('zai-coding-plan/glm-5');
     });
   });
 
