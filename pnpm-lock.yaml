@@ -332,12 +332,15 @@ importers:
       gray-matter:
         specifier: ^4.0.3
         version: 4.0.3
-      https-proxy-agent:
-        specifier: ^7.0.6
-        version: 7.0.6
       node-pty:
         specifier: 'catalog:'
         version: 1.1.0
+      proxy-from-env:
+        specifier: ^1.1.0
+        version: 1.1.0
+      undici:
+        specifier: ^7.0.0
+        version: 7.24.3
       zod:
         specifier: 'catalog:'
         version: 3.25.76
@@ -11684,8 +11687,7 @@ snapshots:
 
   undici-types@7.16.0: {}
 
-  undici@7.24.3:
-    optional: true
+  undici@7.24.3: {}
 
   unified@11.0.5:
     dependencies:
