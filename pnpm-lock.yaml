@@ -114,6 +114,24 @@ importers:
       opencode-darwin-x64-baseline:
         specifier: 1.2.27
         version: 1.2.27
+      opencode-linux-arm64:
+        specifier: 1.2.27
+        version: 1.2.27
+      opencode-linux-arm64-musl:
+        specifier: 1.2.27
+        version: 1.2.27
+      opencode-linux-x64:
+        specifier: 1.2.27
+        version: 1.2.27
+      opencode-linux-x64-baseline:
+        specifier: 1.2.27
+        version: 1.2.27
+      opencode-linux-x64-baseline-musl:
+        specifier: 1.2.27
+        version: 1.2.27
+      opencode-linux-x64-musl:
+        specifier: 1.2.27
+        version: 1.2.27
     devDependencies:
       '@electron/rebuild':
         specifier: ^4.0.2
@@ -1845,9 +1863,6 @@ packages:
 
   '@types/node@24.12.0':
     resolution: {integrity: sha512-GYDxsZi3ChgmckRT9HPU0WEhKLP08ev/Yfcq2AstjrDASOYCSXeyjDsHg4v5t4jOj7cyDX3vmprafKlWIG9MXQ==}
-
-  '@types/node@25.5.0':
-    resolution: {integrity: sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw==}
 
   '@types/plist@3.0.5':
     resolution: {integrity: sha512-E6OCaRmAe4WDmWNsL/9RMqdkkzDCY1etutkflWk4c+AcjDU07Pcz1fQwTX0TQz+Pxqn9i4L1TU3UFpjnrcDgxA==}
@@ -5224,9 +5239,6 @@ packages:
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
 
-  undici-types@7.18.2:
-    resolution: {integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==}
-
   undici@7.24.3:
     resolution: {integrity: sha512-eJdUmK/Wrx2d+mnWWmwwLRyA7OQCkLap60sk3dOK4ViZR7DKwwptwuIvFBg2HaiP9ESaEdhtpSymQPvytpmkCA==}
     engines: {node: '>=20.18.1'}
@@ -7522,11 +7534,6 @@ snapshots:
     dependencies:
       undici-types: 7.16.0
 
-  '@types/node@25.5.0':
-    dependencies:
-      undici-types: 7.18.2
-    optional: true
-
   '@types/plist@3.0.5':
     dependencies:
       '@types/node': 20.19.37
@@ -7559,7 +7566,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 25.5.0
+      '@types/node': 20.19.37
     optional: true
 
   '@types/yauzl@2.10.3':
@@ -9208,7 +9215,7 @@ snapshots:
 
   happy-dom@20.6.1:
     dependencies:
-      '@types/node': 25.5.0
+      '@types/node': 20.19.37
       '@types/whatwg-mimetype': 3.0.2
       '@types/ws': 8.18.1
       entities: 6.0.1
@@ -11673,9 +11680,6 @@ snapshots:
   undici-types@6.21.0: {}
 
   undici-types@7.16.0: {}
-
-  undici-types@7.18.2:
-    optional: true
 
   undici@7.24.3:
     optional: true
