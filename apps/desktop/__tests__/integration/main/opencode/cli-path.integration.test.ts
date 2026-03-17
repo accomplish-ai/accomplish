@@ -109,7 +109,14 @@ describe('OpenCode CLI Path Module', () => {
       mockApp.isPackaged = true;
       const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
       (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
-      const packageName = process.platform === 'win32' ? 'opencode-windows-x64' : 'opencode-ai';
+      let packageName: string;
+      if (process.platform === 'win32') {
+        packageName = 'opencode-windows-x64';
+      } else if (process.platform === 'linux') {
+        packageName = process.arch === 'arm64' ? 'opencode-linux-arm64' : 'opencode-linux-x64';
+      } else {
+        packageName = 'opencode-ai';
+      }
       const binaryName = process.platform === 'win32' ? 'opencode.exe' : 'opencode';
       const bundledCliPath = path.join(
         resourcesPath,
