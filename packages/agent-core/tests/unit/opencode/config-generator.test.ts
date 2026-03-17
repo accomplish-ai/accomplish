@@ -9,6 +9,7 @@ import {
   ConfigGeneratorOptions,
   ProviderConfig,
   BrowserConfig,
+  buildCliArgs,
 } from '../../../src/opencode/config-generator.js';
 
 describe('ConfigGenerator', () => {
@@ -459,6 +460,21 @@ describe('ConfigGenerator', () => {
       };
 
       expect(() => generateConfig(options)).toThrow(/Missing MCP dist entry/);
+    });
+  });
+
+  describe('buildCliArgs', () => {
+    it('should normalize Z.AI models for API requests', () => {
+      const args = buildCliArgs({
+        prompt: 'test prompt',
+        selectedModel: {
+          provider: 'zai',
+          model: 'zai/glm-5',
+        },
+      });
+
+      expect(args).toContain('--model');
+      expect(args).toContain('zai-coding-plan/glm-5');
     });
   });
 

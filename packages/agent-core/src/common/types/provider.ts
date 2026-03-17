@@ -284,7 +284,16 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
       responseFormat: 'openai',
       modelIdPrefix: 'zai/',
     },
-    models: [],
+    models: [
+      {
+        id: 'glm-5',
+        displayName: 'GLM-5',
+        provider: 'zai',
+        fullId: 'zai/glm-5',
+        contextWindow: 128000,
+        supportsVision: false,
+      },
+    ],
   },
   {
     id: 'bedrock',
