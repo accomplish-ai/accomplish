@@ -14,6 +14,8 @@
   <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="Скачать для macOS (Apple Silicon)" /></a>
   <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="Скачать для macOS (Intel)" /></a>
   <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Скачать для Windows 11" /></a>
+  <a href="https://github.com/accomplish-ai/accomplish/releases/latest"><img src="https://img.shields.io/badge/Download-Linux_(Ubuntu_Arm64)-0ea5e9?style=flat-square" alt="Скачать для Linux (Ubuntu Arm64)" /></a>
+  <a href="https://github.com/accomplish-ai/accomplish/releases/latest"><img src="https://img.shields.io/badge/Download-Linux_(Ubuntu_x64)-0ea5e9?style=flat-square" alt="Скачать для Linux (Ubuntu x64)" /></a>
   <a href="https://discord.gg/YH86b2P8"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
@@ -31,6 +33,10 @@ Accomplish — это открытый ИИ-агент для рабочего �
   <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><strong>Скачать для Mac (Intel)</strong></a>
   ·
   <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><strong>Скачать для Windows 11</strong></a>
+  ·
+  <a href="https://github.com/accomplish-ai/accomplish/releases/latest"><strong>Скачать для Linux (Ubuntu Arm64)</strong></a>
+  ·
+  <a href="https://github.com/accomplish-ai/accomplish/releases/latest"><strong>Скачать для Linux (Ubuntu x64)</strong></a>
   ·
   <a href="https://www.accomplish.ai/">Сайт Accomplish</a>
   ·
@@ -189,7 +195,7 @@ Accomplish работает локально на вашем компьютер�
 
 <div align="center">
 
-[**Скачать для Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg) · [**Скачать для Mac (Intel)**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg) · [**Скачать для Windows 11**](https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe)
+[**Скачать для Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg) · [**Скачать для Mac (Intel)**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg) · [**Скачать для Windows 11**](https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe) · [**Скачать для Linux (Ubuntu Arm64)**](https://github.com/accomplish-ai/accomplish/releases/latest) · [**Скачать для Linux (Ubuntu x64)**](https://github.com/accomplish-ai/accomplish/releases/latest)
 
 </div>
 
