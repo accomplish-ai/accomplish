@@ -11,5 +11,9 @@
   "select": "Select",
   "close": "Close",
   "confirmDelete": "Are you sure you want to delete this task?",
-  "deleteTask": "Delete task"
+  "deleteTask": "Delete task",
+  "favorite": {
+    "add": "Add to favorites",
+    "remove": "Remove from favorites"
+  }
 }

@@ -1,16 +1,49 @@
 'use client';
 
-import { useRef, useEffect, type ReactNode } from 'react';
+import { useRef, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAccomplish } from '@/lib/accomplish';
-import { ArrowUp, WarningCircle } from '@phosphor-icons/react';
+import {
+  ArrowUp,
+  WarningCircle,
+  X,
+  FileText,
+  Image,
+  Code,
+  File,
+  FilePdf,
+} from '@phosphor-icons/react';
 import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
+import type { FileAttachmentInfo } from '@accomplish_ai/agent-core/common';
 import { useSpeechInput } from '@/hooks/useSpeechInput';
 import { useTypingPlaceholder } from '@/hooks/useTypingPlaceholder';
 import { SpeechInputButton } from '@/components/ui/SpeechInputButton';
 import { ModelIndicator } from '@/components/ui/ModelIndicator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
+import { MAX_FILES, MAX_FILE_SIZE, formatFileSize, processFileAttachments } from '@/lib/fileUtils';
+
+function FileTypeIcon({
+  type,
+  className,
+}: {
+  type: FileAttachmentInfo['type'];
+  className?: string;
+}) {
+  switch (type) {
+    case 'image':
+      return <Image className={className} />;
+    case 'text':
+      return <FileText className={className} />;
+    case 'code':
+      return <Code className={className} />;
+    case 'pdf':
+      return <FilePdf className={className} />;
+    default:
+      return <File className={className} />;
+  }
+}
 
 interface TaskInputBarProps {
   value: string;
@@ -27,6 +60,8 @@ interface TaskInputBarProps {
   hideModelWhenNoModel?: boolean;
   autoSubmitOnTranscription?: boolean;
   toolbarLeft?: ReactNode;
+  attachments?: FileAttachmentInfo[];
+  onAttachmentsChange?: (attachments: FileAttachmentInfo[]) => void;
 }
 
 export function TaskInputBar({
@@ -44,11 +79,13 @@ export function TaskInputBar({
   hideModelWhenNoModel = false,
   autoSubmitOnTranscription = true,
   toolbarLeft,
+  attachments = [],
+  onAttachmentsChange,
 }: TaskInputBarProps) {
   const { t } = useTranslation('common');
   const isInputDisabled = disabled || isLoading;
   const isOverLimit = value.length > PROMPT_DEFAULT_MAX_LENGTH;
-  const canSubmit = !!value.trim() && !disabled && !isOverLimit;
+  const canSubmit = (!!value.trim() || attachments.length > 0) && !disabled && !isOverLimit;
   const isSubmitDisabled = !isLoading && (!canSubmit || isInputDisabled);
   const submitLabel = isLoading ? t('buttons.stop') : t('buttons.submit');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -59,6 +96,79 @@ export function TaskInputBar({
   const effectivePlaceholder = typingPlaceholder && !value ? animatedPlaceholder : placeholder;
   const pendingAutoSubmitRef = useRef<string | null>(null);
   const accomplish = getAccomplish();
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const dragCounterRef = useRef(0);
+
+  const addFiles = useCallback(
+    (fileList: FileList | File[]) => {
+      if (!onAttachmentsChange) {
+        return;
+      }
+
+      setAttachmentError(null);
+      const accepted = processFileAttachments(fileList, attachments.length, {
+        onOversize: (name, limit) =>
+          setAttachmentError(t('plusMenu.fileTooLarge', { name, limit })),
+        onOverLimit: (_count, max) => setAttachmentError(t('plusMenu.tooManyFiles', { max })),
+      });
+      if (accepted.length > 0) {
+        onAttachmentsChange([...attachments, ...accepted]);
+      }
+    },
+    [attachments, onAttachmentsChange, t],
+  );
+
+  const removeAttachment = useCallback(
+    (id: string) => {
+      if (onAttachmentsChange) {
+        onAttachmentsChange(attachments.filter((a) => a.id !== id));
+      }
+    },
+    [attachments, onAttachmentsChange],
+  );
+
+  const handleDragEnter = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounterRef.current++;
+      if (e.dataTransfer.types.includes('Files') && !isInputDisabled) {
+        setIsDragOver(true);
+      }
+    },
+    [isInputDisabled],
+  );
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+    if (dragCounterRef.current === 0) {
+      setIsDragOver(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounterRef.current = 0;
+      setIsDragOver(false);
+
+      if (isInputDisabled || !e.dataTransfer.files.length) {
+        return;
+      }
+
+      addFiles(e.dataTransfer.files);
+    },
+    [isInputDisabled, addFiles],
+  );
 
   const speechInput = useSpeechInput({
     onTranscriptionComplete: (text) => {
@@ -136,22 +246,74 @@ export function TaskInputBar({
       )}
 
       <div
-        className="rounded-[12px] border border-border bg-popover/70 transition-all duration-200 ease-accomplish cursor-text focus-within:border-muted-foreground/40"
-        onClick={() => textareaRef.current?.focus()}
+        className={cn(
+          'rounded-[12px] border bg-popover/70 transition-all duration-200 ease-accomplish cursor-text focus-within:border-muted-foreground/40',
+          isDragOver
+            ? 'border-primary border-dashed ring-1 ring-primary bg-primary/5'
+            : 'border-border',
+        )}
+        onClick={() => !isDragOver && textareaRef.current?.focus()}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
       >
-        <div className="px-4 pt-3 pb-1">
-          <textarea
-            data-testid="task-input-textarea"
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={effectivePlaceholder}
-            disabled={isInputDisabled || speechInput.isRecording}
-            rows={3}
-            className="w-full min-h-[60px] max-h-[200px] resize-none overflow-y-auto bg-transparent text-[16px] leading-relaxed tracking-[-0.015em] text-foreground placeholder:text-muted-foreground/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-          />
-        </div>
+        {isDragOver && (
+          <div className="px-4 py-3 text-center text-sm text-primary font-medium">
+            {t('plusMenu.dropFilesHere')}{' '}
+            <span className="text-muted-foreground font-normal">
+              {t('plusMenu.dropFilesHint', { max: MAX_FILES, size: MAX_FILE_SIZE / 1024 / 1024 })}
+            </span>
+          </div>
+        )}
+
+        {!isDragOver && (
+          <div className="px-4 pt-3 pb-1">
+            <textarea
+              data-testid="task-input-textarea"
+              ref={textareaRef}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={effectivePlaceholder}
+              disabled={isInputDisabled || speechInput.isRecording}
+              rows={3}
+              className="w-full min-h-[60px] max-h-[200px] resize-none overflow-y-auto bg-transparent text-[16px] leading-relaxed tracking-[-0.015em] text-foreground placeholder:text-muted-foreground/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+        )}
+
+        {attachmentError && (
+          <div className="px-4 py-1.5 text-xs text-destructive flex items-center gap-1.5">
+            <WarningCircle className="h-3 w-3 shrink-0" />
+            {attachmentError}
+          </div>
+        )}
+
+        {attachments.length > 0 && !isDragOver && (
+          <div className="px-4 pb-2 flex flex-wrap gap-1.5">
+            {attachments.map((file) => (
+              <div
+                key={file.id}
+                className="flex items-center gap-1.5 rounded-md bg-muted/50 border border-border/50 px-2 py-1 text-xs text-muted-foreground group"
+              >
+                <FileTypeIcon type={file.type} className="h-3 w-3 shrink-0" />
+                <span className="truncate max-w-[120px]" title={file.name}>
+                  {file.name}
+                </span>
+                <span className="text-muted-foreground/50">{formatFileSize(file.size)}</span>
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(file.id)}
+                  className="ml-0.5 rounded-sm opacity-50 hover:opacity-100 transition-opacity"
+                  aria-label={`Remove ${file.name}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="flex h-[36px] items-center justify-between pl-3 pr-2 mb-2">
           <div className="flex items-center">{toolbarLeft}</div>
@@ -215,7 +377,7 @@ export function TaskInputBar({
                 <span>
                   {isOverLimit
                     ? t('buttons.messageTooLong')
-                    : !value.trim()
+                    : !value.trim() && attachments.length === 0
                       ? t('buttons.enterMessage')
                       : submitLabel}
                 </span>

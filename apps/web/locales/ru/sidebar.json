@@ -1,0 +1,19 @@
+{
+  "newTask": "Новая задача",
+  "searchTasks": "Поиск задач (Cmd+K)",
+  "noConversations": "Нет бесед",
+  "settings": "Настройки",
+  "searchPlaceholder": "Поиск задач...",
+  "results": "Результаты",
+  "lastSevenDays": "Последние 7 дней",
+  "noTasksFound": "Задачи не найдены",
+  "navigate": "Перейти",
+  "select": "Выбрать",
+  "close": "Закрыть",
+  "confirmDelete": "Вы уверены, что хотите удалить эту задачу?",
+  "deleteTask": "Удалить задачу",
+  "favorite": {
+    "add": "Добавить в избранное",
+    "remove": "Убрать из избранного"
+  }
+}

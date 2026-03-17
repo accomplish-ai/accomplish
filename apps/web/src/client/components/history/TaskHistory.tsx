@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { StarButton } from '../ui/StarButton';
+import { FAVORITABLE_STATUSES } from '../../lib/task-utils';
 import { useTaskStore } from '../../stores/taskStore';
-import type { Task } from '@accomplish_ai/agent-core/common';
+import type { Task, TaskStatus } from '@accomplish_ai/agent-core/common';
 
 interface TaskHistoryProps {
   limit?: number;
@@ -10,13 +12,29 @@ interface TaskHistoryProps {
 }
 
 export default function TaskHistory({ limit, showTitle = true }: TaskHistoryProps) {
-  const { tasks, loadTasks, deleteTask, clearHistory } = useTaskStore();
+  const {
+    tasks,
+    favorites,
+    loadTasks,
+    loadFavorites,
+    addFavorite,
+    removeFavorite,
+    deleteTask,
+    clearHistory,
+  } = useTaskStore();
+  const favoritesList = Array.isArray(favorites) ? favorites : [];
   const { t } = useTranslation('history');
   const { t: tCommon } = useTranslation('common');
 
   useEffect(() => {
     loadTasks();
   }, [loadTasks]);
+
+  useEffect(() => {
+    if (typeof loadFavorites === 'function') {
+      loadFavorites();
+    }
+  }, [loadFavorites]);
 
   const displayedTasks = limit ? tasks.slice(0, limit) : tasks;
 
@@ -50,7 +68,22 @@ export default function TaskHistory({ limit, showTitle = true }: TaskHistoryProp
 
       <div className="space-y-2">
         {displayedTasks.map((task) => (
-          <TaskHistoryItem key={task.id} task={task} onDelete={() => deleteTask(task.id)} />
+          <TaskHistoryItem
+            key={task.id}
+            task={task}
+            isFavorited={favoritesList.some((f) => f.taskId === task.id)}
+            onToggleFavorite={async () => {
+              if (typeof addFavorite !== 'function' || typeof removeFavorite !== 'function') {
+                return;
+              }
+              if (favoritesList.some((f) => f.taskId === task.id)) {
+                await removeFavorite(task.id);
+              } else {
+                await addFavorite(task.id);
+              }
+            }}
+            onDelete={() => deleteTask(task.id)}
+          />
         ))}
       </div>
 
@@ -66,40 +99,58 @@ export default function TaskHistory({ limit, showTitle = true }: TaskHistoryProp
   );
 }
 
-function TaskHistoryItem({ task, onDelete }: { task: Task; onDelete: () => void }) {
+function TaskHistoryItem({
+  task,
+  isFavorited,
+  onToggleFavorite,
+  onDelete,
+}: {
+  task: Task;
+  isFavorited: boolean;
+  onToggleFavorite: () => Promise<void>;
+  onDelete: () => void;
+}) {
   const { t: tCommon } = useTranslation('common');
   const { t } = useTranslation('history');
 
-  const statusConfig: Record<string, { color: string; labelKey: string }> = {
+  const statusConfig: Record<TaskStatus, { color: string; labelKey: string }> = {
+    queued: { color: 'bg-warning', labelKey: 'status.queued' },
     completed: { color: 'bg-success', labelKey: 'status.completed' },
     running: { color: 'bg-primary', labelKey: 'status.running' },
     failed: { color: 'bg-danger', labelKey: 'status.failed' },
     cancelled: { color: 'bg-text-muted', labelKey: 'status.cancelled' },
     pending: { color: 'bg-warning', labelKey: 'status.pending' },
     waiting_permission: { color: 'bg-warning', labelKey: 'status.waiting' },
+    interrupted: { color: 'bg-text-muted', labelKey: 'status.stopped' },
   };
 
-  const config = statusConfig[task.status] || statusConfig.pending;
+  const config = statusConfig[task.status];
   const timeAgo = getTimeAgo(task.createdAt, tCommon);
+  const canFavorite = FAVORITABLE_STATUSES.includes(task.status);
 
+  // Buttons must NOT be nested inside the Link anchor (invalid HTML / a11y issue).
+  // Outer div holds layout; inner Link covers only the navigable text area.
   return (
-    <Link
-      to={`/execution/${task.id}`}
-      className="flex items-center gap-4 p-4 rounded-card border border-border bg-background-card hover:shadow-card-hover transition-all"
-    >
-      <div className={`w-2 h-2 rounded-full ${config.color}`} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-text truncate" title={task.summary || task.prompt}>
-          {task.summary || task.prompt}
-        </p>
-        <p className="text-xs text-text-muted mt-1">
-          {tCommon(config.labelKey)} · {timeAgo} ·{' '}
-          {tCommon('messages', { count: task.messages.length })}
-        </p>
-      </div>
+    <div className="relative flex items-center gap-4 p-4 rounded-card border border-border bg-background-card hover:shadow-card-hover transition-all">
+      <Link to={`/execution/${task.id}`} className="flex flex-1 items-center gap-4 min-w-0">
+        <div className={`w-2 h-2 rounded-full shrink-0 ${config.color}`} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-text truncate" title={task.summary || task.prompt}>
+            {task.summary || task.prompt}
+          </p>
+          <p className="text-xs text-text-muted mt-1">
+            {tCommon(config.labelKey)} · {timeAgo} ·{' '}
+            {tCommon('messages', { count: task.messages.length })}
+          </p>
+        </div>
+      </Link>
+      {canFavorite && (
+        <StarButton isFavorite={isFavorited} onToggle={() => void onToggleFavorite()} size="md" />
+      )}
       <button
+        type="button"
+        data-testid="task-delete-button"
         onClick={(e) => {
-          e.preventDefault();
           e.stopPropagation();
           if (confirm(t('confirmDelete'))) {
             onDelete();
@@ -116,7 +167,7 @@ function TaskHistoryItem({ task, onDelete }: { task: Task; onDelete: () => void 
           />
         </svg>
       </button>
-    </Link>
+    </div>
   );
 }
 

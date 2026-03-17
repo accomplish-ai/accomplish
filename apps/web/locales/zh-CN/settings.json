@@ -220,7 +220,12 @@
     "ariaLabel": "主题偏好",
     "system": "系统",
     "light": "浅色",
-    "dark": "深色"
+    "dark": "深色",
+    "themeTitle": "外观",
+    "themeDescription": "选择您偏好的颜色主题。",
+    "themeSystem": "跟随系统",
+    "themeLight": "浅色",
+    "themeDark": "深色"
   },
   "connectors": {
     "description": "通过 OAuth 连接远程 MCP 服务器。目前仅支持支持 OAuth 2.0 授权流程的服务器。",
@@ -354,7 +359,9 @@
     "auto": "自动（跟随系统）",
     "autoUnsupported": "自动（不支持）",
     "en": "English",
-    "zhCN": "简体中文"
+    "zhCN": "简体中文",
+    "ru": "Русский",
+    "fr": "Français"
   },
   "about": {
     "title": "关于",

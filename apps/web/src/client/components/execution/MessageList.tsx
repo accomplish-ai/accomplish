@@ -8,10 +8,37 @@ import { Wrench, Terminal, Check, Copy, Play } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { Components } from 'react-markdown';
 import { StreamingText } from '../ui/streaming-text';
+import { CodeBlock } from '@/components/ui/CodeBlock';
 import { BrowserScriptCard } from '../BrowserScriptCard';
 import { getToolDisplayInfo } from '../../constants/tool-mappings';
 import { SpinningIcon } from './SpinningIcon';
+
+// Hoisted to module scope — stable reference avoids ReactMarkdown reconciliation on every render.
+// Custom renderer: fenced code blocks get syntax highlighting + copy button;
+// inline backtick code keeps simple prose styling.
+const markdownComponents: Components = {
+  code({ className, children, node, ...props }) {
+    const code = String(children).replace(/\n$/, '');
+    // Use node.properties.className array to correctly parse languages like c++, c#, etc.
+    const classes: string[] =
+      (node?.properties?.className as string[] | undefined) ??
+      (className ? className.split(' ') : []);
+    const langClass = classes.find((c) => c.startsWith('language-'));
+    const language = langClass ? langClass.slice('language-'.length) : undefined;
+    // Guard against single-line fenced blocks without a language identifier:
+    // they also have no className but should NOT be treated as inline code.
+    const hasLanguageClass = classes.some((c) => c.startsWith('language-'));
+    const inline = typeof className === 'undefined' && !hasLanguageClass && !code.includes('\n');
+
+    return (
+      <CodeBlock language={language} inline={inline} {...props}>
+        {code}
+      </CodeBlock>
+    );
+  },
+};
 
 export interface MessageBubbleProps {
   message: TaskMessage;
@@ -97,8 +124,9 @@ export const MessageBubble = memo(
       'prose-p:text-foreground prose-p:my-2',
       'prose-strong:text-foreground prose-strong:font-semibold',
       'prose-em:text-foreground',
+      // prose-code is overridden by CodeBlock for fenced blocks; inline code keeps default
       'prose-code:text-foreground prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs',
-      'prose-pre:bg-muted prose-pre:text-foreground prose-pre:p-3 prose-pre:rounded-lg',
+      'prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0',
       'prose-ul:text-foreground prose-ol:text-foreground',
       'prose-li:text-foreground prose-li:my-1',
       'prose-a:text-primary prose-a:underline',
@@ -180,13 +208,17 @@ export const MessageBubble = memo(
                   >
                     {(streamedText) => (
                       <div className={proseClasses}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamedText}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                          {streamedText}
+                        </ReactMarkdown>
                       </div>
                     )}
                   </StreamingText>
                 ) : (
                   <div className={proseClasses}>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                      {message.content}
+                    </ReactMarkdown>
                   </div>
                 )}
                 <p

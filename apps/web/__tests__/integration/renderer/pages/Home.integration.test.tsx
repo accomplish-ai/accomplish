@@ -80,6 +80,8 @@ let mockStoreState = {
   isLoading: false,
   addTaskUpdate: mockAddTaskUpdate,
   setPermissionRequest: mockSetPermissionRequest,
+  favorites: [],
+  loadFavorites: vi.fn().mockResolvedValue(undefined),
 };
 
 // Mock the task store
@@ -172,6 +174,8 @@ describe('Home Page Integration', () => {
       isLoading: false,
       addTaskUpdate: mockAddTaskUpdate,
       setPermissionRequest: mockSetPermissionRequest,
+      favorites: [],
+      loadFavorites: vi.fn().mockResolvedValue(undefined),
     };
     // Default to having API key (legacy)
     mockHasAnyApiKey.mockResolvedValue(true);

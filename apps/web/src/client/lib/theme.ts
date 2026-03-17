@@ -1,27 +1,9 @@
 import { getAccomplish } from './accomplish';
-
-type ThemePreference = 'system' | 'light' | 'dark';
-
-const THEME_KEY = 'theme';
+import { type ThemePreference, THEME_KEY, resolveTheme, applyClass } from './theme-core';
 
 let mediaQuery: MediaQueryList | null = null;
 let mediaListener: ((e: MediaQueryListEvent) => void) | null = null;
 let themeChangeCleanup: (() => void) | null = null;
-
-function resolveTheme(preference: ThemePreference): 'light' | 'dark' {
-  if (preference === 'system') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  return preference;
-}
-
-function applyClass(resolved: 'light' | 'dark'): void {
-  if (resolved === 'dark') {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-  }
-}
 
 function cleanupSystemListener(): void {
   if (mediaQuery && mediaListener) {

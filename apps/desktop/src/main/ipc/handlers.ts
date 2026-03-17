@@ -1,5 +1,6 @@
 import crypto from 'crypto';
-import { ipcMain, BrowserWindow, shell, dialog, nativeTheme } from 'electron';
+import path from 'path';
+import { ipcMain, BrowserWindow, shell, app, dialog, nativeTheme } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import { URL } from 'url';
 import fs from 'fs';
@@ -81,6 +82,7 @@ import type {
   AzureFoundryConfig,
   LiteLLMConfig,
   LMStudioConfig,
+  FileAttachmentInfo,
 } from '@accomplish_ai/agent-core';
 import {
   DEFAULT_PROVIDERS,
@@ -100,6 +102,7 @@ import { skillsManager } from '../skills';
 import { registerVertexHandlers } from '../providers';
 
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
+const MAX_ATTACHMENT_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 function assertTrustedWindow(window: BrowserWindow | null): BrowserWindow {
   if (!window || window.isDestroyed()) {
@@ -306,6 +309,7 @@ export function registerIPCHandlers(): void {
       sessionId: string,
       prompt: string,
       existingTaskId?: string,
+      attachments?: FileAttachmentInfo[],
     ) => {
       const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
       const sender = event.sender;
@@ -349,6 +353,7 @@ export function registerIPCHandlers(): void {
           sessionId: validatedSessionId,
           taskId,
           modelId: selectedModelForResume?.model,
+          files: attachments,
         },
         callbacks,
       );
@@ -963,6 +968,61 @@ export function registerIPCHandlers(): void {
     return storage.getAppSettings();
   });
 
+  handle('sandbox:get-config', async (_event: IpcMainInvokeEvent) => {
+    return storage.getSandboxConfig();
+  });
+
+  handle(
+    'sandbox:set-config',
+    async (
+      _event: IpcMainInvokeEvent,
+      config: {
+        mode: string;
+        allowedPaths: string[];
+        networkRestricted: boolean;
+        allowedHosts: string[];
+        dockerImage?: string;
+        networkPolicy?: { allowOutbound: boolean; allowedHosts?: string[] };
+      },
+    ) => {
+      if (!config || typeof config !== 'object') {
+        throw new Error('Invalid sandbox configuration');
+      }
+      if (!['disabled', 'native', 'docker'].includes(config.mode)) {
+        throw new Error('Invalid sandbox mode. Must be "disabled", "native", or "docker".');
+      }
+      if (!Array.isArray(config.allowedPaths)) {
+        throw new Error('allowedPaths must be an array');
+      }
+      if (typeof config.networkRestricted !== 'boolean') {
+        throw new Error('networkRestricted must be a boolean');
+      }
+      if (!Array.isArray(config.allowedHosts)) {
+        throw new Error('allowedHosts must be an array');
+      }
+
+      storage.setSandboxConfig({
+        mode: config.mode as 'disabled' | 'native' | 'docker',
+        allowedPaths: config.allowedPaths.map((p) => sanitizeString(p, 'allowedPath', 512)),
+        networkRestricted: config.networkRestricted,
+        allowedHosts: config.allowedHosts.map((h) => sanitizeString(h, 'allowedHost', 256)),
+        ...(config.dockerImage !== undefined && {
+          dockerImage: sanitizeString(config.dockerImage, 'dockerImage', 256),
+        }),
+        ...(config.networkPolicy !== undefined && {
+          networkPolicy: {
+            allowOutbound: Boolean(config.networkPolicy.allowOutbound),
+            ...(Array.isArray(config.networkPolicy.allowedHosts) && {
+              allowedHosts: config.networkPolicy.allowedHosts.map((h) =>
+                sanitizeString(h, 'networkPolicy.allowedHost', 256),
+              ),
+            }),
+          },
+        }),
+      });
+    },
+  );
+
   handle('settings:openai-base-url:get', async (_event: IpcMainInvokeEvent) => {
     return storage.getOpenAiBaseUrl();
   });
@@ -1153,6 +1213,342 @@ export function registerIPCHandlers(): void {
       const message = error instanceof Error ? error.message : 'Unknown error';
       return { success: false, error: message };
     }
+  });
+
+  const assertDebugModeEnabled = () => {
+    if (!storage.getDebugMode()) {
+      throw new Error('Debug mode is disabled');
+    }
+  };
+
+  // Debug Bug Report Handlers
+
+  handle('debug:capture-screenshot', async (event: IpcMainInvokeEvent) => {
+    try {
+      assertDebugModeEnabled();
+    } catch (e) {
+      return { success: false, error: (e as Error).message };
+    }
+    let window: BrowserWindow;
+    try {
+      window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Untrusted window';
+      return { success: false, error: message };
+    }
+    try {
+      const image = await window.webContents.capturePage();
+      const pngBuffer = image.toPNG();
+      const base64 = pngBuffer.toString('base64');
+      const size = image.getSize();
+      return { success: true, data: base64, width: size.width, height: size.height };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, error: message };
+    }
+  });
+
+  handle('debug:capture-axtree', async (event: IpcMainInvokeEvent) => {
+    try {
+      assertDebugModeEnabled();
+    } catch (e) {
+      return { success: false, error: (e as Error).message };
+    }
+    let window: BrowserWindow;
+    try {
+      window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Untrusted window';
+      return { success: false, error: message };
+    }
+    try {
+      const axtree = await window.webContents.executeJavaScript(`
+        (function() {
+          var MAX_DEPTH = 15;
+          var MAX_TEXT = 200;
+          var MAX_NODES = 5000;
+          var nodeCount = 0;
+          function walk(el, depth) {
+            if (depth > MAX_DEPTH || nodeCount >= MAX_NODES) return null;
+            nodeCount++;
+            var tag = el.tagName ? el.tagName.toLowerCase() : '#text';
+            var node = { tag: tag };
+            var role = el.getAttribute ? el.getAttribute('role') : null;
+            if (role) node.role = role;
+            var ariaLabel = el.getAttribute ? el.getAttribute('aria-label') : null;
+            if (ariaLabel) node.ariaLabel = ariaLabel.substring(0, MAX_TEXT);
+            if (el.id) node.id = el.id;
+            var text = '';
+            for (var i = 0; i < el.childNodes.length; i++) {
+              if (el.childNodes[i].nodeType === 3) {
+                text += el.childNodes[i].textContent;
+              }
+            }
+            text = text.trim();
+            if (text) node.text = text.substring(0, MAX_TEXT);
+            var children = [];
+            for (var j = 0; j < el.children.length; j++) {
+              var child = walk(el.children[j], depth + 1);
+              if (child) children.push(child);
+            }
+            if (children.length > 0) node.children = children;
+            return node;
+          }
+          if (!document.body) return '{}';
+          return JSON.stringify(walk(document.body, 0));
+        })()
+      `);
+      return { success: true, data: axtree };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, error: message };
+    }
+  });
+
+  handle(
+    'debug:generate-bug-report',
+    async (
+      event: IpcMainInvokeEvent,
+      reportData: {
+        taskId?: string;
+        taskPrompt?: string;
+        taskStatus?: string;
+        taskCreatedAt?: string;
+        taskCompletedAt?: string;
+        messages?: unknown[];
+        debugLogs?: unknown[];
+        screenshot?: string;
+        axtree?: string;
+        appVersion?: string;
+        platform?: string;
+      },
+    ) => {
+      try {
+        assertDebugModeEnabled();
+      } catch (e) {
+        return { success: false, error: (e as Error).message };
+      }
+      let window: BrowserWindow;
+      try {
+        window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Untrusted window';
+        return { success: false, error: message };
+      }
+      try {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const defaultFilename = `bug-report-${timestamp}.json`;
+
+        const result = await dialog.showSaveDialog(window, {
+          title: 'Save Bug Report',
+          defaultPath: defaultFilename,
+          filters: [
+            { name: 'JSON Files', extensions: ['json'] },
+            { name: 'All Files', extensions: ['*'] },
+          ],
+        });
+
+        if (result.canceled || !result.filePath) {
+          return { success: false, reason: 'cancelled' };
+        }
+
+        // Write PNG sidecar first (collision-safe) so hasScreenshot in the
+        // JSON is only true when the file was actually written.
+        let screenshotPath: string | undefined;
+        if (reportData.screenshot) {
+          const parsed = path.parse(result.filePath);
+          const candidate = path.join(parsed.dir, `${parsed.name}.png`);
+          try {
+            await fs.promises.access(candidate);
+            // File exists — use a timestamped name to avoid silent overwrite.
+            screenshotPath = path.join(parsed.dir, `${parsed.name}-${Date.now()}.png`);
+          } catch {
+            screenshotPath = candidate;
+          }
+          await fs.promises.writeFile(screenshotPath, Buffer.from(reportData.screenshot, 'base64'));
+        }
+
+        const report = {
+          version: 1,
+          generatedAt: new Date().toISOString(),
+          app: {
+            version: reportData.appVersion ?? app.getVersion(),
+            platform: reportData.platform ?? process.platform,
+          },
+          task: {
+            id: reportData.taskId,
+            prompt: reportData.taskPrompt,
+            status: reportData.taskStatus,
+            createdAt: reportData.taskCreatedAt,
+            completedAt: reportData.taskCompletedAt,
+            messageCount: Array.isArray(reportData.messages) ? reportData.messages.length : 0,
+          },
+          messages: reportData.messages,
+          debugLogs: reportData.debugLogs,
+          axtree: reportData.axtree,
+          screenshotFile: screenshotPath ? path.basename(screenshotPath) : null,
+          hasScreenshot: Boolean(screenshotPath),
+        };
+
+        await fs.promises.writeFile(result.filePath, JSON.stringify(report, null, 2), 'utf-8');
+
+        return { success: true, path: result.filePath };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return { success: false, error: message };
+      }
+    },
+  );
+
+  // Favorites handlers
+  handle('favorites:list', async () => {
+    return storage.getFavorites();
+  });
+
+  handle('favorites:add', async (_event: IpcMainInvokeEvent, taskId: string) => {
+    const task = storage.getTask(taskId);
+    if (!task) {
+      throw new Error(`Favorite failed: task not found (taskId: ${taskId})`);
+    }
+    const allowedFavoriteStatuses: Array<'completed' | 'interrupted'> = [
+      'completed',
+      'interrupted',
+    ];
+    if (!allowedFavoriteStatuses.includes(task.status as 'completed' | 'interrupted')) {
+      throw new Error(
+        `Favorite failed: invalid status (taskId: ${taskId}, status: ${task.status})`,
+      );
+    }
+    storage.addFavorite(taskId, task.prompt, task.summary);
+  });
+
+  handle('favorites:remove', async (_event: IpcMainInvokeEvent, taskId: string) => {
+    storage.removeFavorite(taskId);
+  });
+
+  handle('favorites:has', async (_event: IpcMainInvokeEvent, taskId: string) => {
+    return storage.isFavorite(taskId);
+  });
+
+  // File attachment handlers
+  handle('files:pick', async (event: IpcMainInvokeEvent) => {
+    const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
+    const result = await dialog.showOpenDialog(window, {
+      properties: ['openFile', 'multiSelections'],
+    });
+    if (result.canceled) return [];
+    if (result.filePaths.length > 5) {
+      throw new Error('You can only select a maximum of 5 files.');
+    }
+    for (const filePath of result.filePaths) {
+      const stat = fs.statSync(filePath);
+      if (stat.size > MAX_ATTACHMENT_FILE_SIZE) {
+        throw new Error(`File ${path.basename(filePath)} exceeds the 10 MB size limit.`);
+      }
+    }
+    return result.filePaths.map((filePath) => {
+      const stat = fs.statSync(filePath);
+      const ext = path.extname(filePath).toLowerCase().slice(1);
+      const textExts = ['txt', 'md', 'json', 'yaml', 'yml', 'toml', 'csv', 'xml', 'html', 'css'];
+      const codeExts = [
+        'ts',
+        'tsx',
+        'js',
+        'jsx',
+        'py',
+        'rb',
+        'go',
+        'rs',
+        'java',
+        'c',
+        'cpp',
+        'h',
+        'cs',
+        'swift',
+        'kt',
+        'sh',
+        'bash',
+        'zsh',
+        'fish',
+      ];
+      const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'];
+      const pdfExts = ['pdf'];
+      type FileType = 'image' | 'text' | 'code' | 'pdf' | 'other';
+      let type: FileType = 'other';
+      if (imageExts.includes(ext)) type = 'image';
+      else if (pdfExts.includes(ext)) type = 'pdf';
+      else if (codeExts.includes(ext)) type = 'code';
+      else if (textExts.includes(ext)) type = 'text';
+
+      const info: FileAttachmentInfo = {
+        id: crypto.randomUUID(),
+        name: path.basename(filePath),
+        path: filePath,
+        type,
+        size: stat.size,
+      };
+      if (type === 'text' || type === 'code') {
+        try {
+          info.content = fs.readFileSync(filePath, 'utf-8');
+        } catch {
+          // Non-fatal: content stays undefined
+        }
+      }
+      return info;
+    });
+  });
+
+  handle('files:process-dropped', async (_event: IpcMainInvokeEvent, filePaths: string[]) => {
+    return filePaths.map((filePath) => {
+      const stat = fs.statSync(filePath);
+      const ext = path.extname(filePath).toLowerCase().slice(1);
+      const textExts = ['txt', 'md', 'json', 'yaml', 'yml', 'toml', 'csv', 'xml', 'html', 'css'];
+      const codeExts = [
+        'ts',
+        'tsx',
+        'js',
+        'jsx',
+        'py',
+        'rb',
+        'go',
+        'rs',
+        'java',
+        'c',
+        'cpp',
+        'h',
+        'cs',
+        'swift',
+        'kt',
+        'sh',
+        'bash',
+        'zsh',
+        'fish',
+      ];
+      const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'];
+      const pdfExts = ['pdf'];
+      type FileType = 'image' | 'text' | 'code' | 'pdf' | 'other';
+      let type: FileType = 'other';
+      if (imageExts.includes(ext)) type = 'image';
+      else if (pdfExts.includes(ext)) type = 'pdf';
+      else if (codeExts.includes(ext)) type = 'code';
+      else if (textExts.includes(ext)) type = 'text';
+
+      const info: FileAttachmentInfo = {
+        id: crypto.randomUUID(),
+        name: path.basename(filePath),
+        path: filePath,
+        type,
+        size: stat.size,
+      };
+      if (type === 'text' || type === 'code') {
+        try {
+          info.content = fs.readFileSync(filePath, 'utf-8');
+        } catch {
+          // Non-fatal: content stays undefined
+        }
+      }
+      return info;
+    });
   });
 
   handle('skills:list', async () => {

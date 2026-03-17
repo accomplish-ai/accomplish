@@ -1,6 +1,11 @@
 {
   "title": "What will you accomplish today?",
   "inputPlaceholder": "Describe a task and let AI handle the rest",
+  "favorites": {
+    "title": "Favorites",
+    "empty": "Star completed or interrupted tasks to see them here.",
+    "showAll": "Show all {{count}} favorites"
+  },
   "plusMenu": {
     "addContent": "Add content",
     "attachFiles": "Attach Files",
@@ -8,7 +13,11 @@
     "useSkills": "Use Skills",
     "connectors": "Connectors",
     "noConnectors": "No connectors yet",
-    "manage": "Manage"
+    "manage": "Manage",
+    "dropFilesHere": "Drop files here to attach",
+    "dropFilesHint": "(max {max} files, {size}MB each)",
+    "fileTooLarge": "{name} exceeds {limit} size limit",
+    "tooManyFiles": "Maximum {max} files allowed"
   },
   "examplePrompts": "Example Prompts",
   "useCases": {
@@ -50,7 +59,7 @@
     "jobApplicationAutomation": {
       "title": "Job Application Automation",
       "description": "Filter jobs and submit applications with saved profiles.",
-      "prompt": "Find job listings from Indeed for [query], sort by salary, and apply to the top 5 using my profile."
+      "prompt": "Find job listings from LinkedIn for [query], sort by salary, and apply to the top 5 using my profile."
     },
     "eventCalendarBuilder": {
       "title": "Event Calendar Builder",
