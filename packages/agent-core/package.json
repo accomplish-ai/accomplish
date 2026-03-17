@@ -64,7 +64,8 @@
     "better-sqlite3": "catalog:",
     "gray-matter": "^4.0.3",
     "node-pty": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "https-proxy-agent": "^7.0.6"
   },
   "devDependencies": {
     "@types/better-sqlite3": "catalog:",
