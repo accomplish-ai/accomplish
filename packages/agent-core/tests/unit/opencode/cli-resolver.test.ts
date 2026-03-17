@@ -192,6 +192,22 @@ describe('CLI Resolver', () => {
   });
 
   describe('getCliVersion', () => {
+    it('returns null and does not throw when called with a path that has spaces', async () => {
+      // Regression test for Issue #596.
+      // execFileSync (no shell) must be used so the path is passed to the OS
+      // verbatim rather than through cmd.exe quoting, which fails with
+      // double-leading-quote errors when spaces appear in the username.
+      const pathWithSpaces =
+        process.platform === 'win32'
+          ? 'C:\\Users\\Anish Maheshwari\\AppData\\Local\\Programs\\opencode.exe'
+          : '/home/my user with spaces/opencode';
+
+      const version = await getCliVersion(pathWithSpaces);
+
+      // Must return null (file not found) rather than throwing
+      expect(version).toBeNull();
+    });
+
     it('returns version from package.json when available', async () => {
       let packageName: string;
       if (process.platform === 'win32') {

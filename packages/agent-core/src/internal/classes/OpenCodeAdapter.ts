@@ -442,8 +442,14 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
   private escapeShellArg(arg: string): string {
     if (this.options.platform === 'win32') {
-      if (arg.includes(' ') || arg.includes('"')) {
-        return `"${arg.replace(/"/g, '""')}"`;
+      // Quote if the argument contains spaces, double-quotes, or any cmd.exe
+      // metacharacter (&, |, <, >, ^, %) that would be misinterpreted when
+      // executing via cmd.exe /s /c. See: https://github.com/accomplish-ai/accomplish/issues/596
+      if (/[ "&|<>^%]/.test(arg)) {
+        // Double embedded quotes per cmd.exe rules; escape % as ^% to prevent
+        // environment variable expansion (e.g. %PATH%) inside the quoted string.
+        const escaped = arg.replace(/"/g, '""').replace(/%/g, '^%');
+        return `"${escaped}"`;
       }
       return arg;
     } else {
@@ -878,12 +884,18 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
   private buildPtySpawnArgs(command: string, args: string[]): { file: string; args: string[] } {
     if (this.options.platform === 'win32') {
-      // Windows policy: always spawn the real .exe, never cmd wrappers.
-      if (command.toLowerCase().endsWith('.exe')) {
-        return { file: command, args };
+      if (!command.toLowerCase().endsWith('.exe')) {
+        throw new Error(`Windows CLI command must resolve to an .exe path. Received: ${command}`);
       }
 
-      throw new Error(`Windows CLI command must resolve to an .exe path. Received: ${command}`);
+      // Route through cmd.exe /s /c with proper inner quoting so that
+      // installation paths containing spaces (e.g. "C:\Users\My Name\...")
+      // are handled correctly in both ConPTY and WinPTY fallback modes.
+      // Passing the raw .exe path directly to pty.spawn works for ConPTY
+      // but fails in WinPTY where the unquoted path is split at every space.
+      // See: https://github.com/accomplish-ai/accomplish/issues/596
+      const fullCommand = this.buildShellCommand(command, args);
+      return { file: 'cmd.exe', args: ['/s', '/c', `"${fullCommand}"`] };
     }
 
     const shell =
