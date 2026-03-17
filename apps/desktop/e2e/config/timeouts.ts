@@ -57,6 +57,10 @@ export const TEST_SCENARIOS = {
     keyword: '__e2e_question__',
     description: 'Task requires user question/choice',
   },
+  CODE_BLOCK: {
+    keyword: '__e2e_code__',
+    description: 'Task response includes code blocks with syntax highlighting',
+  },
 } as const;
 
 export type TestScenario = keyof typeof TEST_SCENARIOS;

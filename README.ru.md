@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <strong>Русский</strong> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a>
+  <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <strong>Русский</strong> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a> | <a href="README.ta.md">தமிழ்</a> | <a href="README.hi.md">हिन्दी</a>
 </p>
 
 <p align="center">
@@ -11,10 +11,10 @@
   <a href="https://github.com/accomplish-ai/accomplish/stargazers"><img src="https://img.shields.io/github/stars/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Stars" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/issues"><img src="https://img.shields.io/github/issues/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Issues" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/commits"><img src="https://img.shields.io/github/last-commit/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="Последний коммит" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="Скачать для macOS (Apple Silicon)" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="Скачать для macOS (Intel)" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.3.10/windows/Accomplish-0.3.10-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Скачать для Windows 11" /></a>
-  <a href="https://discord.gg/MepaTT55"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="Скачать для macOS (Apple Silicon)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="Скачать для macOS (Intel)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Скачать для Windows 11" /></a>
+  <a href="https://discord.gg/YH86b2P8"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
 # Accomplish™ — открытый ИИ-агент для рабочего стола
@@ -26,11 +26,11 @@ Accomplish — это открытый ИИ-агент для рабочего �
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-arm64.dmg"><strong>Скачать для Mac (Apple Silicon)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><strong>Скачать для Mac (Apple Silicon)</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-x64.dmg"><strong>Скачать для Mac (Intel)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><strong>Скачать для Mac (Intel)</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.10/windows/Accomplish-0.3.10-win-x64.exe"><strong>Скачать для Windows 11</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><strong>Скачать для Windows 11</strong></a>
   ·
   <a href="https://www.accomplish.ai/">Сайт Accomplish</a>
   ·
@@ -116,13 +116,13 @@ Accomplish — это открытый ИИ-агент для рабочего �
 
 ## Что умеет Accomplish
 
-|                                                                    |                                                                      |                                                                         |
-| :----------------------------------------------------------------- | :------------------------------------------------------------------- | :---------------------------------------------------------------------- |
-| **📁 Управление файлами**                                          | **✍️ Работа с документами**                                         | **🔗 Подключение инструментов**                                         |
-| Сортировка, переименование и перемещение файлов по содержимому или заданным правилам | Напишите запрос — агент напишет, суммаризирует или перепишет документы | Работа с Notion, Google Drive, Dropbox и другими (через локальные API)  |
-|                                                                    |                                                                      |                                                                         |
-| **⚙️ Собственные навыки**                                          | **🛡️ Полный контроль**                                              |                                                                         |
-| Описывайте повторяемые сценарии и сохраняйте их как навыки         | Каждое действие вы одобряете. Логи доступны. Остановка в любой момент. |                                                                         |
+|                                                                                      |                                                                        |                                                                        |
+| :----------------------------------------------------------------------------------- | :--------------------------------------------------------------------- | :--------------------------------------------------------------------- |
+| **📁 Управление файлами**                                                            | **✍️ Работа с документами**                                            | **🔗 Подключение инструментов**                                        |
+| Сортировка, переименование и перемещение файлов по содержимому или заданным правилам | Напишите запрос — агент напишет, суммаризирует или перепишет документы | Работа с Notion, Google Drive, Dropbox и другими (через локальные API) |
+|                                                                                      |                                                                        |                                                                        |
+| **⚙️ Собственные навыки**                                                            | **🛡️ Полный контроль**                                                 |                                                                        |
+| Описывайте повторяемые сценарии и сохраняйте их как навыки                           | Каждое действие вы одобряете. Логи доступны. Остановка в любой момент. |                                                                        |
 
 <br />
 
@@ -176,12 +176,12 @@ Accomplish работает локально на вашем компьютер�
 
 > **Настройка занимает около 2 минут.**
 
-| Шаг  | Действие              | Подробности                                                                                                           |
-| :---: | --------------------- | --------------------------------------------------------------------------------------------------------------------- |
+|  Шаг  | Действие                  | Подробности                                                                                                            |
+| :---: | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | **1** | **Установите приложение** | Скачайте DMG и перетащите приложение в папку «Программы»                                                               |
-| **2** | **Подключите ИИ**     | Используйте свой API-ключ Google, OpenAI, Anthropic (или другой) — или войдите через ChatGPT (Plus/Pro). Без подписок. |
-| **3** | **Выдайте доступ**    | Укажите папки, к которым агент может обращаться. Контроль остаётся за вами.                                            |
-| **4** | **Начните работу**    | Попросите суммаризировать документ, навести порядок в папке или создать отчёт. Всё выполняется с вашего одобрения.     |
+| **2** | **Подключите ИИ**         | Используйте свой API-ключ Google, OpenAI, Anthropic (или другой) — или войдите через ChatGPT (Plus/Pro). Без подписок. |
+| **3** | **Выдайте доступ**        | Укажите папки, к которым агент может обращаться. Контроль остаётся за вами.                                            |
+| **4** | **Начните работу**        | Попросите суммаризировать документ, навести порядок в папке или создать отчёт. Всё выполняется с вашего одобрения.     |
 
 <br />
 
@@ -189,7 +189,7 @@ Accomplish работает локально на вашем компьютер�
 
 <div align="center">
 
-[**Скачать для Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-arm64.dmg) · [**Скачать для Mac (Intel)**](https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-x64.dmg) · [**Скачать для Windows 11**](https://downloads.accomplish.ai/downloads/0.3.10/windows/Accomplish-0.3.10-win-x64.exe)
+[**Скачать для Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg) · [**Скачать для Mac (Intel)**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg) · [**Скачать для Windows 11**](https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe)
 
 </div>
 
@@ -255,25 +255,25 @@ pnpm dev
 <details>
 <summary><strong>Все команды</strong></summary>
 
-| Команда                                | Описание                      |
-| -------------------------------------- | ----------------------------- |
+| Команда                                | Описание                                      |
+| -------------------------------------- | --------------------------------------------- |
 | `pnpm dev`                             | Запуск десктоп-приложения в режиме разработки |
-| `pnpm dev:clean`                       | Режим разработки с чистой загрузкой |
-| `pnpm build`                           | Сборка всех workspace         |
-| `pnpm build:desktop`                   | Сборка только десктоп-приложения |
-| `pnpm lint`                            | Проверки TypeScript           |
-| `pnpm typecheck`                       | Проверка типов                |
-| `pnpm -F @accomplish/desktop test:e2e` | E2E-тесты Playwright          |
+| `pnpm dev:clean`                       | Режим разработки с чистой загрузкой           |
+| `pnpm build`                           | Сборка всех workspace                         |
+| `pnpm build:desktop`                   | Сборка только десктоп-приложения              |
+| `pnpm lint`                            | Проверки TypeScript                           |
+| `pnpm typecheck`                       | Проверка типов                                |
+| `pnpm -F @accomplish/desktop test:e2e` | E2E-тесты Playwright                          |
 
 </details>
 
 <details>
 <summary><strong>Переменные окружения</strong></summary>
 
-| Переменная          | Описание                                      |
-| ------------------- | --------------------------------------------- |
-| `CLEAN_START=1`     | Очистить все сохранённые данные при запуске   |
-| `E2E_SKIP_AUTH=1`   | Пропуск онбординга (для тестирования)         |
+| Переменная        | Описание                                    |
+| ----------------- | ------------------------------------------- |
+| `CLEAN_START=1`   | Очистить все сохранённые данные при запуске |
+| `E2E_SKIP_AUTH=1` | Пропуск онбординга (для тестирования)       |
 
 </details>
 

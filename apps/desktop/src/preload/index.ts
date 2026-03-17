@@ -5,11 +5,13 @@
  * for communicating with the Electron main process via IPC.
  */
 
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { ProviderType, Skill, TodoItem, McpConnector } from '@accomplish_ai/agent-core';
 
 // Expose the accomplish API to the renderer
 const accomplishAPI = {
+  // Utility for safely extracting native paths from DOM File objects in drop events
+  getFilePath: (file: File): string => webUtils.getPathForFile(file),
   // App info
   getVersion: (): Promise<string> => ipcRenderer.invoke('app:version'),
   getPlatform: (): Promise<string> => ipcRenderer.invoke('app:platform'),
@@ -34,8 +36,13 @@ const accomplishAPI = {
     ipcRenderer.invoke('permission:respond', response),
 
   // Session management
-  resumeSession: (sessionId: string, prompt: string, taskId?: string): Promise<unknown> =>
-    ipcRenderer.invoke('session:resume', sessionId, prompt, taskId),
+  resumeSession: (
+    sessionId: string,
+    prompt: string,
+    taskId?: string,
+    attachments?: unknown[],
+  ): Promise<unknown> =>
+    ipcRenderer.invoke('session:resume', sessionId, prompt, taskId, attachments),
 
   // Settings
   getApiKeys: (): Promise<unknown[]> => ipcRenderer.invoke('settings:api-keys'),
@@ -449,6 +456,37 @@ const accomplishAPI = {
   showSkillInFolder: (filePath: string): Promise<void> =>
     ipcRenderer.invoke('skills:show-in-folder', filePath),
 
+  // Favorites
+  addFavorite: (taskId: string): Promise<void> => ipcRenderer.invoke('favorites:add', taskId),
+  removeFavorite: (taskId: string): Promise<void> => ipcRenderer.invoke('favorites:remove', taskId),
+  listFavorites: (): Promise<unknown[]> => ipcRenderer.invoke('favorites:list'),
+  isFavorite: (taskId: string): Promise<boolean> => ipcRenderer.invoke('favorites:has', taskId),
+  // File attachments
+  pickFiles: (): Promise<import('@accomplish_ai/agent-core/common').FileAttachmentInfo[]> =>
+    ipcRenderer.invoke('files:pick'),
+  processDroppedFiles: (
+    paths: string[],
+  ): Promise<import('@accomplish_ai/agent-core/common').FileAttachmentInfo[]> =>
+    ipcRenderer.invoke('files:process-dropped', paths),
+
+  // Sandbox configuration
+  getSandboxConfig: (): Promise<{
+    mode: 'disabled' | 'native' | 'docker';
+    allowedPaths: string[];
+    networkRestricted: boolean;
+    allowedHosts: string[];
+    dockerImage?: string;
+    networkPolicy?: { allowOutbound: boolean; allowedHosts?: string[] };
+  }> => ipcRenderer.invoke('sandbox:get-config'),
+  setSandboxConfig: (config: {
+    mode: 'disabled' | 'native' | 'docker';
+    allowedPaths: string[];
+    networkRestricted: boolean;
+    allowedHosts: string[];
+    dockerImage?: string;
+    networkPolicy?: { allowOutbound: boolean; allowedHosts?: string[] };
+  }): Promise<void> => ipcRenderer.invoke('sandbox:set-config', config),
+
   // MCP Connectors
   getConnectors: (): Promise<McpConnector[]> => ipcRenderer.invoke('connectors:list'),
   addConnector: (name: string, url: string): Promise<McpConnector> =>
@@ -469,6 +507,33 @@ const accomplishAPI = {
       ipcRenderer.removeListener('auth:mcp-callback', listener);
     };
   },
+
+  // Debug bug reporting
+  captureScreenshot: (): Promise<{
+    success: boolean;
+    data?: string;
+    width?: number;
+    height?: number;
+    error?: string;
+  }> => ipcRenderer.invoke('debug:capture-screenshot'),
+
+  captureAxtree: (): Promise<{ success: boolean; data?: string; error?: string }> =>
+    ipcRenderer.invoke('debug:capture-axtree'),
+
+  generateBugReport: (data: {
+    taskId?: string;
+    taskPrompt?: string;
+    taskStatus?: string;
+    taskCreatedAt?: string;
+    taskCompletedAt?: string;
+    messages?: unknown[];
+    debugLogs?: unknown[];
+    screenshot?: string;
+    axtree?: string;
+    appVersion?: string;
+    platform?: string;
+  }): Promise<{ success: boolean; path?: string; error?: string; reason?: string }> =>
+    ipcRenderer.invoke('debug:generate-bug-report', data),
 };
 
 // Expose the API to the renderer

@@ -87,5 +87,14 @@
     "configureModel": "Configure model",
     "changeModel": "Change model"
   },
-  "messages": "{{count}} messages"
+  "messages": "{{count}} messages",
+  "favorite": "Favorite",
+  "theme": {
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode",
+    "switchToSystem": "Switch to system",
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode",
+    "systemMode": "System"
+  }
 }
