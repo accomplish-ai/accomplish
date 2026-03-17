@@ -1,5 +1,5 @@
 import { app } from 'electron';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import type { TaskManagerOptions, TaskCallbacks } from '@accomplish_ai/agent-core';
@@ -12,11 +12,9 @@ import {
   isCliAvailable as coreIsCliAvailable,
   buildCliArgs as coreBuildCliArgs,
   buildOpenCodeEnvironment,
-  createSandboxProvider,
   type BrowserServerConfig,
   type CliResolverConfig,
   type EnvironmentConfig,
-  type SandboxPaths,
 } from '@accomplish_ai/agent-core';
 import { getModelDisplayName } from '@accomplish_ai/agent-core';
 import type {
@@ -100,11 +98,14 @@ export function getBundledOpenCodeVersion(): string | null {
 
   try {
     const { command } = getOpenCodeCliPath();
-    const fullCommand = `"${command}" --version`;
-    const output = execSync(fullCommand, {
+    // Use execFileSync (no shell) so installation paths that contain spaces
+    // (e.g. "C:\Users\My Name\...") are passed directly to the OS without
+    // cmd.exe quoting ambiguity.
+    // See: https://github.com/accomplish-ai/accomplish/issues/596
+    const output = execFileSync(command, ['--version'], {
       encoding: 'utf-8',
       timeout: 5000,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true,
     }).trim();
 
     const versionMatch = output.match(/(\d+\.\d+\.\d+)/);
@@ -346,20 +347,6 @@ export function createElectronTaskManagerOptions(): TaskManagerOptions {
       onBeforeStart,
       getModelDisplayName,
       buildCliArgs,
-      // Resolve sandbox provider and config lazily at each task creation so that
-      // changes persisted by sandbox:set-config are reflected without recreating
-      // the TaskManager.
-      sandboxFactory: () => {
-        const config = getStorage().getSandboxConfig();
-        const getSandboxPaths = (): SandboxPaths => ({
-          configDir: app.getPath('userData'),
-          openDataHome: app.getPath('appData'),
-        });
-        return {
-          provider: createSandboxProvider(config, process.platform, getSandboxPaths),
-          config,
-        };
-      },
     },
     defaultWorkingDirectory: app.getPath('temp'),
     maxConcurrentTasks: 10,

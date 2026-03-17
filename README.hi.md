@@ -11,9 +11,9 @@
   <a href="https://github.com/accomplish-ai/accomplish/stargazers"><img src="https://img.shields.io/github/stars/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Stars" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/issues"><img src="https://img.shields.io/github/issues/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Issues" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/commits"><img src="https://img.shields.io/github/last-commit/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="लास्ट कमिट" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="macOS (Apple Silicon) के लिए डाउनलोड करें" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="macOS (Intel) के लिए डाउनलोड करें" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Windows 11 के लिए डाउनलोड करें" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="macOS (Apple Silicon) के लिए डाउनलोड करें" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="macOS (Intel) के लिए डाउनलोड करें" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.10/windows/Accomplish-0.3.10-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Windows 11 के लिए डाउनलोड करें" /></a>
   <a href="https://discord.gg/MepaTT55"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
@@ -26,11 +26,11 @@ Accomplish एक ओपन सोर्स AI डेस्कटॉप एज�
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><strong>Mac (Apple Silicon) के लिए डाउनलोड करें</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-arm64.dmg"><strong>Mac (Apple Silicon) के लिए डाउनलोड करें</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><strong>Mac (Intel) के लिए डाउनलोड करें</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-x64.dmg"><strong>Mac (Intel) के लिए डाउनलोड करें</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><strong>Windows 11 के लिए डाउनलोड करें</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.10/windows/Accomplish-0.3.10-win-x64.exe"><strong>Windows 11 के लिए डाउनलोड करें</strong></a>
   ·
   <a href="https://www.accomplish.ai/">Accomplish वेबसाइट</a>
   ·
@@ -146,7 +146,6 @@ Accomplish एक ओपन सोर्स AI डेस्कटॉप एज�
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
-- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
@@ -177,12 +176,12 @@ Accomplish आपकी मशीन पर स्थानीय रूप स�
 
 > **सेट अप करने में 2 मिनट लगते हैं।**
 
-|  चरण  | कार्रवाई                   | विवरण                                                                                                                                    |
-| :---: | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **1** | **ऐप इंस्टॉल करें**        | DMG डाउनलोड करें और इसे Applications में खींचें                                                                                          |
-| **2** | **अपने AI को कनेक्ट करें** | अपनी स्वयं की Google, OpenAI, Anthropic (या अन्य) API कुंजी का उपयोग करें — या ChatGPT (Plus/Pro) के साथ साइन इन करें। कोई सदस्यता नहीं। |
-| **3** | **इसे एक्सेस दें**         | चुनें कि वह कौन से फ़ोल्डर देख सकता है। आप नियंत्रण में रहें।                                                                            |
-| **4** | **काम करना शुरू करें**     | इसे एक दस्तावेज़ का सारांश देने, एक फ़ोल्डर साफ़ करने, या एक रिपोर्ट बनाने के लिए कहें। आप सब कुछ अनुमोदित करते हैं।                     |
+|  चरण  | कार्रवाई                   | विवरण                                                                                                                                                              |
+| :---: | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1** | **ऐप इंस्टॉल करें**        | अपने प्लेटफ़ॉर्म के लिए इंस्टॉलर डाउनलोड करें: **macOS** — DMG डाउनलोड करें और Applications में खींचें; **Windows** — Windows इंस्टॉलर डाउनलोड करें और सेटअप चलाएँ |
+| **2** | **अपने AI को कनेक्ट करें** | अपनी स्वयं की Google, OpenAI, Anthropic (या अन्य) API कुंजी का उपयोग करें — या ChatGPT (Plus/Pro) के साथ साइन इन करें। कोई सदस्यता नहीं।                           |
+| **3** | **इसे एक्सेस दें**         | चुनें कि वह कौन से फ़ोल्डर देख सकता है। आप नियंत्रण में रहें।                                                                                                      |
+| **4** | **काम करना शुरू करें**     | इसे एक दस्तावेज़ का सारांश देने, एक फ़ोल्डर साफ़ करने, या एक रिपोर्ट बनाने के लिए कहें। आप सब कुछ अनुमोदित करते हैं।                                               |
 
 <br />
 
@@ -190,7 +189,7 @@ Accomplish आपकी मशीन पर स्थानीय रूप स�
 
 <div align="center">
 
-[**Mac (Apple Silicon) के लिए डाउनलोड करें**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg) · [**Mac (Intel) के लिए डाउनलोड करें**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg) · [**Windows 11 के लिए डाउनलोड करें**](https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe)
+[**Mac (Apple Silicon) के लिए डाउनलोड करें**](https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-arm64.dmg) · [**Mac (Intel) के लिए डाउनलोड करें**](https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-x64.dmg) · [**Windows 11 के लिए डाउनलोड करें**](https://downloads.accomplish.ai/downloads/0.3.10/windows/Accomplish-0.3.10-win-x64.exe)
 
 </div>
 
@@ -256,17 +255,15 @@ pnpm dev
 <details>
 <summary><strong>सभी कमांड</strong></summary>
 
-| कमांड                                       | विवरण                                   |
-| ------------------------------------------- | --------------------------------------- |
-| `pnpm dev`                                  | डेस्कटॉप ऐप को डेव मोड में चलाएँ        |
-| `pnpm dev:clean`                            | क्लीन स्टार्ट के साथ डेव मोड            |
-| `pnpm build`                                | सभी वर्कस्पेस बनाएँ                     |
-| `pnpm build:desktop`                        | केवल डेस्कटॉप ऐप बनाएँ                  |
-| `pnpm -F @accomplish/desktop package:win`   | Windows इंस्टॉलर बनाएं (x64)            |
-| `pnpm -F @accomplish/desktop package:linux` | Linux आर्टिफैक्ट बनाएं (AppImage + deb) |
-| `pnpm lint`                                 | TypeScript जाँच                         |
-| `pnpm typecheck`                            | प्रकार सत्यापन                          |
-| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2E परीक्षण                  |
+| कमांड                                  | विवरण                            |
+| -------------------------------------- | -------------------------------- |
+| `pnpm dev`                             | डेस्कटॉप ऐप को डेव मोड में चलाएँ |
+| `pnpm dev:clean`                       | क्लीन स्टार्ट के साथ डेव मोड     |
+| `pnpm build`                           | सभी वर्कस्पेस बनाएँ              |
+| `pnpm build:desktop`                   | केवल डेस्कटॉप ऐप बनाएँ           |
+| `pnpm lint`                            | TypeScript जाँच                  |
+| `pnpm typecheck`                       | प्रकार सत्यापन                   |
+| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2E परीक्षण           |
 
 </details>
 

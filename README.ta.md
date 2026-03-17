@@ -11,9 +11,9 @@
   <a href="https://github.com/accomplish-ai/accomplish/stargazers"><img src="https://img.shields.io/github/stars/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Stars" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/issues"><img src="https://img.shields.io/github/issues/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Issues" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/commits"><img src="https://img.shields.io/github/last-commit/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="கடைசி கமிட்" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="macOS (Apple Silicon) க்கான பதிவிறக்கம்" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="macOS (Intel) க்கான பதிவிறக்கம்" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Windows 11 க்கான பதிவிறக்கம்" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="macOS (Apple Silicon) க்கான பதிவிறக்கம்" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="macOS (Intel) க்கான பதிவிறக்கம்" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.10/windows/Accomplish-0.3.10-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Windows 11 க்கான பதிவிறக்கம்" /></a>
   <a href="https://discord.gg/MepaTT55"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
@@ -26,11 +26,11 @@ Accomplish என்பது உங்கள் கணினியிலேய�
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><strong>Mac (Apple Silicon) க்கான பதிவிறக்கம்</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-arm64.dmg"><strong>Mac (Apple Silicon) க்கான பதிவிறக்கம்</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><strong>Mac (Intel) க்கான பதிவிறக்கம்</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-x64.dmg"><strong>Mac (Intel) க்கான பதிவிறக்கம்</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><strong>Windows 11 க்கான பதிவிறக்கம்</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.3.10/windows/Accomplish-0.3.10-win-x64.exe"><strong>Windows 11 க்கான பதிவிறக்கம்</strong></a>
   ·
   <a href="https://www.accomplish.ai/">Accomplish வலைத்தளம்</a>
   ·
@@ -119,10 +119,10 @@ Accomplish என்பது உங்கள் கணினியிலேய�
 |                                                                                                                            |                                                                                                                          |                                                                                   |
 | :------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------- |
 | **📁 கோப்பு மேலாண்மை**                                                                                                     | **✍️ ஆவண எழுத்து**                                                                                                       | **🔗 கருவி இணைப்புகள்**                                                           |
-| நீங்கள் கொடுக்கும் உள்ளடக்கம் அல்லது விதிகளின் அடிப்படையில் கோப்புகளை வரிசைப்படுத்தவும், மறுபெயரிடவும் மற்றும் நகர்த்தவும் | ஆவணங்களை எழுத, சுருக்க அல்லது மீண்டும் எழுத அதை தூண்டவும்                                                                | Notion, Google Drive, Dropbox மற்றும் பலவற்றுடன் (local APIs மூலம்) செயல்படுகிறது |
+| நீங்கள் கொடுக்கும் உள்ளடக்கம் அல்லது விதிகளின் அடிப்படையில் கோப்புகளை வரிசைப்படுத்தவும், மறுபெயரிடவும் மற்றும் நகர்த்தவும் | ஆவணங்களை எழுத, சுருக்க அல்லது மீண்டும் எழுத அதைத் தூண்டவும்                                                              | Notion, Google Drive, Dropbox மற்றும் பலவற்றுடன் (local APIs மூலம்) செயல்படுகிறது |
 |                                                                                                                            |                                                                                                                          |                                                                                   |
 | **⚙️ தனிப்பயன் திறன்கள்**                                                                                                  | **🛡️ முழு கட்டுப்பாடு**                                                                                                  |                                                                                   |
-| மீண்டும் மீண்டும் செய்யக்கூடிய பணிப்பாய்வுகளை வரையறுக்கவும், அவற்றை திறன்களாக சேமிக்கவும்                                  | நீங்கள் ஒவ்வொரு செயலையும் அங்கீகரிக்கிறீர்கள். நீங்கள் பதிவுகளைப் பார்க்கலாம். நீங்கள் அதை எந்த நேரத்திலும் நிறுத்தலாம். |                                                                                   |
+| மீண்டும் மீண்டும் செய்யக்கூடிய பணிப்பாய்வுகளை வரையறுக்கவும், அவற்றை திறன்களாகச் சேமிக்கவும்                                | நீங்கள் ஒவ்வொரு செயலையும் அங்கீகரிக்கிறீர்கள். நீங்கள் பதிவுகளைப் பார்க்கலாம். நீங்கள் அதை எந்த நேரத்திலும் நிறுத்தலாம். |                                                                                   |
 
 <br />
 
@@ -146,7 +146,6 @@ Accomplish என்பது உங்கள் கணினியிலேய�
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
-- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
@@ -177,12 +176,12 @@ Accomplish உங்கள் கணினியிலேயே இயங்க�
 
 > **அமைக்க 2 நிமிடங்கள் ஆகும்.**
 
-|  படி  | செயல்                         | விவரங்கள்                                                                                                                                                  |
-| :---: | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1** | **பயன்பாட்டை நிறுவவும்**      | DMG ஐ பதிவிறக்கி அதை Applications இல் இழுக்கவும்                                                                                                           |
-| **2** | **உங்கள் AI ஐ இணைக்கவும்**    | உங்கள் சொந்த Google, OpenAI, Anthropic (அல்லது பிற) API விசையைப் பயன்படுத்தவும் — அல்லது ChatGPT (Plus/Pro) மூலம் உள்நுழையவும். சந்தாக்கள் இல்லை.          |
-| **3** | **அதற்கு அணுகலை வழங்கவும்**   | அது எந்த கோப்புறைகளைப் பார்க்க முடியும் என்பதைத் தேர்வுசெய்யவும். நீங்கள் கட்டுப்பாட்டில் இருக்கிறீர்கள்.                                                  |
-| **4** | **வேலை செய்யத் தொடங்குங்கள்** | ஒரு ஆவணத்தைச் சுருக்கவும், ஒரு கோப்புறையை சுத்தம் செய்யவும் அல்லது ஒரு அறிக்கையை உருவாக்கவும் அதைக் கேளுங்கள். நீங்கள் எல்லாவற்றையும் அங்கீகரிக்கிறீர்கள். |
+|  படி  | செயல்                         | விவரங்கள்                                                                                                                                                          |
+| :---: | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1** | **பயன்பாட்டை நிறுவவும்**      | உங்கள் இயங்குதளத்திற்கான நிறுவியைப் பதிவிறக்கவும்: **macOS** — DMG ஐ பதிவிறக்கி Applications இல் இழுக்கவும்; **Windows** — Windows நிறுவியைப் பதிவிறக்கி இயக்கவும் |
+| **2** | **உங்கள் AI ஐ இணைக்கவும்**    | உங்கள் சொந்த Google, OpenAI, Anthropic (அல்லது பிற) API விசையைப் பயன்படுத்தவும் — அல்லது ChatGPT (Plus/Pro) மூலம் உள்நுழையவும். சந்தாக்கள் இல்லை.                  |
+| **3** | **அதற்கு அணுகலை வழங்கவும்**   | அது எந்த கோப்புறைகளைப் பார்க்க முடியும் என்பதைத் தேர்வுசெய்யவும். நீங்கள் கட்டுப்பாட்டில் இருக்கிறீர்கள்.                                                          |
+| **4** | **வேலை செய்யத் தொடங்குங்கள்** | ஒரு ஆவணத்தைச் சுருக்கவும், ஒரு கோப்புறையை சுத்தம் செய்யவும் அல்லது ஒரு அறிக்கையை உருவாக்கவும் அதைக் கேளுங்கள். நீங்கள் எல்லாவற்றையும் அங்கீகரிக்கிறீர்கள்.         |
 
 <br />
 
@@ -190,7 +189,7 @@ Accomplish உங்கள் கணினியிலேயே இயங்க�
 
 <div align="center">
 
-[**Mac (Apple Silicon) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg) · [**Mac (Intel) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg) · [**Windows 11 க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe)
+[**Mac (Apple Silicon) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-arm64.dmg) · [**Mac (Intel) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-x64.dmg) · [**Windows 11 க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.3.10/windows/Accomplish-0.3.10-win-x64.exe)
 
 </div>
 
@@ -256,17 +255,15 @@ pnpm dev
 <details>
 <summary><strong>அனைத்து கட்டளைகளும்</strong></summary>
 
-| கட்டளை                                      | விளக்கம்                                        |
-| ------------------------------------------- | ----------------------------------------------- |
-| `pnpm dev`                                  | டெஸ்க்டாப் செயலியை டெவ் பயன்முறையில் இயக்கு     |
-| `pnpm dev:clean`                            | சுத்தமான தொடக்கத்துடன் டெவ் பயன்முறை            |
-| `pnpm build`                                | அனைத்து பணியிடங்களையும் உருவாக்கு               |
-| `pnpm build:desktop`                        | டெஸ்க்டாப் செயலியை மட்டும் உருவாக்கு            |
-| `pnpm -F @accomplish/desktop package:win`   | Windows நிறுவி உருவாக்கு (x64)                  |
-| `pnpm -F @accomplish/desktop package:linux` | Linux கலைப்பொருட்கள் உருவாக்கு (AppImage + deb) |
-| `pnpm lint`                                 | TypeScript சரிபார்ப்புகள்                       |
-| `pnpm typecheck`                            | வகை சரிபார்ப்பு                                 |
-| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2E சோதனைகள்                         |
+| கட்டளை                                 | விளக்கம்                                    |
+| -------------------------------------- | ------------------------------------------- |
+| `pnpm dev`                             | டெஸ்க்டாப் செயலியை டெவ் பயன்முறையில் இயக்கு |
+| `pnpm dev:clean`                       | சுத்தமான தொடக்கத்துடன் டெவ் பயன்முறை        |
+| `pnpm build`                           | அனைத்து பணியிடங்களையும் உருவாக்கு           |
+| `pnpm build:desktop`                   | டெஸ்க்டாப் செயலியை மட்டும் உருவாக்கு        |
+| `pnpm lint`                            | TypeScript சரிபார்ப்புகள்                   |
+| `pnpm typecheck`                       | வகை சரிபார்ப்பு                             |
+| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2E சோதனைகள்                     |
 
 </details>
 
