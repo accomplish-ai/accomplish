@@ -256,15 +256,17 @@ pnpm dev
 <details>
 <summary><strong>所有命令</strong></summary>
 
-| 命令                                   | 描述                     |
-| -------------------------------------- | ------------------------ |
-| `pnpm dev`                             | 在开发模式下运行桌面应用 |
-| `pnpm dev:clean`                       | 干净启动的开发模式       |
-| `pnpm build`                           | 构建所有工作区           |
-| `pnpm build:desktop`                   | 仅构建桌面应用           |
-| `pnpm lint`                            | TypeScript 检查          |
-| `pnpm typecheck`                       | 类型验证                 |
-| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2E 测试      |
+| 命令                                        | 描述                             |
+| ------------------------------------------- | -------------------------------- |
+| `pnpm dev`                                  | 在开发模式下运行桌面应用         |
+| `pnpm dev:clean`                            | 干净启动的开发模式               |
+| `pnpm build`                                | 构建所有工作区                   |
+| `pnpm build:desktop`                        | 仅构建桌面应用                   |
+| `pnpm -F @accomplish/desktop package:win`   | 构建 Windows 安装程序 (x64)      |
+| `pnpm -F @accomplish/desktop package:linux` | 构建 Linux 构件 (AppImage + deb) |
+| `pnpm lint`                                 | TypeScript 检查                  |
+| `pnpm typecheck`                            | 类型验证                         |
+| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2E 测试              |
 
 </details>
 

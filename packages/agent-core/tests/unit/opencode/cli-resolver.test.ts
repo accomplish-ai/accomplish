@@ -57,7 +57,14 @@ describe('CLI Resolver', () => {
   describe('resolveCliPath', () => {
     it('resolves bundled CLI from packaged resources', () => {
       const binName = process.platform === 'win32' ? 'opencode.exe' : 'opencode';
-      const packageName = process.platform === 'win32' ? 'opencode-windows-x64' : 'opencode-ai';
+      let packageName: string;
+      if (process.platform === 'win32') {
+        packageName = 'opencode-windows-x64';
+      } else if (process.platform === 'linux') {
+        packageName = process.arch === 'arm64' ? 'opencode-linux-arm64' : 'opencode-linux-x64';
+      } else {
+        packageName = 'opencode-ai';
+      }
       const cliDir = path.join(
         testDir,
         'resources',
@@ -186,7 +193,14 @@ describe('CLI Resolver', () => {
 
   describe('getCliVersion', () => {
     it('returns version from package.json when available', async () => {
-      const packageName = process.platform === 'win32' ? 'opencode-windows-x64' : 'opencode-ai';
+      let packageName: string;
+      if (process.platform === 'win32') {
+        packageName = 'opencode-windows-x64';
+      } else if (process.platform === 'linux') {
+        packageName = process.arch === 'arm64' ? 'opencode-linux-arm64' : 'opencode-linux-x64';
+      } else {
+        packageName = 'opencode-ai';
+      }
       const packageDir = path.join(testDir, 'node_modules', packageName);
       const binDir = path.join(testDir, 'node_modules', '.bin');
       fs.mkdirSync(packageDir, { recursive: true });

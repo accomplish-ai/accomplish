@@ -256,15 +256,17 @@ Eso es todo.
 <details>
 <summary><strong>Todos los comandos</strong></summary>
 
-| Comando                                | Descripción                                   |
-| -------------------------------------- | --------------------------------------------- |
-| `pnpm dev`                             | Ejecutar app de escritorio en modo desarrollo |
-| `pnpm dev:clean`                       | Modo desarrollo con inicio limpio             |
-| `pnpm build`                           | Compilar todos los workspaces                 |
-| `pnpm build:desktop`                   | Compilar solo app de escritorio               |
-| `pnpm lint`                            | Verificaciones de TypeScript                  |
-| `pnpm typecheck`                       | Validación de tipos                           |
-| `pnpm -F @accomplish/desktop test:e2e` | Pruebas E2E con Playwright                    |
+| Comando                                     | Descripción                                   |
+| ------------------------------------------- | --------------------------------------------- |
+| `pnpm dev`                                  | Ejecutar app de escritorio en modo desarrollo |
+| `pnpm dev:clean`                            | Modo desarrollo con inicio limpio             |
+| `pnpm build`                                | Compilar todos los workspaces                 |
+| `pnpm build:desktop`                        | Compilar solo app de escritorio               |
+| `pnpm -F @accomplish/desktop package:win`   | Compilar instalador de Windows (x64)          |
+| `pnpm -F @accomplish/desktop package:linux` | Compilar artefactos de Linux (AppImage + deb) |
+| `pnpm lint`                                 | Verificaciones de TypeScript                  |
+| `pnpm typecheck`                            | Validación de tipos                           |
+| `pnpm -F @accomplish/desktop test:e2e`      | Pruebas E2E con Playwright                    |
 
 </details>
 

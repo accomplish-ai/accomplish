@@ -256,15 +256,17 @@ pnpm dev
 <details>
 <summary><strong>すべてのコマンド</strong></summary>
 
-| コマンド                               | 説明                                 |
-| -------------------------------------- | ------------------------------------ |
-| `pnpm dev`                             | 開発モードでデスクトップアプリを実行 |
-| `pnpm dev:clean`                       | クリーンスタートで開発モード         |
-| `pnpm build`                           | すべてのワークスペースをビルド       |
-| `pnpm build:desktop`                   | デスクトップアプリのみビルド         |
-| `pnpm lint`                            | TypeScriptチェック                   |
-| `pnpm typecheck`                       | 型検証                               |
-| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2Eテスト                 |
+| コマンド                                    | 説明                                            |
+| ------------------------------------------- | ----------------------------------------------- |
+| `pnpm dev`                                  | 開発モードでデスクトップアプリを実行            |
+| `pnpm dev:clean`                            | クリーンスタートで開発モード                    |
+| `pnpm build`                                | すべてのワークスペースをビルド                  |
+| `pnpm build:desktop`                        | デスクトップアプリのみビルド                    |
+| `pnpm -F @accomplish/desktop package:win`   | Windows インストーラーをビルド (x64)            |
+| `pnpm -F @accomplish/desktop package:linux` | Linux アーティファクトをビルド (AppImage + deb) |
+| `pnpm lint`                                 | TypeScriptチェック                              |
+| `pnpm typecheck`                            | 型検証                                          |
+| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2Eテスト                            |
 
 </details>
 

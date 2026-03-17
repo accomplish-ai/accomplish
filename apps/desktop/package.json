@@ -112,7 +112,12 @@
       "node_modules/atomically/**",
       "node_modules/debounce-fn/**",
       "!node_modules/@accomplish_ai/**",
-      "!node_modules/opencode-linux-*/**"
+      "node_modules/opencode-linux-x64/**",
+      "node_modules/opencode-linux-x64-baseline/**",
+      "node_modules/opencode-linux-x64-musl/**",
+      "node_modules/opencode-linux-x64-baseline-musl/**",
+      "node_modules/opencode-linux-arm64/**",
+      "node_modules/opencode-linux-arm64-musl/**"
     ],
     "extraResources": [
       {
@@ -165,7 +170,19 @@
       "node_modules/node-pty/package.json",
       "node_modules/better-sqlite3/build/**/*.node",
       "node_modules/better-sqlite3/package.json",
-      "dist-electron/main/mcp/*.js"
+      "dist-electron/main/mcp/*.js",
+      "node_modules/opencode-linux-x64/bin/opencode",
+      "node_modules/opencode-linux-x64/package.json",
+      "node_modules/opencode-linux-x64-baseline/bin/opencode",
+      "node_modules/opencode-linux-x64-baseline/package.json",
+      "node_modules/opencode-linux-x64-musl/bin/opencode",
+      "node_modules/opencode-linux-x64-musl/package.json",
+      "node_modules/opencode-linux-x64-baseline-musl/bin/opencode",
+      "node_modules/opencode-linux-x64-baseline-musl/package.json",
+      "node_modules/opencode-linux-arm64/bin/opencode",
+      "node_modules/opencode-linux-arm64/package.json",
+      "node_modules/opencode-linux-arm64-musl/bin/opencode",
+      "node_modules/opencode-linux-arm64-musl/package.json"
     ],
     "afterPack": "./scripts/after-pack.cjs",
     "publish": {
@@ -216,6 +233,14 @@
       "installerIcon": "resources/icon.ico",
       "uninstallerIcon": "resources/icon.ico",
       "deleteAppDataOnUninstall": false
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "icon": "resources/icon.png"
     }
   }
 }

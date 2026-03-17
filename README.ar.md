@@ -256,15 +256,17 @@ pnpm dev
 <details>
 <summary><strong>جميع الأوامر</strong></summary>
 
-| الأمر                                  | الوصف                                 |
-| -------------------------------------- | ------------------------------------- |
-| `pnpm dev`                             | تشغيل تطبيق سطح المكتب في وضع التطوير |
-| `pnpm dev:clean`                       | وضع التطوير مع بداية نظيفة            |
-| `pnpm build`                           | بناء جميع مساحات العمل                |
-| `pnpm build:desktop`                   | بناء تطبيق سطح المكتب فقط             |
-| `pnpm lint`                            | فحوصات TypeScript                     |
-| `pnpm typecheck`                       | التحقق من الأنواع                     |
-| `pnpm -F @accomplish/desktop test:e2e` | اختبارات Playwright E2E               |
+| الأمر                                       | الوصف                                 |
+| ------------------------------------------- | ------------------------------------- |
+| `pnpm dev`                                  | تشغيل تطبيق سطح المكتب في وضع التطوير |
+| `pnpm dev:clean`                            | وضع التطوير مع بداية نظيفة            |
+| `pnpm build`                                | بناء جميع مساحات العمل                |
+| `pnpm build:desktop`                        | بناء تطبيق سطح المكتب فقط             |
+| `pnpm -F @accomplish/desktop package:win`   | إنشاء مثبّت Windows (x64)             |
+| `pnpm -F @accomplish/desktop package:linux` | إنشاء حزم Linux (AppImage + deb)      |
+| `pnpm lint`                                 | فحوصات TypeScript                     |
+| `pnpm typecheck`                            | التحقق من الأنواع                     |
+| `pnpm -F @accomplish/desktop test:e2e`      | اختبارات Playwright E2E               |
 
 </details>
 

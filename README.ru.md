@@ -256,15 +256,17 @@ pnpm dev
 <details>
 <summary><strong>Все команды</strong></summary>
 
-| Команда                                | Описание                                      |
-| -------------------------------------- | --------------------------------------------- |
-| `pnpm dev`                             | Запуск десктоп-приложения в режиме разработки |
-| `pnpm dev:clean`                       | Режим разработки с чистой загрузкой           |
-| `pnpm build`                           | Сборка всех workspace                         |
-| `pnpm build:desktop`                   | Сборка только десктоп-приложения              |
-| `pnpm lint`                            | Проверки TypeScript                           |
-| `pnpm typecheck`                       | Проверка типов                                |
-| `pnpm -F @accomplish/desktop test:e2e` | E2E-тесты Playwright                          |
+| Команда                                     | Описание                                      |
+| ------------------------------------------- | --------------------------------------------- |
+| `pnpm dev`                                  | Запуск десктоп-приложения в режиме разработки |
+| `pnpm dev:clean`                            | Режим разработки с чистой загрузкой           |
+| `pnpm build`                                | Сборка всех workspace                         |
+| `pnpm build:desktop`                        | Сборка только десктоп-приложения              |
+| `pnpm -F @accomplish/desktop package:win`   | Сборка установщика Windows (x64)              |
+| `pnpm -F @accomplish/desktop package:linux` | Сборка артефактов Linux (AppImage + deb)      |
+| `pnpm lint`                                 | Проверки TypeScript                           |
+| `pnpm typecheck`                            | Проверка типов                                |
+| `pnpm -F @accomplish/desktop test:e2e`      | E2E-тесты Playwright                          |
 
 </details>
 

@@ -256,15 +256,17 @@ pnpm dev
 <details>
 <summary><strong>모든 명령어</strong></summary>
 
-| 명령어                                 | 설명                         |
-| -------------------------------------- | ---------------------------- |
-| `pnpm dev`                             | 개발 모드로 데스크톱 앱 실행 |
-| `pnpm dev:clean`                       | 클린 스타트로 개발 모드      |
-| `pnpm build`                           | 모든 워크스페이스 빌드       |
-| `pnpm build:desktop`                   | 데스크톱 앱만 빌드           |
-| `pnpm lint`                            | TypeScript 검사              |
-| `pnpm typecheck`                       | 타입 검증                    |
-| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2E 테스트        |
+| 명령어                                      | 설명                                 |
+| ------------------------------------------- | ------------------------------------ |
+| `pnpm dev`                                  | 개발 모드로 데스크톱 앱 실행         |
+| `pnpm dev:clean`                            | 클린 스타트로 개발 모드              |
+| `pnpm build`                                | 모든 워크스페이스 빌드               |
+| `pnpm build:desktop`                        | 데스크톱 앱만 빌드                   |
+| `pnpm -F @accomplish/desktop package:win`   | Windows 설치 프로그램 빌드 (x64)     |
+| `pnpm -F @accomplish/desktop package:linux` | Linux 아티팩트 빌드 (AppImage + deb) |
+| `pnpm lint`                                 | TypeScript 검사                      |
+| `pnpm typecheck`                            | 타입 검증                            |
+| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2E 테스트                |
 
 </details>
 

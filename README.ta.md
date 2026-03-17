@@ -11,9 +11,9 @@
   <a href="https://github.com/accomplish-ai/accomplish/stargazers"><img src="https://img.shields.io/github/stars/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Stars" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/issues"><img src="https://img.shields.io/github/issues/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Issues" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/commits"><img src="https://img.shields.io/github/last-commit/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="கடைசி கமிட்" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="macOS (Apple Silicon) க்கான பதிவிறக்கம்" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="macOS (Intel) க்கான பதிவிறக்கம்" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.3.10/windows/Accomplish-0.3.10-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Windows 11 க்கான பதிவிறக்கம்" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="macOS (Apple Silicon) க்கான பதிவிறக்கம்" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="macOS (Intel) க்கான பதிவிறக்கம்" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Windows 11 க்கான பதிவிறக்கம்" /></a>
   <a href="https://discord.gg/MepaTT55"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
@@ -26,11 +26,11 @@ Accomplish என்பது உங்கள் கணினியிலேய�
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-arm64.dmg"><strong>Mac (Apple Silicon) க்கான பதிவிறக்கம்</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><strong>Mac (Apple Silicon) க்கான பதிவிறக்கம்</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-x64.dmg"><strong>Mac (Intel) க்கான பதிவிறக்கம்</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><strong>Mac (Intel) க்கான பதிவிறக்கம்</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.10/windows/Accomplish-0.3.10-win-x64.exe"><strong>Windows 11 க்கான பதிவிறக்கம்</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><strong>Windows 11 க்கான பதிவிறக்கம்</strong></a>
   ·
   <a href="https://www.accomplish.ai/">Accomplish வலைத்தளம்</a>
   ·
@@ -146,6 +146,7 @@ Accomplish என்பது உங்கள் கணினியிலேய�
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
@@ -189,7 +190,7 @@ Accomplish உங்கள் கணினியிலேயே இயங்க�
 
 <div align="center">
 
-[**Mac (Apple Silicon) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-arm64.dmg) · [**Mac (Intel) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.3.10/macos/Accomplish-0.3.10-mac-x64.dmg) · [**Windows 11 க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.3.10/windows/Accomplish-0.3.10-win-x64.exe)
+[**Mac (Apple Silicon) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg) · [**Mac (Intel) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg) · [**Windows 11 க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe)
 
 </div>
 
@@ -255,15 +256,17 @@ pnpm dev
 <details>
 <summary><strong>அனைத்து கட்டளைகளும்</strong></summary>
 
-| கட்டளை                                 | விளக்கம்                                    |
-| -------------------------------------- | ------------------------------------------- |
-| `pnpm dev`                             | டெஸ்க்டாப் செயலியை டெவ் பயன்முறையில் இயக்கு |
-| `pnpm dev:clean`                       | சுத்தமான தொடக்கத்துடன் டெவ் பயன்முறை        |
-| `pnpm build`                           | அனைத்து பணியிடங்களையும் உருவாக்கு           |
-| `pnpm build:desktop`                   | டெஸ்க்டாப் செயலியை மட்டும் உருவாக்கு        |
-| `pnpm lint`                            | TypeScript சரிபார்ப்புகள்                   |
-| `pnpm typecheck`                       | வகை சரிபார்ப்பு                             |
-| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2E சோதனைகள்                     |
+| கட்டளை                                      | விளக்கம்                                        |
+| ------------------------------------------- | ----------------------------------------------- |
+| `pnpm dev`                                  | டெஸ்க்டாப் செயலியை டெவ் பயன்முறையில் இயக்கு     |
+| `pnpm dev:clean`                            | சுத்தமான தொடக்கத்துடன் டெவ் பயன்முறை            |
+| `pnpm build`                                | அனைத்து பணியிடங்களையும் உருவாக்கு               |
+| `pnpm build:desktop`                        | டெஸ்க்டாப் செயலியை மட்டும் உருவாக்கு            |
+| `pnpm -F @accomplish/desktop package:win`   | Windows நிறுவி உருவாக்கு (x64)                  |
+| `pnpm -F @accomplish/desktop package:linux` | Linux கலைப்பொருட்கள் உருவாக்கு (AppImage + deb) |
+| `pnpm lint`                                 | TypeScript சரிபார்ப்புகள்                       |
+| `pnpm typecheck`                            | வகை சரிபார்ப்பு                                 |
+| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2E சோதனைகள்                         |
 
 </details>
 

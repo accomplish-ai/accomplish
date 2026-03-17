@@ -38,6 +38,7 @@ export const MODEL_DISPLAY_NAMES: Record<string, string> = {
   'kimi-k2-turbo-preview': 'Kimi K2 Turbo',
   'kimi-latest': 'Kimi Latest',
   // Z.AI
+  'glm-5': 'GLM-5',
   'glm-4.7-flashx': 'GLM-4.7 FlashX',
   'glm-4.7': 'GLM-4.7',
   'glm-4.7-flash': 'GLM-4.7 Flash',

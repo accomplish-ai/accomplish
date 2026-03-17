@@ -256,15 +256,17 @@ That's it.
 <details>
 <summary><strong>All Commands</strong></summary>
 
-| Command                                | Description                 |
-| -------------------------------------- | --------------------------- |
-| `pnpm dev`                             | Run desktop app in dev mode |
-| `pnpm dev:clean`                       | Dev mode with clean start   |
-| `pnpm build`                           | Build all workspaces        |
-| `pnpm build:desktop`                   | Build desktop app only      |
-| `pnpm lint`                            | TypeScript checks           |
-| `pnpm typecheck`                       | Type validation             |
-| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2E tests        |
+| Command                                     | Description                            |
+| ------------------------------------------- | -------------------------------------- |
+| `pnpm dev`                                  | Run desktop app in dev mode            |
+| `pnpm dev:clean`                            | Dev mode with clean start              |
+| `pnpm build`                                | Build all workspaces                   |
+| `pnpm build:desktop`                        | Build desktop app only                 |
+| `pnpm -F @accomplish/desktop package:win`   | Build Windows installer (x64)          |
+| `pnpm -F @accomplish/desktop package:linux` | Build Linux artifacts (AppImage + deb) |
+| `pnpm lint`                                 | TypeScript checks                      |
+| `pnpm typecheck`                            | Type validation                        |
+| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2E tests                   |
 
 </details>
 
