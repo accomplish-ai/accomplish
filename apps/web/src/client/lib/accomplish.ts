@@ -74,6 +74,10 @@ interface AccomplishAPI {
       | 'bedrock'
       | 'litellm'
       | 'lmstudio'
+      | 'nebius'
+      | 'together'
+      | 'fireworks'
+      | 'groq'
       | 'elevenlabs',
     key: string,
     label?: string,
