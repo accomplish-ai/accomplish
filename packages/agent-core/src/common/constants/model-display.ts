@@ -69,6 +69,7 @@ export const PROVIDER_PREFIXES = [
   'lmstudio/',
   'azure-foundry/',
   'vertex/',
+  'venice/',
 ];
 
 /**

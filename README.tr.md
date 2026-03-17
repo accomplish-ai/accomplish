@@ -146,6 +146,7 @@ Accomplish, bilgisayarınızda yerel olarak dosya yönetimi, belge oluşturma ve
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
