@@ -242,7 +242,7 @@ jobs:
           ref: v${{ needs.version-bump.outputs.new_version }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -293,7 +293,7 @@ jobs:
           ref: v${{ needs.version-bump.outputs.new_version }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -344,7 +344,7 @@ jobs:
   #         ref: v${{ needs.version-bump.outputs.new_version }}
   #
   #     - name: Setup pnpm
-  #       uses: pnpm/action-setup@v4
+  #       uses: pnpm/action-setup@v5
   #
   #     - name: Setup Node.js
   #       uses: actions/setup-node@v6
