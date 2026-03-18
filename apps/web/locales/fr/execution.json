@@ -1,0 +1,99 @@
+{
+  "status": {
+    "queued": "En file d'attente",
+    "running": "En cours",
+    "completed": "Terminé",
+    "failed": "Échoué",
+    "cancelled": "Annulé",
+    "stopped": "Arrêté"
+  },
+  "waiting": {
+    "title": "En attente d'une autre tâche",
+    "description": "Votre tâche est en file d'attente et démarrera automatiquement lorsque la tâche en cours sera terminée.",
+    "followUpDescription": "Votre suivi continuera automatiquement"
+  },
+  "thinking": "Réflexion...",
+  "thinkingPhrases": {
+    "doing": "En cours...",
+    "executing": "Exécution...",
+    "running": "En cours...",
+    "handling": "Traitement...",
+    "accomplishing": "Accomplissement..."
+  },
+  "loadingAgent": "Chargement de l'agent...",
+  "waitingForResponse": "En attente de la réponse...",
+  "connectingToModel": "Connexion à {{modelName}}...",
+  "coldStartHint": "La première tâche prend un peu plus de temps...",
+  "agentWorking": "L'agent travaille...",
+  "stopAgent": "Arrêter l'agent (Ctrl+C)",
+  "followUp": {
+    "interruptedPlaceholder": "Donnez de nouvelles instructions...",
+    "noSessionPlaceholder": "Envoyez une nouvelle instruction pour réessayer...",
+    "completedPlaceholder": "Donnez de nouvelles instructions...",
+    "defaultPlaceholder": "Demandez quelque chose..."
+  },
+  "taskStatus": "Tâche {{status}}",
+  "processing": "Traitement",
+  "system": "Système",
+  "copyToClipboard": "Copier dans le presse-papiers",
+  "permission": {
+    "title": "Autorisation requise",
+    "fileTitle": "Autorisation de fichier requise",
+    "fileDeleteTitle": "Avertissement de suppression de fichier",
+    "questionTitle": "Question",
+    "toolQuestion": "Autoriser {{toolName}} ?",
+    "tool": "Outil",
+    "previewContent": "Aperçu du contenu",
+    "backToOptions": "← Retour aux options",
+    "typeResponse": "Saisissez votre réponse...",
+    "orTypeOwn": "ou saisissez la vôtre",
+    "enterDifferentOption": "Saisissez une autre option...",
+    "cannotBeUndone": "Cette action est irréversible.",
+    "deleteWarningSingle": "Ce fichier sera définitivement supprimé :",
+    "deleteWarningMultiple": "{{count}} fichiers seront définitivement supprimés :",
+    "operations": {
+      "delete": "SUPPRIMER",
+      "overwrite": "ÉCRASER",
+      "modify": "MODIFIER",
+      "create": "CRÉER",
+      "rename": "RENOMMER",
+      "move": "DÉPLACER"
+    }
+  },
+  "browserInstall": {
+    "title": "Chrome non installé",
+    "description": "Installation du navigateur pour l'automatisation...",
+    "downloading": "Téléchargement...",
+    "oneTimeSetup": "Configuration unique (~250 Mo au total)"
+  },
+  "debug": {
+    "title": "Journaux de débogage",
+    "noLogs": "Aucun journal de débogage. Exécutez une tâche pour voir les journaux."
+  },
+  "browserScript": {
+    "title": "Actions du navigateur",
+    "actions": {
+      "navigateTo": "Naviguer vers {{hostname}}",
+      "navigate": "Naviguer",
+      "fill": "Remplir \"{{text}}\"",
+      "fillField": "Remplir le champ",
+      "click": "Cliquer sur {{target}}",
+      "press": "Appuyer sur {{key}}",
+      "capturePage": "Capturer la page",
+      "screenshot": "Capture d'écran",
+      "waitForElement": "Attendre l'élément",
+      "waitForPage": "Attendre la page",
+      "waitForNavigation": "Attendre la navigation",
+      "runScript": "Exécuter le script"
+    },
+    "showMore": "+{{count}} de plus",
+    "showLess": "Afficher moins",
+    "showFewerActions": "Afficher moins d'actions",
+    "showMoreActions": "Afficher {{count}} actions de plus"
+  },
+  "todos": {
+    "title": "Tâches",
+    "progress": "{{completed}} sur {{total}}"
+  },
+  "startNewTask": "Nouvelle tâche"
+}

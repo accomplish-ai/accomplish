@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <strong>한국어</strong> | <a href="README.ru.md">Русский</a> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a>
+  <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <strong>한국어</strong> | <a href="README.ru.md">Русский</a> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a> | <a href="README.ta.md">தமிழ்</a> | <a href="README.hi.md">हिन्दी</a>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
   <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="macOS 다운로드 (Apple Silicon)" /></a>
   <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="macOS 다운로드 (Intel)" /></a>
   <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Windows 11 다운로드" /></a>
-  <a href="https://discord.gg/MepaTT55"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="https://discord.gg/YH86b2P8"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
 # Accomplish™ - 오픈소스 AI 데스크톱 에이전트
@@ -146,6 +146,7 @@ Accomplish는 로컬 머신에서 파일 관리, 문서 작성, 브라우저 작
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
@@ -255,15 +256,17 @@ pnpm dev
 <details>
 <summary><strong>모든 명령어</strong></summary>
 
-| 명령어                                 | 설명                         |
-| -------------------------------------- | ---------------------------- |
-| `pnpm dev`                             | 개발 모드로 데스크톱 앱 실행 |
-| `pnpm dev:clean`                       | 클린 스타트로 개발 모드      |
-| `pnpm build`                           | 모든 워크스페이스 빌드       |
-| `pnpm build:desktop`                   | 데스크톱 앱만 빌드           |
-| `pnpm lint`                            | TypeScript 검사              |
-| `pnpm typecheck`                       | 타입 검증                    |
-| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2E 테스트        |
+| 명령어                                      | 설명                                 |
+| ------------------------------------------- | ------------------------------------ |
+| `pnpm dev`                                  | 개발 모드로 데스크톱 앱 실행         |
+| `pnpm dev:clean`                            | 클린 스타트로 개발 모드              |
+| `pnpm build`                                | 모든 워크스페이스 빌드               |
+| `pnpm build:desktop`                        | 데스크톱 앱만 빌드                   |
+| `pnpm -F @accomplish/desktop package:win`   | Windows 설치 프로그램 빌드 (x64)     |
+| `pnpm -F @accomplish/desktop package:linux` | Linux 아티팩트 빌드 (AppImage + deb) |
+| `pnpm lint`                                 | TypeScript 검사                      |
+| `pnpm typecheck`                            | 타입 검증                            |
+| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2E 테스트                |
 
 </details>
 

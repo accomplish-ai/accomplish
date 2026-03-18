@@ -4,8 +4,8 @@ packages:
 
 catalogs:
   default:
-    better-sqlite3: ^12.6.2
+    better-sqlite3: ^12.8.0
     '@types/better-sqlite3': ^7.6.13
     node-pty: ^1.1.0
     zod: ^3.24.1
-    '@types/node': ^22.10.6
+    '@types/node': ^20.0.0

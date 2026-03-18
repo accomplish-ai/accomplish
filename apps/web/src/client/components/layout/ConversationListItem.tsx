@@ -3,9 +3,9 @@ import { useNavigate, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { Task } from '@accomplish_ai/agent-core/common';
 import { cn } from '@/lib/utils';
-import { X, SpinnerGap } from '@phosphor-icons/react';
+import { X, Star, SpinnerGap } from '@phosphor-icons/react';
 import { useTaskStore } from '@/stores/taskStore';
-import { STATUS_COLORS, extractDomains } from '@/lib/task-utils';
+import { STATUS_COLORS, FAVORITABLE_STATUSES, extractDomains } from '@/lib/task-utils';
 
 interface ConversationListItemProps {
   task: Task;
@@ -18,6 +18,12 @@ export function ConversationListItem({ task }: ConversationListItemProps) {
   const isActive = location.pathname === `/execution/${task.id}`;
   const deleteTask = useTaskStore((state) => state.deleteTask);
   const domains = useMemo(() => extractDomains(task), [task]);
+  const { favorites, addFavorite, removeFavorite } = useTaskStore();
+  const favoritesList = Array.isArray(favorites) ? favorites : [];
+  const isFavorited = favoritesList.some((f) => f.taskId === task.id);
+  const canFavorite = FAVORITABLE_STATUSES.includes(task.status);
+  // Note: loadFavorites is intentionally not called here — the parent page
+  // (Home/Execution) is responsible for loading favorites once on mount.
 
   const handleClick = () => {
     navigate(`/execution/${task.id}`);
@@ -89,6 +95,29 @@ export function ConversationListItem({ task }: ConversationListItemProps) {
               </span>
             ))}
           </span>
+        )}
+        {canFavorite && (
+          <button
+            onClick={async (e) => {
+              e.stopPropagation();
+              if (isFavorited) {
+                await removeFavorite(task.id);
+              } else {
+                await addFavorite(task.id);
+              }
+            }}
+            title={isFavorited ? t('favorite.remove') : t('favorite.add')}
+            aria-label={isFavorited ? t('favorite.remove') : t('favorite.add')}
+            className={cn(
+              'absolute right-6 top-1/2 -translate-y-1/2',
+              'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto',
+              'transition-opacity duration-200',
+              'p-1 rounded hover:bg-accent shrink-0',
+              isFavorited && 'opacity-100 text-amber-500',
+            )}
+          >
+            <Star className={cn('h-3 w-3', isFavorited && 'fill-current')} />
+          </button>
         )}
         <button
           onClick={handleDelete}

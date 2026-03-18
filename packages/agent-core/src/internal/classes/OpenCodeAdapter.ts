@@ -15,6 +15,9 @@ import type { TaskConfig, Task, TaskMessage, TaskResult } from '../../common/typ
 import type { OpenCodeMessage } from '../../common/types/opencode.js';
 import type { PermissionRequest } from '../../common/types/permission.js';
 import type { TodoItem } from '../../common/types/todo.js';
+import type { SandboxConfig, SandboxProvider } from '../../common/types/sandbox.js';
+import { DEFAULT_SANDBOX_CONFIG } from '../../common/types/sandbox.js';
+import { DisabledSandboxProvider } from '../../sandbox/disabled-provider.js';
 import { serializeError } from '../../utils/error.js';
 
 const LOG_TRUNCATION_LIMIT = 500;
@@ -37,6 +40,15 @@ export interface AdapterOptions {
   buildCliArgs: (config: TaskConfig) => Promise<string[]>;
   onBeforeStart?: () => Promise<void>;
   getModelDisplayName?: (modelId: string) => string;
+  /**
+   * Lazy sandbox factory, called once per adapter instance.
+   * When present, overrides sandboxProvider and sandboxConfig.
+   */
+  sandboxFactory?: () => { provider: SandboxProvider; config: SandboxConfig };
+  /** Optional sandbox provider for restricting agent FS/network access */
+  sandboxProvider?: SandboxProvider;
+  /** Sandbox configuration used when sandboxProvider is set */
+  sandboxConfig?: SandboxConfig;
 }
 
 export interface OpenCodeAdapterEvents {
@@ -91,11 +103,34 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   private hasReceivedFirstTool: boolean = false;
   private startTaskCalled: boolean = false;
   private options: AdapterOptions;
+  private sandboxProvider: SandboxProvider;
+  private sandboxConfig: SandboxConfig;
 
   constructor(options: AdapterOptions, taskId?: string) {
     super();
     this.options = options;
     this.currentTaskId = taskId || null;
+    // Prefer the lazy factory so runtime config changes (e.g. sandbox:set-config)
+    // are picked up for each new task without recreating the TaskManager.
+    if (options.sandboxFactory) {
+      const { provider, config } = options.sandboxFactory();
+      this.sandboxProvider = provider;
+      this.sandboxConfig = config;
+    } else {
+      // Guard against fail-open: a non-disabled sandboxConfig requires an explicit provider.
+      if (
+        options.sandboxConfig &&
+        options.sandboxConfig.mode !== 'disabled' &&
+        !options.sandboxProvider
+      ) {
+        throw new Error(
+          `sandboxProvider must be supplied when sandboxConfig.mode is "${options.sandboxConfig.mode}". ` +
+            'Omitting it causes the task to run unsandboxed on the host.',
+        );
+      }
+      this.sandboxProvider = options.sandboxProvider ?? new DisabledSandboxProvider();
+      this.sandboxConfig = options.sandboxConfig ?? DEFAULT_SANDBOX_CONFIG;
+    }
     this.streamParser = new StreamParser();
     this.completionEnforcer = this.createCompletionEnforcer();
     this.setupStreamParsing();
@@ -244,12 +279,22 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       console.log('[OpenCode CLI]', spawnMsg);
       this.emit('debug', { type: 'info', message: spawnMsg });
 
-      this.ptyProcess = pty.spawn(spawnFile, spawnArgs, {
+      const sandboxedArgs = await this.sandboxProvider.wrapSpawnArgs(
+        {
+          file: spawnFile,
+          args: spawnArgs,
+          cwd: safeCwd,
+          env: env,
+        },
+        this.sandboxConfig,
+      );
+
+      this.ptyProcess = pty.spawn(sandboxedArgs.file, sandboxedArgs.args, {
         name: 'xterm-256color',
         cols: 32000,
         rows: 30,
-        cwd: safeCwd,
-        env: env as { [key: string]: string },
+        cwd: sandboxedArgs.cwd,
+        env: sandboxedArgs.env,
       });
       const pidMsg = `PTY Process PID: ${this.ptyProcess.pid}`;
       console.log('[OpenCode CLI]', pidMsg);
@@ -397,8 +442,14 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
   private escapeShellArg(arg: string): string {
     if (this.options.platform === 'win32') {
-      if (arg.includes(' ') || arg.includes('"')) {
-        return `"${arg.replace(/"/g, '""')}"`;
+      // Quote if the argument contains spaces, double-quotes, or any cmd.exe
+      // metacharacter (&, |, <, >, ^, %) that would be misinterpreted when
+      // executing via cmd.exe /s /c. See: https://github.com/accomplish-ai/accomplish/issues/596
+      if (/[ "&|<>^%]/.test(arg)) {
+        // Double embedded quotes per cmd.exe rules; escape % as ^% to prevent
+        // environment variable expansion (e.g. %PATH%) inside the quoted string.
+        const escaped = arg.replace(/"/g, '""').replace(/%/g, '^%');
+        return `"${escaped}"`;
       }
       return arg;
     } else {
@@ -736,12 +787,22 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     const { file: spawnFile, args: spawnArgs } = this.buildPtySpawnArgs(command, allArgs);
 
-    this.ptyProcess = pty.spawn(spawnFile, spawnArgs, {
+    const sandboxedArgs = await this.sandboxProvider.wrapSpawnArgs(
+      {
+        file: spawnFile,
+        args: spawnArgs,
+        cwd: safeCwd,
+        env: env,
+      },
+      this.sandboxConfig,
+    );
+
+    this.ptyProcess = pty.spawn(sandboxedArgs.file, sandboxedArgs.args, {
       name: 'xterm-256color',
       cols: 32000,
       rows: 30,
-      cwd: safeCwd,
-      env: env as { [key: string]: string },
+      cwd: sandboxedArgs.cwd,
+      env: sandboxedArgs.env,
     });
 
     this.ptyProcess.onData((data: string) => {
@@ -823,12 +884,18 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
   private buildPtySpawnArgs(command: string, args: string[]): { file: string; args: string[] } {
     if (this.options.platform === 'win32') {
-      // Windows policy: always spawn the real .exe, never cmd wrappers.
-      if (command.toLowerCase().endsWith('.exe')) {
-        return { file: command, args };
+      if (!command.toLowerCase().endsWith('.exe')) {
+        throw new Error(`Windows CLI command must resolve to an .exe path. Received: ${command}`);
       }
 
-      throw new Error(`Windows CLI command must resolve to an .exe path. Received: ${command}`);
+      // Route through cmd.exe /s /c with proper inner quoting so that
+      // installation paths containing spaces (e.g. "C:\Users\My Name\...")
+      // are handled correctly in both ConPTY and WinPTY fallback modes.
+      // Passing the raw .exe path directly to pty.spawn works for ConPTY
+      // but fails in WinPTY where the unquoted path is split at every space.
+      // See: https://github.com/accomplish-ai/accomplish/issues/596
+      const fullCommand = this.buildShellCommand(command, args);
+      return { file: 'cmd.exe', args: ['/s', '/c', `"${fullCommand}"`] };
     }
 
     const shell =

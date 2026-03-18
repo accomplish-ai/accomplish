@@ -1,5 +1,5 @@
 import type { ProviderType } from '../common/types/provider.js';
-import { ZAI_ENDPOINTS } from '../common/types/provider.js';
+import { ZAI_ENDPOINTS, DEFAULT_PROVIDERS } from '../common/types/provider.js';
 import type { ZaiRegion } from '../common/types/providerSettings.js';
 
 import { fetchWithTimeout } from '../utils/fetch.js';
@@ -174,8 +174,34 @@ export async function validateApiKey(
       case 'litellm':
       case 'lmstudio':
       case 'custom':
-      default:
         return { valid: true };
+
+      default: {
+        // Data-driven validation: fetch from modelsEndpoint configured in DEFAULT_PROVIDERS.
+        // This enables validation for any OpenAI-compatible provider without adding new cases.
+        const providerConfig = DEFAULT_PROVIDERS.find((p) => p.id === provider);
+        if (providerConfig?.modelsEndpoint) {
+          const { url, authStyle } = providerConfig.modelsEndpoint;
+          const headers: Record<string, string> = {};
+          let fetchUrl = url;
+
+          if (authStyle === 'bearer') {
+            headers['Authorization'] = `Bearer ${apiKey}`;
+          } else if (authStyle === 'query-param') {
+            fetchUrl = `${url}?key=${apiKey}`;
+          } else if (authStyle === 'x-api-key') {
+            headers['x-api-key'] = apiKey;
+          }
+
+          if (providerConfig.modelsEndpoint.extraHeaders) {
+            Object.assign(headers, providerConfig.modelsEndpoint.extraHeaders);
+          }
+
+          response = await fetchWithTimeout(fetchUrl, { method: 'GET', headers }, timeout);
+          break;
+        }
+        return { valid: true };
+      }
     }
 
     if (response.ok) {

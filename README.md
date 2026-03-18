@@ -1,5 +1,5 @@
 <p align="center">
-  <strong>English</strong> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.ru.md">Русский</a> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a>
+  <strong>English</strong> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.ru.md">Русский</a> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a> | <a href="README.ta.md">தமிழ்</a> | <a href="README.hi.md">हिन्दी</a>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
   <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="Download for macOS (Apple Silicon)" /></a>
   <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="Download for macOS (Intel)" /></a>
   <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Download for Windows 11" /></a>
-  <a href="https://discord.gg/MepaTT55"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="https://discord.gg/YH86b2P8"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
 # Accomplish™ - Open Source AI Desktop Agent
@@ -146,6 +146,7 @@ Accomplish is an open source AI desktop agent that automates file management, do
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
@@ -255,15 +256,17 @@ That's it.
 <details>
 <summary><strong>All Commands</strong></summary>
 
-| Command                                | Description                 |
-| -------------------------------------- | --------------------------- |
-| `pnpm dev`                             | Run desktop app in dev mode |
-| `pnpm dev:clean`                       | Dev mode with clean start   |
-| `pnpm build`                           | Build all workspaces        |
-| `pnpm build:desktop`                   | Build desktop app only      |
-| `pnpm lint`                            | TypeScript checks           |
-| `pnpm typecheck`                       | Type validation             |
-| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2E tests        |
+| Command                                     | Description                            |
+| ------------------------------------------- | -------------------------------------- |
+| `pnpm dev`                                  | Run desktop app in dev mode            |
+| `pnpm dev:clean`                            | Dev mode with clean start              |
+| `pnpm build`                                | Build all workspaces                   |
+| `pnpm build:desktop`                        | Build desktop app only                 |
+| `pnpm -F @accomplish/desktop package:win`   | Build Windows installer (x64)          |
+| `pnpm -F @accomplish/desktop package:linux` | Build Linux artifacts (AppImage + deb) |
+| `pnpm lint`                                 | TypeScript checks                      |
+| `pnpm typecheck`                            | Type validation                        |
+| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2E tests                   |
 
 </details>
 

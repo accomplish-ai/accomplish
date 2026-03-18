@@ -61,6 +61,19 @@ export class ExecutionPage {
     return this.page.getByTestId('message-copy-button');
   }
 
+  /** Get all code block copy buttons (syntax highlighter) */
+  get codeBlockCopyButtons() {
+    return this.page.getByTestId('code-block-copy-button');
+  }
+
+  get favoriteToggle() {
+    return this.page.getByTestId('favorite-toggle');
+  }
+
+  get startNewTaskButton() {
+    return this.page.getByTestId('start-new-task');
+  }
+
   /** Select a question option by index (0-based) */
   async selectQuestionOption(index: number) {
     await this.questionOptions.nth(index).click();

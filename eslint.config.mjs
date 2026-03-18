@@ -15,6 +15,7 @@ export default tseslint.config(
       '**/playwright-report/**',
       'scripts/**',
       '**/scripts/**/*.cjs',
+      '**/public/theme-init.js',
     ],
   },
   eslint.configs.recommended,

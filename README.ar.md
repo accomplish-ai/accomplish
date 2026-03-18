@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.ru.md">Русский</a> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <strong>العربية</strong> | <a href="README.id.md">Bahasa Indonesia</a>
+  <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.ru.md">Русский</a> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <strong>العربية</strong> | <a href="README.id.md">Bahasa Indonesia</a> | <a href="README.ta.md">தமிழ்</a> | <a href="README.hi.md">हिन्दी</a>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
   <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="تحميل لـ macOS (Apple Silicon)" /></a>
   <a href="https://downloads.accomplish.ai/downloads/0.4.0/macos/Accomplish-0.4.0-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="تحميل لـ macOS (Intel)" /></a>
   <a href="https://downloads.accomplish.ai/downloads/0.4.0/windows/Accomplish-0.4.0-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="تحميل لـ Windows 11" /></a>
-  <a href="https://discord.gg/MepaTT55"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="https://discord.gg/YH86b2P8"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
 # Accomplish™ - وكيل سطح مكتب ذكاء اصطناعي مفتوح المصدر
@@ -146,6 +146,7 @@ Accomplish هو وكيل سطح مكتب ذكاء اصطناعي مفتوح ال
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
@@ -255,15 +256,17 @@ pnpm dev
 <details>
 <summary><strong>جميع الأوامر</strong></summary>
 
-| الأمر                                  | الوصف                                 |
-| -------------------------------------- | ------------------------------------- |
-| `pnpm dev`                             | تشغيل تطبيق سطح المكتب في وضع التطوير |
-| `pnpm dev:clean`                       | وضع التطوير مع بداية نظيفة            |
-| `pnpm build`                           | بناء جميع مساحات العمل                |
-| `pnpm build:desktop`                   | بناء تطبيق سطح المكتب فقط             |
-| `pnpm lint`                            | فحوصات TypeScript                     |
-| `pnpm typecheck`                       | التحقق من الأنواع                     |
-| `pnpm -F @accomplish/desktop test:e2e` | اختبارات Playwright E2E               |
+| الأمر                                       | الوصف                                 |
+| ------------------------------------------- | ------------------------------------- |
+| `pnpm dev`                                  | تشغيل تطبيق سطح المكتب في وضع التطوير |
+| `pnpm dev:clean`                            | وضع التطوير مع بداية نظيفة            |
+| `pnpm build`                                | بناء جميع مساحات العمل                |
+| `pnpm build:desktop`                        | بناء تطبيق سطح المكتب فقط             |
+| `pnpm -F @accomplish/desktop package:win`   | إنشاء مثبّت Windows (x64)             |
+| `pnpm -F @accomplish/desktop package:linux` | إنشاء حزم Linux (AppImage + deb)      |
+| `pnpm lint`                                 | فحوصات TypeScript                     |
+| `pnpm typecheck`                            | التحقق من الأنواع                     |
+| `pnpm -F @accomplish/desktop test:e2e`      | اختبارات Playwright E2E               |
 
 </details>
 

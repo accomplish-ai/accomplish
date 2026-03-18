@@ -22,6 +22,7 @@
     "package": "pnpm download:nodejs && pnpm build:base && pnpm build:mcp-tools:package && node scripts/package.cjs --mac --publish never && npx electron-rebuild -f",
     "package:mac": "pnpm download:nodejs && pnpm build:base && pnpm build:mcp-tools:package && node scripts/package.cjs --mac --publish never && npx electron-rebuild -f",
     "package:win": "pnpm download:nodejs && pnpm build:base && pnpm build:mcp-tools:package && node scripts/package.cjs --win --x64 --publish never",
+    "package:linux": "pnpm download:nodejs && pnpm build:base && ACCOMPLISH_BUNDLED_MCP=1 pnpm build:mcp-tools:package && node scripts/package.cjs --linux --x64 --arm64 --publish never",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
@@ -54,7 +55,7 @@
     "electron-store": "^8.2.0",
     "gray-matter": "^4.0.3",
     "node-pty": "catalog:",
-    "opencode-ai": "1.2.10",
+    "opencode-ai": "1.2.27",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "zod": "catalog:"
@@ -66,20 +67,26 @@
     "@types/node": "catalog:",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
-    "@vitest/coverage-v8": "^4.0.17",
+    "@vitest/coverage-v8": "^4.1.0",
     "concurrently": "^9.1.2",
-    "electron": "^35.2.1",
+    "electron": "^41.0.2",
     "electron-builder": "^25.1.8",
     "esbuild": "^0.27.3",
     "typescript": "^5.7.2",
-    "vite": "^6.0.6",
-    "vite-plugin-electron": "^0.29.0",
-    "vitest": "^4.0.17"
+    "vite": "^8.0.0",
+    "vite-plugin-electron": "^0.29.1",
+    "vitest": "^4.1.0"
   },
   "optionalDependencies": {
-    "opencode-darwin-arm64": "1.2.10",
-    "opencode-darwin-x64": "1.2.10",
-    "opencode-darwin-x64-baseline": "1.2.10"
+    "opencode-darwin-arm64": "1.2.27",
+    "opencode-darwin-x64": "1.2.27",
+    "opencode-darwin-x64-baseline": "1.2.27",
+    "opencode-linux-x64": "1.2.27",
+    "opencode-linux-x64-baseline": "1.2.27",
+    "opencode-linux-x64-musl": "1.2.27",
+    "opencode-linux-x64-baseline-musl": "1.2.27",
+    "opencode-linux-arm64": "1.2.27",
+    "opencode-linux-arm64-musl": "1.2.27"
   },
   "build": {
     "npmRebuild": false,
@@ -105,7 +112,12 @@
       "node_modules/atomically/**",
       "node_modules/debounce-fn/**",
       "!node_modules/@accomplish_ai/**",
-      "!node_modules/opencode-linux-*/**"
+      "node_modules/opencode-linux-x64/**",
+      "node_modules/opencode-linux-x64-baseline/**",
+      "node_modules/opencode-linux-x64-musl/**",
+      "node_modules/opencode-linux-x64-baseline-musl/**",
+      "node_modules/opencode-linux-arm64/**",
+      "node_modules/opencode-linux-arm64-musl/**"
     ],
     "extraResources": [
       {
@@ -158,7 +170,19 @@
       "node_modules/node-pty/package.json",
       "node_modules/better-sqlite3/build/**/*.node",
       "node_modules/better-sqlite3/package.json",
-      "dist-electron/main/mcp/*.js"
+      "dist-electron/main/mcp/*.js",
+      "node_modules/opencode-linux-x64/bin/opencode",
+      "node_modules/opencode-linux-x64/package.json",
+      "node_modules/opencode-linux-x64-baseline/bin/opencode",
+      "node_modules/opencode-linux-x64-baseline/package.json",
+      "node_modules/opencode-linux-x64-musl/bin/opencode",
+      "node_modules/opencode-linux-x64-musl/package.json",
+      "node_modules/opencode-linux-x64-baseline-musl/bin/opencode",
+      "node_modules/opencode-linux-x64-baseline-musl/package.json",
+      "node_modules/opencode-linux-arm64/bin/opencode",
+      "node_modules/opencode-linux-arm64/package.json",
+      "node_modules/opencode-linux-arm64-musl/bin/opencode",
+      "node_modules/opencode-linux-arm64-musl/package.json"
     ],
     "afterPack": "./scripts/after-pack.cjs",
     "publish": {
@@ -209,6 +233,14 @@
       "installerIcon": "resources/icon.ico",
       "uninstallerIcon": "resources/icon.ico",
       "deleteAppDataOnUninstall": false
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "icon": "resources/icon.png"
     }
   }
 }

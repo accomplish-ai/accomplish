@@ -12,9 +12,11 @@ import {
   isCliAvailable as coreIsCliAvailable,
   buildCliArgs as coreBuildCliArgs,
   buildOpenCodeEnvironment,
+  createSandboxProvider,
   type BrowserServerConfig,
   type CliResolverConfig,
   type EnvironmentConfig,
+  type SandboxPaths,
 } from '@accomplish_ai/agent-core';
 import { getModelDisplayName } from '@accomplish_ai/agent-core';
 import type {
@@ -344,6 +346,20 @@ export function createElectronTaskManagerOptions(): TaskManagerOptions {
       onBeforeStart,
       getModelDisplayName,
       buildCliArgs,
+      // Resolve sandbox provider and config lazily at each task creation so that
+      // changes persisted by sandbox:set-config are reflected without recreating
+      // the TaskManager.
+      sandboxFactory: () => {
+        const config = getStorage().getSandboxConfig();
+        const getSandboxPaths = (): SandboxPaths => ({
+          configDir: app.getPath('userData'),
+          openDataHome: app.getPath('appData'),
+        });
+        return {
+          provider: createSandboxProvider(config, process.platform, getSandboxPaths),
+          config,
+        };
+      },
     },
     defaultWorkingDirectory: app.getPath('temp'),
     maxConcurrentTasks: 10,

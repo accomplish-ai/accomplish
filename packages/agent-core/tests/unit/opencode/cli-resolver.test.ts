@@ -57,7 +57,14 @@ describe('CLI Resolver', () => {
   describe('resolveCliPath', () => {
     it('resolves bundled CLI from packaged resources', () => {
       const binName = process.platform === 'win32' ? 'opencode.exe' : 'opencode';
-      const packageName = process.platform === 'win32' ? 'opencode-windows-x64' : 'opencode-ai';
+      let packageName: string;
+      if (process.platform === 'win32') {
+        packageName = 'opencode-windows-x64';
+      } else if (process.platform === 'linux') {
+        packageName = process.arch === 'arm64' ? 'opencode-linux-arm64' : 'opencode-linux-x64';
+      } else {
+        packageName = 'opencode-ai';
+      }
       const cliDir = path.join(
         testDir,
         'resources',
@@ -185,8 +192,31 @@ describe('CLI Resolver', () => {
   });
 
   describe('getCliVersion', () => {
+    it('returns null and does not throw when called with a path that has spaces', async () => {
+      // Regression test for Issue #596.
+      // execFileSync (no shell) must be used so the path is passed to the OS
+      // verbatim rather than through cmd.exe quoting, which fails with
+      // double-leading-quote errors when spaces appear in the username.
+      const pathWithSpaces =
+        process.platform === 'win32'
+          ? 'C:\\Users\\Anish Maheshwari\\AppData\\Local\\Programs\\opencode.exe'
+          : '/home/my user with spaces/opencode';
+
+      const version = await getCliVersion(pathWithSpaces);
+
+      // Must return null (file not found) rather than throwing
+      expect(version).toBeNull();
+    });
+
     it('returns version from package.json when available', async () => {
-      const packageName = process.platform === 'win32' ? 'opencode-windows-x64' : 'opencode-ai';
+      let packageName: string;
+      if (process.platform === 'win32') {
+        packageName = 'opencode-windows-x64';
+      } else if (process.platform === 'linux') {
+        packageName = process.arch === 'arm64' ? 'opencode-linux-arm64' : 'opencode-linux-x64';
+      } else {
+        packageName = 'opencode-ai';
+      }
       const packageDir = path.join(testDir, 'node_modules', packageName);
       const binDir = path.join(testDir, 'node_modules', '.bin');
       fs.mkdirSync(packageDir, { recursive: true });

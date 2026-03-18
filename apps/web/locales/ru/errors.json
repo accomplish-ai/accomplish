@@ -1,0 +1,115 @@
+{
+  "api": {
+    "timeout": "Превышено время ожидания. Проверьте подключение к интернету.",
+    "timeoutRetry": "Превышено время ожидания. Проверьте подключение к интернету и попробуйте снова.",
+    "invalidKey": "Недействительный API-ключ",
+    "noKey": "Пожалуйста, введите API-ключ.",
+    "validationFailed": "Ошибка проверки API-ключа",
+    "networkError": "Ошибка сети. Проверьте подключение.",
+    "connectionFailed": "Не удалось проверить API-ключ. Проверьте подключение к интернету.",
+    "unsupportedProvider": "Неподдерживаемый провайдер"
+  },
+  "task": {
+    "notFound": "Задача не найдена",
+    "startFailed": "Не удалось запустить задачу",
+    "cancelFailed": "Не удалось отменить задачу",
+    "taskFailed": "Задача не выполнена",
+    "noActiveTask": "Нет активной задачи для продолжения",
+    "noSession": "Нет сессии для продолжения — начните новую задачу",
+    "sendMessageFailed": "Не удалось отправить сообщение"
+  },
+  "adapter": {
+    "cliNotFound": "OpenCode CLI недоступен. Встроенный CLI может отсутствовать или быть повреждён. Пожалуйста, переустановите приложение.",
+    "disposed": "Адаптер был закрыт и не может запускать новые задачи",
+    "noActiveProcess": "Нет активного процесса",
+    "exitWithCode": "OpenCode CLI завершился с кодом {{code}}"
+  },
+  "validation": {
+    "mustBeString": "{{field}} должно быть строкой",
+    "required": "{{field}} обязательно",
+    "exceedsLength": "{{field}} превышает максимальную длину",
+    "unsupportedProvider": "Неподдерживаемый провайдер API-ключа",
+    "untrustedWindow": "Ненадёжное окно",
+    "focusedWindowRequired": "IPC-запрос должен исходить из активного окна"
+  },
+  "provider": {
+    "notReady": "Провайдер не готов. Подключите провайдера и выберите модель в настройках.",
+    "noModelsEndpoint": "Для этого провайдера не настроена конечная точка моделей",
+    "noApiKey": "Не найден API-ключ для этого провайдера"
+  },
+  "ollama": {
+    "connectionFailed": "Ошибка подключения",
+    "noModels": "Модели не найдены",
+    "saveFailed": "Не удалось сохранить",
+    "invalidUrl": "Недопустимый формат URL",
+    "protocolNotAllowed": "Допускаются только URL с http и https",
+    "invalidConfig": "Недопустимая конфигурация Ollama",
+    "modelsArray": "Недопустимая конфигурация Ollama: models должен быть массивом",
+    "invalidModelFormat": "Недопустимая конфигурация Ollama: недопустимый формат модели",
+    "connectionTimeout": "Время подключения истекло. Убедитесь, что Ollama запущен.",
+    "cannotConnect": "Не удаётся подключиться к Ollama: {{message}}"
+  },
+  "bedrock": {
+    "invalidCredentials": "Недействительные учётные данные",
+    "saveFailed": "Не удалось сохранить учётные данные",
+    "invalidAuthType": "Недопустимый тип аутентификации",
+    "invalidAwsCredentials": "Недействительные учётные данные AWS. Проверьте Access Key ID и Secret Access Key.",
+    "accessDenied": "Доступ запрещён. Убедитесь, что у ваших учётных данных AWS есть разрешения Bedrock.",
+    "profileNotFound": "Профиль AWS не найден. Проверьте файл ~/.aws/credentials.",
+    "accessKeyRequired": "Требуются Access Key ID и Secret Access Key",
+    "profileNameRequired": "Требуется имя профиля",
+    "apiKeyRequired": "Требуется API-ключ"
+  },
+  "model": {
+    "invalidConfig": "Недопустимая конфигурация модели"
+  },
+  "litellm": {
+    "invalidConfig": "Недопустимая конфигурация LiteLLM",
+    "modelsArray": "Недопустимая конфигурация LiteLLM: models должен быть массивом",
+    "invalidModelFormat": "Недопустимая конфигурация LiteLLM: недопустимый формат модели"
+  },
+  "lmstudio": {
+    "notConfigured": "LM Studio не настроен"
+  },
+  "azureFoundry": {
+    "baseUrlRequired": "Недопустимая конфигурация Azure Foundry: требуется baseUrl",
+    "deploymentRequired": "Недопустимая конфигурация Azure Foundry: требуется deploymentName",
+    "invalidAuthType": "Недопустимая конфигурация Azure Foundry: authType должен быть api-key или entra-id",
+    "invalidEnabled": "Недопустимая конфигурация Azure Foundry: enabled должен быть логическим значением",
+    "invalidBaseUrl": "Недопустимая конфигурация Azure Foundry: недопустимый формат базового URL"
+  },
+  "connector": {
+    "protocolRequired": "URL коннектора должен использовать http:// или https://",
+    "invalidUrl": "Недопустимый URL коннектора: {{url}}"
+  },
+  "settings": {
+    "invalidDebugFlag": "Недопустимый флаг режима отладки",
+    "invalidTheme": "Недопустимое значение темы",
+    "invalidBaseUrl": "Недопустимый базовый URL"
+  },
+  "i18n": {
+    "unsupportedLanguage": "Неподдерживаемый язык"
+  },
+  "url": {
+    "protocolNotAllowed": "Допускаются только URL с http и https"
+  },
+  "permission": {
+    "denied": "Доступ запрещён",
+    "required": "Требуется разрешение"
+  },
+  "generic": {
+    "unknown": "Произошла неизвестная ошибка",
+    "tryAgain": "Пожалуйста, попробуйте снова"
+  },
+  "app": {
+    "mustRunInDesktop": "Это приложение необходимо запускать в десктопном приложении Accomplish.",
+    "unableToStart": "Не удалось запустить",
+    "updateRequired": "Требуется обновление",
+    "schemaNewerMessage": "Эти данные созданы более новой версией Accomplish (схема v{{version}}).",
+    "schemaNewerDetail": "Ваше приложение поддерживает схему до v{{version}}. Пожалуйста, обновите Accomplish."
+  },
+  "auth": {
+    "sessionExpired": "Сессия {{provider}} истекла",
+    "reLoginTo": "Войти заново в {{provider}}"
+  }
+}

@@ -294,32 +294,51 @@ describe('taskStore Integration', () => {
   });
 
   describe('sendFollowUp', () => {
-    it('should set error when no active task', async () => {
+    it('should show error if no active task', async () => {
       // Arrange
       const { useTaskStore } = await import('@/stores/taskStore');
+      useTaskStore.setState({ currentTask: null });
 
       // Act
-      await useTaskStore.getState().sendFollowUp('Follow up message');
-      const state = useTaskStore.getState();
+      const store = useTaskStore.getState();
+      await store.sendFollowUp('Follow up message');
 
       // Assert
-      expect(state.error).toBe('No active task to continue');
+      expect(useTaskStore.getState().error).toBe('No active task to continue');
+      expect(mockAccomplish.logEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          level: 'warn',
+          message: 'UI follow-up failed: no active task',
+        }),
+      );
     });
 
-    it('should set error when task has no session', async () => {
+    it('should show error if no session id', async () => {
       // Arrange
       const { useTaskStore } = await import('@/stores/taskStore');
-      const taskWithoutSession = createMockTask('task-123', 'Test', 'completed');
-      useTaskStore.setState({ currentTask: taskWithoutSession });
+      useTaskStore.setState({
+        currentTask: {
+          ...createMockTask('task-123', 'Test', 'completed'),
+          sessionId: undefined,
+          result: undefined,
+        },
+      });
 
       // Act
-      await useTaskStore.getState().sendFollowUp('Follow up');
-      const state = useTaskStore.getState();
+      const store = useTaskStore.getState();
+      await store.sendFollowUp('Follow up');
 
       // Assert
-      expect(state.error).toBe('No session to continue - please start a new task');
+      expect(useTaskStore.getState().error).toBe(
+        'No session to continue - please start a new task',
+      );
+      expect(mockAccomplish.logEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          level: 'warn',
+          message: 'UI follow-up failed: missing session',
+        }),
+      );
     });
-
     it('should start fresh task for interrupted task without session', async () => {
       // Arrange
       const { useTaskStore } = await import('@/stores/taskStore');

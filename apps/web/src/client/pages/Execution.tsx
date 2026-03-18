@@ -4,9 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../stores/taskStore';
 import { getAccomplish } from '../lib/accomplish';
+import { MAX_FILES } from '../lib/fileUtils';
 import { springs } from '../lib/animations';
+import { FAVORITABLE_STATUSES } from '../lib/task-utils';
 import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
 import { Button } from '@/components/ui/button';
+import { StarButton } from '@/components/ui/StarButton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import {
@@ -32,6 +35,8 @@ import { MessageBubble } from '../components/execution/MessageList';
 import { ToolProgress } from '../components/execution/ToolProgress';
 import { PermissionDialog } from '../components/execution/PermissionDialog';
 import { DebugPanel, type DebugLogEntry } from '../components/execution/DebugPanel';
+import type { FileAttachmentInfo } from '@accomplish_ai/agent-core/common';
+import { getAttachmentIcon } from '../lib/attachments';
 
 function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
   let timeoutId: ReturnType<typeof setTimeout>;
@@ -39,6 +44,59 @@ function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T 
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => fn(...args), ms);
   }) as T;
+}
+
+function ExecutionCompleteFooter({
+  taskId,
+  onStartNewTask,
+}: {
+  taskId: string;
+  onStartNewTask: () => void;
+}) {
+  const { t: tExecution } = useTranslation('execution');
+  const { currentTask, favorites, loadFavorites, addFavorite, removeFavorite } = useTaskStore();
+  const favoritesList = Array.isArray(favorites) ? favorites : [];
+  const isFavorited = favoritesList.some((f) => f.taskId === taskId);
+
+  useEffect(() => {
+    if (typeof loadFavorites === 'function') {
+      loadFavorites();
+    }
+  }, [loadFavorites]);
+
+  const handleToggleFavorite = useCallback(async () => {
+    if (isFavorited) {
+      await removeFavorite(taskId);
+    } else {
+      await addFavorite(taskId);
+    }
+  }, [taskId, isFavorited, addFavorite, removeFavorite]);
+
+  const rawStatus = currentTask?.status ?? '';
+  const statusLabelKey = rawStatus === 'interrupted' ? 'status.stopped' : `status.${rawStatus}`;
+  const statusLabel = rawStatus ? tExecution(statusLabelKey) : '';
+  const canFavorite = FAVORITABLE_STATUSES.includes(rawStatus);
+
+  return (
+    <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4 flex flex-col items-center gap-3">
+      <p className="text-sm text-muted-foreground">
+        {tExecution('taskStatus', { status: statusLabel })}
+      </p>
+      <div className="flex items-center gap-2">
+        {canFavorite && (
+          <StarButton
+            isFavorite={isFavorited}
+            onToggle={() => void handleToggleFavorite()}
+            size="md"
+            data-testid="favorite-toggle"
+          />
+        )}
+        <Button onClick={onStartNewTask} data-testid="start-new-task">
+          {tExecution('startNewTask')}
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 export function ExecutionPage() {
@@ -54,12 +112,19 @@ export function ExecutionPage() {
   const [currentToolInput, setCurrentToolInput] = useState<unknown>(null);
   const [debugLogs, setDebugLogs] = useState<DebugLogEntry[]>([]);
   const [debugModeEnabled, setDebugModeEnabled] = useState(false);
+  const [bugReporting, setBugReporting] = useState(false);
+  const [bugReportSaved, setBugReportSaved] = useState(false);
+  const bugSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [repeatingTask, setRepeatingTask] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
     'providers' | 'voice' | 'skills' | 'connectors'
   >('providers');
   const [pendingFollowUp, setPendingFollowUp] = useState<string | null>(null);
   const pendingSpeechFollowUpRef = useRef<string | null>(null);
+  const [attachments, setAttachments] = useState<FileAttachmentInfo[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [_dragCounter, setDragCounter] = useState(0);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -242,7 +307,7 @@ export function ExecutionPage() {
   }, [canFollowUp]);
 
   const handleFollowUp = useCallback(async () => {
-    if (!followUp.trim()) return;
+    if (!followUp.trim() && attachments.length === 0) return;
     const isE2EMode = await accomplish.isE2EMode();
     if (!isE2EMode) {
       const settings = await accomplish.getProviderSettings();
@@ -253,9 +318,12 @@ export function ExecutionPage() {
         return;
       }
     }
-    await sendFollowUp(followUp);
-    setFollowUp('');
-  }, [followUp, accomplish, sendFollowUp]);
+    const ok = await sendFollowUp(followUp, attachments);
+    if (ok) {
+      setFollowUp('');
+      setAttachments([]);
+    }
+  }, [followUp, attachments, accomplish, sendFollowUp]);
 
   const handleSettingsDialogClose = (open: boolean) => {
     setShowSettingsDialog(open);
@@ -268,9 +336,12 @@ export function ExecutionPage() {
   const handleApiKeySaved = async () => {
     setShowSettingsDialog(false);
     if (pendingFollowUp) {
-      await sendFollowUp(pendingFollowUp);
-      setFollowUp('');
-      setPendingFollowUp(null);
+      const ok = await sendFollowUp(pendingFollowUp, attachments);
+      if (ok) {
+        setFollowUp('');
+        setPendingFollowUp(null);
+        setAttachments([]);
+      }
     }
   };
 
@@ -285,7 +356,7 @@ export function ExecutionPage() {
         return;
       }
     }
-    await sendFollowUp('continue');
+    await sendFollowUp('continue', []);
   };
 
   const handleOpenSpeechSettings = useCallback(() => {
@@ -297,6 +368,26 @@ export function ExecutionPage() {
     setSettingsInitialTab('providers');
     setShowSettingsDialog(true);
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) {
+        return;
+      }
+      if (
+        e.key === 'Escape' &&
+        currentTask?.status === 'running' &&
+        !isComplete &&
+        !permissionRequest &&
+        !showSettingsDialog
+      ) {
+        e.preventDefault();
+        interruptTask();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [currentTask, isComplete, permissionRequest, showSettingsDialog, interruptTask]);
 
   useEffect(() => {
     if (!pendingSpeechFollowUpRef.current) return;
@@ -325,6 +416,141 @@ export function ExecutionPage() {
       interruptTask();
     }
   };
+
+  const handlePickFiles = async () => {
+    if (!accomplish.pickFiles) return;
+    try {
+      const newFiles = await accomplish.pickFiles();
+      if (newFiles.length > 0) {
+        setAttachments((prev) => {
+          const remaining = MAX_FILES - prev.length;
+          if (remaining <= 0) return prev;
+          return [...prev, ...newFiles.slice(0, remaining)];
+        });
+      }
+    } catch (error) {
+      console.error('Failed to pick files:', error);
+    }
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragCounter(0);
+    setIsDragging(false);
+
+    if (!accomplish.processDroppedFiles) {
+      console.warn('Direct file drop is not supported in this environment yet.');
+      return;
+    }
+
+    const extractedFiles: File[] = [];
+    if (e.dataTransfer.items) {
+      for (let i = 0; i < e.dataTransfer.items.length; i++) {
+        if (e.dataTransfer.items[i].kind === 'file') {
+          const file = e.dataTransfer.items[i].getAsFile();
+          if (file) extractedFiles.push(file);
+        }
+      }
+    } else if (e.dataTransfer.files) {
+      for (let i = 0; i < e.dataTransfer.files.length; i++) {
+        extractedFiles.push(e.dataTransfer.files[i]);
+      }
+    }
+
+    if (extractedFiles.length === 0) return;
+
+    const filePaths: string[] = [];
+    for (const file of extractedFiles) {
+      let filePath = 'path' in file ? (file as File & { path: string }).path : undefined;
+
+      if (accomplish.getFilePath) {
+        try {
+          filePath = accomplish.getFilePath(file);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      if (filePath && typeof filePath === 'string') {
+        filePaths.push(filePath);
+      }
+    }
+
+    if (filePaths.length === 0) return;
+
+    try {
+      const newAttachments = await accomplish.processDroppedFiles(filePaths);
+      if (newAttachments.length > 0) {
+        setAttachments((prev) => {
+          const remaining = MAX_FILES - prev.length;
+          if (remaining <= 0) return prev;
+          return [...prev, ...newAttachments.slice(0, remaining)];
+        });
+      }
+    } catch (err) {
+      console.error('Failed to process dropped files:', err);
+    }
+  };
+
+  const handleBugReport = useCallback(async () => {
+    if (!currentTask || !id) {
+      return;
+    }
+    setBugReporting(true);
+    try {
+      const [screenshotResult, axtreeResult] = await Promise.all([
+        accomplish.captureScreenshot(),
+        accomplish.captureAxtree(),
+      ]);
+      const result = await accomplish.generateBugReport({
+        taskId: currentTask.id,
+        taskPrompt: currentTask.prompt,
+        taskStatus: currentTask.status,
+        taskCreatedAt: currentTask.createdAt,
+        taskCompletedAt: currentTask.completedAt,
+        messages: currentTask.messages as unknown[],
+        debugLogs: debugLogs as unknown[],
+        screenshot: screenshotResult.success ? screenshotResult.data : undefined,
+        axtree: axtreeResult.success ? axtreeResult.data : undefined,
+      });
+      if (result.success) {
+        setBugReportSaved(true);
+        if (bugSavedTimerRef.current) clearTimeout(bugSavedTimerRef.current);
+        bugSavedTimerRef.current = setTimeout(() => {
+          setBugReportSaved(false);
+          bugSavedTimerRef.current = null;
+        }, 2500);
+      }
+    } catch (err) {
+      console.error('[Execution] Bug report failed:', err);
+    } finally {
+      setBugReporting(false);
+    }
+  }, [accomplish, currentTask, debugLogs, id]);
+
+  const handleRepeatTask = useCallback(async () => {
+    if (!currentTask) {
+      return;
+    }
+    const activeStatuses = ['pending', 'queued', 'running', 'waiting_permission', 'waiting'];
+    if (activeStatuses.includes(currentTask.status)) {
+      return;
+    }
+    setRepeatingTask(true);
+    try {
+      const newTask = await accomplish.startTask({ prompt: currentTask.prompt });
+      navigate(`/execution/${newTask.id}`);
+    } catch (err) {
+      console.error('[Execution] Failed to repeat task:', err);
+    } finally {
+      setRepeatingTask(false);
+    }
+  }, [accomplish, currentTask, navigate]);
 
   if (error) {
     return (
@@ -686,7 +912,53 @@ export function ExecutionPage() {
 
         {/* Follow-up input */}
         {canFollowUp && (
-          <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4">
+          <div
+            className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4 relative"
+            onDragEnter={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              e.dataTransfer.dropEffect = 'copy';
+              setDragCounter((prev) => prev + 1);
+              if (!isDragging) setIsDragging(true);
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              e.dataTransfer.dropEffect = 'copy';
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragCounter((prev) => {
+                const next = prev - 1;
+                if (next === 0) setIsDragging(false);
+                return next;
+              });
+            }}
+            onDrop={handleDrop}
+          >
+            {/* Drop overlay */}
+            {isDragging && (
+              <div
+                className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm border-2 border-dashed border-primary"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.dataTransfer.dropEffect = 'copy';
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDragging(false);
+                }}
+                onDrop={handleDrop}
+              >
+                <div className="text-primary font-medium flex items-center gap-2 pointer-events-none">
+                  Drop files to attach
+                </div>
+              </div>
+            )}
+
             <div className="max-w-4xl mx-auto space-y-2">
               {speechInput.error && (
                 <Alert
@@ -709,6 +981,29 @@ export function ExecutionPage() {
                 </Alert>
               )}
               <div className="rounded-xl border border-border bg-background shadow-sm transition-all duration-200 focus-within:border-ring focus-within:ring-1 focus-within:ring-ring">
+                {/* Attachments UI Bar */}
+                {attachments.length > 0 && (
+                  <div className="px-4 pt-4 pb-1 flex gap-2 overflow-x-auto items-center">
+                    {attachments.map((file) => (
+                      <div
+                        key={file.id}
+                        className="flex items-center gap-2 px-2.5 py-1.5 bg-muted/50 border border-border rounded-md shrink-0 max-w-[200px]"
+                        title={file.name}
+                      >
+                        {getAttachmentIcon(file.type)}
+                        <span className="text-xs font-medium truncate">{file.name}</span>
+                        <button
+                          onClick={() => removeAttachment(file.id)}
+                          aria-label={`Remove attachment ${file.name}`}
+                          className="text-muted-foreground hover:text-foreground shrink-0 ml-1 rounded-full p-0.5 hover:bg-muted"
+                        >
+                          <XCircle className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="px-4 pt-3 pb-2">
                   <textarea
                     ref={followUpInputRef}
@@ -747,6 +1042,7 @@ export function ExecutionPage() {
                       setFollowUp(newValue);
                       setTimeout(() => followUpInputRef.current?.focus(), 0);
                     }}
+                    onAttachFiles={handlePickFiles}
                     onOpenSettings={(tab) => {
                       setSettingsInitialTab(tab);
                       setShowSettingsDialog(true);
@@ -772,7 +1068,11 @@ export function ExecutionPage() {
                     <button
                       type="button"
                       onClick={handleFollowUp}
-                      disabled={!followUp.trim() || isLoading || speechInput.isRecording}
+                      disabled={
+                        (!followUp.trim() && attachments.length === 0) ||
+                        isLoading ||
+                        speechInput.isRecording
+                      }
                       className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       title={tCommon('buttons.send')}
                     >
@@ -785,26 +1085,25 @@ export function ExecutionPage() {
           </div>
         )}
 
-        {/* Completed/Failed state (no session to continue) */}
-        {isComplete && !canFollowUp && (
-          <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4 text-center">
-            <p className="text-sm text-muted-foreground mb-3">
-              {t('taskStatus', {
-                status:
-                  currentTask.status === 'interrupted'
-                    ? t('status.stopped').toLowerCase()
-                    : currentTask.status,
-              })}
-            </p>
-            <div className="mt-3">
-              <Button onClick={() => navigate('/')}>{tCommon('buttons.startNewTask')}</Button>
-            </div>
-          </div>
+        {['completed', 'interrupted', 'failed', 'cancelled'].includes(
+          currentTask?.status ?? '',
+        ) && (
+          <ExecutionCompleteFooter taskId={currentTask.id} onStartNewTask={() => navigate('/')} />
         )}
 
         {/* Debug Panel */}
         {debugModeEnabled && (
-          <DebugPanel debugLogs={debugLogs} taskId={id} onClearLogs={() => setDebugLogs([])} />
+          <DebugPanel
+            debugLogs={debugLogs}
+            taskId={id}
+            onClearLogs={() => setDebugLogs([])}
+            onBugReport={handleBugReport}
+            bugReporting={bugReporting}
+            bugReportSaved={bugReportSaved}
+            onRepeatTask={handleRepeatTask}
+            repeatingTask={repeatingTask}
+            isRunning={currentTask?.status === 'running'}
+          />
         )}
       </div>
     </>
