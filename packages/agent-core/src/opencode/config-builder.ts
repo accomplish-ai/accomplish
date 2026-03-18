@@ -283,8 +283,11 @@ export async function buildProviderConfigs(
           const mId = model.id.replace(/^xai\//, '');
           xaiModels[mId] = { name: model.name, tools: true };
         }
-      } else {
-        // Fallback: at minimum register the selected model
+      }
+
+      // Final guard: always ensure the selected model is registered,
+      // even if availableModels is stale/partial and doesn't include it.
+      if (!xaiModels[modelId]) {
         xaiModels[modelId] = { name: modelId, tools: true };
       }
 
