@@ -262,6 +262,41 @@ export async function buildProviderConfigs(
     console.log('[OpenCode Config Builder] Moonshot configured:', modelId);
   }
 
+  // xAI provider — register selected model so OpenCode can resolve it.
+  // OpenCode's @ai-sdk/xai only knows its built-in model list; dynamically-fetched
+  // models (e.g. "grok-4-fast-reasoning") would otherwise cause
+  // ProviderModelNotFoundError at runtime. The xAI native API expects model names
+  // without the "xai/" prefix (unlike aggregators like OpenRouter).
+  const xaiProvider = providerSettings.connectedProviders.xai;
+  const xaiApiKey = getApiKey('xai');
+  if (xaiProvider?.connectionStatus === 'connected' && xaiApiKey) {
+    const selectedXaiModelId = xaiProvider.selectedModelId;
+    if (selectedXaiModelId) {
+      const modelId = selectedXaiModelId.replace(/^xai\//, '');
+
+      // Build models map: include all available models fetched from the xAI API
+      // so the user can switch between them without a restart.
+      const xaiModels: Record<string, ProviderModelConfig> = {};
+
+      if (xaiProvider.availableModels && xaiProvider.availableModels.length > 0) {
+        for (const model of xaiProvider.availableModels) {
+          const mId = model.id.replace(/^xai\//, '');
+          xaiModels[mId] = { name: model.name, tools: true };
+        }
+      } else {
+        // Fallback: at minimum register the selected model
+        xaiModels[modelId] = { name: modelId, tools: true };
+      }
+
+      providerConfigs.push({
+        id: 'xai',
+        options: { apiKey: xaiApiKey },
+        models: xaiModels,
+      });
+      console.log('[OpenCode Config Builder] xAI configured, selected model:', modelId);
+    }
+  }
+
   // Google AI provider — register selected model so OpenCode can resolve it.
   // OpenCode's @ai-sdk/google only knows its built-in model list; dynamically-fetched
   // models (e.g. "gemini-3.1-flash-lite-preview") would otherwise cause
