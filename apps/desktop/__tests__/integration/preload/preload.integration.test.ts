@@ -220,6 +220,21 @@ describe('Preload Script Integration', () => {
         await (capturedAccomplishAPI.getAppSettings as () => Promise<unknown>)();
         expect(mockInvoke).toHaveBeenCalledWith('settings:app-settings');
       });
+
+      it('getSlackMcpOauthStatus should invoke opencode:auth:slack:status', async () => {
+        await (capturedAccomplishAPI.getSlackMcpOauthStatus as () => Promise<unknown>)();
+        expect(mockInvoke).toHaveBeenCalledWith('opencode:auth:slack:status');
+      });
+
+      it('loginSlackMcp should invoke opencode:auth:slack:login', async () => {
+        await (capturedAccomplishAPI.loginSlackMcp as () => Promise<unknown>)();
+        expect(mockInvoke).toHaveBeenCalledWith('opencode:auth:slack:login');
+      });
+
+      it('logoutSlackMcp should invoke opencode:auth:slack:logout', async () => {
+        await (capturedAccomplishAPI.logoutSlackMcp as () => Promise<void>)();
+        expect(mockInvoke).toHaveBeenCalledWith('opencode:auth:slack:logout');
+      });
     });
 
     describe('API Key Operations', () => {

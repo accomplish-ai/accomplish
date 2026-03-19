@@ -26,6 +26,7 @@ import { initThoughtStreamApi, startThoughtStreamServer } from './thought-stream
 import type { ProviderId } from '@accomplish_ai/agent-core';
 import { disposeTaskManager, cleanupVertexServiceAccountKey } from './opencode';
 import { oauthBrowserFlow } from './opencode/auth-browser';
+import { slackMcpOAuthFlow } from './opencode/slack-auth';
 import { migrateLegacyData } from './store/legacyMigration';
 import {
   initializeStorage,
@@ -341,6 +342,7 @@ app.on('before-quit', () => {
   disposeTaskManager(); // Also cleans up proxies internally
   cleanupVertexServiceAccountKey();
   oauthBrowserFlow.dispose();
+  slackMcpOAuthFlow.dispose();
   closeStorage();
   shutdownLogCollector();
 });

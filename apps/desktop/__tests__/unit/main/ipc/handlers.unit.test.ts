@@ -121,11 +121,17 @@ vi.mock('@main/opencode', () => ({
   getOpenCodeCliVersion: vi.fn(() => Promise.resolve('1.0.0')),
 }));
 
-// Mock OpenCode auth (ChatGPT OAuth) - used by handlers.ts for OpenAI OAuth
-vi.mock('@main/opencode/auth', () => ({
-  getOpenAiOauthStatus: vi.fn(() => ({ connected: false })),
+const authBrowserMocks = vi.hoisted(() => ({
   loginOpenAiWithChatGpt: vi.fn(() => Promise.resolve({ openedUrl: undefined })),
 }));
+
+const slackAuthMocks = vi.hoisted(() => ({
+  loginSlackMcp: vi.fn(() => Promise.resolve()),
+  logoutSlackMcp: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('@main/opencode/auth-browser', () => authBrowserMocks);
+vi.mock('@main/opencode/slack-auth', () => slackAuthMocks);
 
 // Mock task history (stored in test state)
 const mockTasks: Array<{
@@ -323,6 +329,10 @@ vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
 
     // OAuth status
     getOpenAiOauthStatus: vi.fn(() => ({ connected: false })),
+    getSlackMcpOauthStatus: vi.fn(() => ({
+      connected: false,
+      pendingAuthorization: false,
+    })),
 
     // Azure token function
     getAzureEntraToken: vi.fn(() => Promise.resolve({ success: true, token: 'mock-token' })),
@@ -542,6 +552,9 @@ describe('IPC Handlers Integration', () => {
       // OpenCode handlers
       expect(handlers.has('opencode:check')).toBe(true);
       expect(handlers.has('opencode:version')).toBe(true);
+      expect(handlers.has('opencode:auth:slack:status')).toBe(true);
+      expect(handlers.has('opencode:auth:slack:login')).toBe(true);
+      expect(handlers.has('opencode:auth:slack:logout')).toBe(true);
 
       // Model handlers
       expect(handlers.has('model:get')).toBe(true);
@@ -745,6 +758,38 @@ describe('IPC Handlers Integration', () => {
       // Assert
       const { deleteApiKey } = await import('@main/store/secureStorage');
       expect(deleteApiKey).toHaveBeenCalledWith('openai');
+    });
+
+    it('opencode:auth:slack:status should return Slack MCP auth status', async () => {
+      const { getSlackMcpOauthStatus } = await import('@accomplish_ai/agent-core');
+      vi.mocked(getSlackMcpOauthStatus).mockReturnValue({
+        connected: true,
+        pendingAuthorization: false,
+      });
+
+      const result = await invokeHandler('opencode:auth:slack:status');
+
+      expect(result).toEqual({
+        connected: true,
+        pendingAuthorization: false,
+      });
+    });
+
+    it('opencode:auth:slack:login should start Slack MCP authentication', async () => {
+      const { loginSlackMcp } = await import('@main/opencode/slack-auth');
+
+      const result = await invokeHandler('opencode:auth:slack:login');
+
+      expect(loginSlackMcp).toHaveBeenCalled();
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('opencode:auth:slack:logout should clear Slack MCP authentication', async () => {
+      const { logoutSlackMcp } = await import('@main/opencode/slack-auth');
+
+      await invokeHandler('opencode:auth:slack:logout');
+
+      expect(logoutSlackMcp).toHaveBeenCalled();
     });
   });
 

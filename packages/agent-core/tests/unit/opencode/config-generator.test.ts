@@ -172,11 +172,31 @@ describe('ConfigGenerator', () => {
 
       const result = generateConfig(options);
 
+      expect(result.mcpServers.slack).toBeDefined();
       expect(result.mcpServers['file-permission']).toBeDefined();
       expect(result.mcpServers['ask-user-question']).toBeDefined();
       expect(result.mcpServers['dev-browser-mcp']).toBeDefined();
       expect(result.mcpServers['complete-task']).toBeDefined();
       expect(result.mcpServers['start-task']).toBeDefined();
+    });
+
+    it('should include the Slack MCP with OpenCode-compatible OAuth config', () => {
+      const options: ConfigGeneratorOptions = {
+        ...baseOptions,
+        mcpToolsPath,
+        userDataPath,
+      };
+
+      const result = generateConfig(options);
+
+      expect(result.mcpServers.slack).toEqual({
+        type: 'remote',
+        url: 'https://mcp.slack.com/mcp',
+        oauth: {
+          clientId: '1601185624273.8899143856786',
+        },
+      });
+      expect(result.config.mcp?.slack).toEqual(result.mcpServers.slack);
     });
 
     it('should set permission API port in environment', () => {
@@ -563,6 +583,8 @@ describe('ConfigGenerator', () => {
       expect(result.systemPrompt).toContain('<capabilities>');
       expect(result.systemPrompt).toContain('Browser Automation');
       expect(result.systemPrompt).toContain('File Management');
+      expect(result.systemPrompt).toContain('Slack');
+      expect(result.systemPrompt).toContain('Slack MCP is authenticated');
     });
 
     it('should instruct agent NOT to call complete_task for conversational responses', () => {
@@ -593,6 +615,27 @@ describe('ConfigGenerator', () => {
 
       expect(result.systemPrompt).toContain('AskUserQuestion');
       expect(result.systemPrompt).toContain('user CANNOT see your text output');
+    });
+
+    it('should include Slack usage and authentication guidance', () => {
+      const options: ConfigGeneratorOptions = {
+        platform: 'darwin',
+        mcpToolsPath,
+        userDataPath,
+        isPackaged: false,
+        bundledNodeBinPath: sharedBundledNodeBinPath,
+      };
+
+      const result = generateConfig(options);
+
+      expect(result.systemPrompt).toContain('For Slack-related requests, use the Slack MCP tools');
+      expect(result.systemPrompt).toContain('Never invent Slack tool names');
+      expect(result.systemPrompt).toContain(
+        'If the user asks you to connect or authenticate Slack',
+      );
+      expect(result.systemPrompt).toContain('If Slack authentication is required');
+      expect(result.systemPrompt).toContain('Do not claim a Slack message was sent');
+      expect(result.systemPrompt).toContain('confirm where you sent it');
     });
   });
 

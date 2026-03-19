@@ -95,12 +95,18 @@ importers:
       opencode-ai:
         specifier: 1.2.27
         version: 1.2.27
+      proxy-from-env:
+        specifier: ^1.1.0
+        version: 1.1.0
       react:
         specifier: ^19.0.0
         version: 19.2.4
       react-dom:
         specifier: ^19.0.0
         version: 19.2.4(react@19.2.4)
+      undici:
+        specifier: ^7.0.0
+        version: 7.24.3
       zod:
         specifier: 'catalog:'
         version: 3.25.76
