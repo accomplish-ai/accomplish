@@ -35,6 +35,7 @@ import {
   resetStorageSingleton,
 } from './store/storage';
 import { getApiKey, clearSecureStorage } from './store/secureStorage';
+import * as workspaceManager from './store/workspaceManager';
 import { initializeLogCollector, shutdownLogCollector, getLogCollector } from './logging';
 import { skillsManager } from './skills';
 
@@ -273,6 +274,13 @@ if (!gotTheLock) {
     }
 
     try {
+      workspaceManager.initialize();
+    } catch (err) {
+      console.error('[Main] Workspace initialization failed:', err);
+      throw err;
+    }
+
+    try {
       const storage = getStorage();
       const settings = storage.getProviderSettings();
       for (const [id, provider] of Object.entries(settings.connectedProviders)) {
@@ -343,6 +351,7 @@ app.on('before-quit', () => {
   cleanupVertexServiceAccountKey();
   oauthBrowserFlow.dispose();
   slackMcpOAuthFlow.dispose();
+  workspaceManager.close();
   closeStorage();
   shutdownLogCollector();
 });

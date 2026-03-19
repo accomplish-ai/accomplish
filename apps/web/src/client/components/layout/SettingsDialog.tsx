@@ -11,11 +11,12 @@ import { ProviderGrid } from '@/components/settings/ProviderGrid';
 import { ProviderSettingsPanel } from '@/components/settings/ProviderSettingsPanel';
 import { SpeechSettingsForm } from '@/components/settings/SpeechSettingsForm';
 import { SkillsPanel, AddSkillDropdown } from '@/components/settings/skills';
+import { WorkspacesPanel } from '@/components/settings/WorkspacesPanel';
 import { AboutTab } from '@/components/settings/AboutTab';
 import { DebugSection } from '@/components/settings/DebugSection';
 import { SandboxSection } from '@/components/settings/SandboxSection';
 import { ConnectorsPanel } from '@/components/settings/connectors';
-import { Key, Lightning, Microphone, Info, Plugs } from '@phosphor-icons/react';
+import { Key, Lightning, Microphone, Info, Plugs, FolderSimple } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import logoImage from '/assets/logo-1.png';
 
@@ -23,6 +24,7 @@ const TABS = [
   { id: 'providers' as const, labelKey: 'tabs.providers', icon: Key },
   { id: 'skills' as const, labelKey: 'tabs.skills', icon: Lightning },
   { id: 'connectors' as const, labelKey: 'tabs.connectors', icon: Plugs },
+  { id: 'workspaces' as const, labelKey: 'tabs.workspaces', icon: FolderSimple },
   { id: 'voice' as const, labelKey: 'tabs.voiceInput', icon: Microphone },
   { id: 'about' as const, labelKey: 'tabs.about', icon: Info },
 ];
@@ -36,9 +38,9 @@ interface SettingsDialogProps {
   onApiKeySaved?: () => void;
   initialProvider?: ProviderId;
   /**
-   * Initial tab to show when dialog opens ('providers' or 'voice')
+   * Initial tab to show when dialog opens.
    */
-  initialTab?: 'providers' | 'voice' | 'skills' | 'connectors' | 'about';
+  initialTab?: 'providers' | 'voice' | 'skills' | 'connectors' | 'workspaces' | 'about';
 }
 
 export function SettingsDialog({
@@ -54,7 +56,7 @@ export function SettingsDialog({
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    'providers' | 'voice' | 'skills' | 'connectors' | 'about'
+    'providers' | 'voice' | 'skills' | 'connectors' | 'workspaces' | 'about'
   >(initialTab);
   const [appVersion, setAppVersion] = useState<string>('');
   const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
@@ -439,6 +441,13 @@ export function SettingsDialog({
               {activeTab === 'connectors' && (
                 <div className="space-y-6">
                   <ConnectorsPanel />
+                </div>
+              )}
+
+              {/* Workspaces Tab */}
+              {activeTab === 'workspaces' && (
+                <div className="space-y-6">
+                  <WorkspacesPanel />
                 </div>
               )}
 

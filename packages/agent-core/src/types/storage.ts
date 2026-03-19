@@ -70,12 +70,12 @@ export interface AppSettings {
 
 /** API for task CRUD operations and todo management */
 export interface TaskStorageAPI {
-  /** Get all stored tasks */
-  getTasks(): StoredTask[];
+  /** Get all stored tasks, optionally filtered by workspace */
+  getTasks(workspaceId?: string | null): StoredTask[];
   /** Get a task by ID, returns undefined if not found */
   getTask(taskId: string): StoredTask | undefined;
   /** Persist a new task or update an existing one */
-  saveTask(task: Task): void;
+  saveTask(task: Task, workspaceId?: string | null): void;
   /** Update a task's status and optional completion timestamp */
   updateTaskStatus(taskId: string, status: TaskStatus, completedAt?: string): void;
   /** Append a message to a task's message history */

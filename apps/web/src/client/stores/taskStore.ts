@@ -13,7 +13,6 @@ import {
 } from '@accomplish_ai/agent-core/common';
 import type { StoredFavorite } from '@accomplish_ai/agent-core';
 import { getAccomplish } from '../lib/accomplish';
-
 // Request-token counter to guard against stale loadFavorites responses
 let _loadFavoritesToken = 0;
 
@@ -131,7 +130,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         step = 1;
       }
     }
-    set({ setupProgress: message, setupProgressTaskId: taskId, setupDownloadStep: step });
+    set({
+      setupProgress: message,
+      setupProgressTaskId: taskId,
+      setupDownloadStep: step,
+    });
   },
 
   setStartupStage: (
@@ -475,7 +478,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       const updatedCurrentTask =
         state.currentTask?.id === taskId
-          ? { ...state.currentTask, status, updatedAt: new Date().toISOString() }
+          ? {
+              ...state.currentTask,
+              status,
+              updatedAt: new Date().toISOString(),
+            }
           : state.currentTask;
 
       return {
@@ -689,7 +696,6 @@ if (typeof window !== 'undefined' && window.accomplish) {
   window.accomplish.onTaskSummary?.((data: { taskId: string; summary: string }) => {
     useTaskStore.getState().setTaskSummary(data.taskId, data.summary);
   });
-
   window.accomplish.onTodoUpdate?.((data: { taskId: string; todos: TodoItem[] }) => {
     const state = useTaskStore.getState();
     if (state.currentTask?.id === data.taskId) {
@@ -699,5 +705,26 @@ if (typeof window !== 'undefined' && window.accomplish) {
 
   window.accomplish.onAuthError?.((data: { providerId: string; message: string }) => {
     useTaskStore.getState().setAuthError(data);
+  });
+
+  // Reload tasks when workspace changes, then navigate to most recent task or home
+  window.accomplish.onWorkspaceChanged?.(async () => {
+    const state = useTaskStore.getState();
+    state.reset();
+    try {
+      await state.loadTasks();
+    } catch (err) {
+      console.error('[taskStore] Failed to load tasks after workspace change:', err);
+      return;
+    }
+
+    const tasks = useTaskStore.getState().tasks;
+    if (tasks.length > 0) {
+      // Navigate to the most recent conversation
+      window.location.hash = `#/execution/${tasks[0].id}`;
+    } else {
+      // No tasks in this workspace - go to new conversation
+      window.location.hash = '#/';
+    }
   });
 }

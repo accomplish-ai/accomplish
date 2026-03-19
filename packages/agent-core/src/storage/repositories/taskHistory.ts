@@ -107,11 +107,18 @@ function rowToTask(row: TaskRow): StoredTask {
   };
 }
 
-export function getTasks(): StoredTask[] {
+export function getTasks(workspaceId?: string | null): StoredTask[] {
   const db = getDatabase();
-  const rows = db
-    .prepare('SELECT * FROM tasks ORDER BY created_at DESC LIMIT ?')
-    .all(MAX_HISTORY_ITEMS) as TaskRow[];
+  let rows: TaskRow[];
+  if (workspaceId) {
+    rows = db
+      .prepare('SELECT * FROM tasks WHERE workspace_id = ? ORDER BY created_at DESC LIMIT ?')
+      .all(workspaceId, MAX_HISTORY_ITEMS) as TaskRow[];
+  } else {
+    rows = db
+      .prepare('SELECT * FROM tasks ORDER BY created_at DESC LIMIT ?')
+      .all(MAX_HISTORY_ITEMS) as TaskRow[];
+  }
 
   return rows.map(rowToTask);
 }
@@ -123,14 +130,14 @@ export function getTask(taskId: string): StoredTask | undefined {
   return row ? rowToTask(row) : undefined;
 }
 
-export function saveTask(task: Task): void {
+export function saveTask(task: Task, workspaceId?: string | null): void {
   const db = getDatabase();
 
   db.transaction(() => {
     db.prepare(
       `INSERT OR REPLACE INTO tasks
-        (id, prompt, summary, status, session_id, created_at, started_at, completed_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, prompt, summary, status, session_id, created_at, started_at, completed_at, workspace_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       task.id,
       task.prompt,
@@ -140,6 +147,7 @@ export function saveTask(task: Task): void {
       task.createdAt,
       task.startedAt || null,
       task.completedAt || null,
+      workspaceId || null,
     );
 
     db.prepare('DELETE FROM task_messages WHERE task_id = ?').run(task.id);
@@ -174,11 +182,25 @@ export function saveTask(task: Task): void {
       }
     }
 
-    db.prepare(
-      `DELETE FROM tasks WHERE id NOT IN (
-        SELECT id FROM tasks ORDER BY created_at DESC LIMIT ?
-      )`,
-    ).run(MAX_HISTORY_ITEMS);
+    if (workspaceId) {
+      db.prepare(
+        `DELETE FROM tasks
+         WHERE workspace_id = ?
+           AND id NOT IN (
+             SELECT id FROM tasks WHERE workspace_id = ?
+             ORDER BY created_at DESC LIMIT ?
+           )`,
+      ).run(workspaceId, workspaceId, MAX_HISTORY_ITEMS);
+    } else {
+      db.prepare(
+        `DELETE FROM tasks
+         WHERE workspace_id IS NULL
+           AND id NOT IN (
+             SELECT id FROM tasks WHERE workspace_id IS NULL
+             ORDER BY created_at DESC LIMIT ?
+           )`,
+      ).run(MAX_HISTORY_ITEMS);
+    }
   })();
 }
 

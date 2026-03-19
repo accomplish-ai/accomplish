@@ -11,12 +11,16 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ConversationListItem from './ConversationListItem';
 import SettingsDialog from './SettingsDialog';
+import WorkspaceSelector from './WorkspaceSelector';
 import { Gear, ChatText, MagnifyingGlass } from '@phosphor-icons/react';
 import logoImage from '/assets/logo-1.png';
 
 export default function Sidebar() {
   const navigate = useNavigate();
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<
+    'providers' | 'voice' | 'skills' | 'connectors' | 'workspaces' | 'about'
+  >('providers');
   const { tasks, loadTasks, updateTaskStatus, addTaskUpdate, openLauncher } = useTaskStore();
   const accomplish = getAccomplish();
   const { t } = useTranslation('sidebar');
@@ -49,6 +53,16 @@ export default function Sidebar() {
   return (
     <>
       <div className="flex h-screen w-[260px] flex-col border-r border-border bg-card pt-12">
+        {/* Workspace Selector */}
+        <div className="px-3 pt-3 pb-1">
+          <WorkspaceSelector
+            onManageWorkspaces={() => {
+              setSettingsInitialTab('workspaces');
+              setShowSettings(true);
+            }}
+          />
+        </div>
+
         {/* Action Buttons */}
         <div className="px-3 py-3 border-b border-border flex gap-2">
           <Button
@@ -121,7 +135,10 @@ export default function Sidebar() {
             data-testid="sidebar-settings-button"
             variant="ghost"
             size="icon"
-            onClick={() => setShowSettings(true)}
+            onClick={() => {
+              setSettingsInitialTab('providers');
+              setShowSettings(true);
+            }}
             title={t('settings')}
           >
             <Gear className="h-4 w-4" />
@@ -129,7 +146,11 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <SettingsDialog open={showSettings} onOpenChange={setShowSettings} />
+      <SettingsDialog
+        open={showSettings}
+        onOpenChange={setShowSettings}
+        initialTab={settingsInitialTab}
+      />
     </>
   );
 }

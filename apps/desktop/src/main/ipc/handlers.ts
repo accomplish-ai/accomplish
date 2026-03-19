@@ -102,6 +102,8 @@ import {
 } from '../test-utils/mock-task-flow';
 import { skillsManager } from '../skills';
 import { registerVertexHandlers } from '../providers';
+import * as workspaceManager from '../store/workspaceManager';
+import type { WorkspaceCreateInput, WorkspaceUpdateInput } from '@accomplish_ai/agent-core';
 
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
 const MAX_ATTACHMENT_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -171,7 +173,7 @@ export function registerIPCHandlers(): void {
       const mockTask = createMockTask(taskId, validatedConfig.prompt);
       const scenario = detectScenarioFromPrompt(validatedConfig.prompt);
 
-      storage.saveTask(mockTask);
+      storage.saveTask(mockTask, workspaceManager.getActiveWorkspace());
 
       void executeMockTaskFlow(window, {
         taskId,
@@ -205,7 +207,7 @@ export function registerIPCHandlers(): void {
     };
     task.messages = [initialUserMessage];
 
-    storage.saveTask(task);
+    storage.saveTask(task, workspaceManager.getActiveWorkspace());
 
     generateTaskSummary(validatedConfig.prompt, getApiKey)
       .then((summary) => {
@@ -249,7 +251,7 @@ export function registerIPCHandlers(): void {
   });
 
   handle('task:list', async (_event: IpcMainInvokeEvent) => {
-    return storage.getTasks();
+    return storage.getTasks(workspaceManager.getActiveWorkspace());
   });
 
   handle('task:delete', async (_event: IpcMainInvokeEvent, taskId: string) => {
@@ -1778,6 +1780,60 @@ export function registerIPCHandlers(): void {
   handle('connectors:disconnect', async (_event, connectorId: string) => {
     storage.deleteConnectorTokens(connectorId);
     storage.setConnectorStatus(connectorId, 'disconnected');
+  });
+
+  // Workspace management
+  handle('workspace:list', async () => {
+    return workspaceManager.listWorkspaces();
+  });
+
+  handle('workspace:get-active', async () => {
+    return workspaceManager.getActiveWorkspace();
+  });
+
+  handle('workspace:switch', async (event: IpcMainInvokeEvent, workspaceId: string) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    let switched: boolean;
+    try {
+      switched = workspaceManager.switchWorkspace(workspaceId);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      return { success: false, reason };
+    }
+
+    if (!switched) {
+      return { success: false, reason: 'Switch did not complete (task running or same workspace)' };
+    }
+
+    // Broadcast workspace change to renderer so it reloads tasks
+    if (window && !window.isDestroyed()) {
+      window.webContents.send('workspace:changed', { workspaceId });
+    }
+
+    return { success: true };
+  });
+
+  handle('workspace:create', async (_event: IpcMainInvokeEvent, input: WorkspaceCreateInput) => {
+    return workspaceManager.createWorkspace(input);
+  });
+
+  handle(
+    'workspace:update',
+    async (_event: IpcMainInvokeEvent, id: string, input: WorkspaceUpdateInput) => {
+      return workspaceManager.updateWorkspace(id, input);
+    },
+  );
+
+  handle('workspace:delete', async (event: IpcMainInvokeEvent, id: string) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    const deleted = workspaceManager.deleteWorkspace(id);
+
+    if (deleted && window && !window.isDestroyed()) {
+      window.webContents.send('workspace:deleted', { workspaceId: id });
+    }
+
+    return deleted;
   });
 }
 
