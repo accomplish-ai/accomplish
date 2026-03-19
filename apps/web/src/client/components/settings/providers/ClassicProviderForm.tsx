@@ -102,6 +102,19 @@ export function ClassicProviderForm({
       return;
     }
 
+    if (isOpenAI && openAiBaseUrl.trim()) {
+      try {
+        const parsed = new URL(openAiBaseUrl.trim());
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          setError(t('connectors.urlMustBeHttp'));
+          return;
+        }
+      } catch {
+        setError(t('connectors.invalidUrl'));
+        return;
+      }
+    }
+
     setConnecting(true);
     setError(null);
 
