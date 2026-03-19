@@ -20,6 +20,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
+env:
+  HUSKY: '0'
+
 jobs:
   # Run core package tests
   core-tests:

@@ -36,15 +36,6 @@
     "clean": "pnpm -r clean && rm -rf node_modules",
     "prepare": "husky"
   },
-  "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,md,yml,yaml,css,html}": [
-      "prettier --write"
-    ]
-  },
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"

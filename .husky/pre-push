@@ -1,0 +1,47 @@
+#!/usr/bin/env sh
+echo "[pre-push] Running pre-push checks (skip with: git push --no-verify)"
+
+# 1. Typecheck all workspaces
+echo "[pre-push] Type checking..."
+pnpm typecheck || exit 1
+
+# 2. Lint
+echo "[pre-push] Linting..."
+pnpm lint:eslint || exit 1
+
+# 3. Format check
+echo "[pre-push] Checking formatting..."
+pnpm format:check || exit 1
+
+# 4. Build
+echo "[pre-push] Building..."
+pnpm build || exit 1
+
+# 5. Run tests for changed workspaces only
+UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || echo "")
+if [ -n "$UPSTREAM" ]; then
+  CHANGED=$(git diff --name-only "$UPSTREAM"...HEAD 2>/dev/null || echo "")
+else
+  CHANGED=$(git diff --name-only HEAD~1...HEAD 2>/dev/null || echo "")
+fi
+
+if echo "$CHANGED" | grep -q "^apps/web/"; then
+  echo "[pre-push] Running web unit tests..."
+  pnpm -F @accomplish/web test:unit || exit 1
+fi
+
+if echo "$CHANGED" | grep -q "^apps/desktop/"; then
+  echo "[pre-push] Running desktop unit tests..."
+  pnpm -F @accomplish/desktop test:unit || exit 1
+fi
+
+if echo "$CHANGED" | grep -q "^packages/agent-core/"; then
+  echo "[pre-push] Running agent-core tests..."
+  pnpm -F @accomplish_ai/agent-core test || exit 1
+fi
+
+# 6. Dev environment smoke test
+echo "[pre-push] Running dev environment check..."
+pnpm dev:check || exit 1
+
+echo "[pre-push] All checks passed."
