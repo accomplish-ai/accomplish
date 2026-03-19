@@ -18,6 +18,7 @@ export type ProviderId =
   | 'together'
   | 'fireworks'
   | 'groq'
+  | 'venice'
   | 'custom';
 
 export type ProviderCategory = 'classic' | 'aws' | 'gcp' | 'azure' | 'local' | 'proxy' | 'hybrid';
@@ -166,6 +167,14 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     label: 'Ultra-fast Llama models',
     logoKey: 'groq',
     helpUrl: 'https://console.groq.com/keys',
+  },
+  venice: {
+    id: 'venice',
+    name: 'Venice AI',
+    category: 'classic',
+    label: 'Service',
+    logoKey: 'venice',
+    helpUrl: 'https://venice.ai/settings/api',
   },
   custom: {
     id: 'custom',
@@ -317,6 +326,7 @@ export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
   together: 'together/meta-llama/Llama-3-70b-chat-hf',
   fireworks: 'fireworks/accounts/fireworks/models/llama-v3-70b-instruct',
   groq: 'groq/llama3-70b-8192',
+  venice: 'venice/llama-3.3-70b',
 };
 
 export function getDefaultModelForProvider(providerId: ProviderId): string | null {
@@ -347,5 +357,6 @@ export const PROVIDER_ID_TO_OPENCODE: Record<ProviderId, string> = {
   together: 'together',
   fireworks: 'fireworks',
   groq: 'groq',
+  venice: 'venice',
   custom: 'custom',
 };

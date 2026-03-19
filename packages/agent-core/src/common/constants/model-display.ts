@@ -73,6 +73,7 @@ export const PROVIDER_PREFIXES = [
   'together/',
   'fireworks/',
   'groq/',
+  'venice/',
   'custom/',
 ];
 

@@ -20,7 +20,13 @@ import {
 } from '../storage/repositories/index.js';
 
 /** Providers that use the @ai-sdk/openai-compatible adapter */
-const OPENAI_COMPATIBLE_PROVIDER_IDS = ['nebius', 'together', 'fireworks', 'groq'] as const;
+const OPENAI_COMPATIBLE_PROVIDER_IDS = [
+  'nebius',
+  'together',
+  'fireworks',
+  'groq',
+  'venice',
+] as const;
 
 /**
  * Paths required for config generation (Electron-specific resolution stays in desktop)
