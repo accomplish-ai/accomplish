@@ -42,8 +42,9 @@ import {
   validateLMStudioConfig,
 } from '@accomplish_ai/agent-core';
 import { getStorage } from '../store/storage';
-import { getOpenAiOauthStatus } from '@accomplish_ai/agent-core';
+import { getOpenAiOauthStatus, getSlackMcpOauthStatus } from '@accomplish_ai/agent-core';
 import { loginOpenAiWithChatGpt } from '../opencode/auth-browser';
+import { loginSlackMcp, logoutSlackMcp } from '../opencode/slack-auth';
 import type {
   ProviderId,
   ConnectedProvider,
@@ -1053,6 +1054,19 @@ export function registerIPCHandlers(): void {
   handle('opencode:auth:openai:login', async (_event: IpcMainInvokeEvent) => {
     const result = await loginOpenAiWithChatGpt();
     return { ok: true, ...result };
+  });
+
+  handle('opencode:auth:slack:status', async (_event: IpcMainInvokeEvent) => {
+    return getSlackMcpOauthStatus();
+  });
+
+  handle('opencode:auth:slack:login', async (_event: IpcMainInvokeEvent) => {
+    await loginSlackMcp();
+    return { ok: true };
+  });
+
+  handle('opencode:auth:slack:logout', async (_event: IpcMainInvokeEvent) => {
+    await logoutSlackMcp();
   });
 
   handle('onboarding:complete', async (_event: IpcMainInvokeEvent) => {

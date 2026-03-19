@@ -124,7 +124,23 @@ export type { EnvironmentConfig } from './opencode/environment.js';
 
 export { buildProviderConfigs, syncApiKeysToOpenCodeAuth } from './opencode/config-builder.js';
 
-export { getOpenCodeAuthPath, getOpenAiOauthStatus } from './opencode/auth.js';
+export {
+  getOpenCodeAuthPath,
+  getOpenCodeAuthJsonPath,
+  getOpenCodeMcpAuthJsonPath,
+  getOpenAiOauthStatus,
+  getSlackMcpOauthStatus,
+  getSlackMcpCallbackUrl,
+  setSlackMcpPendingAuth,
+  setSlackMcpTokens,
+  clearSlackMcpAuth,
+  OPENCODE_SLACK_MCP_SERVER_URL,
+  OPENCODE_SLACK_MCP_CLIENT_ID,
+  OPENCODE_SLACK_MCP_CALLBACK_HOST,
+  OPENCODE_SLACK_MCP_CALLBACK_PORT,
+  OPENCODE_SLACK_MCP_CALLBACK_PATH,
+} from './opencode/auth.js';
+export type { OpenCodeMcpOauthStatus } from './opencode/auth.js';
 
 export { sanitizeAssistantTextForDisplay } from './opencode/message-processor.js';
 
@@ -360,6 +376,7 @@ export type {
 // MCP OAuth
 export {
   discoverOAuthMetadata,
+  discoverOAuthProtectedResourceMetadata,
   registerOAuthClient,
   generatePkceChallenge,
   buildAuthorizationUrl,

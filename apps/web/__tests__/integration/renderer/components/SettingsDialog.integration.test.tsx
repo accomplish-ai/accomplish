@@ -4,8 +4,27 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import settingsEn from '../../../../locales/en/settings.json';
+
+function translateSettingsKey(key: string, options?: Record<string, unknown>): string {
+  const value = key.split('.').reduce<unknown>((current, segment) => {
+    if (current && typeof current === 'object' && segment in current) {
+      return (current as Record<string, unknown>)[segment];
+    }
+    return undefined;
+  }, settingsEn);
+
+  if (typeof value !== 'string') {
+    return key;
+  }
+
+  return Object.entries(options ?? {}).reduce((message, [name, replacement]) => {
+    return message.replace(new RegExp(`{{\\s*${name}\\s*}}`, 'g'), String(replacement));
+  }, value);
+}
 
 const mockAccomplish = {
   getOllamaConfig: vi.fn().mockResolvedValue(null),
@@ -29,6 +48,17 @@ const mockAccomplish = {
   setProviderDebugMode: vi.fn().mockResolvedValue(undefined),
   validateBedrockCredentials: vi.fn().mockResolvedValue({ valid: true }),
   saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
+  getConnectors: vi.fn().mockResolvedValue([]),
+  addConnector: vi.fn().mockResolvedValue(undefined),
+  deleteConnector: vi.fn().mockResolvedValue(undefined),
+  setConnectorEnabled: vi.fn().mockResolvedValue(undefined),
+  startConnectorOAuth: vi.fn().mockResolvedValue(undefined),
+  disconnectConnector: vi.fn().mockResolvedValue(undefined),
+  getSlackMcpOauthStatus: vi
+    .fn()
+    .mockResolvedValue({ connected: false, pendingAuthorization: false }),
+  loginSlackMcp: vi.fn().mockResolvedValue({ ok: true }),
+  logoutSlackMcp: vi.fn().mockResolvedValue(undefined),
   getDebugMode: vi.fn().mockResolvedValue(false),
   getVersion: vi.fn().mockResolvedValue('0.1.0-test'),
 };
@@ -36,6 +66,14 @@ const mockAccomplish = {
 // Mock the accomplish module
 vi.mock('@/lib/accomplish', () => ({
   getAccomplish: () => mockAccomplish,
+}));
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, options?: Record<string, unknown>) => translateSettingsKey(key, options),
+    i18n: { changeLanguage: vi.fn() },
+  }),
+  Trans: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 // Mock framer-motion to simplify testing animations
@@ -106,6 +144,17 @@ describe('SettingsDialog Integration', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAccomplish.getConnectors.mockResolvedValue([]);
+    mockAccomplish.getSlackMcpOauthStatus.mockResolvedValue({
+      connected: false,
+      pendingAuthorization: false,
+    });
+    mockAccomplish.loginSlackMcp.mockResolvedValue({ ok: true });
+    mockAccomplish.logoutSlackMcp.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   describe('dialog rendering', () => {
@@ -219,6 +268,45 @@ describe('SettingsDialog Integration', () => {
       // Verify the initial state: anthropic is active
       // This confirms the test setup is correct
       expect(mockAccomplish.getProviderSettings).toHaveBeenCalled();
+    });
+  });
+
+  describe('connectors tab', () => {
+    it('should render the Slack authentication card', async () => {
+      render(<SettingsDialog {...defaultProps} />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Connectors' }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('slack-auth-card')).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', { name: 'Authenticate Slack' })).toBeInTheDocument();
+      expect(mockAccomplish.getSlackMcpOauthStatus).toHaveBeenCalled();
+    });
+
+    it('should authenticate Slack from the connectors tab', async () => {
+      mockAccomplish.getSlackMcpOauthStatus
+        .mockResolvedValueOnce({ connected: false, pendingAuthorization: false })
+        .mockResolvedValueOnce({ connected: true, pendingAuthorization: false });
+
+      render(<SettingsDialog {...defaultProps} />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Connectors' }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('slack-auth-button')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('slack-auth-button'));
+
+      await waitFor(() => {
+        expect(mockAccomplish.loginSlackMcp).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Connected')).toBeInTheDocument();
+      });
     });
   });
 });

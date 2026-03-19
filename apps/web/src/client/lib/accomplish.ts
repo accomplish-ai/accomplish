@@ -93,6 +93,9 @@ interface AccomplishAPI {
   setOpenAiBaseUrl(baseUrl: string): Promise<void>;
   getOpenAiOauthStatus(): Promise<{ connected: boolean; expires?: number }>;
   loginOpenAiWithChatGpt(): Promise<{ ok: boolean; openedUrl?: string }>;
+  getSlackMcpOauthStatus(): Promise<{ connected: boolean; pendingAuthorization: boolean }>;
+  loginSlackMcp(): Promise<{ ok: boolean }>;
+  logoutSlackMcp(): Promise<void>;
 
   // API Key management
   hasApiKey(): Promise<boolean>;

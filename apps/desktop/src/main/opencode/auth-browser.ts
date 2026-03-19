@@ -14,6 +14,13 @@ interface LoginResult {
   openedUrl?: string;
 }
 
+interface OpenCodeCommandContext {
+  command: string;
+  baseArgs: string[];
+  env: Record<string, string>;
+  safeCwd: string;
+}
+
 export class OAuthBrowserFlow {
   private activePty: pty.IPty | null = null;
   private isDisposed = false;
@@ -34,24 +41,14 @@ export class OAuthBrowserFlow {
       }
     }
 
-    await generateOpenCodeConfig();
-
-    const { command, args: baseArgs } = getOpenCodeCliPath();
+    const { command, baseArgs, env, safeCwd } = await getOpenCodeCommandContext();
     const allArgs = [...baseArgs, 'auth', 'login'];
 
-    const fullCommand = [command, ...allArgs].map(quoteForShell).join(' ');
+    const quoted = [command, ...allArgs].map((arg) => quoteForShell(arg)).join(' ');
+
+    const fullCommand = quoted;
     const shellCmd = getPlatformShell(app.isPackaged);
     const shellArgs = getShellArgs(fullCommand);
-
-    const env: Record<string, string> = {};
-    for (const [key, value] of Object.entries(process.env)) {
-      if (typeof value === 'string') env[key] = value;
-    }
-    if (process.env.OPENCODE_CONFIG) {
-      env.OPENCODE_CONFIG = process.env.OPENCODE_CONFIG;
-    }
-
-    const safeCwd = app.getPath('temp');
 
     return new Promise((resolve, reject) => {
       let openedUrl: string | undefined;
@@ -205,6 +202,28 @@ export class OAuthBrowserFlow {
 
 export const oauthBrowserFlow = new OAuthBrowserFlow();
 
+async function getOpenCodeCommandContext(): Promise<OpenCodeCommandContext> {
+  await generateOpenCodeConfig();
+
+  const { command, args: baseArgs } = getOpenCodeCliPath();
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (typeof value === 'string') {
+      env[key] = value;
+    }
+  }
+
+  return {
+    command,
+    baseArgs,
+    env,
+    safeCwd: app.getPath('temp'),
+  };
+}
+
 export async function loginOpenAiWithChatGpt(): Promise<LoginResult> {
   return oauthBrowserFlow.start();
 }
+
+export { AuthLoginError } from './auth-login-error';
+export { SlackMcpOAuthFlow, slackMcpOAuthFlow, loginSlackMcp, logoutSlackMcp } from './slack-auth';

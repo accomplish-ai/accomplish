@@ -236,12 +236,14 @@
     "themeDark": "深色"
   },
   "connectors": {
-    "description": "通过 OAuth 连接远程 MCP 服务器。目前仅支持支持 OAuth 2.0 授权流程的服务器。",
+    "description": "连接内置或自定义 MCP 服务器，让 Accomplish 可以使用外部工具。",
     "loading": "加载连接器...",
     "placeholder": "https://mcp-server.example.com",
     "add": "添加",
-    "empty": "尚未连接任何 MCP 服务器",
+    "empty": "尚未添加任何自定义 MCP 服务器",
     "defaultName": "MCP 服务器",
+    "customTitle": "自定义 MCP 服务器",
+    "customDescription": "添加您自己的远程 MCP 服务器 URL。支持标准 OAuth 授权流程的服务器可以直接完成 OAuth 连接。",
     "urlMustBeHttp": "URL 必须以 http:// 或 https:// 开头",
     "invalidUrl": "请输入有效的 URL",
     "addFailed": "添加连接器失败",
@@ -257,7 +259,26 @@
     "enable": "启用",
     "disable": "禁用",
     "confirmDelete": "再次点击确认",
-    "delete": "删除"
+    "delete": "删除",
+    "slack": {
+      "title": "Slack",
+      "description": "验证 Slack 后，智能体就可以通过内置 Slack MCP 发送消息并使用 Slack 上下文。",
+      "authenticate": "验证 Slack",
+      "authenticating": "正在验证...",
+      "restartAuth": "重新开始验证",
+      "disconnect": "断开 Slack",
+      "disconnecting": "断开中...",
+      "authHint": "Accomplish 会打开浏览器，供您完成 Slack 授权。",
+      "pendingHint": "之前已开始 Slack 登录，但尚未完成。您可以重新开始一次。",
+      "connectedHint": "Slack 已完成验证，智能体现在可以使用它。",
+      "authFailed": "Slack 验证失败",
+      "disconnectFailed": "断开 Slack 失败",
+      "status": {
+        "connected": "已连接",
+        "disconnected": "未连接",
+        "pending": "已开始授权"
+      }
+    }
   },
   "zai": {
     "region": "地区",
