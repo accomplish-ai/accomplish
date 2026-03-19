@@ -6,10 +6,23 @@ import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { ConnectorCard } from './ConnectorCard';
 import { useConnectors } from './useConnectors';
 
+const slackStatusClass = {
+  connected: 'text-green-600',
+  disconnected: 'text-muted-foreground',
+  pending: 'text-yellow-600',
+};
+
+const slackStatusDotClass = {
+  connected: 'bg-green-500',
+  disconnected: 'bg-muted-foreground',
+  pending: 'bg-yellow-500 animate-pulse',
+};
+
 export function ConnectorsPanel() {
   const { t } = useTranslation('settings');
   const {
     connectors,
+    slackAuth,
     loading,
     addConnector,
     deleteConnector,
@@ -17,10 +30,13 @@ export function ConnectorsPanel() {
     startOAuth,
     completeOAuth,
     disconnect,
+    authenticateSlack,
+    disconnectSlack,
   } = useConnectors();
 
   const [url, setUrl] = useState('');
   const [adding, setAdding] = useState(false);
+  const [slackActionLoading, setSlackActionLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
 
@@ -107,6 +123,38 @@ export function ConnectorsPanel() {
     [startOAuth, t],
   );
 
+  const handleSlackAuthenticate = useCallback(async () => {
+    setSlackActionLoading(true);
+    setAddError(null);
+    setOauthError(null);
+
+    try {
+      await authenticateSlack();
+    } catch (err) {
+      console.error('Failed to authenticate Slack MCP:', err);
+      const raw = err instanceof Error ? err.message : t('connectors.slack.authFailed');
+      const cleaned = raw.replace(/^Error invoking remote method '[^']+': (\w+Error: )?/, '');
+      setOauthError(cleaned);
+    } finally {
+      setSlackActionLoading(false);
+    }
+  }, [authenticateSlack, t]);
+
+  const handleSlackDisconnect = useCallback(async () => {
+    setSlackActionLoading(true);
+    setAddError(null);
+    setOauthError(null);
+
+    try {
+      await disconnectSlack();
+    } catch (err) {
+      console.error('Failed to disconnect Slack MCP:', err);
+      setOauthError(err instanceof Error ? err.message : t('connectors.slack.disconnectFailed'));
+    } finally {
+      setSlackActionLoading(false);
+    }
+  }, [disconnectSlack, t]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' && !adding) {
@@ -115,6 +163,12 @@ export function ConnectorsPanel() {
     },
     [handleAdd, adding],
   );
+
+  const slackStatusKey: keyof typeof slackStatusClass = slackAuth.connected
+    ? 'connected'
+    : slackAuth.pendingAuthorization
+      ? 'pending'
+      : 'disconnected';
 
   if (loading) {
     return (
@@ -129,40 +183,105 @@ export function ConnectorsPanel() {
       {/* Description */}
       <p className="text-sm text-muted-foreground">{t('connectors.description')}</p>
 
-      {/* Add form */}
-      <div className="flex gap-2">
-        <Input
-          type="url"
-          placeholder={t('connectors.placeholder')}
-          value={url}
-          onChange={(e) => {
-            setUrl(e.target.value);
-            setAddError(null);
-          }}
-          onKeyDown={handleKeyDown}
-          className="flex-1"
-          disabled={adding}
-        />
-        <button
-          onClick={handleAdd}
-          disabled={adding || !url.trim()}
-          className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-        >
-          {adding ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          ) : (
-            <svg
-              className="h-4 w-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          )}
-          {t('connectors.add')}
-        </button>
+      <div className="rounded-xl border border-border bg-card p-5" data-testid="slack-auth-card">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-medium text-foreground">{t('connectors.slack.title')}</h3>
+              <span
+                className={`flex items-center gap-1 text-[11px] ${slackStatusClass[slackStatusKey]}`}
+              >
+                <span
+                  className={`inline-block h-1.5 w-1.5 rounded-full ${slackStatusDotClass[slackStatusKey]}`}
+                />
+                {t(`connectors.slack.status.${slackStatusKey}`)}
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">{t('connectors.slack.description')}</p>
+            <p className="text-xs text-muted-foreground">
+              {slackAuth.connected
+                ? t('connectors.slack.connectedHint')
+                : slackAuth.pendingAuthorization
+                  ? t('connectors.slack.pendingHint')
+                  : t('connectors.slack.authHint')}
+            </p>
+          </div>
+
+          <div className="flex shrink-0 items-center">
+            {slackAuth.connected ? (
+              <button
+                type="button"
+                onClick={handleSlackDisconnect}
+                disabled={slackActionLoading}
+                className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:opacity-50"
+              >
+                {slackActionLoading
+                  ? t('connectors.slack.disconnecting')
+                  : t('connectors.slack.disconnect')}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSlackAuthenticate}
+                disabled={slackActionLoading}
+                data-testid="slack-auth-button"
+                className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              >
+                {slackActionLoading ? (
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                ) : null}
+                {slackActionLoading
+                  ? t('connectors.slack.authenticating')
+                  : slackAuth.pendingAuthorization
+                    ? t('connectors.slack.restartAuth')
+                    : t('connectors.slack.authenticate')}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium text-foreground">{t('connectors.customTitle')}</h3>
+          <p className="text-xs text-muted-foreground">{t('connectors.customDescription')}</p>
+        </div>
+
+        {/* Add form */}
+        <div className="flex gap-2">
+          <Input
+            type="url"
+            placeholder={t('connectors.placeholder')}
+            value={url}
+            onChange={(e) => {
+              setUrl(e.target.value);
+              setAddError(null);
+            }}
+            onKeyDown={handleKeyDown}
+            className="flex-1"
+            disabled={adding}
+          />
+          <button
+            onClick={handleAdd}
+            disabled={adding || !url.trim()}
+            className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          >
+            {adding ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <svg
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            )}
+            {t('connectors.add')}
+          </button>
+        </div>
       </div>
 
       {/* Errors */}
