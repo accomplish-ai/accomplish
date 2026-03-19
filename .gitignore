@@ -59,6 +59,8 @@ docs/plans/
 
 # Claude Code
 .claude/
+!.claude/PROJECT_RULES.md
+!.claude/.env.example
 .mcp.json
 
 # Misc
