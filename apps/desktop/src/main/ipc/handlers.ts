@@ -43,7 +43,11 @@ import {
   validateLMStudioConfig,
 } from '@accomplish_ai/agent-core';
 import { getStorage } from '../store/storage';
-import { getOpenAiOauthStatus, getSlackMcpOauthStatus } from '@accomplish_ai/agent-core';
+import {
+  getOpenAiOauthStatus,
+  getOpenAiOauthAccessToken,
+  getSlackMcpOauthStatus,
+} from '@accomplish_ai/agent-core';
 import { loginOpenAiWithChatGpt } from '../opencode/auth-browser';
 import { loginSlackMcp, logoutSlackMcp } from '../opencode/slack-auth';
 import type {
@@ -907,7 +911,8 @@ export function registerIPCHandlers(): void {
         return { success: false, error: 'No models endpoint configured for this provider' };
       }
 
-      const apiKey = getApiKey(providerId);
+      const storedApiKey = getApiKey(providerId);
+      const apiKey = storedApiKey || (providerId === 'openai' ? getOpenAiOauthAccessToken() : null);
       if (!apiKey) {
         return { success: false, error: 'No API key found for this provider' };
       }

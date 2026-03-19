@@ -76,10 +76,12 @@ export function ClassicProviderForm({
   // Get translated provider name
   const providerName = t(`providers.${providerId}`, { defaultValue: meta.name });
 
-  // Auto-fetch models for already-connected providers that don't have availableModels yet
+  // Auto-fetch models for already-connected providers that don't have availableModels yet,
+  // or for OAuth-connected OpenAI users (who may only have the hardcoded fallback list).
   useEffect(() => {
     if (!isConnected) return;
-    if (connectedProvider?.availableModels?.length) return;
+    const isOAuth = connectedProvider?.credentials?.type === 'oauth';
+    if (!isOAuth && connectedProvider?.availableModels?.length) return;
     if (!providerConfig?.modelsEndpoint) return;
 
     const accomplish = getAccomplish();
@@ -190,8 +192,16 @@ export function ClassicProviderForm({
       const status = await accomplish.getOpenAiOauthStatus();
 
       if (status.connected) {
-        // OAuth stores a refresh token — no API key is available for /v1/models.
-        // Use a hardcoded fallback list so the model dropdown works.
+        // Try to fetch the full model list using the OAuth access token.
+        // Fall back to the static list if the fetch fails.
+        let availableModels = OPENAI_OAUTH_FALLBACK_MODELS;
+        if (providerConfig?.modelsEndpoint) {
+          const fetchResult = await accomplish.fetchProviderModels(providerId, {});
+          if (fetchResult.success && fetchResult.models?.length) {
+            availableModels = fetchResult.models;
+          }
+        }
+
         const defaultModelId = providerConfig?.defaultModelId ?? null;
         const provider: ConnectedProvider = {
           providerId,
@@ -202,7 +212,7 @@ export function ClassicProviderForm({
             oauthProvider: 'chatgpt',
           } as OAuthCredentials,
           lastConnectedAt: new Date().toISOString(),
-          availableModels: OPENAI_OAUTH_FALLBACK_MODELS,
+          availableModels,
         };
         onConnect(provider);
       }

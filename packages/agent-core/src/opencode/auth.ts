@@ -92,6 +92,20 @@ export function getOpenAiOauthStatus(): { connected: boolean; expires?: number }
   return { connected, expires: oauth.expires };
 }
 
+export function getOpenAiOauthAccessToken(): string | null {
+  const authJson = readOpenCodeAuthJson();
+  if (!authJson) return null;
+
+  const entry = authJson.openai;
+  if (!entry || typeof entry !== 'object') return null;
+
+  const oauth = entry as OpenCodeOauthAuthEntry;
+  if (oauth.type !== 'oauth') return null;
+
+  const access = oauth.access;
+  return typeof access === 'string' && access.trim().length > 0 ? access : null;
+}
+
 export function getOpenCodeAuthPath(): string {
   const homeDir = os.homedir();
   if (process.platform === 'win32') {

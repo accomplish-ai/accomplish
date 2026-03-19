@@ -126,6 +126,7 @@ export {
   getOpenCodeAuthJsonPath,
   getOpenCodeMcpAuthJsonPath,
   getOpenAiOauthStatus,
+  getOpenAiOauthAccessToken,
   getSlackMcpOauthStatus,
   getSlackMcpCallbackUrl,
   setSlackMcpPendingAuth,
