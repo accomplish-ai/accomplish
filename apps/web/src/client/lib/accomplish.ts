@@ -281,7 +281,10 @@ interface AccomplishAPI {
   ): Promise<void>;
 
   // Custom OpenAI-compatible endpoint configuration
-  testCustomConnection(baseUrl: string, apiKey?: string): Promise<{
+  testCustomConnection(
+    baseUrl: string,
+    apiKey?: string,
+  ): Promise<{
     success: boolean;
     error?: string;
   }>;

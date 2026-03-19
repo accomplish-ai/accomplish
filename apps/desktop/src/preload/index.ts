@@ -300,7 +300,10 @@ const accomplishAPI = {
   ): Promise<void> => ipcRenderer.invoke('lmstudio:set-config', config),
 
   // Custom OpenAI-compatible endpoint configuration
-  testCustomConnection: (baseUrl: string, apiKey?: string): Promise<{
+  testCustomConnection: (
+    baseUrl: string,
+    apiKey?: string,
+  ): Promise<{
     success: boolean;
     error?: string;
   }> => ipcRenderer.invoke('custom:test-connection', baseUrl, apiKey),

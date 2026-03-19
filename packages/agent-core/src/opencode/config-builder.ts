@@ -529,7 +529,11 @@ export async function buildProviderConfigs(
 
   // Custom OpenAI-compatible provider
   const customProvider = providerSettings.connectedProviders.custom;
-  if (customProvider?.connectionStatus === 'connected' && customProvider.credentials.type === 'custom' && customProvider.selectedModelId) {
+  if (
+    customProvider?.connectionStatus === 'connected' &&
+    customProvider.credentials.type === 'custom' &&
+    customProvider.selectedModelId
+  ) {
     const customApiKey = getApiKey('custom');
     const creds = customProvider.credentials;
     // Normalize base URL - remove trailing slash, use as-is (user should provide correct base URL)
@@ -550,7 +554,12 @@ export async function buildProviderConfigs(
     if (!enabledProviders.includes('custom')) {
       enabledProviders.push('custom');
     }
-    console.log('[OpenCode Config Builder] Custom endpoint configured:', modelId, 'baseURL:', baseURL);
+    console.log(
+      '[OpenCode Config Builder] Custom endpoint configured:',
+      modelId,
+      'baseURL:',
+      baseURL,
+    );
   }
 
   // Azure Foundry provider

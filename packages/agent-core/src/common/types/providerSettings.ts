@@ -167,7 +167,13 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     logoKey: 'groq',
     helpUrl: 'https://console.groq.com/keys',
   },
-  custom: { id: 'custom', name: 'Custom Endpoint', category: 'hybrid', label: 'Custom', logoKey: 'custom' },
+  custom: {
+    id: 'custom',
+    name: 'Custom Endpoint',
+    category: 'hybrid',
+    label: 'Custom',
+    logoKey: 'custom',
+  },
 };
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
