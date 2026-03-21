@@ -204,7 +204,7 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     res.status(404).json({ error: 'page not found' });
   });
 
-  const server = app.listen(port, () => {
+  const server = app.listen(port, '127.0.0.1', () => {
     console.log(`HTTP API server running on port ${port}`);
   });
 
