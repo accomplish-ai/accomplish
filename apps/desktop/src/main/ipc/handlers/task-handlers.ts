@@ -42,6 +42,33 @@ export function registerTaskHandlers(): void {
 
   let permissionApiInitialized = false;
 
+  // Shared helper — safe to call multiple times (flag guards re-entry).
+  // Called by both task:start and session:resume so the permission/question API
+  // servers are always initialized before any agent task begins.
+  async function ensurePermissionApiInitialized(window: BrowserWindow): Promise<void> {
+    if (permissionApiInitialized) {
+      return;
+    }
+    // Set flag synchronously to prevent concurrent initialization on overlapping calls.
+    permissionApiInitialized = true;
+    initPermissionApi(window, () => taskManager.getActiveTaskId());
+    const permServer = startPermissionApiServer();
+    const questionServer = startQuestionApiServer();
+    // Await actual server readiness. Listen for both 'listening' and 'error' so that an
+    // EADDRINUSE (another instance already holds the port) never causes an indefinite hang.
+    const waitForServer = (server: ReturnType<typeof startPermissionApiServer>) =>
+      new Promise<void>((resolve) => {
+        if (!server?.once) {
+          // Server mock or stub returned undefined — treat as already-listening
+          resolve();
+          return;
+        }
+        server.once('listening', resolve);
+        server.once('error', resolve); // EADDRINUSE means another instance is already listening
+      });
+    await Promise.all([waitForServer(permServer), waitForServer(questionServer)]);
+  }
+
   handle('task:start', async (event: IpcMainInvokeEvent, config: TaskConfig) => {
     const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
     const sender = event.sender;
@@ -53,27 +80,7 @@ export function registerTaskHandlers(): void {
       );
     }
 
-    if (!permissionApiInitialized) {
-      // Set the flag synchronously before calling initPermissionApi / startXxxApiServer to
-      // prevent concurrent initialization attempts on overlapping task:start calls.
-      permissionApiInitialized = true;
-      initPermissionApi(window, () => taskManager.getActiveTaskId());
-      const permServer = startPermissionApiServer();
-      const questionServer = startQuestionApiServer();
-      // Await actual server readiness. Listen for both 'listening' and 'error' so that an
-      // EADDRINUSE (another instance already holds the port) never causes an indefinite hang.
-      const waitForServer = (server: ReturnType<typeof startPermissionApiServer>) =>
-        new Promise<void>((resolve) => {
-          if (!server?.once) {
-            // Server mock or stub returned undefined — treat as already-listening
-            resolve();
-            return;
-          }
-          server.once('listening', resolve);
-          server.once('error', resolve); // EADDRINUSE means another instance is already listening
-        });
-      await Promise.all([waitForServer(permServer), waitForServer(questionServer)]);
-    }
+    await ensurePermissionApiInitialized(window);
 
     const taskId = createTaskId();
 
@@ -238,6 +245,10 @@ export function registerTaskHandlers(): void {
           'No provider is ready. Please connect a provider and select a model in Settings.',
         );
       }
+
+      // Ensure permission/question API servers are running regardless of whether
+      // task:start was called first (e.g. deep-link or session restore flows).
+      await ensurePermissionApiInitialized(window);
 
       const taskId = validatedExistingTaskId || createTaskId();
 
