@@ -28,6 +28,8 @@ import { springs } from '../../lib/animations';
 
 interface BrowserPreviewProps {
   taskId: string;
+  /** The page name that this preview is scoped to — IPC events not matching this page are ignored. */
+  pageName?: string | null;
   /** The currently active tool name — auto-starts the screencast when a browser_* tool is detected. */
   currentTool?: string | null;
   className?: string;
@@ -175,6 +177,7 @@ function renderStatusContent(
 
 export const BrowserPreview = memo(function BrowserPreview({
   taskId,
+  pageName,
   currentTool,
   className,
 }: BrowserPreviewProps) {
@@ -191,7 +194,7 @@ export const BrowserPreview = memo(function BrowserPreview({
   const [error, setError] = useState<string | undefined>();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Reset all preview state when taskId changes to avoid stale guard/frame bleed
+  // Reset all preview state when taskId or pageName changes to avoid stale guard/frame bleed
   useEffect(() => {
     screencastStartedRef.current = false;
     statusRef.current = 'idle';
@@ -200,7 +203,7 @@ export const BrowserPreview = memo(function BrowserPreview({
     setStatus('idle');
     setError(undefined);
     setIsCollapsed(false);
-  }, [taskId]);
+  }, [taskId, pageName]);
 
   // Sync isCollapsedRef with isCollapsed state so handleFrame can skip updates when collapsed
   useEffect(() => {
@@ -241,7 +244,7 @@ export const BrowserPreview = memo(function BrowserPreview({
     statusRef.current = 'starting';
     setStatus('starting');
 
-    api.startBrowserPreview(taskId).catch(() => {
+    api.startBrowserPreview(taskId, pageName ?? undefined).catch(() => {
       if (cancelled) {
         return;
       }
@@ -265,6 +268,9 @@ export const BrowserPreview = memo(function BrowserPreview({
       if (event.taskId !== taskId) {
         return;
       }
+      if (pageName != null && event.pageName !== pageName) {
+        return;
+      }
       if (isPausedRef.current || isCollapsedRef.current) {
         return;
       }
@@ -282,7 +288,7 @@ export const BrowserPreview = memo(function BrowserPreview({
         setStatus('streaming');
       }
     },
-    [taskId],
+    [taskId, pageName],
   );
 
   const handleNavigate = useCallback(
@@ -290,14 +296,20 @@ export const BrowserPreview = memo(function BrowserPreview({
       if (event.taskId !== taskId) {
         return;
       }
+      if (pageName != null && event.pageName !== pageName) {
+        return;
+      }
       setCurrentUrl(event.url);
     },
-    [taskId],
+    [taskId, pageName],
   );
 
   const handleStatus = useCallback(
     (event: { taskId: string; pageName: string; status: string; message?: string }) => {
       if (event.taskId !== taskId) {
+        return;
+      }
+      if (pageName != null && event.pageName !== pageName) {
         return;
       }
       if (event.status === 'stopped') {
@@ -320,7 +332,7 @@ export const BrowserPreview = memo(function BrowserPreview({
         setError(undefined);
       }
     },
-    [taskId],
+    [taskId, pageName],
   );
 
   useEffect(() => {
