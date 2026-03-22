@@ -63,6 +63,9 @@ docs/plans/
 !.claude/.env.example
 .mcp.json
 
+# Speckit
+.specify/
+
 # Misc
 *.pem
 .turbo/
