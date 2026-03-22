@@ -28,7 +28,6 @@ import { sanitizeAttachments } from './attachment-utils';
 export function registerTaskHandlers(): void {
   const storage = getStorage();
   const taskManager = getTaskManager();
-
   const ensurePermissionApiInitialized = registerPermissionHandlers(taskManager);
 
   handle('task:start', async (event: IpcMainInvokeEvent, config: TaskConfig) => {
