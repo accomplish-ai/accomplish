@@ -10,6 +10,10 @@ import {
 import { getStorage } from '../../../store/storage';
 import { handle } from '../utils';
 
+// Cloud-browser providers store their keys in app_settings.cloud_browser_config,
+// not in secure storage. Exclude them from the standard api-key flow.
+const CLOUD_BROWSER_PROVIDERS = new Set(['aws-agentcore', 'browserbase', 'steel']);
+
 export function registerSettingsApiKeyHandlers(): void {
   const storage = getStorage();
 
@@ -48,15 +52,37 @@ export function registerSettingsApiKeyHandlers(): void {
           keyPrefix = apiKey && apiKey.length > 0 ? `${apiKey.substring(0, 8)}...` : '';
         }
 
-        const labelMap: Record<string, string> = {
-          bedrock: 'AWS Credentials',
-          vertex: 'GCP Credentials',
-        };
+        // Derive label to match bedrock:save / vertex:save output exactly
+        let label: string;
+        if (provider === 'bedrock') {
+          const bedrockCreds = getBedrockCredentials();
+          if (bedrockCreds?.authType === 'accessKeys') {
+            label = 'AWS Access Keys';
+          } else if (bedrockCreds?.authType === 'profile') {
+            label = `AWS Profile: ${bedrockCreds.profileName || 'default'}`;
+          } else if (bedrockCreds?.authType === 'apiKey') {
+            label = 'Bedrock API Key';
+          } else {
+            label = 'AWS Credentials';
+          }
+        } else if (provider === 'vertex') {
+          try {
+            const vertexCreds = apiKey ? JSON.parse(apiKey) : null;
+            label =
+              vertexCreds?.authType === 'serviceAccount'
+                ? 'Service Account'
+                : 'Application Default Credentials';
+          } catch {
+            label = 'GCP Credentials';
+          }
+        } else {
+          label = 'Local API Key';
+        }
 
         return {
           id: `local-${provider}`,
           provider,
-          label: labelMap[provider] || 'Local API Key',
+          label,
           keyPrefix,
           isActive: true,
           createdAt: new Date().toISOString(),
@@ -86,7 +112,19 @@ export function registerSettingsApiKeyHandlers(): void {
       if (!ALLOWED_API_KEY_PROVIDERS.has(provider)) {
         throw new Error('Unsupported API key provider');
       }
-      const sanitizedKey = sanitizeString(key, 'apiKey', 256);
+
+      // Cloud-browser providers (aws-agentcore, browserbase, steel) store their keys
+      // in app_settings.cloud_browser_config — not in secure storage.
+      if (CLOUD_BROWSER_PROVIDERS.has(provider)) {
+        throw new Error(
+          `Provider '${provider}' keys must be saved via the cloud browser settings panel`,
+        );
+      }
+
+      // Vertex stores a JSON credential document that can exceed 256 chars.
+      // Use a generous limit; the vertex:save handler validates structure separately.
+      const maxKeyLength = provider === 'vertex' ? 8192 : 256;
+      const sanitizedKey = sanitizeString(key, 'apiKey', maxKeyLength);
       const sanitizedLabel = label ? sanitizeString(label, 'label', 128) : undefined;
 
       await storeApiKey(provider, sanitizedKey);
