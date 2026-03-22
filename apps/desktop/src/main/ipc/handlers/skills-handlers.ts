@@ -24,8 +24,9 @@ export function registerSkillsHandlers(): void {
     return skillsManager.getUserSkillsPath();
   });
 
-  handle('skills:pick-file', async () => {
-    const mainWindow = BrowserWindow.getAllWindows()[0];
+  handle('skills:pick-file', async (event: IpcMainInvokeEvent) => {
+    const mainWindow =
+      BrowserWindow.fromWebContents(event.sender) ?? BrowserWindow.getAllWindows()[0];
     const result = await dialog.showOpenDialog(mainWindow, {
       title: 'Select a SKILL.md file',
       filters: [
@@ -58,7 +59,10 @@ export function registerSkillsHandlers(): void {
   });
 
   handle('skills:open-in-editor', async (_event: IpcMainInvokeEvent, filePath: string) => {
-    await shell.openPath(filePath);
+    const error = await shell.openPath(filePath);
+    if (error) {
+      throw new Error(`Failed to open path in editor: ${error}`);
+    }
   });
 
   handle('skills:show-in-folder', async (_event: IpcMainInvokeEvent, filePath: string) => {

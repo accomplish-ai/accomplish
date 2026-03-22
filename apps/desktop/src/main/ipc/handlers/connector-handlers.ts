@@ -53,7 +53,7 @@ export function registerConnectorHandlers(): void {
 
     try {
       const parsed = new URL(sanitizedUrl);
-      if (!parsed.protocol.startsWith('http')) {
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
         throw new Error('Connector URL must use http:// or https://');
       }
     } catch (err) {

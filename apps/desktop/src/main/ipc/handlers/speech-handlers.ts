@@ -5,7 +5,10 @@ import {
   transcribeAudio,
   isElevenLabsConfigured,
 } from '../../services/speechToText';
+import { getLogCollector } from '../../logging';
 import { handle } from './utils';
+
+const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25 MB
 
 export function registerSpeechHandlers(): void {
   handle('speech:is-configured', async (_event: IpcMainInvokeEvent) => {
@@ -28,13 +31,19 @@ export function registerSpeechHandlers(): void {
   handle(
     'speech:transcribe',
     async (_event: IpcMainInvokeEvent, audioData: ArrayBuffer, mimeType?: string) => {
-      console.log('[IPC] speech:transcribe received:', {
+      const logger = getLogCollector();
+      logger.logEnv('INFO', '[IPC] speech:transcribe received', {
         audioDataType: typeof audioData,
         audioDataByteLength: audioData?.byteLength,
         mimeType,
       });
+      if (audioData?.byteLength > MAX_AUDIO_SIZE) {
+        throw new Error(
+          `Audio payload exceeds maximum allowed size of ${MAX_AUDIO_SIZE / 1024 / 1024} MB`,
+        );
+      }
       const buffer = Buffer.from(audioData);
-      console.log('[IPC] Converted to buffer:', { bufferLength: buffer.length });
+      logger.logEnv('INFO', '[IPC] Converted to buffer', { bufferLength: buffer.length });
       return transcribeAudio(buffer, mimeType);
     },
   );

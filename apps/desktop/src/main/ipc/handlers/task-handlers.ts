@@ -54,10 +54,21 @@ export function registerTaskHandlers(): void {
     }
 
     if (!permissionApiInitialized) {
-      initPermissionApi(window, () => taskManager.getActiveTaskId());
-      startPermissionApiServer();
-      startQuestionApiServer();
+      // Set the flag before starting to prevent concurrent initialization attempts
+      // on overlapping task:start calls, while still ensuring init only runs once.
+      // The flag is set inside a microtask after listen() fires to avoid a race
+      // where subsequent calls see the flag as true before the port is open.
       permissionApiInitialized = true;
+      initPermissionApi(window, () => taskManager.getActiveTaskId());
+      const permServer = startPermissionApiServer();
+      const questionServer = startQuestionApiServer();
+      // Await actual server readiness so the flag is only true once ports are bound
+      await Promise.all([
+        new Promise<void>((resolve) => permServer.once('listening', resolve)),
+        new Promise<void>((resolve) => questionServer.once('listening', resolve)),
+      ]).catch(() => {
+        // Servers may already be listening (EADDRINUSE handled internally); proceed
+      });
     }
 
     const taskId = createTaskId();
@@ -170,6 +181,7 @@ export function registerTaskHandlers(): void {
         return;
       }
       console.warn(`[IPC] File permission request ${requestId} not found in pending requests`);
+      return;
     }
 
     if (requestId && isQuestionRequest(requestId)) {
@@ -183,6 +195,7 @@ export function registerTaskHandlers(): void {
         return;
       }
       console.warn(`[IPC] Question request ${requestId} not found in pending requests`);
+      return;
     }
 
     if (!taskManager.hasActiveTask(taskId)) {

@@ -27,6 +27,7 @@ import {
 } from '../../store/secureStorage';
 import { getStorage } from '../../store/storage';
 import { normalizeIpcError } from '../../ipc/validation';
+import { getLogCollector } from '../../logging';
 import { handle, API_KEY_VALIDATION_TIMEOUT_MS } from './utils';
 
 export function registerApiKeyHandlers(): void {
@@ -143,16 +144,17 @@ export function registerApiKeyHandlers(): void {
 
   handle('api-key:validate', async (_event: IpcMainInvokeEvent, key: string) => {
     const sanitizedKey = sanitizeString(key, 'apiKey', 256);
-    console.log('[API Key] Validation requested for provider: anthropic');
+    const logger = getLogCollector();
+    logger.logEnv('INFO', '[API Key] Validation requested for provider: anthropic');
 
     const result = await validateApiKey('anthropic', sanitizedKey, {
       timeout: API_KEY_VALIDATION_TIMEOUT_MS,
     });
 
     if (result.valid) {
-      console.log('[API Key] Validation succeeded');
+      logger.logEnv('INFO', '[API Key] Validation succeeded');
     } else {
-      console.warn('[API Key] Validation failed', { error: result.error });
+      logger.logEnv('WARN', '[API Key] Validation failed', { error: result.error });
     }
 
     return result;
@@ -171,7 +173,8 @@ export function registerApiKeyHandlers(): void {
         return { valid: false, error: 'Unsupported provider' };
       }
 
-      console.log(`[API Key] Validation requested for provider: ${provider}`);
+      const logger = getLogCollector();
+      logger.logEnv('INFO', `[API Key] Validation requested for provider: ${provider}`);
 
       if (STANDARD_VALIDATION_PROVIDERS.has(provider)) {
         let sanitizedKey: string;
@@ -197,9 +200,11 @@ export function registerApiKeyHandlers(): void {
         );
 
         if (result.valid) {
-          console.log(`[API Key] Validation succeeded for ${provider}`);
+          logger.logEnv('INFO', `[API Key] Validation succeeded for ${provider}`);
         } else {
-          console.warn(`[API Key] Validation failed for ${provider}`, { error: result.error });
+          logger.logEnv('WARN', `[API Key] Validation failed for ${provider}`, {
+            error: result.error,
+          });
         }
 
         return result;
@@ -216,15 +221,20 @@ export function registerApiKeyHandlers(): void {
         });
 
         if (result.valid) {
-          console.log(`[API Key] Validation succeeded for ${provider}`);
+          logger.logEnv('INFO', `[API Key] Validation succeeded for ${provider}`);
         } else {
-          console.warn(`[API Key] Validation failed for ${provider}`, { error: result.error });
+          logger.logEnv('WARN', `[API Key] Validation failed for ${provider}`, {
+            error: result.error,
+          });
         }
 
         return result;
       }
 
-      console.log(`[API Key] Skipping validation for ${provider} (local/custom provider)`);
+      logger.logEnv(
+        'INFO',
+        `[API Key] Skipping validation for ${provider} (local/custom provider)`,
+      );
       return { valid: true };
     },
   );
@@ -256,7 +266,7 @@ export function registerApiKeyHandlers(): void {
   });
 
   handle('bedrock:validate', async (_event: IpcMainInvokeEvent, credentials: string) => {
-    console.log('[Bedrock] Validation requested');
+    getLogCollector().logEnv('INFO', '[Bedrock] Validation requested');
     return validateBedrockCredentials(credentials);
   });
 
@@ -269,7 +279,9 @@ export function registerApiKeyHandlers(): void {
       }
       return result;
     } catch (error) {
-      console.error('[Bedrock] Failed to fetch models:', error);
+      getLogCollector().logEnv('ERROR', '[Bedrock] Failed to fetch models', {
+        error: normalizeIpcError(error),
+      });
       return { success: false, error: normalizeIpcError(error), models: [] };
     }
   });
@@ -278,15 +290,18 @@ export function registerApiKeyHandlers(): void {
     const parsed = JSON.parse(credentials);
 
     if (parsed.authType === 'apiKey') {
-      if (!parsed.apiKey) {
+      if (!(typeof parsed.apiKey === 'string' && parsed.apiKey.length > 0)) {
         throw new Error('API Key is required');
       }
     } else if (parsed.authType === 'accessKeys') {
-      if (!parsed.accessKeyId || !parsed.secretAccessKey) {
+      if (
+        !(typeof parsed.accessKeyId === 'string' && parsed.accessKeyId.length > 0) ||
+        !(typeof parsed.secretAccessKey === 'string' && parsed.secretAccessKey.length > 0)
+      ) {
         throw new Error('Access Key ID and Secret Access Key are required');
       }
     } else if (parsed.authType === 'profile') {
-      if (!parsed.profileName) {
+      if (!(typeof parsed.profileName === 'string' && parsed.profileName.length > 0)) {
         throw new Error('Profile name is required');
       }
     } else {

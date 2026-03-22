@@ -16,7 +16,7 @@ export interface ProviderFormProps {
   config?: CloudBrowserProviderConfig;
   isActive: boolean;
   saving: boolean;
-  onSave: (config: CloudBrowserProviderConfig) => void;
+  onSave: (config: CloudBrowserProviderConfig) => void | Promise<void>;
   onToggleActive: () => void;
   onRemove: () => void;
 }
@@ -54,10 +54,10 @@ export default function ProviderForm({
     onSave(buildProviderConfig());
   };
 
-  const handleSetActive = () => {
+  const handleSetActive = async () => {
     // Save current form values first (preserving unsaved edits), then toggle active
     if (isFormValid) {
-      onSave(buildProviderConfig());
+      await onSave(buildProviderConfig());
     }
     onToggleActive();
   };

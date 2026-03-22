@@ -1,10 +1,31 @@
 import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
-import { BrowserWindow, dialog, shell } from 'electron';
+import { BrowserWindow, dialog, shell, app } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import type { FileAttachmentInfo } from '@accomplish_ai/agent-core';
 import { handle, assertTrustedWindow, MAX_ATTACHMENT_FILE_SIZE } from './utils';
+
+const MAX_DROPPED_FILES = 5;
+
+/**
+ * Validates that a renderer-provided path is safe to access.
+ * Ensures the path is absolute, exists, and does not escape outside
+ * the user's home/data directories via traversal sequences.
+ */
+function validateRendererPath(filePath: string): void {
+  const resolved = path.resolve(filePath);
+  // Reject paths with traversal sequences that survived resolve
+  if (resolved !== path.normalize(filePath) && !path.isAbsolute(filePath)) {
+    throw new Error(`Invalid file path: ${path.basename(filePath)}`);
+  }
+  // Allow access only under the user's home directory or app userData
+  const homeDir = app.getPath('home');
+  const userDataDir = app.getPath('userData');
+  if (!resolved.startsWith(homeDir) && !resolved.startsWith(userDataDir)) {
+    throw new Error(`File path is outside allowed directories: ${path.basename(filePath)}`);
+  }
+}
 
 const TEXT_EXTS = ['txt', 'md', 'json', 'yaml', 'yml', 'toml', 'csv', 'xml', 'html', 'css'];
 const CODE_EXTS = [
@@ -85,6 +106,19 @@ export function registerFileHandlers(): void {
   });
 
   handle('files:process-dropped', async (_event: IpcMainInvokeEvent, filePaths: string[]) => {
+    if (!Array.isArray(filePaths)) {
+      throw new Error('filePaths must be an array');
+    }
+    if (filePaths.length > MAX_DROPPED_FILES) {
+      throw new Error(`You can only drop a maximum of ${MAX_DROPPED_FILES} files.`);
+    }
+    for (const filePath of filePaths) {
+      validateRendererPath(filePath);
+      const stat = fs.statSync(filePath);
+      if (stat.size > MAX_ATTACHMENT_FILE_SIZE) {
+        throw new Error(`File ${path.basename(filePath)} exceeds the 10 MB size limit.`);
+      }
+    }
     return filePaths.map(buildFileAttachmentInfo);
   });
 
