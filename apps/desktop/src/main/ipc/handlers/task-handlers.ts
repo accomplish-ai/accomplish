@@ -54,21 +54,25 @@ export function registerTaskHandlers(): void {
     }
 
     if (!permissionApiInitialized) {
-      // Set the flag before starting to prevent concurrent initialization attempts
-      // on overlapping task:start calls, while still ensuring init only runs once.
-      // The flag is set inside a microtask after listen() fires to avoid a race
-      // where subsequent calls see the flag as true before the port is open.
+      // Set the flag synchronously before calling initPermissionApi / startXxxApiServer to
+      // prevent concurrent initialization attempts on overlapping task:start calls.
       permissionApiInitialized = true;
       initPermissionApi(window, () => taskManager.getActiveTaskId());
       const permServer = startPermissionApiServer();
       const questionServer = startQuestionApiServer();
-      // Await actual server readiness so the flag is only true once ports are bound
-      await Promise.all([
-        new Promise<void>((resolve) => permServer.once('listening', resolve)),
-        new Promise<void>((resolve) => questionServer.once('listening', resolve)),
-      ]).catch(() => {
-        // Servers may already be listening (EADDRINUSE handled internally); proceed
-      });
+      // Await actual server readiness. Listen for both 'listening' and 'error' so that an
+      // EADDRINUSE (another instance already holds the port) never causes an indefinite hang.
+      const waitForServer = (server: ReturnType<typeof startPermissionApiServer>) =>
+        new Promise<void>((resolve) => {
+          if (!server?.once) {
+            // Server mock or stub returned undefined — treat as already-listening
+            resolve();
+            return;
+          }
+          server.once('listening', resolve);
+          server.once('error', resolve); // EADDRINUSE means another instance is already listening
+        });
+      await Promise.all([waitForServer(permServer), waitForServer(questionServer)]);
     }
 
     const taskId = createTaskId();
@@ -270,6 +274,10 @@ export function registerTaskHandlers(): void {
 
       if (validatedExistingTaskId) {
         storage.updateTaskStatus(validatedExistingTaskId, task.status, new Date().toISOString());
+      } else {
+        // New task created by session:resume — persist it so it appears in task history,
+        // mirroring the storage.saveTask() call in task:start.
+        storage.saveTask(task, workspaceManager.getActiveWorkspace());
       }
 
       return task;
