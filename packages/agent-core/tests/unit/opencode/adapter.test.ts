@@ -374,6 +374,7 @@ describe('Non-task continuation tool detection', () => {
     expect(NON_TASK_CONTINUATION_TOOLS).toContain('distill');
     expect(NON_TASK_CONTINUATION_TOOLS).toContain('extract');
     expect(NON_TASK_CONTINUATION_TOOLS).toContain('context_info');
+    expect(NON_TASK_CONTINUATION_TOOLS).toContain('request_connector_auth');
   });
 
   it('should classify housekeeping tool calls as non-task continuation tools', () => {
@@ -385,6 +386,7 @@ describe('Non-task continuation tool detection', () => {
     expect(isNonTaskContinuationToolName('mcp_distill')).toBe(true);
     expect(isNonTaskContinuationToolName('mcp_extract')).toBe(true);
     expect(isNonTaskContinuationToolName('mcp_context_info')).toBe(true);
+    expect(isNonTaskContinuationToolName('mcp_request_connector_auth')).toBe(true);
   });
 });
 

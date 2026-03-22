@@ -20,6 +20,7 @@ describe('ConfigGenerator', () => {
   const requiredMcpDistEntries = [
     ['file-permission', 'dist/index.mjs'],
     ['ask-user-question', 'dist/index.mjs'],
+    ['request-connector-auth', 'dist/index.mjs'],
     ['complete-task', 'dist/index.mjs'],
     ['start-task', 'dist/index.mjs'],
     ['dev-browser-mcp', 'dist/index.mjs'],
@@ -175,6 +176,7 @@ describe('ConfigGenerator', () => {
       expect(result.mcpServers.slack).toBeDefined();
       expect(result.mcpServers['file-permission']).toBeDefined();
       expect(result.mcpServers['ask-user-question']).toBeDefined();
+      expect(result.mcpServers['request-connector-auth']).toBeDefined();
       expect(result.mcpServers['dev-browser-mcp']).toBeDefined();
       expect(result.mcpServers['complete-task']).toBeDefined();
       expect(result.mcpServers['start-task']).toBeDefined();
@@ -584,7 +586,7 @@ describe('ConfigGenerator', () => {
       expect(result.systemPrompt).toContain('Browser Automation');
       expect(result.systemPrompt).toContain('File Management');
       expect(result.systemPrompt).toContain('Slack');
-      expect(result.systemPrompt).toContain('Slack MCP is authenticated');
+      expect(result.systemPrompt).toContain('built-in Slack connector');
     });
 
     it('should instruct agent NOT to call complete_task for conversational responses', () => {
@@ -629,11 +631,19 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
 
       expect(result.systemPrompt).toContain('For Slack-related requests, use the Slack MCP tools');
+      expect(result.systemPrompt).toContain('the built-in Slack connector is the default path');
       expect(result.systemPrompt).toContain('Never invent Slack tool names');
+      expect(result.systemPrompt).toContain(
+        'Never answer a Slack access request with generic advice',
+      );
       expect(result.systemPrompt).toContain(
         'If the user asks you to connect or authenticate Slack',
       );
       expect(result.systemPrompt).toContain('If Slack authentication is required');
+      expect(result.systemPrompt).toContain('request-connector-auth_request_connector_auth');
+      expect(result.systemPrompt).toContain('Authenticate Slack');
+      expect(result.systemPrompt).toContain('Settings -> Connectors -> Slack');
+      expect(result.systemPrompt).toContain('Authenticate button');
       expect(result.systemPrompt).toContain('Do not claim a Slack message was sent');
       expect(result.systemPrompt).toContain('confirm where you sent it');
     });

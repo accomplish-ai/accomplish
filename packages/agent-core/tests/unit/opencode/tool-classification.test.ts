@@ -11,6 +11,7 @@ describe('tool-classification', () => {
     expect(NON_TASK_CONTINUATION_TOOLS).toContain('distill');
     expect(NON_TASK_CONTINUATION_TOOLS).toContain('extract');
     expect(NON_TASK_CONTINUATION_TOOLS).toContain('context_info');
+    expect(NON_TASK_CONTINUATION_TOOLS).toContain('request_connector_auth');
 
     expect(isNonTaskContinuationToolName('start_task')).toBe(true);
     expect(isNonTaskContinuationToolName('skill')).toBe(true);
@@ -18,6 +19,7 @@ describe('tool-classification', () => {
     expect(isNonTaskContinuationToolName('mcp_distill')).toBe(true);
     expect(isNonTaskContinuationToolName('mcp_extract')).toBe(true);
     expect(isNonTaskContinuationToolName('mcp_context_info')).toBe(true);
+    expect(isNonTaskContinuationToolName('mcp_request_connector_auth')).toBe(true);
   });
 
   it('should keep real task tools counting toward continuation', () => {

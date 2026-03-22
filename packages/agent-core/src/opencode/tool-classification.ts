@@ -4,6 +4,7 @@ export const NON_TASK_CONTINUATION_TOOLS = [
   ...HIDDEN_TOOL_BASENAMES,
   'todowrite',
   'complete_task',
+  'request_connector_auth',
   'AskUserQuestion',
   'report_checkpoint',
   'report_thought',

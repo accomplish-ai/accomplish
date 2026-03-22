@@ -124,6 +124,11 @@ export type {
 } from './common/types/workspace.js';
 
 // Connector types
+export {
+  OAuthProviderId,
+  getOAuthProviderDisplayName,
+  isOAuthProviderId,
+} from './common/types/connector.js';
 export type {
   ConnectorStatus,
   OAuthTokens,
@@ -152,6 +157,7 @@ export {
   PERMISSION_API_PORT,
   QUESTION_API_PORT,
   PERMISSION_REQUEST_TIMEOUT_MS,
+  CONNECTOR_AUTH_REQUIRED_MARKER,
   LOG_MAX_FILE_SIZE_BYTES,
   LOG_RETENTION_DAYS,
   LOG_BUFFER_FLUSH_INTERVAL_MS,

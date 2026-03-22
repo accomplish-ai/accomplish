@@ -110,6 +110,8 @@
   },
   "auth": {
     "sessionExpired": "{{provider}} Session Expired",
-    "reLoginTo": "Re-login to {{provider}}"
+    "reLoginTo": "Re-login to {{provider}}",
+    "connectorAttention": "{{provider}} needs attention",
+    "openConnectorSettings": "Open Settings -> Connectors -> {{provider}}"
   }
 }

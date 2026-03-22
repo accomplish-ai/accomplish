@@ -105,6 +105,7 @@ const TOOL_DISPLAY_NAMES: Record<string, string | null> = {
   browser_script: 'Running script',
   browser_click: 'Clicking element',
   browser_keyboard: 'Typing',
+  request_connector_auth: 'Waiting for connector authentication',
 };
 
 const INSTRUCTION_BLOCK_RE = /<instruction\b[^>]*>[\s\S]*?<\/instruction>/gi;

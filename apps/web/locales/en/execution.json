@@ -32,6 +32,12 @@
     "completedPlaceholder": "Give new instructions...",
     "defaultPlaceholder": "Ask for something..."
   },
+  "questionPrompt": {
+    "oauthConnecting": "Connecting {{provider}}...",
+    "oauthConnected": "{{provider}} is connected.",
+    "oauthFailed": "Couldn't connect {{provider}}. Try again.",
+    "oauthStillDisconnected": "{{provider}} is still not connected. Finish signing in and try again."
+  },
   "taskStatus": "Task {{status}}",
   "processing": "Processing",
   "system": "System",

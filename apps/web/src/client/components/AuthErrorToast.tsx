@@ -1,6 +1,7 @@
 import { Warning, X } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { getOAuthProviderDisplayName, OAuthProviderId } from '@accomplish_ai/agent-core/common';
 import { Button } from './ui/button';
 
 interface AuthErrorToastProps {
@@ -9,7 +10,7 @@ interface AuthErrorToastProps {
   onDismiss: () => void;
 }
 
-const PROVIDER_NAMES: Record<string, string> = {
+const AI_PROVIDER_NAMES: Record<string, string> = {
   openai: 'OpenAI',
   anthropic: 'Anthropic',
   google: 'Google',
@@ -28,7 +29,16 @@ export function AuthErrorToast({ error, onReLogin, onDismiss }: AuthErrorToastPr
 
   if (!error) return null;
 
-  const providerName = PROVIDER_NAMES[error.providerId] || error.providerId;
+  const isSlackConnectorError = error.providerId === OAuthProviderId.Slack;
+  const providerName = isSlackConnectorError
+    ? getOAuthProviderDisplayName(OAuthProviderId.Slack)
+    : AI_PROVIDER_NAMES[error.providerId] || error.providerId;
+  const title = isSlackConnectorError
+    ? t('auth.connectorAttention', { provider: providerName })
+    : t('auth.sessionExpired', { provider: providerName });
+  const buttonLabel = isSlackConnectorError
+    ? t('auth.openConnectorSettings', { provider: providerName })
+    : t('auth.reLoginTo', { provider: providerName });
 
   return (
     <AnimatePresence>
@@ -48,9 +58,7 @@ export function AuthErrorToast({ error, onReLogin, onDismiss }: AuthErrorToastPr
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
-                  <h4 className="font-medium text-foreground">
-                    {t('auth.sessionExpired', { provider: providerName })}
-                  </h4>
+                  <h4 className="font-medium text-foreground">{title}</h4>
                   <button
                     onClick={onDismiss}
                     className="flex-shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
@@ -63,7 +71,7 @@ export function AuthErrorToast({ error, onReLogin, onDismiss }: AuthErrorToastPr
                 <p className="mt-1 text-sm text-muted-foreground">{error.message}</p>
                 <div className="mt-3">
                   <Button size="sm" onClick={onReLogin} data-testid="auth-error-toast-relogin">
-                    {t('auth.reLoginTo', { provider: providerName })}
+                    {buttonLabel}
                   </Button>
                 </div>
               </div>

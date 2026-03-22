@@ -1,3 +1,5 @@
+import type { OAuthProviderId } from './connector.js';
+
 export type TaskStatus =
   | 'pending'
   | 'queued'
@@ -70,11 +72,21 @@ export interface TaskMessage {
   attachments?: TaskAttachment[];
 }
 
+export interface TaskPauseAction {
+  type: 'oauth-connect';
+  providerId: OAuthProviderId;
+  label: string;
+  pendingLabel?: string;
+  successText?: string;
+}
+
 export interface TaskResult {
   status: 'success' | 'error' | 'interrupted';
   sessionId?: string;
   durationMs?: number;
   error?: string;
+  pauseReason?: 'auth';
+  pauseAction?: TaskPauseAction;
 }
 
 export type StartupStage =

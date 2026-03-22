@@ -110,6 +110,8 @@
   },
   "auth": {
     "sessionExpired": "{{provider}} 会话已过期",
-    "reLoginTo": "重新登录到 {{provider}}"
+    "reLoginTo": "重新登录到 {{provider}}",
+    "connectorAttention": "{{provider}} 需要处理",
+    "openConnectorSettings": "打开 设置 -> 连接器 -> {{provider}}"
   }
 }

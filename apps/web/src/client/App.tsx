@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { isRunningInElectron, getAccomplish } from './lib/accomplish';
 import { springs, variants } from './lib/animations';
 import type { ProviderId } from '@accomplish_ai/agent-core/common';
+import { OAuthProviderId } from '@accomplish_ai/agent-core/common';
 
 // Components
 import Sidebar from './components/layout/Sidebar';
@@ -52,6 +53,9 @@ export function App() {
   const [status, setStatus] = useState<AppStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authSettingsOpen, setAuthSettingsOpen] = useState(false);
+  const [authSettingsTab, setAuthSettingsTab] = useState<
+    'providers' | 'voice' | 'skills' | 'connectors' | 'about'
+  >('providers');
   const [authSettingsProvider, setAuthSettingsProvider] = useState<ProviderId | undefined>(
     undefined,
   );
@@ -62,7 +66,13 @@ export function App() {
   // Handle re-login from auth error toast
   const handleAuthReLogin = useCallback(() => {
     if (authError) {
-      setAuthSettingsProvider(authError.providerId as ProviderId);
+      if (authError.providerId === OAuthProviderId.Slack) {
+        setAuthSettingsProvider(undefined);
+        setAuthSettingsTab('connectors');
+      } else {
+        setAuthSettingsProvider(authError.providerId as ProviderId);
+        setAuthSettingsTab('providers');
+      }
       setAuthSettingsOpen(true);
     }
   }, [authError]);
@@ -72,6 +82,7 @@ export function App() {
     (open: boolean) => {
       setAuthSettingsOpen(open);
       if (!open) {
+        setAuthSettingsTab('providers');
         setAuthSettingsProvider(undefined);
         clearAuthError();
       }
@@ -158,6 +169,7 @@ export function App() {
         open={authSettingsOpen}
         onOpenChange={handleAuthSettingsClose}
         initialProvider={authSettingsProvider}
+        initialTab={authSettingsTab}
         onApiKeySaved={() => {
           clearAuthError();
           setAuthSettingsOpen(false);

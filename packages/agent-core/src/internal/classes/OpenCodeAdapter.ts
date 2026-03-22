@@ -19,8 +19,18 @@ import type { SandboxConfig, SandboxProvider } from '../../common/types/sandbox.
 import { DEFAULT_SANDBOX_CONFIG } from '../../common/types/sandbox.js';
 import { DisabledSandboxProvider } from '../../sandbox/disabled-provider.js';
 import { serializeError } from '../../utils/error.js';
+import { getOAuthProviderDisplayName, isOAuthProviderId } from '../../common/types/connector.js';
+import { CONNECTOR_AUTH_REQUIRED_MARKER } from '../../common/constants.js';
 
 const LOG_TRUNCATION_LIMIT = 500;
+
+interface ConnectorAuthPauseInput {
+  providerId?: string;
+  message?: string;
+  label?: string;
+  pendingLabel?: string;
+  successText?: string;
+}
 
 export class OpenCodeCliNotFoundError extends Error {
   constructor() {
@@ -566,6 +576,17 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         console.log('[OpenCode Adapter] Tool use:', toolUseName, 'status:', toolUseStatus);
 
         if (toolUseStatus === 'completed' || toolUseStatus === 'error') {
+          if (
+            this.isRequestConnectorAuthTool(toolUseName) &&
+            toolUseOutput.includes(CONNECTOR_AUTH_REQUIRED_MARKER)
+          ) {
+            this.pauseForConnectorAuth(
+              toolUseInput as ConnectorAuthPauseInput,
+              toolUseMessage.part.sessionID,
+            );
+            break;
+          }
+
           this.emit('tool-result', toolUseOutput);
           this.emit('tool-call-complete', {
             toolName: toolUseName,
@@ -854,6 +875,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     return false;
   }
 
+  private isRequestConnectorAuthTool(toolName: string): boolean {
+    return toolName === 'request_connector_auth' || toolName.endsWith('_request_connector_auth');
+  }
+
   private isNonTaskContinuationTool(toolName: string): boolean {
     return isNonTaskContinuationToolName(toolName);
   }
@@ -880,6 +905,93 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     this.emit('message', syntheticMessage);
     console.log('[OpenCode Adapter] Emitted synthetic plan message');
+  }
+
+  private pauseForConnectorAuth(input: ConnectorAuthPauseInput, sessionId?: string): void {
+    if (this.hasCompleted) {
+      return;
+    }
+
+    if (!this.currentSessionId && sessionId) {
+      this.currentSessionId = sessionId;
+    }
+
+    if (!input.providerId) {
+      this.hasCompleted = true;
+      this.emit('complete', {
+        status: 'error',
+        sessionId: this.currentSessionId || undefined,
+        error:
+          'The agent requested connector authentication without specifying which connector to authenticate.',
+      });
+      return;
+    }
+
+    if (!isOAuthProviderId(input.providerId)) {
+      this.hasCompleted = true;
+      this.emit('complete', {
+        status: 'error',
+        sessionId: this.currentSessionId || undefined,
+        error: `The agent requested connector authentication for an unsupported connector provider: ${input.providerId}.`,
+      });
+      return;
+    }
+
+    const providerId = input.providerId;
+    const providerName = getOAuthProviderDisplayName(providerId);
+    const pauseMessage =
+      input.message?.trim() ||
+      `I need ${providerName} connected to continue. Click Authenticate ${providerName}.`;
+
+    console.log('[OpenCode Adapter] Pausing for connector auth', {
+      providerId,
+      hasCustomMessage: Boolean(input.message?.trim()),
+    });
+
+    if (this.waitingTransitionTimer) {
+      clearTimeout(this.waitingTransitionTimer);
+      this.waitingTransitionTimer = null;
+    }
+
+    const effectiveSessionId = this.currentSessionId || sessionId || '';
+
+    // Emit a synthetic text message so the user sees the pause reason
+    const syntheticMessage: OpenCodeMessage = {
+      type: 'text',
+      timestamp: Date.now(),
+      sessionID: effectiveSessionId,
+      part: {
+        id: this.generateMessageId(),
+        sessionID: effectiveSessionId,
+        messageID: this.generateMessageId(),
+        type: 'text',
+        text: pauseMessage,
+      },
+    } as import('../../common/types/opencode.js').OpenCodeTextMessage;
+    this.emit('message', syntheticMessage);
+
+    this.hasCompleted = true;
+    this.emit('complete', {
+      status: 'success',
+      sessionId: this.currentSessionId || undefined,
+      pauseReason: 'auth',
+      pauseAction: {
+        type: 'oauth-connect',
+        providerId,
+        label: input.label?.trim() || `Authenticate ${providerName}`,
+        pendingLabel: input.pendingLabel?.trim() || `Authenticating ${providerName}...`,
+        successText: input.successText?.trim() || `${providerName} is connected.`,
+      },
+    });
+
+    if (this.ptyProcess) {
+      try {
+        this.ptyProcess.kill();
+      } catch (error) {
+        console.warn('[OpenCode Adapter] Error killing PTY during connector auth pause:', error);
+      }
+      this.ptyProcess = null;
+    }
   }
 
   private buildPtySpawnArgs(command: string, args: string[]): { file: string; args: string[] } {

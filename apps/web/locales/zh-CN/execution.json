@@ -29,6 +29,12 @@
     "completedPlaceholder": "输入新指令...",
     "defaultPlaceholder": "输入内容..."
   },
+  "questionPrompt": {
+    "oauthConnecting": "正在连接 {{provider}}...",
+    "oauthConnected": "{{provider}} 已连接。",
+    "oauthFailed": "无法连接 {{provider}}。请重试。",
+    "oauthStillDisconnected": "{{provider}} 仍未连接。请完成登录后再试。"
+  },
   "taskStatus": "任务{{status}}",
   "processing": "处理中",
   "system": "系统",

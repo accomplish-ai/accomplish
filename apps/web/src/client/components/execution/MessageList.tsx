@@ -45,9 +45,12 @@ export interface MessageBubbleProps {
   shouldStream?: boolean;
   isLastMessage?: boolean;
   isRunning?: boolean;
-  showContinueButton?: boolean;
-  continueLabel?: string;
-  onContinue?: () => void;
+  showTaskActionButton?: boolean;
+  taskActionLabel?: string;
+  taskActionPendingLabel?: string;
+  onTaskAction?: () => void;
+  isTaskActionRunning?: boolean;
+  taskActionError?: string | null;
   isLoading?: boolean;
 }
 
@@ -59,9 +62,12 @@ export const MessageBubble = memo(
     shouldStream = false,
     isLastMessage = false,
     isRunning = false,
-    showContinueButton = false,
-    continueLabel,
-    onContinue,
+    showTaskActionButton = false,
+    taskActionLabel,
+    taskActionPendingLabel,
+    onTaskAction,
+    isTaskActionRunning = false,
+    taskActionError,
     isLoading = false,
   }: MessageBubbleProps) {
     const [streamComplete, setStreamComplete] = useState(!shouldStream);
@@ -229,16 +235,21 @@ export const MessageBubble = memo(
                 >
                   {new Date(message.timestamp).toLocaleTimeString()}
                 </p>
-                {isAssistant && showContinueButton && onContinue && (
+                {isAssistant && showTaskActionButton && onTaskAction && (
                   <Button
                     size="sm"
-                    onClick={onContinue}
-                    disabled={isLoading}
+                    onClick={onTaskAction}
+                    disabled={isLoading || isTaskActionRunning}
                     className="mt-3 gap-1.5"
                   >
                     <Play className="h-3 w-3" />
-                    {continueLabel || 'Continue'}
+                    {isTaskActionRunning
+                      ? (taskActionPendingLabel ?? taskActionLabel ?? 'Continue')
+                      : (taskActionLabel ?? 'Continue')}
                   </Button>
+                )}
+                {isAssistant && taskActionError && (
+                  <p className="mt-3 text-sm text-destructive">{taskActionError}</p>
                 )}
               </>
             )}
@@ -284,6 +295,10 @@ export const MessageBubble = memo(
     prev.shouldStream === next.shouldStream &&
     prev.isLastMessage === next.isLastMessage &&
     prev.isRunning === next.isRunning &&
-    prev.showContinueButton === next.showContinueButton &&
+    prev.showTaskActionButton === next.showTaskActionButton &&
+    prev.taskActionLabel === next.taskActionLabel &&
+    prev.taskActionPendingLabel === next.taskActionPendingLabel &&
+    prev.isTaskActionRunning === next.isTaskActionRunning &&
+    prev.taskActionError === next.taskActionError &&
     prev.isLoading === next.isLoading,
 );
