@@ -55,10 +55,18 @@ const PDF_EXTS = ['pdf'];
 type FileType = 'image' | 'text' | 'code' | 'pdf' | 'other';
 
 function detectFileType(ext: string): FileType {
-  if (IMAGE_EXTS.includes(ext)) return 'image';
-  if (PDF_EXTS.includes(ext)) return 'pdf';
-  if (CODE_EXTS.includes(ext)) return 'code';
-  if (TEXT_EXTS.includes(ext)) return 'text';
+  if (IMAGE_EXTS.includes(ext)) {
+    return 'image';
+  }
+  if (PDF_EXTS.includes(ext)) {
+    return 'pdf';
+  }
+  if (CODE_EXTS.includes(ext)) {
+    return 'code';
+  }
+  if (TEXT_EXTS.includes(ext)) {
+    return 'text';
+  }
   return 'other';
 }
 
