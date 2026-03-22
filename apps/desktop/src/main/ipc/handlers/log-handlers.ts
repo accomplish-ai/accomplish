@@ -60,8 +60,18 @@ export function registerLogHandlers(): void {
     'log:event',
     async (
       _event: IpcMainInvokeEvent,
-      _payload: { level?: string; message?: string; context?: Record<string, unknown> },
+      payload: { level?: string; message?: string; context?: Record<string, unknown> },
     ) => {
+      const validLevels = ['DEBUG', 'INFO', 'WARN', 'ERROR'] as const;
+      type LogLevel = (typeof validLevels)[number];
+      const level: LogLevel = validLevels.includes(payload?.level?.toUpperCase() as LogLevel)
+        ? (payload.level!.toUpperCase() as LogLevel)
+        : 'INFO';
+      const message = typeof payload?.message === 'string' ? payload.message : '';
+      const collector = getLogCollector();
+      if (typeof collector.logBrowser === 'function') {
+        collector.logBrowser(level, message, payload?.context);
+      }
       return { ok: true };
     },
   );
