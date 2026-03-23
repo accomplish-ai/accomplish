@@ -16,7 +16,7 @@ const nodeExternals = [...builtinModules, ...builtinModules.map((m) => `node:${m
 // Node built-ins will fail at runtime in an ESM context.
 // Workspace packages (@accomplish_ai/*) are aliased to local source and must be bundled.
 const externalizeNodeModules = (id: string) => {
-  if (id.startsWith('@accomplish_ai/')) {
+  if (id.startsWith('@accomplish_ai/') || id.startsWith('@main/')) {
     return false;
   }
   return !id.startsWith('.') && !id.startsWith('/') && !id.includes('\0') && !path.isAbsolute(id);
@@ -77,6 +77,7 @@ export default defineConfig(() => ({
         vite: {
           resolve: {
             alias: {
+              '@main': path.resolve(__dirname, 'src/main'),
               '@accomplish_ai/agent-core': path.resolve(__dirname, '../../packages/agent-core/src'),
             },
           },
