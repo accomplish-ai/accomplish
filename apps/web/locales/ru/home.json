@@ -12,7 +12,8 @@
     "dropFilesHere": "Перетащите файлы для прикрепления",
     "dropFilesHint": "(макс. {max} файлов, по {size}МБ)",
     "fileTooLarge": "{name} превышает ограничение {limit}",
-    "tooManyFiles": "Максимум {max} файлов"
+    "tooManyFiles": "Максимум {max} файлов",
+    "selectFolder": "Select Folder"
   },
   "examplePrompts": "Примеры запросов",
   "useCases": {

@@ -12,7 +12,8 @@
     "dropFilesHere": "Déposez les fichiers ici pour les joindre",
     "dropFilesHint": "(max {max} fichiers, {size}Mo chacun)",
     "fileTooLarge": "{name} dépasse la limite de taille {limit}",
-    "tooManyFiles": "Maximum {max} fichiers autorisés"
+    "tooManyFiles": "Maximum {max} fichiers autorisés",
+    "selectFolder": "Select Folder"
   },
   "examplePrompts": "Exemples de requêtes",
   "useCases": {

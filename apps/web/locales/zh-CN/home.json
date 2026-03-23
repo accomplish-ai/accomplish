@@ -21,7 +21,8 @@
     "dropFilesHere": "将文件拖放到此处以附加",
     "dropFilesHint": "（最多 {max} 个文件，每个 {size}MB）",
     "fileTooLarge": "{name} 超出 {limit} 大小限制",
-    "tooManyFiles": "最多允许 {max} 个文件"
+    "tooManyFiles": "最多允许 {max} 个文件",
+    "selectFolder": "Select Folder"
   },
   "examplePrompts": "示例任务",
   "useCases": {

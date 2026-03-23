@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Paperclip } from '@phosphor-icons/react';
+import { Plus, Paperclip, FolderOpen } from '@phosphor-icons/react';
 import type { Skill, McpConnector } from '@accomplish_ai/agent-core/common';
 import {
   DropdownMenu,
@@ -20,6 +20,7 @@ interface PlusMenuProps {
   onSkillSelect: (command: string) => void;
   onOpenSettings: (tab: 'skills' | 'connectors') => void;
   onAttachFiles?: () => void;
+  onSelectFolder?: (folderPath: string) => void;
   disabled?: boolean;
   attachmentCount?: number;
   maxAttachments?: number;
@@ -29,6 +30,7 @@ export function PlusMenu({
   onSkillSelect,
   onOpenSettings,
   onAttachFiles,
+  onSelectFolder,
   disabled,
   attachmentCount = 0,
   maxAttachments = 5,
@@ -101,6 +103,18 @@ export function PlusMenu({
     onOpenSettings('connectors');
   };
 
+  const handleSelectFolder = useCallback(async () => {
+    setOpen(false);
+    const accomplish = window.accomplish;
+    if (!accomplish?.pickFolder) {
+      return;
+    }
+    const folderPath = await accomplish.pickFolder();
+    if (folderPath) {
+      onSelectFolder?.(folderPath);
+    }
+  }, [onSelectFolder]);
+
   return (
     <>
       <CreateSkillModal open={createModalOpen} onOpenChange={setCreateModalOpen} />
@@ -133,6 +147,18 @@ export function PlusMenu({
               </span>
             )}
           </DropdownMenuItem>
+
+          {window.accomplish?.pickFolder && (
+            <DropdownMenuItem
+              disabled={!onSelectFolder}
+              onSelect={() => {
+                void handleSelectFolder();
+              }}
+            >
+              <FolderOpen className="h-4 w-4 mr-2 shrink-0" />
+              {t('plusMenu.selectFolder')}
+            </DropdownMenuItem>
+          )}
 
           <DropdownMenuSeparator />
 
