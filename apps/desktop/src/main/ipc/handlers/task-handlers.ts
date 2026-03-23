@@ -160,16 +160,13 @@ export function registerTaskHandlers(): void {
     },
   );
 
-  handle(
-    'browser-preview:stop',
-    async (_event: IpcMainInvokeEvent, taskId: string) => {
-      if (!taskId || typeof taskId !== 'string') {
-        throw new Error('taskId is required');
-      }
-      await stopBrowserPreviewStream(taskId);
-      return { stopped: true };
-    },
-  );
+  handle('browser-preview:stop', async (_event: IpcMainInvokeEvent, taskId: string) => {
+    if (!taskId || typeof taskId !== 'string') {
+      throw new Error('taskId is required');
+    }
+    await stopBrowserPreviewStream(taskId);
+    return { stopped: true };
+  });
 
   handle('browser-preview:status', async () => {
     return { active: isScreencastActive() };

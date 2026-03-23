@@ -218,11 +218,22 @@ function sendToRenderer(channel: string, payload: unknown): void {
   }
 }
 
-function emitStatus(taskId: string, pageName: string, status: PreviewStatus, message?: string): void {
+function emitStatus(
+  taskId: string,
+  pageName: string,
+  status: PreviewStatus,
+  message?: string,
+): void {
   sendToRenderer('browser:status', { taskId, pageName, status, message, timestamp: Date.now() });
 }
 
-function emitFrame(taskId: string, pageName: string, data: string, width?: number, height?: number): void {
+function emitFrame(
+  taskId: string,
+  pageName: string,
+  data: string,
+  width?: number,
+  height?: number,
+): void {
   sendToRenderer('browser:frame', { taskId, pageName, data, width, height, timestamp: Date.now() });
 }
 
@@ -365,10 +376,16 @@ export async function startBrowserPreviewStream(
     anySessionActive = true;
     emitStatus(taskId, normalizedPageName, 'streaming');
 
-    getLogCollector().logBrowser('INFO', `[BrowserPreview] Stream started for task ${taskId}, page ${normalizedPageName}`);
+    getLogCollector().logBrowser(
+      'INFO',
+      `[BrowserPreview] Stream started for task ${taskId}, page ${normalizedPageName}`,
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    getLogCollector().logBrowser('ERROR', `[BrowserPreview] Failed to start stream for task ${taskId}: ${msg}`);
+    getLogCollector().logBrowser(
+      'ERROR',
+      `[BrowserPreview] Failed to start stream for task ${taskId}: ${msg}`,
+    );
     emitStatus(taskId, normalizedPageName, 'error', msg);
     await cdp.disconnect().catch(() => {});
   }
@@ -389,14 +406,15 @@ export async function stopBrowserPreviewStream(taskId: string): Promise<void> {
 
   try {
     session.unsubscribe();
-    await session.cdp
-      .sendCommand('Page.stopScreencast', {}, session.cdpSessionId)
-      .catch(() => {});
+    await session.cdp.sendCommand('Page.stopScreencast', {}, session.cdpSessionId).catch(() => {});
     await session.cdp.disconnect();
     emitStatus(taskId, session.pageName, 'stopped');
     getLogCollector().logBrowser('INFO', `[BrowserPreview] Stream stopped for task ${taskId}`);
   } catch (err) {
-    getLogCollector().logBrowser('WARN', `[BrowserPreview] Error stopping stream for task ${taskId}: ${String(err)}`);
+    getLogCollector().logBrowser(
+      'WARN',
+      `[BrowserPreview] Error stopping stream for task ${taskId}: ${String(err)}`,
+    );
   }
 }
 
@@ -425,9 +443,9 @@ export function isScreencastActive(): boolean {
  */
 export async function autoStartScreencast(taskId: string): Promise<void> {
   try {
-    const res = await fetch(
-      `http://${DEV_BROWSER_HOST}:${DEV_BROWSER_PORT}/pages`,
-    ).catch(() => null);
+    const res = await fetch(`http://${DEV_BROWSER_HOST}:${DEV_BROWSER_PORT}/pages`).catch(
+      () => null,
+    );
     if (!res || !res.ok) return;
 
     const data = (await res.json()) as { pages: string[] };

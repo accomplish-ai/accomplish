@@ -78,11 +78,7 @@ export const BrowserPreview = memo(function BrowserPreview({
           aria-expanded={!isCollapsed}
           aria-controls={contentId}
         >
-          {isCollapsed ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronUp className="h-4 w-4" />
-          )}
+          {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
         </button>
       </div>
 
