@@ -25,6 +25,7 @@ import { FutureSchemaError } from '@accomplish_ai/agent-core';
 import { initThoughtStreamApi, startThoughtStreamServer } from './thought-stream-api';
 import type { ProviderId } from '@accomplish_ai/agent-core';
 import { getTaskManager, disposeTaskManager, cleanupVertexServiceAccountKey } from './opencode';
+import { stopAllBrowserPreviewStreams } from './services/browserPreview';
 import { oauthBrowserFlow } from './opencode/auth-browser';
 import { slackMcpOAuthFlow } from './opencode/slack-auth';
 import { migrateLegacyData } from './store/legacyMigration';
@@ -368,17 +369,78 @@ app.on('window-all-closed', () => {
   console.log('[Main] All windows closed — app continues in system tray');
 });
 
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
+  if (isQuitting) {
+    return;
+  }
   isQuitting = true;
-  destroyTray();
-  shutdownDaemon();
-  disposeTaskManager(); // Also cleans up proxies internally
-  cleanupVertexServiceAccountKey();
-  oauthBrowserFlow.dispose();
-  slackMcpOAuthFlow.dispose();
-  workspaceManager.close();
-  closeStorage();
-  shutdownLogCollector();
+  event.preventDefault();
+
+  let logger: ReturnType<typeof getLogCollector> | null = null;
+  try {
+    logger = getLogCollector();
+  } catch {
+    /* logger may not be initialized on early quit paths */
+  }
+
+  // Await async cleanup before quitting (Dev0907, PR #480, ENG-695)
+  void (async () => {
+    destroyTray();
+    shutdownDaemon();
+
+    const stopBrowserPreviews = stopAllBrowserPreviewStreams();
+    try {
+      await Promise.race([
+        stopBrowserPreviews,
+        new Promise<void>((_, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('Timed out stopping browser preview streams'));
+          }, 5000);
+          void stopBrowserPreviews.finally(() => clearTimeout(timeoutId));
+        }),
+      ]);
+    } catch (error: unknown) {
+      logger?.logEnv('ERROR', `[Main] Failed to stop browser preview streams: ${String(error)}`);
+    }
+    try {
+      disposeTaskManager(); // Also cleans up proxies internally
+    } catch (error: unknown) {
+      logger?.logEnv('ERROR', `[Main] Error during disposeTaskManager: ${String(error)}`);
+    }
+    try {
+      cleanupVertexServiceAccountKey();
+    } catch (error: unknown) {
+      logger?.logEnv(
+        'ERROR',
+        `[Main] Error during cleanupVertexServiceAccountKey: ${String(error)}`,
+      );
+    }
+    try {
+      oauthBrowserFlow.dispose();
+    } catch (error: unknown) {
+      logger?.logEnv('ERROR', `[Main] Error during oauthBrowserFlow.dispose: ${String(error)}`);
+    }
+    try {
+      slackMcpOAuthFlow.dispose();
+    } catch (error: unknown) {
+      logger?.logEnv('ERROR', `[Main] Error during slackMcpOAuthFlow.dispose: ${String(error)}`);
+    }
+    try {
+      workspaceManager.close();
+    } catch (error: unknown) {
+      logger?.logEnv('ERROR', `[Main] Error during workspaceManager.close: ${String(error)}`);
+    }
+    try {
+      closeStorage();
+    } catch (error: unknown) {
+      logger?.logEnv('ERROR', `[Main] Error during closeStorage: ${String(error)}`);
+    }
+    try {
+      shutdownLogCollector();
+    } finally {
+      app.quit();
+    }
+  })();
 });
 
 if (process.platform === 'win32' && !app.isPackaged) {

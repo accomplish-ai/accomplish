@@ -250,7 +250,8 @@
     "browsers": "Cloud Browsers",
     "voiceInput": "Voice Input",
     "appearance": "Appearance",
-    "about": "About"
+    "about": "About",
+    "workspaces": "Workspaces"
   },
   "appearance": {
     "title": "Theme",

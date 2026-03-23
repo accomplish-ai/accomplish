@@ -1,6 +1,12 @@
 import { BrowserWindow } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import {
+  startBrowserPreviewStream,
+  stopBrowserPreviewStream,
+  stopAllBrowserPreviewStreams,
+  isScreencastActive,
+} from '../../services/browserPreview';
+import {
   sanitizeString,
   generateTaskSummary,
   validateTaskConfig,
@@ -97,11 +103,15 @@ export function registerTaskHandlers(): void {
     if (taskManager.isTaskQueued(taskId)) {
       taskManager.cancelQueuedTask(taskId);
       storage.updateTaskStatus(taskId, 'cancelled', new Date().toISOString());
+      // Stop preview stream on cancel (Dev0907, PR #480)
+      await stopBrowserPreviewStream(taskId);
       return;
     }
     if (taskManager.hasActiveTask(taskId)) {
       await taskManager.cancelTask(taskId);
       storage.updateTaskStatus(taskId, 'cancelled', new Date().toISOString());
+      // Stop preview stream on cancel (Dev0907, PR #480)
+      await stopBrowserPreviewStream(taskId);
     }
   });
 
@@ -111,6 +121,8 @@ export function registerTaskHandlers(): void {
     }
     if (taskManager.hasActiveTask(taskId)) {
       await taskManager.interruptTask(taskId);
+      // Stop preview stream on interrupt (Dev0907, PR #480)
+      await stopBrowserPreviewStream(taskId);
     }
   });
 
@@ -124,10 +136,43 @@ export function registerTaskHandlers(): void {
 
   handle('task:delete', async (_event: IpcMainInvokeEvent, taskId: string) => {
     storage.deleteTask(taskId);
+    // Stop preview stream on task delete (Dev0907, PR #480)
+    await stopBrowserPreviewStream(taskId);
   });
 
   handle('task:clear-history', async (_event: IpcMainInvokeEvent) => {
     storage.clearHistory();
+    // Stop all preview streams when history is cleared (Dev0907, PR #480)
+    await stopAllBrowserPreviewStreams();
+  });
+
+  // ─── Browser Preview IPC handlers (ENG-695) ─────────────────────────────────
+  // Contributed by dhruvawani17 (PR #489) and Dev0907 (PR #480).
+
+  handle(
+    'browser-preview:start',
+    async (event: IpcMainInvokeEvent, taskId: string, pageName?: string) => {
+      if (!taskId || typeof taskId !== 'string') {
+        throw new Error('taskId is required');
+      }
+      await startBrowserPreviewStream(taskId, pageName);
+      return { success: true };
+    },
+  );
+
+  handle(
+    'browser-preview:stop',
+    async (_event: IpcMainInvokeEvent, taskId: string) => {
+      if (!taskId || typeof taskId !== 'string') {
+        throw new Error('taskId is required');
+      }
+      await stopBrowserPreviewStream(taskId);
+      return { stopped: true };
+    },
+  );
+
+  handle('browser-preview:status', async () => {
+    return { active: isScreencastActive() };
   });
 
   handle('task:get-todos', async (_event: IpcMainInvokeEvent, taskId: string) => {

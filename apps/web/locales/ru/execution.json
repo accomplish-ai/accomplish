@@ -95,5 +95,11 @@
     "title": "Задачи",
     "progress": "{{completed}} из {{total}}"
   },
-  "startNewTask": "Начать новую задачу"
+  "startNewTask": "Начать новую задачу",
+  "questionPrompt": {
+    "oauthConnecting": "Подключение к {{provider}}...",
+    "oauthConnected": "{{provider}} подключён.",
+    "oauthFailed": "Не удалось подключить {{provider}}. Попробуйте ещё раз.",
+    "oauthStillDisconnected": "{{provider}} всё ещё не подключён. Завершите вход и попробуйте ещё раз."
+  }
 }

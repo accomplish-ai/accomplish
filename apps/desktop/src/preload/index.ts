@@ -435,6 +435,78 @@ const accomplishAPI = {
     return () => ipcRenderer.removeListener('auth:error', listener);
   },
 
+  // ─── Browser Preview API (ENG-695) ─────────────────────────────────────────
+  // Contributed by dhruvawani17 (PR #489) and samarthsinh2660 (PR #414).
+
+  /**
+   * Subscribe to live browser frame events emitted by dev-browser-mcp via CDP screencast.
+   * Returns an unsubscribe function.
+   */
+  onBrowserFrame: (
+    callback: (event: {
+      taskId: string;
+      pageName: string;
+      frame: string;
+      timestamp: number;
+    }) => void,
+  ) => {
+    const listener = (_: unknown, event: unknown) =>
+      callback(
+        event as {
+          taskId: string;
+          pageName: string;
+          frame: string;
+          timestamp: number;
+        },
+      );
+    ipcRenderer.on('browser:frame', listener);
+    return () => ipcRenderer.removeListener('browser:frame', listener);
+  },
+
+  /** Subscribe to browser navigation events (URL changes). */
+  onBrowserNavigate: (callback: (event: { taskId: string; pageName: string; url: string }) => void) => {
+    const listener = (_: unknown, event: unknown) =>
+      callback(event as { taskId: string; pageName: string; url: string });
+    ipcRenderer.on('browser:navigate', listener);
+    return () => ipcRenderer.removeListener('browser:navigate', listener);
+  },
+
+  /** Subscribe to browser status change events (starting / streaming / stopped / error). */
+  onBrowserStatus: (
+    callback: (event: {
+      taskId: string;
+      pageName: string;
+      status: string;
+      message?: string;
+    }) => void,
+  ) => {
+    const listener = (_: unknown, event: unknown) =>
+      callback(
+        event as {
+          taskId: string;
+          pageName: string;
+          status: string;
+          message?: string;
+        },
+      );
+    ipcRenderer.on('browser:status', listener);
+    return () => ipcRenderer.removeListener('browser:status', listener);
+  },
+
+  /** Start a browser preview stream for a given task and page. */
+  startBrowserPreview: (taskId: string, pageName?: string): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('browser-preview:start', taskId, pageName),
+
+  /** Stop the browser preview stream for a given task. */
+  stopBrowserPreview: (taskId: string): Promise<{ stopped: boolean }> =>
+    ipcRenderer.invoke('browser-preview:stop', taskId),
+
+  /** Check whether any browser preview stream is currently active. */
+  getBrowserPreviewStatus: (): Promise<{ active: boolean }> =>
+    ipcRenderer.invoke('browser-preview:status'),
+
+  // ───────────────────────────────────────────────────────────────────────────
+
   logEvent: (payload: { level?: string; message: string; context?: Record<string, unknown> }) =>
     ipcRenderer.invoke('log:event', payload),
 

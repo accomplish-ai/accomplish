@@ -524,3 +524,6 @@ export type {
   TaskCancelScheduledParams,
   HealthCheckResult,
 } from './common/types/daemon.js';
+
+// Browser live-view types (ENG-695)
+export type { BrowserFramePayload, BrowserStatusPayload, BrowserNavigatePayload } from './common/types/browser-view.js';

@@ -1,4 +1,4 @@
-import { chromium, type Browser, type Page } from 'playwright';
+import { chromium, type Browser, type Page, type CDPSession } from 'playwright';
 import { BrowserManager, isRecoverableConnectionError } from './browser-manager.js';
 
 // ---------------------------------------------------------------------------
@@ -20,11 +20,29 @@ export interface ConnectionConfig {
 }
 
 // ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface PageSessionState {
+  page: Page;
+  cdpSession: CDPSession | null;
+}
+
+// ---------------------------------------------------------------------------
 // Shared state
 // ---------------------------------------------------------------------------
 
 const browserManager = new BrowserManager();
 const localPageRegistry = browserManager.getLocalPageRegistry();
+
+/**
+ * Per-page CDP session registry.
+ * Reuses an existing session when available; creates one on first access.
+ * Sessions are cleaned up automatically when the page closes.
+ *
+ * Contributed by samarthsinh2660 (PR #414) for ENG-695.
+ */
+const pageSessionRegistry = new Map<string, PageSessionState>();
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -114,7 +132,52 @@ export async function closePage(pageName: string): Promise<boolean> {
   }, `closePage(${pageName})`);
 }
 
+/**
+ * Get (or create) a CDP session for the given page.
+ * The session is cached in `pageSessionRegistry` and automatically removed
+ * when the underlying page closes.
+ *
+ * Contributed by samarthsinh2660 (PR #414) for ENG-695.
+ */
+export async function getCDPSession(pageName?: string): Promise<CDPSession> {
+  const fullName = getFullPageName(pageName);
+  let state = pageSessionRegistry.get(fullName);
+
+  if (!state || state.page.isClosed()) {
+    pageSessionRegistry.delete(fullName);
+    const page = await getPage(pageName);
+    const context = page.context();
+    const cdpSession = await context.newCDPSession(page);
+
+    state = { page, cdpSession };
+    pageSessionRegistry.set(fullName, state);
+
+    // Clean up when page closes
+    page.on('close', () => {
+      const current = pageSessionRegistry.get(fullName);
+      if (current && current.cdpSession) {
+        current.cdpSession.detach().catch(() => {});
+      }
+      pageSessionRegistry.delete(fullName);
+    });
+  }
+
+  if (!state.cdpSession) {
+    const context = state.page.context();
+    state.cdpSession = await context.newCDPSession(state.page);
+  }
+
+  return state.cdpSession;
+}
+
 export function resetConnection(): void {
+  // Detach all cached CDP sessions before resetting the browser connection
+  for (const state of pageSessionRegistry.values()) {
+    if (state.cdpSession) {
+      state.cdpSession.detach().catch(() => {});
+    }
+  }
+  pageSessionRegistry.clear();
   browserManager.resetConnection();
 }
 
