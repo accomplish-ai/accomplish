@@ -96,10 +96,13 @@ async function requestPermission(
     ...(request.keys && { keys: request.keys }),
   };
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
   try {
     const response = await fetch(`http://127.0.0.1:${permissionApiPort}/permission`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
       body: JSON.stringify({
         operation: 'desktop_action',
         toolName: `desktop.${request.action}`,
@@ -121,6 +124,8 @@ async function requestPermission(
       error instanceof Error ? error.message : String(error),
     );
     return false;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -159,8 +164,8 @@ export async function serve(options: ServeOptions = {}): Promise<DesktopControlS
   const permissionApiPort = options.permissionApiPort ?? DEFAULT_PERMISSION_API_PORT;
   const screenshotDir = options.screenshotDir ?? path.join(process.cwd(), 'screenshots');
 
-  // Load blocklist (defaults only for now; user customization via storage TBD)
-  const blocklist: BlocklistEntry[] = mergeBlocklists([]);
+  // Merge default blocklist entries with custom entries loaded from storage by the caller
+  const blocklist: BlocklistEntry[] = mergeBlocklists(options.customBlocklist ?? []);
 
   const app: Express = express();
   app.use(express.json());

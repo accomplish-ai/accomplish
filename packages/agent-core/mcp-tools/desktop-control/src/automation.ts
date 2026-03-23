@@ -279,8 +279,8 @@ async function executeScreenshot(
       })(),
     );
 
-    // Encode the captured image data to base64 PNG
-    // nut.js returns an Image object, we convert it to a Buffer
+    // nut.js grabRegion() returns raw BGRA pixel data (not PNG).
+    // We encode it as base64 for transport; format is 'raw' to be accurate.
     const imageData = region.data;
     const base64 = Buffer.from(imageData).toString('base64');
 
@@ -295,7 +295,7 @@ async function executeScreenshot(
       base64,
       width: region.width,
       height: region.height,
-      format: 'png',
+      format: 'raw',
     };
 
     return { success: true, action: 'screenshot', data: result };
@@ -321,8 +321,9 @@ async function executeFindWindow(request: DesktopActionRequest): Promise<Desktop
   }
   try {
     const windows = await listPlatformWindows();
-    const pattern = new RegExp(request.title, 'i');
-    const matches = windows.filter((w) => pattern.test(w.title));
+    // Use plain string matching to avoid ReDoS from user-controlled input
+    const searchTerm = request.title.toLowerCase();
+    const matches = windows.filter((w) => w.title.toLowerCase().includes(searchTerm));
     return { success: true, action: 'findWindow', data: matches };
   } catch (error) {
     return { success: false, action: 'findWindow', error: formatError(error) };
@@ -475,22 +476,42 @@ function parseWindowOutput(output: string, platform: 'macos' | 'windows'): Windo
 
 async function focusPlatformWindow(title: string): Promise<void> {
   if (isMacOS()) {
+    // Use JXA (JavaScript for Automation) with JSON.stringify to safely embed the title
+    const safeTitle = JSON.stringify(title);
     const script = `
-      tell application "System Events"
-        set targetProc to first process whose (name of every window) contains "${title.replace(/"/g, '\\"')}"
-        set frontmost of targetProc to true
-      end tell
+      const se = Application("System Events");
+      const procs = se.processes.whose({ backgroundOnly: false })();
+      for (const proc of procs) {
+        try {
+          const wins = proc.windows();
+          for (const win of wins) {
+            if (win.name().includes(${safeTitle})) {
+              proc.frontmost = true;
+              return;
+            }
+          }
+        } catch (_) {}
+      }
     `;
-    await execFileAsync('osascript', ['-e', script]);
+    await execFileAsync('osascript', ['-l', 'JavaScript', '-e', script]);
   } else if (isWindows()) {
+    // Pass title as a separate argument to avoid PowerShell injection
     const script = `
-      $proc = Get-Process | Where-Object { $_.MainWindowTitle -like "*${title.replace(/"/g, '`"')}*" } | Select-Object -First 1
+      param([string]$Title)
+      $proc = Get-Process | Where-Object { $_.MainWindowTitle -like "*$Title*" } | Select-Object -First 1
       if ($proc) {
         [void] [System.Reflection.Assembly]::LoadWithPartialName('Microsoft.VisualBasic')
         [Microsoft.VisualBasic.Interaction]::AppActivate($proc.Id)
       }
     `;
-    await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script]);
+    await execFileAsync('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      script,
+      '-Title',
+      title,
+    ]);
   } else {
     await execFileAsync('wmctrl', ['-a', title]);
   }
@@ -498,15 +519,28 @@ async function focusPlatformWindow(title: string): Promise<void> {
 
 async function resizePlatformWindow(title: string, width: number, height: number): Promise<void> {
   if (isMacOS()) {
+    // Use JXA with JSON.stringify to safely embed the title
+    const safeTitle = JSON.stringify(title);
     const script = `
-      tell application "System Events"
-        set targetProc to first process whose (name of every window) contains "${title.replace(/"/g, '\\"')}"
-        set size of first window of targetProc to {${width}, ${height}}
-      end tell
+      const se = Application("System Events");
+      const procs = se.processes.whose({ backgroundOnly: false })();
+      for (const proc of procs) {
+        try {
+          const wins = proc.windows();
+          for (const win of wins) {
+            if (win.name().includes(${safeTitle})) {
+              win.size = [${width}, ${height}];
+              return;
+            }
+          }
+        } catch (_) {}
+      }
     `;
-    await execFileAsync('osascript', ['-e', script]);
+    await execFileAsync('osascript', ['-l', 'JavaScript', '-e', script]);
   } else if (isWindows()) {
+    // Pass title as a separate argument to avoid PowerShell injection
     const script = `
+      param([string]$Title, [int]$W, [int]$H)
       Add-Type @"
         using System;
         using System.Runtime.InteropServices;
@@ -516,14 +550,25 @@ async function resizePlatformWindow(title: string, width: number, height: number
           [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
         }
 "@
-      $proc = Get-Process | Where-Object { $_.MainWindowTitle -like "*${title.replace(/"/g, '`"')}*" } | Select-Object -First 1
+      $proc = Get-Process | Where-Object { $_.MainWindowTitle -like "*$Title*" } | Select-Object -First 1
       if ($proc) {
         $rect = New-Object WinAPI+RECT
         [WinAPI]::GetWindowRect($proc.MainWindowHandle, [ref]$rect)
-        [WinAPI]::MoveWindow($proc.MainWindowHandle, $rect.Left, $rect.Top, ${width}, ${height}, $true)
+        [WinAPI]::MoveWindow($proc.MainWindowHandle, $rect.Left, $rect.Top, $W, $H, $true)
       }
     `;
-    await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script]);
+    await execFileAsync('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      script,
+      '-Title',
+      title,
+      '-W',
+      String(width),
+      '-H',
+      String(height),
+    ]);
   } else {
     await execFileAsync('wmctrl', ['-r', title, '-e', `0,-1,-1,${width},${height}`]);
   }
@@ -531,15 +576,28 @@ async function resizePlatformWindow(title: string, width: number, height: number
 
 async function repositionPlatformWindow(title: string, x: number, y: number): Promise<void> {
   if (isMacOS()) {
+    // Use JXA with JSON.stringify to safely embed the title
+    const safeTitle = JSON.stringify(title);
     const script = `
-      tell application "System Events"
-        set targetProc to first process whose (name of every window) contains "${title.replace(/"/g, '\\"')}"
-        set position of first window of targetProc to {${x}, ${y}}
-      end tell
+      const se = Application("System Events");
+      const procs = se.processes.whose({ backgroundOnly: false })();
+      for (const proc of procs) {
+        try {
+          const wins = proc.windows();
+          for (const win of wins) {
+            if (win.name().includes(${safeTitle})) {
+              win.position = [${x}, ${y}];
+              return;
+            }
+          }
+        } catch (_) {}
+      }
     `;
-    await execFileAsync('osascript', ['-e', script]);
+    await execFileAsync('osascript', ['-l', 'JavaScript', '-e', script]);
   } else if (isWindows()) {
+    // Pass title as a separate argument to avoid PowerShell injection
     const script = `
+      param([string]$Title, [int]$X, [int]$Y)
       Add-Type @"
         using System;
         using System.Runtime.InteropServices;
@@ -549,16 +607,27 @@ async function repositionPlatformWindow(title: string, x: number, y: number): Pr
           [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
         }
 "@
-      $proc = Get-Process | Where-Object { $_.MainWindowTitle -like "*${title.replace(/"/g, '`"')}*" } | Select-Object -First 1
+      $proc = Get-Process | Where-Object { $_.MainWindowTitle -like "*$Title*" } | Select-Object -First 1
       if ($proc) {
         $rect = New-Object WinAPI+RECT
         [WinAPI]::GetWindowRect($proc.MainWindowHandle, [ref]$rect)
         $w = $rect.Right - $rect.Left
         $h = $rect.Bottom - $rect.Top
-        [WinAPI]::MoveWindow($proc.MainWindowHandle, ${x}, ${y}, $w, $h, $true)
+        [WinAPI]::MoveWindow($proc.MainWindowHandle, $X, $Y, $w, $h, $true)
       }
     `;
-    await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script]);
+    await execFileAsync('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      script,
+      '-Title',
+      title,
+      '-X',
+      String(x),
+      '-Y',
+      String(y),
+    ]);
   } else {
     await execFileAsync('wmctrl', ['-r', title, '-e', `0,${x},${y},-1,-1`]);
   }

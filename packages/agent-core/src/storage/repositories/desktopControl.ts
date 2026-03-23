@@ -2,7 +2,7 @@
  * Desktop Control Repository
  *
  * Persists the user's custom blocklist entries as a JSON column
- * in the app_settings table (added by migration v009).
+ * in the app_settings table (added by migration v014).
  *
  * Uses .js extensions for ESM imports per CLAUDE.md.
  */

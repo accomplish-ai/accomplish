@@ -773,7 +773,7 @@ describe('ConfigGenerator', () => {
     it('should contain needs_planning: true for multi-step tasks', () => {
       expect(prompt).toContain('needs_planning: true');
       expect(prompt).toContain(
-        'will require tools beyond start_task and complete_task (e.g., file operations, browser actions, bash commands)',
+        'will require tools beyond start_task and complete_task (e.g., file operations, browser actions, bash commands, desktop automation)',
       );
     });
 

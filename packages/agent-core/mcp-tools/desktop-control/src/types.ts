@@ -84,7 +84,8 @@ export interface ScreenshotResult {
   base64: string;
   width: number;
   height: number;
-  format: 'png';
+  /** 'raw' = BGRA pixel data from nut.js grabRegion; 'png' = encoded PNG */
+  format: 'png' | 'raw';
 }
 
 export interface DesktopActionResult {
@@ -127,6 +128,8 @@ export interface ServeOptions {
   port?: number;
   permissionApiPort?: number;
   screenshotDir?: string;
+  /** Custom blocklist entries to merge with the defaults (loaded from storage by the caller). */
+  customBlocklist?: BlocklistEntry[];
 }
 
 export interface DesktopControlServer {

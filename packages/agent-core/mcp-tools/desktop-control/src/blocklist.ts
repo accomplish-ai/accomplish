@@ -62,6 +62,14 @@ export const DEFAULT_BLOCKLIST: readonly BlocklistEntry[] = [
 ] as const;
 
 /**
+ * Escape a string for safe use in a RegExp pattern.
+ * Prevents ReDoS when patterns come from user-controlled storage entries.
+ */
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * Check whether a window title matches any entry in the blocklist.
  * Returns the matching entry, or undefined if no match.
  */
@@ -70,16 +78,10 @@ export function checkBlocklist(
   blocklist: readonly BlocklistEntry[],
 ): BlocklistEntry | undefined {
   for (const entry of blocklist) {
-    try {
-      const regex = new RegExp(entry.pattern, 'i');
-      if (regex.test(windowTitle)) {
-        return entry;
-      }
-    } catch {
-      // If the pattern is invalid regex, fall back to simple includes
-      if (windowTitle.toLowerCase().includes(entry.pattern.toLowerCase())) {
-        return entry;
-      }
+    // Escape the pattern to prevent ReDoS from user-provided blocklist entries
+    const regex = new RegExp(escapeRegExp(entry.pattern), 'i');
+    if (regex.test(windowTitle)) {
+      return entry;
     }
   }
   return undefined;
