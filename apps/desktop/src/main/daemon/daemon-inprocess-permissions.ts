@@ -61,7 +61,7 @@ export function registerPermissionHandlers(srv: DaemonServer, taskManager: TaskM
     }
 
     if (decision === 'allow') {
-      const message = selectedOptions?.join(', ') || 'yes';
+      const message = customText ?? selectedOptions?.join(', ') ?? 'yes';
       await taskManager.sendResponse(taskId, message);
     } else {
       await taskManager.sendResponse(taskId, 'no');

@@ -1,4 +1,4 @@
-import type { BrowserWindow } from 'electron';
+import { BrowserWindow, Notification } from 'electron';
 import type {
   TaskMessage,
   TaskResult,

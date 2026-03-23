@@ -31,12 +31,16 @@ export async function spawnDaemonProcess(): Promise<DaemonClient> {
   const userDataPath = app.getPath('userData');
 
   return new Promise<DaemonClient>((resolve, reject) => {
+    let localChild: ReturnType<typeof fork> | null = null;
     const timer = setTimeout(() => {
       reject(new Error('Daemon process did not become ready within timeout'));
-      const dp = _daemonProcess;
-      if (dp) {
-        dp.kill();
-        setDaemonProcess(null);
+      if (localChild) {
+        localChild.kill();
+        // Only clear module-level state if this is still the current daemon
+        if (_daemonProcess === localChild) {
+          setDaemonProcess(null);
+        }
+        localChild = null;
       }
     }, DAEMON_READY_TIMEOUT_MS);
 
@@ -47,6 +51,7 @@ export async function spawnDaemonProcess(): Promise<DaemonClient> {
         serialization: 'advanced',
       });
 
+      localChild = child;
       setDaemonProcess(child);
 
       // Forward daemon stdout/stderr to our console
@@ -68,7 +73,11 @@ export async function spawnDaemonProcess(): Promise<DaemonClient> {
           'INFO',
           `[DaemonBootstrap] Daemon process exited with code ${code}`,
         );
-        setDaemonProcess(null);
+        // Only clear module state if this child is still the active one
+        if (_daemonProcess === child) {
+          setDaemonProcess(null);
+        }
+        localChild = null;
         clearTimeout(timer);
         reject(new Error(`Daemon process exited before becoming ready (code ${code})`));
       });

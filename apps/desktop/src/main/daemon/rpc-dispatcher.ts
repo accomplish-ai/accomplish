@@ -50,12 +50,19 @@ export function registerMethod(method: DaemonMethod | string, handler: MethodHan
  * Invalid shapes receive -32600 Invalid Request, not -32601 Method not found.
  */
 export function isValidJsonRpcRequest(value: unknown): value is JsonRpcRequest {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  const v = value as Record<string, unknown>;
-  if (v['jsonrpc'] !== '2.0') return false;
-  if (typeof v['method'] !== 'string' || !v['method']) return false;
-  if ('id' in v && v['id'] !== null && typeof v['id'] !== 'string' && typeof v['id'] !== 'number')
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return false;
+  }
+  const v = value as Record<string, unknown>;
+  if (v['jsonrpc'] !== '2.0') {
+    return false;
+  }
+  if (typeof v['method'] !== 'string' || !v['method']) {
+    return false;
+  }
+  if ('id' in v && v['id'] !== null && typeof v['id'] !== 'string' && typeof v['id'] !== 'number') {
+    return false;
+  }
   return true;
 }
 
@@ -111,7 +118,7 @@ export function handleLine(line: string, writeFn: (response: string) => void): v
   }
 
   Promise.resolve()
-    .then(() => handler(params ?? {}))
+    .then(() => handler(params))
     .then((result) => {
       if (notification) {
         return;
