@@ -451,6 +451,11 @@ interface AccomplishAPI {
   openSkillInEditor(filePath: string): Promise<void>;
   showSkillInFolder(filePath: string): Promise<void>;
 
+  // Daemon / Background Mode
+  getRunInBackground(): Promise<boolean>;
+  setRunInBackground(enabled: boolean): Promise<void>;
+  getDaemonSocketPath(): Promise<string>;
+
   // Sandbox configuration
   getSandboxConfig(): Promise<{
     mode: 'disabled' | 'native' | 'docker';

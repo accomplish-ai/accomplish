@@ -16,6 +16,7 @@ import { AboutTab } from '@/components/settings/AboutTab';
 import { DebugSection } from '@/components/settings/DebugSection';
 import { SandboxSection } from '@/components/settings/SandboxSection';
 import { ConnectorsPanel } from '@/components/settings/connectors';
+import { DaemonPanel } from '@/components/settings/DaemonPanel';
 import { CloudBrowsersPanel } from '@/components/settings/CloudBrowsersPanel';
 import {
   Key,
@@ -23,6 +24,7 @@ import {
   Microphone,
   Info,
   Plugs,
+  Robot,
   FolderSimple,
   Globe,
 } from '@phosphor-icons/react';
@@ -33,6 +35,7 @@ const TABS = [
   { id: 'providers' as const, labelKey: 'tabs.providers', icon: Key },
   { id: 'skills' as const, labelKey: 'tabs.skills', icon: Lightning },
   { id: 'connectors' as const, labelKey: 'tabs.connectors', icon: Plugs },
+  { id: 'daemon' as const, labelKey: 'tabs.daemon', icon: Robot },
   { id: 'browsers' as const, labelKey: 'tabs.browsers', icon: Globe },
   { id: 'workspaces' as const, labelKey: 'tabs.workspaces', icon: FolderSimple },
   { id: 'voice' as const, labelKey: 'tabs.voiceInput', icon: Microphone },
@@ -55,6 +58,7 @@ interface SettingsDialogProps {
     | 'voice'
     | 'skills'
     | 'connectors'
+    | 'daemon'
     | 'browsers'
     | 'workspaces'
     | 'about';
@@ -73,7 +77,7 @@ export function SettingsDialog({
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    'providers' | 'voice' | 'skills' | 'connectors' | 'browsers' | 'workspaces' | 'about'
+    'providers' | 'voice' | 'skills' | 'connectors' | 'daemon' | 'browsers' | 'workspaces' | 'about'
   >(initialTab);
   const [appVersion, setAppVersion] = useState<string>('');
   const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
@@ -458,6 +462,13 @@ export function SettingsDialog({
               {activeTab === 'connectors' && (
                 <div className="space-y-6">
                   <ConnectorsPanel />
+                </div>
+              )}
+
+              {/* Daemon Tab */}
+              {activeTab === 'daemon' && (
+                <div className="space-y-6">
+                  <DaemonPanel />
                 </div>
               )}
 

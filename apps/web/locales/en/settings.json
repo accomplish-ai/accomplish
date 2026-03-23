@@ -246,6 +246,7 @@
     "providers": "Providers",
     "connectors": "Connectors",
     "skills": "Skills",
+    "daemon": "Daemon",
     "browsers": "Cloud Browsers",
     "voiceInput": "Voice Input",
     "workspaces": "Workspaces",

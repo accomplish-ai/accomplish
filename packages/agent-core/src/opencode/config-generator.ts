@@ -34,6 +34,8 @@ export interface ConfigGeneratorOptions {
   azureFoundryToken?: string;
   permissionApiPort?: number;
   questionApiPort?: number;
+  /** Optional auth token for daemon API endpoints */
+  authToken?: string;
   userDataPath: string;
   model?: string;
   smallModel?: string;
