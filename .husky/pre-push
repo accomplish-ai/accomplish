@@ -13,6 +13,13 @@ fi
 if echo "$CHANGED" | grep -qE "(^|/)package\.json$|^pnpm-lock\.yaml$"; then
   echo "[pre-push] Dependency files changed, running pnpm install..."
   pnpm install || exit 1
+  # electron-rebuild (run by apps/desktop postinstall) compiles better-sqlite3 for
+  # Electron's Node ABI. Rebuild it for the test Node so agent-core tests can load it.
+  BSQ=$(node -e "try{process.stdout.write(require('path').dirname(require.resolve('better-sqlite3/package.json')))}catch(e){}" 2>/dev/null)
+  if [ -n "$BSQ" ] && [ -d "$BSQ" ]; then
+    echo "[pre-push] Rebuilding better-sqlite3 for test Node..."
+    (cd "$BSQ" && npx --yes node-gyp rebuild 2>/dev/null) || true
+  fi
 fi
 
 # 2. Typecheck all workspaces

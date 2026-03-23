@@ -475,7 +475,11 @@ async function startScreencast(pageName?: string): Promise<void> {
 
         // Throttle to avoid flooding stdout
         if (now - lastFrameTime < FRAME_INTERVAL_MS) {
-          await session.send('Page.screencastFrameAck', { sessionId: event.sessionId } as Parameters<typeof session.send>[1]).catch(() => {});
+          await session
+            .send('Page.screencastFrameAck', { sessionId: event.sessionId } as Parameters<
+              typeof session.send
+            >[1])
+            .catch(() => {});
           return;
         }
 
@@ -492,7 +496,11 @@ async function startScreencast(pageName?: string): Promise<void> {
           }),
         );
 
-        await session.send('Page.screencastFrameAck', { sessionId: event.sessionId } as Parameters<typeof session.send>[1]).catch(() => {});
+        await session
+          .send('Page.screencastFrameAck', { sessionId: event.sessionId } as Parameters<
+            typeof session.send
+          >[1])
+          .catch(() => {});
       } catch (err) {
         console.error('[dev-browser-mcp] Error handling screencast frame:', err);
       }

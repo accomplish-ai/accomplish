@@ -464,7 +464,9 @@ const accomplishAPI = {
   },
 
   /** Subscribe to browser navigation events (URL changes). */
-  onBrowserNavigate: (callback: (event: { taskId: string; pageName: string; url: string }) => void) => {
+  onBrowserNavigate: (
+    callback: (event: { taskId: string; pageName: string; url: string }) => void,
+  ) => {
     const listener = (_: unknown, event: unknown) =>
       callback(event as { taskId: string; pageName: string; url: string });
     ipcRenderer.on('browser:navigate', listener);

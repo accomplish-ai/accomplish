@@ -13,9 +13,19 @@ import type { ViewStatus } from './StatusBadge';
 
 interface UseBrowserPreviewIpcOptions {
   taskId: string;
-  handleFrame: (event: { taskId: string; pageName: string; frame: string; timestamp: number }) => void;
+  handleFrame: (event: {
+    taskId: string;
+    pageName: string;
+    frame: string;
+    timestamp: number;
+  }) => void;
   handleNavigate: (event: { taskId: string; pageName: string; url: string }) => void;
-  handleStatus: (event: { taskId: string; pageName: string; status: string; message?: string }) => void;
+  handleStatus: (event: {
+    taskId: string;
+    pageName: string;
+    status: string;
+    message?: string;
+  }) => void;
 }
 
 /**
