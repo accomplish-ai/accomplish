@@ -39,16 +39,17 @@ export interface SwitchProps
     React.ComponentPropsWithoutRef<typeof SwitchPrimitive.Root>,
     VariantProps<typeof switchVariants> {
   checked?: boolean;
-  onChange?: () => void;
+  /** Called with the new checked state when the switch is toggled. */
+  onCheckedChange?: (checked: boolean) => void;
   ariaLabel?: string;
 }
 
 const Switch = React.forwardRef<React.ElementRef<typeof SwitchPrimitive.Root>, SwitchProps>(
-  ({ className, size, checked, onChange, disabled, ariaLabel, ...props }, ref) => (
+  ({ className, size, checked, onCheckedChange, disabled, ariaLabel, ...props }, ref) => (
     <SwitchPrimitive.Root
       ref={ref}
       checked={checked}
-      onCheckedChange={onChange}
+      onCheckedChange={onCheckedChange}
       disabled={disabled}
       aria-label={ariaLabel}
       className={cn(switchVariants({ size }), className)}

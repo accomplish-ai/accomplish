@@ -6,12 +6,19 @@
  * other apps).  This is Step 2 of the incremental daemon migration.
  *
  * Protocol: newline-delimited JSON-RPC 2.0 messages over the socket.
+ *
+ * Dispatch logic lives in rpc-dispatcher.ts; this module owns the socket
+ * lifecycle only.
  */
 
 import net from 'net';
 import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
+import { getLogCollector } from '../logging';
+import { handleLine, registerMethod as _registerMethod } from './rpc-dispatcher';
+
+export type { MethodHandler } from './rpc-dispatcher';
 
 export interface DaemonRpcMethod {
   'daemon.ping': { params: Record<string, never>; result: { pong: boolean } };
@@ -37,24 +44,12 @@ export interface DaemonRpcMethod {
 
 export type DaemonMethod = keyof DaemonRpcMethod;
 
-interface JsonRpcRequest {
-  jsonrpc: '2.0';
-  id?: string | number | null;
-  method: string;
-  params?: unknown;
-}
-
-interface JsonRpcResponse {
-  jsonrpc: '2.0';
-  id: string | number | null;
-  result?: unknown;
-  error?: { code: number; message: string; data?: unknown };
-}
-
-type MethodHandler = (params: unknown) => Promise<unknown> | unknown;
+/** Maximum accepted payload per socket connection (1 MB). */
+const MAX_SOCKET_BUFFER_BYTES = 1_048_576;
 
 let server: net.Server | null = null;
-const methodHandlers = new Map<string, MethodHandler>();
+
+export { _registerMethod as registerMethod };
 
 export function getSocketPath(): string {
   if (process.platform === 'win32') {
@@ -63,93 +58,12 @@ export function getSocketPath(): string {
   return path.join(app.getPath('userData'), 'daemon.sock');
 }
 
-export function registerMethod(method: DaemonMethod | string, handler: MethodHandler): void {
-  methodHandlers.set(method, handler);
-}
-
-function isNotification(request: JsonRpcRequest): boolean {
-  return typeof request.id === 'undefined';
-}
-
-function handleLine(line: string, socket: net.Socket): void {
-  let parsed: unknown;
-
-  try {
-    parsed = JSON.parse(line);
-  } catch {
-    const errResponse: JsonRpcResponse = {
-      jsonrpc: '2.0',
-      id: null,
-      error: { code: -32700, message: 'Parse error' },
-    };
-    socket.write(JSON.stringify(errResponse) + '\n');
-    return;
-  }
-
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    const response: JsonRpcResponse = {
-      jsonrpc: '2.0',
-      id: null,
-      error: { code: -32600, message: 'Invalid Request' },
-    };
-    socket.write(JSON.stringify(response) + '\n');
-    return;
-  }
-
-  const request = parsed as JsonRpcRequest;
-  const { id, method, params } = request;
-  const notification = isNotification(request);
-
-  const handler = methodHandlers.get(method);
-  if (!handler) {
-    // Per JSON-RPC 2.0 spec, notifications must not receive a response
-    if (notification) {
-      return;
-    }
-    const errResponse: JsonRpcResponse = {
-      jsonrpc: '2.0',
-      id: id ?? null,
-      error: { code: -32601, message: `Method not found: ${method}` },
-    };
-    socket.write(JSON.stringify(errResponse) + '\n');
-    return;
-  }
-
-  Promise.resolve()
-    .then(() => handler(params ?? {}))
-    .then((result) => {
-      if (notification) {
-        return;
-      }
-      const response: JsonRpcResponse = {
-        jsonrpc: '2.0',
-        id: id ?? null,
-        result,
-      };
-      socket.write(JSON.stringify(response) + '\n');
-    })
-    .catch((err: unknown) => {
-      if (notification) {
-        return;
-      }
-      const response: JsonRpcResponse = {
-        jsonrpc: '2.0',
-        id: id ?? null,
-        error: {
-          code: -32603,
-          message: 'Internal error',
-          data: err instanceof Error ? err.message : String(err),
-        },
-      };
-      socket.write(JSON.stringify(response) + '\n');
-    });
-}
-
 export function startDaemonServer(): void {
   if (server) {
     return;
   }
 
+  const logger = getLogCollector();
   const socketPath = getSocketPath();
 
   // Remove stale socket file on unix
@@ -159,7 +73,9 @@ export function startDaemonServer(): void {
         fs.unlinkSync(socketPath);
       }
     } catch (err) {
-      console.warn('[Daemon] Failed to remove stale socket file:', err);
+      logger.log('WARN', 'daemon', 'Failed to remove stale socket file', {
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
@@ -168,13 +84,21 @@ export function startDaemonServer(): void {
 
     socket.on('data', (data) => {
       buffer += data.toString();
+
+      // Guard against runaway payloads
+      if (Buffer.byteLength(buffer, 'utf8') > MAX_SOCKET_BUFFER_BYTES) {
+        logger.log('WARN', 'daemon', 'Socket buffer overflow — destroying connection');
+        socket.destroy(new Error('Buffer overflow — payload too large'));
+        return;
+      }
+
       const lines = buffer.split('\n');
       buffer = lines.pop() ?? '';
 
       for (const line of lines) {
         const trimmed = line.trim();
         if (trimmed) {
-          handleLine(trimmed, socket);
+          handleLine(trimmed, (response) => socket.write(response));
         }
       }
     });
@@ -182,31 +106,33 @@ export function startDaemonServer(): void {
     socket.on('end', () => {
       const trimmed = buffer.trim();
       if (trimmed) {
-        handleLine(trimmed, socket);
+        handleLine(trimmed, (response) => socket.write(response));
       }
       buffer = '';
     });
 
     socket.on('error', (err) => {
-      console.error('[Daemon] Socket error:', err.message);
+      logger.log('ERROR', 'daemon', 'Socket error', { error: err.message });
     });
   });
 
   server.on('error', (err) => {
-    console.error('[Daemon] Server error:', err.message);
+    logger.log('ERROR', 'daemon', 'Server error', { error: err.message });
     if (server && !server.listening) {
       server = null;
     }
   });
 
   server.listen(socketPath, () => {
-    console.log(`[Daemon] Socket server listening at ${socketPath}`);
+    logger.log('INFO', 'daemon', `Socket server listening at ${socketPath}`);
     // Ensure only the owner can connect on unix
     if (process.platform !== 'win32') {
       try {
         fs.chmodSync(socketPath, 0o600);
       } catch (err) {
-        console.warn('[Daemon] Failed to chmod socket:', err);
+        logger.log('WARN', 'daemon', 'Failed to chmod socket', {
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
   });
@@ -216,6 +142,7 @@ export function stopDaemonServer(): void {
   if (!server) {
     return;
   }
+  const logger = getLogCollector();
   server.close();
   server = null;
 
@@ -224,9 +151,11 @@ export function stopDaemonServer(): void {
     try {
       fs.unlinkSync(socketPath);
     } catch (err) {
-      console.warn('[Daemon] Failed to remove socket file:', err);
+      logger.log('WARN', 'daemon', 'Failed to remove socket file', {
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
-  console.log('[Daemon] Socket server stopped');
+  logger.log('INFO', 'daemon', 'Socket server stopped');
 }

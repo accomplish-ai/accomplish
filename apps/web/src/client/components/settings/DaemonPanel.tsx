@@ -12,11 +12,11 @@ export function DaemonPanel() {
     accomplish
       .getRunInBackground()
       .then(setRunInBackground)
-      .catch(() => {});
+      .catch((err) => console.error('[DaemonPanel] Failed to load runInBackground setting:', err));
     accomplish
       .getDaemonSocketPath()
       .then(setSocketPath)
-      .catch(() => {});
+      .catch((err) => console.error('[DaemonPanel] Failed to load daemon socket path:', err));
   }, [accomplish]);
 
   const handleToggle = async () => {
@@ -25,6 +25,9 @@ export function DaemonPanel() {
     try {
       await accomplish.setRunInBackground(next);
       setRunInBackground(next);
+    } catch (err) {
+      console.error('[DaemonPanel] Failed to save setting:', err);
+      // keep local state unchanged on failure
     } finally {
       setSaving(false);
     }
@@ -43,7 +46,7 @@ export function DaemonPanel() {
           </div>
           <Switch
             checked={runInBackground}
-            onChange={handleToggle}
+            onCheckedChange={handleToggle}
             disabled={saving}
             ariaLabel="Toggle background mode"
           />

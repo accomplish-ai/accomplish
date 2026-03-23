@@ -1,7 +1,6 @@
 import type { Task, TaskMessage, TaskResult } from '../common/types/task.js';
 import type { PermissionRequest } from '../common/types/permission.js';
-import type { TodoItem } from '../common/types/todo.js';
-import type { StoredTask } from '../types/storage.js';
+import type { DaemonMethodMap, DaemonMethod } from '../common/types/daemon.js';
 
 // =============================================================================
 // JSON-RPC 2.0 Base Types
@@ -117,22 +116,14 @@ export interface TaskStatusResult {
 // RPC Method Map (method name -> params/result types)
 // =============================================================================
 
-export interface RpcMethodMap {
-  'task.start': { params: TaskStartParams; result: Task };
-  'task.stop': { params: TaskStopParams; result: void };
-  'task.interrupt': { params: TaskInterruptParams; result: void };
-  'task.get': { params: TaskGetParams; result: StoredTask | null };
-  'task.delete': { params: TaskDeleteParams; result: void };
-  'task.clearHistory': { params: undefined; result: void };
-  'task.getTodos': { params: TaskGetTodosParams; result: TodoItem[] };
-  'task.list': { params: undefined; result: Task[] };
-  'task.status': { params: TaskStatusParams; result: TaskStatusResult };
-  'permission.respond': { params: PermissionRespondParams; result: void };
-  'session.resume': { params: SessionResumeParams; result: Task };
-  'health.check': { params: undefined; result: HealthCheckResult };
-}
+/**
+ * RpcMethodMap is the canonical source of truth for daemon RPC methods.
+ * It is kept in sync with DaemonMethodMap from common/types/daemon.ts.
+ * Both types are aliases of each other to prevent divergence.
+ */
+export type RpcMethodMap = DaemonMethodMap;
 
-export type RpcMethod = keyof RpcMethodMap;
+export type RpcMethod = DaemonMethod;
 
 // =============================================================================
 // Server-Sent Notification Types
