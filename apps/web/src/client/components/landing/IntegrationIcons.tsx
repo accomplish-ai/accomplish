@@ -46,7 +46,7 @@ export function getLocalIcon(domain: string): string | undefined {
   return undefined;
 }
 
-export function getFaviconUrl(domain: string, size: number = 16): string | undefined {
+export function getFaviconUrl(domain: string, size: number = 16): string {
   return getLocalIcon(domain) ?? `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
 }
 
