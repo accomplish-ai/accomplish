@@ -18,6 +18,22 @@ import { app } from 'electron';
 import { getLogCollector } from '../logging';
 import { handleLine, registerMethod as _registerMethod } from './rpc-dispatcher';
 
+function safeLog(level: 'INFO' | 'WARN' | 'ERROR', message: string, data?: unknown): void {
+  try {
+    const logger = getLogCollector();
+    if (logger?.log) {
+      logger.log(level, 'daemon', message, data);
+      return;
+    }
+  } catch (_e) {
+    /* ignore */
+  }
+  // fallback
+  if (level === 'ERROR') console.error(`[Daemon] ${message}`, data ?? '');
+  else if (level === 'WARN') console.warn(`[Daemon] ${message}`, data ?? '');
+  else console.log(`[Daemon] ${message}`, data ?? '');
+}
+
 export type { MethodHandler } from './rpc-dispatcher';
 
 export interface DaemonRpcMethod {
@@ -63,7 +79,6 @@ export function startDaemonServer(): void {
     return;
   }
 
-  const logger = getLogCollector();
   const socketPath = getSocketPath();
 
   // Remove stale socket file on unix
@@ -73,7 +88,7 @@ export function startDaemonServer(): void {
         fs.unlinkSync(socketPath);
       }
     } catch (err) {
-      logger.log('WARN', 'daemon', 'Failed to remove stale socket file', {
+      safeLog('WARN', 'Failed to remove stale socket file', {
         error: err instanceof Error ? err.message : String(err),
       });
     }
@@ -87,7 +102,7 @@ export function startDaemonServer(): void {
 
       // Guard against runaway payloads
       if (Buffer.byteLength(buffer, 'utf8') > MAX_SOCKET_BUFFER_BYTES) {
-        logger.log('WARN', 'daemon', 'Socket buffer overflow — destroying connection');
+        safeLog('WARN', 'Socket buffer overflow — destroying connection');
         socket.destroy(new Error('Buffer overflow — payload too large'));
         return;
       }
@@ -112,25 +127,25 @@ export function startDaemonServer(): void {
     });
 
     socket.on('error', (err) => {
-      logger.log('ERROR', 'daemon', 'Socket error', { error: err.message });
+      safeLog('ERROR', 'Socket error', { error: err.message });
     });
   });
 
   server.on('error', (err) => {
-    logger.log('ERROR', 'daemon', 'Server error', { error: err.message });
+    safeLog('ERROR', 'Server error', { error: err.message });
     if (server && !server.listening) {
       server = null;
     }
   });
 
   server.listen(socketPath, () => {
-    logger.log('INFO', 'daemon', `Socket server listening at ${socketPath}`);
+    safeLog('INFO', `Socket server listening at ${socketPath}`);
     // Ensure only the owner can connect on unix
     if (process.platform !== 'win32') {
       try {
         fs.chmodSync(socketPath, 0o600);
       } catch (err) {
-        logger.log('WARN', 'daemon', 'Failed to chmod socket', {
+        safeLog('WARN', 'Failed to chmod socket', {
           error: err instanceof Error ? err.message : String(err),
         });
       }
@@ -142,7 +157,6 @@ export function stopDaemonServer(): void {
   if (!server) {
     return;
   }
-  const logger = getLogCollector();
   server.close();
   server = null;
 
@@ -151,11 +165,11 @@ export function stopDaemonServer(): void {
     try {
       fs.unlinkSync(socketPath);
     } catch (err) {
-      logger.log('WARN', 'daemon', 'Failed to remove socket file', {
+      safeLog('WARN', 'Failed to remove socket file', {
         error: err instanceof Error ? err.message : String(err),
       });
     }
   }
 
-  logger.log('INFO', 'daemon', 'Socket server stopped');
+  safeLog('INFO', 'Socket server stopped');
 }

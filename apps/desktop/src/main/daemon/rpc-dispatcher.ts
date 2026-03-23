@@ -7,7 +7,23 @@
  */
 
 import { getLogCollector } from '../logging';
+
 import type { DaemonMethod } from './server';
+
+function safeLog(level: 'INFO' | 'WARN' | 'ERROR', message: string, data?: unknown): void {
+  try {
+    const logger = getLogCollector();
+    if (logger?.log) {
+      logger.log(level, 'daemon', message, data);
+      return;
+    }
+  } catch (_e) {
+    /* ignore */
+  }
+  if (level === 'ERROR') console.error(`[Daemon] ${message}`, data ?? '');
+  else if (level === 'WARN') console.warn(`[Daemon] ${message}`, data ?? '');
+  else console.log(`[Daemon] ${message}`, data ?? '');
+}
 
 export interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -54,7 +70,6 @@ function isNotification(request: JsonRpcRequest): boolean {
  * Writes a response JSON line to `writeFn` (may be no-op for notifications).
  */
 export function handleLine(line: string, writeFn: (response: string) => void): void {
-  const logger = getLogCollector();
   let parsed: unknown;
 
   try {
@@ -114,7 +129,7 @@ export function handleLine(line: string, writeFn: (response: string) => void): v
       if (notification) {
         return;
       }
-      logger.log('ERROR', 'daemon', `RPC handler error for method "${method}"`, {
+      safeLog('ERROR', `RPC handler error for method "${method}"`, {
         error: err instanceof Error ? err.message : String(err),
       });
       const response: JsonRpcResponse = {
