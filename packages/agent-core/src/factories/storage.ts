@@ -77,6 +77,12 @@ import {
   deleteConnector,
   clearAllConnectors,
 } from '../storage/repositories/connectors.js';
+import {
+  getDesktopBlocklist,
+  setDesktopBlocklist,
+  addDesktopBlocklistEntry,
+  removeDesktopBlocklistEntry,
+} from '../storage/repositories/desktopControl.js';
 import { SecureStorage } from '../internal/classes/SecureStorage.js';
 import type { OAuthTokens } from '../common/types/connector.js';
 import type { StorageAPI, StorageOptions } from '../types/storage.js';
@@ -184,6 +190,12 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
       }
     },
     deleteConnectorTokens: (connectorId) => secureStorage.delete(`connector-tokens:${connectorId}`),
+
+    // Desktop Control
+    getDesktopBlocklist: () => getDesktopBlocklist(),
+    setDesktopBlocklist: (entries) => setDesktopBlocklist(entries),
+    addDesktopBlocklistEntry: (entry) => addDesktopBlocklistEntry(entry),
+    removeDesktopBlocklistEntry: (appName) => removeDesktopBlocklistEntry(appName),
 
     // Secure Storage
     storeApiKey: (provider, apiKey) => secureStorage.storeApiKey(provider, apiKey),

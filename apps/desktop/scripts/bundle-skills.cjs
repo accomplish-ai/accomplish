@@ -40,6 +40,7 @@ const SKILLS_FULLY_BUNDLED = [
   'complete-task',
   'request-connector-auth',
   'start-task',
+  'desktop-control',
 ];
 
 const bundles = [
@@ -65,6 +66,11 @@ const bundles = [
   },
   {
     name: 'start-task',
+    entry: 'src/index.ts',
+    outfile: 'dist/index.mjs',
+  },
+  {
+    name: 'desktop-control',
     entry: 'src/index.ts',
     outfile: 'dist/index.mjs',
   },

@@ -144,6 +144,23 @@ export type {
   CloudBrowserConfig,
 } from './common/types/cloud-browser.js';
 
+// Desktop control types
+export type {
+  DesktopActionType,
+  DesktopActionRequest,
+  DesktopActionResult,
+  BlocklistEntry,
+  DesktopControlConfig,
+  DesktopPermissionRequestData,
+  WindowInfo,
+  ScreenshotResult,
+  ScrollDirection,
+  MouseButton,
+  ServeOptions as DesktopServeOptions,
+  DesktopControlServer,
+} from './common/types/desktop.js';
+export { DESKTOP_ACTION_TYPES } from './common/types/desktop.js';
+
 // Other types
 export type { TodoItem } from './common/types/todo.js';
 export type { LogLevel, LogSource, LogEntry } from './common/types/logging.js';

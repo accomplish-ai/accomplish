@@ -1,5 +1,5 @@
 import { app } from 'electron';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import type { TaskManagerOptions, TaskCallbacks } from '@accomplish_ai/agent-core';
@@ -100,11 +100,14 @@ export function getBundledOpenCodeVersion(): string | null {
 
   try {
     const { command } = getOpenCodeCliPath();
-    const fullCommand = `"${command}" --version`;
-    const output = execSync(fullCommand, {
+    // Use execFileSync (no shell) so installation paths that contain spaces
+    // (e.g. "C:\Users\My Name\...") are passed directly to the OS without
+    // cmd.exe quoting ambiguity.
+    // See: https://github.com/accomplish-ai/accomplish/issues/596
+    const output = execFileSync(command, ['--version'], {
       encoding: 'utf-8',
       timeout: 5000,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true,
     }).trim();
 
     const versionMatch = output.match(/(\d+\.\d+\.\d+)/);

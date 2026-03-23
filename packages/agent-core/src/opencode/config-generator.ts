@@ -145,7 +145,16 @@ You MUST call start_task before any other tool. This is enforced - other tools w
 
 **Decide: Does this request need planning?**
 
-Set \`needs_planning: true\` if completing the request will require tools beyond start_task and complete_task (e.g., file operations, browser actions, bash commands).
+Set \`needs_planning: true\` if completing the request will require tools beyond start_task and complete_task (e.g., file operations, browser actions, bash commands, desktop automation).
+
+## Desktop Automation Safety
+- ALL desktop.* tools require per-action user approval — the user will see each action before it executes.
+- NEVER automate password managers (1Password, Bitwarden, etc.), banking apps, or system security tools.
+- ALWAYS use desktop.screenshot() to verify screen state before and after actions.
+- ALWAYS use desktop.listWindows() before interacting with a window to confirm it exists.
+- Use desktop.type() only after focusing the target input with desktop.click().
+- **CRITICAL:** Any task that involves desktop.* tools MUST use \`needs_planning: true\` in the start_task call. Desktop automation is inherently destructive — plan your steps before executing.
+
 Set \`needs_planning: false\` if you can answer from knowledge alone using only start_task → text response → stop. This includes greetings, knowledge questions, meta-questions about your capabilities, help requests, and conversational messages.
 
 **When needs_planning is TRUE** — provide goal, steps, verification:
@@ -179,7 +188,8 @@ CORRECT: Call start_task FIRST, update todos as you work, then complete_task
 
 <capabilities>
 When users ask about your capabilities, mention:
-{{BROWSER_CAPABILITY}}- **File Management**: Sort, rename, and move files based on content or rules you give it
+{{BROWSER_CAPABILITY}}- **Desktop Automation**: Control the mouse, keyboard, and application windows on the native desktop; take screenshots
+- **File Management**: Sort, rename, and move files based on content or rules you give it
 - **Slack**: Use the built-in Slack connector for Slack work. When authenticated, read Slack context and send messages to channels, threads, or direct messages
 </capabilities>
 
@@ -429,6 +439,15 @@ Use empty array [] if no skills apply to your task.
       command: resolveMcpCommand(mcpToolsPath, 'start-task', 'dist/index.mjs', nodeExe),
       enabled: true,
       timeout: 30000,
+    },
+    'desktop-control': {
+      type: 'local',
+      command: resolveMcpCommand(mcpToolsPath, 'desktop-control', 'dist/index.mjs', nodeExe),
+      enabled: true,
+      environment: {
+        PERMISSION_API_PORT: String(permissionApiPort),
+      },
+      timeout: 60000,
     },
   };
 

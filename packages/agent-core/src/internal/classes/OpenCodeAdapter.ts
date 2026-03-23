@@ -1106,14 +1106,12 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         throw new Error(`Windows CLI command must resolve to an .exe path. Received: ${command}`);
       }
 
-      // Route through cmd.exe /s /c with proper inner quoting so that
-      // installation paths containing spaces (e.g. "C:\Users\My Name\...")
-      // are handled correctly in both ConPTY and WinPTY fallback modes.
-      // Passing the raw .exe path directly to pty.spawn works for ConPTY
-      // but fails in WinPTY where the unquoted path is split at every space.
+      // On Windows, spawn the opencode .exe directly in node-pty without a shell wrapper.
+      // Passing args as an array avoids all cmd.exe / PowerShell quoting issues:
+      // the OS hands each element to the process as a raw argv entry regardless
+      // of what characters it contains (double-quotes, %, ^, &, newlines, etc.).
       // See: https://github.com/accomplish-ai/accomplish/issues/596
-      const fullCommand = this.buildShellCommand(command, args);
-      return { file: 'cmd.exe', args: ['/s', '/c', `"${fullCommand}"`] };
+      return { file: command, args };
     }
 
     const shell =
