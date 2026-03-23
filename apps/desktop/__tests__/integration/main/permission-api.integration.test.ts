@@ -31,6 +31,7 @@ vi.mock('electron', () => ({
 import {
   isFilePermissionRequest,
   resolvePermission,
+  resolveQuestion,
   initPermissionApi,
   startPermissionApiServer,
   startQuestionApiServer,
@@ -168,7 +169,7 @@ describe('Permission API Integration', () => {
         | { id: string }
         | undefined;
       if (capturedReq) {
-        resolvePermission(capturedReq.id, true);
+        resolveQuestion(capturedReq.id, { selectedOptions: [], denied: false });
       }
       await fetchPromise.catch(() => {});
       await new Promise<void>((resolve) => server.close(() => resolve()));
@@ -286,7 +287,7 @@ describe('Permission API Integration', () => {
         | { id: string }
         | undefined;
       if (capturedReq) {
-        resolvePermission(capturedReq.id, true);
+        resolveQuestion(capturedReq.id, { selectedOptions: [], denied: false });
       }
       await fetchPromise.catch(() => {});
       await new Promise<void>((resolve) => server.close(() => resolve()));
@@ -340,7 +341,7 @@ describe('Permission API Integration', () => {
         | { id: string }
         | undefined;
       if (capturedReq) {
-        resolvePermission(capturedReq.id, true);
+        resolveQuestion(capturedReq.id, { selectedOptions: [], denied: false });
       }
       await fetchPromise.catch(() => {});
       await new Promise<void>((resolve) => server.close(() => resolve()));
