@@ -17,6 +17,7 @@ import type { OpenCodeMessage } from '../../common/types/opencode.js';
 import type { PermissionRequest } from '../../common/types/permission.js';
 import type { TodoItem } from '../../common/types/todo.js';
 import type { SandboxConfig, SandboxProvider } from '../../common/types/sandbox.js';
+import type { BrowserFramePayload } from '../../common/types/browser-view.js';
 import { DEFAULT_SANDBOX_CONFIG } from '../../common/types/sandbox.js';
 import { DisabledSandboxProvider } from '../../sandbox/disabled-provider.js';
 import { serializeError } from '../../utils/error.js';
@@ -83,7 +84,7 @@ export interface OpenCodeAdapterEvents {
   'auth-error': [{ providerId: string; message: string }];
   /** Live browser preview frame — emitted when the dev-browser-mcp tool writes a JSON frame to stdout.
    *  Contributed by samarthsinh2660 (PR #414) for ENG-695. */
-  'browser-frame': [{ pageName: string; frame: string; timestamp: number }];
+  'browser-frame': [BrowserFramePayload];
   reasoning: [string];
   'tool-call-complete': [
     {
@@ -175,11 +176,12 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
             timestamp?: number;
           };
           if (parsed.type === 'browser-frame' && parsed.frame && parsed.pageName) {
-            this.emit('browser-frame', {
+            const framePayload: BrowserFramePayload = {
               pageName: parsed.pageName,
               frame: parsed.frame,
               timestamp: parsed.timestamp ?? Date.now(),
-            });
+            };
+            this.emit('browser-frame', framePayload);
             isBrowserFrame = true;
           }
         } catch {

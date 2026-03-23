@@ -9,6 +9,7 @@ import type {
 import type { OpenCodeMessage } from '../../common/types/opencode.js';
 import type { PermissionRequest } from '../../common/types/permission.js';
 import type { TodoItem } from '../../common/types/todo.js';
+import type { BrowserFramePayload } from '../../common/types/browser-view.js';
 import {
   toTaskMessage,
   flushAndCleanupBatcher,
@@ -37,7 +38,7 @@ export interface TaskCallbacks {
   onAuthError?: (error: { providerId: string; message: string }) => void;
   /** Called when a browser frame is captured for live preview (ENG-695).
    *  Contributed by samarthsinh2660 (PR #414). */
-  onBrowserFrame?: (data: { pageName: string; frame: string; timestamp: number }) => void;
+  onBrowserFrame?: (data: BrowserFramePayload) => void;
   onReasoning?: (text: string) => void;
   onToolUse?: (toolName: string, toolInput: unknown) => void;
   onToolCallComplete?: (data: {
@@ -221,7 +222,7 @@ export class TaskManager {
 
     /** Forward browser-frame events to the task callbacks.
      *  Contributed by samarthsinh2660 (PR #414) for ENG-695. */
-    const onBrowserFrame = (data: { pageName: string; frame: string; timestamp: number }) => {
+    const onBrowserFrame = (data: BrowserFramePayload) => {
       callbacks.onBrowserFrame?.(data);
     };
 

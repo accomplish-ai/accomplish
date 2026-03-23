@@ -31,6 +31,8 @@ import { useBrowserPreview } from './useBrowserPreview';
 
 interface BrowserPreviewProps {
   taskId: string;
+  /** The page name that this preview is scoped to — IPC events not matching this page are ignored. */
+  pageName?: string | null;
   /** The currently active tool name — auto-starts the screencast when a browser_* tool is detected. */
   currentTool?: string | null;
   className?: string;
@@ -38,6 +40,7 @@ interface BrowserPreviewProps {
 
 export const BrowserPreview = memo(function BrowserPreview({
   taskId,
+  pageName,
   currentTool,
   className,
 }: BrowserPreviewProps) {

@@ -8,16 +8,14 @@
  */
 
 export interface BrowserFramePayload {
-  /** Base-64 encoded JPEG frame data */
-  data: string;
-  /** Current URL of the page when the frame was captured */
-  pageUrl: string;
+  /** Base-64 encoded JPEG frame data (emitted as `frame` by dev-browser-mcp) */
+  frame: string;
+  /** Logical page name inside the dev-browser server */
+  pageName: string;
   /** Unix timestamp (ms) when the frame was captured */
   timestamp: number;
   /** Optional task identifier so the renderer can route to the right preview */
   taskId?: string;
-  /** Logical page name inside the dev-browser server */
-  pageName?: string;
 }
 
 export interface BrowserStatusPayload {
