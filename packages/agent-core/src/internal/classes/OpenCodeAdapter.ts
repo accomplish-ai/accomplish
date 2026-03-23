@@ -796,6 +796,22 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     this.completionEnforcer.markToolsUsed(!this.isNonTaskContinuationTool(toolName));
 
+    // Intercept invalid tool calls where model tried to call complete_task but opencode rejected it.
+    // This happens with local models (e.g. Ollama) that don't support function calling natively —
+    // opencode returns toolName='invalid' with { tool: 'complete_task' } in the input, causing
+    // CompletionEnforcer to never detect completion and enter a "Retrying..." loop.
+    if (toolName === 'invalid' || toolName === 'unknown') {
+      const invalidInput = toolInput as { tool?: string };
+      if (
+        invalidInput?.tool === 'complete_task' ||
+        (typeof invalidInput?.tool === 'string' && invalidInput.tool.endsWith('_complete_task'))
+      ) {
+        console.log('[OpenCode Adapter] Intercepting rejected complete_task call, treating as complete');
+        this.completionEnforcer.handleCompleteTaskDetection({ status: 'success', summary: 'Task completed.' });
+        return;
+      }
+    }
+
     if (toolName === 'complete_task' || toolName.endsWith('_complete_task')) {
       this.completionEnforcer.handleCompleteTaskDetection(toolInput);
       const completeInput = toolInput as { summary?: string };
