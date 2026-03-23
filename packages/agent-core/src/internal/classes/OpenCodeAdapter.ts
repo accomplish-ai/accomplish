@@ -759,8 +759,13 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     // Detect and re-route to the canonical tool name so all bookkeeping runs correctly.
     if (toolName === 'invalid' || toolName === 'unknown') {
       const rejectedInput = toolInput as { tool?: string } | undefined;
-      const rejectedTool = rejectedInput?.tool;
-      if (typeof rejectedTool === 'string') {
+      const rejectedTool = rejectedInput?.tool?.trim();
+      if (
+        rejectedTool &&
+        rejectedTool !== toolName &&
+        rejectedTool !== 'invalid' &&
+        rejectedTool !== 'unknown'
+      ) {
         this.handleToolCall(rejectedTool, toolInput, sessionID);
         return;
       }
