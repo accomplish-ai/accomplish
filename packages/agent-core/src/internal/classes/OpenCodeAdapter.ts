@@ -769,6 +769,12 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         this.handleToolCall(rejectedTool, toolInput, sessionID);
         return;
       }
+      // rejectedTool is absent or resolves to an invalid name — stop here.
+      this.emit('debug', {
+        type: 'warning',
+        message: `[OpenCode Adapter] Skipping unresolvable rejected tool call: toolName="${toolName}", rejectedTool="${rejectedTool}"`,
+      });
+      return;
     }
 
     if (this.isStartTaskTool(toolName)) {
