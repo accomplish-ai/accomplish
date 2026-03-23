@@ -9,6 +9,7 @@ import {
 
 const QUESTION_API_PORT = process.env.QUESTION_API_PORT || '9227';
 const QUESTION_API_URL = `http://localhost:${QUESTION_API_PORT}/question`;
+const TASK_ID = process.env.ACCOMPLISH_TASK_ID;
 
 interface QuestionOption {
   label: string;
@@ -123,6 +124,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
         header: question.header,
         options: question.options,
         multiSelect: question.multiSelect,
+        taskId: TASK_ID,
       }),
       signal: AbortSignal.timeout(300000), // 5 minutes — matches question API server timeout
     });

@@ -31,9 +31,12 @@ vi.mock('electron', () => ({
 import {
   isFilePermissionRequest,
   resolvePermission,
+  resolveQuestion,
   initPermissionApi,
   startPermissionApiServer,
+  startQuestionApiServer,
   PERMISSION_API_PORT,
+  QUESTION_API_PORT,
 } from '@main/permission-api';
 
 describe('Permission API Integration', () => {
@@ -110,11 +113,238 @@ describe('Permission API Integration', () => {
       expect(typeof startPermissionApiServer).toBe('function');
     });
 
-    it('should return an HTTP server when called', () => {
+    it('should return an HTTP server when called', async () => {
       const server = startPermissionApiServer();
       expect(server).toBeDefined();
-      // Clean up - close the server
-      server?.close();
+      // Clean up - close the server and await so the port is free for subsequent tests
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    });
+  });
+
+  describe('taskId resolution from request body', () => {
+    it('should trim an explicit taskId before dispatching a permission request', async () => {
+      const send = vi.fn();
+      const mockWindow = {
+        isDestroyed: () => false,
+        webContents: {
+          send,
+          isDestroyed: () => false,
+        },
+      } as unknown as import('electron').BrowserWindow;
+
+      initPermissionApi(
+        () => mockWindow,
+        () => 'fallback-task',
+      );
+
+      const server = startPermissionApiServer();
+      await new Promise<void>((resolve) => {
+        if (server.listening) {
+          resolve();
+        } else {
+          server.once('listening', resolve);
+        }
+      });
+
+      const fetchPromise = fetch(`http://127.0.0.1:${PERMISSION_API_PORT}/permission`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operation: 'modify',
+          filePath: '/tmp/test.txt',
+          taskId: '  task-with-spaces  ',
+        }),
+      });
+
+      // Wait for the permission request to reach the renderer
+      await vi.waitFor(() => {
+        expect(send).toHaveBeenCalledWith(
+          'permission:request',
+          expect.objectContaining({ taskId: 'task-with-spaces' }),
+        );
+      });
+
+      // Resolve the pending permission so the handler completes and the connection closes cleanly
+      const capturedReq = send.mock.calls.find(([event]) => event === 'permission:request')?.[1] as
+        | { id: string }
+        | undefined;
+      if (capturedReq) {
+        resolvePermission(capturedReq.id, true);
+      }
+      await fetchPromise.catch(() => {});
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    });
+
+    it('should fall back to active task when no taskId in request body', async () => {
+      const send = vi.fn();
+      const mockWindow = {
+        isDestroyed: () => false,
+        webContents: {
+          send,
+          isDestroyed: () => false,
+        },
+      } as unknown as import('electron').BrowserWindow;
+
+      initPermissionApi(
+        () => mockWindow,
+        () => 'active-task-123',
+      );
+
+      const server = startPermissionApiServer();
+      await new Promise<void>((resolve) => {
+        if (server.listening) {
+          resolve();
+        } else {
+          server.once('listening', resolve);
+        }
+      });
+
+      const fetchPromise = fetch(`http://127.0.0.1:${PERMISSION_API_PORT}/permission`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operation: 'modify',
+          filePath: '/tmp/test.txt',
+        }),
+      });
+
+      await vi.waitFor(() => {
+        expect(send).toHaveBeenCalledWith(
+          'permission:request',
+          expect.objectContaining({ taskId: 'active-task-123' }),
+        );
+      });
+
+      const capturedReq = send.mock.calls.find(([event]) => event === 'permission:request')?.[1] as
+        | { id: string }
+        | undefined;
+      if (capturedReq) {
+        resolvePermission(capturedReq.id, true);
+      }
+      await fetchPromise.catch(() => {});
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    });
+  });
+
+  describe('QUESTION_API_PORT', () => {
+    it('should be exported with correct value', () => {
+      expect(QUESTION_API_PORT).toBe(9227);
+    });
+  });
+
+  describe('startQuestionApiServer', () => {
+    it('should be a function', () => {
+      expect(typeof startQuestionApiServer).toBe('function');
+    });
+
+    it('should use a trimmed taskId from the request body', async () => {
+      const send = vi.fn();
+      const mockWindow = {
+        isDestroyed: () => false,
+        webContents: {
+          send,
+          isDestroyed: () => false,
+        },
+      } as unknown as import('electron').BrowserWindow;
+
+      initPermissionApi(
+        () => mockWindow,
+        () => null,
+      );
+
+      const server = startQuestionApiServer();
+      await new Promise<void>((resolve) => {
+        if (server.listening) {
+          resolve();
+        } else {
+          server.once('listening', resolve);
+        }
+      });
+
+      const fetchPromise = fetch(`http://127.0.0.1:${QUESTION_API_PORT}/question`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId: '  task-explicit-question  ',
+          question: 'What filename should I use?',
+          header: 'File Name',
+          options: [{ label: 'notes.txt' }, { label: 'todo.md' }],
+        }),
+      });
+
+      await vi.waitFor(() => {
+        expect(send).toHaveBeenCalledWith(
+          'permission:request',
+          expect.objectContaining({
+            taskId: 'task-explicit-question',
+            type: 'question',
+            question: 'What filename should I use?',
+          }),
+        );
+      });
+
+      const capturedReq = send.mock.calls.find(([event]) => event === 'permission:request')?.[1] as
+        | { id: string }
+        | undefined;
+      if (capturedReq) {
+        resolveQuestion(capturedReq.id, { selectedOptions: [], denied: false });
+      }
+      await fetchPromise.catch(() => {});
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    });
+
+    it('should fall back to active task when no taskId in request body', async () => {
+      const send = vi.fn();
+      const mockWindow = {
+        isDestroyed: () => false,
+        webContents: {
+          send,
+          isDestroyed: () => false,
+        },
+      } as unknown as import('electron').BrowserWindow;
+
+      initPermissionApi(
+        () => mockWindow,
+        () => 'fallback-active-task',
+      );
+
+      const server = startQuestionApiServer();
+      await new Promise<void>((resolve) => {
+        if (server.listening) {
+          resolve();
+        } else {
+          server.once('listening', resolve);
+        }
+      });
+
+      const fetchPromise = fetch(`http://127.0.0.1:${QUESTION_API_PORT}/question`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: 'Choose an option',
+          options: [{ label: 'Option A' }, { label: 'Option B' }],
+        }),
+      });
+
+      await vi.waitFor(() => {
+        expect(send).toHaveBeenCalledWith(
+          'permission:request',
+          expect.objectContaining({
+            taskId: 'fallback-active-task',
+            type: 'question',
+            question: 'Choose an option',
+          }),
+        );
+      });
+
+      const capturedReq = send.mock.calls.find(([event]) => event === 'permission:request')?.[1] as
+        | { id: string }
+        | undefined;
+      if (capturedReq) {
+        resolveQuestion(capturedReq.id, { selectedOptions: [], denied: false });
+      }
+      await fetchPromise.catch(() => {});
+      await new Promise<void>((resolve) => server.close(() => resolve()));
     });
   });
 });

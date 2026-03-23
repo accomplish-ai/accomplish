@@ -24,8 +24,8 @@ export class ExecutionPage {
     return this.page.getByTestId('execution-stop-button');
   }
 
-  get permissionModal() {
-    return this.page.getByTestId('execution-permission-modal');
+  get permissionCard() {
+    return this.page.getByTestId('execution-permission-card');
   }
 
   get allowButton() {
@@ -36,9 +36,9 @@ export class ExecutionPage {
     return this.page.getByTestId('permission-deny-button');
   }
 
-  /** Get all question option buttons inside the permission modal */
+  /** Get all question option buttons inside the permission card */
   get questionOptions() {
-    return this.permissionModal.locator('button').filter({ hasText: /Option|Other/ });
+    return this.permissionCard.locator('button').filter({ hasText: /Option|Other/ });
   }
 
   /** Get the custom response textarea (always visible below options) */

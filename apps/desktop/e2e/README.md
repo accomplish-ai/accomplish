@@ -49,9 +49,9 @@ Methods for interacting with the task execution page:
 - `thinkingIndicator` - Thinking indicator
 - `followUpInput` - Follow-up input
 - `stopButton` - Stop button
-- `permissionModal` - Permission modal
-- `allowButton` - Allow button (in permission modal)
-- `denyButton` - Deny button (in permission modal)
+- `permissionCard` - Permission inline card
+- `allowButton` - Allow button (in permission card)
+- `denyButton` - Deny button (in permission card)
 - `waitForComplete()` - Wait for task completion
 
 ### SettingsPage
