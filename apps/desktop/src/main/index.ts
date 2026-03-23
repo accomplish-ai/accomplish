@@ -364,8 +364,17 @@ app.on('before-quit', (event) => {
 
   // Await async cleanup before quitting (Dev0907, PR #480, ENG-695)
   void (async () => {
+    const stopBrowserPreviews = stopAllBrowserPreviewStreams();
     try {
-      await stopAllBrowserPreviewStreams();
+      await Promise.race([
+        stopBrowserPreviews,
+        new Promise<void>((_, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('Timed out stopping browser preview streams'));
+          }, 5000);
+          void stopBrowserPreviews.finally(() => clearTimeout(timeoutId));
+        }),
+      ]);
     } catch (error: unknown) {
       logger?.logEnv('ERROR', `[Main] Failed to stop browser preview streams: ${String(error)}`);
     }
@@ -402,8 +411,11 @@ app.on('before-quit', (event) => {
     } catch (error: unknown) {
       logger?.logEnv('ERROR', `[Main] Error during closeStorage: ${String(error)}`);
     }
-    shutdownLogCollector();
-    app.quit();
+    try {
+      shutdownLogCollector();
+    } finally {
+      app.quit();
+    }
   })();
 });
 
