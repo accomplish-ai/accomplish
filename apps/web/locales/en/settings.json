@@ -250,7 +250,8 @@
     "voiceInput": "Voice Input",
     "workspaces": "Workspaces",
     "appearance": "Appearance",
-    "about": "About"
+    "about": "About",
+    "workspaces": "Workspaces"
   },
   "appearance": {
     "title": "Theme",

@@ -4,7 +4,11 @@
   "favorites": {
     "title": "Favorites",
     "empty": "Star completed or interrupted tasks to see them here.",
-    "showAll": "Show all {{count}} favorites"
+    "showAll": "Show all {{count}} favorites",
+    "showAll_one": "Show {{count}} favorite",
+    "showAll_few": "Show all {{count}} favorites",
+    "showAll_many": "Show all {{count}} favorites",
+    "showAll_other": "Show all {{count}} favorites"
   },
   "plusMenu": {
     "addContent": "Add content",

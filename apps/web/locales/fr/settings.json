@@ -250,7 +250,8 @@
     "workspaces": "Espaces de travail",
     "appearance": "Apparence",
     "about": "À propos",
-    "browsers": "Navigateurs cloud"
+    "browsers": "Navigateurs cloud",
+    "workspaces": "Espaces de travail"
   },
   "appearance": {
     "title": "Thème",

@@ -29,3 +29,32 @@ export interface ListPagesResponse {
 export interface ServerInfoResponse {
   wsEndpoint: string;
 }
+
+// ─── Screencast types (ENG-695, contributed by david-mamani / PR #553) ──────
+
+export interface ScreencastConfig {
+  format: 'jpeg' | 'png';
+  quality: number;
+  maxWidth: number;
+  maxHeight: number;
+  everyNthFrame: number;
+}
+
+export interface ScreencastFrameMetadata {
+  pageUrl: string;
+  timestamp: number;
+  offsetTop: number;
+  pageScaleFactor: number;
+  deviceWidth: number;
+  deviceHeight: number;
+}
+
+export interface ScreencastFrame {
+  /** Base-64 encoded image data */
+  data: string;
+  /** CDP session ID for acknowledgement */
+  sessionId: number;
+  metadata: ScreencastFrameMetadata;
+}
+
+export type ScreencastStatus = 'idle' | 'starting' | 'streaming' | 'stopping' | 'error';

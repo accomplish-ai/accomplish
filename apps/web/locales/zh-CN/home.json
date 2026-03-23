@@ -4,7 +4,11 @@
   "favorites": {
     "title": "收藏",
     "empty": "将已完成或已中断的任务加星即可在此显示。",
-    "showAll": "显示全部 {{count}} 个收藏"
+    "showAll": "显示全部 {{count}} 个收藏",
+    "showAll_one": "显示 {{count}} 个收藏",
+    "showAll_few": "显示全部 {{count}} 个收藏",
+    "showAll_many": "显示全部 {{count}} 个收藏",
+    "showAll_other": "显示全部 {{count}} 个收藏"
   },
   "plusMenu": {
     "addContent": "添加内容",

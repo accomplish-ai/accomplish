@@ -1,9 +1,10 @@
 import type { BrowserWindow } from 'electron';
-import type { TaskMessage, TaskResult, TaskStatus, TodoItem } from '@accomplish_ai/agent-core';
+import type { TaskMessage, TaskResult, TaskStatus, TodoItem, BrowserFramePayload } from '@accomplish_ai/agent-core';
 import { mapResultToStatus } from '@accomplish_ai/agent-core';
 import { getTaskManager, recoverDevBrowserServer } from '../opencode';
 import type { TaskCallbacks } from '../opencode';
 import { getStorage } from '../store/storage';
+import { stopBrowserPreviewStream } from '../services/browserPreview';
 
 const DEV_BROWSER_TOOL_PREFIXES = ['dev-browser-mcp_', 'dev_browser_mcp_', 'browser_'];
 const BROWSER_FAILURE_WINDOW_MS = 12000;
@@ -103,6 +104,10 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
         result,
       });
 
+      // Stop any active browser preview stream when the task completes.
+      // Contributed by Dev0907 (PR #480) for ENG-695.
+      void stopBrowserPreviewStream(taskId);
+
       const taskStatus = mapResultToStatus(result);
       storage.updateTaskStatus(taskId, taskStatus, new Date().toISOString());
 
@@ -122,6 +127,10 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
         type: 'error',
         error: error.message,
       });
+
+      // Stop any active browser preview stream on task error.
+      // Contributed by Dev0907 (PR #480) for ENG-695.
+      void stopBrowserPreviewStream(taskId);
 
       storage.updateTaskStatus(taskId, 'failed', new Date().toISOString());
     },
@@ -151,6 +160,20 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
 
     onAuthError: (error: { providerId: string; message: string }) => {
       forwardToRenderer('auth:error', error);
+    },
+
+    /**
+     * Forward browser preview frames to the renderer.
+     * Dev-browser-mcp writes JSON frame lines to stdout; OpenCodeAdapter parses them
+     * and emits 'browser-frame' events that reach here via TaskManager.
+     *
+     * Contributed by samarthsinh2660 (PR #414) for ENG-695.
+     */
+    onBrowserFrame: (data: BrowserFramePayload) => {
+      forwardToRenderer('browser:frame', {
+        taskId,
+        ...data,
+      });
     },
 
     onToolCallComplete: ({ toolName, toolOutput }) => {
