@@ -766,7 +766,6 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       }
     }
 
-
     if (this.isStartTaskTool(toolName)) {
       this.startTaskCalled = true;
       const startInput = toolInput as StartTaskInput;
@@ -783,7 +782,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           if (todos.length > 0) {
             this.emit('todo:update', todos);
             this.completionEnforcer.updateTodos(todos);
-              }
+          }
         }
       }
     }
