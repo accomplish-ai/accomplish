@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import net from 'net';
 import os from 'os';
+import { sendJsonRpc, sendRawLine, SERVER_READY_WAIT } from './helpers/server.helpers';
 
 vi.mock('electron', () => ({
   app: {
@@ -14,38 +14,6 @@ import {
   registerMethod,
   getSocketPath,
 } from '@main/daemon/server';
-
-const SERVER_READY_WAIT = process.platform === 'win32' ? 800 : 200;
-
-function sendJsonRpc(
-  socketPath: string,
-  payload: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    const client = net.createConnection(socketPath, () => {
-      client.write(JSON.stringify(payload) + '\n');
-    });
-
-    let buffer = '';
-    client.on('data', (data) => {
-      buffer += data.toString();
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
-      for (const line of lines) {
-        if (line.trim()) {
-          client.destroy();
-          resolve(JSON.parse(line));
-        }
-      }
-    });
-
-    client.on('error', reject);
-    client.setTimeout(3000, () => {
-      client.destroy();
-      reject(new Error('Timeout'));
-    });
-  });
-}
 
 describe('daemon/server', () => {
   beforeEach(() => {
@@ -117,30 +85,7 @@ describe('daemon/server', () => {
     const socketPath = getSocketPath();
     await new Promise((resolve) => setTimeout(resolve, SERVER_READY_WAIT));
 
-    const response = await new Promise<Record<string, unknown>>((resolve, reject) => {
-      const client = net.createConnection(socketPath, () => {
-        client.write('not valid json\n');
-      });
-
-      let buffer = '';
-      client.on('data', (data) => {
-        buffer += data.toString();
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-        for (const line of lines) {
-          if (line.trim()) {
-            client.destroy();
-            resolve(JSON.parse(line));
-          }
-        }
-      });
-
-      client.on('error', reject);
-      client.setTimeout(3000, () => {
-        client.destroy();
-        reject(new Error('Timeout'));
-      });
-    });
+    const response = await sendRawLine(socketPath, 'not valid json');
 
     expect(response).toMatchObject({
       jsonrpc: '2.0',
