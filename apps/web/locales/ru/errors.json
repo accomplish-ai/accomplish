@@ -110,6 +110,8 @@
   },
   "auth": {
     "sessionExpired": "Сессия {{provider}} истекла",
-    "reLoginTo": "Войти заново в {{provider}}"
+    "reLoginTo": "Войти заново в {{provider}}",
+    "connectorAttention": "{{provider}} требует внимания",
+    "openConnectorSettings": "Открыть Настройки -> Коннекторы -> {{provider}}"
   }
 }
