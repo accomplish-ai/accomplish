@@ -474,3 +474,10 @@ export {
   resumeSessionSchema,
   validate,
 } from './common/schemas/validation.js';
+
+// Browser live-view types (ENG-695)
+export type {
+  BrowserFramePayload,
+  BrowserStatusPayload,
+  BrowserNavigatePayload,
+} from './common/types/browser-view.js';

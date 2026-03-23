@@ -126,3 +126,9 @@ export * from './task.js';
 export * from './thought-stream.js';
 export * from './todo.js';
 export * from './workspace.js';
+
+export type {
+  BrowserFramePayload,
+  BrowserStatusPayload,
+  BrowserNavigatePayload,
+} from './browser-view.js';

@@ -10,6 +10,7 @@ import type { PermissionRequest } from '../common/types/permission';
 import type { TodoItem } from '../common/types/todo';
 import type { OpenCodeMessage } from '../common/types/opencode';
 import type { SandboxConfig, SandboxProvider } from '../common/types/sandbox.js';
+import type { BrowserFramePayload } from '../common/types/browser-view.js';
 
 /** Progress event emitted during task execution */
 export interface TaskProgressEvent {
@@ -49,6 +50,9 @@ export interface TaskCallbacks {
   onTodoUpdate?: (todos: TodoItem[]) => void;
   /** Called when an auth error occurs */
   onAuthError?: (error: { providerId: string; message: string }) => void;
+  /** Called when a browser frame is captured for live preview (ENG-695).
+   *  Contributed by samarthsinh2660 (PR #414). */
+  onBrowserFrame?: (data: BrowserFramePayload) => void;
   /** Called when the agent emits reasoning text */
   onReasoning?: (text: string) => void;
   /** Called when a tool is about to be used (before execution) */

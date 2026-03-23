@@ -128,12 +128,24 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     }
   }, []);
 
-  // Check if speech input is configured
+  // Check if speech input is configured (run once on mount)
   useEffect(() => {
-    accomplish.speechIsConfigured().then((configured) => {
-      setState((prev) => ({ ...prev, isConfigured: configured }));
-    });
-  }, [accomplish]);
+    let mounted = true;
+    const accomplish = getAccomplish();
+    accomplish
+      .speechIsConfigured()
+      .then((configured) => {
+        if (mounted) {
+          setState((prev) => ({ ...prev, isConfigured: configured }));
+        }
+      })
+      .catch(() => {
+        // ignore errors from speechIsConfigured on mount
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   /**
    * Clean up recording resources

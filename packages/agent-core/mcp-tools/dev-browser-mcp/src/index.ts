@@ -25,6 +25,8 @@ import {
   listPages,
   closePage,
   getConnectionMode,
+  getCDPSession,
+  getFullPageName,
 } from './connection.js';
 
 console.error('[dev-browser-mcp] All imports completed successfully');
@@ -406,6 +408,137 @@ async function captureBoundedScreenshot(
     byteLength: lastByteLength,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Screencast helpers (ENG-695)
+// Contributed by samarthsinh2660 (PR #414): startScreencast / stopScreencast
+// emit JSON frames to stdout; OpenCodeAdapter parses them and emits
+// 'browser-frame' events consumed by the renderer.
+// ---------------------------------------------------------------------------
+
+/** Target ~10 FPS — enough for live preview without flooding stdout */
+const FRAME_INTERVAL_MS = 100;
+
+/**
+ * Track the active screencast frame handler per page name.
+ * This ensures we remove the old listener before attaching a new one,
+ * preventing duplicate frames after navigation (idempotent screencast).
+ */
+const activeFrameHandlers = new Map<string, (event: { data: string; sessionId: number }) => void>();
+
+/**
+ * Guards against concurrent startScreencast calls for the same page.
+ * If a screencast is already being initialised for a given pageKey, subsequent
+ * calls are dropped until the in-flight promise settles.
+ */
+const screencastStarting = new Set<string>();
+
+async function startScreencast(pageName?: string): Promise<void> {
+  const pageKey = pageName || 'main';
+  const fullPageName = getFullPageName(pageName);
+
+  // In-flight lock: skip if this page is already being started (Fix 3).
+  if (screencastStarting.has(pageKey)) {
+    return;
+  }
+  screencastStarting.add(pageKey);
+
+  try {
+    // Use getPage() to honour activePageOverride — the same resolved page that
+    // browser_navigate() already navigated, not just the raw string name (Fix 4).
+    const resolvedPage = await getPage(pageName);
+    const context = resolvedPage.context();
+    const session = await context.newCDPSession(resolvedPage);
+
+    // Remove any existing frame handler for this page before adding a new one
+    const existingHandler = activeFrameHandlers.get(pageKey);
+    if (existingHandler) {
+      session.off('Page.screencastFrame', existingHandler);
+      activeFrameHandlers.delete(pageKey);
+    }
+
+    // Stop any running screencast before restarting (idempotent)
+    await session.send('Page.stopScreencast').catch(() => {});
+
+    await session.send('Page.startScreencast', {
+      format: 'jpeg',
+      quality: 50,
+      maxWidth: 800,
+      everyNthFrame: 1,
+    } as Parameters<typeof session.send>[1]);
+
+    let lastFrameTime = 0;
+
+    const frameHandler = async (event: { data: string; sessionId: number }) => {
+      try {
+        const now = Date.now();
+
+        // Throttle to avoid flooding stdout
+        if (now - lastFrameTime < FRAME_INTERVAL_MS) {
+          await session
+            .send('Page.screencastFrameAck', { sessionId: event.sessionId } as Parameters<
+              typeof session.send
+            >[1])
+            .catch(() => {});
+          return;
+        }
+
+        lastFrameTime = now;
+
+        const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
+        console.log(
+          JSON.stringify({
+            type: 'browser-frame',
+            taskId,
+            pageName: pageName || 'main',
+            frame: event.data,
+            timestamp: now,
+          }),
+        );
+
+        await session
+          .send('Page.screencastFrameAck', { sessionId: event.sessionId } as Parameters<
+            typeof session.send
+          >[1])
+          .catch(() => {});
+      } catch (err) {
+        console.error('[dev-browser-mcp] Error handling screencast frame:', err);
+      }
+    };
+
+    activeFrameHandlers.set(pageKey, frameHandler);
+    session.on('Page.screencastFrame', frameHandler);
+    console.error(`[dev-browser-mcp] Screencast started for page: ${fullPageName}`);
+  } catch (err) {
+    console.error(`[dev-browser-mcp] Failed to start screencast for ${fullPageName}:`, err);
+  } finally {
+    // Release the in-flight lock regardless of success or failure (Fix 3).
+    screencastStarting.delete(pageKey);
+  }
+}
+
+async function _stopScreencast(pageName?: string): Promise<void> {
+  const pageKey = pageName || 'main';
+  const fullPageName = getFullPageName(pageName);
+
+  try {
+    const session = await getCDPSession(pageName);
+
+    // Remove the tracked frame handler before stopping
+    const existingHandler = activeFrameHandlers.get(pageKey);
+    if (existingHandler) {
+      session.off('Page.screencastFrame', existingHandler);
+      activeFrameHandlers.delete(pageKey);
+    }
+
+    await session.send('Page.stopScreencast');
+    console.error(`[dev-browser-mcp] Screencast stopped for page: ${fullPageName}`);
+  } catch (err) {
+    console.error(`[dev-browser-mcp] Failed to stop screencast for ${fullPageName}:`, err);
+  }
+}
+
+// ---------------------------------------------------------------------------
 
 const SNAPSHOT_SCRIPT = `
 (function() {
@@ -2567,6 +2700,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
           await page.goto(fullUrl);
           await waitForPageLoad(page);
           await injectActiveTabGlow(page);
+
+          // Auto-start screencast so the UI always has a live preview available.
+          // Fire-and-forget — failure here should never break navigation.
+          // Contributed by samarthsinh2660 (PR #414) for ENG-695.
+          void startScreencast(page_name);
 
           const title = await page.title();
           const currentUrl = page.url();
