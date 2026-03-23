@@ -13,7 +13,7 @@
     "dropFilesHint": "(макс. {max} файлов, по {size}МБ)",
     "fileTooLarge": "{name} превышает ограничение {limit}",
     "tooManyFiles": "Максимум {max} файлов",
-    "selectFolder": "Select Folder"
+    "selectFolder": "Выбрать папку"
   },
   "examplePrompts": "Примеры запросов",
   "useCases": {
@@ -71,5 +71,10 @@
     "showAll_many": "Показать все {{count}} избранных",
     "showAll_other": "Показать {{count}} избранных",
     "showAll": "Показать все {{count}} избранных"
+  },
+  "selectedFolder": {
+    "badge": "📁 {folder}",
+    "clearAriaLabel": "Очистить выбранную папку",
+    "clearButton": "✕"
   }
 }

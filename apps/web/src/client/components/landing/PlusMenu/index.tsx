@@ -109,9 +109,13 @@ export function PlusMenu({
     if (!accomplish?.pickFolder) {
       return;
     }
-    const folderPath = await accomplish.pickFolder();
-    if (folderPath) {
-      onSelectFolder?.(folderPath);
+    try {
+      const folderPath = await accomplish.pickFolder();
+      if (folderPath) {
+        onSelectFolder?.(folderPath);
+      }
+    } catch (err) {
+      console.error('Failed to pick folder:', err);
     }
   }, [onSelectFolder]);
 

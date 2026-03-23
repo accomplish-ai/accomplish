@@ -270,13 +270,13 @@ export function HomePage() {
               {workingDirectory && (
                 <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
                   <span className="truncate max-w-[400px]" title={workingDirectory}>
-                    📁 {workingDirectory}
+                    {t('selectedFolder.badge', { folder: workingDirectory })}
                   </span>
                   <button
                     type="button"
                     onClick={() => setWorkingDirectory(undefined)}
                     className="ml-1 hover:text-foreground transition-colors"
-                    aria-label="Clear selected folder"
+                    aria-label={t('selectedFolder.clearAriaLabel')}
                   >
                     ✕
                   </button>

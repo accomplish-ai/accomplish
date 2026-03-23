@@ -71,5 +71,11 @@
       "description": "Select top events and add them to the calendar.",
       "prompt": "Scrape event listings from Eventbrite, filter by location, and add top 5 to my calendar."
     }
+  },
+  "selectFolder": "Select Folder",
+  "selectedFolder": {
+    "badge": "📁 {folder}",
+    "clearAriaLabel": "Clear selected folder",
+    "clearButton": "✕"
   }
 }
