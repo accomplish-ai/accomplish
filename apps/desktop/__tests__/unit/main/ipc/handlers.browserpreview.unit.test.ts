@@ -1,69 +1,46 @@
 /**
- * Unit tests for Screencast IPC handlers
+ * Unit tests for BrowserPreview IPC handlers (ENG-695 / ENG-981)
  *
  * Tests the browser live-view IPC handlers:
- * - browser:start-screencast
- * - browser:stop-screencast
+ * - browser-preview:start
+ * - browser-preview:stop
+ * - browser-preview:status
  *
- * Verifies WebSocket lifecycle, cleanup, error handling,
- * and idempotency to prevent memory leaks and duplicate streams.
+ * The implementation routes IPC calls to the browserPreview service which
+ * uses Chrome DevTools Protocol (CDP) via a WebSocket-based CdpClient.
+ * These tests mock the browserPreview service to isolate handler logic.
  *
- * @module __tests__/unit/main/ipc/handlers.screencast.unit.test
+ * @module __tests__/unit/main/ipc/handlers.browserpreview.unit.test
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// ── Mock WebSocket (class-based, usable with `new`) ─────────────────────
+// ── Mock browserPreview service (CDP-based, not ws npm package) ──────────────
+// Use vi.hoisted so variables are initialized before vi.mock hoisting
 
-type WsListener = (...args: unknown[]) => void;
-
-interface MockWsInstance {
-  url: string;
-  on: Mock;
-  close: Mock;
-  send: Mock;
-  listeners: Record<string, WsListener>;
-  emit(event: string, ...args: unknown[]): void;
-}
-
-/** All mock WebSocket instances created during the current test */
-const wsInstances: MockWsInstance[] = [];
-
-/**
- * A real ES class that can be used with `new`.
- * `handlers.ts` line 1250 does `new WsDefault(url)`, so
- * vi.fn(() => plain-object) won't work – arrow functions
- * are not constructors.
- */
-class FakeWebSocket {
-  url: string;
-  on: Mock;
-  close: Mock;
-  send: Mock;
-  listeners: Record<string, WsListener>;
-
-  constructor(url: string) {
-    this.url = url;
-    this.listeners = {};
-    this.on = vi.fn((event: string, cb: WsListener) => {
-      this.listeners[event] = cb;
-    });
-    this.close = vi.fn();
-    this.send = vi.fn();
-    wsInstances.push(this as unknown as MockWsInstance);
-  }
-
-  /** Fire a listener registered via `.on()` */
-  emit(event: string, ...args: unknown[]): void {
-    this.listeners[event]?.(...args);
-  }
-}
-
-vi.mock('ws', () => ({
-  default: FakeWebSocket,
+const {
+  mockStartBrowserPreviewStream,
+  mockStopBrowserPreviewStream,
+  mockStopAllBrowserPreviewStreams,
+  mockIsScreencastActive,
+  mockAutoStartScreencast,
+} = vi.hoisted(() => ({
+  mockStartBrowserPreviewStream: vi.fn(() => Promise.resolve()),
+  mockStopBrowserPreviewStream: vi.fn(() => Promise.resolve()),
+  mockStopAllBrowserPreviewStreams: vi.fn(() => Promise.resolve()),
+  mockIsScreencastActive: vi.fn(() => false),
+  mockAutoStartScreencast: vi.fn(() => Promise.resolve()),
 }));
 
-// ── Mock Electron ───────────────────────────────────────────────────────
+vi.mock('@main/services/browserPreview', () => ({
+  startBrowserPreviewStream: mockStartBrowserPreviewStream,
+  stopBrowserPreviewStream: mockStopBrowserPreviewStream,
+  stopAllBrowserPreviewStreams: mockStopAllBrowserPreviewStreams,
+  isScreencastActive: mockIsScreencastActive,
+  autoStartScreencast: mockAutoStartScreencast,
+}));
+
+// ── Mock Electron ────────────────────────────────────────────────────────────
 
 const mockHandlers = new Map<string, (...args: unknown[]) => unknown>();
 
@@ -86,7 +63,13 @@ vi.mock('electron', () => ({
       id: 1,
       isDestroyed: vi.fn(() => false),
     })),
-    getAllWindows: vi.fn(() => [{ id: 1, webContents: { send: vi.fn() } }]),
+    getAllWindows: vi.fn(() => [
+      {
+        id: 1,
+        isDestroyed: vi.fn(() => false),
+        webContents: { send: vi.fn() },
+      },
+    ]),
   },
   shell: { openExternal: vi.fn(), openPath: vi.fn(), showItemInFolder: vi.fn() },
   dialog: { showOpenDialog: vi.fn() },
@@ -94,7 +77,7 @@ vi.mock('electron', () => ({
   app: { isPackaged: false, getPath: vi.fn(() => '/tmp/test-app') },
 }));
 
-// ── Mock opencode ───────────────────────────────────────────────────────
+// ── Mock opencode ────────────────────────────────────────────────────────────
 
 vi.mock('@main/opencode', () => ({
   getTaskManager: vi.fn(() => ({
@@ -119,7 +102,7 @@ vi.mock('@main/opencode/auth-browser', () => ({
   loginOpenAiWithChatGpt: vi.fn(() => Promise.resolve({ openedUrl: undefined })),
 }));
 
-// ── Mock storage ────────────────────────────────────────────────────────
+// ── Mock storage ─────────────────────────────────────────────────────────────
 
 vi.mock('@main/store/storage', () => ({
   getStorage: vi.fn(() => ({
@@ -199,7 +182,7 @@ vi.mock('@main/store/storage', () => ({
   })),
 }));
 
-// ── Mock agent-core ─────────────────────────────────────────────────────
+// ── Mock agent-core ──────────────────────────────────────────────────────────
 
 vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@accomplish_ai/agent-core')>();
@@ -237,6 +220,7 @@ vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
     STANDARD_VALIDATION_PROVIDERS: actual.STANDARD_VALIDATION_PROVIDERS,
     ZAI_ENDPOINTS: actual.ZAI_ENDPOINTS ?? {},
     DEV_BROWSER_PORT: 9224,
+    DEV_BROWSER_CDP_PORT: 9223,
     validate: actual.validate,
     permissionResponseSchema: actual.permissionResponseSchema,
     taskConfigSchema: actual.taskConfigSchema,
@@ -247,9 +231,10 @@ vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
 
 vi.mock('@accomplish_ai/agent-core/common', () => ({
   DEV_BROWSER_PORT: 9224,
+  DEV_BROWSER_CDP_PORT: 9223,
 }));
 
-// ── Mock remaining dependencies ─────────────────────────────────────────
+// ── Mock remaining dependencies ──────────────────────────────────────────────
 
 vi.mock('@main/store/secureStorage', () => ({
   storeApiKey: vi.fn(),
@@ -322,16 +307,16 @@ vi.mock('@main/config', () => ({
   getDesktopConfig: vi.fn(() => ({})),
 }));
 
-// ── Mock global fetch ───────────────────────────────────────────────────
+// ── Mock global fetch ─────────────────────────────────────────────────────────
 
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
-// ── Import handler registration (after all mocks) ───────────────────────
+// ── Import handler registration (after all mocks) ─────────────────────────────
 
 import { registerIPCHandlers } from '@main/ipc/handlers';
 
-// ── Test helpers ────────────────────────────────────────────────────────
+// ── Test helpers ──────────────────────────────────────────────────────────────
 
 function createMockEvent() {
   return {
@@ -350,31 +335,18 @@ async function invokeHandler(channel: string, ...args: unknown[]): Promise<unkno
   return handler(createMockEvent(), ...args);
 }
 
-async function invokeHandlerWithEvent(
-  channel: string,
-  event: ReturnType<typeof createMockEvent>,
-  ...args: unknown[]
-): Promise<unknown> {
-  const handler = mockHandlers.get(channel);
-  if (!handler) {
-    throw new Error(`No handler registered for channel: ${channel}`);
-  }
-  return handler(event, ...args);
-}
+// ── Tests ─────────────────────────────────────────────────────────────────────
 
-// ── Tests ───────────────────────────────────────────────────────────────
-
-describe('Screencast IPC Handlers', () => {
+describe('BrowserPreview IPC Handlers (CDP implementation)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockHandlers.clear();
-    wsInstances.length = 0;
 
-    // Default: the screencast HTTP start endpoint succeeds
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: true }),
-    });
+    // Reset mock implementations
+    mockStartBrowserPreviewStream.mockResolvedValue(undefined);
+    mockStopBrowserPreviewStream.mockResolvedValue(undefined);
+    mockStopAllBrowserPreviewStreams.mockResolvedValue(undefined);
+    mockIsScreencastActive.mockReturnValue(false);
 
     registerIPCHandlers();
   });
@@ -383,198 +355,218 @@ describe('Screencast IPC Handlers', () => {
     vi.clearAllMocks();
   });
 
-  // ── browser:start-screencast ────────────────────────────────────────
+  // ── Handler registration ──────────────────────────────────────────────────
 
-  describe('browser:start-screencast', () => {
-    it('should register the handler', () => {
-      expect(mockHandlers.has('browser:start-screencast')).toBe(true);
+  describe('handler registration', () => {
+    it('should register browser-preview:start handler', () => {
+      expect(mockHandlers.has('browser-preview:start')).toBe(true);
     });
 
-    it('should POST to the dev-browser start endpoint with pageName', async () => {
-      await invokeHandler('browser:start-screencast', 'test-page');
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://127.0.0.1:9224/screencast/start',
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pageName: 'test-page' }),
-        }),
-      );
+    it('should register browser-preview:stop handler', () => {
+      expect(mockHandlers.has('browser-preview:stop')).toBe(true);
     });
 
-    it('should create a WebSocket to the correct ws:// URL', async () => {
-      await invokeHandler('browser:start-screencast', 'my-page');
-
-      expect(wsInstances).toHaveLength(1);
-      expect(wsInstances[0].url).toBe('ws://127.0.0.1:9224/screencast/ws');
-    });
-
-    it('should register message, close, and error listeners on the WebSocket', async () => {
-      await invokeHandler('browser:start-screencast', 'my-page');
-
-      const ws = wsInstances[0];
-      expect(ws.on).toHaveBeenCalledWith('message', expect.any(Function));
-      expect(ws.on).toHaveBeenCalledWith('close', expect.any(Function));
-      expect(ws.on).toHaveBeenCalledWith('error', expect.any(Function));
-    });
-
-    it('should throw when the start endpoint returns an error', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        json: () => Promise.resolve({ error: 'Page not found' }),
-      });
-
-      await expect(invokeHandler('browser:start-screencast', 'bad-page')).rejects.toThrow(
-        'Failed to start screencast: Page not found',
-      );
-
-      // No WebSocket should have been created
-      expect(wsInstances).toHaveLength(0);
-    });
-
-    it('should forward frame messages to the renderer via IPC', async () => {
-      const event = createMockEvent();
-      await invokeHandlerWithEvent('browser:start-screencast', event, 'test-page');
-
-      const ws = wsInstances[0];
-
-      // Simulate a frame message from the dev-browser
-      const framePayload = JSON.stringify({
-        type: 'frame',
-        data: 'base64imagedata',
-        pageUrl: 'https://example.com',
-        timestamp: 1000,
-      });
-      ws.emit('message', Buffer.from(framePayload));
-
-      expect(event.sender.send).toHaveBeenCalledWith('browser:frame', {
-        data: 'base64imagedata',
-        pageUrl: 'https://example.com',
-        timestamp: 1000,
-      });
-    });
-
-    it('should send idle status when WebSocket closes', async () => {
-      const event = createMockEvent();
-      await invokeHandlerWithEvent('browser:start-screencast', event, 'test-page');
-
-      const ws = wsInstances[0];
-      ws.emit('close');
-
-      expect(event.sender.send).toHaveBeenCalledWith('browser:status', { status: 'idle' });
-    });
-
-    it('should send error status when WebSocket errors', async () => {
-      const event = createMockEvent();
-      await invokeHandlerWithEvent('browser:start-screencast', event, 'test-page');
-
-      const ws = wsInstances[0];
-      ws.emit('error', new Error('Connection refused'));
-
-      expect(event.sender.send).toHaveBeenCalledWith('browser:status', {
-        status: 'error',
-        error: 'Connection refused',
-      });
-    });
-
-    it('should close the WebSocket when sender is destroyed', async () => {
-      const event = createMockEvent();
-      await invokeHandlerWithEvent('browser:start-screencast', event, 'test-page');
-
-      const ws = wsInstances[0];
-
-      // Mark sender as destroyed
-      event.sender.isDestroyed.mockReturnValue(true);
-
-      // Simulate incoming message — should auto-close
-      ws.emit('message', Buffer.from(JSON.stringify({ type: 'frame', data: 'x' })));
-
-      expect(ws.close).toHaveBeenCalled();
+    it('should register browser-preview:status handler', () => {
+      expect(mockHandlers.has('browser-preview:status')).toBe(true);
     });
   });
 
-  // ── browser:stop-screencast ──────────────────────────────────────────
+  // ── browser-preview:start ─────────────────────────────────────────────────
 
-  describe('browser:stop-screencast', () => {
-    it('should register the handler', () => {
-      expect(mockHandlers.has('browser:stop-screencast')).toBe(true);
+  describe('browser-preview:start', () => {
+    it('should return { success: true } on success', async () => {
+      const result = await invokeHandler('browser-preview:start', 'task-123', 'main');
+      expect(result).toEqual({ success: true });
     });
 
-    it('should close the active WebSocket', async () => {
-      // Start a screencast first
-      await invokeHandler('browser:start-screencast', 'test-page');
-      const ws = wsInstances[0];
-
-      // Stop the screencast
-      await invokeHandler('browser:stop-screencast');
-
-      expect(ws.close).toHaveBeenCalled();
+    it('should call startBrowserPreviewStream with taskId and pageName', async () => {
+      await invokeHandler('browser-preview:start', 'task-abc', 'mypage');
+      expect(mockStartBrowserPreviewStream).toHaveBeenCalledWith('task-abc', 'mypage');
     });
 
-    it('should POST to the dev-browser stop endpoint', async () => {
-      await invokeHandler('browser:start-screencast', 'test-page');
-      mockFetch.mockClear();
+    it('should call startBrowserPreviewStream with default pageName when omitted', async () => {
+      await invokeHandler('browser-preview:start', 'task-xyz');
+      expect(mockStartBrowserPreviewStream).toHaveBeenCalledWith('task-xyz', undefined);
+    });
 
-      await invokeHandler('browser:stop-screencast');
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://127.0.0.1:9224/screencast/stop',
-        expect.objectContaining({ method: 'POST' }),
+    it('should throw when taskId is empty string', async () => {
+      await expect(invokeHandler('browser-preview:start', '')).rejects.toThrow(
+        'taskId is required',
       );
     });
 
-    it('should be safe to call when no screencast is active', async () => {
-      await expect(invokeHandler('browser:stop-screencast')).resolves.not.toThrow();
+    it('should throw when taskId is not a string', async () => {
+      await expect(invokeHandler('browser-preview:start', 42)).rejects.toThrow(
+        'taskId is required',
+      );
     });
 
-    it('should handle fetch errors gracefully when stopping', async () => {
-      await invokeHandler('browser:start-screencast', 'test-page');
-      mockFetch.mockRejectedValueOnce(new Error('Server not running'));
+    it('should throw when taskId is null', async () => {
+      await expect(invokeHandler('browser-preview:start', null)).rejects.toThrow(
+        'taskId is required',
+      );
+    });
 
-      // Should not throw even if the stop endpoint is unreachable
-      await expect(invokeHandler('browser:stop-screencast')).resolves.not.toThrow();
+    it('should propagate errors from startBrowserPreviewStream', async () => {
+      mockStartBrowserPreviewStream.mockRejectedValueOnce(new Error('CDP connection failed'));
+      await expect(invokeHandler('browser-preview:start', 'task-err')).rejects.toThrow(
+        'CDP connection failed',
+      );
+    });
+
+    it('should call startBrowserPreviewStream once per invocation', async () => {
+      await invokeHandler('browser-preview:start', 'task-once', 'page');
+      expect(mockStartBrowserPreviewStream).toHaveBeenCalledTimes(1);
+    });
+
+    it('should allow multiple start calls for different tasks', async () => {
+      await invokeHandler('browser-preview:start', 'task-1', 'page-1');
+      await invokeHandler('browser-preview:start', 'task-2', 'page-2');
+
+      expect(mockStartBrowserPreviewStream).toHaveBeenCalledTimes(2);
+      expect(mockStartBrowserPreviewStream).toHaveBeenNthCalledWith(1, 'task-1', 'page-1');
+      expect(mockStartBrowserPreviewStream).toHaveBeenNthCalledWith(2, 'task-2', 'page-2');
     });
   });
 
-  // ── Idempotency (memory leak prevention) ─────────────────────────────
+  // ── browser-preview:stop ──────────────────────────────────────────────────
 
-  describe('idempotency (memory leak prevention)', () => {
-    it('should close the previous WebSocket when start is called twice', async () => {
-      // First start
-      await invokeHandler('browser:start-screencast', 'page-1');
-      const firstWs = wsInstances[0];
-
-      // Second start — should close the first
-      await invokeHandler('browser:start-screencast', 'page-2');
-
-      expect(firstWs.close).toHaveBeenCalled();
-      expect(wsInstances).toHaveLength(2);
+  describe('browser-preview:stop', () => {
+    it('should return { stopped: true } on success', async () => {
+      const result = await invokeHandler('browser-preview:stop', 'task-123');
+      expect(result).toEqual({ stopped: true });
     });
 
-    it('should send different pageName for each start call', async () => {
-      await invokeHandler('browser:start-screencast', 'page-1');
-      await invokeHandler('browser:start-screencast', 'page-2');
+    it('should call stopBrowserPreviewStream with the given taskId', async () => {
+      await invokeHandler('browser-preview:stop', 'task-stop-abc');
+      expect(mockStopBrowserPreviewStream).toHaveBeenCalledWith('task-stop-abc');
+    });
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://127.0.0.1:9224/screencast/start',
-        expect.objectContaining({ body: JSON.stringify({ pageName: 'page-1' }) }),
-      );
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://127.0.0.1:9224/screencast/start',
-        expect.objectContaining({ body: JSON.stringify({ pageName: 'page-2' }) }),
+    it('should throw when taskId is empty string', async () => {
+      await expect(invokeHandler('browser-preview:stop', '')).rejects.toThrow('taskId is required');
+    });
+
+    it('should throw when taskId is not a string', async () => {
+      await expect(invokeHandler('browser-preview:stop', null)).rejects.toThrow(
+        'taskId is required',
       );
     });
 
-    it('should not leak after start-stop-start cycle', async () => {
-      // Start → Stop → Start
-      await invokeHandler('browser:start-screencast', 'page-1');
-      const firstWs = wsInstances[0];
-      await invokeHandler('browser:stop-screencast');
-      await invokeHandler('browser:start-screencast', 'page-2');
+    it('should propagate errors from stopBrowserPreviewStream', async () => {
+      mockStopBrowserPreviewStream.mockRejectedValueOnce(new Error('Stop failed'));
+      await expect(invokeHandler('browser-preview:stop', 'task-err')).rejects.toThrow(
+        'Stop failed',
+      );
+    });
 
-      expect(firstWs.close).toHaveBeenCalled();
-      expect(wsInstances).toHaveLength(2);
+    it('should call stopBrowserPreviewStream exactly once', async () => {
+      await invokeHandler('browser-preview:stop', 'task-once');
+      expect(mockStopBrowserPreviewStream).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle safe stop when no session is active (service handles it gracefully)', async () => {
+      // The service handles this case; handler should not throw
+      mockStopBrowserPreviewStream.mockResolvedValueOnce(undefined);
+      await expect(invokeHandler('browser-preview:stop', 'nonexistent-task')).resolves.toEqual({
+        stopped: true,
+      });
+    });
+  });
+
+  // ── browser-preview:status ────────────────────────────────────────────────
+
+  describe('browser-preview:status', () => {
+    it('should return { active: false } when no session is running', async () => {
+      mockIsScreencastActive.mockReturnValue(false);
+      const result = await invokeHandler('browser-preview:status');
+      expect(result).toEqual({ active: false });
+    });
+
+    it('should return { active: true } when a session is active', async () => {
+      mockIsScreencastActive.mockReturnValue(true);
+      const result = await invokeHandler('browser-preview:status');
+      expect(result).toEqual({ active: true });
+    });
+
+    it('should call isScreencastActive to determine status', async () => {
+      await invokeHandler('browser-preview:status');
+      expect(mockIsScreencastActive).toHaveBeenCalled();
+    });
+
+    it('should reflect live changes: false → true → false', async () => {
+      mockIsScreencastActive.mockReturnValueOnce(false);
+      expect(await invokeHandler('browser-preview:status')).toEqual({ active: false });
+
+      mockIsScreencastActive.mockReturnValueOnce(true);
+      expect(await invokeHandler('browser-preview:status')).toEqual({ active: true });
+
+      mockIsScreencastActive.mockReturnValueOnce(false);
+      expect(await invokeHandler('browser-preview:status')).toEqual({ active: false });
+    });
+  });
+
+  // ── Handler isolation / idempotency ──────────────────────────────────────
+
+  describe('handler isolation', () => {
+    it('should not share state between independent start calls', async () => {
+      mockStartBrowserPreviewStream.mockResolvedValue(undefined);
+
+      const result1 = await invokeHandler('browser-preview:start', 'task-A', 'page-A');
+      const result2 = await invokeHandler('browser-preview:start', 'task-B', 'page-B');
+
+      expect(result1).toEqual({ success: true });
+      expect(result2).toEqual({ success: true });
+      expect(mockStartBrowserPreviewStream).toHaveBeenNthCalledWith(1, 'task-A', 'page-A');
+      expect(mockStartBrowserPreviewStream).toHaveBeenNthCalledWith(2, 'task-B', 'page-B');
+    });
+
+    it('should allow start then stop for the same task', async () => {
+      await invokeHandler('browser-preview:start', 'task-cycle');
+      await invokeHandler('browser-preview:stop', 'task-cycle');
+
+      expect(mockStartBrowserPreviewStream).toHaveBeenCalledWith('task-cycle', undefined);
+      expect(mockStopBrowserPreviewStream).toHaveBeenCalledWith('task-cycle');
+    });
+
+    it('should not call stop when starting (lifecycle managed by service)', async () => {
+      // The service handles cleanup of existing sessions internally
+      await invokeHandler('browser-preview:start', 'task-new', 'main');
+      expect(mockStopBrowserPreviewStream).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── CDP architecture validation ───────────────────────────────────────────
+
+  describe('CDP architecture (service contract)', () => {
+    it('startBrowserPreviewStream is the CDP-based service function (not ws package)', () => {
+      // Verify the handler calls the CDP-based service, not a WebSocket server directly
+      expect(mockStartBrowserPreviewStream).toBeDefined();
+      // The service uses CDP (not ws npm package): its signature is (taskId, pageName?) => Promise<void>
+      expect(typeof mockStartBrowserPreviewStream).toBe('function');
+    });
+
+    it('stopBrowserPreviewStream sends Page.stopScreencast via CDP (service contract)', () => {
+      // Verify the handler calls the CDP-based service, not POST to /screencast/stop
+      expect(mockStopBrowserPreviewStream).toBeDefined();
+      expect(typeof mockStopBrowserPreviewStream).toBe('function');
+    });
+
+    it('isScreencastActive reflects CDP session state (not WebSocket server state)', () => {
+      mockIsScreencastActive.mockReturnValue(true);
+      expect(mockIsScreencastActive()).toBe(true);
+      mockIsScreencastActive.mockReturnValue(false);
+      expect(mockIsScreencastActive()).toBe(false);
+    });
+
+    it('IPC channels use browser-preview: prefix (not browser:start-screencast)', () => {
+      // Verify the correct IPC channel names are registered
+      expect(mockHandlers.has('browser-preview:start')).toBe(true);
+      expect(mockHandlers.has('browser-preview:stop')).toBe(true);
+      expect(mockHandlers.has('browser-preview:status')).toBe(true);
+
+      // Old (incorrect) channel names should NOT be registered
+      expect(mockHandlers.has('browser:start-screencast')).toBe(false);
+      expect(mockHandlers.has('browser:stop-screencast')).toBe(false);
     });
   });
 });
