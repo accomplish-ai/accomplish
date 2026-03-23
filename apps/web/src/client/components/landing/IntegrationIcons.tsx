@@ -47,11 +47,16 @@ export function getLocalIcon(domain: string): string | undefined {
 }
 
 export function getFaviconUrl(domain: string, size: number = 16): string {
-  return getLocalIcon(domain) ?? `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
+  const encodedDomain = encodeURIComponent(domain);
+  return (
+    getLocalIcon(domain) ?? `https://www.google.com/s2/favicons?domain=${encodedDomain}&sz=${size}`
+  );
 }
 
 export function IntegrationIcon({ domain, className }: { domain: string; className?: string }) {
-  const src = getLocalIcon(domain) ?? `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+  const encodedDomain = encodeURIComponent(domain);
+  const src =
+    getLocalIcon(domain) ?? `https://www.google.com/s2/favicons?domain=${encodedDomain}&sz=128`;
   return (
     <img
       alt={domain}
