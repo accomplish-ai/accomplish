@@ -754,7 +754,28 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   }
 
   private handleToolCall(toolName: string, toolInput: unknown, sessionID?: string): void {
-    console.log('[OpenCode Adapter] Tool call:', toolName);
+    // Normalize rejected tool calls from local models (e.g. Ollama).
+    // opencode returns toolName='invalid'/'unknown' with { tool: 'complete_task' } in input.
+    // Detect and re-route to the canonical tool name so all bookkeeping runs correctly.
+    if (toolName === 'invalid' || toolName === 'unknown') {
+      const rejectedInput = toolInput as { tool?: string } | undefined;
+      const rejectedTool = rejectedInput?.tool?.trim();
+      if (
+        rejectedTool &&
+        rejectedTool !== toolName &&
+        rejectedTool !== 'invalid' &&
+        rejectedTool !== 'unknown'
+      ) {
+        this.handleToolCall(rejectedTool, toolInput, sessionID);
+        return;
+      }
+      // rejectedTool is absent or resolves to an invalid name — stop here.
+      this.emit('debug', {
+        type: 'warning',
+        message: `[OpenCode Adapter] Skipping unresolvable rejected tool call: toolName="${toolName}", rejectedTool="${rejectedTool}"`,
+      });
+      return;
+    }
 
     if (this.isStartTaskTool(toolName)) {
       this.startTaskCalled = true;
@@ -772,14 +793,12 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           if (todos.length > 0) {
             this.emit('todo:update', todos);
             this.completionEnforcer.updateTodos(todos);
-            console.log('[OpenCode Adapter] Created todos from start_task steps');
           }
         }
       }
     }
 
     if (!this.startTaskCalled && !this.isExemptTool(toolName)) {
-      console.warn(`[OpenCode Adapter] Tool "${toolName}" called before start_task`);
       this.emit('debug', {
         type: 'warning',
         message: `Tool "${toolName}" called before start_task - plan may not be captured`,
