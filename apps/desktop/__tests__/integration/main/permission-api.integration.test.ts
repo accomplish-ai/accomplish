@@ -112,11 +112,11 @@ describe('Permission API Integration', () => {
       expect(typeof startPermissionApiServer).toBe('function');
     });
 
-    it('should return an HTTP server when called', () => {
+    it('should return an HTTP server when called', async () => {
       const server = startPermissionApiServer();
       expect(server).toBeDefined();
-      // Clean up - close the server
-      server?.close();
+      // Clean up - close the server and await so the port is free for subsequent tests
+      await new Promise<void>((resolve) => server.close(() => resolve()));
     });
   });
 
@@ -138,13 +138,14 @@ describe('Permission API Integration', () => {
 
       const server = startPermissionApiServer();
       await new Promise<void>((resolve) => {
-        server.listen(0, '127.0.0.1', () => resolve());
+        if (server.listening) {
+          resolve();
+        } else {
+          server.once('listening', resolve);
+        }
       });
 
-      const addr = server.address() as import('net').AddressInfo;
-
-      // Fire and forget — we don't need the response for this assertion
-      fetch(`http://127.0.0.1:${addr.port}/permission`, {
+      const fetchPromise = fetch(`http://127.0.0.1:${PERMISSION_API_PORT}/permission`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -152,7 +153,7 @@ describe('Permission API Integration', () => {
           filePath: '/tmp/test.txt',
           taskId: '  task-with-spaces  ',
         }),
-      }).catch(() => {});
+      });
 
       // Wait for the permission request to reach the renderer
       await vi.waitFor(() => {
@@ -162,7 +163,15 @@ describe('Permission API Integration', () => {
         );
       });
 
-      server.close();
+      // Resolve the pending permission so the handler completes and the connection closes cleanly
+      const capturedReq = send.mock.calls.find(([event]) => event === 'permission:request')?.[1] as
+        | { id: string }
+        | undefined;
+      if (capturedReq) {
+        resolvePermission(capturedReq.id, true);
+      }
+      await fetchPromise.catch(() => {});
+      await new Promise<void>((resolve) => server.close(() => resolve()));
     });
 
     it('should fall back to active task when no taskId in request body', async () => {
@@ -182,19 +191,21 @@ describe('Permission API Integration', () => {
 
       const server = startPermissionApiServer();
       await new Promise<void>((resolve) => {
-        server.listen(0, '127.0.0.1', () => resolve());
+        if (server.listening) {
+          resolve();
+        } else {
+          server.once('listening', resolve);
+        }
       });
 
-      const addr = server.address() as import('net').AddressInfo;
-
-      fetch(`http://127.0.0.1:${addr.port}/permission`, {
+      const fetchPromise = fetch(`http://127.0.0.1:${PERMISSION_API_PORT}/permission`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           operation: 'modify',
           filePath: '/tmp/test.txt',
         }),
-      }).catch(() => {});
+      });
 
       await vi.waitFor(() => {
         expect(send).toHaveBeenCalledWith(
@@ -203,7 +214,14 @@ describe('Permission API Integration', () => {
         );
       });
 
-      server.close();
+      const capturedReq = send.mock.calls.find(([event]) => event === 'permission:request')?.[1] as
+        | { id: string }
+        | undefined;
+      if (capturedReq) {
+        resolvePermission(capturedReq.id, true);
+      }
+      await fetchPromise.catch(() => {});
+      await new Promise<void>((resolve) => server.close(() => resolve()));
     });
   });
 
@@ -235,12 +253,14 @@ describe('Permission API Integration', () => {
 
       const server = startQuestionApiServer();
       await new Promise<void>((resolve) => {
-        server.listen(0, '127.0.0.1', () => resolve());
+        if (server.listening) {
+          resolve();
+        } else {
+          server.once('listening', resolve);
+        }
       });
 
-      const addr = server.address() as import('net').AddressInfo;
-
-      fetch(`http://127.0.0.1:${addr.port}/question`, {
+      const fetchPromise = fetch(`http://127.0.0.1:${QUESTION_API_PORT}/question`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -249,7 +269,7 @@ describe('Permission API Integration', () => {
           header: 'File Name',
           options: [{ label: 'notes.txt' }, { label: 'todo.md' }],
         }),
-      }).catch(() => {});
+      });
 
       await vi.waitFor(() => {
         expect(send).toHaveBeenCalledWith(
@@ -262,7 +282,14 @@ describe('Permission API Integration', () => {
         );
       });
 
-      server.close();
+      const capturedReq = send.mock.calls.find(([event]) => event === 'permission:request')?.[1] as
+        | { id: string }
+        | undefined;
+      if (capturedReq) {
+        resolvePermission(capturedReq.id, true);
+      }
+      await fetchPromise.catch(() => {});
+      await new Promise<void>((resolve) => server.close(() => resolve()));
     });
 
     it('should fall back to active task when no taskId in request body', async () => {
@@ -282,19 +309,21 @@ describe('Permission API Integration', () => {
 
       const server = startQuestionApiServer();
       await new Promise<void>((resolve) => {
-        server.listen(0, '127.0.0.1', () => resolve());
+        if (server.listening) {
+          resolve();
+        } else {
+          server.once('listening', resolve);
+        }
       });
 
-      const addr = server.address() as import('net').AddressInfo;
-
-      fetch(`http://127.0.0.1:${addr.port}/question`, {
+      const fetchPromise = fetch(`http://127.0.0.1:${QUESTION_API_PORT}/question`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           question: 'Choose an option',
           options: [{ label: 'Option A' }, { label: 'Option B' }],
         }),
-      }).catch(() => {});
+      });
 
       await vi.waitFor(() => {
         expect(send).toHaveBeenCalledWith(
@@ -307,7 +336,14 @@ describe('Permission API Integration', () => {
         );
       });
 
-      server.close();
+      const capturedReq = send.mock.calls.find(([event]) => event === 'permission:request')?.[1] as
+        | { id: string }
+        | undefined;
+      if (capturedReq) {
+        resolvePermission(capturedReq.id, true);
+      }
+      await fetchPromise.catch(() => {});
+      await new Promise<void>((resolve) => server.close(() => resolve()));
     });
   });
 });

@@ -6,12 +6,12 @@ Tests covering task lifecycle, concurrency, and user-interaction prompts during 
 
 ## Task Lifecycle
 
-| ID           | Scenario                            | Steps                                                         | Expected                                                             |
-| ------------ | ----------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------- |
-| EXEC-LIFE-01 | Task starts successfully            | 1. Submit a prompt 2. Observe execution page                  | Task transitions to `running` state; execution log begins streaming  |
-| EXEC-LIFE-02 | Task completes successfully         | 1. Submit a simple prompt with a deterministic outcome        | Task transitions to `completed`; result is displayed                 |
-| EXEC-LIFE-03 | Task fails gracefully               | 1. Submit a prompt designed to trigger an unrecoverable error | Task transitions to `failed`; error message is displayed to the user |
-| EXEC-LIFE-04 | Task can be cancelled mid-execution | 1. Start a long-running task 2. Click **Cancel**              | Task transitions to `cancelled`; execution stops promptly            |
+| ID           | Scenario                          | Steps                                                         | Expected                                                                        |
+| ------------ | --------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| EXEC-LIFE-01 | Task starts successfully          | 1. Submit a prompt 2. Observe execution page                  | Task transitions to `running` state; execution log begins streaming             |
+| EXEC-LIFE-02 | Task completes successfully       | 1. Submit a simple prompt with a deterministic outcome        | Task transitions to `completed`; result is displayed                            |
+| EXEC-LIFE-03 | Task fails gracefully             | 1. Submit a prompt designed to trigger an unrecoverable error | Task transitions to `failed`; error message is displayed to the user            |
+| EXEC-LIFE-04 | Task can be stopped mid-execution | 1. Start a long-running task 2. Click **Stop**                | Task transitions to `interrupted`; execution shows "Stopped" and stops promptly |
 
 ---
 

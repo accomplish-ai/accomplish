@@ -163,7 +163,7 @@ export function ExecutionPage() {
     addTaskUpdateBatch,
     updateTaskStatus,
     setPermissionRequest,
-    permissionRequest,
+    permissionRequests,
     respondToPermission,
     sendFollowUp,
     interruptTask,
@@ -176,6 +176,9 @@ export function ExecutionPage() {
     todos,
     todosTaskId,
   } = useTaskStore();
+
+  // Derive the permission request scoped to this task from the map
+  const permissionRequest = (id ? permissionRequests[id] : undefined) ?? null;
 
   const speechInput = useSpeechInput({
     onTranscriptionComplete: (text) => {
@@ -964,7 +967,7 @@ export function ExecutionPage() {
 
                 {/* Inline permission / question card — scoped to this task */}
                 <AnimatePresence>
-                  {permissionRequest && permissionRequest.taskId === id && (
+                  {permissionRequest && (
                     <PermissionDialog
                       permissionRequest={permissionRequest}
                       onRespond={handlePermissionResponse}

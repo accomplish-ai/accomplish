@@ -7,71 +7,11 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import type { PermissionRequest } from '@accomplish_ai/agent-core/common';
 
-// Mock framer-motion for simpler testing
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-      <div {...props}>{children}</div>
-    ),
-  },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
-// Mock UI components
-vi.mock('@/components/ui/card', () => ({
-  Card: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-    <div data-slot="card" {...props}>
-      {children}
-    </div>
-  ),
-}));
-
-vi.mock('@/components/ui/button', () => ({
-  Button: ({
-    children,
-    onClick,
-    ...props
-  }: {
-    children: React.ReactNode;
-    onClick?: () => void;
-    [key: string]: unknown;
-  }) => (
-    <button onClick={onClick} {...props}>
-      {children}
-    </button>
-  ),
-}));
-
-vi.mock('@/lib/animations', () => ({
-  springs: { gentle: { type: 'spring', stiffness: 300, damping: 30 } },
-}));
+// Import helpers first — they register vi.mock stubs before PermissionDialog is loaded
+import { createToolPermission, createFilePermission } from './permissionDialogTestHelpers';
 
 import { PermissionDialog } from '@/components/execution/PermissionDialog';
-
-function createToolPermission(overrides: Partial<PermissionRequest> = {}): PermissionRequest {
-  return {
-    id: 'perm-1',
-    taskId: 'task-123',
-    type: 'tool',
-    toolName: 'Bash',
-    createdAt: new Date().toISOString(),
-    ...overrides,
-  } as PermissionRequest;
-}
-
-function createFilePermission(overrides: Partial<PermissionRequest> = {}): PermissionRequest {
-  return {
-    id: 'perm-2',
-    taskId: 'task-123',
-    type: 'file',
-    fileOperation: 'create',
-    filePath: '/path/to/file.txt',
-    createdAt: new Date().toISOString(),
-    ...overrides,
-  } as PermissionRequest;
-}
 
 describe('PermissionDialog', () => {
   describe('renders the inline card', () => {

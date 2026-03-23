@@ -292,7 +292,9 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
                   className="w-full resize-none overflow-hidden rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                   style={{ minHeight: '38px', maxHeight: '150px' }}
                   onKeyDown={(e) => {
-                    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+                    if (e.nativeEvent.isComposing || e.keyCode === 229) {
+                      return;
+                    }
                     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && customResponse.trim()) {
                       handleRespond(true);
                     }

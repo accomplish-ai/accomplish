@@ -117,7 +117,13 @@ export function startPermissionApiServer(): http.Server {
     let parsed: Record<string, unknown>;
 
     try {
-      parsed = JSON.parse(body);
+      const rawParsed: unknown = JSON.parse(body);
+      if (typeof rawParsed !== 'object' || rawParsed === null || Array.isArray(rawParsed)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        return;
+      }
+      parsed = rawParsed as Record<string, unknown>;
     } catch {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Invalid JSON' }));
@@ -233,7 +239,13 @@ export function startQuestionApiServer(): http.Server {
     let parsed: Record<string, unknown>;
 
     try {
-      parsed = JSON.parse(body);
+      const rawParsed: unknown = JSON.parse(body);
+      if (typeof rawParsed !== 'object' || rawParsed === null || Array.isArray(rawParsed)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        return;
+      }
+      parsed = rawParsed as Record<string, unknown>;
     } catch {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Invalid JSON' }));

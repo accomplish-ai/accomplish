@@ -136,7 +136,7 @@ test.describe('Execution Page', () => {
     await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Wait for permission modal to appear
-    await executionPage.permissionModal.waitFor({
+    await executionPage.permissionCard.waitFor({
       state: 'visible',
       timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
     });
@@ -151,7 +151,7 @@ test.describe('Execution Page', () => {
     ]);
 
     // Assert permission modal and buttons are visible
-    await expect(executionPage.permissionModal).toBeVisible();
+    await expect(executionPage.permissionCard).toBeVisible();
     await expect(executionPage.allowButton).toBeVisible();
     await expect(executionPage.denyButton).toBeVisible();
 
@@ -174,7 +174,7 @@ test.describe('Execution Page', () => {
     await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Wait for permission modal and allow button to be ready
-    await executionPage.permissionModal.waitFor({
+    await executionPage.permissionCard.waitFor({
       state: 'visible',
       timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
     });
@@ -194,7 +194,7 @@ test.describe('Execution Page', () => {
     ]);
 
     // Modal should disappear after clicking allow
-    await expect(executionPage.permissionModal).not.toBeVisible({
+    await expect(executionPage.permissionCard).not.toBeVisible({
       timeout: TEST_TIMEOUTS.NAVIGATION,
     });
 
@@ -217,7 +217,7 @@ test.describe('Execution Page', () => {
     await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Wait for permission modal and deny button to be ready
-    await executionPage.permissionModal.waitFor({
+    await executionPage.permissionCard.waitFor({
       state: 'visible',
       timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
     });
@@ -234,7 +234,7 @@ test.describe('Execution Page', () => {
     ]);
 
     // Modal should disappear
-    await expect(executionPage.permissionModal).not.toBeVisible({
+    await expect(executionPage.permissionCard).not.toBeVisible({
       timeout: TEST_TIMEOUTS.NAVIGATION,
     });
 
@@ -628,7 +628,7 @@ test.describe('Execution Page', () => {
     await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Wait for question modal to appear
-    await executionPage.permissionModal.waitFor({
+    await executionPage.permissionCard.waitFor({
       state: 'visible',
       timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
     });
@@ -642,7 +642,7 @@ test.describe('Execution Page', () => {
     ]);
 
     // Assert modal is visible with options (Other option is replaced by always-visible text input)
-    await expect(executionPage.permissionModal).toBeVisible();
+    await expect(executionPage.permissionCard).toBeVisible();
     await expect(executionPage.questionOptions).toHaveCount(2); // Option A, Option B
 
     // Submit button should be disabled (no option selected yet)
@@ -664,7 +664,7 @@ test.describe('Execution Page', () => {
     await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Wait for question modal to appear
-    await executionPage.permissionModal.waitFor({
+    await executionPage.permissionCard.waitFor({
       state: 'visible',
       timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
     });
@@ -686,7 +686,7 @@ test.describe('Execution Page', () => {
     await executionPage.allowButton.click();
 
     // Modal should disappear
-    await expect(executionPage.permissionModal).not.toBeVisible({
+    await expect(executionPage.permissionCard).not.toBeVisible({
       timeout: TEST_TIMEOUTS.NAVIGATION,
     });
 
