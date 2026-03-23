@@ -364,8 +364,14 @@ interface AccomplishAPI {
   // Browser Preview (ENG-695)
   // Contributed by dhruvawani17 (PR #489), samarthsinh2660 (PR #414), david-mamani (PR #553)
   onBrowserFrame?(callback: (event: BrowserFramePayload & { taskId: string }) => void): () => void;
-  onBrowserNavigate?(callback: (event: BrowserNavigatePayload & { taskId: string; pageName: string }) => void): () => void;
-  onBrowserStatus?(callback: (event: BrowserStatusPayload & { taskId: string; pageName: string; message?: string }) => void): () => void;
+  onBrowserNavigate?(
+    callback: (event: BrowserNavigatePayload & { taskId: string; pageName: string }) => void,
+  ): () => void;
+  onBrowserStatus?(
+    callback: (
+      event: BrowserStatusPayload & { taskId: string; pageName: string; message?: string },
+    ) => void,
+  ): () => void;
   startBrowserPreview?(taskId: string, pageName?: string): Promise<{ success: boolean }>;
   stopBrowserPreview?(taskId: string): Promise<{ stopped: boolean }>;
   getBrowserPreviewStatus?(): Promise<{ active: boolean }>;

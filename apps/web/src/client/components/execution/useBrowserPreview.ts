@@ -13,7 +13,7 @@
  * Extracted from BrowserPreview as part of ENG-982 refactor.
  */
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useReducer } from 'react';
 import type { ViewStatus } from './StatusBadge';
 import { useBrowserPreviewIpc } from './useBrowserPreviewIpc';
 
@@ -33,6 +33,62 @@ export interface UseBrowserPreviewResult {
   imgRef: React.RefObject<HTMLImageElement | null>;
 }
 
+type PreviewState = {
+  frameData: string | null;
+  currentUrl: string;
+  status: ViewStatus;
+  error: string | undefined;
+  isCollapsed: boolean;
+};
+
+type PreviewAction =
+  | { type: 'RESET' }
+  | { type: 'IDLE' }
+  | { type: 'SET_COLLAPSED'; value: boolean }
+  | { type: 'SET_STARTING' }
+  | { type: 'SET_FRAME'; frame: string }
+  | { type: 'SET_URL'; url: string }
+  | { type: 'SET_STATUS'; status: ViewStatus; message?: string };
+
+const VIEW_STATUSES = new Set<string>(['idle', 'starting', 'streaming', 'stopping', 'error']);
+
+function isViewStatus(s: string): s is ViewStatus {
+  return VIEW_STATUSES.has(s);
+}
+
+function assertNever(x: never): never {
+  throw new Error(`Unhandled action type: ${JSON.stringify(x)}`);
+}
+
+const initialState: PreviewState = {
+  frameData: null,
+  currentUrl: '',
+  status: 'idle',
+  error: undefined,
+  isCollapsed: false,
+};
+
+function previewReducer(state: PreviewState, action: PreviewAction): PreviewState {
+  switch (action.type) {
+    case 'RESET':
+      return initialState;
+    case 'IDLE':
+      return { ...initialState, isCollapsed: state.isCollapsed };
+    case 'SET_COLLAPSED':
+      return { ...state, isCollapsed: action.value };
+    case 'SET_STARTING':
+      return { ...state, status: 'starting' };
+    case 'SET_FRAME':
+      return { ...state, frameData: action.frame, status: 'streaming' };
+    case 'SET_URL':
+      return { ...state, currentUrl: action.url };
+    case 'SET_STATUS':
+      return { ...state, status: action.status, error: action.message };
+    default:
+      return assertNever(action);
+  }
+}
+
 export function useBrowserPreview({
   taskId,
   pageName,
@@ -44,21 +100,14 @@ export function useBrowserPreview({
   const isCollapsedRef = useRef(false);
   const statusRef = useRef<ViewStatus>('idle');
 
-  const [frameData, setFrameData] = useState<string | null>(null);
-  const [currentUrl, setCurrentUrl] = useState<string>('');
-  const [status, setStatus] = useState<ViewStatus>('idle');
-  const [error, setError] = useState<string | undefined>();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [state, dispatch] = useReducer(previewReducer, initialState);
+  const { frameData, currentUrl, status, error, isCollapsed } = state;
 
   // Reset all preview state when taskId changes to avoid stale guard/frame bleed
   useEffect(() => {
     screencastStartedRef.current = false;
     statusRef.current = 'idle';
-    setFrameData(null);
-    setCurrentUrl('');
-    setStatus('idle');
-    setError(undefined);
-    setIsCollapsed(false);
+    dispatch({ type: 'RESET' });
   }, [taskId]);
 
   // Sync isCollapsedRef with isCollapsed state so handleFrame can skip updates when collapsed
@@ -98,7 +147,7 @@ export function useBrowserPreview({
     let cancelled = false;
     screencastStartedRef.current = true;
     statusRef.current = 'starting';
-    setStatus('starting');
+    dispatch({ type: 'SET_STARTING' });
 
     api.startBrowserPreview(taskId).catch(() => {
       if (cancelled) {
@@ -107,10 +156,7 @@ export function useBrowserPreview({
       // Dev-browser server may not be ready yet — reset so we can retry on next tool call
       screencastStartedRef.current = false;
       statusRef.current = 'idle';
-      setFrameData(null);
-      setCurrentUrl('');
-      setError(undefined);
-      setStatus('idle');
+      dispatch({ type: 'IDLE' });
     });
 
     return () => {
@@ -121,20 +167,25 @@ export function useBrowserPreview({
   // IPC event handlers — defined here so they can close over state setters and refs
   const handleFrame = useCallback(
     (event: { taskId: string; pageName: string; frame: string; timestamp: number }) => {
-      if (event.taskId !== taskId) { return; }
-      if (pageName && event.pageName !== pageName) { return; }
-      if (isPausedRef.current || isCollapsedRef.current) { return; }
+      if (event.taskId !== taskId) {
+        return;
+      }
+      if (pageName && event.pageName !== pageName) {
+        return;
+      }
+      if (isPausedRef.current || isCollapsedRef.current) {
+        return;
+      }
       if (statusRef.current === 'streaming') {
         if (imgRef.current) {
           imgRef.current.src = `data:image/jpeg;base64,${event.frame}`;
         }
       } else {
-        setFrameData(event.frame);
+        dispatch({ type: 'SET_FRAME', frame: event.frame });
         if (imgRef.current) {
           imgRef.current.src = `data:image/jpeg;base64,${event.frame}`;
         }
         statusRef.current = 'streaming';
-        setStatus('streaming');
       }
     },
     [taskId, pageName],
@@ -142,39 +193,46 @@ export function useBrowserPreview({
 
   const handleNavigate = useCallback(
     (event: { taskId: string; pageName: string; url: string }) => {
-      if (event.taskId !== taskId) { return; }
-      if (pageName && event.pageName !== pageName) { return; }
-      setCurrentUrl(event.url);
+      if (event.taskId !== taskId) {
+        return;
+      }
+      if (pageName && event.pageName !== pageName) {
+        return;
+      }
+      dispatch({ type: 'SET_URL', url: event.url });
     },
     [taskId, pageName],
   );
 
   const handleStatus = useCallback(
     (event: { taskId: string; pageName: string; status: string; message?: string }) => {
-      if (event.taskId !== taskId) { return; }
-      if (pageName && event.pageName !== pageName) { return; }
+      if (event.taskId !== taskId) {
+        return;
+      }
+      if (pageName && event.pageName !== pageName) {
+        return;
+      }
       if (event.status === 'stopped') {
         screencastStartedRef.current = false;
         statusRef.current = 'idle';
-        setFrameData(null);
-        setCurrentUrl('');
-        setError(undefined);
-        setStatus('idle');
+        dispatch({ type: 'IDLE' });
         return;
       }
       if (event.status === 'error') {
         screencastStartedRef.current = false;
       }
-      statusRef.current = event.status as ViewStatus;
-      setStatus(event.status as ViewStatus);
-      if (event.message) {
-        setError(event.message);
-      } else {
-        setError(undefined);
+      if (!isViewStatus(event.status)) {
+        return;
       }
+      statusRef.current = event.status;
+      dispatch({ type: 'SET_STATUS', status: event.status, message: event.message });
     },
     [taskId, pageName],
   );
+
+  const setIsCollapsed = useCallback((value: boolean) => {
+    dispatch({ type: 'SET_COLLAPSED', value });
+  }, []);
 
   // Delegate IPC subscription and preview-stop-on-unmount to the dedicated sub-hook
   useBrowserPreviewIpc({ taskId, handleFrame, handleNavigate, handleStatus });

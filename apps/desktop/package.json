@@ -55,7 +55,7 @@
     "electron-store": "^8.2.0",
     "gray-matter": "^4.0.3",
     "node-pty": "catalog:",
-    "opencode-ai": "1.2.27",
+    "opencode-ai": "1.3.0",
     "proxy-from-env": "^2.1.0",
     "react": "^19.0.0",
     "undici": "^7.0.0",
@@ -80,15 +80,15 @@
     "vitest": "^4.1.0"
   },
   "optionalDependencies": {
-    "opencode-darwin-arm64": "1.2.27",
-    "opencode-darwin-x64": "1.2.27",
-    "opencode-darwin-x64-baseline": "1.2.27",
-    "opencode-linux-arm64": "1.2.27",
-    "opencode-linux-arm64-musl": "1.2.27",
-    "opencode-linux-x64": "1.2.27",
-    "opencode-linux-x64-baseline": "1.2.27",
-    "opencode-linux-x64-baseline-musl": "1.2.27",
-    "opencode-linux-x64-musl": "1.2.27"
+    "opencode-darwin-arm64": "1.3.0",
+    "opencode-darwin-x64": "1.3.0",
+    "opencode-darwin-x64-baseline": "1.3.0",
+    "opencode-linux-arm64": "1.3.0",
+    "opencode-linux-arm64-musl": "1.3.0",
+    "opencode-linux-x64": "1.3.0",
+    "opencode-linux-x64-baseline": "1.3.0",
+    "opencode-linux-x64-baseline-musl": "1.3.0",
+    "opencode-linux-x64-musl": "1.3.0"
   },
   "build": {
     "npmRebuild": false,

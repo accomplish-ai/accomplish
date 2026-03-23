@@ -1,5 +1,11 @@
 import type { BrowserWindow } from 'electron';
-import type { TaskMessage, TaskResult, TaskStatus, TodoItem, BrowserFramePayload } from '@accomplish_ai/agent-core';
+import type {
+  TaskMessage,
+  TaskResult,
+  TaskStatus,
+  TodoItem,
+  BrowserFramePayload,
+} from '@accomplish_ai/agent-core';
 import { mapResultToStatus } from '@accomplish_ai/agent-core';
 import { getTaskManager, recoverDevBrowserServer } from '../opencode';
 import type { TaskCallbacks } from '../opencode';
