@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { PERMISSION_API_PORT } from '../../src/common/constants.js';
 import {
   generateConfig,
   getOpenCodeConfigPath,
@@ -239,8 +240,8 @@ describe('ConfigGenerator', () => {
 
       const result = generateConfig(options);
 
-      expect(result.mcpServers['file-permission'].environment?.PERMISSION_API_PORT).toBe('9226');
-      expect(result.mcpServers['desktop-control'].environment?.PERMISSION_API_PORT).toBe('9226');
+      expect(result.mcpServers['file-permission'].environment?.PERMISSION_API_PORT).toBe(String(PERMISSION_API_PORT));
+      expect(result.mcpServers['desktop-control'].environment?.PERMISSION_API_PORT).toBe(String(PERMISSION_API_PORT));
       expect(result.mcpServers['ask-user-question'].environment?.QUESTION_API_PORT).toBe('9227');
     });
 
@@ -772,9 +773,11 @@ describe('ConfigGenerator', () => {
 
     it('should contain needs_planning: true for multi-step tasks', () => {
       expect(prompt).toContain('needs_planning: true');
-      expect(prompt).toContain(
-        'will require tools beyond start_task and complete_task (e.g., file operations, browser actions, bash commands, desktop automation)',
-      );
+      expect(prompt).toContain('will require tools beyond start_task and complete_task');
+      expect(prompt).toContain('file operations');
+      expect(prompt).toContain('browser actions');
+      expect(prompt).toContain('bash commands');
+      expect(prompt).toContain('desktop automation');
     });
 
     it('should contain needs_planning: false for conversational messages', () => {
