@@ -14,8 +14,8 @@
   <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="macOS 다운로드 (Apple Silicon)" /></a>
   <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="macOS 다운로드 (Intel)" /></a>
   <a href="https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Windows 11 다운로드" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(ARM64)-0ea5e9?style=flat-square" alt="Download for Linux (ARM64)" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(x64)-0ea5e9?style=flat-square" alt="Download for Linux (x64)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(ARM64)-0ea5e9?style=flat-square" alt="Linux (ARM64) 다운로드" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(x64)-0ea5e9?style=flat-square" alt="Linux (x64) 다운로드" /></a>
   <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb"><img src="https://img.shields.io/badge/Download-Linux_(.deb_x64)-0ea5e9?style=flat-square" alt="Linux (.deb x64) 다운로드" /></a>
   <a href="https://discord.gg/YH86b2P8"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
@@ -35,9 +35,9 @@ Accomplish는 로컬 머신에서 파일 관리, 문서 작성, 브라우저 작
   ·
   <a href="https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe"><strong>Windows 11용 다운로드</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage"><strong>Download for Linux (ARM64)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage"><strong>Linux (ARM64) 다운로드</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage"><strong>Download for Linux (x64)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage"><strong>Linux (x64) 다운로드</strong></a>
   ·
   <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb"><strong>Linux (.deb x64) 다운로드</strong></a>
   ·
@@ -201,7 +201,7 @@ Accomplish는 로컬 머신에서 실행됩니다. 파일은 기기에 저장되
 
 <div align="center">
 
-[**Mac용 다운로드 (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg) · [**Mac용 다운로드 (Intel)**](https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg) · [**Windows 11용 다운로드**](https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe) · [**Download for Linux (ARM64)**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage) · [**Download for Linux (x64)**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage) · [**Linux (.deb x64) 다운로드**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb)
+[**Mac용 다운로드 (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg) · [**Mac용 다운로드 (Intel)**](https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg) · [**Windows 11용 다운로드**](https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe) · [**Linux (ARM64) 다운로드**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage) · [**Linux (x64) 다운로드**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage) · [**Linux (.deb x64) 다운로드**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb)
 
 </div>
 
