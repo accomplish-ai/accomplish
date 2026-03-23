@@ -85,6 +85,11 @@ function buildDaemonEntry(): import('vite').Plugin {
           setup(build) {
             // Bundle @accomplish_ai workspace packages; externalize everything else.
             build.onResolve({ filter: /^[^./]/ }, (args) => {
+              // Absolute paths (e.g. Windows drive-letter paths like "D:\...") must not be
+              // externalized — they are entry points or resolved files, not package imports.
+              if (path.isAbsolute(args.path)) {
+                return null;
+              }
               if (args.path.startsWith('@accomplish_ai/')) {
                 return null; // let esbuild resolve and bundle
               }
