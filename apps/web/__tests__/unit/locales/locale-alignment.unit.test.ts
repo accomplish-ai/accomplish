@@ -65,6 +65,10 @@ describe('Locale file alignment', () => {
       for (const locale of otherLocales) {
         it(`${locale}/${namespace}.json has no missing or extra keys vs en`, () => {
           const localeFile = path.join(LOCALES_DIR, locale, `${namespace}.json`);
+          expect(
+            fs.existsSync(localeFile),
+            `Missing namespace file: ${locale}/${namespace}.json`,
+          ).toBeTruthy();
           const localeData = JSON.parse(fs.readFileSync(localeFile, 'utf-8'));
           const localeKeys = new Set(collectKeys(localeData));
           const refKeySet = new Set(refKeys);

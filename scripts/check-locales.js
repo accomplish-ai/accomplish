@@ -31,12 +31,7 @@ function collectKeys(obj, prefix = '') {
 }
 
 function loadJson(filePath) {
-  try {
-    return JSON.parse(readFileSync(filePath, 'utf-8'));
-  } catch (e) {
-    console.error(`  ERROR: Failed to parse ${filePath}: ${e.message}`);
-    process.exit(1);
-  }
+  return JSON.parse(readFileSync(filePath, 'utf-8'));
 }
 
 // Discover locales and namespaces
@@ -52,6 +47,7 @@ const namespaces = readdirSync(referenceDir)
 const otherLocales = allLocales.filter((l) => l !== REFERENCE_LOCALE);
 
 let totalErrors = 0;
+const missingFiles = [];
 
 for (const namespace of namespaces) {
   const refFile = join(referenceDir, `${namespace}.json`);
@@ -60,7 +56,15 @@ for (const namespace of namespaces) {
 
   for (const locale of otherLocales) {
     const localeFile = join(LOCALES_DIR, locale, `${namespace}.json`);
-    const localeData = loadJson(localeFile);
+
+    let localeData;
+    try {
+      localeData = loadJson(localeFile);
+    } catch (e) {
+      missingFiles.push({ locale, namespace });
+      continue;
+    }
+
     const localeKeys = new Set(collectKeys(localeData));
 
     const missing = [...refKeys].filter((k) => !localeKeys.has(k));
@@ -81,10 +85,17 @@ for (const namespace of namespaces) {
   }
 }
 
-if (totalErrors > 0) {
-  console.error(
-    `\n[locales] Found ${totalErrors} key mismatch(es) across locale files. Fix before pushing.`,
-  );
+if (missingFiles.length > 0) {
+  console.error(`\n[locales] Missing namespace files (${missingFiles.length}):`);
+  missingFiles.forEach(({ locale, namespace }) => console.error(`  - ${locale}/${namespace}.json`));
+}
+
+if (missingFiles.length > 0 || totalErrors > 0) {
+  if (totalErrors > 0) {
+    console.error(
+      `\n[locales] Found ${totalErrors} key mismatch(es) across locale files. Fix before pushing.`,
+    );
+  }
   process.exit(1);
 } else {
   console.log(
