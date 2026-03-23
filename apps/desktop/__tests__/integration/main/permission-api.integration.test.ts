@@ -169,7 +169,7 @@ describe('Permission API Integration', () => {
         | { id: string }
         | undefined;
       if (capturedReq) {
-        resolveQuestion(capturedReq.id, { selectedOptions: [], denied: false });
+        resolvePermission(capturedReq.id, true);
       }
       await fetchPromise.catch(() => {});
       await new Promise<void>((resolve) => server.close(() => resolve()));
