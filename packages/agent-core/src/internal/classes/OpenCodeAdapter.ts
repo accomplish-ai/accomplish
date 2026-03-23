@@ -754,7 +754,18 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   }
 
   private handleToolCall(toolName: string, toolInput: unknown, sessionID?: string): void {
-    console.log('[OpenCode Adapter] Tool call:', toolName);
+    // Normalize rejected tool calls from local models (e.g. Ollama).
+    // opencode returns toolName='invalid'/'unknown' with { tool: 'complete_task' } in input.
+    // Detect and re-route to the canonical tool name so all bookkeeping runs correctly.
+    if (toolName === 'invalid' || toolName === 'unknown') {
+      const rejectedInput = toolInput as { tool?: string } | undefined;
+      const rejectedTool = rejectedInput?.tool;
+      if (typeof rejectedTool === 'string') {
+        this.handleToolCall(rejectedTool, toolInput, sessionID);
+        return;
+      }
+    }
+
 
     if (this.isStartTaskTool(toolName)) {
       this.startTaskCalled = true;
@@ -772,14 +783,12 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           if (todos.length > 0) {
             this.emit('todo:update', todos);
             this.completionEnforcer.updateTodos(todos);
-            console.log('[OpenCode Adapter] Created todos from start_task steps');
-          }
+              }
         }
       }
     }
 
     if (!this.startTaskCalled && !this.isExemptTool(toolName)) {
-      console.warn(`[OpenCode Adapter] Tool "${toolName}" called before start_task`);
       this.emit('debug', {
         type: 'warning',
         message: `Tool "${toolName}" called before start_task - plan may not be captured`,
@@ -795,22 +804,6 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     }
 
     this.completionEnforcer.markToolsUsed(!this.isNonTaskContinuationTool(toolName));
-
-    // Intercept invalid tool calls where model tried to call complete_task but opencode rejected it.
-    // This happens with local models (e.g. Ollama) that don't support function calling natively —
-    // opencode returns toolName='invalid' with { tool: 'complete_task' } in the input, causing
-    // CompletionEnforcer to never detect completion and enter a "Retrying..." loop.
-    if (toolName === 'invalid' || toolName === 'unknown') {
-      const invalidInput = toolInput as { tool?: string };
-      if (
-        invalidInput?.tool === 'complete_task' ||
-        (typeof invalidInput?.tool === 'string' && invalidInput.tool.endsWith('_complete_task'))
-      ) {
-        console.log('[OpenCode Adapter] Intercepting rejected complete_task call, treating as complete');
-        this.completionEnforcer.handleCompleteTaskDetection({ status: 'success', summary: 'Task completed.' });
-        return;
-      }
-    }
 
     if (toolName === 'complete_task' || toolName.endsWith('_complete_task')) {
       this.completionEnforcer.handleCompleteTaskDetection(toolInput);
