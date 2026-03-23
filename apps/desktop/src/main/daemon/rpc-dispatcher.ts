@@ -20,9 +20,7 @@ function safeLog(level: 'INFO' | 'WARN' | 'ERROR', message: string, data?: unkno
   } catch (_e) {
     /* ignore */
   }
-  if (level === 'ERROR') console.error(`[Daemon] ${message}`, data ?? '');
-  else if (level === 'WARN') console.warn(`[Daemon] ${message}`, data ?? '');
-  else console.log(`[Daemon] ${message}`, data ?? '');
+  // Logger not yet initialized — silently skip (avoids console.* in production)
 }
 
 export interface JsonRpcRequest {
@@ -138,7 +136,7 @@ export function handleLine(line: string, writeFn: (response: string) => void): v
         error: {
           code: -32603,
           message: 'Internal error',
-          data: err instanceof Error ? err.message : String(err),
+          data: { reason: 'internal' },
         },
       };
       writeFn(JSON.stringify(response) + '\n');

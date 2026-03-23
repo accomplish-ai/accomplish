@@ -29,9 +29,7 @@ function safeLog(level: 'INFO' | 'WARN' | 'ERROR', message: string, data?: unkno
     /* ignore */
   }
   // fallback
-  if (level === 'ERROR') console.error(`[Daemon] ${message}`, data ?? '');
-  else if (level === 'WARN') console.warn(`[Daemon] ${message}`, data ?? '');
-  else console.log(`[Daemon] ${message}`, data ?? '');
+  // Logger not yet initialized — silently skip
 }
 
 export type { MethodHandler } from './rpc-dispatcher';
