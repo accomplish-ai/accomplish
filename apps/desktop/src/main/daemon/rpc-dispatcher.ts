@@ -74,6 +74,14 @@ function isNotification(request: JsonRpcRequest): boolean {
  * Dispatch a single JSON-RPC line to the appropriate method handler.
  * Writes a response JSON line to `writeFn` (may be no-op for notifications).
  */
+function safeWrite(writeFn: (response: string) => void, response: string): void {
+  try {
+    writeFn(response);
+  } catch (_e) {
+    /* socket destroyed — drop response */
+  }
+}
+
 export function handleLine(line: string, writeFn: (response: string) => void): void {
   let parsed: unknown;
 
@@ -85,7 +93,7 @@ export function handleLine(line: string, writeFn: (response: string) => void): v
       id: null,
       error: { code: -32700, message: 'Parse error' },
     };
-    writeFn(JSON.stringify(errResponse) + '\n');
+    safeWrite(writeFn, JSON.stringify(errResponse) + '\n');
     return;
   }
 
@@ -95,7 +103,7 @@ export function handleLine(line: string, writeFn: (response: string) => void): v
       id: null,
       error: { code: -32600, message: 'Invalid Request' },
     };
-    writeFn(JSON.stringify(response) + '\n');
+    safeWrite(writeFn, JSON.stringify(response) + '\n');
     return;
   }
 
@@ -113,7 +121,7 @@ export function handleLine(line: string, writeFn: (response: string) => void): v
       id: id ?? null,
       error: { code: -32601, message: `Method not found: ${method}` },
     };
-    writeFn(JSON.stringify(errResponse) + '\n');
+    safeWrite(writeFn, JSON.stringify(errResponse) + '\n');
     return;
   }
 
@@ -128,7 +136,7 @@ export function handleLine(line: string, writeFn: (response: string) => void): v
         id: id ?? null,
         result,
       };
-      writeFn(JSON.stringify(response) + '\n');
+      safeWrite(writeFn, JSON.stringify(response) + '\n');
     })
     .catch((err: unknown) => {
       if (notification) {
@@ -146,6 +154,6 @@ export function handleLine(line: string, writeFn: (response: string) => void): v
           data: { reason: 'internal' },
         },
       };
-      writeFn(JSON.stringify(response) + '\n');
+      safeWrite(writeFn, JSON.stringify(response) + '\n');
     });
 }

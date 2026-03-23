@@ -25,7 +25,9 @@ export function registerInProcessHandlers(
   storage: StorageAPI,
 ): void {
   srv.registerMethod('task.get', (params) => {
-    if (!params) { return null; }
+    if (!params) {
+      return null;
+    }
     return storage.getTask(params.taskId) ?? null;
   });
 
@@ -36,12 +38,16 @@ export function registerInProcessHandlers(
   srv.registerMethod('task.clearHistory', () => storage.clearHistory());
 
   srv.registerMethod('task.getTodos', (params) => {
-    if (!params) { return []; }
+    if (!params) {
+      return [];
+    }
     return storage.getTodosForTask(params.taskId);
   });
 
   srv.registerMethod('task.cancel', async (params) => {
-    if (!params) { return; }
+    if (!params) {
+      return;
+    }
     const { taskId } = params;
     if (taskManager.cancelQueuedTask(taskId)) {
       storage.updateTaskStatus(taskId, 'cancelled', new Date().toISOString());
@@ -54,12 +60,18 @@ export function registerInProcessHandlers(
   });
 
   srv.registerMethod('task.interrupt', async (params) => {
-    if (!params) { return; }
-    if (taskManager.hasActiveTask(params.taskId)) { await taskManager.interruptTask(params.taskId); }
+    if (!params) {
+      return;
+    }
+    if (taskManager.hasActiveTask(params.taskId)) {
+      await taskManager.interruptTask(params.taskId);
+    }
   });
 
   srv.registerMethod('task.sendResponse', async (params) => {
-    if (!params) { return; }
+    if (!params) {
+      return;
+    }
     await taskManager.sendResponse(params.taskId, params.response);
   });
 
@@ -73,7 +85,9 @@ export function registerInProcessHandlers(
   );
 
   srv.registerMethod('task.cancelQueued', (params) => {
-    if (!params) { return false; }
+    if (!params) {
+      return false;
+    }
     const cancelled = taskManager.cancelQueuedTask(params.taskId);
     if (cancelled) storage.updateTaskStatus(params.taskId, 'cancelled', new Date().toISOString());
     return cancelled;
@@ -95,6 +109,9 @@ export function registerInProcessHandlers(
   // ── Task execution ────────────────────────────────────────────────
 
   srv.registerMethod('task.start', async (params) => {
+    if (!params) {
+      throw new Error('Missing task.start params');
+    }
     const { taskId: providedTaskId, config } = params;
     const taskId = providedTaskId ?? createTaskId();
     storage.saveTask({
@@ -114,6 +131,9 @@ export function registerInProcessHandlers(
   });
 
   srv.registerMethod('session.resume', async (params) => {
+    if (!params) {
+      throw new Error('Missing session.resume params');
+    }
     const { sessionId, prompt, existingTaskId } = params;
     const taskId = existingTaskId ?? createTaskId();
     if (!existingTaskId) {
@@ -143,7 +163,9 @@ export function registerInProcessHandlers(
   registerPermissionHandlers(srv, taskManager);
 
   srv.registerMethod('task.schedule', (params) => {
-    if (!params) { throw new Error('Missing schedule params'); }
+    if (!params) {
+      throw new Error('Missing schedule params');
+    }
     return addScheduledTask(params.cron, params.prompt);
   });
   srv.registerMethod('task.listScheduled', () => listScheduledTasks());
