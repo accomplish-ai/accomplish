@@ -247,10 +247,10 @@
     "connectors": "Connecteurs",
     "skills": "Compétences",
     "voiceInput": "Saisie vocale",
+    "workspaces": "Espaces de travail",
     "appearance": "Apparence",
     "about": "À propos",
-    "browsers": "Navigateurs cloud",
-    "workspaces": "Espaces de travail"
+    "browsers": "Navigateurs cloud"
   },
   "appearance": {
     "title": "Thème",

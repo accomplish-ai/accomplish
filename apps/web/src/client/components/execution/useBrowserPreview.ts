@@ -101,7 +101,6 @@ export function useBrowserPreview({
   const statusRef = useRef<ViewStatus>('idle');
 
   const [state, dispatch] = useReducer(previewReducer, initialState);
-  const { frameData, currentUrl, status, error, isCollapsed } = state;
 
   // Reset all preview state when taskId changes to avoid stale guard/frame bleed
   useEffect(() => {
@@ -112,8 +111,8 @@ export function useBrowserPreview({
 
   // Sync isCollapsedRef with isCollapsed state so handleFrame can skip updates when collapsed
   useEffect(() => {
-    isCollapsedRef.current = isCollapsed;
-  }, [isCollapsed]);
+    isCollapsedRef.current = state.isCollapsed;
+  }, [state.isCollapsed]);
 
   // Pause frame updates when the tab is hidden
   useEffect(() => {
@@ -164,7 +163,7 @@ export function useBrowserPreview({
     };
   }, [currentTool, taskId]);
 
-  // IPC event handlers — defined here so they can close over state setters and refs
+  // IPC event handlers — defined here so they can close over dispatch and refs
   const handleFrame = useCallback(
     (event: { taskId: string; pageName: string; frame: string; timestamp: number }) => {
       if (event.taskId !== taskId) {
@@ -238,11 +237,11 @@ export function useBrowserPreview({
   useBrowserPreviewIpc({ taskId, handleFrame, handleNavigate, handleStatus });
 
   return {
-    frameData,
-    currentUrl,
-    status,
-    error,
-    isCollapsed,
+    frameData: state.frameData,
+    currentUrl: state.currentUrl,
+    status: state.status,
+    error: state.error,
+    isCollapsed: state.isCollapsed,
     setIsCollapsed,
     imgRef,
   };

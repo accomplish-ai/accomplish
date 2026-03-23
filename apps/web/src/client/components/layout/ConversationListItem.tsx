@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { X, Star, SpinnerGap } from '@phosphor-icons/react';
 import { useTaskStore } from '@/stores/taskStore';
 import { STATUS_COLORS, FAVORITABLE_STATUSES, extractDomains } from '@/lib/task-utils';
+import { getFaviconUrl } from '@/components/landing/IntegrationIcons';
 
 interface ConversationListItemProps {
   task: Task;
@@ -87,10 +88,13 @@ export function ConversationListItem({ task }: ConversationListItemProps) {
                 )}
               >
                 <img
-                  src={`https://www.google.com/s2/favicons?domain=${domain}&sz=16`}
+                  src={getFaviconUrl(domain, 16)}
                   alt={domain}
                   className="w-3 h-3 rounded-full"
                   loading="lazy"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
                 />
               </span>
             ))}

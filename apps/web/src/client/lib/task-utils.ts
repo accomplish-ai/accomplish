@@ -16,22 +16,34 @@ export const STATUS_COLORS: Record<string, string> = {
 
 const URL_REGEX = /https?:\/\/(?:www\.)?([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+)/g;
 
+/** Require a TLD of at least 2 characters (e.g. ".com", ".io", not ".g") */
+function hasValidTld(domain: string): boolean {
+  const lastDot = domain.lastIndexOf('.');
+  return lastDot !== -1 && domain.length - lastDot - 1 >= 2;
+}
+
 export function extractDomains(task: Task): string[] {
   const domains = new Set<string>();
 
   for (const match of task.prompt.matchAll(URL_REGEX)) {
-    domains.add(match[1]);
+    if (hasValidTld(match[1])) {
+      domains.add(match[1]);
+    }
   }
 
   for (const msg of task.messages) {
     for (const match of msg.content.matchAll(URL_REGEX)) {
-      domains.add(match[1]);
+      if (hasValidTld(match[1])) {
+        domains.add(match[1]);
+      }
     }
     if (msg.toolInput) {
       const inputStr =
         typeof msg.toolInput === 'string' ? msg.toolInput : JSON.stringify(msg.toolInput);
       for (const match of inputStr.matchAll(URL_REGEX)) {
-        domains.add(match[1]);
+        if (hasValidTld(match[1])) {
+          domains.add(match[1]);
+        }
       }
     }
   }
