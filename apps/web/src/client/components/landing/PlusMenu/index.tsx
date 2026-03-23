@@ -152,9 +152,8 @@ export function PlusMenu({
             )}
           </DropdownMenuItem>
 
-          {window.accomplish?.pickFolder && (
+          {window.accomplish?.pickFolder && onSelectFolder && (
             <DropdownMenuItem
-              disabled={!onSelectFolder}
               onSelect={() => {
                 void handleSelectFolder();
               }}

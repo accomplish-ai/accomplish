@@ -801,13 +801,15 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     // opencode returns toolName='invalid' with { tool: 'complete_task' } in the input, causing
     // CompletionEnforcer to never detect completion and enter a "Retrying..." loop.
     if (toolName === 'invalid' || toolName === 'unknown') {
-      const invalidInput = toolInput as { tool?: string };
+      const invalidInput = toolInput as { tool?: string; status?: string; summary?: string };
       if (
         invalidInput?.tool === 'complete_task' ||
         (typeof invalidInput?.tool === 'string' && invalidInput.tool.endsWith('_complete_task'))
       ) {
-        console.log('[OpenCode Adapter] Intercepting rejected complete_task call, treating as complete');
-        this.completionEnforcer.handleCompleteTaskDetection({ status: 'success', summary: 'Task completed.' });
+        this.completionEnforcer.handleCompleteTaskDetection({
+          status: invalidInput.status ?? 'success',
+          summary: invalidInput.summary ?? 'Task completed.',
+        });
         return;
       }
     }
