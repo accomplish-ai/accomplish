@@ -8,6 +8,7 @@ export const LOG_SOURCE_PATTERNS: Record<LogSource, RegExp[]> = {
   ipc: [/^\[IPC\]/],
   main: [],
   env: [],
+  daemon: [],
 };
 
 /**
