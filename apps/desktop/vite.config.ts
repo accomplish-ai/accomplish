@@ -62,12 +62,12 @@ function buildThemeInit(): import('vite').Plugin {
 }
 
 /**
- * Compile daemon/entry.ts → out/main/daemon/entry.js as CJS.
+ * Compile daemon/entry.ts → out/main/daemon/entry.cjs as CJS.
  * The daemon is fork()ed by the Electron main process as a plain Node.js child process.
- * It must be CJS because the output directory has no package.json with "type":"module".
+ * It must be CJS and use a .cjs extension because apps/desktop has "type":"module" in package.json.
  */
 function buildDaemonEntry(): import('vite').Plugin {
-  const outfile = path.resolve(__dirname, 'out/main/daemon/entry.js');
+  const outfile = path.resolve(__dirname, 'out/main/daemon/entry.cjs');
   const agentCoreSrc = path.resolve(__dirname, '../../packages/agent-core/src/index.ts');
 
   async function generate() {

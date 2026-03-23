@@ -18,9 +18,9 @@ const DAEMON_READY_TIMEOUT_MS = 10_000;
  */
 function getDaemonEntryPath(): string {
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'daemon', 'entry.js');
+    return path.join(process.resourcesPath, 'daemon', 'entry.cjs');
   }
-  return path.join(app.getAppPath(), 'out', 'main', 'daemon', 'entry.js');
+  return path.join(app.getAppPath(), 'out', 'main', 'daemon', 'entry.cjs');
 }
 
 /**
