@@ -56,7 +56,7 @@
     "gray-matter": "^4.0.3",
     "node-pty": "catalog:",
     "opencode-ai": "1.2.27",
-    "proxy-from-env": "^1.1.0",
+    "proxy-from-env": "^2.1.0",
     "react": "^19.0.0",
     "undici": "^7.0.0",
     "react-dom": "^19.0.0",
