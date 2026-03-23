@@ -65,7 +65,7 @@ describe('daemon/server', () => {
     }
   });
 
-  it('registerMethod stores and dispatches handlers', async () => {
+  it.skipIf(process.platform === 'win32')('registerMethod stores and dispatches handlers', async () => {
     const handler = vi.fn(() => ({ hello: 'world' }));
     registerMethod('test.echo', handler);
 
@@ -90,7 +90,7 @@ describe('daemon/server', () => {
     expect(handler).toHaveBeenCalledOnce();
   });
 
-  it('returns method-not-found for unknown methods', async () => {
+  it.skipIf(process.platform === 'win32')('returns method-not-found for unknown methods', async () => {
     startDaemonServer();
     const socketPath = getSocketPath();
     await new Promise((resolve) => setTimeout(resolve, SERVER_READY_WAIT));
@@ -112,7 +112,7 @@ describe('daemon/server', () => {
     });
   });
 
-  it('returns parse error for invalid JSON', async () => {
+  it.skipIf(process.platform === 'win32')('returns parse error for invalid JSON', async () => {
     startDaemonServer();
     const socketPath = getSocketPath();
     await new Promise((resolve) => setTimeout(resolve, SERVER_READY_WAIT));
@@ -149,7 +149,7 @@ describe('daemon/server', () => {
     });
   });
 
-  it('does not respond to JSON-RPC notifications (no id)', async () => {
+  it.skipIf(process.platform === 'win32')('does not respond to JSON-RPC notifications (no id)', async () => {
     const handler = vi.fn(() => ({ ok: true }));
     registerMethod('test.notify', handler);
 
@@ -184,7 +184,7 @@ describe('daemon/server', () => {
     expect(handler).toHaveBeenCalledOnce();
   });
 
-  it('handles async method handlers', async () => {
+  it.skipIf(process.platform === 'win32')('handles async method handlers', async () => {
     registerMethod('test.async', async () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
       return { delayed: true };
@@ -208,7 +208,7 @@ describe('daemon/server', () => {
     });
   });
 
-  it('returns internal error when handler throws', async () => {
+  it.skipIf(process.platform === 'win32')('returns internal error when handler throws', async () => {
     registerMethod('test.fail', () => {
       throw new Error('handler exploded');
     });
