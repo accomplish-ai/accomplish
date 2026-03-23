@@ -39,9 +39,13 @@ const PLATFORMS = [
   },
 ];
 
-const platformArg = process.argv.find(a => a.startsWith('--platform='))?.split('=')[1];
-const filteredPlatforms = platformArg ? PLATFORMS.filter(p => p.name === platformArg) : PLATFORMS;
-if (platformArg && filteredPlatforms.length === 0) {
+const platformFlag = process.argv.find(a => a.startsWith('--platform='));
+const hasPlatformFlag = Boolean(platformFlag);
+const platformArg = platformFlag?.split('=').slice(1).join('=').trim() ?? '';
+const filteredPlatforms = hasPlatformFlag
+  ? PLATFORMS.filter(p => p.name === platformArg)
+  : PLATFORMS;
+if (hasPlatformFlag && filteredPlatforms.length === 0) {
   const supported = PLATFORMS.map(p => p.name).join(', ');
   console.error(`Unsupported platform "${platformArg}". Supported values: ${supported}`);
   process.exit(1);
