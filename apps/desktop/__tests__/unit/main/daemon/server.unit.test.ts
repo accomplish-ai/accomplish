@@ -230,7 +230,7 @@ describe('daemon/server', () => {
       error: {
         code: -32603,
         message: 'Internal error',
-        data: 'handler exploded',
+        data: { reason: 'internal' },
       },
     });
   });
