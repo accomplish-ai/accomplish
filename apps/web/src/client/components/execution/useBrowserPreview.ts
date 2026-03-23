@@ -50,6 +50,16 @@ type PreviewAction =
   | { type: 'SET_URL'; url: string }
   | { type: 'SET_STATUS'; status: ViewStatus; message?: string };
 
+const VIEW_STATUSES = new Set<string>(['idle', 'starting', 'streaming', 'stopping', 'error']);
+
+function isViewStatus(s: string): s is ViewStatus {
+  return VIEW_STATUSES.has(s);
+}
+
+function assertNever(x: never): never {
+  throw new Error(`Unhandled action type: ${JSON.stringify(x)}`);
+}
+
 const initialState: PreviewState = {
   frameData: null,
   currentUrl: '',
@@ -74,6 +84,8 @@ function previewReducer(state: PreviewState, action: PreviewAction): PreviewStat
       return { ...state, currentUrl: action.url };
     case 'SET_STATUS':
       return { ...state, status: action.status, error: action.message };
+    default:
+      return assertNever(action);
   }
 }
 
@@ -209,8 +221,11 @@ export function useBrowserPreview({
       if (event.status === 'error') {
         screencastStartedRef.current = false;
       }
-      statusRef.current = event.status as ViewStatus;
-      dispatch({ type: 'SET_STATUS', status: event.status as ViewStatus, message: event.message });
+      if (!isViewStatus(event.status)) {
+        return;
+      }
+      statusRef.current = event.status;
+      dispatch({ type: 'SET_STATUS', status: event.status, message: event.message });
     },
     [taskId, pageName],
   );
