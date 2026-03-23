@@ -21,7 +21,8 @@
     "dropFilesHere": "将文件拖放到此处以附加",
     "dropFilesHint": "（最多 {max} 个文件，每个 {size}MB）",
     "fileTooLarge": "{name} 超出 {limit} 大小限制",
-    "tooManyFiles": "最多允许 {max} 个文件"
+    "tooManyFiles": "最多允许 {max} 个文件",
+    "selectFolder": "选择文件夹"
   },
   "examplePrompts": "示例任务",
   "useCases": {
@@ -70,5 +71,10 @@
       "description": "选择热门活动并添加到日历。",
       "prompt": "从 Eventbrite 抓取活动列表，按地点筛选，并将前 5 个添加到我的日历。"
     }
+  },
+  "selectedFolder": {
+    "badge": "📁 {folder}",
+    "clearAriaLabel": "清除所选文件夹",
+    "clearButton": "✕"
   }
 }

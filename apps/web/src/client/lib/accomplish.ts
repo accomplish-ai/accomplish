@@ -343,6 +343,7 @@ interface AccomplishAPI {
   listFavorites(): Promise<StoredFavorite[]>;
 
   // File attachments
+  pickFolder(): Promise<string | null>;
   pickFiles(): Promise<FileAttachmentInfo[]>;
   getFilePath(file: File): string;
   processDroppedFiles(paths: string[]): Promise<FileAttachmentInfo[]>;

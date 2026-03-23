@@ -95,6 +95,17 @@ function buildFileAttachmentInfo(filePath: string): FileAttachmentInfo {
 }
 
 export function registerFileHandlers(): void {
+  handle('files:pick-folder', async (event: IpcMainInvokeEvent) => {
+    const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
+    const result = await dialog.showOpenDialog(window, {
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return null;
+    }
+    return result.filePaths[0];
+  });
+
   handle('files:pick', async (event: IpcMainInvokeEvent) => {
     const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
     const result = await dialog.showOpenDialog(window, {

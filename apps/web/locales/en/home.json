@@ -21,7 +21,8 @@
     "dropFilesHere": "Drop files here to attach",
     "dropFilesHint": "(max {max} files, {size}MB each)",
     "fileTooLarge": "{name} exceeds {limit} size limit",
-    "tooManyFiles": "Maximum {max} files allowed"
+    "tooManyFiles": "Maximum {max} files allowed",
+    "selectFolder": "Select Folder"
   },
   "examplePrompts": "Example Prompts",
   "useCases": {
@@ -70,5 +71,11 @@
       "description": "Select top events and add them to the calendar.",
       "prompt": "Scrape event listings from Eventbrite, filter by location, and add top 5 to my calendar."
     }
+  },
+  "selectFolder": "Select Folder",
+  "selectedFolder": {
+    "badge": "📁 {folder}",
+    "clearAriaLabel": "Clear selected folder",
+    "clearButton": "✕"
   }
 }

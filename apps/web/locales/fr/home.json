@@ -12,7 +12,8 @@
     "dropFilesHere": "Déposez les fichiers ici pour les joindre",
     "dropFilesHint": "(max {max} fichiers, {size}Mo chacun)",
     "fileTooLarge": "{name} dépasse la limite de taille {limit}",
-    "tooManyFiles": "Maximum {max} fichiers autorisés"
+    "tooManyFiles": "Maximum {max} fichiers autorisés",
+    "selectFolder": "Sélectionner un dossier"
   },
   "examplePrompts": "Exemples de requêtes",
   "useCases": {
@@ -70,5 +71,10 @@
     "showAll_few": "Afficher les {{count}} favoris",
     "showAll_many": "Afficher les {{count}} favoris",
     "showAll_other": "Afficher les {{count}} favoris"
+  },
+  "selectedFolder": {
+    "badge": "📁 {folder}",
+    "clearAriaLabel": "Effacer le dossier sélectionné",
+    "clearButton": "✕"
   }
 }

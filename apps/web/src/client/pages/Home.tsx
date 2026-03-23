@@ -32,6 +32,7 @@ export function HomePage() {
   const [prompt, setPrompt] = useState('');
   const [showAllFavorites, setShowAllFavorites] = useState(false);
   const [attachments, setAttachments] = useState<FileAttachmentInfo[]>([]);
+  const [workingDirectory, setWorkingDirectory] = useState<string | undefined>(undefined);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
     'providers' | 'voice' | 'skills' | 'connectors'
@@ -103,12 +104,18 @@ export function HomePage() {
 
     const taskId = `task_${Date.now()}`;
     const enrichedPrompt = buildPromptWithAttachments(prompt.trim(), attachments);
-    const task = await startTask({ prompt: enrichedPrompt, taskId, files: attachments });
+    const task = await startTask({
+      prompt: enrichedPrompt,
+      taskId,
+      files: attachments,
+      workingDirectory,
+    });
     if (task) {
       setAttachments([]);
+      setWorkingDirectory(undefined);
       navigate(`/execution/${task.id}`);
     }
-  }, [prompt, attachments, isLoading, startTask, navigate, buildPromptWithAttachments]);
+  }, [prompt, attachments, workingDirectory, isLoading, startTask, navigate, buildPromptWithAttachments]);
 
   const handleSubmit = async () => {
     if (isLoading) {
@@ -253,12 +260,28 @@ export function HomePage() {
                       setShowSettingsDialog(true);
                     }}
                     onAttachFiles={handleAttachFiles}
+                    onSelectFolder={setWorkingDirectory}
                     disabled={isLoading}
                     attachmentCount={attachments.length}
                     maxAttachments={MAX_FILES}
                   />
                 }
               />
+              {workingDirectory && (
+                <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
+                  <span className="truncate max-w-[400px]" title={workingDirectory}>
+                    {t('selectedFolder.badge', { folder: workingDirectory })}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setWorkingDirectory(undefined)}
+                    className="ml-1 hover:text-foreground transition-colors"
+                    aria-label={t('selectedFolder.clearAriaLabel')}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
             </motion.div>
 
             <div

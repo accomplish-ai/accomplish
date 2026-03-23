@@ -569,6 +569,7 @@ const accomplishAPI = {
   isFavorite: (taskId: string): Promise<boolean> => ipcRenderer.invoke('favorites:has', taskId),
 
   // File attachments
+  pickFolder: (): Promise<string | null> => ipcRenderer.invoke('files:pick-folder'),
   pickFiles: (): Promise<import('@accomplish_ai/agent-core/common').FileAttachmentInfo[]> =>
     ipcRenderer.invoke('files:pick'),
   processDroppedFiles: (
