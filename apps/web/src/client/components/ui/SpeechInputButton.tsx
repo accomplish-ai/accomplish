@@ -8,7 +8,8 @@
  */
 
 import React, { useMemo } from 'react';
-import { Mic, Loader2, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Microphone, SpinnerGap, WarningCircle } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -100,6 +101,7 @@ export function SpeechInputButton({
   className,
   tooltipText,
 }: SpeechInputButtonProps) {
+  const { t } = useTranslation('settings');
   const sizeClasses = useMemo(() => {
     switch (size) {
       case 'sm':
@@ -135,12 +137,13 @@ export function SpeechInputButton({
 
   const tooltipLabel = useMemo(() => {
     if (tooltipText) return tooltipText;
-    if (!isConfigured) return 'Click to set up voice input';
-    if (isRecording) return `Recording (${formatDuration(recordingDuration)}) - Click to stop`;
-    if (isTranscribing) return 'Transcribing...';
-    if (error) return 'Error during transcription - Click to retry';
-    return 'Click to record or hold Alt to record voice input';
-  }, [tooltipText, isConfigured, isRecording, isTranscribing, error, recordingDuration]);
+    if (!isConfigured) return t('speech.tooltipSetup');
+    if (isRecording)
+      return t('speech.tooltipRecording', { duration: formatDuration(recordingDuration) });
+    if (isTranscribing) return t('speech.tooltipTranscribing');
+    if (error) return t('speech.tooltipError');
+    return t('speech.tooltipDefault');
+  }, [tooltipText, isConfigured, isRecording, isTranscribing, error, recordingDuration, t]);
 
   const handleClick = React.useCallback(
     (e: React.MouseEvent) => {
@@ -177,15 +180,15 @@ export function SpeechInputButton({
             data-testid="speech-input-button"
           >
             {isTranscribing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <SpinnerGap className="h-4 w-4 animate-spin" />
             ) : isRecording ? (
               <div className="relative h-4 w-4">
-                <Mic className="h-4 w-4" />
+                <Microphone className="h-4 w-4" />
               </div>
             ) : error ? (
-              <AlertCircle className="h-4 w-4" />
+              <WarningCircle className="h-4 w-4" />
             ) : (
-              <Mic className="h-4 w-4" />
+              <Microphone className="h-4 w-4" />
             )}
           </button>
         </TooltipTrigger>
@@ -236,7 +239,7 @@ export function MicrophoneIcon({
 }) {
   return (
     <div className={cn('relative inline-flex items-center justify-center', className)}>
-      <Mic className={cn('h-4 w-4', isRecording && 'text-red-500 animate-pulse')} />
+      <Microphone className={cn('h-4 w-4', isRecording && 'text-red-500 animate-pulse')} />
       {isRecording && (
         <div className="absolute inset-0 rounded-full border-2 border-red-500 animate-ping opacity-75" />
       )}

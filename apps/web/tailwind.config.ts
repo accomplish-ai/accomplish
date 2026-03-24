@@ -44,37 +44,29 @@ const config: Config = {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
-        // Legacy aliases for backward compatibility
         'background-card': 'hsl(var(--card))',
-        'background-subtle': 'hsl(var(--muted))',
-        'background-muted': 'hsl(var(--muted))',
         text: 'hsl(var(--foreground))',
         'text-secondary': 'hsl(var(--foreground))',
         'text-muted': 'hsl(var(--muted-foreground))',
-        'text-subtle': 'hsl(var(--muted-foreground))',
-        'border-strong': 'hsl(var(--border))',
-        // Keep danger/warning/success for compatibility
         danger: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
-          subtle: 'hsl(var(--destructive) / 0.1)',
         },
         warning: {
           DEFAULT: '#EE7909',
-          subtle: 'hsl(var(--warning-subtle))',
         },
         success: {
           DEFAULT: '#019E55',
-          subtle: 'hsl(var(--success-subtle))',
         },
-        provider: {
-          bg: 'hsl(var(--provider-bg))',
-          'bg-active': 'hsl(var(--provider-bg-active))',
-          'bg-hover': 'hsl(var(--provider-bg-hover))',
-          'border-active': 'hsl(var(--provider-border-active))',
-          accent: 'hsl(var(--provider-accent))',
-          'accent-text': 'hsl(var(--provider-accent-text))',
-        },
+        'provider-bg': 'hsl(var(--provider-bg))',
+        'provider-bg-active': 'hsl(var(--provider-bg-active))',
+        'provider-bg-hover': 'hsl(var(--provider-bg-hover))',
+        'provider-border-active': 'hsl(var(--provider-border-active))',
+        'provider-accent': 'hsl(var(--provider-accent))',
+        'provider-accent-text': 'hsl(var(--provider-accent-text))',
+        'todo-progress-pending': 'hsl(var(--todo-progress-pending))',
+        'todo-item-completed': 'hsl(var(--todo-item-completed))',
+        'todo-item-in-progress': 'hsl(var(--todo-item-in-progress))',
       },
       boxShadow: {
         sm: '0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10)',
@@ -83,27 +75,22 @@ const config: Config = {
         lg: '0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10)',
         xl: '0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 8px 10px -1px hsl(0 0% 0% / 0.10)',
         '2xl': '0 1px 3px 0px hsl(0 0% 0% / 0.25)',
-        // Legacy shadows for backward compatibility
-        input: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
-        'input-focus': '0 0 0 2px hsl(var(--ring) / 0.2)',
         card: '0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10)',
         'card-hover': '0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10)',
       },
       borderRadius: {
-        sm: 'calc(var(--radius) - 4px)',
+        sm: 'var(--radius)',
         DEFAULT: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
+        md: 'var(--radius)',
         lg: 'var(--radius)',
-        xl: 'calc(var(--radius) + 4px)',
-        // Legacy border radius for backward compatibility
-        input: 'var(--radius)',
+        xl: 'var(--radius)',
+        '2xl': 'var(--radius)',
+        '3xl': 'var(--radius)',
         card: 'var(--radius)',
-        chip: '9999px',
-        button: 'var(--radius)',
       },
       fontFamily: {
         sans: [
-          'DM Sans',
+          'Geist',
           'ui-sans-serif',
           'system-ui',
           '-apple-system',
@@ -114,26 +101,16 @@ const config: Config = {
           'Arial',
           'sans-serif',
         ],
+        apparat: ['KMR Apparat', 'Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       transitionTimingFunction: {
         accomplish: 'cubic-bezier(0.64, 0, 0.78, 0)',
       },
       animation: {
-        'fade-in': 'fadeIn 0.2s ease-out',
-        'slide-up': 'slideUp 0.3s ease-out',
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         shimmer: 'shimmer 2s infinite',
         'spin-ccw': 'spinCcw 1s linear infinite',
       },
       keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        slideUp: {
-          '0%': { opacity: '0', transform: 'translateY(10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },

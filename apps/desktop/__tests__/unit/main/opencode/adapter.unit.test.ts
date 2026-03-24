@@ -719,7 +719,7 @@ vi.mock('@main/opencode/electron-options', () => ({
   onBeforeStart: vi.fn(() => Promise.resolve()),
   onBeforeTaskStart: vi.fn(() => Promise.resolve()),
   getOpenCodeCliPath: vi.fn(() => ({ command: '/mock/opencode/cli', args: [] })),
-  isOpenCodeBundled: vi.fn(() => true),
+  isOpenCodeCliAvailable: vi.fn(() => true),
   getBundledOpenCodeVersion: vi.fn(() => '1.0.0'),
 }));
 

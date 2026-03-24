@@ -39,6 +39,18 @@ const PLATFORMS = [
   },
 ];
 
+const platformFlag = process.argv.find((a) => a.startsWith('--platform='));
+const hasPlatformFlag = Boolean(platformFlag);
+const platformArg = platformFlag?.split('=').slice(1).join('=').trim() ?? '';
+const filteredPlatforms = hasPlatformFlag
+  ? PLATFORMS.filter((p) => p.name === platformArg)
+  : PLATFORMS;
+if (hasPlatformFlag && filteredPlatforms.length === 0) {
+  const supported = PLATFORMS.map((p) => p.name).join(', ');
+  console.error(`Unsupported platform "${platformArg}". Supported values: ${supported}`);
+  process.exit(1);
+}
+
 const RESOURCES_DIR = path.join(__dirname, '..', 'resources', 'nodejs');
 
 /**
@@ -165,7 +177,7 @@ async function main() {
     fs.mkdirSync(tempDir, { recursive: true });
   }
 
-  for (const platform of PLATFORMS) {
+  for (const platform of filteredPlatforms) {
     console.log(`\nProcessing ${platform.name}...`);
 
     const archivePath = path.join(tempDir, platform.file);
@@ -202,7 +214,7 @@ async function main() {
 
   // List what was downloaded
   console.log('\nDirectory structure:');
-  for (const platform of PLATFORMS) {
+  for (const platform of filteredPlatforms) {
     const destDir = path.join(RESOURCES_DIR, platform.name);
     if (fs.existsSync(destDir)) {
       const contents = fs.readdirSync(destDir);

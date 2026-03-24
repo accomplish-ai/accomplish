@@ -1,5 +1,6 @@
 // apps/desktop/src/renderer/components/settings/shared/ConnectedControls.tsx
 
+import { useTranslation } from 'react-i18next';
 import connectedIcon from '/assets/icons/connected.svg';
 
 interface ConnectedControlsProps {
@@ -7,6 +8,8 @@ interface ConnectedControlsProps {
 }
 
 export function ConnectedControls({ onDisconnect }: ConnectedControlsProps) {
+  const { t } = useTranslation('settings');
+
   return (
     <div className="flex gap-4">
       <button
@@ -16,13 +19,13 @@ export function ConnectedControls({ onDisconnect }: ConnectedControlsProps) {
         disabled
       >
         <img src={connectedIcon} alt="" className="h-4 w-4" />
-        Connected
+        {t('status.connected')}
       </button>
       <button
         onClick={onDisconnect}
         data-testid="disconnect-button"
         className="rounded-lg border border-border bg-provider-bg-hover p-2.5 text-muted-foreground shadow-sm hover:bg-destructive/10 hover:text-destructive transition-colors"
-        title="Disconnect"
+        title={t('buttons.disconnect')}
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path

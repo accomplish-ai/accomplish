@@ -17,6 +17,8 @@ export {
   setOpenAiBaseUrl,
   getTheme,
   setTheme,
+  getRunInBackground,
+  setRunInBackground,
   getAppSettings,
   clearAppSettings,
   type AppSettings,
@@ -56,6 +58,8 @@ export {
   clearTodosForTask,
   type StoredTask,
 } from './taskHistory.js';
+
+export { addFavorite, removeFavorite, getFavorites, isFavorite } from './favorites.js';
 
 export {
   getAllSkills,

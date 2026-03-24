@@ -1,4 +1,5 @@
 import { memo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ProviderId, ConnectedProvider } from '@accomplish_ai/agent-core/common';
 import { PROVIDER_META, isProviderReady } from '@accomplish_ai/agent-core/common';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -22,10 +23,15 @@ export const ProviderCard = memo(function ProviderCard({
   isSelected,
   onSelect,
 }: ProviderCardProps) {
+  const { t } = useTranslation('settings');
   const meta = PROVIDER_META[providerId];
   const isConnected = connectedProvider?.connectionStatus === 'connected';
   const providerReady = isProviderReady(connectedProvider);
   const logoSrc = PROVIDER_LOGOS[providerId];
+
+  // Get translated provider name and label
+  const providerName = t(`providers.${providerId}`, { defaultValue: meta.name });
+  const providerLabel = t(`providerLabels.${providerId}`, { defaultValue: meta.label });
 
   // Green background = active provider that is ready (connected + model selected)
   // isSelected = card clicked for viewing settings (border only, not green background)
@@ -60,9 +66,9 @@ export const ProviderCard = memo(function ProviderCard({
           >
             <img
               src={connectedKeyIcon}
-              alt={providerReady ? 'Ready' : 'Connected'}
+              alt={providerReady ? t('status.ready') : t('status.connected')}
               className="h-5 w-5"
-              title={providerReady ? undefined : 'Select a model to complete setup'}
+              title={providerReady ? undefined : t('status.selectModelToComplete')}
             />
           </motion.div>
         )}
@@ -71,7 +77,7 @@ export const ProviderCard = memo(function ProviderCard({
       <div className="mb-2 h-10 w-10 flex items-center justify-center">
         <img
           src={logoSrc}
-          alt={`${meta.name} logo`}
+          alt={t('providers.formLogo', { provider: providerName })}
           className={cn(
             'h-8 w-8 object-contain',
             DARK_INVERT_PROVIDERS.has(providerId) && 'dark:invert',
@@ -79,9 +85,9 @@ export const ProviderCard = memo(function ProviderCard({
         />
       </div>
 
-      <span className="text-sm font-medium text-foreground">{meta.name}</span>
+      <span className="text-sm font-medium text-foreground">{providerName}</span>
 
-      <span className="text-xs text-muted-foreground">{meta.label}</span>
+      <span className="text-xs text-muted-foreground">{providerLabel}</span>
     </button>
   );
 });

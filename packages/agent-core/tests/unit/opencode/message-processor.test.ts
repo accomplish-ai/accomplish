@@ -4,6 +4,7 @@ import {
   sanitizeToolOutput,
   toTaskMessage,
   getToolDisplayName,
+  extractScreenshots,
 } from '../../../src/opencode/message-processor.js';
 import type { OpenCodeMessage } from '../../../src/common/types/opencode.js';
 
@@ -151,6 +152,61 @@ describe('toTaskMessage', () => {
     expect(result!.toolName).toBe('browser_click');
     expect(result!.content).toBe('Using tool: Clicking element');
   });
+
+  it('extracts raw JPEG base64 screenshot payloads from tool output', () => {
+    const rawJpeg = '/9j/' + 'A'.repeat(180);
+
+    const message: OpenCodeMessage = {
+      type: 'tool_use',
+      part: {
+        id: '6',
+        sessionID: 's1',
+        messageID: 'm6',
+        type: 'tool_use',
+        tool: 'browser_screenshot',
+        state: {
+          status: 'completed',
+          output: `Screenshot payload: "${rawJpeg}"`,
+        },
+      },
+    } as OpenCodeMessage;
+
+    const result = toTaskMessage(message);
+
+    expect(result).not.toBeNull();
+    expect(result!.attachments).toBeDefined();
+    expect(result!.attachments![0].data.startsWith('data:image/jpeg;base64,/9j/')).toBe(true);
+    expect(result!.content).toContain('[Screenshot]');
+  });
+
+  it('drops oversized screenshot attachments to keep IPC payloads small', () => {
+    const oversizedDataUrl = `data:image/png;base64,${'A'.repeat(250_000)}`;
+    const message: OpenCodeMessage = {
+      type: 'tool_use',
+      part: {
+        id: '6',
+        sessionID: 's1',
+        messageID: 'm6',
+        type: 'tool_use',
+        tool: 'browser_script',
+        state: { status: 'completed', output: oversizedDataUrl },
+      },
+    } as OpenCodeMessage;
+
+    const result = toTaskMessage(message);
+    expect(result).not.toBeNull();
+    expect(result!.content).toContain('[Screenshot captured]');
+    expect(result!.attachments).toBeUndefined();
+  });
+});
+
+describe('extractScreenshots', () => {
+  it('keeps at most one screenshot attachment', () => {
+    const screenshot = `data:image/png;base64,${'A'.repeat(120)}`;
+    const output = `${screenshot}\n${screenshot}`;
+    const result = extractScreenshots(output);
+    expect(result.attachments).toHaveLength(1);
+  });
 });
 
 describe('sanitizeToolOutput', () => {
@@ -170,6 +226,10 @@ describe('getToolDisplayName', () => {
     expect(getToolDisplayName('discard')).toBeNull();
     expect(getToolDisplayName('extract')).toBeNull();
     expect(getToolDisplayName('context_info')).toBeNull();
+    expect(getToolDisplayName('prune')).toBeNull();
+    expect(getToolDisplayName('distill')).toBeNull();
+    expect(getToolDisplayName('mcp_prune')).toBeNull();
+    expect(getToolDisplayName('mcp_distill')).toBeNull();
   });
 
   it('returns display name for mapped tools', () => {

@@ -1,4 +1,5 @@
 import { memo, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { McpConnector, ConnectorStatus } from '@accomplish_ai/agent-core/common';
 
 interface ConnectorCardProps {
@@ -9,22 +10,18 @@ interface ConnectorCardProps {
   onDelete: (id: string) => void;
 }
 
-const statusConfig: Record<
-  ConnectorStatus,
-  { label: string; dotClass: string; textClass: string }
-> = {
-  connected: { label: 'Connected', dotClass: 'bg-green-500', textClass: 'text-green-600' },
-  disconnected: {
-    label: 'Disconnected',
-    dotClass: 'bg-muted-foreground',
-    textClass: 'text-muted-foreground',
-  },
-  connecting: {
-    label: 'Connecting...',
-    dotClass: 'bg-yellow-500 animate-pulse',
-    textClass: 'text-yellow-600',
-  },
-  error: { label: 'Error', dotClass: 'bg-destructive', textClass: 'text-destructive' },
+const statusDotClass: Record<ConnectorStatus, string> = {
+  connected: 'bg-green-500',
+  disconnected: 'bg-muted-foreground',
+  connecting: 'bg-yellow-500 animate-pulse',
+  error: 'bg-destructive',
+};
+
+const statusTextClass: Record<ConnectorStatus, string> = {
+  connected: 'text-green-600',
+  disconnected: 'text-muted-foreground',
+  connecting: 'text-yellow-600',
+  error: 'text-destructive',
 };
 
 export const ConnectorCard = memo(function ConnectorCard({
@@ -34,6 +31,7 @@ export const ConnectorCard = memo(function ConnectorCard({
   onToggleEnabled,
   onDelete,
 }: ConnectorCardProps) {
+  const { t } = useTranslation('settings');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Auto-cancel delete confirmation after 3 seconds, cleanup on unmount
@@ -43,7 +41,7 @@ export const ConnectorCard = memo(function ConnectorCard({
     return () => clearTimeout(timer);
   }, [confirmDelete]);
 
-  const status = statusConfig[connector.status];
+  const statusLabel = t(`connectors.status.${connector.status}`);
 
   const hostname = (() => {
     try {
@@ -61,9 +59,13 @@ export const ConnectorCard = memo(function ConnectorCard({
           <div className="flex items-center gap-2">
             <h3 className="truncate text-sm font-medium text-foreground">{connector.name}</h3>
             {/* Status badge */}
-            <span className={`flex items-center gap-1 text-[11px] ${status.textClass}`}>
-              <span className={`inline-block h-1.5 w-1.5 rounded-full ${status.dotClass}`} />
-              {status.label}
+            <span
+              className={`flex items-center gap-1 text-[11px] ${statusTextClass[connector.status]}`}
+            >
+              <span
+                className={`inline-block h-1.5 w-1.5 rounded-full ${statusDotClass[connector.status]}`}
+              />
+              {statusLabel}
             </span>
           </div>
           <p className="mt-0.5 truncate text-xs text-muted-foreground" title={connector.url}>
@@ -79,7 +81,7 @@ export const ConnectorCard = memo(function ConnectorCard({
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
               connector.isEnabled ? 'bg-primary' : 'bg-muted'
             }`}
-            title={connector.isEnabled ? 'Disable' : 'Enable'}
+            title={connector.isEnabled ? t('connectors.disable') : t('connectors.enable')}
           >
             <span
               className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
@@ -103,7 +105,7 @@ export const ConnectorCard = memo(function ConnectorCard({
                 ? 'text-destructive hover:bg-destructive/10'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
-            title={confirmDelete ? 'Click again to confirm' : 'Delete'}
+            title={confirmDelete ? t('connectors.confirmDelete') : t('connectors.delete')}
           >
             <svg
               className="h-3.5 w-3.5"
@@ -125,7 +127,7 @@ export const ConnectorCard = memo(function ConnectorCard({
             onClick={() => onDisconnect(connector.id)}
             className="w-full rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
           >
-            Disconnect
+            {t('buttons.disconnect')}
           </button>
         ) : connector.status === 'connecting' ? (
           <button
@@ -133,14 +135,14 @@ export const ConnectorCard = memo(function ConnectorCard({
             className="flex w-full items-center justify-center gap-1.5 rounded-md bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground"
           >
             <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            Connecting...
+            {t('buttons.connecting')}
           </button>
         ) : (
           <button
             onClick={() => onConnect(connector.id)}
             className="w-full rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Connect
+            {t('buttons.connect')}
           </button>
         )}
       </div>

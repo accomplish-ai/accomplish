@@ -18,6 +18,25 @@ const accomplishPath = path.join(nodeModulesPath, '@accomplish_ai');
 const workspacePackages = ['agent-core'];
 const symlinkTargets = {};
 
+// pnpm symlinks to resolve: these are regular dependencies that pnpm stores
+// as symlinks to its content-addressable store, which electron-builder can't follow.
+// We temporarily replace them with real copies of the resolved target.
+const pnpmSymlinksToResolve = [
+  'opencode-ai',
+  'opencode-darwin-arm64',
+  'opencode-darwin-x64',
+  'opencode-darwin-x64-baseline',
+  'opencode-linux-arm64',
+  'opencode-linux-arm64-musl',
+  'opencode-linux-x64',
+  'opencode-linux-x64-baseline',
+  'opencode-linux-x64-musl',
+  'opencode-linux-x64-baseline-musl',
+  'opencode-windows-x64',
+  'opencode-windows-x64-baseline',
+];
+const resolvedSymlinks = {};
+
 try {
   // Check and remove workspace symlinks
   for (const pkg of workspacePackages) {
@@ -41,6 +60,22 @@ try {
     }
   }
 
+  // Replace pnpm store symlinks with real copies so electron-builder can pack them
+  for (const pkg of pnpmSymlinksToResolve) {
+    const pkgPath = path.join(nodeModulesPath, pkg);
+    if (fs.existsSync(pkgPath)) {
+      const stats = fs.lstatSync(pkgPath);
+      if (stats.isSymbolicLink()) {
+        const linkTarget = fs.readlinkSync(pkgPath);
+        const realPath = fs.realpathSync(pkgPath);
+        resolvedSymlinks[pkg] = { linkTarget, pkgPath };
+        console.log('Replacing pnpm symlink with copy:', pkgPath);
+        fs.unlinkSync(pkgPath);
+        fs.cpSync(realPath, pkgPath, { recursive: true });
+      }
+    }
+  }
+
   // Get command line args (everything after 'node scripts/package.js')
   const args = process.argv.slice(2).join(' ');
 
@@ -57,6 +92,22 @@ try {
   }
   execSync(command, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
 } finally {
+  // Restore pnpm store symlinks
+  for (const [pkg, { linkTarget, pkgPath }] of Object.entries(resolvedSymlinks)) {
+    console.log('Restoring pnpm symlink:', pkgPath);
+    if (fs.existsSync(pkgPath)) {
+      fs.rmSync(pkgPath, { recursive: true, force: true });
+    }
+    if (isWindows) {
+      const absoluteTarget = path.isAbsolute(linkTarget)
+        ? linkTarget
+        : path.resolve(path.dirname(pkgPath), linkTarget);
+      fs.symlinkSync(absoluteTarget, pkgPath, 'junction');
+    } else {
+      fs.symlinkSync(linkTarget, pkgPath);
+    }
+  }
+
   // Restore the symlinks
   const packagesToRestore = Object.keys(symlinkTargets);
   if (packagesToRestore.length > 0) {

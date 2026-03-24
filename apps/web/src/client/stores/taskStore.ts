@@ -11,7 +11,10 @@ import {
   type TaskMessage,
   type TodoItem,
 } from '@accomplish_ai/agent-core/common';
+import type { StoredFavorite } from '@accomplish_ai/agent-core';
 import { getAccomplish } from '../lib/accomplish';
+// Request-token counter to guard against stale loadFavorites responses
+let _loadFavoritesToken = 0;
 
 interface TaskUpdateBatchEvent {
   taskId: string;
@@ -26,7 +29,7 @@ interface SetupProgressEvent {
   modelName?: string;
 }
 
-export interface StartupStageInfo {
+interface StartupStageInfo {
   stage: string;
   message: string;
   modelName?: string;
@@ -42,9 +45,14 @@ interface TaskState {
 
   // Task history
   tasks: Task[];
+  favorites: StoredFavorite[];
+  favoritesLoaded: boolean;
+  loadFavorites: () => Promise<void>;
+  addFavorite: (taskId: string) => Promise<void>;
+  removeFavorite: (taskId: string) => Promise<void>;
 
-  // Permission handling
-  permissionRequest: PermissionRequest | null;
+  // Permission handling — keyed by taskId so concurrent tasks each retain their own request
+  permissionRequests: Record<string, PermissionRequest>;
   setupProgress: string | null;
   setupProgressTaskId: string | null;
   setupDownloadStep: number;
@@ -68,10 +76,14 @@ interface TaskState {
     isFirstTask?: boolean,
   ) => void;
   clearStartupStage: (taskId: string) => void;
-  sendFollowUp: (message: string) => Promise<void>;
+  sendFollowUp: (
+    message: string,
+    attachments?: import('@accomplish_ai/agent-core/common').FileAttachmentInfo[],
+  ) => Promise<boolean>;
   cancelTask: () => Promise<void>;
   interruptTask: () => Promise<void>;
-  setPermissionRequest: (request: PermissionRequest | null) => void;
+  setPermissionRequest: (request: PermissionRequest) => void;
+  clearPermissionRequest: (taskId: string) => void;
   respondToPermission: (response: PermissionResponse) => Promise<void>;
   addTaskUpdate: (event: TaskUpdateEvent) => void;
   addTaskUpdateBatch: (event: TaskUpdateBatchEvent) => void;
@@ -93,7 +105,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   isLoading: false,
   error: null,
   tasks: [],
-  permissionRequest: null,
+  favorites: [],
+  favoritesLoaded: false,
+  permissionRequests: {},
   setupProgress: null,
   setupProgressTaskId: null,
   setupDownloadStep: 1,
@@ -117,7 +131,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         step = 1;
       }
     }
-    set({ setupProgress: message, setupProgressTaskId: taskId, setupDownloadStep: step });
+    set({
+      setupProgress: message,
+      setupProgressTaskId: taskId,
+      setupDownloadStep: step,
+    });
   },
 
   setStartupStage: (
@@ -164,7 +182,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       void accomplish.logEvent({
         level: 'info',
         message: 'UI start task',
-        context: { prompt: config.prompt, taskId: config.taskId },
+        context: {
+          prompt: config.prompt,
+          taskId: config.taskId,
+          files: config.files?.length,
+        },
       });
       const task = await accomplish.startTask(config);
       const currentTasks = get().tasks;
@@ -193,7 +215,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
   },
 
-  sendFollowUp: async (message: string) => {
+  sendFollowUp: async (
+    message: string,
+    attachments?: import('@accomplish_ai/agent-core/common').FileAttachmentInfo[],
+  ): Promise<boolean> => {
     const accomplish = getAccomplish();
     const { currentTask, startTask } = get();
     if (!currentTask) {
@@ -202,7 +227,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         level: 'warn',
         message: 'UI follow-up failed: no active task',
       });
-      return;
+      return false;
     }
 
     const sessionId = currentTask.result?.sessionId || currentTask.sessionId;
@@ -213,8 +238,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         message: 'UI follow-up: starting fresh task (no session from interrupted task)',
         context: { taskId: currentTask.id },
       });
-      await startTask({ prompt: message });
-      return;
+      const newTask = await startTask({ prompt: message, files: attachments });
+      return newTask !== null;
     }
 
     if (!sessionId) {
@@ -224,7 +249,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         message: 'UI follow-up failed: missing session',
         context: { taskId: currentTask.id },
       });
-      return;
+      return false;
     }
 
     const userMessage: TaskMessage = {
@@ -232,6 +257,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       type: 'user',
       content: message,
       timestamp: new Date().toISOString(),
+      // Add attachments visually to the local store history prior to response
+      attachments: attachments
+        ? attachments.map((a) => ({ type: 'json', data: 'placeholder', label: a.name }))
+        : undefined,
     };
 
     const taskId = currentTask.id;
@@ -255,15 +284,17 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       void accomplish.logEvent({
         level: 'info',
         message: 'UI follow-up sent',
-        context: { taskId: currentTask.id, message },
+        context: { taskId: currentTask.id, message, attachments: attachments?.length },
       });
-      const task = await accomplish.resumeSession(sessionId, message, currentTask.id);
+
+      const task = await accomplish.resumeSession(sessionId, message, currentTask.id, attachments);
 
       set((state) => ({
         currentTask: state.currentTask ? { ...state.currentTask, status: task.status } : null,
         isLoading: task.status === 'queued',
         tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, status: task.status } : t)),
       }));
+      return true;
     } catch (err) {
       set((state) => ({
         error: err instanceof Error ? err.message : 'Failed to send message',
@@ -281,6 +312,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           error: err instanceof Error ? err.message : String(err),
         },
       });
+      return false;
     }
   },
 
@@ -317,7 +349,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
   setPermissionRequest: (request) => {
-    set({ permissionRequest: request });
+    set((state) => ({
+      permissionRequests: { ...state.permissionRequests, [request.taskId]: request },
+    }));
+  },
+
+  clearPermissionRequest: (taskId) => {
+    set((state) => {
+      const { [taskId]: _, ...rest } = state.permissionRequests;
+      return { permissionRequests: rest };
+    });
   },
 
   respondToPermission: async (response: PermissionResponse) => {
@@ -328,7 +369,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       context: { ...response },
     });
     await accomplish.respondToPermission(response);
-    set({ permissionRequest: null });
+    set((state) => {
+      const { [response.taskId]: _, ...rest } = state.permissionRequests;
+      return { permissionRequests: rest };
+    });
   },
 
   addTaskUpdate: (event: TaskUpdateEvent) => {
@@ -387,7 +431,15 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       if (newStatus) {
         const finalStatus = newStatus;
         updatedTasks = state.tasks.map((t) =>
-          t.id === event.taskId ? { ...t, status: finalStatus } : t,
+          t.id === event.taskId
+            ? {
+                ...t,
+                status: finalStatus,
+                ...(isCurrentTask && updatedCurrentTask
+                  ? { messages: updatedCurrentTask.messages }
+                  : {}),
+              }
+            : t,
         );
       }
 
@@ -439,7 +491,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       const updatedCurrentTask =
         state.currentTask?.id === taskId
-          ? { ...state.currentTask, status, updatedAt: new Date().toISOString() }
+          ? {
+              ...state.currentTask,
+              status,
+              updatedAt: new Date().toISOString(),
+            }
           : state.currentTask;
 
       return {
@@ -491,12 +547,81 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set({ tasks: [] });
   },
 
+  loadFavorites: async () => {
+    // Skip if already loaded — prevents redundant IPC calls from multiple components
+    if (get().favoritesLoaded) {
+      return;
+    }
+    const accomplish = getAccomplish();
+    // Increment token; stale responses from earlier calls will be ignored
+    const token = ++_loadFavoritesToken;
+    try {
+      const favorites = await accomplish.listFavorites();
+      if (token === _loadFavoritesToken) {
+        set({ favorites, favoritesLoaded: true });
+      }
+    } catch (err) {
+      console.error('[taskStore] Failed to load favorites:', err);
+    }
+  },
+
+  addFavorite: async (taskId: string) => {
+    const accomplish = getAccomplish();
+    // Invalidate any in-flight loadFavorites so its response won't overwrite our optimistic state
+    ++_loadFavoritesToken;
+    const { tasks, currentTask, favorites } = get();
+    if (favorites.some((f) => f.taskId === taskId)) {
+      return;
+    }
+    const task = currentTask?.id === taskId ? currentTask : tasks.find((t) => t.id === taskId);
+    const entry: StoredFavorite =
+      task != null
+        ? {
+            taskId,
+            prompt: task.prompt,
+            summary: task.summary,
+            favoritedAt: new Date().toISOString(),
+          }
+        : { taskId, prompt: '', favoritedAt: new Date().toISOString() };
+
+    set({ favorites: [entry, ...favorites] }); // prepend to match newest-first order from storage
+
+    try {
+      await accomplish.addFavorite(taskId);
+    } catch {
+      set((state) => ({
+        favorites: state.favorites.filter((f) => f.taskId !== taskId),
+      }));
+    }
+  },
+
+  removeFavorite: async (taskId: string) => {
+    // Invalidate any in-flight loadFavorites so its response won't overwrite our optimistic state
+    ++_loadFavoritesToken;
+    const { favorites } = get();
+    const removed = favorites.find((f) => f.taskId === taskId);
+    set({ favorites: favorites.filter((f) => f.taskId !== taskId) });
+
+    try {
+      const accomplish = getAccomplish();
+      await accomplish.removeFavorite(taskId);
+    } catch {
+      if (removed) {
+        set((state) => ({
+          favorites: [...state.favorites, removed].sort(
+            (a, b) => new Date(b.favoritedAt).getTime() - new Date(a.favoritedAt).getTime(),
+          ),
+        }));
+      }
+    }
+  },
+
   reset: () => {
     set({
       currentTask: null,
       isLoading: false,
       error: null,
-      permissionRequest: null,
+      permissionRequests: {},
       setupProgress: null,
       setupProgressTaskId: null,
       setupDownloadStep: 1,
@@ -584,7 +709,6 @@ if (typeof window !== 'undefined' && window.accomplish) {
   window.accomplish.onTaskSummary?.((data: { taskId: string; summary: string }) => {
     useTaskStore.getState().setTaskSummary(data.taskId, data.summary);
   });
-
   window.accomplish.onTodoUpdate?.((data: { taskId: string; todos: TodoItem[] }) => {
     const state = useTaskStore.getState();
     if (state.currentTask?.id === data.taskId) {
@@ -594,5 +718,26 @@ if (typeof window !== 'undefined' && window.accomplish) {
 
   window.accomplish.onAuthError?.((data: { providerId: string; message: string }) => {
     useTaskStore.getState().setAuthError(data);
+  });
+
+  // Reload tasks when workspace changes, then navigate to most recent task or home
+  window.accomplish.onWorkspaceChanged?.(async () => {
+    const state = useTaskStore.getState();
+    state.reset();
+    try {
+      await state.loadTasks();
+    } catch (err) {
+      console.error('[taskStore] Failed to load tasks after workspace change:', err);
+      return;
+    }
+
+    const tasks = useTaskStore.getState().tasks;
+    if (tasks.length > 0) {
+      // Navigate to the most recent conversation
+      window.location.hash = `#/execution/${tasks[0].id}`;
+    } else {
+      // No tasks in this workspace - go to new conversation
+      window.location.hash = '#/';
+    }
   });
 }

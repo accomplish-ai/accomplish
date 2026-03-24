@@ -1,5 +1,6 @@
 // apps/desktop/src/renderer/components/settings/shared/ConnectButton.tsx
 
+import { useTranslation } from 'react-i18next';
 import connectIcon from '/assets/icons/connect.svg';
 
 interface ConnectButtonProps {
@@ -9,6 +10,8 @@ interface ConnectButtonProps {
 }
 
 export function ConnectButton({ onClick, connecting, disabled }: ConnectButtonProps) {
+  const { t } = useTranslation('settings');
+
   return (
     <button
       onClick={onClick}
@@ -33,12 +36,12 @@ export function ConnectButton({ onClick, connecting, disabled }: ConnectButtonPr
               className="opacity-75"
             />
           </svg>
-          Connecting...
+          {t('buttons.connecting')}
         </>
       ) : (
         <>
           <img src={connectIcon} alt="" className="h-4 w-4" />
-          Connect
+          {t('buttons.connect')}
         </>
       )}
     </button>

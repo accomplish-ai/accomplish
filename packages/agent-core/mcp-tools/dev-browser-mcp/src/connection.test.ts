@@ -4,6 +4,7 @@ import {
   configure,
   getFullPageName,
   getConnectionMode,
+  isRecoverableConnectionError,
   resetConnection,
 } from './connection.js';
 
@@ -96,6 +97,29 @@ describe('connection', () => {
       process.env.ACCOMPLISH_TASK_ID = 'env-task';
       configureFromEnv();
       expect(getFullPageName('page1')).toBe('env-task-page1');
+    });
+  });
+
+  describe('isRecoverableConnectionError', () => {
+    it('detects fetch transport failures', () => {
+      expect(isRecoverableConnectionError(new Error('fetch failed'))).toBe(true);
+      expect(isRecoverableConnectionError(new Error('Error: socket hang up'))).toBe(true);
+      expect(isRecoverableConnectionError(new Error('ECONNREFUSED 127.0.0.1:9224'))).toBe(true);
+    });
+
+    it('detects CDP/session-level disconnect failures', () => {
+      expect(
+        isRecoverableConnectionError(new Error('browserType.connectOverCDP: WebSocket closed')),
+      ).toBe(true);
+      expect(isRecoverableConnectionError(new Error('Target closed'))).toBe(true);
+      expect(isRecoverableConnectionError(new Error('Session closed'))).toBe(true);
+      expect(isRecoverableConnectionError(new Error('Page closed'))).toBe(true);
+    });
+
+    it('does not mark non-connection failures as recoverable', () => {
+      expect(isRecoverableConnectionError(new Error('Timeout 30000ms exceeded'))).toBe(false);
+      expect(isRecoverableConnectionError(new Error('strict mode violation'))).toBe(false);
+      expect(isRecoverableConnectionError('Element not found')).toBe(false);
     });
   });
 });

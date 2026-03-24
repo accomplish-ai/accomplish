@@ -7,3 +7,5 @@ pnpm-lock.yaml
 dist-electron/
 playwright-report/
 coverage/
+# Auto-generated files not tracked by git
+**/public/theme-init.js

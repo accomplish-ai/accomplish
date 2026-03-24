@@ -25,6 +25,8 @@ import {
   listPages,
   closePage,
   getConnectionMode,
+  getCDPSession,
+  getFullPageName,
 } from './connection.js';
 
 console.error('[dev-browser-mcp] All imports completed successfully');
@@ -33,6 +35,7 @@ const connectionConfig = configureFromEnv();
 const _TASK_ID = connectionConfig.taskId;
 
 interface ToolDebug {
+  getAISnapshot?(page: Page, options: SnapshotOptions): Promise<string>;
   handlePreAction?(
     name: string,
     args: unknown,
@@ -63,7 +66,7 @@ async function loadToolDebug(): Promise<void> {
     console.error('[dev-browser-mcp] ACCOMPLISH_TOOL_DEBUG_PATH not set, tool debug disabled');
   }
 }
-loadToolDebug();
+await loadToolDebug();
 
 function toAIFriendlyError(error: unknown, selector: string): Error {
   const message = error instanceof Error ? error.message : String(error);
@@ -343,6 +346,200 @@ async function waitForPageLoad(page: Page, timeout = 3000): Promise<void> {
   }
 }
 
+const DEFAULT_MAX_SCREENSHOT_BYTES = 120_000;
+const MAX_SCREENSHOT_BYTES = (() => {
+  const parsed = Number.parseInt(process.env.DEV_BROWSER_MCP_MAX_SCREENSHOT_BYTES ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_SCREENSHOT_BYTES;
+})();
+
+interface BoundedScreenshot {
+  buffer: Buffer | null;
+  fullPageUsed: boolean;
+  qualityUsed: number;
+  byteLength: number;
+}
+
+async function captureBoundedScreenshot(
+  page: Page,
+  fullPageRequested: boolean,
+): Promise<BoundedScreenshot> {
+  const attempts = fullPageRequested
+    ? [
+        { fullPage: true, quality: 70 },
+        { fullPage: true, quality: 55 },
+        { fullPage: false, quality: 50 },
+        { fullPage: false, quality: 40 },
+      ]
+    : [
+        { fullPage: false, quality: 70 },
+        { fullPage: false, quality: 55 },
+        { fullPage: false, quality: 40 },
+      ];
+
+  let lastAttempt = attempts[attempts.length - 1];
+  let lastByteLength = 0;
+
+  for (const attempt of attempts) {
+    const buffer = await page.screenshot({
+      fullPage: attempt.fullPage,
+      type: 'jpeg',
+      quality: attempt.quality,
+      // Avoid retina-scale screenshots that explode payload size.
+      scale: 'css',
+    });
+
+    if (buffer.byteLength <= MAX_SCREENSHOT_BYTES) {
+      return {
+        buffer,
+        fullPageUsed: attempt.fullPage,
+        qualityUsed: attempt.quality,
+        byteLength: buffer.byteLength,
+      };
+    }
+
+    lastAttempt = attempt;
+    lastByteLength = buffer.byteLength;
+  }
+
+  return {
+    buffer: null,
+    fullPageUsed: lastAttempt.fullPage,
+    qualityUsed: lastAttempt.quality,
+    byteLength: lastByteLength,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Screencast helpers (ENG-695)
+// Contributed by samarthsinh2660 (PR #414): startScreencast / stopScreencast
+// emit JSON frames to stdout; OpenCodeAdapter parses them and emits
+// 'browser-frame' events consumed by the renderer.
+// ---------------------------------------------------------------------------
+
+/** Target ~10 FPS — enough for live preview without flooding stdout */
+const FRAME_INTERVAL_MS = 100;
+
+/**
+ * Track the active screencast frame handler per page name.
+ * This ensures we remove the old listener before attaching a new one,
+ * preventing duplicate frames after navigation (idempotent screencast).
+ */
+const activeFrameHandlers = new Map<string, (event: { data: string; sessionId: number }) => void>();
+
+/**
+ * Guards against concurrent startScreencast calls for the same page.
+ * If a screencast is already being initialised for a given pageKey, subsequent
+ * calls are dropped until the in-flight promise settles.
+ */
+const screencastStarting = new Set<string>();
+
+async function startScreencast(pageName?: string): Promise<void> {
+  const pageKey = pageName || 'main';
+  const fullPageName = getFullPageName(pageName);
+
+  // In-flight lock: skip if this page is already being started (Fix 3).
+  if (screencastStarting.has(pageKey)) {
+    return;
+  }
+  screencastStarting.add(pageKey);
+
+  try {
+    // Use getPage() to honour activePageOverride — the same resolved page that
+    // browser_navigate() already navigated, not just the raw string name (Fix 4).
+    const resolvedPage = await getPage(pageName);
+    const context = resolvedPage.context();
+    const session = await context.newCDPSession(resolvedPage);
+
+    // Remove any existing frame handler for this page before adding a new one
+    const existingHandler = activeFrameHandlers.get(pageKey);
+    if (existingHandler) {
+      session.off('Page.screencastFrame', existingHandler);
+      activeFrameHandlers.delete(pageKey);
+    }
+
+    // Stop any running screencast before restarting (idempotent)
+    await session.send('Page.stopScreencast').catch(() => {});
+
+    await session.send('Page.startScreencast', {
+      format: 'jpeg',
+      quality: 50,
+      maxWidth: 800,
+      everyNthFrame: 1,
+    } as Parameters<typeof session.send>[1]);
+
+    let lastFrameTime = 0;
+
+    const frameHandler = async (event: { data: string; sessionId: number }) => {
+      try {
+        const now = Date.now();
+
+        // Throttle to avoid flooding stdout
+        if (now - lastFrameTime < FRAME_INTERVAL_MS) {
+          await session
+            .send('Page.screencastFrameAck', { sessionId: event.sessionId } as Parameters<
+              typeof session.send
+            >[1])
+            .catch(() => {});
+          return;
+        }
+
+        lastFrameTime = now;
+
+        const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
+        console.log(
+          JSON.stringify({
+            type: 'browser-frame',
+            taskId,
+            pageName: pageName || 'main',
+            frame: event.data,
+            timestamp: now,
+          }),
+        );
+
+        await session
+          .send('Page.screencastFrameAck', { sessionId: event.sessionId } as Parameters<
+            typeof session.send
+          >[1])
+          .catch(() => {});
+      } catch (err) {
+        console.error('[dev-browser-mcp] Error handling screencast frame:', err);
+      }
+    };
+
+    activeFrameHandlers.set(pageKey, frameHandler);
+    session.on('Page.screencastFrame', frameHandler);
+    console.error(`[dev-browser-mcp] Screencast started for page: ${fullPageName}`);
+  } catch (err) {
+    console.error(`[dev-browser-mcp] Failed to start screencast for ${fullPageName}:`, err);
+  } finally {
+    // Release the in-flight lock regardless of success or failure (Fix 3).
+    screencastStarting.delete(pageKey);
+  }
+}
+
+async function _stopScreencast(pageName?: string): Promise<void> {
+  const pageKey = pageName || 'main';
+  const fullPageName = getFullPageName(pageName);
+
+  try {
+    const session = await getCDPSession(pageName);
+
+    // Remove the tracked frame handler before stopping
+    const existingHandler = activeFrameHandlers.get(pageKey);
+    if (existingHandler) {
+      session.off('Page.screencastFrame', existingHandler);
+      activeFrameHandlers.delete(pageKey);
+    }
+
+    await session.send('Page.stopScreencast');
+    console.error(`[dev-browser-mcp] Screencast stopped for page: ${fullPageName}`);
+  } catch (err) {
+    console.error(`[dev-browser-mcp] Failed to stop screencast for ${fullPageName}:`, err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+
 const SNAPSHOT_SCRIPT = `
 (function() {
   if (window.__devBrowser_getAISnapshot) return;
@@ -426,7 +623,8 @@ const SNAPSHOT_SCRIPT = `
     if (!isElementStyleVisibilityVisible(element, style))
       return { cursor, visible: false, inline: false };
     const rect = element.getBoundingClientRect();
-    return { rect, cursor, visible: rect.width > 0 && rect.height > 0, inline: style.display === "inline" };
+    const zIndex = style.zIndex !== "auto" ? parseInt(style.zIndex, 10) : undefined;
+    return { rect, cursor, visible: rect.width > 0 && rect.height > 0, inline: style.display === "inline", zIndex: Number.isFinite(zIndex) ? zIndex : undefined };
   }
 
   function isElementVisible(element) {
@@ -930,8 +1128,9 @@ const SNAPSHOT_SCRIPT = `
 
   let lastRef = 0;
 
-  function generateAriaTree(rootElement) {
-    const options = { visibility: "ariaOrVisible", refs: "interactable", refPrefix: "", includeGenericRole: true, renderActive: true, renderCursorPointer: true };
+  function generateAriaTree(rootElement, externalOptions) {
+    externalOptions = externalOptions || {};
+    const options = { visibility: "ariaOrVisible", refs: "interactable", refPrefix: "", includeGenericRole: true, renderActive: true, renderCursorPointer: true, preserveSubtrees: !!externalOptions.preserveSubtrees };
     const visited = new Set();
     const snapshot = {
       root: { role: "fragment", name: "", children: [], element: rootElement, props: {}, box: computeBox(rootElement), receivesPointerEvents: true },
@@ -1003,8 +1202,8 @@ const SNAPSHOT_SCRIPT = `
     beginAriaCaches();
     try { visit(snapshot.root, rootElement, true); }
     finally { endAriaCaches(); }
-    normalizeStringChildren(snapshot.root);
-    normalizeGenericRoles(snapshot.root);
+    if (!externalOptions.includeAllTextNodes) { normalizeStringChildren(snapshot.root); }
+    if (!externalOptions.preserveSubtrees) { normalizeGenericRoles(snapshot.root); }
     return snapshot;
   }
 
@@ -1032,7 +1231,7 @@ const SNAPSHOT_SCRIPT = `
     const name = normalizeWhiteSpace(getElementAccessibleName(element, false) || "");
     const receivesPointerEventsValue = receivesPointerEvents(element);
     const box = computeBox(element);
-    if (role === "generic" && box.inline && element.childNodes.length === 1 && element.childNodes[0].nodeType === Node.TEXT_NODE) return null;
+    if (!options.preserveSubtrees && role === "generic" && box.inline && element.childNodes.length === 1 && element.childNodes[0].nodeType === Node.TEXT_NODE) { return null; }
     const result = { role, name, children: [], props: {}, element, box, receivesPointerEvents: receivesPointerEventsValue, active };
     computeAriaRef(result, options);
     if (kAriaCheckedRoles.includes(role)) result.checked = getAriaChecked(element);
@@ -1235,7 +1434,7 @@ const SNAPSHOT_SCRIPT = `
     const isInteractiveRole = (role) => INTERACTIVE_ROLES.includes(role);
 
     const visitText = (text, indent) => {
-      if (snapshotOptions.interactiveOnly) return;
+      if (snapshotOptions.interactiveOnly && !snapshotOptions.includeAllTextNodes) { return; }
       const escaped = yamlEscapeValueIfNeeded(text);
       if (escaped) lines.push(indent + "- text: " + escaped);
     };
@@ -1267,6 +1466,7 @@ const SNAPSHOT_SCRIPT = `
         const r = ariaNode.box.rect;
         key += " [" + Math.round(r.x) + ", " + Math.round(r.y) + ", " + Math.round(r.width) + ", " + Math.round(r.height) + "]";
       }
+      if (ariaNode.box?.zIndex !== undefined) key += " [z-index=" + ariaNode.box.zIndex + "]";
       return key;
     };
 
@@ -1320,7 +1520,7 @@ const SNAPSHOT_SCRIPT = `
 
   function getAISnapshot(options) {
     options = options || {};
-    const snapshot = generateAriaTree(document.body);
+    const snapshot = generateAriaTree(document.body, options);
     const refsObject = {};
     for (const [ref, element] of snapshot.elements) refsObject[ref] = element;
     window.__devBrowserRefs = refsObject;
@@ -1348,6 +1548,8 @@ interface SnapshotOptions {
   fullSnapshot?: boolean;
   rawTree?: boolean;
   includeBoundingBoxes?: boolean;
+  includeAllTextNodes?: boolean;
+  preserveSubtrees?: boolean;
 }
 
 const DEFAULT_SNAPSHOT_OPTIONS: SnapshotOptions = {
@@ -1393,20 +1595,22 @@ async function getAISnapshot(page: Page, options: SnapshotOptions = {}): Promise
     }, SNAPSHOT_SCRIPT);
   }
 
-  const snapshot = await page.evaluate(
-    (opts) => {
-      return (globalThis as any).__devBrowser_getAISnapshot(opts);
-    },
-    {
-      interactiveOnly: options.interactiveOnly || false,
-      maxElements: options.maxElements,
-      viewportOnly: options.viewportOnly || false,
-      maxTokens: options.maxTokens,
-      rawTree: options.rawTree || false,
-      includeBoundingBoxes: options.includeBoundingBoxes || false,
-    },
+  const optsToSend = {
+    interactiveOnly: options.interactiveOnly || false,
+    maxElements: options.maxElements,
+    viewportOnly: options.viewportOnly || false,
+    maxTokens: options.maxTokens,
+    rawTree: options.rawTree || false,
+    includeBoundingBoxes: options.includeBoundingBoxes || false,
+    includeAllTextNodes: options.includeAllTextNodes || false,
+    preserveSubtrees: options.preserveSubtrees || false,
+  };
+
+  const result = await page.evaluate(
+    (opts) => (globalThis as any).__devBrowser_getAISnapshot(opts),
+    optsToSend,
   );
-  return snapshot;
+  return result as string;
 }
 
 async function selectSnapshotRef(page: Page, ref: string): Promise<ElementHandle | null> {
@@ -2469,7 +2673,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
 
   console.error(`[MCP] Tool called: ${name}`, JSON.stringify(args, null, 2));
 
-  const debugContext = { getPage, getAISnapshot };
+  const debugContext = { getPage, getAISnapshot: toolDebug?.getAISnapshot ?? getAISnapshot };
   let preCapture: unknown = undefined;
   if (toolDebug?.handlePreAction) {
     try {
@@ -2496,6 +2700,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
           await page.goto(fullUrl);
           await waitForPageLoad(page);
           await injectActiveTabGlow(page);
+
+          // Auto-start screencast so the UI always has a live preview available.
+          // Fire-and-forget — failure here should never break navigation.
+          // Contributed by samarthsinh2660 (PR #414) for ENG-695.
+          void startScreencast(page_name);
 
           const title = await page.title();
           const currentUrl = page.url();
@@ -2876,17 +3085,35 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
         case 'browser_screenshot': {
           const { page_name, full_page } = args as BrowserScreenshotInput;
           const page = await getPage(page_name);
+          const requestedFullPage = full_page ?? false;
+          const screenshot = await captureBoundedScreenshot(page, requestedFullPage);
 
-          const screenshotBuffer = await page.screenshot({
-            fullPage: full_page ?? false,
-            type: 'jpeg',
-            quality: 80,
-          });
+          if (!screenshot.buffer) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text:
+                    `Screenshot skipped: image remained ${screenshot.byteLength} bytes after compression ` +
+                    `(max ${MAX_SCREENSHOT_BYTES} bytes). Use browser_snapshot() for a lightweight page view.`,
+                },
+              ],
+              isError: true,
+            };
+          }
 
-          const base64 = screenshotBuffer.toString('base64');
+          const base64 = screenshot.buffer.toString('base64');
+          const fallbackNote =
+            requestedFullPage && !screenshot.fullPageUsed
+              ? ' Full-page capture was reduced to viewport to stay within size limits.'
+              : '';
 
           return {
             content: [
+              {
+                type: 'text',
+                text: `Screenshot captured (${screenshot.byteLength} bytes, JPEG quality ${screenshot.qualityUsed}).${fallbackNote}`,
+              },
               {
                 type: 'image',
                 data: base64,
@@ -3211,17 +3438,24 @@ The page has loaded. Use browser_snapshot() to see the page elements and find in
                 }
 
                 case 'screenshot': {
-                  const buffer = await page.screenshot({
-                    fullPage: step.fullPage ?? false,
-                    type: 'jpeg',
-                    quality: 80,
-                  });
+                  const requestedFullPage = step.fullPage ?? false;
+                  const screenshot = await captureBoundedScreenshot(page, requestedFullPage);
+                  if (!screenshot.buffer) {
+                    results.push(
+                      `${stepNum}. Screenshot skipped (still ${screenshot.byteLength} bytes after compression; max ${MAX_SCREENSHOT_BYTES})`,
+                    );
+                    break;
+                  }
                   screenshotData = {
                     type: 'image',
                     mimeType: 'image/jpeg',
-                    data: buffer.toString('base64'),
+                    data: screenshot.buffer.toString('base64'),
                   };
-                  results.push(`${stepNum}. Screenshot taken`);
+                  results.push(
+                    requestedFullPage && !screenshot.fullPageUsed
+                      ? `${stepNum}. Screenshot taken (auto-switched to viewport to stay under ${MAX_SCREENSHOT_BYTES} bytes)`
+                      : `${stepNum}. Screenshot taken (${screenshot.byteLength} bytes)`,
+                  );
                   break;
                 }
 

@@ -1,13 +1,28 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { ConnectorCard } from './ConnectorCard';
 import { useConnectors } from './useConnectors';
 
+const slackStatusClass = {
+  connected: 'text-green-600',
+  disconnected: 'text-muted-foreground',
+  pending: 'text-yellow-600',
+};
+
+const slackStatusDotClass = {
+  connected: 'bg-green-500',
+  disconnected: 'bg-muted-foreground',
+  pending: 'bg-yellow-500 animate-pulse',
+};
+
 export function ConnectorsPanel() {
+  const { t } = useTranslation('settings');
   const {
     connectors,
+    slackAuth,
     loading,
     addConnector,
     deleteConnector,
@@ -15,10 +30,13 @@ export function ConnectorsPanel() {
     startOAuth,
     completeOAuth,
     disconnect,
+    authenticateSlack,
+    disconnectSlack,
   } = useConnectors();
 
   const [url, setUrl] = useState('');
   const [adding, setAdding] = useState(false);
+  const [slackActionLoading, setSlackActionLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
 
@@ -32,29 +50,34 @@ export function ConnectorsPanel() {
         if (code && state) {
           completeOAuth(state, code).catch((err) => {
             console.error('Failed to complete OAuth:', err);
-            setOauthError(err instanceof Error ? err.message : 'OAuth completion failed');
+            setOauthError(
+              err instanceof Error ? err.message : t('connectors.oauthCompletionFailed'),
+            );
           });
         }
       } catch (err) {
         console.error('Failed to parse OAuth callback URL:', err);
-        setOauthError('Invalid OAuth callback received');
+        setOauthError(t('connectors.invalidOauthCallback'));
       }
     });
 
     return () => unsubscribe?.();
-  }, [completeOAuth]);
+  }, [completeOAuth, t]);
 
-  const deriveNameFromUrl = useCallback((serverUrl: string): string => {
-    try {
-      const parsed = new URL(serverUrl);
-      // Use hostname without TLD, capitalize first letter
-      const parts = parsed.hostname.split('.');
-      const name = parts.length > 1 ? parts[parts.length - 2] : parts[0];
-      return name.charAt(0).toUpperCase() + name.slice(1);
-    } catch {
-      return 'MCP Server';
-    }
-  }, []);
+  const deriveNameFromUrl = useCallback(
+    (serverUrl: string): string => {
+      try {
+        const parsed = new URL(serverUrl);
+        // Use hostname without TLD, capitalize first letter
+        const parts = parsed.hostname.split('.');
+        const name = parts.length > 1 ? parts[parts.length - 2] : parts[0];
+        return name.charAt(0).toUpperCase() + name.slice(1);
+      } catch {
+        return t('connectors.defaultName');
+      }
+    },
+    [t],
+  );
 
   const handleAdd = useCallback(async () => {
     const trimmedUrl = url.trim();
@@ -64,11 +87,11 @@ export function ConnectorsPanel() {
     try {
       const parsed = new URL(trimmedUrl);
       if (!parsed.protocol.startsWith('http')) {
-        setAddError('URL must start with http:// or https://');
+        setAddError(t('connectors.urlMustBeHttp'));
         return;
       }
     } catch {
-      setAddError('Please enter a valid URL');
+      setAddError(t('connectors.invalidUrl'));
       return;
     }
 
@@ -81,11 +104,11 @@ export function ConnectorsPanel() {
       setUrl('');
     } catch (err) {
       console.error('Failed to add connector:', err);
-      setAddError(err instanceof Error ? err.message : 'Failed to add connector');
+      setAddError(err instanceof Error ? err.message : t('connectors.addFailed'));
     } finally {
       setAdding(false);
     }
-  }, [url, addConnector, deriveNameFromUrl]);
+  }, [url, addConnector, deriveNameFromUrl, t]);
 
   const handleConnect = useCallback(
     async (connectorId: string) => {
@@ -94,11 +117,43 @@ export function ConnectorsPanel() {
         await startOAuth(connectorId);
       } catch (err) {
         console.error('Failed to start OAuth:', err);
-        setOauthError(err instanceof Error ? err.message : 'Failed to start OAuth flow');
+        setOauthError(err instanceof Error ? err.message : t('connectors.oauthStartFailed'));
       }
     },
-    [startOAuth],
+    [startOAuth, t],
   );
+
+  const handleSlackAuthenticate = useCallback(async () => {
+    setSlackActionLoading(true);
+    setAddError(null);
+    setOauthError(null);
+
+    try {
+      await authenticateSlack();
+    } catch (err) {
+      console.error('Failed to authenticate Slack MCP:', err);
+      const raw = err instanceof Error ? err.message : t('connectors.slack.authFailed');
+      const cleaned = raw.replace(/^Error invoking remote method '[^']+': (\w+Error: )?/, '');
+      setOauthError(cleaned);
+    } finally {
+      setSlackActionLoading(false);
+    }
+  }, [authenticateSlack, t]);
+
+  const handleSlackDisconnect = useCallback(async () => {
+    setSlackActionLoading(true);
+    setAddError(null);
+    setOauthError(null);
+
+    try {
+      await disconnectSlack();
+    } catch (err) {
+      console.error('Failed to disconnect Slack MCP:', err);
+      setOauthError(err instanceof Error ? err.message : t('connectors.slack.disconnectFailed'));
+    } finally {
+      setSlackActionLoading(false);
+    }
+  }, [disconnectSlack, t]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -109,10 +164,16 @@ export function ConnectorsPanel() {
     [handleAdd, adding],
   );
 
+  const slackStatusKey: keyof typeof slackStatusClass = slackAuth.connected
+    ? 'connected'
+    : slackAuth.pendingAuthorization
+      ? 'pending'
+      : 'disconnected';
+
   if (loading) {
     return (
       <div className="flex h-[300px] items-center justify-center">
-        <div className="text-sm text-muted-foreground">Loading connectors...</div>
+        <div className="text-sm text-muted-foreground">{t('connectors.loading')}</div>
       </div>
     );
   }
@@ -120,45 +181,107 @@ export function ConnectorsPanel() {
   return (
     <div className="flex flex-col gap-4">
       {/* Description */}
-      <p className="text-sm text-muted-foreground">
-        Connect remote MCP servers using OAuth. Only servers that support the OAuth 2.0
-        authorization flow are currently supported.
-      </p>
+      <p className="text-sm text-muted-foreground">{t('connectors.description')}</p>
 
-      {/* Add form */}
-      <div className="flex gap-2">
-        <Input
-          type="url"
-          placeholder="https://mcp-server.example.com"
-          value={url}
-          onChange={(e) => {
-            setUrl(e.target.value);
-            setAddError(null);
-          }}
-          onKeyDown={handleKeyDown}
-          className="flex-1"
-          disabled={adding}
-        />
-        <button
-          onClick={handleAdd}
-          disabled={adding || !url.trim()}
-          className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-        >
-          {adding ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          ) : (
-            <svg
-              className="h-4 w-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          )}
-          Add
-        </button>
+      <div className="rounded-xl border border-border bg-card p-5" data-testid="slack-auth-card">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-medium text-foreground">{t('connectors.slack.title')}</h3>
+              <span
+                className={`flex items-center gap-1 text-[11px] ${slackStatusClass[slackStatusKey]}`}
+              >
+                <span
+                  className={`inline-block h-1.5 w-1.5 rounded-full ${slackStatusDotClass[slackStatusKey]}`}
+                />
+                {t(`connectors.slack.status.${slackStatusKey}`)}
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">{t('connectors.slack.description')}</p>
+            <p className="text-xs text-muted-foreground">
+              {slackAuth.connected
+                ? t('connectors.slack.connectedHint')
+                : slackAuth.pendingAuthorization
+                  ? t('connectors.slack.pendingHint')
+                  : t('connectors.slack.authHint')}
+            </p>
+          </div>
+
+          <div className="flex shrink-0 items-center">
+            {slackAuth.connected ? (
+              <button
+                type="button"
+                onClick={handleSlackDisconnect}
+                disabled={slackActionLoading}
+                className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:opacity-50"
+              >
+                {slackActionLoading
+                  ? t('connectors.slack.disconnecting')
+                  : t('connectors.slack.disconnect')}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSlackAuthenticate}
+                disabled={slackActionLoading}
+                data-testid="slack-auth-button"
+                className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              >
+                {slackActionLoading ? (
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                ) : null}
+                {slackActionLoading
+                  ? t('connectors.slack.authenticating')
+                  : slackAuth.pendingAuthorization
+                    ? t('connectors.slack.restartAuth')
+                    : t('connectors.slack.authenticate')}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium text-foreground">{t('connectors.customTitle')}</h3>
+          <p className="text-xs text-muted-foreground">{t('connectors.customDescription')}</p>
+        </div>
+
+        {/* Add form */}
+        <div className="flex gap-2">
+          <Input
+            type="url"
+            placeholder={t('connectors.placeholder')}
+            value={url}
+            onChange={(e) => {
+              setUrl(e.target.value);
+              setAddError(null);
+            }}
+            onKeyDown={handleKeyDown}
+            className="flex-1"
+            disabled={adding}
+          />
+          <button
+            onClick={handleAdd}
+            disabled={adding || !url.trim()}
+            className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          >
+            {adding ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <svg
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            )}
+            {t('connectors.add')}
+          </button>
+        </div>
       </div>
 
       {/* Errors */}
@@ -213,7 +336,7 @@ export function ConnectorsPanel() {
           animate="animate"
           transition={settingsTransitions.enter}
         >
-          No MCP servers connected yet
+          {t('connectors.empty')}
         </motion.div>
       )}
     </div>

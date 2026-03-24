@@ -83,7 +83,13 @@ vi.mock('@/stores/taskStore', () => ({
 
 // Mock the SettingsDialog to simplify testing
 vi.mock('@/components/layout/SettingsDialog', () => ({
-  default: ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) =>
+  SettingsDialog: ({
+    open,
+    onOpenChange,
+  }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+  }) =>
     open ? (
       <div data-testid="settings-dialog">
         <button onClick={() => onOpenChange(false)}>Close Settings</button>
@@ -92,20 +98,39 @@ vi.mock('@/components/layout/SettingsDialog', () => ({
 }));
 
 // Mock framer-motion to simplify testing animations
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-      <div {...props}>{children}</div>
-    ),
-    button: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-      <button {...props}>{children}</button>
-    ),
-  },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+vi.mock('framer-motion', () => {
+  const createMotionMock = (Element: string) => {
+    return ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown }) => {
+      const {
+        initial: _initial,
+        animate: _animate,
+        exit: _exit,
+        transition: _transition,
+        variants: _variants,
+        whileHover: _whileHover,
+        whileTap: _whileTap,
+        whileFocus: _whileFocus,
+        whileInView: _whileInView,
+        layout: _layout,
+        layoutId: _layoutId,
+        ...domProps
+      } = props;
+      const Component = Element as keyof JSX.IntrinsicElements;
+      return <Component {...domProps}>{children}</Component>;
+    };
+  };
+
+  return {
+    motion: {
+      div: createMotionMock('div'),
+      button: createMotionMock('button'),
+    },
+    AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  };
+});
 
 // Need to import after mocks are set up
-import Sidebar from '@/components/layout/Sidebar';
+import { Sidebar } from '@/components/layout/Sidebar';
 
 describe('Sidebar Integration', () => {
   beforeEach(() => {
@@ -269,7 +294,7 @@ describe('Sidebar Integration', () => {
 
       // Assert - Check for spinning loader icon
       const taskItem = screen.getByText('Running task').closest('[role="button"]');
-      const spinner = taskItem?.querySelector('.animate-spin-ccw');
+      const spinner = taskItem?.querySelector('.animate-spin');
       expect(spinner).toBeInTheDocument();
     });
 
@@ -285,10 +310,10 @@ describe('Sidebar Integration', () => {
         </MemoryRouter>,
       );
 
-      // Assert - Check for checkmark icon (CheckCircle2)
+      // Assert - Check for green status dot
       const taskItem = screen.getByText('Completed task').closest('[role="button"]');
-      const checkIcon = taskItem?.querySelector('svg');
-      expect(checkIcon).toBeInTheDocument();
+      const dot = taskItem?.querySelector('.bg-green-500');
+      expect(dot).toBeInTheDocument();
     });
   });
 
@@ -346,7 +371,7 @@ describe('Sidebar Integration', () => {
 
       // Assert
       const taskItem = screen.getByText('Active task').closest('[role="button"]');
-      expect(taskItem?.className).toContain('bg-accent');
+      expect(taskItem?.className).toContain('bg-[#EDEBE7]');
     });
 
     it('should not highlight inactive conversations', () => {

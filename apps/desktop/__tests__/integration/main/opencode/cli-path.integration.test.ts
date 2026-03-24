@@ -1,17 +1,8 @@
-/**
- * Integration tests for OpenCode CLI path resolution
- *
- * Tests the electron-options module which resolves paths to the OpenCode CLI binary
- * in both development and packaged app modes. Uses @accomplish/core's cli-resolver
- * with Electron-specific configuration.
- *
- * @module __tests__/integration/main/opencode/cli-path.integration.test
- */
-
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import path from 'path';
 
-// Mock electron module before importing the module under test
+const originalAppRoot = process.env.APP_ROOT;
+
 const mockApp = {
   isPackaged: false,
   getAppPath: vi.fn(() => '/mock/app/path'),
@@ -21,7 +12,6 @@ vi.mock('electron', () => ({
   app: mockApp,
 }));
 
-// Mock fs module
 const mockFs = {
   existsSync: vi.fn(),
   readdirSync: vi.fn(),
@@ -35,22 +25,16 @@ vi.mock('fs', () => ({
   readFileSync: mockFs.readFileSync,
 }));
 
-// Mock child_process
 const mockExecSync = vi.fn();
 
 vi.mock('child_process', () => ({
   execSync: mockExecSync,
-  execFile: vi.fn(),
 }));
 
-// Mock @accomplish_ai/agent-core cli-resolver functions - they use fs internally which is already mocked
-// We need to pass through to the actual implementation since it uses the mocked fs
 vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@accomplish_ai/agent-core')>();
   return {
     ...actual,
-    // The cli-resolver functions should use the mocked fs, so we don't need to mock them
-    // But we need to ensure other imports don't break the tests
     getSelectedModel: vi.fn(() => null),
     getAzureFoundryConfig: vi.fn(() => null),
     getActiveProviderModel: vi.fn(() => null),
@@ -65,483 +49,113 @@ vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
 describe('OpenCode CLI Path Module', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset module state
     vi.resetModules();
-    // Reset packaged state
     mockApp.isPackaged = false;
-    // Reset HOME environment variable
-    process.env.HOME = '/Users/testuser';
+    delete process.env.APP_ROOT;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    if (originalAppRoot === undefined) {
+      delete process.env.APP_ROOT;
+    } else {
+      process.env.APP_ROOT = originalAppRoot;
+    }
   });
 
   describe('getOpenCodeCliPath()', () => {
-    describe('Development Mode', () => {
-      it('should return nvm OpenCode path when available', async () => {
-        // Arrange
-        mockApp.isPackaged = false;
-        const nvmVersionsDir = '/Users/testuser/.nvm/versions/node';
-        const expectedPath = path.join(nvmVersionsDir, 'v20.10.0', 'bin', 'opencode');
+    it('resolves local CLI from appPath in development mode', async () => {
+      const appPath = '/mock/app/path';
+      const localCliPath =
+        process.platform === 'win32'
+          ? path.join(appPath, 'node_modules', 'opencode-windows-x64', 'bin', 'opencode.exe')
+          : path.join(appPath, 'node_modules', '.bin', 'opencode');
+      mockApp.getAppPath.mockReturnValue(appPath);
+      mockFs.existsSync.mockImplementation((p: string) => p === localCliPath);
 
-        mockFs.existsSync.mockImplementation((p: string) => {
-          if (p === nvmVersionsDir) return true;
-          if (p === expectedPath) return true;
-          return false;
-        });
-        mockFs.readdirSync.mockImplementation((p: string) => {
-          if (p === nvmVersionsDir) return ['v20.10.0'];
-          return [];
-        });
-
-        // Act
-        const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
-        const result = getOpenCodeCliPath();
-
-        // Assert
-        expect(result.command).toBe(expectedPath);
-        expect(result.args).toEqual([]);
-      });
-
-      it('should return global npm OpenCode path when nvm not available', async () => {
-        // Arrange
-        mockApp.isPackaged = false;
-        const globalPath = '/usr/local/bin/opencode';
-
-        mockFs.existsSync.mockImplementation((p: string) => {
-          if (p === globalPath) return true;
-          return false;
-        });
-        mockFs.readdirSync.mockReturnValue([]);
-
-        // Act
-        const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
-        const result = getOpenCodeCliPath();
-
-        // Assert
-        expect(result.command).toBe(globalPath);
-        expect(result.args).toEqual([]);
-      });
-
-      it('should return Homebrew OpenCode path on Apple Silicon', async () => {
-        // Arrange
-        mockApp.isPackaged = false;
-        const homebrewPath = '/opt/homebrew/bin/opencode';
-
-        mockFs.existsSync.mockImplementation((p: string) => {
-          if (p === homebrewPath) return true;
-          return false;
-        });
-        mockFs.readdirSync.mockReturnValue([]);
-
-        // Act
-        const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
-        const result = getOpenCodeCliPath();
-
-        // Assert
-        expect(result.command).toBe(homebrewPath);
-        expect(result.args).toEqual([]);
-      });
-
-      it('should return bundled CLI path in node_modules when global not found', async () => {
-        // Arrange
-        mockApp.isPackaged = false;
-        const appPath = '/mock/app/path';
-        const bundledPath = path.join(appPath, 'node_modules', '.bin', 'opencode');
-
-        mockApp.getAppPath.mockReturnValue(appPath);
-        mockFs.existsSync.mockImplementation((p: string) => {
-          if (p === bundledPath) return true;
-          return false;
-        });
-        mockFs.readdirSync.mockReturnValue([]);
-
-        // Act
-        const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
-        const result = getOpenCodeCliPath();
-
-        // Assert
-        expect(result.command).toBe(bundledPath);
-        expect(result.args).toEqual([]);
-      });
-
-      it('should fallback to PATH-based opencode when no paths found', async () => {
-        // Arrange
-        mockApp.isPackaged = false;
-        mockFs.existsSync.mockReturnValue(false);
-        mockFs.readdirSync.mockReturnValue([]);
-
-        // Act
-        const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
-        const result = getOpenCodeCliPath();
-
-        // Assert
-        expect(result.command).toBe('opencode');
-        expect(result.args).toEqual([]);
-      });
-    });
-
-    describe('Packaged Mode', () => {
-      // Helper to get platform-specific package info
-      // Package is always 'opencode-ai', only binary name differs on Windows
-      const getPlatformInfo = () => {
-        return {
-          pkg: 'opencode-ai',
-          binary: process.platform === 'win32' ? 'opencode.exe' : 'opencode',
-        };
-      };
-
-      it('should return unpacked asar path when packaged', async () => {
-        // Arrange
-        mockApp.isPackaged = true;
-        const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
-
-        const { pkg, binary } = getPlatformInfo();
-        const expectedPath = path.join(
-          resourcesPath,
-          'app.asar.unpacked',
-          'node_modules',
-          pkg,
-          'bin',
-          binary,
-        );
-
-        mockFs.existsSync.mockImplementation((p: string) => {
-          if (p === expectedPath) return true;
-          return false;
-        });
-
-        // Act
-        const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
-        const result = getOpenCodeCliPath();
-
-        // Assert
-        expect(result.command).toBe(expectedPath);
-        expect(result.args).toEqual([]);
-      });
-
-      it('should fallback to opencode on PATH when bundled CLI not found in packaged app', async () => {
-        // Arrange
-        mockApp.isPackaged = true;
-        const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
-
-        mockFs.existsSync.mockReturnValue(false);
-
-        // Act
-        const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
-        const result = getOpenCodeCliPath();
-
-        // Assert - falls back to system PATH instead of throwing
-        expect(result.command).toBe('opencode');
-        expect(result.args).toEqual([]);
-      });
-    });
-  });
-
-  describe('isOpenCodeBundled()', () => {
-    describe('Development Mode', () => {
-      it('should return true when nvm OpenCode is available', async () => {
-        // Arrange
-        mockApp.isPackaged = false;
-        const nvmVersionsDir = '/Users/testuser/.nvm/versions/node';
-        const opencodePath = path.join(nvmVersionsDir, 'v20.10.0', 'bin', 'opencode');
-
-        mockFs.existsSync.mockImplementation((p: string) => {
-          if (p === nvmVersionsDir) return true;
-          if (p === opencodePath) return true;
-          return false;
-        });
-        mockFs.readdirSync.mockImplementation((p: string) => {
-          if (p === nvmVersionsDir) return ['v20.10.0'];
-          return [];
-        });
-
-        // Act
-        const { isOpenCodeBundled } = await import('@main/opencode/electron-options');
-        const result = isOpenCodeBundled();
-
-        // Assert
-        expect(result).toBe(true);
-      });
-
-      it('should return true when bundled CLI exists in node_modules', async () => {
-        // Arrange
-        mockApp.isPackaged = false;
-        const appPath = '/mock/app/path';
-        const bundledPath = path.join(appPath, 'node_modules', '.bin', 'opencode');
-
-        mockApp.getAppPath.mockReturnValue(appPath);
-        mockFs.existsSync.mockImplementation((p: string) => {
-          if (p === bundledPath) return true;
-          return false;
-        });
-        mockFs.readdirSync.mockReturnValue([]);
-
-        // Act
-        const { isOpenCodeBundled } = await import('@main/opencode/electron-options');
-        const result = isOpenCodeBundled();
-
-        // Assert
-        expect(result).toBe(true);
-      });
-
-      it('should return true when opencode is available on PATH', async () => {
-        // Arrange
-        mockApp.isPackaged = false;
-        mockFs.existsSync.mockReturnValue(false);
-        mockFs.readdirSync.mockReturnValue([]);
-        mockExecSync.mockReturnValue('/usr/local/bin/opencode');
-
-        // Act
-        const { isOpenCodeBundled } = await import('@main/opencode/electron-options');
-        const result = isOpenCodeBundled();
-
-        // Assert
-        expect(result).toBe(true);
-      });
-
-      it('should return false when no CLI is found anywhere', async () => {
-        // Arrange
-        mockApp.isPackaged = false;
-        mockFs.existsSync.mockReturnValue(false);
-        mockFs.readdirSync.mockReturnValue([]);
-        mockExecSync.mockImplementation(() => {
-          throw new Error('Command not found');
-        });
-
-        // Act
-        const { isOpenCodeBundled } = await import('@main/opencode/electron-options');
-        const result = isOpenCodeBundled();
-
-        // Assert
-        expect(result).toBe(false);
-      });
-    });
-
-    describe('Packaged Mode', () => {
-      // Helper to get platform-specific package info
-      // Package is always 'opencode-ai', only binary name differs on Windows
-      const getPlatformInfo = () => {
-        return {
-          pkg: 'opencode-ai',
-          binary: process.platform === 'win32' ? 'opencode.exe' : 'opencode',
-        };
-      };
-
-      it('should return true when bundled CLI exists in unpacked asar', async () => {
-        // Arrange
-        mockApp.isPackaged = true;
-        const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
-
-        const { pkg, binary } = getPlatformInfo();
-        const cliPath = path.join(
-          resourcesPath,
-          'app.asar.unpacked',
-          'node_modules',
-          pkg,
-          'bin',
-          binary,
-        );
-
-        mockFs.existsSync.mockImplementation((p: string) => {
-          if (p === cliPath) return true;
-          return false;
-        });
-
-        // Act
-        const { isOpenCodeBundled } = await import('@main/opencode/electron-options');
-        const result = isOpenCodeBundled();
-
-        // Assert
-        expect(result).toBe(true);
-      });
-
-      it('should return false when bundled CLI missing in unpacked asar', async () => {
-        // Arrange
-        mockApp.isPackaged = true;
-        const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
-
-        mockFs.existsSync.mockReturnValue(false);
-
-        // Act
-        const { isOpenCodeBundled } = await import('@main/opencode/electron-options');
-        const result = isOpenCodeBundled();
-
-        // Assert
-        expect(result).toBe(false);
-      });
-    });
-  });
-
-  describe('getBundledOpenCodeVersion()', () => {
-    // Package is always 'opencode-ai'
-    const getPlatformPackageName = () => 'opencode-ai';
-
-    describe('Packaged Mode', () => {
-      it('should read version from package.json in unpacked asar', async () => {
-        // Arrange
-        mockApp.isPackaged = true;
-        const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
-
-        const packageJsonPath = path.join(
-          resourcesPath,
-          'app.asar.unpacked',
-          'node_modules',
-          getPlatformPackageName(),
-          'package.json',
-        );
-
-        mockFs.existsSync.mockImplementation((p: string) => p === packageJsonPath);
-        mockFs.readFileSync.mockImplementation((p: string) => {
-          if (p === packageJsonPath) {
-            return JSON.stringify({ version: '1.2.3' });
-          }
-          return '';
-        });
-
-        // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/electron-options');
-        const result = getBundledOpenCodeVersion();
-
-        // Assert
-        expect(result).toBe('1.2.3');
-      });
-
-      it('should return null when package.json not found', async () => {
-        // Arrange
-        mockApp.isPackaged = true;
-        const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
-        (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
-
-        mockFs.existsSync.mockReturnValue(false);
-
-        // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/electron-options');
-        const result = getBundledOpenCodeVersion();
-
-        // Assert
-        expect(result).toBeNull();
-      });
-    });
-
-    describe('Development Mode', () => {
-      it('should execute CLI with --version flag and parse output', async () => {
-        // Arrange
-        mockApp.isPackaged = false;
-        const appPath = '/mock/app/path';
-        const bundledPath = path.join(appPath, 'node_modules', '.bin', 'opencode');
-
-        mockApp.getAppPath.mockReturnValue(appPath);
-        mockFs.existsSync.mockImplementation((p: string) => {
-          if (p === bundledPath) return true;
-          return false;
-        });
-        mockFs.readdirSync.mockReturnValue([]);
-        mockExecSync.mockReturnValue('opencode 1.5.0\n');
-
-        // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/electron-options');
-        const result = getBundledOpenCodeVersion();
-
-        // Assert
-        expect(result).toBe('1.5.0');
-      });
-
-      it('should parse version from simple version string', async () => {
-        // Arrange
-        mockApp.isPackaged = false;
-        const appPath = '/mock/app/path';
-        const bundledPath = path.join(appPath, 'node_modules', '.bin', 'opencode');
-
-        mockApp.getAppPath.mockReturnValue(appPath);
-        mockFs.existsSync.mockImplementation((p: string) => {
-          if (p === bundledPath) return true;
-          return false;
-        });
-        mockFs.readdirSync.mockReturnValue([]);
-        mockExecSync.mockReturnValue('2.0.1');
-
-        // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/electron-options');
-        const result = getBundledOpenCodeVersion();
-
-        // Assert
-        expect(result).toBe('2.0.1');
-      });
-
-      it('should return null when version command fails', async () => {
-        // Arrange
-        mockApp.isPackaged = false;
-        const appPath = '/mock/app/path';
-        const bundledPath = path.join(appPath, 'node_modules', '.bin', 'opencode');
-
-        mockApp.getAppPath.mockReturnValue(appPath);
-        mockFs.existsSync.mockImplementation((p: string) => {
-          if (p === bundledPath) return true;
-          return false;
-        });
-        mockFs.readdirSync.mockReturnValue([]);
-        mockExecSync.mockImplementation(() => {
-          throw new Error('Command failed');
-        });
-
-        // Act
-        const { getBundledOpenCodeVersion } = await import('@main/opencode/electron-options');
-        const result = getBundledOpenCodeVersion();
-
-        // Assert
-        expect(result).toBeNull();
-      });
-    });
-  });
-
-  describe('NVM Path Scanning', () => {
-    it('should scan multiple nvm versions and return first found', async () => {
-      // Arrange
-      mockApp.isPackaged = false;
-      const nvmVersionsDir = '/Users/testuser/.nvm/versions/node';
-      const v18Path = path.join(nvmVersionsDir, 'v18.17.0', 'bin', 'opencode');
-      const v20Path = path.join(nvmVersionsDir, 'v20.10.0', 'bin', 'opencode');
-
-      mockFs.existsSync.mockImplementation((p: string) => {
-        if (p === nvmVersionsDir) return true;
-        if (p === v20Path) return true;
-        if (p === v18Path) return false;
-        return false;
-      });
-      mockFs.readdirSync.mockImplementation((p: string) => {
-        if (p === nvmVersionsDir) return ['v18.17.0', 'v20.10.0'];
-        return [];
-      });
-
-      // Act
       const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
       const result = getOpenCodeCliPath();
 
-      // Assert
-      expect(result.command).toBe(v20Path);
+      expect(result.command).toBe(localCliPath);
+      expect(result.args).toEqual([]);
     });
 
-    it('should handle missing nvm directory gracefully', async () => {
-      // Arrange
-      mockApp.isPackaged = false;
-      process.env.HOME = '/Users/testuser';
+    it('resolves local CLI from APP_ROOT when appPath lookup fails', async () => {
+      const appPath = '/mock/app/path';
+      const appRoot = '/mock/app/root';
+      process.env.APP_ROOT = appRoot;
+      const localCliPath =
+        process.platform === 'win32'
+          ? path.join(appRoot, 'node_modules', 'opencode-windows-x64', 'bin', 'opencode.exe')
+          : path.join(appRoot, 'node_modules', '.bin', 'opencode');
+      mockApp.getAppPath.mockReturnValue(appPath);
+      mockFs.existsSync.mockImplementation((p: string) => p === localCliPath);
 
+      const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
+      const result = getOpenCodeCliPath();
+
+      expect(result.command).toBe(localCliPath);
+      expect(result.args).toEqual([]);
+    });
+
+    it('throws when local CLI is missing in development mode', async () => {
       mockFs.existsSync.mockReturnValue(false);
-      mockFs.readdirSync.mockReturnValue([]);
+      const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
 
-      // Act
+      expect(() => getOpenCodeCliPath()).toThrow('OpenCode CLI executable not found');
+    });
+
+    it('resolves bundled CLI from packaged resources', async () => {
+      mockApp.isPackaged = true;
+      const resourcesPath = '/Applications/Accomplish.app/Contents/Resources';
+      (process as NodeJS.Process & { resourcesPath: string }).resourcesPath = resourcesPath;
+      let packageName: string;
+      if (process.platform === 'win32') {
+        packageName = 'opencode-windows-x64';
+      } else if (process.platform === 'linux') {
+        packageName = process.arch === 'arm64' ? 'opencode-linux-arm64' : 'opencode-linux-x64';
+      } else {
+        packageName = 'opencode-ai';
+      }
+      const binaryName = process.platform === 'win32' ? 'opencode.exe' : 'opencode';
+      const bundledCliPath = path.join(
+        resourcesPath,
+        'app.asar.unpacked',
+        'node_modules',
+        packageName,
+        'bin',
+        binaryName,
+      );
+
+      mockFs.existsSync.mockImplementation((p: string) => p === bundledCliPath);
+
       const { getOpenCodeCliPath } = await import('@main/opencode/electron-options');
       const result = getOpenCodeCliPath();
 
-      // Assert - should fallback to opencode on PATH
-      expect(result.command).toBe('opencode');
+      expect(result.command).toBe(bundledCliPath);
+      expect(result.args).toEqual([]);
+    });
+  });
+
+  describe('isOpenCodeCliAvailable()', () => {
+    it('returns true when local workspace CLI is available', async () => {
+      const appPath = '/mock/app/path';
+      const localCliPath =
+        process.platform === 'win32'
+          ? path.join(appPath, 'node_modules', 'opencode-windows-x64', 'bin', 'opencode.exe')
+          : path.join(appPath, 'node_modules', '.bin', 'opencode');
+      mockApp.getAppPath.mockReturnValue(appPath);
+      mockFs.existsSync.mockImplementation((p: string) => p === localCliPath);
+
+      const { isOpenCodeCliAvailable } = await import('@main/opencode/electron-options');
+      expect(isOpenCodeCliAvailable()).toBe(true);
+    });
+
+    it('returns false when no local workspace CLI is available', async () => {
+      mockFs.existsSync.mockReturnValue(false);
+
+      const { isOpenCodeCliAvailable } = await import('@main/opencode/electron-options');
+      expect(isOpenCodeCliAvailable()).toBe(false);
     });
   });
 });

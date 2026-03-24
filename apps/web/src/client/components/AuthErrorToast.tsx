@@ -1,5 +1,7 @@
-import { AlertTriangle, X } from 'lucide-react';
+import { Warning, X } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+import { getOAuthProviderDisplayName, OAuthProviderId } from '@accomplish_ai/agent-core/common';
 import { Button } from './ui/button';
 
 interface AuthErrorToastProps {
@@ -8,7 +10,7 @@ interface AuthErrorToastProps {
   onDismiss: () => void;
 }
 
-const PROVIDER_NAMES: Record<string, string> = {
+const AI_PROVIDER_NAMES: Record<string, string> = {
   openai: 'OpenAI',
   anthropic: 'Anthropic',
   google: 'Google',
@@ -22,9 +24,21 @@ const PROVIDER_NAMES: Record<string, string> = {
 };
 
 export function AuthErrorToast({ error, onReLogin, onDismiss }: AuthErrorToastProps) {
+  const { t } = useTranslation('errors');
+  const { t: tCommon } = useTranslation('common');
+
   if (!error) return null;
 
-  const providerName = PROVIDER_NAMES[error.providerId] || error.providerId;
+  const isSlackConnectorError = error.providerId === OAuthProviderId.Slack;
+  const providerName = isSlackConnectorError
+    ? getOAuthProviderDisplayName(OAuthProviderId.Slack)
+    : AI_PROVIDER_NAMES[error.providerId] || error.providerId;
+  const title = isSlackConnectorError
+    ? t('auth.connectorAttention', { provider: providerName })
+    : t('auth.sessionExpired', { provider: providerName });
+  const buttonLabel = isSlackConnectorError
+    ? t('auth.openConnectorSettings', { provider: providerName })
+    : t('auth.reLoginTo', { provider: providerName });
 
   return (
     <AnimatePresence>
@@ -40,16 +54,16 @@ export function AuthErrorToast({ error, onReLogin, onDismiss }: AuthErrorToastPr
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 shadow-lg backdrop-blur-sm">
             <div className="flex items-start gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/20 flex-shrink-0">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <Warning className="h-4 w-4 text-destructive" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
-                  <h4 className="font-medium text-foreground">{providerName} Session Expired</h4>
+                  <h4 className="font-medium text-foreground">{title}</h4>
                   <button
                     onClick={onDismiss}
                     className="flex-shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     data-testid="auth-error-toast-dismiss"
-                    aria-label="Dismiss"
+                    aria-label={tCommon('buttons.dismiss')}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -57,7 +71,7 @@ export function AuthErrorToast({ error, onReLogin, onDismiss }: AuthErrorToastPr
                 <p className="mt-1 text-sm text-muted-foreground">{error.message}</p>
                 <div className="mt-3">
                   <Button size="sm" onClick={onReLogin} data-testid="auth-error-toast-relogin">
-                    Re-login to {providerName}
+                    {buttonLabel}
                   </Button>
                 </div>
               </div>

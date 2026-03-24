@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { PERMISSION_API_PORT } from '../../../src/common/constants.js';
 import {
   generateConfig,
   getOpenCodeConfigPath,
@@ -9,12 +10,23 @@ import {
   ConfigGeneratorOptions,
   ProviderConfig,
   BrowserConfig,
+  buildCliArgs,
 } from '../../../src/opencode/config-generator.js';
 
 describe('ConfigGenerator', () => {
   let testDir: string;
   let mcpToolsPath: string;
   let userDataPath: string;
+  const sharedBundledNodeBinPath = path.join(os.tmpdir(), 'config-gen-test-bundled-node', 'bin');
+  const requiredMcpDistEntries = [
+    ['file-permission', 'dist/index.mjs'],
+    ['ask-user-question', 'dist/index.mjs'],
+    ['request-connector-auth', 'dist/index.mjs'],
+    ['complete-task', 'dist/index.mjs'],
+    ['start-task', 'dist/index.mjs'],
+    ['desktop-control', 'dist/index.mjs'],
+    ['dev-browser-mcp', 'dist/index.mjs'],
+  ] as const;
 
   beforeEach(() => {
     testDir = path.join(
@@ -27,6 +39,15 @@ describe('ConfigGenerator', () => {
     // Create directories
     fs.mkdirSync(mcpToolsPath, { recursive: true });
     fs.mkdirSync(userDataPath, { recursive: true });
+    fs.mkdirSync(sharedBundledNodeBinPath, { recursive: true });
+    fs.writeFileSync(path.join(sharedBundledNodeBinPath, 'node'), '');
+    fs.writeFileSync(path.join(sharedBundledNodeBinPath, 'node.exe'), '');
+
+    for (const [toolName, relEntry] of requiredMcpDistEntries) {
+      const entryPath = path.join(mcpToolsPath, toolName, relEntry);
+      fs.mkdirSync(path.dirname(entryPath), { recursive: true });
+      fs.writeFileSync(entryPath, `// ${toolName} bundled entry`);
+    }
 
     // Suppress console output
     vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -34,6 +55,11 @@ describe('ConfigGenerator', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+
+    const sharedBundledNodeRoot = path.dirname(sharedBundledNodeBinPath);
+    if (fs.existsSync(sharedBundledNodeRoot)) {
+      fs.rmSync(sharedBundledNodeRoot, { recursive: true, force: true });
+    }
 
     if (fs.existsSync(testDir)) {
       fs.rmSync(testDir, { recursive: true, force: true });
@@ -52,6 +78,7 @@ describe('ConfigGenerator', () => {
       mcpToolsPath: '',
       isPackaged: false,
       userDataPath: '',
+      bundledNodeBinPath: sharedBundledNodeBinPath,
     };
 
     it('should generate config with required fields', () => {
@@ -148,11 +175,33 @@ describe('ConfigGenerator', () => {
 
       const result = generateConfig(options);
 
+      expect(result.mcpServers.slack).toBeDefined();
       expect(result.mcpServers['file-permission']).toBeDefined();
       expect(result.mcpServers['ask-user-question']).toBeDefined();
+      expect(result.mcpServers['request-connector-auth']).toBeDefined();
       expect(result.mcpServers['dev-browser-mcp']).toBeDefined();
       expect(result.mcpServers['complete-task']).toBeDefined();
       expect(result.mcpServers['start-task']).toBeDefined();
+      expect(result.mcpServers['desktop-control']).toBeDefined();
+    });
+
+    it('should include the Slack MCP with OpenCode-compatible OAuth config', () => {
+      const options: ConfigGeneratorOptions = {
+        ...baseOptions,
+        mcpToolsPath,
+        userDataPath,
+      };
+
+      const result = generateConfig(options);
+
+      expect(result.mcpServers.slack).toEqual({
+        type: 'remote',
+        url: 'https://mcp.slack.com/mcp',
+        oauth: {
+          clientId: '1601185624273.8899143856786',
+        },
+      });
+      expect(result.config.mcp?.slack).toEqual(result.mcpServers.slack);
     });
 
     it('should set permission API port in environment', () => {
@@ -166,6 +215,7 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
 
       expect(result.mcpServers['file-permission'].environment?.PERMISSION_API_PORT).toBe('9999');
+      expect(result.mcpServers['desktop-control'].environment?.PERMISSION_API_PORT).toBe('9999');
     });
 
     it('should set question API port in environment', () => {
@@ -190,7 +240,12 @@ describe('ConfigGenerator', () => {
 
       const result = generateConfig(options);
 
-      expect(result.mcpServers['file-permission'].environment?.PERMISSION_API_PORT).toBe('9226');
+      expect(result.mcpServers['file-permission'].environment?.PERMISSION_API_PORT).toBe(
+        String(PERMISSION_API_PORT),
+      );
+      expect(result.mcpServers['desktop-control'].environment?.PERMISSION_API_PORT).toBe(
+        String(PERMISSION_API_PORT),
+      );
       expect(result.mcpServers['ask-user-question'].environment?.QUESTION_API_PORT).toBe('9227');
     });
 
@@ -240,7 +295,7 @@ describe('ConfigGenerator', () => {
     });
 
     it('should include bundled node bin path in environment', () => {
-      const nodeBinPath = '/path/to/bundled/node/bin';
+      const nodeBinPath = sharedBundledNodeBinPath;
       const options: ConfigGeneratorOptions = {
         ...baseOptions,
         mcpToolsPath,
@@ -374,21 +429,20 @@ describe('ConfigGenerator', () => {
 
       const result = generateConfig(options);
 
-      expect(result.config.plugin).toContain('@tarquinen/opencode-dcp@^1.2.7');
+      expect(result.config.plugin).toContain('@tarquinen/opencode-dcp@^2.0.0');
     });
 
     it('should use bundled MCP entry when packaged and dist exists', () => {
-      // Create dist file
-      const mcpDir = path.join(mcpToolsPath, 'file-permission', 'dist');
-      fs.mkdirSync(mcpDir, { recursive: true });
-      fs.writeFileSync(path.join(mcpDir, 'index.mjs'), '// bundled');
+      const bundledNodeBinPath = path.join(testDir, 'bundled-node', 'bin');
+      fs.mkdirSync(bundledNodeBinPath, { recursive: true });
+      fs.writeFileSync(path.join(bundledNodeBinPath, 'node'), '');
 
       const options: ConfigGeneratorOptions = {
         ...baseOptions,
         mcpToolsPath,
         userDataPath,
         isPackaged: true,
-        bundledNodeBinPath: '/bundled/node/bin',
+        bundledNodeBinPath,
       };
 
       const result = generateConfig(options);
@@ -399,7 +453,19 @@ describe('ConfigGenerator', () => {
       expect(command?.[1]).toContain('dist/index.mjs');
     });
 
-    it('should use tsx for MCP entry when not packaged', () => {
+    it('should throw when bundled node is missing in packaged mode', () => {
+      const options: ConfigGeneratorOptions = {
+        ...baseOptions,
+        mcpToolsPath,
+        userDataPath,
+        isPackaged: true,
+        bundledNodeBinPath: path.join(testDir, 'missing-bundled-node'),
+      };
+
+      expect(() => generateConfig(options)).toThrow(/Missing bundled Node\.js executable/);
+    });
+
+    it('should use node and dist MCP entry when not packaged', () => {
       const options: ConfigGeneratorOptions = {
         ...baseOptions,
         mcpToolsPath,
@@ -410,8 +476,37 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
 
       const command = result.mcpServers['file-permission'].command;
-      // Should use npx tsx or bundled tsx
-      expect(command?.some((arg) => arg.includes('tsx') || arg.includes('npx'))).toBe(true);
+      expect(command?.[0]).toContain('node');
+      expect(command?.[1]).toContain('dist/index.mjs');
+    });
+
+    it('should throw when MCP dist entry is missing', () => {
+      fs.rmSync(path.join(mcpToolsPath, 'file-permission', 'dist', 'index.mjs'));
+
+      const options: ConfigGeneratorOptions = {
+        ...baseOptions,
+        mcpToolsPath,
+        userDataPath,
+        isPackaged: false,
+      };
+
+      expect(() => generateConfig(options)).toThrow(/Missing MCP dist entry/);
+    });
+  });
+
+  describe('buildCliArgs', () => {
+    it('should normalize Z.AI models for API requests', () => {
+      const args = buildCliArgs({
+        prompt: 'test prompt',
+        selectedModel: {
+          provider: 'zai',
+          model: 'zai/glm-5',
+        },
+      });
+
+      const modelFlagIndex = args.indexOf('--model');
+      expect(modelFlagIndex).toBeGreaterThanOrEqual(0);
+      expect(args[modelFlagIndex + 1]).toBe('zai-coding-plan/glm-5');
     });
   });
 
@@ -430,6 +525,7 @@ describe('ConfigGenerator', () => {
         mcpToolsPath,
         userDataPath,
         isPackaged: false,
+        bundledNodeBinPath: sharedBundledNodeBinPath,
       };
 
       const result = generateConfig(options);
@@ -444,6 +540,7 @@ describe('ConfigGenerator', () => {
         mcpToolsPath,
         userDataPath,
         isPackaged: false,
+        bundledNodeBinPath: sharedBundledNodeBinPath,
       };
 
       const result = generateConfig(options);
@@ -459,6 +556,7 @@ describe('ConfigGenerator', () => {
         mcpToolsPath,
         userDataPath,
         isPackaged: false,
+        bundledNodeBinPath: sharedBundledNodeBinPath,
       };
 
       const result = generateConfig(options);
@@ -473,6 +571,7 @@ describe('ConfigGenerator', () => {
         mcpToolsPath,
         userDataPath,
         isPackaged: false,
+        bundledNodeBinPath: sharedBundledNodeBinPath,
       };
 
       const result = generateConfig(options);
@@ -487,6 +586,7 @@ describe('ConfigGenerator', () => {
         mcpToolsPath,
         userDataPath,
         isPackaged: false,
+        bundledNodeBinPath: sharedBundledNodeBinPath,
       };
 
       const result = generateConfig(options);
@@ -494,6 +594,8 @@ describe('ConfigGenerator', () => {
       expect(result.systemPrompt).toContain('<capabilities>');
       expect(result.systemPrompt).toContain('Browser Automation');
       expect(result.systemPrompt).toContain('File Management');
+      expect(result.systemPrompt).toContain('Slack');
+      expect(result.systemPrompt).toContain('built-in Slack connector');
     });
 
     it('should instruct agent NOT to call complete_task for conversational responses', () => {
@@ -502,6 +604,7 @@ describe('ConfigGenerator', () => {
         mcpToolsPath,
         userDataPath,
         isPackaged: false,
+        bundledNodeBinPath: sharedBundledNodeBinPath,
       };
 
       const result = generateConfig(options);
@@ -516,12 +619,42 @@ describe('ConfigGenerator', () => {
         mcpToolsPath,
         userDataPath,
         isPackaged: false,
+        bundledNodeBinPath: sharedBundledNodeBinPath,
       };
 
       const result = generateConfig(options);
 
       expect(result.systemPrompt).toContain('AskUserQuestion');
       expect(result.systemPrompt).toContain('user CANNOT see your text output');
+    });
+
+    it('should include Slack usage and authentication guidance', () => {
+      const options: ConfigGeneratorOptions = {
+        platform: 'darwin',
+        mcpToolsPath,
+        userDataPath,
+        isPackaged: false,
+        bundledNodeBinPath: sharedBundledNodeBinPath,
+      };
+
+      const result = generateConfig(options);
+
+      expect(result.systemPrompt).toContain('For Slack-related requests, use the Slack MCP tools');
+      expect(result.systemPrompt).toContain('the built-in Slack connector is the default path');
+      expect(result.systemPrompt).toContain('Never invent Slack tool names');
+      expect(result.systemPrompt).toContain(
+        'Never answer a Slack access request with generic advice',
+      );
+      expect(result.systemPrompt).toContain(
+        'If the user asks you to connect or authenticate Slack',
+      );
+      expect(result.systemPrompt).toContain('If Slack authentication is required');
+      expect(result.systemPrompt).toContain('request-connector-auth_request_connector_auth');
+      expect(result.systemPrompt).toContain('Authenticate Slack');
+      expect(result.systemPrompt).toContain('Settings -> Connectors -> Slack');
+      expect(result.systemPrompt).toContain('Authenticate button');
+      expect(result.systemPrompt).toContain('Do not claim a Slack message was sent');
+      expect(result.systemPrompt).toContain('confirm where you sent it');
     });
   });
 
@@ -531,6 +664,7 @@ describe('ConfigGenerator', () => {
       mcpToolsPath: '',
       isPackaged: false,
       userDataPath: '',
+      bundledNodeBinPath: sharedBundledNodeBinPath,
     };
 
     function makeOptions(overrides: Partial<ConfigGeneratorOptions> = {}): ConfigGeneratorOptions {
@@ -636,15 +770,18 @@ describe('ConfigGenerator', () => {
         mcpToolsPath,
         userDataPath,
         isPackaged: false,
+        bundledNodeBinPath: sharedBundledNodeBinPath,
       });
       prompt = result.systemPrompt;
     });
 
     it('should contain needs_planning: true for multi-step tasks', () => {
       expect(prompt).toContain('needs_planning: true');
-      expect(prompt).toContain(
-        'will require tools beyond start_task and complete_task (e.g., file operations, browser actions, bash commands)',
-      );
+      expect(prompt).toContain('will require tools beyond start_task and complete_task');
+      expect(prompt).toContain('file operations');
+      expect(prompt).toContain('browser actions');
+      expect(prompt).toContain('bash commands');
+      expect(prompt).toContain('desktop automation');
     });
 
     it('should contain needs_planning: false for conversational messages', () => {
@@ -712,6 +849,7 @@ describe('ConfigGenerator', () => {
         mcpToolsPath,
         userDataPath,
         isPackaged: false,
+        bundledNodeBinPath: sharedBundledNodeBinPath,
       });
       prompt = result.systemPrompt;
     });
@@ -734,6 +872,7 @@ describe('ConfigGenerator', () => {
         mcpToolsPath,
         userDataPath,
         isPackaged: false,
+        bundledNodeBinPath: sharedBundledNodeBinPath,
         skills: [
           {
             name: 'test-skill',

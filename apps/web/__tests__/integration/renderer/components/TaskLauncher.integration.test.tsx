@@ -88,8 +88,8 @@ vi.mock('framer-motion', () => ({
 }));
 
 // Need to import after mocks are set up
-import TaskLauncher from '@/components/TaskLauncher/TaskLauncher';
-import TaskLauncherItem from '@/components/TaskLauncher/TaskLauncherItem';
+import { TaskLauncher } from '@/components/TaskLauncher/TaskLauncher';
+import { TaskLauncherItem } from '@/components/TaskLauncher/TaskLauncherItem';
 
 describe('TaskLauncherItem', () => {
   const mockOnClick = vi.fn();
@@ -138,10 +138,10 @@ describe('TaskLauncherItem', () => {
       // Assert - Check for spinning loader icon
       const spinner = container.querySelector('.animate-spin');
       expect(spinner).toBeInTheDocument();
-      expect(spinner?.getAttribute('class')).toContain('text-primary');
+      expect(spinner?.getAttribute('class')).toContain('text-muted-foreground');
     });
 
-    it('should show checkmark for completed tasks', () => {
+    it('should show green dot for completed tasks', () => {
       // Arrange
       const task = createMockTask('task-1', 'Completed task', 'completed');
 
@@ -150,12 +150,12 @@ describe('TaskLauncherItem', () => {
         <TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />,
       );
 
-      // Assert - CheckCircle2 icon should have green color
-      const icon = container.querySelector('.text-green-500');
-      expect(icon).toBeInTheDocument();
+      // Assert - Status dot should have green color
+      const dot = container.querySelector('.bg-green-500');
+      expect(dot).toBeInTheDocument();
     });
 
-    it('should show X icon for failed tasks', () => {
+    it('should show destructive dot for failed tasks', () => {
       // Arrange
       const task = createMockTask('task-1', 'Failed task', 'failed');
 
@@ -164,12 +164,12 @@ describe('TaskLauncherItem', () => {
         <TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />,
       );
 
-      // Assert - XCircle icon should have destructive color
-      const icon = container.querySelector('.text-destructive');
-      expect(icon).toBeInTheDocument();
+      // Assert - Status dot should have destructive color
+      const dot = container.querySelector('.bg-destructive');
+      expect(dot).toBeInTheDocument();
     });
 
-    it('should show alert icon for cancelled tasks', () => {
+    it('should show muted dot for cancelled tasks', () => {
       // Arrange
       const task = createMockTask('task-1', 'Cancelled task', 'cancelled');
 
@@ -178,12 +178,12 @@ describe('TaskLauncherItem', () => {
         <TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />,
       );
 
-      // Assert - AlertCircle icon should have yellow color
-      const icon = container.querySelector('.text-yellow-500');
-      expect(icon).toBeInTheDocument();
+      // Assert - Status dot should have muted-foreground color
+      const dot = container.querySelector('.bg-muted-foreground');
+      expect(dot).toBeInTheDocument();
     });
 
-    it('should show alert icon for interrupted tasks', () => {
+    it('should show yellow dot for interrupted tasks', () => {
       // Arrange
       const task = createMockTask('task-1', 'Interrupted task', 'interrupted');
 
@@ -192,76 +192,9 @@ describe('TaskLauncherItem', () => {
         <TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />,
       );
 
-      // Assert - AlertCircle icon should have yellow color
-      const icon = container.querySelector('.text-yellow-500');
-      expect(icon).toBeInTheDocument();
-    });
-  });
-
-  describe('relative date formatting', () => {
-    it('should show "Today" for tasks created today', () => {
-      // Arrange
-      const today = new Date();
-      const task = createMockTask('task-1', 'Today task', 'completed', today.toISOString());
-
-      // Act
-      render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
-
-      // Assert
-      expect(screen.getByText('Today')).toBeInTheDocument();
-    });
-
-    it('should show "Yesterday" for tasks created yesterday', () => {
-      // Arrange
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const task = createMockTask('task-1', 'Yesterday task', 'completed', yesterday.toISOString());
-
-      // Act
-      render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
-
-      // Assert
-      expect(screen.getByText('Yesterday')).toBeInTheDocument();
-    });
-
-    it('should show weekday name for tasks within last 7 days', () => {
-      // Arrange
-      const twoDaysAgo = new Date();
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-      const task = createMockTask('task-1', 'Recent task', 'completed', twoDaysAgo.toISOString());
-
-      // Act
-      render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
-
-      // Assert - Should show weekday name (e.g., "Monday", "Tuesday")
-      const weekdays = [
-        'Sunday',
-        'Monday',
-        'Tuesday',
-        'Wednesday',
-        'Thursday',
-        'Friday',
-        'Saturday',
-      ];
-      const expectedWeekday = weekdays[twoDaysAgo.getDay()];
-      expect(screen.getByText(expectedWeekday)).toBeInTheDocument();
-    });
-
-    it('should show month and day for tasks older than 7 days', () => {
-      // Arrange
-      const tenDaysAgo = new Date();
-      tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
-      const task = createMockTask('task-1', 'Old task', 'completed', tenDaysAgo.toISOString());
-
-      // Act
-      render(<TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />);
-
-      // Assert - Should show format like "Jan 5"
-      const expectedDate = tenDaysAgo.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      });
-      expect(screen.getByText(expectedDate)).toBeInTheDocument();
+      // Assert - Status dot should have yellow color
+      const dot = container.querySelector('.bg-yellow-500');
+      expect(dot).toBeInTheDocument();
     });
   });
 
@@ -294,34 +227,6 @@ describe('TaskLauncherItem', () => {
       const button = container.querySelector('button');
       expect(button?.className).toContain('text-foreground');
       expect(button?.className).toContain('hover:bg-accent');
-    });
-
-    it('should apply different date text color when selected', () => {
-      // Arrange
-      const task = createMockTask('task-1', 'Task');
-
-      // Act
-      const { container } = render(
-        <TaskLauncherItem task={task} isSelected={true} onClick={mockOnClick} />,
-      );
-
-      // Assert - Date text should use primary-foreground opacity
-      const dateElement = container.querySelector('.text-primary-foreground\\/70');
-      expect(dateElement).toBeInTheDocument();
-    });
-
-    it('should apply muted date text color when not selected', () => {
-      // Arrange
-      const task = createMockTask('task-1', 'Task');
-
-      // Act
-      const { container } = render(
-        <TaskLauncherItem task={task} isSelected={false} onClick={mockOnClick} />,
-      );
-
-      // Assert - Date text should use muted foreground
-      const dateElement = container.querySelector('.text-muted-foreground');
-      expect(dateElement).toBeInTheDocument();
     });
   });
 
@@ -510,7 +415,7 @@ describe('TaskLauncher', () => {
       fireEvent.change(searchInput, { target: { value: 'my new task' } });
 
       // Assert
-      expect(screen.getByText(/"my new task"/)).toBeInTheDocument();
+      expect(screen.getByText(/\u201cmy new task\u201d/)).toBeInTheDocument();
     });
 
     it('should not show search query preview when search is empty', () => {

@@ -2,16 +2,40 @@ import { useState, useCallback, useEffect } from 'react';
 import type { McpConnector } from '@accomplish_ai/agent-core/common';
 import { getAccomplish } from '@/lib/accomplish';
 
+export interface SlackMcpAuthState {
+  connected: boolean;
+  pendingAuthorization: boolean;
+}
+
 export function useConnectors() {
   const [connectors, setConnectors] = useState<McpConnector[]>([]);
+  const [slackAuth, setSlackAuth] = useState<SlackMcpAuthState>({
+    connected: false,
+    pendingAuthorization: false,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchConnectors = useCallback(async () => {
+    const accomplish = getAccomplish();
     try {
-      const accomplish = getAccomplish();
-      const data = await accomplish.getConnectors();
-      setConnectors(data);
+      const [connectorsResult, slackStatusResult] = await Promise.allSettled([
+        accomplish.getConnectors(),
+        accomplish.getSlackMcpOauthStatus(),
+      ]);
+
+      if (connectorsResult.status === 'fulfilled') {
+        setConnectors(connectorsResult.value);
+      }
+
+      if (slackStatusResult.status === 'fulfilled') {
+        setSlackAuth(slackStatusResult.value);
+      }
+
+      if (connectorsResult.status === 'rejected' && slackStatusResult.status === 'rejected') {
+        throw connectorsResult.reason;
+      }
+
       setError(null);
     } catch (err) {
       console.error('Failed to load connectors:', err);
@@ -85,8 +109,43 @@ export function useConnectors() {
     );
   }, []);
 
+  const authenticateSlack = useCallback(async () => {
+    const accomplish = getAccomplish();
+
+    setSlackAuth(() => ({
+      connected: false,
+      pendingAuthorization: true,
+    }));
+
+    try {
+      if (slackAuth.pendingAuthorization) {
+        await accomplish.logoutSlackMcp();
+      }
+
+      await accomplish.loginSlackMcp();
+      const status = await accomplish.getSlackMcpOauthStatus();
+      setSlackAuth(status);
+      return status;
+    } catch (err) {
+      try {
+        const status = await accomplish.getSlackMcpOauthStatus();
+        setSlackAuth(status);
+      } catch {
+        setSlackAuth({ connected: false, pendingAuthorization: false });
+      }
+      throw err;
+    }
+  }, [slackAuth.pendingAuthorization]);
+
+  const disconnectSlack = useCallback(async () => {
+    const accomplish = getAccomplish();
+    await accomplish.logoutSlackMcp();
+    setSlackAuth({ connected: false, pendingAuthorization: false });
+  }, []);
+
   return {
     connectors,
+    slackAuth,
     loading,
     error,
     addConnector,
@@ -95,6 +154,8 @@ export function useConnectors() {
     startOAuth,
     completeOAuth,
     disconnect,
+    authenticateSlack,
+    disconnectSlack,
     refetch: fetchConnectors,
   };
 }

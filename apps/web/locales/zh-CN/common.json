@@ -1,0 +1,100 @@
+{
+  "app": {
+    "name": "Openwork"
+  },
+  "buttons": {
+    "send": "发送",
+    "submit": "提交",
+    "stop": "停止",
+    "cancel": "取消",
+    "close": "关闭",
+    "save": "保存",
+    "delete": "删除",
+    "deleteAll": "全部删除",
+    "allow": "允许",
+    "deny": "拒绝",
+    "continue": "继续",
+    "doneContinue": "完成，继续",
+    "goHome": "返回首页",
+    "startNewTask": "开始新任务",
+    "test": "测试",
+    "testing": "测试中...",
+    "saving": "保存中...",
+    "validating": "验证中...",
+    "export": "导出",
+    "exported": "已导出",
+    "clear": "清除",
+    "clearAll": "清除全部",
+    "yes": "是",
+    "no": "否",
+    "retry": "重试",
+    "saveApiKey": "保存 API 密钥",
+    "copyToClipboard": "复制到剪贴板",
+    "dismiss": "关闭",
+    "messageTooLong": "消息过长",
+    "enterMessage": "请输入消息",
+    "quit": "退出"
+  },
+  "aria": {
+    "scrollToBottom": "滚动到底部",
+    "customResponse": "自定义回复"
+  },
+  "status": {
+    "running": "运行中",
+    "completed": "已完成",
+    "failed": "失败",
+    "cancelled": "已取消",
+    "queued": "排队中",
+    "pending": "等待中",
+    "waiting": "等待中",
+    "stopped": "已停止",
+    "interrupted": "已中断"
+  },
+  "time": {
+    "justNow": "刚刚",
+    "minutesAgo": "{{count}}分钟前",
+    "hoursAgo": "{{count}}小时前",
+    "daysAgo": "{{count}}天前",
+    "today": "今天",
+    "yesterday": "昨天"
+  },
+  "nav": {
+    "home": "首页",
+    "history": "历史",
+    "settings": "设置"
+  },
+  "labels": {
+    "awsCredentials": "AWS 凭证",
+    "gcpCredentials": "GCP 凭证",
+    "localApiKey": "本地 API 密钥",
+    "azureFoundryEntraId": "Azure Foundry (Entra ID)",
+    "bedrockApiKey": "Bedrock API 密钥",
+    "awsAccessKeys": "AWS 访问密钥",
+    "awsProfile": "AWS 配置文件：{{name}}"
+  },
+  "contextMenu": {
+    "addToDictionary": "添加到词典"
+  },
+  "fileFilters": {
+    "text": "文本文件",
+    "log": "日志文件",
+    "skill": "技能文件",
+    "all": "所有文件"
+  },
+  "model": {
+    "selectModel": "选择模型",
+    "current": "当前",
+    "configureModel": "配置模型",
+    "changeModel": "更换模型"
+  },
+  "messages": "{{count}} 条消息",
+  "favorite": "收藏",
+  "theme": {
+    "switchToLight": "切换到浅色模式",
+    "switchToDark": "切换到深色模式",
+    "switchToSystem": "跟随系统",
+    "lightMode": "浅色模式",
+    "darkMode": "深色模式",
+    "systemMode": "跟随系统"
+  }
+}

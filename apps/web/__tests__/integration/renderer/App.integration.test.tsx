@@ -185,7 +185,7 @@ vi.mock('@/components/layout/Sidebar', () => ({
 
 // Mock the HomePage
 vi.mock('@/pages/Home', () => ({
-  default: () => <div data-testid="home-page">Home Page Content</div>,
+  HomePage: () => <div data-testid="home-page">Home Page Content</div>,
 }));
 
 // Mock the ExecutionPage
@@ -195,7 +195,7 @@ vi.mock('@/pages/Execution', () => ({
 
 // Import App after all mocks are set up
 import { App } from '@/App';
-import HomePage from '@/pages/Home';
+import { HomePage } from '@/pages/Home';
 import ExecutionPage from '@/pages/Execution';
 
 describe('App Integration', () => {

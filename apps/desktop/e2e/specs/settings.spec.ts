@@ -141,9 +141,7 @@ test.describe('Settings Dialog', () => {
 
     await window.waitForLoadState('domcontentloaded');
     await settingsPage.navigateToSettings();
-
-    // Debug toggle only shows when a provider is selected - select one first
-    await settingsPage.getProviderCard('anthropic').click();
+    await settingsPage.navigateToGeneralTab();
 
     // Scroll to debug toggle
     await settingsPage.debugModeToggle.scrollIntoViewIfNeeded();
@@ -164,9 +162,7 @@ test.describe('Settings Dialog', () => {
 
     await window.waitForLoadState('domcontentloaded');
     await settingsPage.navigateToSettings();
-
-    // Debug toggle only shows when a provider is selected - select one first
-    await settingsPage.getProviderCard('anthropic').click();
+    await settingsPage.navigateToGeneralTab();
 
     // Scroll to debug toggle
     await settingsPage.debugModeToggle.scrollIntoViewIfNeeded();
@@ -522,10 +518,6 @@ test.describe('Settings Dialog', () => {
     // Step 5: Verify settings dialog opened successfully (no crash/freeze)
     await expect(settingsPage.providerGrid).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
-    // Additional verification: can interact with the dialog
-    const dialogTitle = window.getByRole('heading', { name: 'Set up Accomplish' });
-    await expect(dialogTitle).toBeVisible();
-
     // Capture successful state
     await captureForAI(window, 'settings-dialog', 'after-task-completion', [
       'Settings dialog opened successfully after task completion',
@@ -598,9 +590,7 @@ test.describe('Settings Dialog', () => {
 
     // Step 1: Open settings and toggle debug mode
     await settingsPage.navigateToSettings();
-
-    // Debug toggle only shows when a provider is selected - select one first
-    await settingsPage.getProviderCard('anthropic').click();
+    await settingsPage.navigateToGeneralTab();
     await expect(settingsPage.debugModeToggle).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
     const toggleButton = settingsPage.debugModeToggle;

@@ -1,5 +1,5 @@
 <p align="center">
-  <strong>English</strong> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a>
+  <strong>English</strong> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.ru.md">Русский</a> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a> | <a href="README.ta.md">தமிழ்</a> | <a href="README.hi.md">हिन्दी</a>
 </p>
 
 <p align="center">
@@ -11,10 +11,16 @@
   <a href="https://github.com/accomplish-ai/accomplish/stargazers"><img src="https://img.shields.io/github/stars/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Stars" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/issues"><img src="https://img.shields.io/github/issues/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Issues" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/commits"><img src="https://img.shields.io/github/last-commit/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="Last Commit" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-0ea5e9?style=flat-square" alt="Download for macOS" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="Download for macOS (Apple Silicon)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="Download for macOS (Intel)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Download for Windows 11" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(ARM64)-0ea5e9?style=flat-square" alt="Download for Linux (ARM64)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(x64)-0ea5e9?style=flat-square" alt="Download for Linux (x64)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb"><img src="https://img.shields.io/badge/Download-Linux_(.deb_x64)-0ea5e9?style=flat-square" alt="Download for Linux (.deb x64)" /></a>
+  <a href="https://discord.gg/YH86b2P8"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
-# Accomplish™ (formerly Openwork) - Open Source AI Desktop Agent
+# Accomplish™ - Open Source AI Desktop Agent
 
 Accomplish is an open source AI desktop agent that automates file management, document creation, and browser tasks locally on your machine. Bring your own API keys (OpenAI, Anthropic, Google, xAI) or run local models via Ollama.
 
@@ -23,9 +29,17 @@ Accomplish is an open source AI desktop agent that automates file management, do
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><strong>Download for Mac (Apple Silicon)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg"><strong>Download for Mac (Apple Silicon)</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe"><strong>Download for Windows 11</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg"><strong>Download for Mac (Intel)</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe"><strong>Download for Windows 11</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage"><strong>Download for Linux (ARM64)</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage"><strong>Download for Linux (x64)</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb"><strong>Download for Linux (.deb x64)</strong></a>
   ·
   <a href="https://www.accomplish.ai/">Accomplish website</a>
   ·
@@ -141,6 +155,7 @@ Accomplish is an open source AI desktop agent that automates file management, do
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
@@ -159,7 +174,10 @@ Accomplish runs locally on your machine. Your files stay on your device, and you
 ## System requirements
 
 - macOS (Apple Silicon)
+- macOS (Intel)
 - Windows 11
+- Ubuntu (ARM64)
+- Ubuntu (x64)
 
 <br />
 
@@ -184,7 +202,7 @@ Accomplish runs locally on your machine. Your files stay on your device, and you
 
 <div align="center">
 
-[**Download for Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg) · [**Download for Windows 11**](https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe)
+[**Download for Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg) · [**Download for Mac (Intel)**](https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg) · [**Download for Windows 11**](https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe) · [**Download for Linux (ARM64)**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage) · [**Download for Linux (x64)**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage) · [**Download for Linux (.deb x64)**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb)
 
 </div>
 
@@ -222,7 +240,7 @@ You can use your own API keys (OpenAI, Anthropic, Google, xAI, etc.) or run loca
 Yes. Accomplish is open source and MIT licensed.
 
 **Which platforms are supported?**
-macOS (Apple Silicon) and Windows 11 are available now.
+macOS (Apple Silicon), macOS (Intel), Windows 11, Ubuntu ARM64, and Ubuntu x64 are supported.
 
 <br />
 
@@ -250,15 +268,17 @@ That's it.
 <details>
 <summary><strong>All Commands</strong></summary>
 
-| Command                                | Description                 |
-| -------------------------------------- | --------------------------- |
-| `pnpm dev`                             | Run desktop app in dev mode |
-| `pnpm dev:clean`                       | Dev mode with clean start   |
-| `pnpm build`                           | Build all workspaces        |
-| `pnpm build:desktop`                   | Build desktop app only      |
-| `pnpm lint`                            | TypeScript checks           |
-| `pnpm typecheck`                       | Type validation             |
-| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2E tests        |
+| Command                                     | Description                            |
+| ------------------------------------------- | -------------------------------------- |
+| `pnpm dev`                                  | Run desktop app in dev mode            |
+| `pnpm dev:clean`                            | Dev mode with clean start              |
+| `pnpm build`                                | Build all workspaces                   |
+| `pnpm build:desktop`                        | Build desktop app only                 |
+| `pnpm -F @accomplish/desktop package:win`   | Build Windows installer (x64)          |
+| `pnpm -F @accomplish/desktop package:linux` | Build Linux artifacts (AppImage + deb) |
+| `pnpm lint`                                 | TypeScript checks                      |
+| `pnpm typecheck`                            | Type validation                        |
+| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2E tests                   |
 
 </details>
 
@@ -321,6 +341,6 @@ MIT License · Built by [Accomplish](https://www.accomplish.ai)
 
 <br />
 
-**Keywords:** AI agent, AI desktop agent, desktop automation, file management, document creation, browser automation, local-first, macOS, privacy-first, open source, Electron, computer use, AI assistant, workflow automation, OpenAI, Anthropic, Google, xAI, Claude, GPT-4, Ollama
+**Keywords:** AI agent, AI desktop agent, desktop automation, file management, document creation, browser automation, local-first, macOS, linux, ubuntu, privacy-first, open source, Electron, computer use, AI assistant, workflow automation, OpenAI, Anthropic, Google, xAI, Claude, GPT-4, Ollama
 
 </div>

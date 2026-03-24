@@ -6,7 +6,12 @@ import type {
 } from '../common/types/providerSettings.js';
 import type { BedrockCredentials } from '../common/types/auth.js';
 import type { ProviderSettings } from '../common/types/providerSettings.js';
-import { ZAI_ENDPOINTS, DEFAULT_PROVIDERS, PROVIDER_ID_TO_OPENCODE } from '../common/index.js';
+import {
+  ZAI_ENDPOINTS,
+  DEFAULT_PROVIDERS,
+  PROVIDER_ID_TO_OPENCODE,
+  MINIMAX_DEFAULT_BASE_URL,
+} from '../common/index.js';
 import type { ProviderConfig, ProviderModelConfig } from './config-generator.js';
 import { ensureAzureFoundryProxy, ensureMoonshotProxy } from './proxies/index.js';
 import {
@@ -18,6 +23,15 @@ import {
   getAzureFoundryConfig,
   getSelectedModel,
 } from '../storage/repositories/index.js';
+
+/** Providers that use the @ai-sdk/openai-compatible adapter */
+const OPENAI_COMPATIBLE_PROVIDER_IDS = [
+  'nebius',
+  'together',
+  'fireworks',
+  'groq',
+  'venice',
+] as const;
 
 /**
  * Paths required for config generation (Electron-specific resolution stays in desktop)
@@ -132,6 +146,7 @@ export async function buildProviderConfigs(
     'amazon-bedrock',
     'vertex',
     'minimax',
+    ...OPENAI_COMPATIBLE_PROVIDER_IDS,
   ];
   let enabledProviders = baseProviders;
 
@@ -256,6 +271,78 @@ export async function buildProviderConfigs(
       },
     });
     console.log('[OpenCode Config Builder] Moonshot configured:', modelId);
+  }
+
+  // xAI provider — register selected model so OpenCode can resolve it.
+  // OpenCode's @ai-sdk/xai only knows its built-in model list; dynamically-fetched
+  // models (e.g. "grok-4-fast-reasoning") would otherwise cause
+  // ProviderModelNotFoundError at runtime. The xAI native API expects model names
+  // without the "xai/" prefix (unlike aggregators like OpenRouter).
+  const xaiProvider = providerSettings.connectedProviders.xai;
+  const xaiApiKey = getApiKey('xai');
+  if (xaiProvider?.connectionStatus === 'connected' && xaiApiKey) {
+    const selectedXaiModelId = xaiProvider.selectedModelId;
+    if (selectedXaiModelId) {
+      const modelId = selectedXaiModelId.replace(/^xai\//, '');
+
+      // Build models map: include all available models fetched from the xAI API
+      // so the user can switch between them without a restart.
+      const xaiModels: Record<string, ProviderModelConfig> = {};
+
+      if (xaiProvider.availableModels && xaiProvider.availableModels.length > 0) {
+        for (const model of xaiProvider.availableModels) {
+          const mId = model.id.replace(/^xai\//, '');
+          xaiModels[mId] = { name: model.name, tools: true };
+        }
+      }
+
+      // Final guard: always ensure the selected model is registered,
+      // even if availableModels is stale/partial and doesn't include it.
+      if (!xaiModels[modelId]) {
+        xaiModels[modelId] = { name: modelId, tools: true };
+      }
+
+      providerConfigs.push({
+        id: 'xai',
+        options: { apiKey: xaiApiKey },
+        models: xaiModels,
+      });
+      console.log('[OpenCode Config Builder] xAI configured, selected model:', modelId);
+    }
+  }
+
+  // Google AI provider — register selected model so OpenCode can resolve it.
+  // OpenCode's @ai-sdk/google only knows its built-in model list; dynamically-fetched
+  // models (e.g. "gemini-3.1-flash-lite-preview") would otherwise cause
+  // ProviderModelNotFoundError at runtime.
+  const googleProvider = providerSettings.connectedProviders.google;
+  const googleApiKey = getApiKey('google');
+  if (googleProvider?.connectionStatus === 'connected' && googleApiKey) {
+    const selectedGoogleModelId = googleProvider.selectedModelId;
+    if (selectedGoogleModelId) {
+      const modelId = selectedGoogleModelId.replace(/^google\//, '');
+
+      // Build models map: include all available models fetched from the Google API
+      // so the user can switch between them without a restart.
+      const googleModels: Record<string, ProviderModelConfig> = {};
+
+      if (googleProvider.availableModels && googleProvider.availableModels.length > 0) {
+        for (const model of googleProvider.availableModels) {
+          const mId = model.id.replace(/^google\//, '');
+          googleModels[mId] = { name: model.name, tools: true };
+        }
+      } else {
+        // Fallback: at minimum register the selected model
+        googleModels[modelId] = { name: modelId, tools: true };
+      }
+
+      providerConfigs.push({
+        id: 'google',
+        options: { apiKey: googleApiKey },
+        models: googleModels,
+      });
+      console.log('[OpenCode Config Builder] Google AI configured, selected model:', modelId);
+    }
   }
 
   let modelOverride: { model: string; smallModel: string } | undefined;
@@ -451,6 +538,41 @@ export async function buildProviderConfigs(
     }
   }
 
+  // Custom OpenAI-compatible provider
+  const customProvider = providerSettings.connectedProviders.custom;
+  if (
+    customProvider?.connectionStatus === 'connected' &&
+    customProvider.credentials.type === 'custom' &&
+    customProvider.selectedModelId
+  ) {
+    const customApiKey = getApiKey('custom');
+    const creds = customProvider.credentials;
+    // Normalize base URL - remove trailing slash, use as-is (user should provide correct base URL)
+    const baseURL = creds.baseUrl.replace(/\/+$/, '');
+    const modelId = customProvider.selectedModelId.replace(/^custom\//, '');
+    providerConfigs.push({
+      id: 'custom',
+      npm: '@ai-sdk/openai-compatible',
+      name: 'Custom Endpoint',
+      options: {
+        baseURL,
+        ...(customApiKey ? { apiKey: customApiKey } : {}),
+      },
+      models: {
+        [modelId]: { name: modelId, tools: true },
+      },
+    });
+    if (!enabledProviders.includes('custom')) {
+      enabledProviders.push('custom');
+    }
+    console.log(
+      '[OpenCode Config Builder] Custom endpoint configured:',
+      modelId,
+      'baseURL:',
+      baseURL,
+    );
+  }
+
   // Azure Foundry provider
   const azureFoundryProvider = providerSettings.connectedProviders['azure-foundry'];
   if (
@@ -498,6 +620,28 @@ export async function buildProviderConfigs(
     }
   }
 
+  // MiniMax provider
+  const minimaxProvider = providerSettings.connectedProviders.minimax;
+  if (minimaxProvider?.connectionStatus === 'connected' && minimaxProvider.selectedModelId) {
+    const modelId = minimaxProvider.selectedModelId.replace(/^minimax\//, '');
+    const minimaxApiKey = getApiKey('minimax');
+    const rawBaseUrl = (minimaxProvider.customBaseUrl || MINIMAX_DEFAULT_BASE_URL).trim();
+    const baseUrl = rawBaseUrl.replace(/\/+$/, '') || MINIMAX_DEFAULT_BASE_URL;
+    providerConfigs.push({
+      id: 'minimax',
+      npm: '@ai-sdk/openai-compatible',
+      name: 'MiniMax',
+      options: {
+        baseURL: baseUrl,
+        ...(minimaxApiKey ? { apiKey: minimaxApiKey } : {}),
+      },
+      models: {
+        [modelId]: { name: modelId, tools: true },
+      },
+    });
+    console.log('[OpenCode Config Builder] MiniMax configured:', modelId, 'baseURL:', baseUrl);
+  }
+
   // Z.AI provider
   const zaiKey = getApiKey('zai');
   if (zaiKey) {
@@ -528,30 +672,79 @@ export async function buildProviderConfigs(
       id: 'zai-coding-plan',
       npm: '@ai-sdk/openai-compatible',
       name: 'Z.AI Coding Plan',
-      options: { baseURL: zaiEndpoint },
+      options: { baseURL: zaiEndpoint, apiKey: zaiKey },
       models: zaiModels,
     });
     console.log('[OpenCode Config Builder] Z.AI Coding Plan configured, region:', zaiRegion);
   }
 
+  // OpenAI-compatible cloud providers (Nebius, Together, Fireworks, Groq)
+  for (const providerId of OPENAI_COMPATIBLE_PROVIDER_IDS) {
+    const apiKey = getApiKey(providerId);
+    if (!apiKey) {
+      continue;
+    }
+
+    const providerDef = DEFAULT_PROVIDERS.find((p) => p.id === providerId);
+    if (!providerDef?.modelsEndpoint) {
+      console.warn(
+        `[config-builder] Skipping provider "${providerId}": missing provider definition or modelsEndpoint`,
+      );
+      continue;
+    }
+
+    const baseURL = providerDef.baseUrl
+      ? providerDef.baseUrl.replace(/\/$/, '')
+      : providerDef.modelsEndpoint.url.replace(/\/models$/, '');
+
+    const connectedProvider = providerSettings.connectedProviders[providerId];
+    const models: Record<string, ProviderModelConfig> = {};
+
+    if (connectedProvider?.availableModels && connectedProvider.availableModels.length > 0) {
+      for (const model of connectedProvider.availableModels) {
+        const prefix = `${providerId}/`;
+        const modelId = model.id.startsWith(prefix) ? model.id.slice(prefix.length) : model.id;
+        models[modelId] = { name: model.name, tools: true };
+      }
+    } else if (providerDef.models.length > 0) {
+      for (const model of providerDef.models) {
+        models[model.id] = { name: model.displayName, tools: true };
+      }
+    }
+
+    // Fall back to defaultModelId so the provider always has at least one resolvable model
+    if (Object.keys(models).length === 0 && providerDef.defaultModelId) {
+      const prefix = `${providerId}/`;
+      const modelId = providerDef.defaultModelId.startsWith(prefix)
+        ? providerDef.defaultModelId.slice(prefix.length)
+        : providerDef.defaultModelId;
+      models[modelId] = { name: modelId, tools: true };
+    }
+
+    providerConfigs.push({
+      id: providerId,
+      npm: '@ai-sdk/openai-compatible',
+      name: providerDef.name,
+      options: { baseURL, apiKey },
+      ...(Object.keys(models).length > 0 ? { models } : {}),
+    });
+    console.log(`[OpenCode Config Builder] ${providerDef.name} configured`);
+  }
+
   return { providerConfigs, enabledProviders, modelOverride };
 }
 
-/**
- * API key mapping from internal provider IDs to OpenCode auth.json format.
- * Only providers that need special key mapping in auth.json are included here.
- */
-const _AUTH_KEY_MAPPING: Record<string, string> = {
+const AUTH_KEY_MAPPING: Record<string, string> = {
   deepseek: 'deepseek',
   zai: 'zai-coding-plan',
   minimax: 'minimax',
+  ...Object.fromEntries(OPENAI_COMPATIBLE_PROVIDER_IDS.map((id) => [id, id])),
 };
 
 /**
  * Syncs API keys to OpenCode auth.json file.
  *
- * This function writes API keys to the OpenCode auth.json file so that the CLI
- * can access them. Only specific providers (deepseek, zai, minimax) are synced.
+ * OpenCode auth.json keys must match provider IDs; the mapping bridges internal IDs to those keys.
  *
  * @param authPath - Path to the auth.json file
  * @param apiKeys - Record of provider IDs to API keys (null values are ignored)
@@ -578,27 +771,12 @@ export async function syncApiKeysToOpenCodeAuth(
 
   let updated = false;
 
-  if (apiKeys.deepseek) {
-    if (!auth['deepseek'] || auth['deepseek'].key !== apiKeys.deepseek) {
-      auth['deepseek'] = { type: 'api', key: apiKeys.deepseek };
+  for (const [internalId, authId] of Object.entries(AUTH_KEY_MAPPING)) {
+    const key = apiKeys[internalId];
+    if (key && (!auth[authId] || auth[authId].key !== key)) {
+      auth[authId] = { type: 'api', key };
       updated = true;
-      console.log('[OpenCode Auth] Synced DeepSeek API key');
-    }
-  }
-
-  if (apiKeys.zai) {
-    if (!auth['zai-coding-plan'] || auth['zai-coding-plan'].key !== apiKeys.zai) {
-      auth['zai-coding-plan'] = { type: 'api', key: apiKeys.zai };
-      updated = true;
-      console.log('[OpenCode Auth] Synced Z.AI Coding Plan API key');
-    }
-  }
-
-  if (apiKeys.minimax) {
-    if (!auth.minimax || auth.minimax.key !== apiKeys.minimax) {
-      auth.minimax = { type: 'api', key: apiKeys.minimax };
-      updated = true;
-      console.log('[OpenCode Auth] Synced MiniMax API key');
+      console.log(`[OpenCode Auth] Synced ${internalId} API key`);
     }
   }
 

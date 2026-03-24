@@ -1,9 +1,12 @@
 import { Link, useLocation } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '../ui/ThemeToggle';
 
 export default function Header() {
   const location = useLocation();
   const pathname = location.pathname;
+  const { t } = useTranslation('common');
 
   return (
     <header className="drag-region sticky top-0 z-50 border-b border-border bg-background-card/80 backdrop-blur-md">
@@ -25,24 +28,26 @@ export default function Header() {
               />
             </svg>
           </div>
-          <span className="text-base font-medium text-text">Accomplish</span>
+          <span className="text-base font-medium text-text">{t('app.name')}</span>
         </Link>
 
         {/* Navigation */}
         <nav className="no-drag flex items-center gap-1">
           <NavLink to="/" active={pathname === '/'}>
-            Home
+            {t('nav.home')}
           </NavLink>
           <NavLink to="/history" active={pathname === '/history'}>
-            History
+            {t('nav.history')}
           </NavLink>
           <NavLink to="/settings" active={pathname === '/settings'}>
-            Settings
+            {t('nav.settings')}
           </NavLink>
         </nav>
 
-        {/* Spacer for balance */}
-        <div className="w-24" />
+        {/* Theme toggle — right-aligned to balance the logo */}
+        <div className="no-drag flex items-center justify-end w-24">
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

@@ -17,6 +17,7 @@ export class CompletionEnforcer {
   private taskToolsWereUsed: boolean = false;
   private taskToolsWereUsedEver: boolean = false;
   private taskRequiresCompletion: boolean = false;
+  private inContinuation: boolean = false;
 
   constructor(callbacks: CompletionEnforcerCallbacks, maxContinuationAttempts?: number) {
     this.callbacks = callbacks;
@@ -73,6 +74,10 @@ export class CompletionEnforcer {
     }
 
     this.state.recordCompleteTaskCall(completeTaskArgs);
+
+    if (this.shouldComplete()) {
+      this.inContinuation = false;
+    }
 
     this.callbacks.onDebug(
       'complete_task',
@@ -148,6 +153,7 @@ export class CompletionEnforcer {
       );
 
       this.taskToolsWereUsed = false;
+      this.inContinuation = true;
       await this.callbacks.onStartContinuation(prompt);
       return;
     }
@@ -184,6 +190,7 @@ export class CompletionEnforcer {
     this.taskToolsWereUsed = false;
     this.taskToolsWereUsedEver = false;
     this.taskRequiresCompletion = false;
+    this.inContinuation = false;
   }
 
   private hasIncompleteTodos(): boolean {
@@ -195,6 +202,10 @@ export class CompletionEnforcer {
       (t) => t.status === 'pending' || t.status === 'in_progress',
     );
     return incomplete.map((t) => `- ${t.content}`).join('\n');
+  }
+
+  isInContinuation(): boolean {
+    return this.inContinuation;
   }
 
   getState(): CompletionFlowState {

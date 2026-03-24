@@ -12,6 +12,7 @@ import type { Task, TaskStatus } from '@accomplish_ai/agent-core';
 
 // Create mock functions
 const mockStartTask = vi.fn();
+const mockInterruptTask = vi.fn();
 const mockAddTaskUpdate = vi.fn();
 const mockSetPermissionRequest = vi.fn();
 const mockHasAnyApiKey = vi.fn();
@@ -74,9 +75,13 @@ vi.mock('@/lib/accomplish', () => ({
 // Mock store state holder
 let mockStoreState = {
   startTask: mockStartTask,
+  interruptTask: mockInterruptTask,
+  currentTask: createMockTask('current-task', 'Current task', 'running'),
   isLoading: false,
   addTaskUpdate: mockAddTaskUpdate,
   setPermissionRequest: mockSetPermissionRequest,
+  favorites: [],
+  loadFavorites: vi.fn().mockResolvedValue(undefined),
 };
 
 // Mock the task store
@@ -112,6 +117,21 @@ vi.mock('framer-motion', () => ({
 
 // Mock SettingsDialog
 vi.mock('@/components/layout/SettingsDialog', () => ({
+  SettingsDialog: ({
+    open,
+    onOpenChange,
+    onApiKeySaved,
+  }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onApiKeySaved?: () => void;
+  }) =>
+    open ? (
+      <div data-testid="settings-dialog" role="dialog">
+        <button onClick={() => onOpenChange(false)}>Close</button>
+        {onApiKeySaved && <button onClick={onApiKeySaved}>Save API Key</button>}
+      </div>
+    ) : null,
   default: ({
     open,
     onOpenChange,
@@ -130,7 +150,7 @@ vi.mock('@/components/layout/SettingsDialog', () => ({
 }));
 
 // Import after mocks
-import HomePage from '@/pages/Home';
+import { HomePage } from '@/pages/Home';
 
 // Mock images
 vi.mock('/assets/usecases/calendar-prep-notes.png', () => ({ default: 'calendar.png' }));
@@ -149,9 +169,13 @@ describe('Home Page Integration', () => {
     // Reset store state
     mockStoreState = {
       startTask: mockStartTask,
+      interruptTask: mockInterruptTask,
+      currentTask: createMockTask('current-task', 'Current task', 'running'),
       isLoading: false,
       addTaskUpdate: mockAddTaskUpdate,
       setPermissionRequest: mockSetPermissionRequest,
+      favorites: [],
+      loadFavorites: vi.fn().mockResolvedValue(undefined),
     };
     // Default to having API key (legacy)
     mockHasAnyApiKey.mockResolvedValue(true);
@@ -194,7 +218,7 @@ describe('Home Page Integration', () => {
       );
 
       // Assert
-      const textarea = screen.getByPlaceholderText(/describe a task and let ai handle the rest/i);
+      const textarea = screen.getByTestId('task-input-textarea');
       expect(textarea).toBeInTheDocument();
     });
 
@@ -262,7 +286,7 @@ describe('Home Page Integration', () => {
       );
 
       // Act
-      const textarea = screen.getByPlaceholderText(/describe a task/i);
+      const textarea = screen.getByTestId('task-input-textarea');
       fireEvent.change(textarea, { target: { value: 'Check my calendar' } });
 
       // Assert
@@ -278,7 +302,7 @@ describe('Home Page Integration', () => {
       );
 
       // Act
-      const textarea = screen.getByPlaceholderText(/describe a task/i);
+      const textarea = screen.getByTestId('task-input-textarea');
       fireEvent.change(textarea, { target: { value: 'Submit this task' } });
 
       const submitButton = screen.getByTestId('task-input-submit');
@@ -305,7 +329,7 @@ describe('Home Page Integration', () => {
       );
 
       // Act
-      const textarea = screen.getByPlaceholderText(/describe a task/i);
+      const textarea = screen.getByTestId('task-input-textarea');
       fireEvent.change(textarea, { target: { value: 'Submit without provider' } });
 
       const submitButton = screen.getByTestId('task-input-submit');
@@ -330,7 +354,7 @@ describe('Home Page Integration', () => {
       );
 
       // Act
-      const textarea = screen.getByPlaceholderText(/describe a task/i);
+      const textarea = screen.getByTestId('task-input-textarea');
       fireEvent.change(textarea, { target: { value: 'My task' } });
 
       const submitButton = screen.getByTestId('task-input-submit');
@@ -370,7 +394,7 @@ describe('Home Page Integration', () => {
       );
 
       // Act
-      const textarea = screen.getByPlaceholderText(/describe a task/i);
+      const textarea = screen.getByTestId('task-input-textarea');
       fireEvent.change(textarea, { target: { value: '   ' } });
 
       const submitButton = screen.getByTestId('task-input-submit');
@@ -400,7 +424,7 @@ describe('Home Page Integration', () => {
       );
 
       // Act - Submit to open settings
-      const textarea = screen.getByPlaceholderText(/describe a task/i);
+      const textarea = screen.getByTestId('task-input-textarea');
       fireEvent.change(textarea, { target: { value: 'My task' } });
 
       const submitButton = screen.getByTestId('task-input-submit');
@@ -435,11 +459,11 @@ describe('Home Page Integration', () => {
       );
 
       // Assert
-      const textarea = screen.getByPlaceholderText(/describe a task/i);
+      const textarea = screen.getByTestId('task-input-textarea');
       expect(textarea).toBeDisabled();
     });
 
-    it('should disable submit button when loading', () => {
+    it('should keep stop button enabled when loading', () => {
       // Arrange
       mockStoreState.isLoading = true;
 
@@ -451,11 +475,11 @@ describe('Home Page Integration', () => {
       );
 
       // Assert
-      const submitButton = screen.getByTestId('task-input-submit');
-      expect(submitButton).toBeDisabled();
+      const submitButton = screen.getByTitle('Stop');
+      expect(submitButton).not.toBeDisabled();
     });
 
-    it('should not submit when already loading', async () => {
+    it('should interrupt instead of submitting when already loading', async () => {
       // Arrange
       mockStoreState.isLoading = true;
 
@@ -466,12 +490,13 @@ describe('Home Page Integration', () => {
       );
 
       // The textarea is disabled, so we can't really type, but test submit
-      const submitButton = screen.getByTestId('task-input-submit');
+      const submitButton = screen.getByTitle('Stop');
       fireEvent.click(submitButton);
 
       // Assert
       await waitFor(() => {
         expect(mockStartTask).not.toHaveBeenCalled();
+        expect(mockInterruptTask).toHaveBeenCalledTimes(1);
       });
     });
   });
@@ -495,13 +520,13 @@ describe('Home Page Integration', () => {
 
       // Assert - The textarea should now contain text related to the example
       await waitFor(() => {
-        const textarea = screen.getByPlaceholderText(/describe a task/i) as HTMLTextAreaElement;
+        const textarea = screen.getByTestId('task-input-textarea') as HTMLTextAreaElement;
         expect(textarea.value.length).toBeGreaterThan(0);
         expect(textarea.value.toLowerCase()).toContain('calendar');
       });
     });
 
-    it('should be able to toggle example prompts visibility', async () => {
+    it('should always show example prompts section', async () => {
       // Arrange
       render(
         <MemoryRouter initialEntries={['/']}>
@@ -509,25 +534,9 @@ describe('Home Page Integration', () => {
         </MemoryRouter>,
       );
 
-      // Assert - Examples should be visible initially (expanded by default)
+      // Assert - Examples section heading and cards are always visible
       await waitFor(() => {
-        expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
-      });
-
-      // Act - Toggle examples off
-      const toggleButton = screen.getByText(/example prompts/i).closest('button');
-      fireEvent.click(toggleButton!);
-
-      // Assert - Examples should be hidden now
-      await waitFor(() => {
-        expect(screen.queryByText('Calendar Prep Notes')).not.toBeInTheDocument();
-      });
-
-      // Act - Toggle examples on again
-      fireEvent.click(toggleButton!);
-
-      // Assert - Examples should be visible again
-      await waitFor(() => {
+        expect(screen.getByText('Example Prompts')).toBeInTheDocument();
         expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
       });
     });
@@ -577,7 +586,7 @@ describe('Home Page Integration', () => {
       );
 
       // Act - Open settings via submit
-      const textarea = screen.getByPlaceholderText(/describe a task/i);
+      const textarea = screen.getByTestId('task-input-textarea');
       fireEvent.change(textarea, { target: { value: 'My task' } });
 
       const submitButton = screen.getByTestId('task-input-submit');

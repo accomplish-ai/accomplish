@@ -23,6 +23,22 @@ export class HomePage {
     return this.page.getByTestId(`home-example-${index}`);
   }
 
+  get favoritesSection() {
+    return this.page.getByTestId('favorites-section');
+  }
+
+  get favoriteItems() {
+    return this.page.getByTestId('favorite-item');
+  }
+
+  get favoriteRemoveButtons() {
+    return this.page.getByTestId('favorite-remove');
+  }
+
+  get showAllFavoritesButton() {
+    return this.page.getByTestId('favorites-show-all');
+  }
+
   async expandExamples() {
     await this.examplesToggle.click();
   }

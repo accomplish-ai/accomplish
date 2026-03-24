@@ -19,6 +19,12 @@ import {
   clearTodosForTask,
 } from '../storage/repositories/taskHistory.js';
 import {
+  addFavorite,
+  removeFavorite,
+  getFavorites,
+  isFavorite,
+} from '../storage/repositories/favorites.js';
+import {
   getDebugMode,
   setDebugMode,
   getOnboardingComplete,
@@ -37,8 +43,16 @@ import {
   setOpenAiBaseUrl,
   getTheme,
   setTheme,
+  getRunInBackground,
+  setRunInBackground,
+  getCloudBrowserConfig,
+  setCloudBrowserConfig,
   getAppSettings,
   clearAppSettings,
+  getSandboxConfig,
+  setSandboxConfig,
+  getNotificationsEnabled,
+  setNotificationsEnabled,
 } from '../storage/repositories/appSettings.js';
 import {
   getProviderSettings,
@@ -65,6 +79,12 @@ import {
   deleteConnector,
   clearAllConnectors,
 } from '../storage/repositories/connectors.js';
+import {
+  getDesktopBlocklist,
+  setDesktopBlocklist,
+  addDesktopBlocklistEntry,
+  removeDesktopBlocklistEntry,
+} from '../storage/repositories/desktopControl.js';
 import { SecureStorage } from '../internal/classes/SecureStorage.js';
 import type { OAuthTokens } from '../common/types/connector.js';
 import type { StorageAPI, StorageOptions } from '../types/storage.js';
@@ -89,9 +109,9 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
 
   return {
     // Task History
-    getTasks: () => getTasks(),
+    getTasks: (workspaceId) => getTasks(workspaceId),
     getTask: (taskId) => getTask(taskId),
-    saveTask: (task) => saveTask(task),
+    saveTask: (task, workspaceId) => saveTask(task, workspaceId),
     updateTaskStatus: (taskId, status, completedAt) =>
       updateTaskStatus(taskId, status, completedAt),
     addTaskMessage: (taskId, message) => addTaskMessage(taskId, message),
@@ -102,6 +122,10 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     getTodosForTask: (taskId) => getTodosForTask(taskId),
     saveTodosForTask: (taskId, todos) => saveTodosForTask(taskId, todos),
     clearTodosForTask: (taskId) => clearTodosForTask(taskId),
+    addFavorite: (taskId, prompt, summary) => addFavorite(taskId, prompt, summary),
+    removeFavorite: (taskId) => removeFavorite(taskId),
+    getFavorites: () => getFavorites(),
+    isFavorite: (taskId) => isFavorite(taskId),
 
     // App Settings
     getDebugMode: () => getDebugMode(),
@@ -122,8 +146,16 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     setOpenAiBaseUrl: (baseUrl) => setOpenAiBaseUrl(baseUrl),
     getTheme: () => getTheme(),
     setTheme: (theme) => setTheme(theme),
+    getRunInBackground: () => getRunInBackground(),
+    setRunInBackground: (enabled) => setRunInBackground(enabled),
+    getCloudBrowserConfig: () => getCloudBrowserConfig(),
+    setCloudBrowserConfig: (config) => setCloudBrowserConfig(config),
     getAppSettings: () => getAppSettings(),
     clearAppSettings: () => clearAppSettings(),
+    getSandboxConfig: () => getSandboxConfig(),
+    setSandboxConfig: (config) => setSandboxConfig(config),
+    getNotificationsEnabled: () => getNotificationsEnabled(),
+    setNotificationsEnabled: (enabled) => setNotificationsEnabled(enabled),
 
     // Provider Settings
     getProviderSettings: () => getProviderSettings(),
@@ -162,6 +194,12 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
       }
     },
     deleteConnectorTokens: (connectorId) => secureStorage.delete(`connector-tokens:${connectorId}`),
+
+    // Desktop Control
+    getDesktopBlocklist: () => getDesktopBlocklist(),
+    setDesktopBlocklist: (entries) => setDesktopBlocklist(entries),
+    addDesktopBlocklistEntry: (entry) => addDesktopBlocklistEntry(entry),
+    removeDesktopBlocklistEntry: (appName) => removeDesktopBlocklistEntry(appName),
 
     // Secure Storage
     storeApiKey: (provider, apiKey) => secureStorage.storeApiKey(provider, apiKey),

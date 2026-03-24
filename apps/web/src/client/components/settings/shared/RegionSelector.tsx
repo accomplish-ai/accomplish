@@ -1,5 +1,7 @@
 import { SearchableSelect } from '@/components/ui/searchable-select';
 
+import { useTranslation } from 'react-i18next';
+
 const AWS_REGIONS = [
   { id: 'us-east-1', name: 'us-east-1' },
   { id: 'us-east-2', name: 'us-east-2' },
@@ -43,15 +45,17 @@ interface RegionSelectorProps {
 }
 
 export function RegionSelector({ value, onChange }: RegionSelectorProps) {
+  const { t } = useTranslation('settings');
+
   return (
     <SearchableSelect
       items={AWS_REGIONS}
       value={value}
       onChange={onChange}
-      label="Region"
-      placeholder="Select region..."
-      searchPlaceholder="Search regions..."
-      emptyMessage="No regions found"
+      label={t('bedrock.region')}
+      placeholder={t('bedrock.selectRegion', { defaultValue: 'Select region...' })}
+      searchPlaceholder={t('bedrock.searchRegions', { defaultValue: 'Search regions...' })}
+      emptyMessage={t('bedrock.noRegionsFound', { defaultValue: 'No regions found' })}
       testId="bedrock-region-select"
     />
   );

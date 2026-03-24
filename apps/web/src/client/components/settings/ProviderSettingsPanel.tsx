@@ -1,5 +1,6 @@
 // apps/desktop/src/renderer/components/settings/ProviderSettingsPanel.tsx
 
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ProviderId, ConnectedProvider } from '@accomplish_ai/agent-core/common';
 import { PROVIDER_META } from '@accomplish_ai/agent-core/common';
@@ -12,6 +13,7 @@ import {
   LiteLLMProviderForm,
   LMStudioProviderForm,
   VertexProviderForm,
+  CustomProviderForm,
 } from './providers';
 import { ZaiProviderForm } from './providers/ZaiProviderForm';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
@@ -20,6 +22,7 @@ interface ProviderSettingsPanelProps {
   providerId: ProviderId;
   connectedProvider?: ConnectedProvider;
   onConnect: (provider: ConnectedProvider) => void;
+  onUpdateProvider?: (provider: ConnectedProvider) => void;
   onDisconnect: () => void;
   onModelChange: (modelId: string) => void;
   showModelError: boolean;
@@ -29,10 +32,12 @@ export function ProviderSettingsPanel({
   providerId,
   connectedProvider,
   onConnect,
+  onUpdateProvider,
   onDisconnect,
   onModelChange,
   showModelError,
 }: ProviderSettingsPanelProps) {
+  const { t } = useTranslation('settings');
   const meta = PROVIDER_META[providerId];
 
   // Render form content based on provider category
@@ -104,6 +109,7 @@ export function ProviderSettingsPanel({
             <LMStudioProviderForm
               connectedProvider={connectedProvider}
               onConnect={onConnect}
+              onUpdateProvider={onUpdateProvider}
               onDisconnect={onDisconnect}
               onModelChange={onModelChange}
               showModelError={showModelError}
@@ -115,6 +121,7 @@ export function ProviderSettingsPanel({
           <OllamaProviderForm
             connectedProvider={connectedProvider}
             onConnect={onConnect}
+            onUpdateProvider={onUpdateProvider}
             onDisconnect={onDisconnect}
             onModelChange={onModelChange}
             showModelError={showModelError}
@@ -133,6 +140,19 @@ export function ProviderSettingsPanel({
         );
 
       case 'hybrid':
+        // Handle different hybrid providers
+        if (providerId === 'custom') {
+          return (
+            <CustomProviderForm
+              connectedProvider={connectedProvider}
+              onConnect={onConnect}
+              onDisconnect={onDisconnect}
+              onModelChange={onModelChange}
+              showModelError={showModelError}
+            />
+          );
+        }
+        // Default to LiteLLM for other hybrid providers
         return (
           <LiteLLMProviderForm
             connectedProvider={connectedProvider}
@@ -144,7 +164,7 @@ export function ProviderSettingsPanel({
         );
 
       default:
-        return <div>Unknown provider type</div>;
+        return <div>{t('providers.unknownType')}</div>;
     }
   };
 

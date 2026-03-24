@@ -55,14 +55,23 @@ function extractScreenshots(output: string): {
     });
   }
 
-  // Also check for raw base64 PNG (starts with iVBORw0)
-  const rawBase64Regex = /(?<![;,])(?:^|["\s])?(iVBORw0[A-Za-z0-9+/=]{100,})(?:["\s]|$)/g;
+  const rawBase64Regex =
+    /(?<![;,])(?:^|["\s])?((?:iVBORw0|\/9j\/|UklGR|R0lGOD)[A-Za-z0-9+/=]{100,})(?:["\s]|$)/g;
   while ((match = rawBase64Regex.exec(output)) !== null) {
     const base64Data = match[1];
     if (base64Data && base64Data.length > 100) {
+      let mimeType = 'image/png';
+      if (base64Data.startsWith('/9j/')) {
+        mimeType = 'image/jpeg';
+      } else if (base64Data.startsWith('UklGR')) {
+        mimeType = 'image/webp';
+      } else if (base64Data.startsWith('R0lGOD')) {
+        mimeType = 'image/gif';
+      }
+
       attachments.push({
         type: 'screenshot',
-        data: `data:image/png;base64,${base64Data}`,
+        data: `data:${mimeType};base64,${base64Data}`,
         label: 'Browser screenshot',
       });
     }
@@ -437,7 +446,7 @@ describe('handlers-utils', () => {
       });
     });
 
-    describe('raw base64 PNG extraction', () => {
+    describe('raw base64 image extraction', () => {
       it('should extract raw base64 PNG starting with iVBORw0', () => {
         // Arrange - Create a string that looks like raw base64 PNG (100+ chars)
         const base64Png = 'iVBORw0' + 'A'.repeat(150);
@@ -451,6 +460,21 @@ describe('handlers-utils', () => {
         const pngAttachment = result.attachments.find((a) => a.data.includes('iVBORw0'));
         expect(pngAttachment).toBeDefined();
         expect(pngAttachment?.data).toContain('data:image/png;base64,');
+      });
+
+      it('should extract raw base64 JPEG starting with /9j/', () => {
+        // Arrange - Create a string that looks like raw base64 JPEG (100+ chars)
+        const base64Jpeg = '/9j/' + 'A'.repeat(150);
+        const output = `Screenshot: "${base64Jpeg}" end`;
+
+        // Act
+        const result = extractScreenshots(output);
+
+        // Assert
+        expect(result.attachments.length).toBeGreaterThanOrEqual(1);
+        const jpegAttachment = result.attachments.find((a) => a.data.includes('/9j/'));
+        expect(jpegAttachment).toBeDefined();
+        expect(jpegAttachment?.data).toContain('data:image/jpeg;base64,');
       });
 
       it('should not extract short base64 strings', () => {

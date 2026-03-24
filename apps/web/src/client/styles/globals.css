@@ -1,40 +1,65 @@
-/* DM Sans Font Faces */
+/* Geist Font Faces */
 @font-face {
-  font-family: 'DM Sans';
-  src: url('/fonts/DMSans-Light.ttf') format('truetype');
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Light.ttf') format('truetype');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'DM Sans';
-  src: url('/fonts/DMSans-Regular.ttf') format('truetype');
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'DM Sans';
-  src: url('/fonts/DMSans-Medium.ttf') format('truetype');
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Medium.ttf') format('truetype');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'DM Sans';
-  src: url('/fonts/DMSans-Bold.ttf') format('truetype');
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'DM Sans';
-  src: url('/fonts/DMSans-Black.ttf') format('truetype');
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Black.ttf') format('truetype');
   font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* KMR Apparat Font */
+@font-face {
+  font-family: 'KMR Apparat';
+  src: url('/fonts/KMR-Apparat-Light.ttf') format('truetype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'KMR Apparat';
+  src: url('/fonts/KMR-Apparat-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'KMR Apparat';
+  src: url('/fonts/KMR-Apparat-Medium.ttf') format('truetype');
+  font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
@@ -45,7 +70,7 @@
 
 /* Shadcn-inspired theme variables */
 :root {
-  --background: 0 0% 97.6%; /* #f9f9f9 */
+  --background: 60 15% 96.3%; /* #F7F7F4 */
   --foreground: 0 0% 12.5%; /* #202020 */
   --card: 0 0% 98.8%; /* #fcfcfc */
   --card-foreground: 0 0% 12.5%; /* #202020 */
@@ -57,14 +82,14 @@
   --secondary-foreground: 100 20% 18%; /* #2b391e */
   --muted: 0 0% 93.7%; /* #efefef */
   --muted-foreground: 0 0% 39.2%; /* #646464 */
-  --accent: 0 0% 91%; /* #e8e8e8 */
+  --accent: 60 15% 96.3%; /* #F7F7F4 */
   --accent-foreground: 0 0% 12.5%; /* #202020 */
   --destructive: 8 78% 54%; /* #e54d2e */
   --destructive-foreground: 0 0% 100%; /* #ffffff */
   --border: 12 8% 90%; /* #eae2e1 */
   --input: 0 0% 84.7%; /* #d8d8d8 */
   --ring: 20 25% 33%; /* #644a40 */
-  --radius: 0.5rem;
+  --radius: 0.25rem;
   --warning-subtle: 36 95% 95%;
   --success-subtle: 152 60% 93%;
   --provider-bg: 40 20% 93%;
@@ -73,6 +98,9 @@
   --provider-border-active: 40 30% 25%;
   --provider-accent: 123 30% 30%;
   --provider-accent-text: 123 30% 15%;
+  --todo-progress-pending: 0 0% 85%;
+  --todo-item-completed: 36 11% 95%;
+  --todo-item-in-progress: 0 0% 98%;
 }
 
 .dark {
@@ -103,9 +131,21 @@
   --provider-border-active: 40 30% 50%;
   --provider-accent: 123 30% 45%;
   --provider-accent-text: 123 30% 75%;
+  --todo-progress-pending: 0 0% 24%;
+  --todo-item-completed: 0 0% 14%;
+  --todo-item-in-progress: 0 0% 11%;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar — auto-hide, shown only while scrolling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+*:hover {
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -116,11 +156,16 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
+  background: transparent;
   border-radius: 3px;
+  transition: background 0.2s;
 }
 
-::-webkit-scrollbar-thumb:hover {
+*:hover::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+}
+
+*:hover::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground));
 }
 
@@ -159,7 +204,7 @@
 /* Placeholder font family for textareas */
 textarea::-webkit-input-placeholder {
   font-family:
-    'DM Sans',
+    'Geist',
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -173,7 +218,7 @@ textarea::-webkit-input-placeholder {
 
 textarea:-ms-input-placeholder {
   font-family:
-    'DM Sans',
+    'Geist',
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -187,7 +232,7 @@ textarea:-ms-input-placeholder {
 
 textarea:-moz-placeholder {
   font-family:
-    'DM Sans',
+    'Geist',
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -201,7 +246,7 @@ textarea:-moz-placeholder {
 
 textarea::-moz-placeholder {
   font-family:
-    'DM Sans',
+    'Geist',
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -215,7 +260,7 @@ textarea::-moz-placeholder {
 
 textarea::placeholder {
   font-family:
-    'DM Sans',
+    'Geist',
     ui-sans-serif,
     system-ui,
     -apple-system,

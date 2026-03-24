@@ -162,7 +162,9 @@ After creating the skill:
 
 ### User Skills Directory
 
-**CRITICAL: You MUST save skills to EXACTLY this path. Do NOT ask the user where to save - the path is fixed by the app.**
+**CRITICAL: You MUST save skills to EXACTLY the canonical path provided in the task prompt. Do NOT ask the user where to save - the path is fixed by the app.**
+
+If the task prompt includes an explicit skills base directory or exact SKILL.md path, that value is the source of truth and must be used exactly.
 
 Skills must be saved to the Accomplish user data directory under a `skills` folder:
 
@@ -176,18 +178,19 @@ Skills must be saved to the Accomplish user data directory under a `skills` fold
 - Use any other path like `~/skills/`, `./skills/`, or custom paths
 - Offer the user choices about the save location
 
-The path is determined by the operating system. Detect the OS and use the correct path automatically.
+The path is determined by the application runtime. Use the explicit runtime path from the prompt when provided. Only fall back to OS-based detection when no runtime path is provided.
 
 ### How to Save a Skill
 
 **Do not ask the user for a path. Follow these steps automatically:**
 
-1. **Detect the operating system** to determine the correct base path:
-   - macOS: `~/Library/Application Support/Accomplish/skills/`
-   - Windows: `%APPDATA%\Accomplish\skills\`
-   - Linux: `~/.config/Accomplish/skills/`
+1. **Use the base path from the task prompt** when present.
+   - If no path is provided, detect the OS and use:
+     - macOS: `~/Library/Application Support/Accomplish/skills/`
+     - Windows: `%APPDATA%\Accomplish\skills\`
+     - Linux: `~/.config/Accomplish/skills/`
 
-2. **Create the skill directory** named after your skill (lowercase, hyphenated):
+2. **Create the skill directory** named after your skill (lowercase, hyphenated), or use the exact directory name provided in the task prompt:
 
    ```
    <base-path>/my-awesome-skill/
@@ -241,10 +244,11 @@ command: /awesome
    - The file actually exists
    - The content was written correctly
 
-2. **Verify the path** - Confirm the file path matches the required location:
-   - macOS: `~/Library/Application Support/Accomplish/skills/<skill-name>/SKILL.md`
-   - Windows: `%APPDATA%\Accomplish\skills\<skill-name>\SKILL.md`
-   - Linux: `~/.config/Accomplish/skills/<skill-name>/SKILL.md`
+2. **Verify the path** - Confirm the file path matches the explicit path from the task prompt.
+   - If no explicit path was provided, verify against:
+     - macOS: `~/Library/Application Support/Accomplish/skills/<skill-name>/SKILL.md`
+     - Windows: `%APPDATA%\Accomplish\skills\<skill-name>\SKILL.md`
+     - Linux: `~/.config/Accomplish/skills/<skill-name>/SKILL.md`
 
 3. **Validate frontmatter** - Confirm the YAML frontmatter contains:
    - `name`: Present and non-empty

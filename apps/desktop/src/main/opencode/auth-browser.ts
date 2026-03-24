@@ -2,6 +2,8 @@ import * as pty from 'node-pty';
 import { app, shell } from 'electron';
 import { getOpenCodeCliPath } from './electron-options';
 import { generateOpenCodeConfig } from './config-generator';
+import { isOpenCodeCliInstallError, INSTALL_ERROR_MESSAGE } from './cli-error-utils';
+import { getLogCollector } from '../logging';
 import {
   stripAnsi,
   quoteForShell,
@@ -12,6 +14,13 @@ import {
 
 interface LoginResult {
   openedUrl?: string;
+}
+
+interface OpenCodeCommandContext {
+  command: string;
+  baseArgs: string[];
+  env: Record<string, string>;
+  safeCwd: string;
 }
 
 export class OAuthBrowserFlow {
@@ -34,24 +43,14 @@ export class OAuthBrowserFlow {
       }
     }
 
-    await generateOpenCodeConfig();
-
-    const { command, args: baseArgs } = getOpenCodeCliPath();
+    const { command, baseArgs, env, safeCwd } = await getOpenCodeCommandContext();
     const allArgs = [...baseArgs, 'auth', 'login'];
 
-    const fullCommand = [command, ...allArgs].map(quoteForShell).join(' ');
+    const quoted = [command, ...allArgs].map((arg) => quoteForShell(arg)).join(' ');
+
+    const fullCommand = quoted;
     const shellCmd = getPlatformShell(app.isPackaged);
     const shellArgs = getShellArgs(fullCommand);
-
-    const env: Record<string, string> = {};
-    for (const [key, value] of Object.entries(process.env)) {
-      if (typeof value === 'string') env[key] = value;
-    }
-    if (process.env.OPENCODE_CONFIG) {
-      env.OPENCODE_CONFIG = process.env.OPENCODE_CONFIG;
-    }
-
-    const safeCwd = app.getPath('temp');
 
     return new Promise((resolve, reject) => {
       let openedUrl: string | undefined;
@@ -112,6 +111,19 @@ export class OAuthBrowserFlow {
 
         if (exitCode === 0) {
           resolve({ openedUrl });
+          return;
+        }
+
+        // Detect known CLI installation error patterns and surface a friendly message
+        if (isOpenCodeCliInstallError(buffer)) {
+          getLogCollector().logEnv('WARN', '[Auth] CLI install error detected', {
+            // Redact URLs and potential tokens before logging
+            tail: buffer
+              .slice(-200)
+              .replace(/https?:\/\/\S+/gi, '[URL]')
+              .replace(/[A-Za-z0-9_-]{30,}/g, '[REDACTED]'),
+          });
+          reject(new Error(INSTALL_ERROR_MESSAGE));
           return;
         }
 
@@ -205,6 +217,28 @@ export class OAuthBrowserFlow {
 
 export const oauthBrowserFlow = new OAuthBrowserFlow();
 
+async function getOpenCodeCommandContext(): Promise<OpenCodeCommandContext> {
+  await generateOpenCodeConfig();
+
+  const { command, args: baseArgs } = getOpenCodeCliPath();
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (typeof value === 'string') {
+      env[key] = value;
+    }
+  }
+
+  return {
+    command,
+    baseArgs,
+    env,
+    safeCwd: app.getPath('temp'),
+  };
+}
+
 export async function loginOpenAiWithChatGpt(): Promise<LoginResult> {
   return oauthBrowserFlow.start();
 }
+
+export { AuthLoginError } from './auth-login-error';
+export { SlackMcpOAuthFlow, slackMcpOAuthFlow, loginSlackMcp, logoutSlackMcp } from './slack-auth';

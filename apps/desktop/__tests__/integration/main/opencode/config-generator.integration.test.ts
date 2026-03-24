@@ -27,6 +27,21 @@ import os from 'os';
 let tempUserDataDir: string;
 let tempAppDir: string;
 let tempMonorepoRoot: string;
+let tempBundledNodeBinDir: string;
+let mockEnabledConnectors: Array<{
+  id: string;
+  name: string;
+  url: string;
+  status: 'connected' | 'disconnected' | 'error' | 'connecting';
+  isEnabled: boolean;
+  oauthMetadata?: { tokenEndpoint: string };
+  clientRegistration?: { clientId: string; clientSecret?: string };
+}> = [];
+let mockConnectorTokens: Record<
+  string,
+  { accessToken: string; refreshToken?: string; tokenType: string; expiresAt?: number }
+> = {};
+const mockSetConnectorStatus = vi.fn();
 
 // Mock only the external electron module
 const mockApp = {
@@ -63,6 +78,14 @@ vi.mock('@accomplish_ai/agent-core', async () => {
 
     // syncApiKeysToOpenCodeAuth - syncs API keys to auth.json
     syncApiKeysToOpenCodeAuth: vi.fn(() => Promise.resolve()),
+    isTokenExpired: vi.fn(() => false),
+    refreshAccessToken: vi.fn(() =>
+      Promise.resolve({
+        accessToken: 'refreshed-token',
+        refreshToken: 'refreshed-refresh-token',
+        tokenType: 'Bearer',
+      }),
+    ),
 
     // Config generator - creates real files for integration testing
     generateConfig: vi.fn(
@@ -82,6 +105,10 @@ vi.mock('@accomplish_ai/agent-core', async () => {
       }) => {
         const configDir = actualPath.join(options.userDataPath, 'opencode');
         const configPath = actualPath.join(configDir, 'opencode.json');
+        const nodeExecutableName = process.platform === 'win32' ? 'node.exe' : 'node';
+        const nodeCommand = options.bundledNodeBinPath
+          ? actualPath.join(options.bundledNodeBinPath, nodeExecutableName)
+          : nodeExecutableName;
 
         // Create config directory
         if (!actualFs.existsSync(configDir)) {
@@ -117,9 +144,8 @@ Use AskUserQuestion tool for user interaction.`,
               type: 'local',
               enabled: true,
               command: [
-                'npx',
-                'tsx',
-                actualPath.join(options.mcpToolsPath, 'file-permission', 'src', 'index.ts'),
+                nodeCommand,
+                actualPath.join(options.mcpToolsPath, 'file-permission', 'dist', 'index.mjs'),
               ],
               environment: {
                 PERMISSION_API_PORT: String(options.permissionApiPort),
@@ -147,34 +173,32 @@ Use AskUserQuestion tool for user interaction.`,
     ensureAzureFoundryProxy: vi.fn(() => Promise.resolve()),
     ensureMoonshotProxy: vi.fn(() => Promise.resolve()),
 
-    // createStorage - returns mock storage API
-    createStorage: vi.fn(() => ({
-      getAllConnectors: vi.fn(() => []),
-      getEnabledConnectors: vi.fn(() => []),
-      getConnectorById: vi.fn(() => null),
-      upsertConnector: vi.fn(),
-      setConnectorEnabled: vi.fn(),
-      setConnectorStatus: vi.fn(),
-      deleteConnector: vi.fn(),
-      clearAllConnectors: vi.fn(),
-      storeConnectorTokens: vi.fn(),
-      getConnectorTokens: vi.fn(() => null),
-      deleteConnectorTokens: vi.fn(),
-      initialize: vi.fn(),
-      isDatabaseInitialized: vi.fn(() => true),
-      close: vi.fn(),
-    })),
-
-    // Token utilities
-    isTokenExpired: vi.fn(() => false),
-    refreshAccessToken: vi.fn(() => Promise.resolve({ accessToken: 'mock-token' })),
-
     // Bundled Node.js utilities
-    getBundledNodePaths: vi.fn(() => null),
-    isBundledNodeAvailable: vi.fn(() => false),
-    getNodePath: vi.fn(() => 'node'),
-    getNpmPath: vi.fn(() => 'npm'),
-    getNpxPath: vi.fn(() => 'npx'),
+    getBundledNodePaths: vi.fn(() => {
+      const binDir = process.env.TEST_BUNDLED_NODE_BIN_PATH || '/mock/bundled-node/bin';
+      const nodeName = process.platform === 'win32' ? 'node.exe' : 'node';
+      const scriptExt = process.platform === 'win32' ? '.cmd' : '';
+      return {
+        nodePath: actualPath.join(binDir, nodeName),
+        npmPath: actualPath.join(binDir, `npm${scriptExt}`),
+        npxPath: actualPath.join(binDir, `npx${scriptExt}`),
+        binDir,
+        nodeDir: actualPath.dirname(binDir),
+      };
+    }),
+    isBundledNodeAvailable: vi.fn(() => true),
+    getNodePath: vi.fn(() => {
+      const binDir = process.env.TEST_BUNDLED_NODE_BIN_PATH || '/mock/bundled-node/bin';
+      return actualPath.join(binDir, process.platform === 'win32' ? 'node.exe' : 'node');
+    }),
+    getNpmPath: vi.fn(() => {
+      const binDir = process.env.TEST_BUNDLED_NODE_BIN_PATH || '/mock/bundled-node/bin';
+      return actualPath.join(binDir, process.platform === 'win32' ? 'npm.cmd' : 'npm');
+    }),
+    getNpxPath: vi.fn(() => {
+      const binDir = process.env.TEST_BUNDLED_NODE_BIN_PATH || '/mock/bundled-node/bin';
+      return actualPath.join(binDir, process.platform === 'win32' ? 'npx.cmd' : 'npx');
+    }),
     logBundledNodeInfo: vi.fn(),
 
     // Provider settings
@@ -228,7 +252,24 @@ Use AskUserQuestion tool for user interaction.`,
   };
 });
 
-// Mock secure storage (delegates to SQLite-backed storage singleton)
+vi.mock('@main/store/storage', () => ({
+  getStorage: vi.fn(() => ({
+    getEnabledConnectors: () => mockEnabledConnectors,
+    getConnectorTokens: (connectorId: string) => mockConnectorTokens[connectorId] ?? null,
+    storeConnectorTokens: (connectorId: string, tokens: unknown) => {
+      mockConnectorTokens[connectorId] = tokens as {
+        accessToken: string;
+        refreshToken?: string;
+        tokenType: string;
+        expiresAt?: number;
+      };
+    },
+    setConnectorStatus: mockSetConnectorStatus,
+    getCloudBrowserConfig: () => null,
+    setCloudBrowserConfig: vi.fn(),
+  })),
+}));
+
 vi.mock('@main/store/secureStorage', () => ({
   getApiKey: vi.fn(() => null),
   getAllApiKeys: vi.fn(() => Promise.resolve({})),
@@ -257,23 +298,33 @@ describe('OpenCode Config Generator Integration', () => {
     vi.resetModules();
     originalEnv = { ...process.env };
     mockApp.isPackaged = false;
+    mockEnabledConnectors = [];
+    mockConnectorTokens = {};
+    mockSetConnectorStatus.mockReset();
 
     // Create real temp directories for each test
     tempUserDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opencode-config-test-userData-'));
 
-    // Create a monorepo-like structure in temp dir
-    // This simulates the real structure: monorepo/apps/desktop with packages/agent-core/mcp-tools
+    // Create a temp app directory structure
     tempMonorepoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opencode-config-test-monorepo-'));
     tempAppDir = path.join(tempMonorepoRoot, 'apps', 'desktop');
     fs.mkdirSync(tempAppDir, { recursive: true });
+    tempBundledNodeBinDir = path.join(tempMonorepoRoot, 'bundled-node', 'bin');
+    fs.mkdirSync(tempBundledNodeBinDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(tempBundledNodeBinDir, process.platform === 'win32' ? 'node.exe' : 'node'),
+      '',
+    );
+    process.env.TEST_BUNDLED_NODE_BIN_PATH = tempBundledNodeBinDir;
 
     // Create mcp-tools directory structure at packages/agent-core/mcp-tools
-    // In development, mcp-tools is at packages/agent-core/mcp-tools relative to apps/desktop
-    // path.join(tempAppDir, '..', '..', 'packages', 'agent-core', 'mcp-tools') now resolves correctly
     const mcpToolsDir = path.join(tempMonorepoRoot, 'packages', 'agent-core', 'mcp-tools');
     fs.mkdirSync(mcpToolsDir, { recursive: true });
-    fs.mkdirSync(path.join(mcpToolsDir, 'file-permission', 'src'), { recursive: true });
-    fs.writeFileSync(path.join(mcpToolsDir, 'file-permission', 'src', 'index.ts'), '// mock file');
+    fs.mkdirSync(path.join(mcpToolsDir, 'file-permission', 'dist'), { recursive: true });
+    fs.writeFileSync(
+      path.join(mcpToolsDir, 'file-permission', 'dist', 'index.mjs'),
+      '// mock file',
+    );
 
     // Update mock to use temp directories
     mockApp.getAppPath.mockReturnValue(tempAppDir);
@@ -286,6 +337,7 @@ describe('OpenCode Config Generator Integration', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     process.env = originalEnv;
+    delete process.env.TEST_BUNDLED_NODE_BIN_PATH;
 
     // Clean up temp directories
     try {
@@ -306,7 +358,7 @@ describe('OpenCode Config Generator Integration', () => {
         const { getMcpToolsPath } = await import('@main/opencode/config-generator');
         const result = getMcpToolsPath();
 
-        // Assert - mcp-tools is now at packages/agent-core/mcp-tools relative to apps/desktop
+        // Assert - mcp-tools is in packages/agent-core relative to apps/desktop
         expect(result).toBe(
           path.join(tempAppDir, '..', '..', 'packages', 'agent-core', 'mcp-tools'),
         );
@@ -348,7 +400,7 @@ describe('OpenCode Config Generator Integration', () => {
       // Arrange - create config dir beforehand
       const configDir = path.join(tempUserDataDir, 'opencode');
       fs.mkdirSync(configDir, { recursive: true });
-      const _statBefore = fs.statSync(configDir);
+      fs.statSync(configDir);
 
       // Act
       const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
@@ -400,12 +452,16 @@ describe('OpenCode Config Generator Integration', () => {
       // Assert
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       const filePermission = config.mcp['file-permission'];
+      const expectedNode = path.join(
+        tempBundledNodeBinDir,
+        process.platform === 'win32' ? 'node.exe' : 'node',
+      );
 
       expect(filePermission).toBeDefined();
       expect(filePermission.type).toBe('local');
       expect(filePermission.enabled).toBe(true);
-      expect(filePermission.command[0]).toBe('npx');
-      expect(filePermission.command[1]).toBe('tsx');
+      expect(filePermission.command[0]).toBe(expectedNode);
+      expect(filePermission.command[1]).toContain('dist/index.mjs');
       expect(filePermission.environment.PERMISSION_API_PORT).toBe('9226');
     });
 
@@ -422,6 +478,61 @@ describe('OpenCode Config Generator Integration', () => {
       expect(prompt).toContain('<environment>');
       // Should NOT have unresolved template placeholders
       expect(prompt).not.toContain('{{ENVIRONMENT_INSTRUCTIONS}}');
+    });
+
+    it('should include enabled connected connectors with access tokens', async () => {
+      mockEnabledConnectors = [
+        {
+          id: 'mcp-1',
+          name: 'Slack',
+          url: 'https://slack.example.com/mcp',
+          status: 'connected',
+          isEnabled: true,
+        },
+      ];
+      mockConnectorTokens['mcp-1'] = {
+        accessToken: 'connector-access-token',
+        refreshToken: 'connector-refresh-token',
+        tokenType: 'Bearer',
+      };
+
+      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      await generateOpenCodeConfig();
+
+      const { generateConfig } = await import('@accomplish_ai/agent-core');
+      expect(generateConfig).toHaveBeenCalledWith(
+        expect.objectContaining({
+          connectors: [
+            {
+              id: 'mcp-1',
+              name: 'Slack',
+              url: 'https://slack.example.com/mcp',
+              accessToken: 'connector-access-token',
+            },
+          ],
+        }),
+      );
+    });
+
+    it('should mark connectors as error when token is missing', async () => {
+      mockEnabledConnectors = [
+        {
+          id: 'mcp-2',
+          name: 'Linear',
+          url: 'https://linear.example.com/mcp',
+          status: 'connected',
+          isEnabled: true,
+        },
+      ];
+
+      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      await generateOpenCodeConfig();
+
+      expect(mockSetConnectorStatus).toHaveBeenCalledWith('mcp-2', 'error');
+      const { generateConfig } = await import('@accomplish_ai/agent-core');
+      expect(generateConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ connectors: undefined }),
+      );
     });
 
     it('should set OPENCODE_CONFIG environment variable after generation', async () => {

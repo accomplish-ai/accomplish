@@ -8,7 +8,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronDown, Settings, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { CaretDown, Gear, Warning } from '@phosphor-icons/react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +38,7 @@ export function ModelIndicator({
   className,
   hideWhenNoModel = false,
 }: ModelIndicatorProps) {
+  const { t } = useTranslation('common');
   const { settings, loading, refetch } = useProviderSettings();
   const [open, setOpen] = useState(false);
 
@@ -113,7 +115,7 @@ export function ModelIndicator({
           data-testid="model-indicator-trigger"
         >
           {/* Warning icon when no model */}
-          {isWarning && <AlertTriangle className="w-3.5 h-3.5 text-warning flex-shrink-0" />}
+          {isWarning && <Warning className="w-3.5 h-3.5 text-warning flex-shrink-0" />}
 
           {/* Model name */}
           <span
@@ -122,11 +124,11 @@ export function ModelIndicator({
               isWarning ? 'text-warning' : 'text-foreground/80',
             )}
           >
-            {isWarning ? 'Select model' : modelDisplayName}
+            {isWarning ? t('model.selectModel') : modelDisplayName}
           </span>
 
           {/* Chevron */}
-          <ChevronDown
+          <CaretDown
             className={cn(
               'w-3 h-3 flex-shrink-0 transition-transform duration-150',
               isWarning ? 'text-warning/60' : 'text-muted-foreground/60',
@@ -142,7 +144,7 @@ export function ModelIndicator({
           <>
             <div className="px-3 py-2">
               <div className="text-[11px] text-muted-foreground/60 uppercase tracking-wide mb-1">
-                Current
+                {t('model.current')}
               </div>
               <div className="text-sm font-medium text-foreground">{modelDisplayName}</div>
             </div>
@@ -156,8 +158,10 @@ export function ModelIndicator({
           disabled={isRunning}
           className="gap-2 px-3 py-2 cursor-pointer"
         >
-          <Settings className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm">{isWarning ? 'Configure model' : 'Change model'}</span>
+          <Gear className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm">
+            {isWarning ? t('model.configureModel') : t('model.changeModel')}
+          </span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

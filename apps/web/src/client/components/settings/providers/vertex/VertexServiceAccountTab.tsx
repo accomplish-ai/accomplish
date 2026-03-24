@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { VERTEX_LOCATIONS } from './locations';
 
@@ -19,6 +20,7 @@ export function VertexServiceAccountTab({
   onProjectIdChange,
   onLocationChange,
 }: VertexServiceAccountTabProps) {
+  const { t } = useTranslation('settings');
   const [pasteMode, setPasteMode] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export function VertexServiceAccountTab({
       try {
         const parsed = JSON.parse(json);
         if (!parsed.type || !parsed.project_id || !parsed.private_key || !parsed.client_email) {
-          setJsonError('Missing required fields (type, project_id, private_key, client_email)');
+          setJsonError(t('vertex.missingFields'));
           return;
         }
         onJsonChange(json);
@@ -51,10 +53,10 @@ export function VertexServiceAccountTab({
           onProjectIdChange(parsed.project_id);
         }
       } catch {
-        setJsonError('Invalid JSON format');
+        setJsonError(t('vertex.invalidJson'));
       }
     },
-    [onJsonChange, onProjectIdChange, projectId],
+    [onJsonChange, onProjectIdChange, projectId, t],
   );
 
   const handleFileRead = useCallback(
@@ -77,10 +79,10 @@ export function VertexServiceAccountTab({
       if (file?.name.endsWith('.json')) {
         handleFileRead(file);
       } else {
-        setJsonError('Please drop a .json file');
+        setJsonError(t('vertex.dropJsonFile'));
       }
     },
-    [handleFileRead],
+    [handleFileRead, t],
   );
 
   const handleBrowse = useCallback(() => {
@@ -99,13 +101,15 @@ export function VertexServiceAccountTab({
     <div className="space-y-3">
       {/* JSON input toggle */}
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-foreground">Service Account Key</label>
+        <label className="text-sm font-medium text-foreground">
+          {t('vertex.serviceAccountKey')}
+        </label>
         <button
           type="button"
           onClick={() => setPasteMode(!pasteMode)}
           className="text-xs text-muted-foreground hover:text-foreground"
         >
-          {pasteMode ? 'Upload file' : 'Paste JSON'}
+          {pasteMode ? t('vertex.uploadFile') : t('vertex.pasteJson')}
         </button>
       </div>
 
@@ -113,7 +117,7 @@ export function VertexServiceAccountTab({
         <textarea
           value={serviceAccountJson}
           onChange={(e) => processJson(e.target.value)}
-          placeholder="Paste your service account JSON key here..."
+          placeholder={t('vertex.pasteJsonPlaceholder')}
           data-testid="vertex-sa-json-textarea"
           rows={6}
           className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm font-mono resize-none"
@@ -148,20 +152,18 @@ export function VertexServiceAccountTab({
                   }}
                   className="text-xs text-muted-foreground hover:text-foreground"
                 >
-                  Remove
+                  {t('vertex.remove')}
                 </button>
               </div>
             ) : (
               <>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Drop your service account JSON key here
-                </p>
+                <p className="text-sm text-muted-foreground mb-2">{t('vertex.dropJsonHere')}</p>
                 <button
                   type="button"
                   onClick={handleBrowse}
                   className="text-sm font-medium text-provider-accent hover:text-provider-accent-text"
                 >
-                  Browse files
+                  {t('vertex.browseFiles')}
                 </button>
               </>
             )}
@@ -180,12 +182,14 @@ export function VertexServiceAccountTab({
 
       {/* Project ID */}
       <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">Project ID</label>
+        <label className="mb-2 block text-sm font-medium text-foreground">
+          {t('vertex.projectId')}
+        </label>
         <input
           type="text"
           value={projectId}
           onChange={(e) => onProjectIdChange(e.target.value)}
-          placeholder="my-gcp-project"
+          placeholder={t('vertex.projectIdPlaceholder')}
           data-testid="vertex-project-id"
           className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
         />
@@ -196,10 +200,10 @@ export function VertexServiceAccountTab({
         items={VERTEX_LOCATIONS}
         value={location}
         onChange={onLocationChange}
-        label="Location"
-        placeholder="Select location..."
-        searchPlaceholder="Search locations..."
-        emptyMessage="No locations found"
+        label={t('vertex.location')}
+        placeholder={t('vertex.selectLocation')}
+        searchPlaceholder={t('vertex.searchLocations')}
+        emptyMessage={t('vertex.noLocationsFound')}
         testId="vertex-location-select"
       />
     </div>

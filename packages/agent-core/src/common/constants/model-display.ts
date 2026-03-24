@@ -38,6 +38,7 @@ export const MODEL_DISPLAY_NAMES: Record<string, string> = {
   'kimi-k2-turbo-preview': 'Kimi K2 Turbo',
   'kimi-latest': 'Kimi Latest',
   // Z.AI
+  'glm-5': 'GLM-5',
   'glm-4.7-flashx': 'GLM-4.7 FlashX',
   'glm-4.7': 'GLM-4.7',
   'glm-4.7-flash': 'GLM-4.7 Flash',
@@ -46,6 +47,9 @@ export const MODEL_DISPLAY_NAMES: Record<string, string> = {
   // MiniMax
   'MiniMax-M2': 'MiniMax M2',
   'MiniMax-M2.1': 'MiniMax M2.1',
+  'MiniMax-M2.1-highspeed': 'MiniMax M2.1 Highspeed',
+  'MiniMax-M2.5': 'MiniMax M2.5',
+  'MiniMax-M2.5-highspeed': 'MiniMax M2.5 Highspeed',
 };
 
 export const PROVIDER_PREFIXES = [
@@ -65,6 +69,12 @@ export const PROVIDER_PREFIXES = [
   'lmstudio/',
   'azure-foundry/',
   'vertex/',
+  'nebius/',
+  'together/',
+  'fireworks/',
+  'groq/',
+  'venice/',
+  'custom/',
 ];
 
 /**

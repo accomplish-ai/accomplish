@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getAccomplish } from '@/lib/accomplish';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { VERTEX_LOCATIONS } from './locations';
@@ -16,6 +17,7 @@ export function VertexAdcTab({
   onProjectIdChange,
   onLocationChange,
 }: VertexAdcTabProps) {
+  const { t } = useTranslation('settings');
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,10 +31,7 @@ export function VertexAdcTab({
         if (cancelled) return;
 
         if (!listResult.success || listResult.projects.length === 0) {
-          setError(
-            listResult.error ||
-              'No projects found. Make sure gcloud is installed and ADC is configured.',
-          );
+          setError(listResult.error || t('vertex.noProjectsError'));
           return;
         }
 
@@ -54,7 +53,7 @@ export function VertexAdcTab({
       })
       .catch(() => {
         if (!cancelled) {
-          setError('Failed to load projects. Is gcloud installed and ADC configured?');
+          setError(t('vertex.loadProjectsFailed'));
         }
       })
       .finally(() => {
@@ -72,10 +71,8 @@ export function VertexAdcTab({
   return (
     <div className="space-y-3">
       <div className="rounded-md bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground">
-        Uses credentials from{' '}
-        <code className="text-xs bg-muted rounded px-1 py-0.5">
-          gcloud auth application-default login
-        </code>
+        {t('vertex.adcDescription')}{' '}
+        <code className="text-xs bg-muted rounded px-1 py-0.5">{t('vertex.adcCommand')}</code>
       </div>
 
       {/* Project Selector */}
@@ -88,12 +85,12 @@ export function VertexAdcTab({
           items={projects}
           value={projectId || null}
           onChange={onProjectIdChange}
-          label="Project"
-          placeholder="Select a project..."
-          searchPlaceholder="Search projects..."
-          emptyMessage={loadingProjects ? 'Loading projects...' : 'No projects found'}
+          label={t('vertex.project')}
+          placeholder={t('vertex.selectProject')}
+          searchPlaceholder={t('vertex.searchProjects')}
+          emptyMessage={loadingProjects ? t('vertex.loadingProjects') : t('vertex.noProjectsFound')}
           loading={loadingProjects}
-          loadingMessage="Fetching GCP projects from your account..."
+          loadingMessage={t('vertex.fetchingProjects')}
           testId="vertex-adc-project"
         />
       )}
@@ -103,10 +100,10 @@ export function VertexAdcTab({
         items={VERTEX_LOCATIONS}
         value={location}
         onChange={onLocationChange}
-        label="Location"
-        placeholder="Select location..."
-        searchPlaceholder="Search locations..."
-        emptyMessage="No locations found"
+        label={t('vertex.location')}
+        placeholder={t('vertex.selectLocation')}
+        searchPlaceholder={t('vertex.searchLocations')}
+        emptyMessage={t('vertex.noLocationsFound')}
         testId="vertex-location-select"
       />
     </div>

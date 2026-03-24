@@ -28,26 +28,43 @@ function buildNodeEnvironment(bundledNodeBinPath?: string): NodeJS.ProcessEnv {
   return spawnEnv;
 }
 
-function getNpxExecutable(bundledNodeBinPath?: string): string {
-  if (bundledNodeBinPath) {
-    const npxName = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-    const npxPath = path.join(bundledNodeBinPath, npxName);
-    if (fs.existsSync(npxPath)) {
-      return npxPath;
-    }
+function getNodeExecutable(bundledNodeBinPath?: string): string {
+  if (!bundledNodeBinPath) {
+    throw new Error(
+      '[Browser] Bundled Node.js path is missing. ' +
+        'Run "pnpm -F @accomplish/desktop download:nodejs" and rebuild artifacts.',
+    );
   }
-  return 'npx';
+
+  const nodeName = process.platform === 'win32' ? 'node.exe' : 'node';
+  const nodePath = path.join(bundledNodeBinPath, nodeName);
+  if (fs.existsSync(nodePath)) {
+    return nodePath;
+  }
+
+  throw new Error(
+    `[Browser] Missing bundled Node.js executable: ${nodePath}. ` +
+      'Run "pnpm -F @accomplish/desktop download:nodejs" and rebuild artifacts.',
+  );
 }
 
-function getNodeExecutable(bundledNodeBinPath?: string): string {
-  if (bundledNodeBinPath) {
-    const nodeName = process.platform === 'win32' ? 'node.exe' : 'node';
-    const nodePath = path.join(bundledNodeBinPath, nodeName);
-    if (fs.existsSync(nodePath)) {
-      return nodePath;
+function resolvePlaywrightCliPath(mcpToolsPath: string): string {
+  const candidates = [
+    path.join(mcpToolsPath, 'dev-browser', 'node_modules', 'playwright', 'cli.js'),
+    path.join(mcpToolsPath, 'node_modules', 'playwright', 'cli.js'),
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
     }
   }
-  return 'node';
+
+  throw new Error(
+    '[Browser] Playwright CLI not found for dev-browser setup. ' +
+      `Checked: ${candidates.join(', ')}. ` +
+      `Run "npm --prefix \\"${mcpToolsPath}\\" install --omit=dev".`,
+  );
 }
 
 export async function installPlaywrightChromium(
@@ -56,17 +73,26 @@ export async function installPlaywrightChromium(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const devBrowserDir = path.join(config.mcpToolsPath, 'dev-browser');
-    const npxPath = getNpxExecutable(config.bundledNodeBinPath);
+    if (!fs.existsSync(devBrowserDir)) {
+      const message =
+        `[Browser] Missing dev-browser directory: ${devBrowserDir}. ` +
+        'Run "pnpm -F @accomplish/desktop build:mcp-tools:dev" and rebuild artifacts.';
+      onProgress?.(message);
+      reject(new Error(message));
+      return;
+    }
+
+    const nodeExe = getNodeExecutable(config.bundledNodeBinPath);
+    const playwrightCliPath = resolvePlaywrightCliPath(config.mcpToolsPath);
     const spawnEnv = buildNodeEnvironment(config.bundledNodeBinPath);
 
-    console.log(`[Browser] Installing Playwright Chromium using npx: ${npxPath}`);
     onProgress?.('Downloading browser...');
 
-    const child = spawn(npxPath, ['playwright', 'install', 'chromium'], {
+    const child = spawn(nodeExe, [playwrightCliPath, 'install', 'chromium'], {
       cwd: devBrowserDir,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: spawnEnv,
-      shell: process.platform === 'win32',
+      shell: false,
     });
 
     child.stdout?.on('data', (data: Buffer) => {
@@ -150,6 +176,12 @@ export async function startDevBrowserServer(
 ): Promise<ServerStartResult> {
   const serverScript = path.join(config.mcpToolsPath, 'dev-browser', 'server.cjs');
   const serverCwd = path.join(config.mcpToolsPath, 'dev-browser');
+  if (!fs.existsSync(serverScript)) {
+    throw new Error(
+      `[Browser] Missing dev-browser launcher script: ${serverScript}. ` +
+        'Run "pnpm -F @accomplish/desktop build:mcp-tools:dev" before starting the app.',
+    );
+  }
   const spawnEnv = buildNodeEnvironment(config.bundledNodeBinPath);
   const nodeExe = getNodeExecutable(config.bundledNodeBinPath);
 

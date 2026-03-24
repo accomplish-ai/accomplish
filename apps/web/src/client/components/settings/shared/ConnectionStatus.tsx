@@ -1,5 +1,6 @@
 // apps/desktop/src/renderer/components/settings/shared/ConnectionStatus.tsx
 
+import { useTranslation } from 'react-i18next';
 import type { ConnectionStatus as ConnectionStatusType } from '@accomplish_ai/agent-core/common';
 
 interface ConnectionStatusProps {
@@ -8,6 +9,8 @@ interface ConnectionStatusProps {
 }
 
 export function ConnectionStatus({ status, onDisconnect }: ConnectionStatusProps) {
+  const { t } = useTranslation('settings');
+
   if (status === 'disconnected') {
     return null;
   }
@@ -34,7 +37,7 @@ export function ConnectionStatus({ status, onDisconnect }: ConnectionStatusProps
             className="opacity-75"
           />
         </svg>
-        Connecting...
+        {t('buttons.connecting')}
       </div>
     );
   }
@@ -54,7 +57,7 @@ export function ConnectionStatus({ status, onDisconnect }: ConnectionStatusProps
             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
           />
         </svg>
-        An error has occurred
+        {t('status.error')}
       </div>
     );
   }
@@ -70,14 +73,14 @@ export function ConnectionStatus({ status, onDisconnect }: ConnectionStatusProps
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
-        Connected
+        {t('status.connected')}
       </button>
       {onDisconnect && (
         <button
           onClick={onDisconnect}
           data-testid="disconnect-button"
           className="rounded-md border border-border p-2.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-          title="Disconnect"
+          title={t('buttons.disconnect')}
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path

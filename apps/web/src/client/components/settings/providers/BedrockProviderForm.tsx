@@ -1,6 +1,7 @@
 // apps/desktop/src/renderer/components/settings/providers/BedrockProviderForm.tsx
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
@@ -37,6 +38,7 @@ export function BedrockProviderForm({
   onModelChange,
   showModelError,
 }: BedrockProviderFormProps) {
+  const { t } = useTranslation('settings');
   const [authTab, setAuthTab] = useState<'apiKey' | 'accessKey' | 'profile'>('apiKey');
   const [bedrockApiKey, setBedrockApiKey] = useState('');
   const [accessKeyId, setAccessKeyId] = useState('');
@@ -81,7 +83,7 @@ export function BedrockProviderForm({
       const validation = await accomplish.validateBedrockCredentials(credentials);
 
       if (!validation.valid) {
-        setError(validation.error || 'Invalid credentials');
+        setError(validation.error || t('bedrock.invalidCredentials'));
         setConnecting(false);
         return;
       }
@@ -122,7 +124,7 @@ export function BedrockProviderForm({
       setSecretKey('');
       setSessionToken('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connection failed');
+      setError(err instanceof Error ? err.message : t('status.connectionFailed'));
     } finally {
       setConnecting(false);
     }
@@ -135,7 +137,7 @@ export function BedrockProviderForm({
       className="rounded-xl border border-border bg-card p-5"
       data-testid="provider-settings-panel"
     >
-      <ProviderFormHeader logoSrc={bedrockLogo} providerName="Bedrock" />
+      <ProviderFormHeader logoSrc={bedrockLogo} providerName={t('providers.bedrock')} />
 
       <div className="space-y-3">
         <AnimatePresence mode="wait">
@@ -160,7 +162,7 @@ export function BedrockProviderForm({
                       : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  API Key
+                  {t('bedrockApiKey.label')}
                 </button>
                 <button
                   onClick={() => setAuthTab('accessKey')}
@@ -171,7 +173,7 @@ export function BedrockProviderForm({
                       : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  Access Key
+                  {t('bedrock.accessKeys')}
                 </button>
                 <button
                   onClick={() => setAuthTab('profile')}
@@ -182,7 +184,7 @@ export function BedrockProviderForm({
                       : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  AWS Profile
+                  {t('bedrock.awsProfile')}
                 </button>
               </div>
 
@@ -197,7 +199,7 @@ export function BedrockProviderForm({
                 <>
                   <div>
                     <label className="mb-2 block text-sm font-medium text-foreground">
-                      Access Key ID
+                      {t('bedrock.accessKeyId')}
                     </label>
                     <input
                       type="text"
@@ -210,26 +212,29 @@ export function BedrockProviderForm({
                   </div>
                   <div>
                     <label className="mb-2 block text-sm font-medium text-foreground">
-                      Secret Access Key
+                      {t('bedrock.secretAccessKey')}
                     </label>
                     <input
                       type="password"
                       value={secretKey}
                       onChange={(e) => setSecretKey(e.target.value)}
-                      placeholder="Enter secret access key"
+                      placeholder={t('bedrock.enterSecretAccessKey')}
                       data-testid="bedrock-secret-key"
                       className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                     />
                   </div>
                   <div>
                     <label className="mb-2 block text-sm font-medium text-foreground">
-                      Session Token <span className="text-muted-foreground">(Optional)</span>
+                      {t('bedrock.sessionToken')}{' '}
+                      <span className="text-muted-foreground">
+                        ({t('bedrock.sessionTokenOptional')})
+                      </span>
                     </label>
                     <input
                       type="password"
                       value={sessionToken}
                       onChange={(e) => setSessionToken(e.target.value)}
-                      placeholder="For temporary credentials"
+                      placeholder={t('bedrock.sessionTokenHint')}
                       data-testid="bedrock-session-token"
                       className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                     />
@@ -240,13 +245,13 @@ export function BedrockProviderForm({
                 <>
                   <div>
                     <label className="mb-2 block text-sm font-medium text-foreground">
-                      Profile Name
+                      {t('bedrock.profileName')}
                     </label>
                     <input
                       type="text"
                       value={profileName}
                       onChange={(e) => setProfileName(e.target.value)}
-                      placeholder="default"
+                      placeholder={t('bedrock.defaultProfile')}
                       data-testid="bedrock-profile-name"
                       className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                     />
@@ -290,7 +295,7 @@ export function BedrockProviderForm({
                   'accessKey' ? (
                   <div>
                     <label className="mb-2 block text-sm font-medium text-foreground">
-                      Access Key ID
+                      {t('bedrock.accessKeyId')}
                     </label>
                     <input
                       type="text"
@@ -305,7 +310,7 @@ export function BedrockProviderForm({
                 ) : (
                   <div>
                     <label className="mb-2 block text-sm font-medium text-foreground">
-                      AWS Profile
+                      {t('bedrock.awsProfile')}
                     </label>
                     <input
                       type="text"
@@ -319,7 +324,9 @@ export function BedrockProviderForm({
                   </div>
                 )}
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">Region</label>
+                  <label className="mb-2 block text-sm font-medium text-foreground">
+                    {t('bedrock.region')}
+                  </label>
                   <input
                     type="text"
                     value={

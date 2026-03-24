@@ -24,7 +24,16 @@ import type {
   ToolSupportStatus,
   Skill,
   McpConnector,
-} from '@accomplish_ai/agent-core/common';
+  FileAttachmentInfo,
+  Workspace,
+  WorkspaceCreateInput,
+  WorkspaceUpdateInput,
+  StoredFavorite,
+  BrowserFramePayload,
+  BrowserStatusPayload,
+  BrowserNavigatePayload,
+} from '@accomplish_ai/agent-core';
+import type { CloudBrowserConfig } from '@accomplish_ai/agent-core/common';
 
 // Define the API interface
 interface AccomplishAPI {
@@ -48,7 +57,12 @@ interface AccomplishAPI {
   respondToPermission(response: PermissionResponse): Promise<void>;
 
   // Session management
-  resumeSession(sessionId: string, prompt: string, taskId?: string): Promise<Task>;
+  resumeSession(
+    sessionId: string,
+    prompt: string,
+    taskId?: string,
+    attachments?: FileAttachmentInfo[],
+  ): Promise<Task>;
 
   // Settings
   getApiKeys(): Promise<ApiKeyConfig[]>;
@@ -67,21 +81,32 @@ interface AccomplishAPI {
       | 'bedrock'
       | 'litellm'
       | 'lmstudio'
+      | 'nebius'
+      | 'together'
+      | 'fireworks'
+      | 'groq'
       | 'elevenlabs',
     key: string,
     label?: string,
   ): Promise<ApiKeyConfig>;
   removeApiKey(id: string): Promise<void>;
+  getNotificationsEnabled(): Promise<boolean>;
+  setNotificationsEnabled(enabled: boolean): Promise<void>;
   getDebugMode(): Promise<boolean>;
   setDebugMode(enabled: boolean): Promise<void>;
   getTheme(): Promise<string>;
   setTheme(theme: string): Promise<void>;
   onThemeChange?(callback: (data: { theme: string; resolved: string }) => void): () => void;
   getAppSettings(): Promise<{ debugMode: boolean; onboardingComplete: boolean; theme: string }>;
+  getCloudBrowserConfig(): Promise<CloudBrowserConfig | null>;
+  setCloudBrowserConfig(config: CloudBrowserConfig | null): Promise<void>;
   getOpenAiBaseUrl(): Promise<string>;
   setOpenAiBaseUrl(baseUrl: string): Promise<void>;
   getOpenAiOauthStatus(): Promise<{ connected: boolean; expires?: number }>;
   loginOpenAiWithChatGpt(): Promise<{ ok: boolean; openedUrl?: string }>;
+  getSlackMcpOauthStatus(): Promise<{ connected: boolean; pendingAuthorization: boolean }>;
+  loginSlackMcp(): Promise<{ ok: boolean }>;
+  logoutSlackMcp(): Promise<void>;
 
   // API Key management
   hasApiKey(): Promise<boolean>;
@@ -263,6 +288,15 @@ interface AccomplishAPI {
     } | null,
   ): Promise<void>;
 
+  // Custom OpenAI-compatible endpoint configuration
+  testCustomConnection(
+    baseUrl: string,
+    apiKey?: string,
+  ): Promise<{
+    success: boolean;
+    error?: string;
+  }>;
+
   // Bedrock configuration
   validateBedrockCredentials(credentials: string): Promise<{ valid: boolean; error?: string }>;
   saveBedrockCredentials(credentials: string): Promise<ApiKeyConfig>;
@@ -305,6 +339,17 @@ interface AccomplishAPI {
   // Todo operations
   getTodosForTask(taskId: string): Promise<TodoItem[]>;
 
+  // Favorites
+  addFavorite(taskId: string): Promise<void>;
+  removeFavorite(taskId: string): Promise<void>;
+  listFavorites(): Promise<StoredFavorite[]>;
+
+  // File attachments
+  pickFolder(): Promise<string | null>;
+  pickFiles(): Promise<FileAttachmentInfo[]>;
+  getFilePath(file: File): string;
+  processDroppedFiles(paths: string[]): Promise<FileAttachmentInfo[]>;
+
   // Event subscriptions
   onTaskUpdate(callback: (event: TaskUpdateEvent) => void): () => void;
   onTaskUpdateBatch?(
@@ -318,6 +363,21 @@ interface AccomplishAPI {
   onTaskSummary?(callback: (data: { taskId: string; summary: string }) => void): () => void;
   onTodoUpdate?(callback: (data: { taskId: string; todos: TodoItem[] }) => void): () => void;
   onAuthError?(callback: (data: { providerId: string; message: string }) => void): () => void;
+
+  // Browser Preview (ENG-695)
+  // Contributed by dhruvawani17 (PR #489), samarthsinh2660 (PR #414), david-mamani (PR #553)
+  onBrowserFrame?(callback: (event: BrowserFramePayload & { taskId: string }) => void): () => void;
+  onBrowserNavigate?(
+    callback: (event: BrowserNavigatePayload & { taskId: string; pageName: string }) => void,
+  ): () => void;
+  onBrowserStatus?(
+    callback: (
+      event: BrowserStatusPayload & { taskId: string; pageName: string; message?: string },
+    ) => void,
+  ): () => void;
+  startBrowserPreview?(taskId: string, pageName?: string): Promise<{ success: boolean }>;
+  stopBrowserPreview?(taskId: string): Promise<{ stopped: boolean }>;
+  getBrowserPreviewStatus?(): Promise<{ active: boolean }>;
 
   // Speech-to-Text
   speechIsConfigured(): Promise<boolean>;
@@ -345,18 +405,77 @@ interface AccomplishAPI {
   }): Promise<unknown>;
   exportLogs(): Promise<{ success: boolean; path?: string; error?: string; reason?: string }>;
 
+  // Debug bug reporting
+  captureScreenshot(): Promise<{
+    success: boolean;
+    data?: string;
+    width?: number;
+    height?: number;
+    error?: string;
+  }>;
+  captureAxtree(): Promise<{ success: boolean; data?: string; error?: string }>;
+  generateBugReport(data: {
+    taskId?: string;
+    taskPrompt?: string;
+    taskStatus?: string;
+    taskCreatedAt?: string;
+    taskCompletedAt?: string;
+    messages?: unknown[];
+    debugLogs?: unknown[];
+    screenshot?: string;
+    axtree?: string;
+    appVersion?: string;
+    platform?: string;
+  }): Promise<{ success: boolean; path?: string; error?: string; reason?: string }>;
+
+  // Workspace management
+  listWorkspaces(): Promise<Workspace[]>;
+  getActiveWorkspaceId(): Promise<string | null>;
+  switchWorkspace(workspaceId: string): Promise<{ success: boolean; reason?: string }>;
+  createWorkspace(input: WorkspaceCreateInput): Promise<Workspace>;
+  updateWorkspace(id: string, input: WorkspaceUpdateInput): Promise<Workspace | null>;
+  deleteWorkspace(id: string): Promise<boolean>;
+
+  // Workspace event subscriptions
+  onWorkspaceChanged?(callback: (data: { workspaceId: string }) => void): () => void;
+  onWorkspaceDeleted?(callback: (data: { workspaceId: string }) => void): () => void;
+
   // Skills management
   getSkills(): Promise<Skill[]>;
   getEnabledSkills(): Promise<Skill[]>;
   setSkillEnabled(id: string, enabled: boolean): Promise<void>;
   getSkillContent(id: string): Promise<string | null>;
-  pickSkillFile(): Promise<string | null>;
-  addSkillFromFile(filePath: string): Promise<Skill>;
+  getUserSkillsPath(): Promise<string>;
+  pickSkillFolder(): Promise<string | null>;
+  addSkillFromFolder(folderPath: string): Promise<Skill | null>;
   addSkillFromGitHub(rawUrl: string): Promise<Skill>;
   deleteSkill(id: string): Promise<void>;
   resyncSkills(): Promise<Skill[]>;
   openSkillInEditor(filePath: string): Promise<void>;
   showSkillInFolder(filePath: string): Promise<void>;
+
+  // Daemon / Background Mode
+  getRunInBackground(): Promise<boolean>;
+  setRunInBackground(enabled: boolean): Promise<void>;
+  getDaemonSocketPath(): Promise<string>;
+
+  // Sandbox configuration
+  getSandboxConfig(): Promise<{
+    mode: 'disabled' | 'native' | 'docker';
+    allowedPaths: string[];
+    networkRestricted: boolean;
+    allowedHosts: string[];
+    dockerImage?: string;
+    networkPolicy?: { allowOutbound: boolean; allowedHosts?: string[] };
+  }>;
+  setSandboxConfig(config: {
+    mode: 'disabled' | 'native' | 'docker';
+    allowedPaths: string[];
+    networkRestricted: boolean;
+    allowedHosts: string[];
+    dockerImage?: string;
+    networkPolicy?: { allowOutbound: boolean; allowedHosts?: string[] };
+  }): Promise<void>;
 
   // MCP Connectors
   getConnectors(): Promise<McpConnector[]>;

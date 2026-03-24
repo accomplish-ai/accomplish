@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useOutlet, useLocation } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { isRunningInElectron, getAccomplish } from './lib/accomplish';
 import { springs, variants } from './lib/animations';
 import type { ProviderId } from '@accomplish_ai/agent-core/common';
+import { OAuthProviderId } from '@accomplish_ai/agent-core/common';
 
 // Components
 import Sidebar from './components/layout/Sidebar';
@@ -11,7 +13,7 @@ import { TaskLauncher } from './components/TaskLauncher';
 import { AuthErrorToast } from './components/AuthErrorToast';
 import SettingsDialog from './components/layout/SettingsDialog';
 import { useTaskStore } from './stores/taskStore';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { SpinnerGap, Warning } from '@phosphor-icons/react';
 
 type AppStatus = 'loading' | 'ready' | 'error';
 
@@ -47,9 +49,13 @@ function AnimatedOutletWrapper() {
 }
 
 export function App() {
+  const { t } = useTranslation('errors');
   const [status, setStatus] = useState<AppStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authSettingsOpen, setAuthSettingsOpen] = useState(false);
+  const [authSettingsTab, setAuthSettingsTab] = useState<
+    'providers' | 'voice' | 'skills' | 'connectors' | 'about'
+  >('providers');
   const [authSettingsProvider, setAuthSettingsProvider] = useState<ProviderId | undefined>(
     undefined,
   );
@@ -60,7 +66,13 @@ export function App() {
   // Handle re-login from auth error toast
   const handleAuthReLogin = useCallback(() => {
     if (authError) {
-      setAuthSettingsProvider(authError.providerId as ProviderId);
+      if (authError.providerId === OAuthProviderId.Slack) {
+        setAuthSettingsProvider(undefined);
+        setAuthSettingsTab('connectors');
+      } else {
+        setAuthSettingsProvider(authError.providerId as ProviderId);
+        setAuthSettingsTab('providers');
+      }
       setAuthSettingsOpen(true);
     }
   }, [authError]);
@@ -70,6 +82,7 @@ export function App() {
     (open: boolean) => {
       setAuthSettingsOpen(open);
       if (!open) {
+        setAuthSettingsTab('providers');
         setAuthSettingsProvider(undefined);
         clearAuthError();
       }
@@ -93,7 +106,7 @@ export function App() {
   useEffect(() => {
     const checkStatus = async () => {
       if (!isRunningInElectron()) {
-        setErrorMessage('This application must be run inside the Accomplish desktop app.');
+        setErrorMessage(t('app.mustRunInDesktop'));
         setStatus('error');
         return;
       }
@@ -109,13 +122,13 @@ export function App() {
     };
 
     checkStatus();
-  }, []);
+  }, [t]);
 
   // Loading state
   if (status === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <SpinnerGap className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -127,10 +140,10 @@ export function App() {
         <div className="max-w-md text-center">
           <div className="mb-6 flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-              <AlertTriangle className="h-8 w-8 text-destructive" />
+              <Warning className="h-8 w-8 text-destructive" />
             </div>
           </div>
-          <h1 className="mb-2 text-xl font-semibold text-foreground">Unable to Start</h1>
+          <h1 className="mb-2 text-xl font-semibold text-foreground">{t('app.unableToStart')}</h1>
           <p className="text-muted-foreground">{errorMessage}</p>
         </div>
       </div>
@@ -156,6 +169,7 @@ export function App() {
         open={authSettingsOpen}
         onOpenChange={handleAuthSettingsClose}
         initialProvider={authSettingsProvider}
+        initialTab={authSettingsTab}
         onApiKeySaved={() => {
           clearAuthError();
           setAuthSettingsOpen(false);

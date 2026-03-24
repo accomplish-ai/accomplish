@@ -56,3 +56,4 @@ export {
   type FetchProviderModelsResult,
   type FetchProviderModelsOptions,
 } from './fetch-models.js';
+export { testCustomConnection, type CustomConnectionResult } from './custom.js';

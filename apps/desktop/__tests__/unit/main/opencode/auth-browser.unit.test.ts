@@ -30,6 +30,14 @@ vi.mock('electron', () => ({
   shell: mockShell,
 }));
 
+vi.mock('node:crypto', async () => {
+  const actual = await vi.importActual<typeof import('node:crypto')>('node:crypto');
+  return {
+    ...actual,
+    randomUUID: vi.fn(() => 'mock-state'),
+  };
+});
+
 // Mock fs module
 const mockFs = {
   existsSync: vi.fn(() => true),
@@ -84,8 +92,63 @@ vi.mock('node-pty', () => ({
   spawn: mockPtySpawn,
 }));
 
-// Mock cli-path
-vi.mock('@main/opencode/cli-path', () => ({
+const agentCoreMocks = {
+  discoverOAuthMetadata: vi.fn(async () => ({
+    authorizationEndpoint: 'https://slack.com/oauth/v2_user/authorize',
+    tokenEndpoint: 'https://slack.com/api/oauth.v2.user.access',
+    scopesSupported: ['chat:write'],
+  })),
+  discoverOAuthProtectedResourceMetadata: vi.fn(async () => ({
+    resource: 'https://mcp.slack.com',
+    scopesSupported: ['chat:write', 'users:read'],
+  })),
+  generatePkceChallenge: vi.fn(() => ({
+    codeVerifier: 'mock-code-verifier',
+    codeChallenge: 'mock-code-challenge',
+  })),
+  exchangeCodeForTokens: vi.fn(async () => ({
+    accessToken: 'slack-access-token',
+    refreshToken: 'slack-refresh-token',
+    tokenType: 'Bearer',
+    scope: 'chat:write users:read',
+  })),
+  clearSlackMcpAuth: vi.fn(),
+  getSlackMcpCallbackUrl: vi.fn(() => 'http://localhost:3118/callback'),
+  setSlackMcpPendingAuth: vi.fn(),
+  setSlackMcpTokens: vi.fn(),
+  OPENCODE_SLACK_MCP_CLIENT_ID: '1601185624273.8899143856786',
+  OPENCODE_SLACK_MCP_SERVER_URL: 'https://mcp.slack.com/mcp',
+  OPENCODE_SLACK_MCP_CALLBACK_HOST: 'localhost',
+  OPENCODE_SLACK_MCP_CALLBACK_PORT: 3118,
+  OPENCODE_SLACK_MCP_CALLBACK_PATH: '/callback',
+};
+
+vi.mock('@accomplish_ai/agent-core', async () => {
+  const actual = await vi.importActual<typeof import('@accomplish_ai/agent-core')>(
+    '@accomplish_ai/agent-core',
+  );
+  return {
+    ...actual,
+    ...agentCoreMocks,
+  };
+});
+
+const mockCallbackServer = {
+  redirectUri: 'http://localhost:3118/callback',
+  waitForCallback: vi.fn(async () => ({
+    code: 'slack-auth-code',
+    state: 'mock-state',
+    redirectUri: 'http://localhost:3118/callback',
+  })),
+  shutdown: vi.fn(),
+};
+
+vi.mock('@main/oauth-callback-server', () => ({
+  createOAuthCallbackServer: vi.fn(async () => mockCallbackServer),
+}));
+
+// Mock electron-options (where getOpenCodeCliPath actually lives)
+vi.mock('@main/opencode/electron-options', () => ({
   getOpenCodeCliPath: vi.fn(() => ({ command: '/mock/opencode', args: [] })),
 }));
 
@@ -121,6 +184,11 @@ describe('OAuthBrowserFlow', () => {
     // Create fresh mock PTY instance
     mockPtyInstance = new MockPty();
     mockPtySpawn.mockReturnValue(mockPtyInstance);
+    mockCallbackServer.waitForCallback.mockResolvedValue({
+      code: 'slack-auth-code',
+      state: 'mock-state',
+      redirectUri: 'http://localhost:3118/callback',
+    });
 
     // Reset mock server
     mockServer.once.mockImplementation((event: string, callback: () => void) => {
@@ -436,6 +504,11 @@ describe('OAuthBrowserFlow', () => {
       const module = await import('@main/opencode/auth-browser');
       expect(module.oauthBrowserFlow).toBeInstanceOf(module.OAuthBrowserFlow);
     });
+
+    it('should export loginSlackMcp function', async () => {
+      const module = await import('@main/opencode/auth-browser');
+      expect(typeof module.loginSlackMcp).toBe('function');
+    });
   });
 
   describe('error scenarios', () => {
@@ -492,6 +565,44 @@ describe('OAuthBrowserFlow', () => {
       expect(errorMessage).toContain('sk-[redacted]');
       expect(errorMessage).not.toContain('https://secret.url.com');
       expect(errorMessage).toContain('[url]');
+    });
+  });
+
+  describe('Slack MCP OAuth', () => {
+    it('opens Slack OAuth with the localhost:3118 callback URI', async () => {
+      const module = await import('@main/opencode/auth-browser');
+
+      await module.loginSlackMcp();
+
+      expect(mockShell.openExternal).toHaveBeenCalledWith(
+        expect.stringContaining('redirect_uri=http%3A%2F%2Flocalhost%3A3118%2Fcallback'),
+      );
+      expect(mockShell.openExternal).toHaveBeenCalledWith(
+        expect.stringContaining('resource=https%3A%2F%2Fmcp.slack.com%2F'),
+      );
+      expect(agentCoreMocks.setSlackMcpPendingAuth).toHaveBeenCalledWith({
+        codeVerifier: 'mock-code-verifier',
+        oauthState: 'mock-state',
+      });
+      expect(agentCoreMocks.setSlackMcpTokens).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accessToken: 'slack-access-token',
+        }),
+      );
+    });
+
+    it('clears Slack auth state when the callback server port is already in use', async () => {
+      const { createOAuthCallbackServer } = await import('@main/oauth-callback-server');
+      vi.mocked(createOAuthCallbackServer).mockRejectedValueOnce(
+        Object.assign(new Error('Address in use'), { code: 'EADDRINUSE' }),
+      );
+
+      const module = await import('@main/opencode/auth-browser');
+
+      await expect(module.loginSlackMcp()).rejects.toThrow(
+        'http://localhost:3118/callback is already in use',
+      );
+      expect(agentCoreMocks.clearSlackMcpAuth).toHaveBeenCalled();
     });
   });
 });

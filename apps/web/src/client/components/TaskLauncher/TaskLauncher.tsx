@@ -1,51 +1,54 @@
-'use client';
-
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { Search, Plus, X } from 'lucide-react';
+import { MagnifyingGlass, Plus, X } from '@phosphor-icons/react';
 import { useTaskStore } from '@/stores/taskStore';
 import { getAccomplish } from '@/lib/accomplish';
 import { cn } from '@/lib/utils';
 import { springs } from '@/lib/animations';
-import TaskLauncherItem from './TaskLauncherItem';
+import { TaskLauncherItem } from './TaskLauncherItem';
 import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
 import { Input } from '@/components/ui/input';
 
-export default function TaskLauncher() {
+export function TaskLauncher() {
   const navigate = useNavigate();
+  const { t } = useTranslation('sidebar');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const { isLauncherOpen, launcherInitialPrompt, closeLauncher, tasks, startTask } = useTaskStore();
   const accomplish = getAccomplish();
+  const [openedAt, setOpenedAt] = useState(Date.now);
 
   // Filter tasks by search query (title only)
   const filteredTasks = useMemo(() => {
     if (!searchQuery.trim()) {
       // Show last 7 days when no search
-      // eslint-disable-next-line react-hooks/purity
-      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const sevenDaysAgo = openedAt - 7 * 24 * 60 * 60 * 1000;
       return tasks.filter((t) => new Date(t.createdAt).getTime() > sevenDaysAgo);
     }
     const query = searchQuery.toLowerCase();
     return tasks.filter((t) => t.prompt.toLowerCase().includes(query));
-  }, [tasks, searchQuery]);
+  }, [tasks, searchQuery, openedAt]);
 
   // Total items: "New task" + filtered tasks
   const totalItems = 1 + filteredTasks.length;
 
   // Clamp selected index when results change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sync derived state from prop change
     setSelectedIndex((i) => Math.min(i, Math.max(0, totalItems - 1)));
   }, [totalItems]);
 
   // Reset state when launcher opens, use initial prompt if provided
   useEffect(() => {
     if (isLauncherOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset state on open
       setSearchQuery(launcherInitialPrompt || '');
       setSelectedIndex(0);
+      setOpenedAt(Date.now());
     }
   }, [isLauncherOpen, launcherInitialPrompt]);
 
@@ -134,15 +137,17 @@ export default function TaskLauncher() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
-                className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+                className="fixed inset-0 z-50 bg-white/60 backdrop-blur-[12px]"
               />
             </DialogPrimitive.Overlay>
 
             {/* Content */}
             <DialogPrimitive.Content
               className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]"
+              aria-describedby={undefined}
               onKeyDown={handleKeyDown}
             >
+              <DialogPrimitive.Title className="sr-only">Task Launcher</DialogPrimitive.Title>
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: -10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -152,18 +157,18 @@ export default function TaskLauncher() {
               >
                 {/* Search Input */}
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-                  <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <MagnifyingGlass className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search tasks..."
+                    placeholder={t('searchPlaceholder')}
                     className="border-0 px-0 py-1 h-full focus:outline-none focus-visible:ring-0"
                   />
                   <DialogPrimitive.Close asChild>
                     <button
                       className="text-muted-foreground hover:text-foreground transition-colors"
-                      aria-label="Close"
+                      aria-label={t('close')}
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -184,7 +189,7 @@ export default function TaskLauncher() {
                     )}
                   >
                     <Plus className="h-4 w-4 shrink-0" />
-                    <span>New task</span>
+                    <span>{t('newTask')}</span>
                     {searchQuery.trim() && (
                       <span
                         className={cn(
@@ -194,7 +199,7 @@ export default function TaskLauncher() {
                             : 'text-muted-foreground',
                         )}
                       >
-                        — &quot;{searchQuery}&quot;
+                        — &ldquo;{searchQuery}&rdquo;
                       </span>
                     )}
                   </button>
@@ -203,7 +208,7 @@ export default function TaskLauncher() {
                   {filteredTasks.length > 0 && (
                     <>
                       <div className="px-3 py-2 text-xs font-medium text-muted-foreground">
-                        {searchQuery.trim() ? 'Results' : 'Last 7 days'}
+                        {searchQuery.trim() ? t('results') : t('lastSevenDays')}
                       </div>
                       {filteredTasks.slice(0, 10).map((task, i) => (
                         <TaskLauncherItem
@@ -219,7 +224,7 @@ export default function TaskLauncher() {
                   {/* Empty State */}
                   {searchQuery.trim() && filteredTasks.length === 0 && (
                     <div className="px-3 py-4 text-sm text-muted-foreground text-center">
-                      No tasks found
+                      {t('noTasksFound')}
                     </div>
                   )}
                 </div>
@@ -227,13 +232,16 @@ export default function TaskLauncher() {
                 {/* Footer hint */}
                 <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground flex items-center gap-4">
                   <span>
-                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">↑↓</kbd> Navigate
+                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">↑↓</kbd>{' '}
+                    {t('navigate')}
                   </span>
                   <span>
-                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">↵</kbd> Select
+                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">↵</kbd>{' '}
+                    {t('select')}
                   </span>
                   <span>
-                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Esc</kbd> Close
+                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Esc</kbd>{' '}
+                    {t('close')}
                   </span>
                 </div>
               </motion.div>
@@ -244,3 +252,5 @@ export default function TaskLauncher() {
     </DialogPrimitive.Root>
   );
 }
+
+export default TaskLauncher;

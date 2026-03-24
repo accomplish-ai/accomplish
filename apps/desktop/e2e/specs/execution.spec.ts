@@ -136,7 +136,7 @@ test.describe('Execution Page', () => {
     await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Wait for permission modal to appear
-    await executionPage.permissionModal.waitFor({
+    await executionPage.permissionCard.waitFor({
       state: 'visible',
       timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
     });
@@ -151,7 +151,7 @@ test.describe('Execution Page', () => {
     ]);
 
     // Assert permission modal and buttons are visible
-    await expect(executionPage.permissionModal).toBeVisible();
+    await expect(executionPage.permissionCard).toBeVisible();
     await expect(executionPage.allowButton).toBeVisible();
     await expect(executionPage.denyButton).toBeVisible();
 
@@ -174,7 +174,7 @@ test.describe('Execution Page', () => {
     await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Wait for permission modal and allow button to be ready
-    await executionPage.permissionModal.waitFor({
+    await executionPage.permissionCard.waitFor({
       state: 'visible',
       timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
     });
@@ -194,7 +194,7 @@ test.describe('Execution Page', () => {
     ]);
 
     // Modal should disappear after clicking allow
-    await expect(executionPage.permissionModal).not.toBeVisible({
+    await expect(executionPage.permissionCard).not.toBeVisible({
       timeout: TEST_TIMEOUTS.NAVIGATION,
     });
 
@@ -217,7 +217,7 @@ test.describe('Execution Page', () => {
     await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Wait for permission modal and deny button to be ready
-    await executionPage.permissionModal.waitFor({
+    await executionPage.permissionCard.waitFor({
       state: 'visible',
       timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
     });
@@ -234,7 +234,7 @@ test.describe('Execution Page', () => {
     ]);
 
     // Modal should disappear
-    await expect(executionPage.permissionModal).not.toBeVisible({
+    await expect(executionPage.permissionCard).not.toBeVisible({
       timeout: TEST_TIMEOUTS.NAVIGATION,
     });
 
@@ -628,7 +628,7 @@ test.describe('Execution Page', () => {
     await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Wait for question modal to appear
-    await executionPage.permissionModal.waitFor({
+    await executionPage.permissionCard.waitFor({
       state: 'visible',
       timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
     });
@@ -642,7 +642,7 @@ test.describe('Execution Page', () => {
     ]);
 
     // Assert modal is visible with options (Other option is replaced by always-visible text input)
-    await expect(executionPage.permissionModal).toBeVisible();
+    await expect(executionPage.permissionCard).toBeVisible();
     await expect(executionPage.questionOptions).toHaveCount(2); // Option A, Option B
 
     // Submit button should be disabled (no option selected yet)
@@ -664,7 +664,7 @@ test.describe('Execution Page', () => {
     await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Wait for question modal to appear
-    await executionPage.permissionModal.waitFor({
+    await executionPage.permissionCard.waitFor({
       state: 'visible',
       timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
     });
@@ -686,7 +686,7 @@ test.describe('Execution Page', () => {
     await executionPage.allowButton.click();
 
     // Modal should disappear
-    await expect(executionPage.permissionModal).not.toBeVisible({
+    await expect(executionPage.permissionCard).not.toBeVisible({
       timeout: TEST_TIMEOUTS.NAVIGATION,
     });
 
@@ -761,5 +761,72 @@ test.describe('Execution Page', () => {
     // Both use bg-green-500 variants, so check for that common pattern
     const buttonClasses = await firstCopyButton.getAttribute('class');
     expect(buttonClasses).toContain('bg-green-500');
+  });
+
+  test('should display code blocks with syntax highlighting and copy buttons', async ({
+    window,
+  }) => {
+    const homePage = new HomePage(window);
+    const executionPage = new ExecutionPage(window);
+
+    await window.waitForLoadState('domcontentloaded');
+
+    await homePage.enterTask(TEST_SCENARIOS.CODE_BLOCK.keyword);
+    await homePage.submitTask();
+
+    await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await executionPage.waitForComplete();
+
+    // Capture for visual verification that code blocks render with syntax highlighting.
+    await captureForAI(window, 'execution-code-block', 'syntax-highlighting', [
+      'Task is completed with code blocks',
+      'Syntax highlighted code is visible',
+      'TypeScript and Python code blocks are rendered',
+      'Copy buttons are present on code blocks',
+    ]);
+
+    const codeBlockCopyButtonsCount = await executionPage.codeBlockCopyButtons.count();
+    expect(codeBlockCopyButtonsCount).toBeGreaterThanOrEqual(2);
+
+    const codeBlockContainers = window.locator('.group\\/code');
+    const containerCount = await codeBlockContainers.count();
+    expect(containerCount).toBeGreaterThanOrEqual(2);
+
+    const typescriptLabel = window.locator('text=typescript');
+    const pythonLabel = window.locator('text=python');
+    await expect(typescriptLabel.first()).toBeVisible();
+    await expect(pythonLabel.first()).toBeVisible();
+
+    const pageContent = await window.textContent('body');
+    expect(pageContent).toContain('function greet');
+    expect(pageContent).toContain('def calculate_sum');
+
+    const firstCodeBlockCopyButton = executionPage.codeBlockCopyButtons.nth(0);
+    const codeBlockContainer = codeBlockContainers.nth(0);
+
+    await codeBlockContainer.scrollIntoViewIfNeeded();
+
+    // Assert rendered CSS opacity (more reliable than class token checks since
+    // Tailwind variant classes remain in the DOM regardless of hover state)
+    await expect(firstCodeBlockCopyButton).toHaveCSS('opacity', '0');
+
+    await codeBlockContainer.hover();
+    await window.waitForTimeout(100);
+
+    await expect(firstCodeBlockCopyButton).toHaveCSS('opacity', '1');
+
+    const buttonText = await firstCodeBlockCopyButton.textContent();
+    expect(buttonText).toContain('Copy');
+
+    await firstCodeBlockCopyButton.click();
+    await window.waitForTimeout(200);
+
+    // Clipboard assertion confirms the copy action writes actual code content.
+    const clipboardText = await window.evaluate(async () => {
+      return await navigator.clipboard.readText();
+    });
+    expect(clipboardText).toBeTruthy();
+    expect(clipboardText).toContain('function greet');
+    expect(clipboardText).toContain('Hello');
   });
 });

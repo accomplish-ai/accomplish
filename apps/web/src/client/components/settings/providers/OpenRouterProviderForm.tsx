@@ -1,6 +1,7 @@
 // apps/desktop/src/renderer/components/settings/providers/OpenRouterProviderForm.tsx
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
 import type { ConnectedProvider, OpenRouterCredentials } from '@accomplish_ai/agent-core/common';
@@ -32,6 +33,7 @@ export function OpenRouterProviderForm({
   onModelChange,
   showModelError,
 }: OpenRouterProviderFormProps) {
+  const { t } = useTranslation('settings');
   const [apiKey, setApiKey] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function OpenRouterProviderForm({
 
   const handleConnect = async () => {
     if (!apiKey.trim()) {
-      setError('Please enter an API key');
+      setError(t('apiKey.enterKeyRequired'));
       return;
     }
 
@@ -55,7 +57,7 @@ export function OpenRouterProviderForm({
       // Validate key
       const validation = await accomplish.validateApiKeyForProvider('openrouter', apiKey.trim());
       if (!validation.valid) {
-        setError(validation.error || 'Invalid API key');
+        setError(validation.error || t('apiKey.invalidKey'));
         setConnecting(false);
         return;
       }
@@ -66,7 +68,7 @@ export function OpenRouterProviderForm({
       // Fetch models
       const result = await accomplish.fetchOpenRouterModels();
       if (!result.success) {
-        setError(result.error || 'Failed to fetch models');
+        setError(result.error || t('openrouter.fetchModelsFailed'));
         setConnecting(false);
         return;
       }
@@ -98,7 +100,7 @@ export function OpenRouterProviderForm({
       onConnect(provider);
       setApiKey('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connection failed');
+      setError(err instanceof Error ? err.message : t('status.connectionFailed'));
     } finally {
       setConnecting(false);
     }
@@ -111,7 +113,11 @@ export function OpenRouterProviderForm({
       className="rounded-xl border border-border bg-card p-5"
       data-testid="provider-settings-panel"
     >
-      <ProviderFormHeader logoSrc={openrouterLogo} providerName="OpenRouter" invertInDark />
+      <ProviderFormHeader
+        logoSrc={openrouterLogo}
+        providerName={t('providers.openrouter')}
+        invertInDark
+      />
 
       <div className="space-y-3">
         <AnimatePresence mode="wait">
@@ -127,7 +133,7 @@ export function OpenRouterProviderForm({
             >
               {/* API Key Section */}
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">API Key</label>
+                <label className="text-sm font-medium text-foreground">{t('apiKey.title')}</label>
                 {meta.helpUrl && (
                   <a
                     href={meta.helpUrl}
@@ -135,7 +141,7 @@ export function OpenRouterProviderForm({
                     rel="noopener noreferrer"
                     className="text-sm text-muted-foreground hover:text-primary underline"
                   >
-                    How can I find it?
+                    {t('help.findApiKey')}
                   </a>
                 )}
               </div>
@@ -187,7 +193,7 @@ export function OpenRouterProviderForm({
             >
               {/* Connected: Show masked key + Connected button + Model */}
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">API Key</label>
+                <label className="text-sm font-medium text-foreground">{t('apiKey.title')}</label>
                 {meta.helpUrl && (
                   <a
                     href={meta.helpUrl}
@@ -195,7 +201,7 @@ export function OpenRouterProviderForm({
                     rel="noopener noreferrer"
                     className="text-sm text-muted-foreground hover:text-primary underline"
                   >
-                    How can I find it?
+                    {t('help.findApiKey')}
                   </a>
                 )}
               </div>
@@ -205,7 +211,7 @@ export function OpenRouterProviderForm({
                 value={(() => {
                   const creds = connectedProvider?.credentials as OpenRouterCredentials | undefined;
                   if (creds?.keyPrefix) return creds.keyPrefix;
-                  return 'API key saved (reconnect to see prefix)';
+                  return t('apiKey.savedReconnectToSee');
                 })()}
                 disabled
                 data-testid="api-key-display"

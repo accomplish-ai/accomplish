@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <strong>日本語</strong> | <a href="README.ko.md">한국어</a> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a>
+  <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <strong>日本語</strong> | <a href="README.ko.md">한국어</a> | <a href="README.ru.md">Русский</a> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a> | <a href="README.ta.md">தமிழ்</a> | <a href="README.hi.md">हिन्दी</a>
 </p>
 
 <p align="center">
@@ -11,7 +11,13 @@
   <a href="https://github.com/accomplish-ai/accomplish/stargazers"><img src="https://img.shields.io/github/stars/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Stars" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/issues"><img src="https://img.shields.io/github/issues/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Issues" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/commits"><img src="https://img.shields.io/github/last-commit/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="最終コミット" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-0ea5e9?style=flat-square" alt="macOS用ダウンロード" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="macOS用ダウンロード (Apple Silicon)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="macOS用ダウンロード (Intel)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Windows 11用ダウンロード" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(ARM64)-0ea5e9?style=flat-square" alt="Linux用ダウンロード（ARM64）" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(x64)-0ea5e9?style=flat-square" alt="Linux用ダウンロード（x64）" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb"><img src="https://img.shields.io/badge/Download-Linux_(.deb_x64)-0ea5e9?style=flat-square" alt="Linux用ダウンロード (.deb x64)" /></a>
+  <a href="https://discord.gg/YH86b2P8"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
 # Accomplish™ - オープンソースAIデスクトップエージェント
@@ -23,9 +29,17 @@ Accomplishは、お使いのマシン上でローカルにファイル管理、�
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><strong>Mac用ダウンロード（Apple Silicon）</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg"><strong>Mac用ダウンロード（Apple Silicon）</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe"><strong>Windows 11用ダウンロード</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg"><strong>Mac用ダウンロード（Intel）</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe"><strong>Windows 11用ダウンロード</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage"><strong>Linux用ダウンロード（ARM64）</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage"><strong>Linux用ダウンロード（x64）</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb"><strong>Linux用ダウンロード（.deb x64）</strong></a>
   ·
   <a href="https://www.accomplish.ai/">Accomplishウェブサイト</a>
   ·
@@ -141,6 +155,7 @@ Accomplishは、お使いのマシン上でローカルにファイル管理、�
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
@@ -160,6 +175,8 @@ Accomplishはお使いのマシン上でローカルに実行されます。フ�
 
 - macOS（Apple Silicon）
 - Windows 11
+- Ubuntu (ARM64)
+- Ubuntu (x64)
 
 <br />
 
@@ -184,7 +201,7 @@ Accomplishはお使いのマシン上でローカルに実行されます。フ�
 
 <div align="center">
 
-[**Mac用ダウンロード（Apple Silicon）**](https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg) · [**Windows 11用ダウンロード**](https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe)
+[**Mac用ダウンロード（Apple Silicon）**](https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg) · [**Mac用ダウンロード（Intel）**](https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg) · [**Windows 11用ダウンロード**](https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe) · [**Linux用ダウンロード（ARM64）**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage) · [**Linux用ダウンロード（x64）**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage) · [**Linux用ダウンロード（.deb x64）**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb)
 
 </div>
 
@@ -222,7 +239,7 @@ macOSでのAccomplishの概要と、短いデモ動画。
 はい。AccomplishはオープンソースでMITライセンスです。
 
 **どのプラットフォームに対応していますか？**
-macOS（Apple Silicon）とWindows 11が利用可能です。
+macOS（Apple Silicon）とWindows 11が利用可能です。 Ubuntu (ARM64) と Ubuntu (x64) もサポートされています。
 
 <br />
 
@@ -250,15 +267,17 @@ pnpm dev
 <details>
 <summary><strong>すべてのコマンド</strong></summary>
 
-| コマンド                               | 説明                                 |
-| -------------------------------------- | ------------------------------------ |
-| `pnpm dev`                             | 開発モードでデスクトップアプリを実行 |
-| `pnpm dev:clean`                       | クリーンスタートで開発モード         |
-| `pnpm build`                           | すべてのワークスペースをビルド       |
-| `pnpm build:desktop`                   | デスクトップアプリのみビルド         |
-| `pnpm lint`                            | TypeScriptチェック                   |
-| `pnpm typecheck`                       | 型検証                               |
-| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2Eテスト                 |
+| コマンド                                    | 説明                                            |
+| ------------------------------------------- | ----------------------------------------------- |
+| `pnpm dev`                                  | 開発モードでデスクトップアプリを実行            |
+| `pnpm dev:clean`                            | クリーンスタートで開発モード                    |
+| `pnpm build`                                | すべてのワークスペースをビルド                  |
+| `pnpm build:desktop`                        | デスクトップアプリのみビルド                    |
+| `pnpm -F @accomplish/desktop package:win`   | Windows インストーラーをビルド (x64)            |
+| `pnpm -F @accomplish/desktop package:linux` | Linux アーティファクトをビルド (AppImage + deb) |
+| `pnpm lint`                                 | TypeScriptチェック                              |
+| `pnpm typecheck`                            | 型検証                                          |
+| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2Eテスト                            |
 
 </details>
 

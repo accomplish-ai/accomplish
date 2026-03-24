@@ -9,6 +9,8 @@ import type { Task, TaskConfig, TaskStatus, TaskMessage, TaskResult } from '../c
 import type { PermissionRequest } from '../common/types/permission';
 import type { TodoItem } from '../common/types/todo';
 import type { OpenCodeMessage } from '../common/types/opencode';
+import type { SandboxConfig, SandboxProvider } from '../common/types/sandbox.js';
+import type { BrowserFramePayload } from '../common/types/browser-view.js';
 
 /** Progress event emitted during task execution */
 export interface TaskProgressEvent {
@@ -48,8 +50,13 @@ export interface TaskCallbacks {
   onTodoUpdate?: (todos: TodoItem[]) => void;
   /** Called when an auth error occurs */
   onAuthError?: (error: { providerId: string; message: string }) => void;
+  /** Called when a browser frame is captured for live preview (ENG-695).
+   *  Contributed by samarthsinh2660 (PR #414). */
+  onBrowserFrame?: (data: BrowserFramePayload) => void;
   /** Called when the agent emits reasoning text */
   onReasoning?: (text: string) => void;
+  /** Called when a tool is about to be used (before execution) */
+  onToolUse?: (toolName: string, toolInput: unknown) => void;
   /** Called when a tool call completes (success or error) */
   onToolCallComplete?: (data: {
     toolName: string;
@@ -89,6 +96,18 @@ export interface TaskAdapterOptions {
   onBeforeStart?: () => Promise<void>;
   /** Function to get display name for a model ID */
   getModelDisplayName?: (modelId: string) => string;
+  /**
+   * Lazy sandbox factory, called once per adapter/task instance.
+   * Preferred over static sandboxProvider/sandboxConfig — ensures runtime
+   * changes (e.g. via sandbox:set-config) are reflected without recreating
+   * the TaskManager. Overrides sandboxProvider/sandboxConfig when present.
+   */
+  sandboxFactory?: () => { provider: SandboxProvider; config: SandboxConfig };
+  /** Optional sandbox provider for restricting agent FS/network access */
+  sandboxProvider?: SandboxProvider;
+  /** Sandbox configuration used when sandboxProvider is set.
+   * Must be accompanied by sandboxProvider when mode is not 'disabled'. */
+  sandboxConfig?: SandboxConfig;
 }
 
 /** Options for creating a TaskManager instance */

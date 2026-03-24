@@ -4,6 +4,29 @@
 
 import { vi } from 'vitest';
 
+// Mock the logging module so handlers that call getLogCollector() don't require
+// a real Electron app.getPath() or agent-core createLogWriter during unit tests.
+vi.mock('@main/logging', () => ({
+  getLogCollector: vi.fn(() => ({
+    write: vi.fn(),
+    logEnv: vi.fn(),
+    flush: vi.fn(),
+    getCurrentLogPath: vi.fn(() => '/mock/logs/app.log'),
+    getLogDir: vi.fn(() => '/mock/logs'),
+    initialize: vi.fn(),
+    shutdown: vi.fn(),
+  })),
+  getLogFileWriter: vi.fn(() => ({
+    write: vi.fn(),
+    initialize: vi.fn(),
+    shutdown: vi.fn(),
+  })),
+  initializeLogCollector: vi.fn(),
+  shutdownLogCollector: vi.fn(),
+  initializeLogFileWriter: vi.fn(),
+  shutdownLogFileWriter: vi.fn(),
+}));
+
 // Mock better-sqlite3 native module (not available in test environment)
 vi.mock('better-sqlite3', () => {
   class MockDatabase {

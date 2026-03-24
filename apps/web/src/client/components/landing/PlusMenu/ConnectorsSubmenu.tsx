@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { McpConnector, ConnectorStatus } from '@accomplish_ai/agent-core/common';
 import { DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
@@ -19,12 +20,15 @@ export function ConnectorsSubmenu({
   onToggle,
   onManageConnectors,
 }: ConnectorsSubmenuProps) {
+  const { t } = useTranslation('home');
   return (
     <div className="flex flex-col">
       {/* Connectors List */}
       <div className="max-h-[300px] overflow-y-auto">
         {connectors.length === 0 ? (
-          <div className="p-3 text-center text-sm text-muted-foreground">No connectors yet</div>
+          <div className="p-3 text-center text-sm text-muted-foreground">
+            {t('plusMenu.noConnectors')}
+          </div>
         ) : (
           connectors.map((connector) => {
             const hostname = (() => {
@@ -58,7 +62,7 @@ export function ConnectorsSubmenu({
                   type="button"
                   role="switch"
                   aria-checked={connector.isEnabled}
-                  aria-label={`Toggle ${connector.name} connector`}
+                  aria-label={`Toggle ${connector.name}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onToggle(connector.id, !connector.isEnabled);
@@ -98,7 +102,7 @@ export function ConnectorsSubmenu({
             <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" />
             <circle cx="12" cy="12" r="3" />
           </svg>
-          Manage
+          {t('plusMenu.manage')}
         </button>
       </div>
     </div>

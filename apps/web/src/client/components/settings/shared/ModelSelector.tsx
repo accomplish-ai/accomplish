@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { SearchableSelect, type SelectItem } from '@/components/ui/searchable-select';
 
 interface ModelSelectorProps {
@@ -16,21 +17,23 @@ export function ModelSelector({
   onChange,
   loading,
   error,
-  errorMessage = 'Please select a model',
-  placeholder = 'Select model...',
+  errorMessage,
+  placeholder,
 }: ModelSelectorProps) {
+  const { t } = useTranslation('settings');
+
   return (
     <SearchableSelect
       items={models}
       value={value}
       onChange={onChange}
-      label="Model"
-      placeholder={placeholder}
-      searchPlaceholder="Search models..."
-      emptyMessage="No models found"
+      label={t('model.title')}
+      placeholder={placeholder || t('model.selectModel')}
+      searchPlaceholder={t('model.searchModels')}
+      emptyMessage={t('model.noModelsFound')}
       loading={loading}
       error={error}
-      errorMessage={error && !value ? errorMessage : undefined}
+      errorMessage={error && !value ? errorMessage || t('model.required') : undefined}
       testId="model-selector"
     />
   );

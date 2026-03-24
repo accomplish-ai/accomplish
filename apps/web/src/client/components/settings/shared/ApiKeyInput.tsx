@@ -1,5 +1,7 @@
 // apps/desktop/src/renderer/components/settings/shared/ApiKeyInput.tsx
 
+import { useTranslation } from 'react-i18next';
+
 interface ApiKeyInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -13,16 +15,20 @@ interface ApiKeyInputProps {
 export function ApiKeyInput({
   value,
   onChange,
-  placeholder = 'Enter API Key',
-  label = 'API Key',
+  placeholder,
+  label,
   helpUrl,
   error,
   disabled,
 }: ApiKeyInputProps) {
+  const { t } = useTranslation('settings');
+  const displayLabel = label ?? t('apiKey.title');
+  const displayPlaceholder = placeholder ?? t('apiKey.enterKey');
+
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-medium text-foreground">{label}</label>
+        <label className="text-sm font-medium text-foreground">{displayLabel}</label>
         {helpUrl && (
           <a
             href={helpUrl}
@@ -30,7 +36,7 @@ export function ApiKeyInput({
             rel="noopener noreferrer"
             className="text-sm text-muted-foreground hover:text-primary"
           >
-            How can I find it?
+            {t('help.findApiKey')}
           </a>
         )}
       </div>
@@ -39,7 +45,7 @@ export function ApiKeyInput({
           type="password"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
+          placeholder={displayPlaceholder}
           disabled={disabled}
           data-testid="api-key-input"
           className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm pr-10 disabled:opacity-50"

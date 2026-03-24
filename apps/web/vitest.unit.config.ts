@@ -15,6 +15,7 @@ export default defineConfig({
         '../../packages/agent-core/src/common',
       ),
       '@accomplish_ai/agent-core': path.resolve(__dirname, '../../packages/agent-core/src'),
+      '@locales': path.resolve(__dirname, 'locales'),
     },
   },
   test: {

@@ -1,6 +1,6 @@
 import { createHashRouter, Navigate } from 'react-router';
 import { App } from './App';
-import HomePage from './pages/Home';
+import { HomePage } from './pages/Home';
 import ExecutionPage from './pages/Execution';
 
 export const router = createHashRouter([

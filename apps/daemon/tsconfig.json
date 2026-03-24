@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@accomplish_ai/agent-core": ["../../packages/agent-core/src/index.ts"],
+      "@accomplish_ai/agent-core/*": ["../../packages/agent-core/src/*"]
+    }
+  },
+  "include": ["src/**/*", "../../packages/agent-core/src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

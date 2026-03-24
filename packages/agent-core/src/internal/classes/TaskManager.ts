@@ -9,6 +9,7 @@ import type {
 import type { OpenCodeMessage } from '../../common/types/opencode.js';
 import type { PermissionRequest } from '../../common/types/permission.js';
 import type { TodoItem } from '../../common/types/todo.js';
+import type { BrowserFramePayload } from '../../common/types/browser-view.js';
 import {
   toTaskMessage,
   flushAndCleanupBatcher,
@@ -35,7 +36,11 @@ export interface TaskCallbacks {
   onDebug?: (log: { type: string; message: string; data?: unknown }) => void;
   onTodoUpdate?: (todos: TodoItem[]) => void;
   onAuthError?: (error: { providerId: string; message: string }) => void;
+  /** Called when a browser frame is captured for live preview (ENG-695).
+   *  Contributed by samarthsinh2660 (PR #414). */
+  onBrowserFrame?: (data: BrowserFramePayload) => void;
   onReasoning?: (text: string) => void;
+  onToolUse?: (toolName: string, toolInput: unknown) => void;
   onToolCallComplete?: (data: {
     toolName: string;
     toolInput: unknown;
@@ -215,8 +220,18 @@ export class TaskManager {
       callbacks.onAuthError?.(error);
     };
 
+    /** Forward browser-frame events to the task callbacks.
+     *  Contributed by samarthsinh2660 (PR #414) for ENG-695. */
+    const onBrowserFrame = (data: BrowserFramePayload) => {
+      callbacks.onBrowserFrame?.(data);
+    };
+
     const onReasoning = (text: string) => {
       callbacks.onReasoning?.(text);
+    };
+
+    const onToolUse = (toolName: string, toolInput: unknown) => {
+      callbacks.onToolUse?.(toolName, toolInput);
     };
 
     const onToolCallComplete = (data: {
@@ -251,8 +266,10 @@ export class TaskManager {
     adapter.on('todo:update', onTodoUpdate);
     adapter.on('auth-error', onAuthError);
     adapter.on('reasoning', onReasoning);
+    adapter.on('tool-use', onToolUse);
     adapter.on('tool-call-complete', onToolCallComplete);
     adapter.on('step-finish', onStepFinish);
+    adapter.on('browser-frame', onBrowserFrame);
 
     const cleanup = () => {
       adapter.off('message', onMessage);
@@ -264,8 +281,10 @@ export class TaskManager {
       adapter.off('todo:update', onTodoUpdate);
       adapter.off('auth-error', onAuthError);
       adapter.off('reasoning', onReasoning);
+      adapter.off('tool-use', onToolUse);
       adapter.off('tool-call-complete', onToolCallComplete);
       adapter.off('step-finish', onStepFinish);
+      adapter.off('browser-frame', onBrowserFrame);
       adapter.dispose();
     };
 

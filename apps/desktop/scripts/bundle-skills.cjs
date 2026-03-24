@@ -5,7 +5,30 @@ const fs = require('fs');
 const esbuild = require('esbuild');
 const { execSync } = require('child_process');
 
-const skillsDir = path.join(__dirname, '..', '..', '..', 'packages', 'agent-core', 'mcp-tools');
+const VALID_MODES = new Set(['dev', 'package']);
+
+function getBuildMode() {
+  const cliMode = process.argv.find((arg) => arg.startsWith('--mode='))?.slice('--mode='.length);
+  const envMode = process.env.BUNDLE_SKILLS_MODE;
+  const mode = cliMode || envMode || 'dev';
+
+  if (!VALID_MODES.has(mode)) {
+    throw new Error(`[bundle-skills] Invalid mode "${mode}". Use --mode=dev or --mode=package.`);
+  }
+
+  return mode;
+}
+
+const buildMode = getBuildMode();
+
+const skillsDir = path.join(
+  __dirname,
+  '..',
+  'node_modules',
+  '@accomplish_ai',
+  'agent-core',
+  'mcp-tools',
+);
 
 // Skills that have runtime dependencies (playwright) that cannot be bundled
 const SKILLS_WITH_RUNTIME_DEPS = ['dev-browser', 'dev-browser-mcp'];
@@ -15,7 +38,9 @@ const SKILLS_FULLY_BUNDLED = [
   'ask-user-question',
   'file-permission',
   'complete-task',
+  'request-connector-auth',
   'start-task',
+  'desktop-control',
 ];
 
 const bundles = [
@@ -35,7 +60,17 @@ const bundles = [
     outfile: 'dist/index.mjs',
   },
   {
+    name: 'request-connector-auth',
+    entry: 'src/index.ts',
+    outfile: 'dist/index.mjs',
+  },
+  {
     name: 'start-task',
+    entry: 'src/index.ts',
+    outfile: 'dist/index.mjs',
+  },
+  {
+    name: 'desktop-control',
     entry: 'src/index.ts',
     outfile: 'dist/index.mjs',
   },
@@ -61,9 +96,39 @@ const bundles = [
   },
 ];
 
+function validateSkillDependencyCategories() {
+  const bundledSkillNames = new Set(bundles.map((bundle) => bundle.name));
+  const categorizedSkillNames = new Set([...SKILLS_WITH_RUNTIME_DEPS, ...SKILLS_FULLY_BUNDLED]);
+  const uncategorizedSkills = [...bundledSkillNames].filter(
+    (skillName) => !categorizedSkillNames.has(skillName),
+  );
+
+  if (uncategorizedSkills.length > 0) {
+    throw new Error(
+      `[bundle-skills] Skills missing dependency categorization: ${uncategorizedSkills.join(', ')}`,
+    );
+  }
+}
+
 function ensureDir(dirPath) {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
+  }
+}
+
+function verifyBundleOutputs() {
+  const missing = [];
+  for (const { name, outfile } of bundles) {
+    const outputPath = path.join(skillsDir, name, outfile);
+    if (!fs.existsSync(outputPath)) {
+      missing.push(outputPath);
+    }
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `[bundle-skills] Missing bundled outputs:\n${missing.map((p) => `  - ${p}`).join('\n')}`,
+    );
   }
 }
 
@@ -76,6 +141,13 @@ async function bundleSkill({ name, entry, outfile, external = [], banner: needsB
   ensureDir(path.dirname(absOutfile));
 
   if (!fs.existsSync(absEntry)) {
+    // Source not available (e.g. using pre-built npm package) — skip if dist already exists
+    if (fs.existsSync(absOutfile)) {
+      console.log(
+        `[bundle-skills] Skipping ${name}: source not found but dist exists at ${absOutfile}`,
+      );
+      return;
+    }
     throw new Error(`Entry not found for ${name}: ${absEntry}`);
   }
 
@@ -153,15 +225,23 @@ function reinstallProductionDepsForBundledBuild() {
 }
 
 async function main() {
-  console.log('[bundle-skills] Starting skill bundling...');
+  if (!fs.existsSync(skillsDir)) {
+    throw new Error(`[bundle-skills] MCP tools directory not found: ${skillsDir}`);
+  }
+
+  validateSkillDependencyCategories();
+
+  console.log(`[bundle-skills] Starting skill bundling (mode=${buildMode})...`);
   for (const bundle of bundles) {
     await bundleSkill(bundle);
   }
+  verifyBundleOutputs();
 
-  const shouldOptimize = process.env.CI === 'true' || process.env.ACCOMPLISH_BUNDLED_MCP === '1';
-  if (shouldOptimize) {
-    console.log('[bundle-skills] Optimizing skill dependencies for packaged build...');
+  if (buildMode === 'package') {
+    console.log('[bundle-skills] Optimizing skill dependencies for package runtime...');
     reinstallProductionDepsForBundledBuild();
+  } else {
+    console.log('[bundle-skills] Skipping dependency optimization in dev mode.');
   }
 
   console.log('[bundle-skills] Done');

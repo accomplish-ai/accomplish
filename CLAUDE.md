@@ -1,199 +1,152 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working with code in this repository.
+This file provides guidance to Claude Code when working with this repository.
+Full architecture details are in [AGENTS.md](AGENTS.md) and [docs/architecture.md](docs/architecture.md).
+Full project rules are in [.claude/PROJECT_RULES.md](.claude/PROJECT_RULES.md).
 
-## Project Overview
+## Monorepo Layout
 
-Accomplish is an AI automation assistant with a split architecture: `apps/web` contains the standalone React UI, and `apps/desktop` is a thin Electron shell that loads web's build output. The main process spawns the OpenCode CLI (via `node-pty`) to execute user tasks. API keys are stored with AES-256-GCM encryption.
-
-## Common Commands
-
-```bash
-# Development
-pnpm dev                                        # Run desktop app in dev mode (web dev server + Electron)
-pnpm dev:web                                    # Run web UI only (Vite dev server on localhost:5173)
-pnpm dev:clean                                  # Dev mode with CLEAN_START=1 (clears stored data)
-
-# Building
-pnpm build                                      # Build all workspaces
-pnpm build:web                                  # Build web UI only
-pnpm build:desktop                              # Build desktop app (builds web first)
-
-# Type checking & linting
-pnpm lint                                       # TypeScript + ESLint (all workspaces)
-pnpm typecheck                                  # Type validation (all workspaces)
-pnpm lint:eslint                                # ESLint only (flat config)
-pnpm format:check                               # Prettier check (no writes)
-pnpm format                                     # Prettier write (auto-fix)
-
-# Testing (web workspace — renderer/UI tests)
-pnpm -F @accomplish/web test                    # Run all web Vitest tests
-pnpm -F @accomplish/web test:unit               # Web unit tests only
-pnpm -F @accomplish/web test:integration        # Web integration tests only
-
-# Testing (desktop workspace — main process + preload tests)
-pnpm -F @accomplish/desktop test                # Run all desktop Vitest tests
-pnpm -F @accomplish/desktop test:unit           # Desktop unit tests only
-pnpm -F @accomplish/desktop test:integration    # Desktop integration tests only
-pnpm -F @accomplish/desktop test:e2e            # Docker-based E2E tests
-pnpm -F @accomplish/desktop test:e2e:native     # Native Playwright E2E tests (serial, Electron requirement)
-
-# Testing (agent-core)
-pnpm -F @accomplish_ai/agent-core test          # Run agent-core Vitest tests
-
-# Cleanup
-pnpm clean                                      # Clean build outputs and node_modules
+```
+apps/desktop/          # Electron shell: main process, preload, loads web build output
+apps/web/              # Standalone React UI (Vite + React Router + Zustand)
+packages/agent-core/   # Core business logic, types, storage, MCP tools (@accomplish_ai/agent-core, ESM)
 ```
 
-## Verification After Changes
-
-Always verify before committing. Run the relevant commands for what you changed:
+## Commands
 
 ```bash
-# After ANY code change — always run typecheck + lint
+# Dev
+pnpm dev                                     # Desktop app (web dev server + Electron)
+pnpm dev:web                                 # Web UI only (localhost:5173)
+pnpm dev:clean                               # Dev with CLEAN_START=1 (clears stored data)
+
+# Build
+pnpm build                                   # All workspaces
+pnpm build:web                               # Web UI only
+pnpm build:desktop                           # Desktop (builds web first)
+pnpm clean                                   # Clean build outputs and node_modules
+
+# Typecheck / Lint / Format
 pnpm typecheck && pnpm lint:eslint && pnpm format:check
+pnpm format                                  # Prettier auto-fix (write mode)
 
-# After changing web UI code (components, pages, stores, styles)
-pnpm -F @accomplish/web test
+# Tests — always workspace-scoped (no root-level test commands)
+pnpm -F @accomplish/web test:unit            # Web unit tests
+pnpm -F @accomplish/web test:integration     # Web integration tests
+pnpm -F @accomplish/desktop test:unit        # Desktop main-process unit tests
+pnpm -F @accomplish/desktop test:integration # Desktop integration tests
+pnpm -F @accomplish/desktop test:e2e:native  # Playwright E2E tests (serial, Electron)
+pnpm -F @accomplish_ai/agent-core test       # Agent-core tests
 
-# After changing desktop main process or preload code
-pnpm -F @accomplish/desktop test
+# Run a single test file
+pnpm -F @accomplish/desktop vitest run --config vitest.unit.config.ts path/to/file.unit.test.ts
 
-# After changing agent-core code
-pnpm -F @accomplish_ai/agent-core test
-
-# Full verification before PR
-pnpm lint && pnpm format:check && pnpm -F @accomplish/web test && pnpm -F @accomplish/desktop test && pnpm -F @accomplish_ai/agent-core test
+# Environment variables for dev/testing
+# CLEAN_START=1        — clear all stored data on start
+# E2E_SKIP_AUTH=1      — skip onboarding flow
+# E2E_MOCK_TASK_EVENTS=1 — mock task events
 ```
-
-## Do NOT
-
-- **Do NOT use `require()`** in agent-core — it is ESM (`"type": "module"`)
-- **Do NOT forget `.js` extensions** on imports within agent-core (e.g., `import { foo } from './utils/bar.js'` NOT `./utils/bar`)
-- **Do NOT use absolute paths for images** in the web UI — use ES module imports (see Image Assets below)
-- **Do NOT modify released migration files** — create a new migration instead
-- **Do NOT add root-level test scripts** — tests are workspace-scoped (`-F @accomplish/web`, `-F @accomplish/desktop`, or `-F @accomplish_ai/agent-core`)
-- **Do NOT spawn `npx`/`node`** without adding bundled Node.js bin to PATH (see [architecture.md](docs/architecture.md#spawning-npxnode-in-main-process))
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md) for full architecture details (monorepo layout, package structure, IPC flow, storage, bundled Node.js).
+### Data flow
 
-Key packages:
-
-- `@accomplish_ai/agent-core` — Core business logic, types, storage, MCP tools (ESM, internal workspace package)
-- `@accomplish/web` — Standalone React UI (Vite + React Router + Zustand)
-- `@accomplish/desktop` — Thin Electron shell (main process + preload), loads web's build output
-
-## Code Conventions
-
-- TypeScript everywhere (no JS for app logic)
-- **ESM package**: `@accomplish_ai/agent-core` uses `"type": "module"` — all imports MUST use `.js` extensions
-- Shared types go in `packages/agent-core/src/common/types/`
-- Core business logic goes in `packages/agent-core/src/`
-- UI state via Zustand store actions (in `apps/web/src/client/stores/`)
-- IPC handlers in `apps/desktop/src/main/ipc/handlers.ts` must match `window.accomplish` API in preload
-- **Always use braces for `if`/`else`/`for`/`while`** - No single-line braceless statements (enforced by `curly` ESLint rule)
-- **Avoid nested ternaries** - Use mapper objects or if/else for readability
-- **No unnecessary comments** - Don't add comments that restate what the code does. Comments should explain _why_, not _what_
-- **Reuse UI components** - Check `apps/web/src/client/components/ui/` before creating new ones
-
-### Image Assets in Web UI
-
-**IMPORTANT:** Always use ES module imports for images, never absolute paths.
-
-```typescript
-// CORRECT - Use ES imports
-import logoImage from '/assets/logo.png';
-<img src={logoImage} alt="Logo" />
-
-// WRONG - Absolute paths break in packaged app
-<img src="/assets/logo.png" alt="Logo" />
+```
+React UI (apps/web)
+  ↓ window.accomplish.* calls
+Preload (contextBridge) — apps/desktop/src/preload/index.ts
+  ↓ ipcRenderer.invoke / ipcRenderer.on
+Main Process — apps/desktop/src/main/ipc/handlers.ts
+  ↓ agent-core factories (TaskManager, Storage, etc.)
+  ↑ IPC events → taskStore subscriptions in renderer
 ```
 
-Static assets go in `apps/web/public/assets/`.
+### Adding an IPC handler (required sequence)
 
-## Common Workflows
+1. Handler in `apps/desktop/src/main/ipc/handlers.ts`
+2. Expose via `contextBridge` in `apps/desktop/src/preload/index.ts`
+3. Typed wrapper in `apps/web/src/client/lib/accomplish.ts`
+4. Consume from components or `apps/web/src/client/stores/taskStore.ts`
+5. `pnpm typecheck` to verify the full chain
 
-### Adding a New IPC Handler
+Never skip a step — all 4 must be done together.
 
-1. Add the handler in `apps/desktop/src/main/ipc/handlers.ts`
-2. Expose the method in `apps/desktop/src/preload/index.ts` via `contextBridge`
-3. Add the typed wrapper in `apps/web/src/client/lib/accomplish.ts`
-4. Use from components or `taskStore.ts`
-5. Run `pnpm typecheck` to verify the chain matches
+### agent-core
 
-### Adding a New Migration
+- **ESM package** (`"type": "module"`) — all internal imports must use `.js` extensions
+- Shared types: `packages/agent-core/src/common/types/`
+- Factories are the public API: `createTaskManager`, `createStorage`, `createPermissionHandler`, etc.
+- Do not use internal classes directly; use factories
 
-1. Create `packages/agent-core/src/storage/migrations/vXXX-description.ts` (use `.js` extension in imports)
-2. Import and add to the `migrations` array in `packages/agent-core/src/storage/migrations/index.ts`
-3. Bump `CURRENT_VERSION` (currently 6)
-4. Run `pnpm -F @accomplish_ai/agent-core test`
+### SQLite / Migrations
 
-### Changing Agent-Core Public API
+- DB: `accomplish.db` (prod) / `accomplish-dev.db` (dev), in Electron user-data directory
+- Current schema version: **6** (in `packages/agent-core/src/storage/migrations/index.ts`)
+- To add a migration: create `vXXX-description.ts`, import + add to the `migrations` array, bump `CURRENT_VERSION`
+- **Never modify released migration files** — always add a new one
 
-1. Add/modify the implementation in `packages/agent-core/src/`
-2. Export from `packages/agent-core/src/index.ts` (or `common.ts` for shared types)
-3. All internal imports must use `.js` extensions
-4. Run `pnpm typecheck` to verify downstream consumers still compile
+### Bundled Node.js
+
+The packaged app ships Node.js v20.18.1. When spawning `npx`/`node` in the main process,
+prepend `bundledPaths.binDir` to `PATH` — otherwise processes fail with exit code 127 on
+machines without system Node.js. See [docs/architecture.md](docs/architecture.md#spawning-npxnode-in-main-process).
 
 ## TypeScript Path Aliases
 
-### Web (`apps/web`)
+| Alias                              | Resolves to                         |
+| ---------------------------------- | ----------------------------------- |
+| `@/*` (web only)                   | `apps/web/src/client/*`             |
+| `@main/*` (desktop only)           | `apps/desktop/src/main/*`           |
+| `@accomplish_ai/agent-core`        | `packages/agent-core/src/index.ts`  |
+| `@accomplish_ai/agent-core/common` | `packages/agent-core/src/common.ts` |
 
-```typescript
-"@/*"                              → "src/client/*"
-"@accomplish_ai/agent-core"        → "../../packages/agent-core/src/index.ts"
-"@accomplish_ai/agent-core/*"      → "../../packages/agent-core/src/*"
-"@accomplish_ai/agent-core/common" → "../../packages/agent-core/src/common.ts"
+Desktop does **not** have an `@/*` alias — UI code lives in `apps/web`.
+
+## Critical Rules
+
+### Code
+
+- **No `require()` in agent-core** — it is ESM; use `import`
+- **`.js` extensions required** on all imports within agent-core
+- **Image assets** must use ES module imports (`import logo from '/assets/logo.png'`), never absolute paths — they break in the packaged app
+- **Always use braces** for `if`/`else`/`for`/`while` (enforced by ESLint `curly` rule)
+- **No nested ternaries** — use mapper objects or if/else
+- **No root-level test scripts** — always use `-F @accomplish/web`, `-F @accomplish/desktop`, or `-F @accomplish_ai/agent-core`
+- **Reuse UI components** — check `apps/web/src/client/components/ui/` before creating new ones
+- **New files must be < 200 lines** — split into logical modules if needed (exceptions: generated files, migrations)
+- **No `console.log` in production code** — use the app's existing logger
+
+### Never remove features
+
+Do not delete, comment out, or disable existing functionality unless the task explicitly
+requires removal. If unsure, ask before removing. This applies to: exported functions,
+components, types, IPC handlers, UI elements, routes, and config entries.
+
+### Git
+
+- **Always pull `main` before branching**: `git checkout main && git pull origin main`
+- **Branch naming**: `feat/ENG-XXX-short-description` or `fix/ENG-XXX-short-description`
+- **Conventional commits**: `feat(scope):`, `fix(scope):`, `refactor(scope):`, `chore(scope):`
+- **Never force-push** a branch that has an open PR
+
+### Pre-push checklist (run in order)
+
+```bash
+# 1. Install deps if any package.json changed
+git diff --name-only | grep "package\.json" && pnpm install
+
+# 2. Typecheck → Lint → Format → Build
+pnpm typecheck && pnpm lint:eslint && pnpm format:check && pnpm build
+
+# 3. Tests — only workspaces with changed files
+pnpm -F @accomplish/web test:unit          # if apps/web changed
+pnpm -F @accomplish/desktop test:unit      # if apps/desktop changed
+pnpm -F @accomplish_ai/agent-core test     # if packages/agent-core changed
 ```
 
-### Desktop (`apps/desktop`)
-
-```typescript
-"@main/*"                          → "src/main/*"
-"@accomplish_ai/agent-core"        → "../../packages/agent-core/src/index.ts"
-"@accomplish_ai/agent-core/*"      → "../../packages/agent-core/src/*"
-"@accomplish_ai/agent-core/common" → "../../packages/agent-core/src/common.ts"
-```
-
-Note: Desktop no longer has `@/*` alias — UI code lives in `apps/web`.
-
-## Environment Variables
-
-- `CLEAN_START=1` - Clear all stored data on app start
-- `E2E_SKIP_AUTH=1` - Skip onboarding flow (for testing)
-- `E2E_MOCK_TASK_EVENTS=1` - Mock task events (for testing)
-- `ACCOMPLISH_BUNDLED_MCP=1` - Bundle MCP tools in packaged build (used in package/release scripts)
-
-## Testing
-
-### E2E Tests (Playwright)
-
-- Config: `apps/desktop/e2e/playwright.config.ts`
-- Tests: `apps/desktop/e2e/specs/`
-- Page objects: `apps/desktop/e2e/pages/`
-- Serial execution (Electron requirement)
-- Docker support: `apps/desktop/e2e/docker/`
-
-### Unit/Integration Tests (Vitest)
-
-- Web config: `apps/web/vitest.unit.config.ts`, `apps/web/vitest.integration.config.ts`
-- Desktop config: `apps/desktop/vitest.config.ts`
-- Agent-core config: `packages/agent-core/vitest.config.ts`
+Do not push if any step fails.
 
 ## Styling
 
-- Framework: Tailwind CSS + shadcn/ui
-- CSS variables for theming
-- Font: DM Sans
-- Animation library: Framer Motion
-- Reusable variants in `apps/web/src/client/lib/animations.ts`
-
-## CI/CD
-
-GitHub Actions workflows in `.github/workflows/`:
-
-- `ci.yml` - Core tests, unit tests, integration tests, typecheck, E2E
-- `release.yml` - Desktop app build and publish to GitHub releases
-- `commitlint.yml` - Conventional commit validation
+Tailwind CSS + shadcn/ui, CSS variables for theming (no hardcoded colors), DM Sans font,
+Framer Motion for animations via `apps/web/src/client/lib/animations.ts`.

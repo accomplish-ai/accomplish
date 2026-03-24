@@ -146,6 +146,30 @@ describe('Preload Script Integration', () => {
         await (capturedAccomplishAPI.clearTaskHistory as () => Promise<void>)();
         expect(mockInvoke).toHaveBeenCalledWith('task:clear-history');
       });
+
+      it('addFavorite should invoke favorites:add with taskId', async () => {
+        await (capturedAccomplishAPI.addFavorite as (taskId: string) => Promise<void>)('task_123');
+        expect(mockInvoke).toHaveBeenCalledWith('favorites:add', 'task_123');
+      });
+
+      it('removeFavorite should invoke favorites:remove with taskId', async () => {
+        await (capturedAccomplishAPI.removeFavorite as (taskId: string) => Promise<void>)(
+          'task_123',
+        );
+        expect(mockInvoke).toHaveBeenCalledWith('favorites:remove', 'task_123');
+      });
+
+      it('listFavorites should invoke favorites:list', async () => {
+        await (capturedAccomplishAPI.listFavorites as () => Promise<unknown[]>)();
+        expect(mockInvoke).toHaveBeenCalledWith('favorites:list');
+      });
+
+      it('isFavorite should invoke favorites:has with taskId', async () => {
+        await (capturedAccomplishAPI.isFavorite as (taskId: string) => Promise<boolean>)(
+          'task_123',
+        );
+        expect(mockInvoke).toHaveBeenCalledWith('favorites:has', 'task_123');
+      });
     });
 
     describe('Permission Operations', () => {
@@ -168,6 +192,7 @@ describe('Preload Script Integration', () => {
             s: string,
             p: string,
             t?: string,
+            attachments?: unknown[],
           ) => Promise<unknown>
         )('session_123', 'Continue', 'task_456');
         expect(mockInvoke).toHaveBeenCalledWith(
@@ -175,6 +200,7 @@ describe('Preload Script Integration', () => {
           'session_123',
           'Continue',
           'task_456',
+          undefined,
         );
       });
     });
@@ -193,6 +219,21 @@ describe('Preload Script Integration', () => {
       it('getAppSettings should invoke settings:app-settings', async () => {
         await (capturedAccomplishAPI.getAppSettings as () => Promise<unknown>)();
         expect(mockInvoke).toHaveBeenCalledWith('settings:app-settings');
+      });
+
+      it('getSlackMcpOauthStatus should invoke opencode:auth:slack:status', async () => {
+        await (capturedAccomplishAPI.getSlackMcpOauthStatus as () => Promise<unknown>)();
+        expect(mockInvoke).toHaveBeenCalledWith('opencode:auth:slack:status');
+      });
+
+      it('loginSlackMcp should invoke opencode:auth:slack:login', async () => {
+        await (capturedAccomplishAPI.loginSlackMcp as () => Promise<unknown>)();
+        expect(mockInvoke).toHaveBeenCalledWith('opencode:auth:slack:login');
+      });
+
+      it('logoutSlackMcp should invoke opencode:auth:slack:logout', async () => {
+        await (capturedAccomplishAPI.logoutSlackMcp as () => Promise<void>)();
+        expect(mockInvoke).toHaveBeenCalledWith('opencode:auth:slack:logout');
       });
     });
 
@@ -270,6 +311,13 @@ describe('Preload Script Integration', () => {
         const payload = { level: 'info', message: 'Test' };
         await (capturedAccomplishAPI.logEvent as (p: unknown) => Promise<unknown>)(payload);
         expect(mockInvoke).toHaveBeenCalledWith('log:event', payload);
+      });
+    });
+
+    describe('Skills Operations', () => {
+      it('getUserSkillsPath should invoke skills:get-user-skills-path', async () => {
+        await (capturedAccomplishAPI.getUserSkillsPath as () => Promise<string>)();
+        expect(mockInvoke).toHaveBeenCalledWith('skills:get-user-skills-path');
       });
     });
   });
