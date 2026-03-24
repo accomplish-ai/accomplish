@@ -1,6 +1,9 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import type { PlatformConfig, BundledNodePaths } from '../types.js';
+import { createConsoleLogger } from './logging.js';
+
+const log = createConsoleLogger({ prefix: 'BundledNode' });
 
 export interface BundledNodePathsExtended extends BundledNodePaths {
   nodeDir: string;
@@ -129,17 +132,17 @@ export function logBundledNodeInfo(config: PlatformConfig): void {
   const paths = getBundledNodePaths(config);
 
   if (!paths) {
-    console.warn(
+    log.warn(
       '[Bundled Node] Node.js runtime artifacts are missing. ' +
         'Run "pnpm -F @accomplish/desktop download:nodejs" to install them.',
     );
     return;
   }
 
-  console.log('[Bundled Node] Configuration:');
-  console.log(`  Platform: ${config.platform}`);
-  console.log(`  Architecture: ${config.arch}`);
-  console.log(`  Node directory: ${paths.nodeDir}`);
-  console.log(`  Node path: ${paths.nodePath}`);
-  console.log(`  Available: ${fs.existsSync(paths.nodePath)}`);
+  log.info('[Bundled Node] Configuration:');
+  log.info(`  Platform: ${config.platform}`);
+  log.info(`  Architecture: ${config.arch}`);
+  log.info(`  Node directory: ${paths.nodeDir}`);
+  log.info(`  Node path: ${paths.nodePath}`);
+  log.info(`  Available: ${fs.existsSync(paths.nodePath)}`);
 }

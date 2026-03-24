@@ -5,6 +5,9 @@ import { Input } from '@/components/ui/input';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { ConnectorCard } from './ConnectorCard';
 import { useConnectors } from './useConnectors';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('ConnectorsPanel');
 
 const slackStatusClass = {
   connected: 'text-green-600',
@@ -49,14 +52,14 @@ export function ConnectorsPanel() {
         const state = parsed.searchParams.get('state');
         if (code && state) {
           completeOAuth(state, code).catch((err) => {
-            console.error('Failed to complete OAuth:', err);
+            logger.error('Failed to complete OAuth:', err);
             setOauthError(
               err instanceof Error ? err.message : t('connectors.oauthCompletionFailed'),
             );
           });
         }
       } catch (err) {
-        console.error('Failed to parse OAuth callback URL:', err);
+        logger.error('Failed to parse OAuth callback URL:', err);
         setOauthError(t('connectors.invalidOauthCallback'));
       }
     });
@@ -103,7 +106,7 @@ export function ConnectorsPanel() {
       await addConnector(name, trimmedUrl);
       setUrl('');
     } catch (err) {
-      console.error('Failed to add connector:', err);
+      logger.error('Failed to add connector:', err);
       setAddError(err instanceof Error ? err.message : t('connectors.addFailed'));
     } finally {
       setAdding(false);
@@ -116,7 +119,7 @@ export function ConnectorsPanel() {
       try {
         await startOAuth(connectorId);
       } catch (err) {
-        console.error('Failed to start OAuth:', err);
+        logger.error('Failed to start OAuth:', err);
         setOauthError(err instanceof Error ? err.message : t('connectors.oauthStartFailed'));
       }
     },
@@ -131,7 +134,7 @@ export function ConnectorsPanel() {
     try {
       await authenticateSlack();
     } catch (err) {
-      console.error('Failed to authenticate Slack MCP:', err);
+      logger.error('Failed to authenticate Slack MCP:', err);
       const raw = err instanceof Error ? err.message : t('connectors.slack.authFailed');
       const cleaned = raw.replace(/^Error invoking remote method '[^']+': (\w+Error: )?/, '');
       setOauthError(cleaned);
@@ -148,7 +151,7 @@ export function ConnectorsPanel() {
     try {
       await disconnectSlack();
     } catch (err) {
-      console.error('Failed to disconnect Slack MCP:', err);
+      logger.error('Failed to disconnect Slack MCP:', err);
       setOauthError(err instanceof Error ? err.message : t('connectors.slack.disconnectFailed'));
     } finally {
       setSlackActionLoading(false);

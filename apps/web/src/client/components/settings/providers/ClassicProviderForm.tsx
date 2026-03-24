@@ -18,6 +18,9 @@ import {
   FormError,
 } from '../shared';
 import { PROVIDER_LOGOS, DARK_INVERT_PROVIDERS } from '@/lib/provider-logos';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('ClassicProviderForm');
 
 // Fallback models for OpenAI OAuth flow where no API key is available to call /v1/models.
 // Matches the static list that shipped before dynamic model fetching (agent-core < 0.3.3).
@@ -75,7 +78,7 @@ export function ClassicProviderForm({
     }
 
     const accomplish = getAccomplish();
-    accomplish.getOpenAiBaseUrl().then(setOpenAiBaseUrl).catch(console.error);
+    accomplish.getOpenAiBaseUrl().then(setOpenAiBaseUrl).catch((err) => logger.error('Failed to load OpenAI base URL:', err));
   }, [isOpenAI]);
 
   useEffect(() => {
@@ -117,7 +120,7 @@ export function ClassicProviderForm({
           setFetchedModels(result.models);
         }
       })
-      .catch(console.error);
+      .catch((err) => logger.error('Failed to fetch provider models:', err));
   }, [
     connectedProvider?.availableModels?.length,
     connectedProvider?.credentials?.type,

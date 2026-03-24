@@ -1,6 +1,9 @@
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'MetaDB' });
 
 let _metaDb: Database.Database | null = null;
 let _metaDbPath: string | null = null;
@@ -37,7 +40,7 @@ export function initializeMetaDatabase(dbPath: string): Database.Database {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  console.log('[MetaDB] Opening workspace meta database at:', dbPath);
+  log.info(`[MetaDB] Opening workspace meta database at: ${dbPath}`);
 
   const db = new Database(dbPath);
   try {
@@ -52,7 +55,7 @@ export function initializeMetaDatabase(dbPath: string): Database.Database {
   _metaDb = db;
   _metaDbPath = dbPath;
 
-  console.log('[MetaDB] Workspace meta database initialized');
+  log.info('[MetaDB] Workspace meta database initialized');
 
   return _metaDb;
 }
@@ -68,7 +71,7 @@ export function getMetaDatabase(): Database.Database {
 
 export function closeMetaDatabase(): void {
   if (_metaDb) {
-    console.log('[MetaDB] Closing workspace meta database');
+    log.info('[MetaDB] Closing workspace meta database');
     _metaDb.close();
     _metaDb = null;
     _metaDbPath = null;

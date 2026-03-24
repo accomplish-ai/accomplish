@@ -6,6 +6,9 @@
  */
 
 import i18n from 'i18next';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('i18n');
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
@@ -181,7 +184,7 @@ export async function initI18n(): Promise<void> {
 
     updateDocumentDirection(initialLanguage);
     isInitialized = true;
-    console.log(`[i18n] Initialized with language: ${initialLanguage}`);
+    logger.info(`Initialized with language: ${initialLanguage}`);
   })();
 
   return initializationPromise;

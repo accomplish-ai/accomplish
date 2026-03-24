@@ -88,6 +88,9 @@ import {
 import { SecureStorage } from '../internal/classes/SecureStorage.js';
 import type { OAuthTokens } from '../common/types/connector.js';
 import type { StorageAPI, StorageOptions } from '../types/storage.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'Storage' });
 
 export function createStorage(options: StorageOptions = {}): StorageAPI {
   const {
@@ -189,7 +192,7 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
       try {
         return JSON.parse(stored) as OAuthTokens;
       } catch {
-        console.error(`Failed to parse connector tokens for ${connectorId}`);
+        log.error(`Failed to parse connector tokens for ${connectorId}`);
         return null;
       }
     },

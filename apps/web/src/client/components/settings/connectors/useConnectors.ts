@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { McpConnector } from '@accomplish_ai/agent-core/common';
 import { getAccomplish } from '@/lib/accomplish';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useConnectors');
 
 export interface SlackMcpAuthState {
   connected: boolean;
@@ -38,7 +41,7 @@ export function useConnectors() {
 
       setError(null);
     } catch (err) {
-      console.error('Failed to load connectors:', err);
+      logger.error('Failed to load connectors:', err);
       setError(err instanceof Error ? err.message : 'Failed to load connectors');
     } finally {
       setLoading(false);

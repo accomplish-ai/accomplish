@@ -25,6 +25,9 @@ import type {
   SandboxProvider,
   SpawnArgs,
 } from '../common/types/sandbox.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'DockerProvider' });
 
 /** Env-var keys forwarded into the container (preeeetham, PR #430) */
 const FORWARDED_ENV_KEYS = [
@@ -151,7 +154,7 @@ export class DockerSandboxProvider implements SandboxProvider {
       (config.allowedHosts && config.allowedHosts.length > 0) ||
       (netPolicy?.allowedHosts && netPolicy.allowedHosts.length > 0);
     if (hasAllowedHosts) {
-      console.warn(
+      log.warn(
         '[DockerProvider] allowedHosts is set but Docker mode does not support per-host allowlists. The allowedHosts restriction will be ignored.',
       );
     }

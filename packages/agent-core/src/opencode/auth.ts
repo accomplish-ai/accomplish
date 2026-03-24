@@ -2,6 +2,9 @@ import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
 import type { OAuthTokens } from '../common/types/connector.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'OpenCodeAuth' });
 
 interface OpenCodeOauthAuthEntry {
   type?: string;
@@ -129,7 +132,7 @@ export function writeOpenCodeAuth(
     try {
       auth = JSON.parse(fs.readFileSync(authPath, 'utf-8'));
     } catch (_e) {
-      console.warn('[OpenCode Auth] Failed to parse existing auth.json, creating new one');
+      log.warn('[OpenCode Auth] Failed to parse existing auth.json, creating new one');
       auth = {};
     }
   }
@@ -139,7 +142,7 @@ export function writeOpenCodeAuth(
   }
 
   fs.writeFileSync(authPath, JSON.stringify(auth, null, 2));
-  console.log('[OpenCode Auth] Updated auth.json at:', authPath);
+  log.info(`[OpenCode Auth] Updated auth.json at: ${authPath}`);
 }
 
 export function getSlackMcpOauthStatus(): OpenCodeMcpOauthStatus {

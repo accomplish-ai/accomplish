@@ -23,6 +23,9 @@ import { DisabledSandboxProvider } from '../../sandbox/disabled-provider.js';
 import { serializeError } from '../../utils/error.js';
 import { getOAuthProviderDisplayName, isOAuthProviderId } from '../../common/types/connector.js';
 import { CONNECTOR_AUTH_REQUIRED_MARKER } from '../../common/constants.js';
+import { createConsoleLogger } from '../../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'OpenCodeAdapter' });
 
 const LOG_TRUNCATION_LIMIT = 500;
 
@@ -260,7 +263,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     this.logWatcher.on('error', (error: OpenCodeLogError) => {
       if (!this.hasCompleted && this.ptyProcess) {
-        console.log('[OpenCode Adapter] Log watcher detected error:', error.errorName);
+        log.info(`[OpenCode Adapter] Log watcher detected error: ${error.errorName}`);
 
         const errorMessage = OpenCodeLogWatcher.getErrorMessage(error);
 
@@ -277,7 +280,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         });
 
         if (error.isAuthError && error.providerID) {
-          console.log('[OpenCode Adapter] Emitting auth-error for provider:', error.providerID);
+          log.info(`[OpenCode Adapter] Emitting auth-error for provider: ${error.providerID}`);
           this.emit('auth-error', {
             providerId: error.providerID,
             message: errorMessage,
@@ -295,7 +298,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           try {
             this.ptyProcess.kill();
           } catch (err) {
-            console.warn('[OpenCode Adapter] Error killing PTY after log error:', err);
+            log.warn('[OpenCode Adapter] Error killing PTY after log error:', { error: String(err) });
           }
           this.ptyProcess = null;
         }
@@ -338,7 +341,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     const { command, args: baseArgs } = this.options.getCliCommand();
     const startMsg = `Starting: ${command} ${[...baseArgs, ...cliArgs].join(' ')}`;
-    console.log('[OpenCode CLI]', startMsg);
+    log.info(`[OpenCode CLI] ${startMsg}`);
     this.emit('debug', { type: 'info', message: startMsg });
 
     const env = await this.options.buildEnvironment(taskId);
@@ -357,16 +360,16 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
             dummyPackageJson,
             JSON.stringify({ name: 'opencode-workspace', private: true }, null, 2),
           );
-          console.log('[OpenCode CLI] Created workspace package.json at:', dummyPackageJson);
+          log.info(`[OpenCode CLI] Created workspace package.json at: ${dummyPackageJson}`);
         } catch (err) {
-          console.warn('[OpenCode CLI] Could not create workspace package.json:', err);
+          log.warn('[OpenCode CLI] Could not create workspace package.json:', { error: String(err) });
         }
       }
     }
 
-    console.log('[OpenCode CLI]', cmdMsg);
-    console.log('[OpenCode CLI]', argsMsg);
-    console.log('[OpenCode CLI]', cwdMsg);
+    log.info(`[OpenCode CLI] ${cmdMsg}`);
+    log.info(`[OpenCode CLI] ${argsMsg}`);
+    log.info(`[OpenCode CLI] ${cwdMsg}`);
 
     this.emit('debug', { type: 'info', message: cmdMsg });
     this.emit('debug', { type: 'info', message: argsMsg, data: { args: allArgs } });
@@ -376,7 +379,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       const { file: spawnFile, args: spawnArgs } = this.buildPtySpawnArgs(command, allArgs);
 
       const spawnMsg = `PTY spawn: ${spawnFile} ${spawnArgs.join(' ')}`;
-      console.log('[OpenCode CLI]', spawnMsg);
+      log.info(`[OpenCode CLI] ${spawnMsg}`);
       this.emit('debug', { type: 'info', message: spawnMsg });
 
       const sandboxedArgs = await this.sandboxProvider.wrapSpawnArgs(
@@ -397,7 +400,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         env: sandboxedArgs.env,
       });
       const pidMsg = `PTY Process PID: ${this.ptyProcess.pid}`;
-      console.log('[OpenCode CLI]', pidMsg);
+      log.info(`[OpenCode CLI] ${pidMsg}`);
       this.emit('debug', { type: 'info', message: pidMsg });
 
       this.emit('progress', { stage: 'loading', message: 'Loading agent...' });
@@ -418,7 +421,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           const truncated =
             passthroughData.substring(0, LOG_TRUNCATION_LIMIT) +
             (passthroughData.length > LOG_TRUNCATION_LIMIT ? '...' : '');
-          console.log('[OpenCode CLI stdout]:', truncated);
+          log.info(`[OpenCode CLI stdout]: ${truncated}`);
           this.emit('debug', { type: 'stdout', message: passthroughData });
 
           this.appendToOutputBuffer(passthroughData);
@@ -429,7 +432,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
       this.ptyProcess.onExit(({ exitCode, signal }) => {
         const exitMsg = `PTY Process exited with code: ${exitCode}, signal: ${signal}`;
-        console.log('[OpenCode CLI]', exitMsg);
+        log.info(`[OpenCode CLI] ${exitMsg}`);
         this.emit('debug', { type: 'exit', message: exitMsg, data: { exitCode, signal } });
         this.handleProcessExit(exitCode);
       });
@@ -458,7 +461,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     }
 
     this.ptyProcess.write(response + '\n');
-    console.log('[OpenCode CLI] Response sent via PTY');
+    log.info('[OpenCode CLI] Response sent via PTY');
   }
 
   async cancelTask(): Promise<void> {
@@ -470,20 +473,20 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
   async interruptTask(): Promise<void> {
     if (!this.ptyProcess) {
-      console.log('[OpenCode CLI] No active process to interrupt');
+      log.info('[OpenCode CLI] No active process to interrupt');
       return;
     }
 
     this.wasInterrupted = true;
 
     this.ptyProcess.write('\x03');
-    console.log('[OpenCode CLI] Sent Ctrl+C interrupt signal');
+    log.info('[OpenCode CLI] Sent Ctrl+C interrupt signal');
 
     if (this.options.platform === 'win32') {
       setTimeout(() => {
         if (this.ptyProcess) {
           this.ptyProcess.write('Y\n');
-          console.log('[OpenCode CLI] Sent Y to confirm batch termination');
+          log.info('[OpenCode CLI] Sent Y to confirm batch termination');
         }
       }, 100);
     }
@@ -510,13 +513,13 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       return;
     }
 
-    console.log(`[OpenCode Adapter] Disposing adapter for task ${this.currentTaskId}`);
+    log.info(`[OpenCode Adapter] Disposing adapter for task ${this.currentTaskId}`);
     this.isDisposed = true;
     this.browserFrameBuffer = '';
 
     if (this.logWatcher) {
       this.logWatcher.stop().catch((err) => {
-        console.warn('[OpenCode Adapter] Error stopping log watcher:', err);
+        log.warn(`[OpenCode Adapter] Error stopping log watcher: ${err}`);
       });
     }
 
@@ -524,7 +527,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       try {
         this.ptyProcess.kill();
       } catch (error) {
-        console.error('[OpenCode Adapter] Error killing PTY process:', error);
+        log.error(`[OpenCode Adapter] Error killing PTY process: ${error}`);
       }
       this.ptyProcess = null;
     }
@@ -545,7 +548,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.streamParser.reset();
     this.removeAllListeners();
 
-    console.log('[OpenCode Adapter] Adapter disposed');
+    log.info('[OpenCode Adapter] Adapter disposed');
   }
 
   private escapeShellArg(arg: string): string {
@@ -581,13 +584,13 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     });
 
     this.streamParser.on('error', (error: Error) => {
-      console.warn('[OpenCode Adapter] Stream parse warning:', error.message);
+      log.warn(`[OpenCode Adapter] Stream parse warning: ${error.message}`);
       this.emit('debug', { type: 'parse-warning', message: error.message });
     });
   }
 
   private handleMessage(message: OpenCodeMessage): void {
-    console.log('[OpenCode Adapter] Handling message type:', message.type);
+    log.info(`[OpenCode Adapter] Handling message type: ${message.type}`);
 
     switch (message.type) {
       case 'step_start': {
@@ -671,7 +674,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         this.emit('message', message);
         const toolUseStatus = toolUseMessage.part.state?.status;
 
-        console.log('[OpenCode Adapter] Tool use:', toolUseName, 'status:', toolUseStatus);
+        log.info(`[OpenCode Adapter] Tool use: ${toolUseName} status: ${toolUseStatus}`);
 
         if (toolUseStatus === 'completed' || toolUseStatus === 'error') {
           if (
@@ -699,7 +702,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
       case 'tool_result': {
         const toolOutput = message.part.output || '';
-        console.log('[OpenCode Adapter] Tool result received, length:', toolOutput.length);
+        log.info(`[OpenCode Adapter] Tool result received, length: ${toolOutput.length}`);
         this.emit('tool-result', toolOutput);
         break;
       }
@@ -725,7 +728,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         }
 
         const action = this.completionEnforcer.handleStepFinish(message.part.reason);
-        console.log(`[OpenCode Adapter] step_finish action: ${action}`);
+        log.info(`[OpenCode Adapter] step_finish action: ${action}`);
 
         if (action === 'complete' && !this.hasCompleted) {
           this.hasCompleted = true;
@@ -748,7 +751,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
       default: {
         const unknownMessage = message as unknown as { type: string };
-        console.log('[OpenCode Adapter] Unknown message type:', unknownMessage.type);
+        log.info(`[OpenCode Adapter] Unknown message type: ${unknownMessage.type}`);
       }
     }
   }
@@ -880,7 +883,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.ptyProcess = null;
 
     if (this.wasInterrupted && isNormalExit(code, this.options.platform) && !this.hasCompleted) {
-      console.log('[OpenCode CLI] Task was interrupted by user');
+      log.info('[OpenCode CLI] Task was interrupted by user');
       this.hasCompleted = true;
       this.emit('complete', {
         status: 'interrupted',
@@ -894,7 +897,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       // Normalize Windows Ctrl+C exit code to 0 so the completion enforcer treats it as a clean exit
       const normalizedCode = code === WINDOWS_CTRL_C_EXIT_CODE ? 0 : (code ?? 0);
       this.completionEnforcer.handleProcessExit(normalizedCode).catch((error) => {
-        console.error('[OpenCode Adapter] Completion enforcer error:', error);
+        log.error(`[OpenCode Adapter] Completion enforcer error: ${error}`);
         this.hasCompleted = true;
         this.emit('complete', {
           status: 'error',
@@ -920,7 +923,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       throw new Error('No session ID available for session resumption');
     }
 
-    console.log(`[OpenCode Adapter] Starting session resumption with session ${sessionId}`);
+    log.info(`[OpenCode Adapter] Starting session resumption with session ${sessionId}`);
 
     this.streamParser.reset();
     this.outputBuffer = '';
@@ -934,11 +937,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     const cliArgs = await this.options.buildCliArgs(config);
 
     const { command, args: baseArgs } = this.options.getCliCommand();
-    console.log(
-      '[OpenCode Adapter] Session resumption command:',
-      command,
-      [...baseArgs, ...cliArgs].join(' '),
-    );
+    log.info(`[OpenCode Adapter] Session resumption command: ${command} ${[...baseArgs, ...cliArgs].join(' ')}`);
 
     const env = await this.options.buildEnvironment(this.currentTaskId || 'default');
 
@@ -978,7 +977,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         const truncated =
           passthroughData.substring(0, LOG_TRUNCATION_LIMIT) +
           (passthroughData.length > LOG_TRUNCATION_LIMIT ? '...' : '');
-        console.log('[OpenCode CLI stdout]:', truncated);
+        log.info(`[OpenCode CLI stdout]: ${truncated}`);
         this.emit('debug', { type: 'stdout', message: passthroughData });
 
         this.appendToOutputBuffer(passthroughData);
@@ -1047,7 +1046,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     } as import('../../common/types/opencode.js').OpenCodeTextMessage;
 
     this.emit('message', syntheticMessage);
-    console.log('[OpenCode Adapter] Emitted synthetic plan message');
+    log.info('[OpenCode Adapter] Emitted synthetic plan message');
   }
 
   private pauseForConnectorAuth(input: ConnectorAuthPauseInput, sessionId?: string): void {
@@ -1086,7 +1085,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       input.message?.trim() ||
       `I need ${providerName} connected to continue. Click Authenticate ${providerName}.`;
 
-    console.log('[OpenCode Adapter] Pausing for connector auth', {
+    log.info('[OpenCode Adapter] Pausing for connector auth', {
       providerId,
       hasCustomMessage: Boolean(input.message?.trim()),
     });
@@ -1131,7 +1130,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       try {
         this.ptyProcess.kill();
       } catch (error) {
-        console.warn('[OpenCode Adapter] Error killing PTY during connector auth pause:', error);
+        log.warn(`[OpenCode Adapter] Error killing PTY during connector auth pause: ${error}`);
       }
       this.ptyProcess = null;
     }

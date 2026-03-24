@@ -1,6 +1,9 @@
 import http from 'http';
 import https from 'https';
 import { URL } from 'url';
+import { createConsoleLogger } from '../../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'MoonshotProxy' });
 
 const MOONSHOT_PROXY_PORT = 9229;
 const MAX_REQUEST_SIZE = 10 * 1024 * 1024;
@@ -107,7 +110,7 @@ function extractAndCacheReasoningContent(responseText: string): void {
     reasoningContentCache.set(hash, fullReasoningContent);
 
     if (DEBUG) {
-      console.log(
+      log.info(
         `[Moonshot Proxy] Cached reasoning_content (${fullReasoningContent.length} chars) for hash: ${hash.slice(0, 50)}...`,
       );
     }
@@ -155,12 +158,12 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
     let modified = false;
 
     if (DEBUG) {
-      console.log('[Moonshot Proxy] Incoming request keys:', Object.keys(parsed));
+      log.info(`[Moonshot Proxy] Incoming request keys: ${Object.keys(parsed)}`);
       if (Array.isArray(parsed.messages)) {
-        console.log('[Moonshot Proxy] Message count:', parsed.messages.length);
+        log.info(`[Moonshot Proxy] Message count: ${parsed.messages.length}`);
         parsed.messages.forEach((msg, i) => {
           const m = msg as Record<string, unknown>;
-          console.log(
+          log.info(
             `[Moonshot Proxy] Message ${i}: role=${m.role}, has_tool_calls=${Boolean(m.tool_calls)}, has_reasoning_content=${'reasoning_content' in m}`,
           );
         });
@@ -173,7 +176,7 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
         delete parsed[key];
         modified = true;
         if (DEBUG) {
-          console.log(`[Moonshot Proxy] Removed top-level key: ${key}`);
+          log.info(`[Moonshot Proxy] Removed top-level key: ${key}`);
         }
       }
     }
@@ -205,14 +208,14 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
           if (cachedReasoning) {
             msg.reasoning_content = cachedReasoning;
             if (DEBUG) {
-              console.log(
+              log.info(
                 `[Moonshot Proxy] Restored reasoning_content from cache (${cachedReasoning.length} chars)`,
               );
             }
           } else {
             msg.reasoning_content = 'Thinking...';
             if (DEBUG) {
-              console.log(`[Moonshot Proxy] No cached reasoning_content, using placeholder`);
+              log.info(`[Moonshot Proxy] No cached reasoning_content, using placeholder`);
             }
           }
           modified = true;
@@ -238,11 +241,11 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
     visitForMessages(parsed);
 
     if (DEBUG) {
-      console.log(`[Moonshot Proxy] Transform modified: ${modified}`);
+      log.info(`[Moonshot Proxy] Transform modified: ${modified}`);
       if (Array.isArray(parsed.messages)) {
         parsed.messages.forEach((msg, i) => {
           const m = msg as Record<string, unknown>;
-          console.log(
+          log.info(
             `[Moonshot Proxy] After transform msg ${i}: role=${m.role}, has_reasoning_content=${'reasoning_content' in m}, has_tool_calls=${Boolean(m.tool_calls)}`,
           );
         });
@@ -251,11 +254,11 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
 
     const result = Buffer.from(JSON.stringify(parsed), 'utf8');
     if (DEBUG && modified) {
-      console.log(`[Moonshot Proxy] Body transformed: ${body.length} -> ${result.length} bytes`);
+      log.info(`[Moonshot Proxy] Body transformed: ${body.length} -> ${result.length} bytes`);
     }
     return result;
   } catch (e) {
-    console.error('[Moonshot Proxy] Transform error:', e);
+    log.error(`[Moonshot Proxy] Transform error: ${e}`);
     return body;
   }
 }
@@ -289,7 +292,7 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
 
   const url = new URL(req.url || '/', 'http://localhost');
   if (!isValidRequestPath(url.pathname)) {
-    console.warn(`[Moonshot Proxy] Rejected invalid path: ${url.pathname}`);
+    log.warn(`[Moonshot Proxy] Rejected invalid path: ${url.pathname}`);
     res.writeHead(403, { 'Content-Type': 'application/json' });
     res.end(
       JSON.stringify({
@@ -311,7 +314,7 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
     totalSize += chunk.length;
     if (totalSize > MAX_REQUEST_SIZE) {
       aborted = true;
-      console.warn(`[Moonshot Proxy] Request exceeded size limit: ${totalSize} bytes`);
+      log.warn(`[Moonshot Proxy] Request exceeded size limit: ${totalSize} bytes`);
       res.writeHead(413, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Request too large. Maximum size is 10MB.' }));
       req.destroy();
@@ -328,8 +331,8 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
     const contentEncoding = req.headers['content-encoding'];
 
     if (DEBUG) {
-      console.log(`[Moonshot Proxy] Request: ${req.method} ${req.url}`);
-      console.log(
+      log.info(`[Moonshot Proxy] Request: ${req.method} ${req.url}`);
+      log.info(
         `[Moonshot Proxy] Content-Type: ${contentType}, Content-Encoding: ${contentEncoding}, Body size: ${rawBody.length}`,
       );
     }
@@ -340,7 +343,7 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
         : rawBody;
 
     if (DEBUG) {
-      console.log(`[Moonshot Proxy] Transformed body size: ${body.length} (was ${rawBody.length})`);
+      log.info(`[Moonshot Proxy] Transformed body size: ${body.length} (was ${rawBody.length})`);
     }
 
     const headers = { ...req.headers } as Record<string, string | string[] | undefined>;
@@ -373,19 +376,19 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
           extractAndCacheReasoningContent(responseText);
         } catch (e) {
           if (DEBUG) {
-            console.error('[Moonshot Proxy] Error extracting reasoning_content:', e);
+            log.error(`[Moonshot Proxy] Error extracting reasoning_content: ${e}`);
           }
         }
       });
 
       proxyRes.on('error', (err) => {
-        console.error('[Moonshot Proxy] Response stream error:', err);
+        log.error(`[Moonshot Proxy] Response stream error: ${err}`);
         res.end();
       });
     });
 
     proxy.on('error', (error) => {
-      console.error('[Moonshot Proxy] Request error:', error);
+      log.error(`[Moonshot Proxy] Request error: ${error}`);
       if (!res.headersSent) {
         res.writeHead(502, { 'Content-Type': 'application/json' });
       }
@@ -405,7 +408,7 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
   });
 
   req.on('error', (error) => {
-    console.error('[Moonshot Proxy] Incoming request error:', error);
+    log.error(`[Moonshot Proxy] Incoming request error: ${error}`);
     if (!res.headersSent) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
     }
@@ -441,7 +444,7 @@ export async function ensureMoonshotProxy(baseURL: string): Promise<MoonshotProx
 
       server!.listen(MOONSHOT_PROXY_PORT, '127.0.0.1', () => {
         clearTimeout(timeout);
-        console.log(`[Moonshot Proxy] Listening on port ${MOONSHOT_PROXY_PORT}`);
+        log.info(`[Moonshot Proxy] Listening on port ${MOONSHOT_PROXY_PORT}`);
         resolve();
       });
     });
@@ -461,7 +464,7 @@ export async function stopMoonshotProxy(): Promise<void> {
 
   await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
-      console.warn('[Moonshot Proxy] Shutdown timeout, forcing close');
+      log.warn('[Moonshot Proxy] Shutdown timeout, forcing close');
       server = null;
       targetBaseUrl = null;
       resolve();
@@ -470,10 +473,10 @@ export async function stopMoonshotProxy(): Promise<void> {
     server!.close((err) => {
       clearTimeout(timeout);
       if (err && (err as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') {
-        console.error('[Moonshot Proxy] Error during shutdown:', err);
+        log.error(`[Moonshot Proxy] Error during shutdown: ${err}`);
         reject(err);
       } else {
-        console.log('[Moonshot Proxy] Server stopped');
+        log.info('[Moonshot Proxy] Server stopped');
         resolve();
       }
     });

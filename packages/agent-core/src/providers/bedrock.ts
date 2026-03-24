@@ -3,6 +3,9 @@ import { fromIni } from '@aws-sdk/credential-providers';
 import type { BedrockCredentials } from '../common/types/auth.js';
 import { safeParseJson } from '../utils/json.js';
 import type { ValidationResult } from './validation.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'Bedrock' });
 
 /**
  * Validates AWS Bedrock credentials by making a test API call.
@@ -177,7 +180,7 @@ export async function fetchBedrockModels(
       }
     }
   } catch (error) {
-    console.error('[Bedrock] Failed to fetch models:', error);
+    log.error(`[Bedrock] Failed to fetch models: ${error}`);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return { success: false, error: errorMessage, models: [] };
   }

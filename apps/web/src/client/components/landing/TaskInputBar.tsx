@@ -3,6 +3,9 @@
 import { useRef, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAccomplish } from '@/lib/accomplish';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('TaskInputBar');
 import {
   ArrowUp,
   WarningCircle,
@@ -184,7 +187,7 @@ export function TaskInputBar({
       }, 0);
     },
     onError: (error) => {
-      console.error('[Speech] Error:', error.message);
+      logger.error('Speech error:', error.message);
     },
   });
 

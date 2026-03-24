@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('TaskStore');
 import {
   createMessageId,
   STARTUP_STAGES,
@@ -561,7 +564,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         set({ favorites, favoritesLoaded: true });
       }
     } catch (err) {
-      console.error('[taskStore] Failed to load favorites:', err);
+      logger.error('Failed to load favorites:', err);
     }
   },
 
@@ -727,7 +730,7 @@ if (typeof window !== 'undefined' && window.accomplish) {
     try {
       await state.loadTasks();
     } catch (err) {
-      console.error('[taskStore] Failed to load tasks after workspace change:', err);
+      logger.error('Failed to load tasks after workspace change:', err);
       return;
     }
 

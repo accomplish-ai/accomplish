@@ -11,6 +11,9 @@ import {
   setSkillEnabled as dbSetSkillEnabled,
   deleteSkill as dbDeleteSkill,
 } from '../../storage/repositories/skills.js';
+import { createConsoleLogger } from '../../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'SkillsManager' });
 
 export type { SkillsManagerOptions };
 
@@ -27,7 +30,7 @@ export class SkillsManager {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    console.log('[SkillsManager] Initializing...');
+    log.info('[SkillsManager] Initializing...');
 
     if (!fs.existsSync(this.userSkillsPath)) {
       fs.mkdirSync(this.userSkillsPath, { recursive: true });
@@ -36,11 +39,11 @@ export class SkillsManager {
     await this.resync();
 
     this.initialized = true;
-    console.log('[SkillsManager] Initialized');
+    log.info('[SkillsManager] Initialized');
   }
 
   async resync(): Promise<Skill[]> {
-    console.log('[SkillsManager] Resyncing skills...');
+    log.info('[SkillsManager] Resyncing skills...');
 
     const existingSkills = this.getAllSkills();
     const existingById = new Map(existingSkills.map((s) => [s.id, s]));
@@ -78,14 +81,14 @@ export class SkillsManager {
 
     for (const existingSkill of existingSkills) {
       if (!processedPaths.has(existingSkill.filePath)) {
-        console.log(
+        log.info(
           `[SkillsManager] Removing stale skill: ${existingSkill.name} (${existingSkill.filePath})`,
         );
         dbDeleteSkill(existingSkill.id);
       }
     }
 
-    console.log(`[SkillsManager] Synced ${allFoundSkills.length} skills`);
+    log.info(`[SkillsManager] Synced ${allFoundSkills.length} skills`);
 
     return this.getAllSkills();
   }
@@ -137,7 +140,7 @@ export class SkillsManager {
     }
 
     if (skill.source === 'official') {
-      console.warn('[SkillsManager] Cannot delete official skills');
+      log.warn('[SkillsManager] Cannot delete official skills');
       return false;
     }
 
@@ -191,7 +194,7 @@ export class SkillsManager {
           updatedAt: new Date().toISOString(),
         });
       } catch (err) {
-        console.error(`[SkillsManager] Failed to parse ${skillMdPath}:`, err);
+        log.error(`[SkillsManager] Failed to parse ${skillMdPath}: ${err}`);
       }
     }
 
@@ -282,7 +285,7 @@ export class SkillsManager {
   private async addFromUrl(rawUrl: string): Promise<Skill> {
     const fetchUrl = this.resolveGithubRawUrl(rawUrl);
 
-    console.log('[SkillsManager] Fetching from:', fetchUrl);
+    log.info(`[SkillsManager] Fetching from: ${fetchUrl}`);
 
     const response = await fetch(fetchUrl);
     if (!response.ok) {

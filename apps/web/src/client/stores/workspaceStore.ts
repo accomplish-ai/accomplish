@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('WorkspaceStore');
 import type {
   Workspace,
   WorkspaceCreateInput,
@@ -36,7 +39,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       ]);
       set({ workspaces, activeWorkspaceId: activeId, isLoading: false });
     } catch (err) {
-      console.error('[WorkspaceStore] Failed to load workspaces:', err);
+      logger.error('Failed to load workspaces:', err);
       set({ isLoading: false });
     }
   },
@@ -52,11 +55,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       if (result.success) {
         set({ activeWorkspaceId: id, isSwitching: false });
       } else {
-        console.warn('[WorkspaceStore] Workspace switch rejected:', result.reason);
+        logger.warn('Workspace switch rejected:', result.reason);
         set({ isSwitching: false });
       }
     } catch (err) {
-      console.error('[WorkspaceStore] Failed to switch workspace:', err);
+      logger.error('Failed to switch workspace:', err);
       set({ isSwitching: false });
     }
   },
@@ -70,7 +73,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       }));
       return workspace;
     } catch (err) {
-      console.error('[WorkspaceStore] Failed to create workspace:', err);
+      logger.error('Failed to create workspace:', err);
       return null;
     }
   },
@@ -86,7 +89,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       }
       return updated;
     } catch (err) {
-      console.error('[WorkspaceStore] Failed to update workspace:', err);
+      logger.error('Failed to update workspace:', err);
       return null;
     }
   },
@@ -102,7 +105,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       }
       return deleted;
     } catch (err) {
-      console.error('[WorkspaceStore] Failed to delete workspace:', err);
+      logger.error('Failed to delete workspace:', err);
       return false;
     }
   },

@@ -4,6 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../stores/taskStore';
 import { getAccomplish } from '../lib/accomplish';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('Execution');
 import { MAX_FILES } from '../lib/fileUtils';
 import { springs } from '../lib/animations';
 import { FAVORITABLE_STATUSES } from '../lib/task-utils';
@@ -550,7 +553,7 @@ export function ExecutionPage() {
         });
       }
     } catch (error) {
-      console.error('Failed to pick files:', error);
+      logger.error('Failed to pick files:', error);
     }
   };
 
@@ -565,7 +568,7 @@ export function ExecutionPage() {
     setIsDragging(false);
 
     if (!accomplish.processDroppedFiles) {
-      console.warn('Direct file drop is not supported in this environment yet.');
+      logger.warn('Direct file drop is not supported in this environment yet.');
       return;
     }
 
@@ -593,7 +596,7 @@ export function ExecutionPage() {
         try {
           filePath = accomplish.getFilePath(file);
         } catch (err) {
-          console.error(err);
+          logger.error('Unexpected error', err);
         }
       }
 
@@ -614,7 +617,7 @@ export function ExecutionPage() {
         });
       }
     } catch (err) {
-      console.error('Failed to process dropped files:', err);
+      logger.error('Failed to process dropped files:', err);
     }
   };
 
@@ -648,7 +651,7 @@ export function ExecutionPage() {
         }, 2500);
       }
     } catch (err) {
-      console.error('[Execution] Bug report failed:', err);
+      logger.error('Bug report failed:', err);
     } finally {
       setBugReporting(false);
     }
@@ -667,7 +670,7 @@ export function ExecutionPage() {
       const newTask = await accomplish.startTask({ prompt: currentTask.prompt });
       navigate(`/execution/${newTask.id}`);
     } catch (err) {
-      console.error('[Execution] Failed to repeat task:', err);
+      logger.error('Failed to repeat task:', err);
     } finally {
       setRepeatingTask(false);
     }

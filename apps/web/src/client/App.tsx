@@ -3,6 +3,7 @@ import { useOutlet, useLocation } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { isRunningInElectron, getAccomplish } from './lib/accomplish';
+import { logger } from './lib/logger';
 import { springs, variants } from './lib/animations';
 import type { ProviderId } from '@accomplish_ai/agent-core/common';
 import { OAuthProviderId } from '@accomplish_ai/agent-core/common';
@@ -116,7 +117,7 @@ export function App() {
         await accomplish.setOnboardingComplete(true);
         setStatus('ready');
       } catch (error) {
-        console.error('Failed to initialize app:', error);
+        logger.error('Failed to initialize app:', error);
         setStatus('ready');
       }
     };

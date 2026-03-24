@@ -20,6 +20,9 @@ import {
 } from '../shared';
 
 import zaiLogo from '/assets/ai-logos/zai.svg';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('ZaiProviderForm');
 
 interface ZaiProviderFormProps {
   connectedProvider?: ConnectedProvider;
@@ -75,10 +78,10 @@ export function ZaiProviderForm({
               ...connectedProvider!,
               availableModels: result.models,
             })
-            .catch(console.error);
+            .catch((err) => logger.error('Operation failed:', err));
         }
       })
-      .catch(console.error);
+      .catch((err) => logger.error('Operation failed:', err));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected]);
 

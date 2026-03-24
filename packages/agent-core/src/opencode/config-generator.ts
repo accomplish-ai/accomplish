@@ -4,6 +4,9 @@ import type { ProviderId } from '../common/types/providerSettings.js';
 import type { Skill } from '../common/types/skills.js';
 import { OPENCODE_SLACK_MCP_SERVER_URL, OPENCODE_SLACK_MCP_CLIENT_ID } from './auth.js';
 import { MCP_TOOL_TIMEOUT_MS } from '../common/constants.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'OpenCodeConfig' });
 
 export const ACCOMPLISH_AGENT_NAME = 'accomplish';
 
@@ -605,7 +608,7 @@ Example bad narration (too terse):
   const configJson = JSON.stringify(config, null, 2);
   fs.writeFileSync(configPath, configJson);
 
-  console.log('[OpenCode Config] Generated config at:', configPath);
+  log.info(`[OpenCode Config] Generated config at: ${configPath}`);
 
   const environment: Record<string, string> = {
     OPENCODE_CONFIG: configPath,
