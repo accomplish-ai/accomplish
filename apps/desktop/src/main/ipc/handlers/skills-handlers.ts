@@ -24,16 +24,12 @@ export function registerSkillsHandlers(): void {
     return skillsManager.getUserSkillsPath();
   });
 
-  handle('skills:pick-file', async (event: IpcMainInvokeEvent) => {
+  handle('skills:pick-folder', async (event: IpcMainInvokeEvent) => {
     const mainWindow =
       BrowserWindow.fromWebContents(event.sender) ?? BrowserWindow.getAllWindows()[0];
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: 'Select a SKILL.md file',
-      filters: [
-        { name: 'Skill Files', extensions: ['md'] },
-        { name: 'All Files', extensions: ['*'] },
-      ],
-      properties: ['openFile'],
+      title: 'Select a skill folder',
+      properties: ['openDirectory'],
     });
     if (result.canceled || result.filePaths.length === 0) {
       return null;
@@ -41,8 +37,8 @@ export function registerSkillsHandlers(): void {
     return result.filePaths[0];
   });
 
-  handle('skills:add-from-file', async (_event: IpcMainInvokeEvent, filePath: string) => {
-    return skillsManager.addFromFile(filePath);
+  handle('skills:add-from-folder', async (_event: IpcMainInvokeEvent, folderPath: string) => {
+    return skillsManager.addFromFolder(folderPath);
   });
 
   handle('skills:add-from-github', async (_event: IpcMainInvokeEvent, rawUrl: string) => {
@@ -69,3 +65,4 @@ export function registerSkillsHandlers(): void {
     shell.showItemInFolder(filePath);
   });
 }
+// ensure CI

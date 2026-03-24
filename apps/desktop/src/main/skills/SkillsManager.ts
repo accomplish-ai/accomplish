@@ -69,6 +69,10 @@ export class SkillsManager {
     return this.getCoreManager().addSkill(sourcePath);
   }
 
+  async addFromFolder(folderPath: string) {
+    return this.getCoreManager().addSkill(folderPath);
+  }
+
   async addFromGitHub(rawUrl: string) {
     return this.getCoreManager().addSkill(rawUrl);
   }

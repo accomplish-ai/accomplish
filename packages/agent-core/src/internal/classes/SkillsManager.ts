@@ -122,6 +122,11 @@ export class SkillsManager {
       return this.addFromUrl(sourcePath);
     }
 
+    const stat = fs.statSync(sourcePath);
+    if (stat.isDirectory()) {
+      return this.addFromFolder(sourcePath);
+    }
+
     return this.addFromFile(sourcePath);
   }
 
@@ -236,6 +241,42 @@ export class SkillsManager {
     const destPath = this.prepareSkillDir(frontmatter);
     fs.copyFileSync(sourcePath, destPath);
     return this.persistSkill(frontmatter, destPath, 'custom');
+  }
+
+  private addFromFolder(folderPath: string): Skill {
+    const skillMdPath = path.join(folderPath, 'SKILL.md');
+    if (!fs.existsSync(skillMdPath)) {
+      throw new Error(`Selected folder does not contain a SKILL.md file: ${folderPath}`);
+    }
+
+    const content = fs.readFileSync(skillMdPath, 'utf-8');
+    const frontmatter = this.validateSkillFrontmatter(content);
+    const destSkillMdPath = this.prepareSkillDir(frontmatter);
+    const destDir = path.dirname(destSkillMdPath);
+
+    const resolvedSourceDir = path.resolve(folderPath);
+    const resolvedDestDir = path.resolve(destDir);
+
+    // Skip delete+copy when re-importing an already-installed skill (same directory)
+    if (resolvedSourceDir === resolvedDestDir) {
+      return this.persistSkill(frontmatter, destSkillMdPath, 'custom');
+    }
+
+    // Remove existing contents so re-imports don't leave stale files
+    if (fs.existsSync(destDir)) {
+      fs.rmSync(destDir, { recursive: true });
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+
+    // Copy only top-level files from source folder
+    const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isFile()) {
+        fs.copyFileSync(path.join(folderPath, entry.name), path.join(destDir, entry.name));
+      }
+    }
+
+    return this.persistSkill(frontmatter, destSkillMdPath, 'custom');
   }
 
   private async addFromUrl(rawUrl: string): Promise<Skill> {
