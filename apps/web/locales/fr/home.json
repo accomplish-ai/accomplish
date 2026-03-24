@@ -72,6 +72,7 @@
     "showAll_many": "Afficher les {{count}} favoris",
     "showAll_other": "Afficher les {{count}} favoris"
   },
+  "selectFolder": "Sélectionner un dossier",
   "selectedFolder": {
     "badge": "📁 {folder}",
     "clearAriaLabel": "Effacer le dossier sélectionné",

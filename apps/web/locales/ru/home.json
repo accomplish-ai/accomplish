@@ -72,6 +72,7 @@
     "showAll_other": "Показать {{count}} избранных",
     "showAll": "Показать все {{count}} избранных"
   },
+  "selectFolder": "Выбрать папку",
   "selectedFolder": {
     "badge": "📁 {folder}",
     "clearAriaLabel": "Очистить выбранную папку",

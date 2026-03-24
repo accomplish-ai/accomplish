@@ -175,7 +175,7 @@ function createWindow() {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          `default-src 'self' https:; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: ws: wss:; font-src 'self' https: data:`,
+          `default-src 'self' https:; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: ws: wss:; font-src 'self' https: data:; worker-src 'self' blob:`,
         ],
       },
     });
@@ -354,9 +354,28 @@ if (!gotTheLock) {
     }
 
     app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) {
+      const windows = BrowserWindow.getAllWindows();
+      if (windows.length === 0) {
         createWindow();
-        console.log('[Main] Application reactivated; recreated window');
+        try {
+          const l = getLogCollector();
+          if (l?.logEnv) {
+            l.logEnv('INFO', '[Main] Application reactivated; recreated window');
+          }
+        } catch (_e) {
+          /* ignore */
+        }
+      } else {
+        windows[0].show();
+        windows[0].focus();
+        try {
+          const l = getLogCollector();
+          if (l?.logEnv) {
+            l.logEnv('INFO', '[Main] Application reactivated; showed existing window');
+          }
+        } catch (_e) {
+          /* ignore */
+        }
       }
     });
   });

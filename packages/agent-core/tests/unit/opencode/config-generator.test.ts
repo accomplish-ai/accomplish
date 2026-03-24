@@ -240,8 +240,12 @@ describe('ConfigGenerator', () => {
 
       const result = generateConfig(options);
 
-      expect(result.mcpServers['file-permission'].environment?.PERMISSION_API_PORT).toBe(String(PERMISSION_API_PORT));
-      expect(result.mcpServers['desktop-control'].environment?.PERMISSION_API_PORT).toBe(String(PERMISSION_API_PORT));
+      expect(result.mcpServers['file-permission'].environment?.PERMISSION_API_PORT).toBe(
+        String(PERMISSION_API_PORT),
+      );
+      expect(result.mcpServers['desktop-control'].environment?.PERMISSION_API_PORT).toBe(
+        String(PERMISSION_API_PORT),
+      );
       expect(result.mcpServers['ask-user-question'].environment?.QUESTION_API_PORT).toBe('9227');
     });
 

@@ -72,6 +72,7 @@
       "prompt": "从 Eventbrite 抓取活动列表，按地点筛选，并将前 5 个添加到我的日历。"
     }
   },
+  "selectFolder": "选择文件夹",
   "selectedFolder": {
     "badge": "📁 {folder}",
     "clearAriaLabel": "清除所选文件夹",

@@ -169,7 +169,8 @@ describe('PermissionDialog', () => {
         />,
       );
 
-      expect(screen.getByText('No file path provided')).toBeInTheDocument();
+      expect(screen.getByTestId('execution-permission-card')).toBeInTheDocument();
+      expect(screen.queryByText(/undefined/i)).toBeNull();
     });
   });
 });

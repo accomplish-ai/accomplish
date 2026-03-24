@@ -191,13 +191,15 @@ export function startPermissionApiServer(): http.Server {
           // Exclude the `operation` key and show the remaining details as the
           // file path field so the permission UI has human-readable context.
           filePath: JSON.stringify(
-            Object.fromEntries(
-              Object.entries(parsed).filter(([k]) => k !== 'operation'),
-            ),
+            Object.fromEntries(Object.entries(parsed).filter(([k]) => k !== 'operation')),
           ),
         } as unknown as FilePermissionRequestData)
       : data;
-    const permissionRequest = permissionHandler.buildFilePermissionRequest(requestId, taskId, uiData);
+    const permissionRequest = permissionHandler.buildFilePermissionRequest(
+      requestId,
+      taskId,
+      uiData,
+    );
 
     // Send to renderer (Electron-specific)
     currentWindow.webContents.send('permission:request', permissionRequest);
