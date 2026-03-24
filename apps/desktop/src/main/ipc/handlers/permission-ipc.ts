@@ -13,6 +13,7 @@ import {
 } from '../../permission-api';
 import { permissionResponseSchema, validate } from '../../ipc/validation';
 import { handle } from './utils';
+import { getLogCollector } from '../../logging';
 
 /**
  * Creates a one-shot initializer for the permission/question API servers.
@@ -80,7 +81,18 @@ export function registerPermissionHandlers(taskManager: TaskManagerAPI): Permiss
       if (resolved) {
         return;
       }
-      console.warn(`[IPC] File permission request ${requestId} not found in pending requests`);
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log(
+            'WARN',
+            'ipc',
+            `[IPC] File permission request ${requestId} not found in pending requests`,
+          );
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
       return;
     }
 
@@ -94,12 +106,26 @@ export function registerPermissionHandlers(taskManager: TaskManagerAPI): Permiss
       if (resolved) {
         return;
       }
-      console.warn(`[IPC] Question request ${requestId} not found in pending requests`);
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('WARN', 'ipc', `[IPC] Question request ${requestId} not found in pending requests`);
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
       return;
     }
 
     if (!taskManager.hasActiveTask(taskId)) {
-      console.warn(`[IPC] Permission response for inactive task ${taskId}`);
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('WARN', 'ipc', `[IPC] Permission response for inactive task ${taskId}`);
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
       return;
     }
 

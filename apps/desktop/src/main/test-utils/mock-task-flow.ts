@@ -2,6 +2,7 @@ import { BrowserWindow } from 'electron';
 import type { Task, TaskMessage } from '@accomplish_ai/agent-core';
 import { createMessageId } from '@accomplish_ai/agent-core';
 import { getStorage } from '../store/storage';
+import { getLogCollector } from '../logging';
 
 export type MockScenario =
   | 'success'
@@ -70,7 +71,14 @@ export async function executeMockTaskFlow(
   const { taskId, prompt, scenario, delayMs = 100 } = config;
 
   if (window.isDestroyed()) {
-    console.warn('[MockTaskFlow] Window destroyed, skipping mock flow');
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('WARN', 'main', '[MockTaskFlow] Window destroyed, skipping mock flow');
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
     return;
   }
 

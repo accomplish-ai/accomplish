@@ -28,6 +28,7 @@ import {
 import * as workspaceManager from '../../store/workspaceManager';
 import { createTaskCallbacks } from '../../ipc/task-callbacks';
 import { handle, assertTrustedWindow } from './utils';
+import { getLogCollector } from '../../logging';
 import { registerPermissionHandlers } from './permission-ipc';
 import { sanitizeAttachments } from './attachment-utils';
 
@@ -90,7 +91,14 @@ export function registerTaskHandlers(): void {
         }
       })
       .catch((err) => {
-        console.warn('[IPC] Failed to generate task summary:', err);
+        try {
+          const l = getLogCollector();
+          if (l?.log) {
+            l.log('WARN', 'ipc', '[IPC] Failed to generate task summary', { err: String(err) });
+          }
+        } catch (_e) {
+          /* best-effort logging */
+        }
       });
 
     return task;

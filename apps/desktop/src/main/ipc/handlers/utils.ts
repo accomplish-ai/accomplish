@@ -1,6 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import { normalizeIpcError } from '../../ipc/validation';
+import { getLogCollector } from '../../logging';
 
 export const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
 export const MAX_ATTACHMENT_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -34,7 +35,14 @@ export function handle<Args extends unknown[], ReturnType = unknown>(
     try {
       return await handler(event, ...(args as Args));
     } catch (error) {
-      console.error(`IPC handler ${channel} failed`, error);
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('ERROR', 'ipc', `IPC handler ${channel} failed`, { error: String(error) });
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
       throw normalizeIpcError(error);
     }
   });

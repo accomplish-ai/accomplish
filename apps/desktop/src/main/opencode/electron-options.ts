@@ -25,6 +25,18 @@ import type {
   VertexCredentials,
 } from '@accomplish_ai/agent-core';
 import { getStorage } from '../store/storage';
+import { getLogCollector } from '../logging';
+
+function logOC(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
+  try {
+    const l = getLogCollector();
+    if (l?.log) {
+      l.log(level, 'opencode', msg, data);
+    }
+  } catch (_e) {
+    /* best-effort logging */
+  }
+}
 import { getAllApiKeys, getBedrockCredentials, getApiKey } from '../store/secureStorage';
 import {
   generateOpenCodeConfig,
@@ -48,10 +60,10 @@ export function cleanupVertexServiceAccountKey(): void {
     const keyPath = path.join(app.getPath('userData'), VERTEX_SA_KEY_FILENAME);
     if (fs.existsSync(keyPath)) {
       fs.unlinkSync(keyPath);
-      console.log('[Vertex] Cleaned up service account key file');
+      logOC('INFO', '[Vertex] Cleaned up service account key file');
     }
   } catch (error) {
-    console.warn('[Vertex] Failed to clean up service account key file:', error);
+    logOC('WARN', '[Vertex] Failed to clean up service account key file', { error: String(error) });
   }
 }
 
@@ -157,7 +169,7 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
   if (process.platform === 'win32') {
     env.Path = combinedPath;
   }
-  console.log('[OpenCode CLI] Added bundled Node.js to PATH:', bundledNode.binDir);
+  logOC('INFO', `[OpenCode CLI] Added bundled Node.js to PATH: ${bundledNode.binDir}`);
 
   if (process.platform === 'darwin') {
     env.PATH = getExtendedNodePath(env.PATH);
@@ -195,7 +207,7 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
         fs.writeFileSync(vertexServiceAccountKeyPath, parsed.serviceAccountJson, { mode: 0o600 });
       }
     } catch {
-      console.warn('[OpenCode CLI] Failed to parse Vertex credentials');
+      logOC('WARN', '[OpenCode CLI] Failed to parse Vertex credentials');
     }
   }
 
@@ -215,7 +227,7 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
   env = buildOpenCodeEnvironment(env, envConfig);
 
   if (taskId) {
-    console.log('[OpenCode CLI] Task ID in environment:', taskId);
+    logOC('INFO', `[OpenCode CLI] Task ID in environment: ${taskId}`);
   }
 
   return env;
@@ -313,7 +325,7 @@ export async function recoverDevBrowserServer(
   const force = options?.force === true;
 
   if (!force && now - lastBrowserRecoveryAt < BROWSER_RECOVERY_COOLDOWN_MS) {
-    console.log(`[Browser] Recovery skipped due to cooldown (${BROWSER_RECOVERY_COOLDOWN_MS}ms)`);
+    logOC('INFO', `[Browser] Recovery skipped due to cooldown (${BROWSER_RECOVERY_COOLDOWN_MS}ms)`);
     return false;
   }
 

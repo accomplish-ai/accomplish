@@ -13,6 +13,18 @@ import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
+import { getLogCollector } from '../logging';
+
+function logD(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
+  try {
+    const l = getLogCollector();
+    if (l?.log) {
+      l.log(level, 'daemon', msg, data);
+    }
+  } catch (_e) {
+    /* best-effort logging */
+  }
+}
 
 /** Whether the daemon is registered to auto-start on login. */
 export function isAutoStartEnabled(): boolean {
@@ -27,7 +39,7 @@ export function isAutoStartEnabled(): boolean {
 
 /** Register the daemon to auto-start on login. */
 export function enableAutoStart(): void {
-  console.log('[ServiceManager] Enabling auto-start for platform:', process.platform);
+  logD('INFO', `[ServiceManager] Enabling auto-start for platform: ${process.platform}`);
 
   if (process.platform === 'linux') {
     installSystemdService();
@@ -40,12 +52,12 @@ export function enableAutoStart(): void {
     openAsHidden: true,
   });
 
-  console.log('[ServiceManager] Auto-start enabled via Electron login item');
+  logD('INFO', '[ServiceManager] Auto-start enabled via Electron login item');
 }
 
 /** Unregister the daemon from auto-starting on login. */
 export function disableAutoStart(): void {
-  console.log('[ServiceManager] Disabling auto-start for platform:', process.platform);
+  logD('INFO', `[ServiceManager] Disabling auto-start for platform: ${process.platform}`);
 
   if (process.platform === 'linux') {
     uninstallSystemdService();
@@ -57,7 +69,7 @@ export function disableAutoStart(): void {
     openAtLogin: false,
   });
 
-  console.log('[ServiceManager] Auto-start disabled');
+  logD('INFO', '[ServiceManager] Auto-start disabled');
 }
 
 // =============================================================================
@@ -104,15 +116,15 @@ function installSystemdService(): void {
 
   // Write service file
   fs.writeFileSync(servicePath, getServiceContent(), { mode: 0o644 });
-  console.log('[ServiceManager] Wrote systemd service to:', servicePath);
+  logD('INFO', `[ServiceManager] Wrote systemd service to: ${servicePath}`);
 
   // Enable and reload
   try {
     execSync('systemctl --user daemon-reload', { stdio: 'pipe' });
     execSync(`systemctl --user enable ${SYSTEMD_SERVICE_NAME}`, { stdio: 'pipe' });
-    console.log('[ServiceManager] systemd user service enabled');
+    logD('INFO', '[ServiceManager] systemd user service enabled');
   } catch (err) {
-    console.error('[ServiceManager] Failed to enable systemd service:', err);
+    logD('ERROR', '[ServiceManager] Failed to enable systemd service', { err: String(err) });
     throw err;
   }
 }
@@ -123,14 +135,14 @@ function uninstallSystemdService(): void {
   try {
     execSync(`systemctl --user disable ${SYSTEMD_SERVICE_NAME}`, { stdio: 'pipe' });
     execSync(`systemctl --user stop ${SYSTEMD_SERVICE_NAME}`, { stdio: 'pipe' });
-    console.log('[ServiceManager] systemd user service disabled and stopped');
+    logD('INFO', '[ServiceManager] systemd user service disabled and stopped');
   } catch {
     // Service might not be running — that's fine
   }
 
   if (fs.existsSync(servicePath)) {
     fs.unlinkSync(servicePath);
-    console.log('[ServiceManager] Removed service file:', servicePath);
+    logD('INFO', `[ServiceManager] Removed service file: ${servicePath}`);
   }
 
   try {

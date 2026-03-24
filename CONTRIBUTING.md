@@ -18,6 +18,33 @@ pnpm typecheck    # Run TypeScript checks
 pnpm lint         # Run linting
 ```
 
+## Testing
+
+Before opening a pull request, ensure your changes don't break existing functionality by running the appropriate tests:
+
+### Web UI (apps/web)
+
+```bash
+pnpm -F @accomplish/web test                    # Run all web tests
+pnpm -F @accomplish/web test:unit               # Unit tests only
+pnpm -F @accomplish/web test:integration        # Integration tests only
+```
+
+### Desktop App (apps/desktop)
+
+```bash
+pnpm -F @accomplish/desktop test                # Run all desktop tests
+pnpm -F @accomplish/desktop test:unit           # Unit tests only
+pnpm -F @accomplish/desktop test:integration    # Integration tests only
+pnpm -F @accomplish/desktop test:e2e            # Docker-based E2E tests
+```
+
+### Core Logic (packages/agent-core)
+
+```bash
+pnpm -F @accomplish_ai/agent-core test          # Run core tests
+```
+
 ## Code Style
 
 - TypeScript for all application code
