@@ -625,9 +625,7 @@ export async function buildProviderConfigs(
   if (minimaxProvider?.connectionStatus === 'connected' && minimaxProvider.selectedModelId) {
     const modelId = minimaxProvider.selectedModelId.replace(/^minimax\//, '');
     const minimaxApiKey = getApiKey('minimax');
-    const rawBaseUrl = (minimaxProvider.customBaseUrl || MINIMAX_DEFAULT_BASE_URL)
-      .toString()
-      .trim();
+    const rawBaseUrl = (minimaxProvider.customBaseUrl || MINIMAX_DEFAULT_BASE_URL).trim();
     const baseUrl = rawBaseUrl.replace(/\/+$/, '') || MINIMAX_DEFAULT_BASE_URL;
     providerConfigs.push({
       id: 'minimax',

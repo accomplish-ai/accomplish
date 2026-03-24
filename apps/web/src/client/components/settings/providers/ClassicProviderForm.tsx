@@ -125,6 +125,19 @@ export function ClassicProviderForm({
       }
     }
 
+    if (hasEditableBaseUrl && customBaseUrl.trim()) {
+      try {
+        const parsed = new URL(customBaseUrl.trim());
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          setError(t('connectors.urlMustBeHttp'));
+          return;
+        }
+      } catch {
+        setError(t('connectors.invalidUrl'));
+        return;
+      }
+    }
+
     setConnecting(true);
     setError(null);
 
