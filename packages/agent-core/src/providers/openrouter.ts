@@ -1,4 +1,7 @@
 import { fetchWithTimeout } from '../utils/fetch.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'OpenRouter' });
 
 const DEFAULT_TIMEOUT_MS = 10000;
 
@@ -63,11 +66,11 @@ export async function fetchOpenRouterModels(
       };
     });
 
-    console.log(`[OpenRouter] Fetched ${models.length} models`);
+    log.info(`[OpenRouter] Fetched ${models.length} models`);
     return { success: true, models };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch models';
-    console.warn('[OpenRouter] Fetch failed:', message);
+    log.warn(`[OpenRouter] Fetch failed: ${message}`);
 
     if (error instanceof Error && error.name === 'AbortError') {
       return { success: false, error: 'Request timed out. Check your internet connection.' };

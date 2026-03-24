@@ -1,6 +1,9 @@
 import { CompletionState, CompletionFlowState, CompleteTaskArgs } from './completion-state.js';
 import { getContinuationPrompt, getPartialContinuationPrompt } from './prompts.js';
 import type { TodoItem } from '../../common/types/todo.js';
+import { createConsoleLogger } from '../../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'CompletionEnforcer' });
 
 export interface CompletionEnforcerCallbacks {
   onStartContinuation: (prompt: string) => Promise<void>;
@@ -119,7 +122,7 @@ export class CompletionEnforcer {
         return 'pending';
       }
 
-      console.warn(
+      log.warn(
         `[CompletionEnforcer] Agent stopped without complete_task. State: ${CompletionFlowState[this.state.getState()]}, attempts: ${this.state.getContinuationAttempts()}/${this.state.getMaxContinuationAttempts()}`,
       );
     }
@@ -141,7 +144,7 @@ export class CompletionEnforcer {
       const canContinue = this.state.startPartialContinuation();
 
       if (!canContinue) {
-        console.warn('[CompletionEnforcer] Max partial continuation attempts reached');
+        log.warn('[CompletionEnforcer] Max partial continuation attempts reached');
         this.callbacks.onComplete();
         return;
       }

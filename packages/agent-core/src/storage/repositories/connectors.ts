@@ -5,6 +5,9 @@ import type {
   OAuthClientRegistration,
 } from '../../common/types/connector.js';
 import { getDatabase } from '../database.js';
+import { createConsoleLogger } from '../../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'Connectors' });
 
 interface ConnectorRow {
   id: string;
@@ -24,7 +27,7 @@ function safeJsonParse<T>(json: string | null): T | undefined {
   try {
     return JSON.parse(json) as T;
   } catch {
-    console.error('Failed to parse JSON from database:', json.slice(0, 100));
+    log.error(`Failed to parse JSON from database: ${json.slice(0, 100)}`);
     return undefined;
   }
 }

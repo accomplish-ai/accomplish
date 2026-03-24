@@ -1,5 +1,8 @@
 import type { ToolSupportStatus } from '../common/types/providerSettings.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'ToolSupportTesting' });
 
 /**
  * Options for testing tool support on a local LLM model
@@ -91,10 +94,10 @@ export async function testModelToolSupport(
         errorText.includes('function') ||
         errorText.includes('does not support')
       ) {
-        console.log(`[${providerName}] Model ${modelId} does not support tools (error response)`);
+        log.info(`[${providerName}] Model ${modelId} does not support tools (error response)`);
         return 'unsupported';
       }
-      console.warn(`[${providerName}] Tool test failed for ${modelId}: ${response.status}`);
+      log.warn(`[${providerName}] Tool test failed for ${modelId}: ${response.status}`);
       return 'unknown';
     }
 
@@ -102,12 +105,12 @@ export async function testModelToolSupport(
 
     const choice = data.choices?.[0];
     if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
-      console.log(`[${providerName}] Model ${modelId} supports tools (made tool call)`);
+      log.info(`[${providerName}] Model ${modelId} supports tools (made tool call)`);
       return 'supported';
     }
 
     if (choice?.finish_reason === 'tool_calls') {
-      console.log(`[${providerName}] Model ${modelId} supports tools (finish_reason)`);
+      log.info(`[${providerName}] Model ${modelId} supports tools (finish_reason)`);
       return 'supported';
     }
 
@@ -115,15 +118,15 @@ export async function testModelToolSupport(
   } catch (error) {
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        console.warn(`[${providerName}] Tool test timed out for ${modelId}`);
+        log.warn(`[${providerName}] Tool test timed out for ${modelId}`);
         return 'unknown';
       }
       if (error.message.includes('tool') || error.message.includes('function')) {
-        console.log(`[${providerName}] Model ${modelId} does not support tools (exception)`);
+        log.info(`[${providerName}] Model ${modelId} does not support tools (exception)`);
         return 'unsupported';
       }
     }
-    console.warn(`[${providerName}] Tool test error for ${modelId}:`, error);
+    log.warn(`[${providerName}] Tool test error for ${modelId}: ${error}`);
     return 'unknown';
   }
 }
@@ -152,28 +155,28 @@ export async function testOllamaModelToolSupport(
     );
 
     if (!response.ok) {
-      console.warn(`[Ollama] /api/show failed for ${modelId}: ${response.status}`);
+      log.warn(`[Ollama] /api/show failed for ${modelId}: ${response.status}`);
       return 'unknown';
     }
 
     const data = (await response.json()) as { capabilities?: string[] };
 
     if (data.capabilities?.includes('tools')) {
-      console.log(`[Ollama] Model ${modelId} supports tools (capabilities)`);
+      log.info(`[Ollama] Model ${modelId} supports tools (capabilities)`);
       return 'supported';
     }
 
     if (Array.isArray(data.capabilities)) {
-      console.log(
+      log.info(
         `[Ollama] Model ${modelId} does not support tools (capabilities: ${data.capabilities.join(', ')})`,
       );
       return 'unsupported';
     }
 
-    console.log(`[Ollama] Model ${modelId} has no capabilities field`);
+    log.info(`[Ollama] Model ${modelId} has no capabilities field`);
     return 'unknown';
   } catch (error) {
-    console.warn(`[Ollama] Tool check error for ${modelId}:`, error);
+    log.warn(`[Ollama] Tool check error for ${modelId}: ${error}`);
     return 'unknown';
   }
 }

@@ -1,5 +1,8 @@
 import { EventEmitter } from 'events';
 import type { OpenCodeMessage } from '../../common/types/opencode.js';
+import { createConsoleLogger } from '../../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'StreamParser' });
 
 export interface StreamParserEvents {
   message: [OpenCodeMessage];
@@ -33,7 +36,7 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
       if (startIdx > 0) {
         const skipped = this.buffer.substring(0, startIdx).trim();
         if (skipped) {
-          console.log('[StreamParser] Skipping non-JSON content:', skipped.substring(0, 50));
+          log.info(`[StreamParser] Skipping non-JSON content: ${skipped.substring(0, 50)}`);
         }
         this.buffer = this.buffer.substring(startIdx);
       }
@@ -100,17 +103,17 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
 
     try {
       const message = JSON.parse(sanitized) as OpenCodeMessage;
-      console.log('[StreamParser] Parsed message type:', message.type);
+      log.info(`[StreamParser] Parsed message type: ${message.type}`);
       this.emitMessage(message);
     } catch (e) {
-      console.log('[StreamParser] Failed to parse JSON:', sanitized.substring(0, 100), e);
+      log.info(`[StreamParser] Failed to parse JSON: ${sanitized.substring(0, 100)}`, { error: String(e) });
     }
   }
 
   private emitMessage(message: OpenCodeMessage): void {
     if (message.type === 'tool_call' || message.type === 'tool_result') {
       const part = message.part as Record<string, unknown>;
-      console.log('[StreamParser] Tool message details:', {
+      log.info('[StreamParser] Tool message details:', {
         type: message.type,
         tool: part?.tool,
         hasInput: !!part?.input,
@@ -126,8 +129,8 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
         output.includes('dev-browser') ||
         output.includes('browser')
       ) {
-        console.log('[StreamParser] >>> DEV-BROWSER MESSAGE <<<');
-        console.log('[StreamParser] Full message:', JSON.stringify(message, null, 2));
+        log.info('[StreamParser] >>> DEV-BROWSER MESSAGE <<<');
+        log.info(`[StreamParser] Full message: ${JSON.stringify(message, null, 2)}`);
       }
     }
 
