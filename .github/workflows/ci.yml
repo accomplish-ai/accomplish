@@ -179,7 +179,14 @@ jobs:
 
       - name: Load cached Docker image
         if: steps.docker-cache.outputs.cache-hit == 'true'
-        run: docker load -i /tmp/e2e-image.tar
+        run: |
+          docker load -i /tmp/e2e-image.tar
+          # Re-tag to what run-e2e.sh will look for
+          LOADED_TAG="$(docker images 'accomplish-e2e' --format '{{.Repository}}:{{.Tag}}' | head -1)"
+          EXPECTED_TAG="$(bash apps/desktop/e2e/docker/run-e2e.sh --print-tag)"
+          if [ "$LOADED_TAG" != "$EXPECTED_TAG" ] && [ -n "$LOADED_TAG" ]; then
+            docker tag "$LOADED_TAG" "$EXPECTED_TAG"
+          fi
 
       - name: Build E2E Docker image
         if: steps.docker-cache.outputs.cache-hit != 'true'

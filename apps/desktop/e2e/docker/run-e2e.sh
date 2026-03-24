@@ -16,7 +16,9 @@ CACHE_INPUT=$(
       "$REPO_ROOT/pnpm-workspace.yaml" \
       "$REPO_ROOT/package.json" \
       "$REPO_ROOT/packages/agent-core/package.json" \
-      "$REPO_ROOT/apps/desktop/package.json"
+      "$REPO_ROOT/apps/desktop/package.json" \
+      "$REPO_ROOT/apps/web/package.json" \
+      "$REPO_ROOT/apps/daemon/package.json"
     find \
       "$REPO_ROOT/scripts" \
       "$REPO_ROOT/apps/desktop/scripts" \
@@ -25,6 +27,12 @@ CACHE_INPUT=$(
   } | sha256sum | cut -c1-12
 )
 IMAGE_NAME="accomplish-e2e:${CACHE_INPUT}"
+
+# Support --print-tag flag: print the image tag this script would use and exit
+if [ "$1" = "--print-tag" ]; then
+  echo "$IMAGE_NAME"
+  exit 0
+fi
 
 # Build image only if it doesn't exist locally
 if ! docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
