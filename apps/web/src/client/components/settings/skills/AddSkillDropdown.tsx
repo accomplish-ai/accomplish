@@ -39,12 +39,12 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
     try {
       setIsLoading(true);
       setUploadError(null);
-      const filePath = await window.accomplish.pickSkillFile();
-      if (!filePath) {
+      const folderPath = await window.accomplish.pickSkillFolder();
+      if (!folderPath) {
         setIsLoading(false);
         return; // User cancelled
       }
-      await window.accomplish.addSkillFromFile(filePath);
+      await window.accomplish.addSkillFromFolder(folderPath);
       onSkillAdded?.();
     } catch (err) {
       console.error('Failed to upload skill:', err);

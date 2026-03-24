@@ -444,8 +444,8 @@ interface AccomplishAPI {
   setSkillEnabled(id: string, enabled: boolean): Promise<void>;
   getSkillContent(id: string): Promise<string | null>;
   getUserSkillsPath(): Promise<string>;
-  pickSkillFile(): Promise<string | null>;
-  addSkillFromFile(filePath: string): Promise<Skill>;
+  pickSkillFolder(): Promise<string | null>;
+  addSkillFromFolder(folderPath: string): Promise<Skill | null>;
   addSkillFromGitHub(rawUrl: string): Promise<Skill>;
   deleteSkill(id: string): Promise<void>;
   resyncSkills(): Promise<Skill[]>;
