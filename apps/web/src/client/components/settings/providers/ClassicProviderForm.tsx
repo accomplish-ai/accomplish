@@ -78,7 +78,7 @@ export function ClassicProviderForm({
     }
 
     const accomplish = getAccomplish();
-    accomplish.getOpenAiBaseUrl().then(setOpenAiBaseUrl).catch((err) => logger.error('Operation failed:', err));
+    accomplish.getOpenAiBaseUrl().then(setOpenAiBaseUrl).catch((err) => logger.error('Failed to load OpenAI base URL:', err));
   }, [isOpenAI]);
 
   useEffect(() => {
@@ -120,7 +120,7 @@ export function ClassicProviderForm({
           setFetchedModels(result.models);
         }
       })
-      .catch((err) => logger.error('Operation failed:', err));
+      .catch((err) => logger.error('Failed to fetch provider models:', err));
   }, [
     connectedProvider?.availableModels?.length,
     connectedProvider?.credentials?.type,

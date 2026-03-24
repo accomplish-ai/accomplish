@@ -6,14 +6,11 @@
  * remote/structured sink is added later.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-
 function createLogger(prefix: string) {
   const fmt = (msg: string) => `[${prefix}] ${msg}`;
   return {
     debug: (msg: string, ...args: unknown[]) => console.debug(fmt(msg), ...args),
-    info:  (msg: string, ...args: unknown[]) => console.log(fmt(msg), ...args),
+    info:  (msg: string, ...args: unknown[]) => console.info(fmt(msg), ...args),
     warn:  (msg: string, ...args: unknown[]) => console.warn(fmt(msg), ...args),
     error: (msg: string, ...args: unknown[]) => console.error(fmt(msg), ...args),
   };
