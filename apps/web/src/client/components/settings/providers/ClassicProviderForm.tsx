@@ -465,13 +465,25 @@ export function ClassicProviderForm({
                   type="text"
                   value={(() => {
                     const creds = connectedProvider?.credentials as ApiKeyCredentials | undefined;
-                    if (creds?.keyPrefix) return creds.keyPrefix;
+                    if (creds?.keyPrefix) {
+                      return creds.keyPrefix;
+                    }
                     return t('apiKey.savedReconnectToSee');
                   })()}
                   disabled
                   data-testid="api-key-display"
                   className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />
+
+                {hasEditableBaseUrl && connectedProvider?.customBaseUrl && (
+                  <input
+                    type="text"
+                    value={connectedProvider.customBaseUrl}
+                    disabled
+                    data-testid="base-url-display"
+                    className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+                  />
+                )}
 
                 <ConnectedControls onDisconnect={onDisconnect} />
 
