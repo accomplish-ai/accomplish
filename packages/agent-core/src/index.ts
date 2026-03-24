@@ -1,7 +1,4 @@
-import { createConsoleLogger } from './utils/logging.js';
-const log = createConsoleLogger({ prefix: 'AgentCore' });
 // =============================================================================
-log.info('[agent-core] u2d sync test');
 // @accomplish/core - Public API (v0.4.0)
 // =============================================================================
 // This file explicitly exports the public API for the @accomplish/core package.

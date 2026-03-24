@@ -26,8 +26,11 @@ function safeJsonParse<T>(json: string | null): T | undefined {
   if (!json) return undefined;
   try {
     return JSON.parse(json) as T;
-  } catch {
-    log.error(`Failed to parse JSON from database: ${json.slice(0, 100)}`);
+  } catch (error) {
+    log.error('Failed to parse JSON from database', {
+      error: error instanceof Error ? error.message : String(error),
+      payloadLength: json.length,
+    });
     return undefined;
   }
 }
