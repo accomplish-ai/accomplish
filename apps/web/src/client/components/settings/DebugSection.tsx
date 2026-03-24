@@ -1,6 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAccomplish } from '@/lib/accomplish';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('DebugSection');
 
 interface DebugSectionProps {
   debugMode: boolean;
@@ -24,12 +27,12 @@ export function DebugSection({ debugMode, onDebugToggle }: DebugSectionProps) {
       } else if (result.reason === 'cancelled') {
         setExportStatus('idle');
       } else {
-        console.error('Failed to export logs:', result.error);
+        logger.error('Failed to export logs:', result.error);
         setExportStatus('error');
         setTimeout(() => setExportStatus('idle'), 3000);
       }
     } catch (error) {
-      console.error('Export logs error:', error);
+      logger.error('Export logs error:', error);
       setExportStatus('error');
       setTimeout(() => setExportStatus('idle'), 3000);
     }

@@ -17,6 +17,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CreateSkillModal } from '@/components/skills/CreateSkillModal';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('AddSkillDropdown');
 
 interface AddSkillDropdownProps {
   onSkillAdded?: () => void;
@@ -47,7 +50,7 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
       await window.accomplish.addSkillFromFolder(folderPath);
       onSkillAdded?.();
     } catch (err) {
-      console.error('Failed to upload skill:', err);
+      logger.error('Failed to upload skill:', err);
       let errorMessage = err instanceof Error ? err.message : 'Failed to upload skill';
       // Clean up the error message - extract the actual error after "Error: "
       const errorMatch = errorMessage.match(/Error:\s*(.+)$/);
@@ -72,7 +75,7 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
       setIsGitHubDialogOpen(false);
       onSkillAdded?.();
     } catch (err) {
-      console.error('Failed to import from GitHub:', err);
+      logger.error('Failed to import from GitHub:', err);
       setError(err instanceof Error ? err.message : 'Failed to import skill');
     } finally {
       setIsLoading(false);

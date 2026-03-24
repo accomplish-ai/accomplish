@@ -10,6 +10,9 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAccomplish } from '@/lib/accomplish';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('SandboxPanel');
 import type { SandboxConfig } from '@accomplish_ai/agent-core';
 
 const DEFAULT_CONFIG: SandboxConfig = {
@@ -44,7 +47,7 @@ export function SandboxPanel() {
         }
       })
       .catch((err) => {
-        console.error('Failed to load sandbox config:', err);
+        logger.error('Failed to load sandbox config:', err);
       });
   }, [accomplish]);
 
@@ -62,7 +65,7 @@ export function SandboxPanel() {
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to save sandbox configuration';
         setSaveError(message);
-        console.error('Failed to save sandbox config:', err);
+        logger.error('Failed to save sandbox config:', err);
       } finally {
         setSaving(false);
       }

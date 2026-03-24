@@ -15,6 +15,9 @@ import {
 import { SkillsSubmenu } from './SkillsSubmenu';
 import { ConnectorsSubmenu } from './ConnectorsSubmenu';
 import { CreateSkillModal } from '@/components/skills/CreateSkillModal';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('PlusMenu');
 
 interface PlusMenuProps {
   onSkillSelect: (command: string) => void;
@@ -47,12 +50,12 @@ export function PlusMenu({
       window.accomplish
         .getEnabledSkills()
         .then((skills) => setSkills(skills.filter((s) => !s.isHidden)))
-        .catch((err) => console.error('Failed to load skills:', err));
+        .catch((err) => logger.error('Failed to load skills:', err));
 
       window.accomplish
         .getConnectors()
         .then(setConnectors)
-        .catch((err) => console.error('Failed to load connectors:', err));
+        .catch((err) => logger.error('Failed to load connectors:', err));
     }
   }, [open]);
 
@@ -67,7 +70,7 @@ export function PlusMenu({
       ]);
       setSkills(updatedSkills.filter((s) => !s.isHidden));
     } catch (err) {
-      console.error('Failed to refresh skills:', err);
+      logger.error('Failed to refresh skills:', err);
     } finally {
       setIsRefreshing(false);
     }
@@ -94,7 +97,7 @@ export function PlusMenu({
       await window.accomplish.setConnectorEnabled(id, enabled);
       setConnectors((prev) => prev.map((c) => (c.id === id ? { ...c, isEnabled: enabled } : c)));
     } catch (err) {
-      console.error('Failed to toggle connector:', err);
+      logger.error('Failed to toggle connector:', err);
     }
   }, []);
 
@@ -115,7 +118,7 @@ export function PlusMenu({
         onSelectFolder?.(folderPath);
       }
     } catch (err) {
-      console.error('Failed to pick folder:', err);
+      logger.error('Failed to pick folder:', err);
     }
   }, [onSelectFolder]);
 

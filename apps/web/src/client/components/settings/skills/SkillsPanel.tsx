@@ -11,6 +11,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { SkillCard } from './SkillCard';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('SkillsPanel');
 
 type FilterType = 'all' | 'active' | 'inactive' | 'official';
 
@@ -85,14 +88,14 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
   // Load skills on mount and when refreshTrigger changes
   useEffect(() => {
     if (!window.accomplish) {
-      console.error('Accomplish API not available');
+      logger.error('Accomplish API not available');
       setLoading(false);
       return;
     }
     window.accomplish
       .getSkills()
       .then(setSkills)
-      .catch((err: unknown) => console.error('Failed to load skills:', err))
+      .catch((err: unknown) => logger.error('Failed to load skills:', err))
       .finally(() => setLoading(false));
   }, [refreshTrigger]);
 
@@ -106,7 +109,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
         await window.accomplish.setSkillEnabled(id, !skill.isEnabled);
         setSkills((prev) => prev.map((s) => (s.id === id ? { ...s, isEnabled: !s.isEnabled } : s)));
       } catch (err) {
-        console.error('Failed to toggle skill:', err);
+        logger.error('Failed to toggle skill:', err);
       }
     },
     [skills],
@@ -118,7 +121,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
       if (!skill || !window.accomplish) return;
 
       if (skill.source === 'official') {
-        console.warn('Cannot delete official skills');
+        logger.warn('Cannot delete official skills');
         return;
       }
 
@@ -126,7 +129,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
         await window.accomplish.deleteSkill(id);
         setSkills((prev) => prev.filter((s) => s.id !== id));
       } catch (err) {
-        console.error('Failed to delete skill:', err);
+        logger.error('Failed to delete skill:', err);
       }
     },
     [skills],
@@ -137,7 +140,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
     try {
       await window.accomplish.openSkillInEditor(filePath);
     } catch (err) {
-      console.error('Failed to open skill in editor:', err);
+      logger.error('Failed to open skill in editor:', err);
     }
   }, []);
 
@@ -146,7 +149,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
     try {
       await window.accomplish.showSkillInFolder(filePath);
     } catch (err) {
-      console.error('Failed to show skill in folder:', err);
+      logger.error('Failed to show skill in folder:', err);
     }
   }, []);
 
@@ -167,7 +170,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
       ]);
       setSkills(updatedSkills);
     } catch (err) {
-      console.error('Failed to resync skills:', err);
+      logger.error('Failed to resync skills:', err);
     } finally {
       setIsResyncing(false);
     }
