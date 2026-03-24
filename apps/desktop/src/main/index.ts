@@ -42,6 +42,15 @@ import { skillsManager } from './skills';
 import { createTray, destroyTray } from './tray';
 import { bootstrapDaemon, shutdownDaemon } from './daemon-bootstrap';
 
+function logMain(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
+  try {
+    const l = getLogCollector();
+    if (l?.log) {
+      l.log(level, 'main', msg, data);
+    }
+  } catch (_e) { /* best-effort logging */ }
+}
+
 if (process.argv.includes('--e2e-skip-auth')) {
   (global as Record<string, unknown>).E2E_SKIP_AUTH = true;
 }
@@ -51,48 +60,20 @@ if (process.argv.includes('--e2e-mock-tasks') || process.env.E2E_MOCK_TASK_EVENT
 
 if (process.env.CLEAN_START === '1') {
   const userDataPath = app.getPath('userData');
-  try {
-    const l = getLogCollector();
-    if (l?.log) {
-      l.log('INFO', 'main', `[Clean Mode] Clearing userData directory: ${userDataPath}`);
-    }
-  } catch (_e) {
-    /* best-effort logging */
-  }
+  logMain('INFO', `[Clean Mode] Clearing userData directory: ${userDataPath}`);
   try {
     if (fs.existsSync(userDataPath)) {
       fs.rmSync(userDataPath, { recursive: true, force: true });
-      try {
-        const l = getLogCollector();
-        if (l?.log) {
-          l.log('INFO', 'main', '[Clean Mode] Successfully cleared userData');
-        }
-      } catch (_e) {
-        /* best-effort logging */
-      }
+      logMain('INFO', '[Clean Mode] Successfully cleared userData');
     }
   } catch (err) {
-    try {
-      const l = getLogCollector();
-      if (l?.log) {
-        l.log('ERROR', 'main', '[Clean Mode] Failed to clear userData', { err: String(err) });
-      }
-    } catch (_e) {
-      /* best-effort logging */
-    }
+    logMain('ERROR', '[Clean Mode] Failed to clear userData', { err: String(err) });
   }
   // Clear secure storage first (while singleton still exists), then null the reference.
   // Reversing this order would cause getStorage() to re-create the singleton.
   clearSecureStorage();
   resetStorageSingleton();
-  try {
-    const l = getLogCollector();
-    if (l?.log) {
-      l.log('INFO', 'main', '[Clean Mode] All singletons reset');
-    }
-  } catch (_e) {
-    /* best-effort logging */
-  }
+  logMain('INFO', '[Clean Mode] All singletons reset');
 }
 
 app.setName('Accomplish');
@@ -123,14 +104,7 @@ function getPreloadPath(): string {
 }
 
 function createWindow() {
-  try {
-    const l = getLogCollector();
-    if (l?.log) {
-      l.log('INFO', 'main', '[Main] Creating main application window');
-    }
-  } catch (_e) {
-    /* best-effort logging */
-  }
+  logMain('INFO', '[Main] Creating main application window');
 
   const iconFile = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
   const iconPath = app.isPackaged
@@ -142,14 +116,7 @@ function createWindow() {
   }
 
   const preloadPath = getPreloadPath();
-  try {
-    const l = getLogCollector();
-    if (l?.log) {
-      l.log('INFO', 'main', `[Main] Using preload script: ${preloadPath}`);
-    }
-  } catch (_e) {
-    /* best-effort logging */
-  }
+  logMain('INFO', `[Main] Using preload script: ${preloadPath}`);
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -224,25 +191,11 @@ function createWindow() {
   });
 
   if (ROUTER_URL) {
-    try {
-      const l = getLogCollector();
-      if (l?.log) {
-        l.log('INFO', 'main', `[Main] Loading from router URL: ${ROUTER_URL}`);
-      }
-    } catch (_e) {
-      /* best-effort logging */
-    }
+    logMain('INFO', `[Main] Loading from router URL: ${ROUTER_URL}`);
     mainWindow.loadURL(ROUTER_URL);
   } else {
     const indexPath = path.join(WEB_DIST, 'index.html');
-    try {
-      const l = getLogCollector();
-      if (l?.log) {
-        l.log('INFO', 'main', `[Main] Loading from file: ${indexPath}`);
-      }
-    } catch (_e) {
-      /* best-effort logging */
-    }
+    logMain('INFO', `[Main] Loading from file: ${indexPath}`);
     mainWindow.loadFile(indexPath);
   }
 }
@@ -250,10 +203,12 @@ function createWindow() {
 process.on('uncaughtException', (error) => {
   try {
     const collector = getLogCollector();
-    collector.log('ERROR', 'main', `Uncaught exception: ${error.message}`, {
-      name: error.name,
-      stack: error.stack,
-    });
+    if (collector?.log) {
+      collector.log('ERROR', 'main', `Uncaught exception: ${error.message}`, {
+        name: error.name,
+        stack: error.stack,
+      });
+    }
   } catch {
     // ignore - log collector may not be initialized
   }
@@ -262,7 +217,9 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason) => {
   try {
     const collector = getLogCollector();
-    collector.log('ERROR', 'main', 'Unhandled promise rejection', { reason });
+    if (collector?.log) {
+      collector.log('ERROR', 'main', 'Unhandled promise rejection', { reason });
+    }
   } catch {
     // ignore - log collector may not be initialized
   }
@@ -271,14 +228,7 @@ process.on('unhandledRejection', (reason) => {
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
-  try {
-    const l = getLogCollector();
-    if (l?.log) {
-      l.log('INFO', 'main', '[Main] Second instance attempted; quitting');
-    }
-  } catch (_e) {
-    /* best-effort logging */
-  }
+  logMain('INFO', '[Main] Second instance attempted; quitting');
   app.quit();
 } else {
   initializeLogCollector();
@@ -293,30 +243,12 @@ if (!gotTheLock) {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
-      try {
-        const l = getLogCollector();
-        if (l?.log) {
-          l.log('INFO', 'main', '[Main] Focused existing instance after second-instance event');
-        }
-      } catch (_e) {
-        /* best-effort logging */
-      }
+      logMain('INFO', '[Main] Focused existing instance after second-instance event');
 
       if (process.platform === 'win32') {
         const protocolUrl = commandLine.find((arg) => arg.startsWith('accomplish://'));
         if (protocolUrl) {
-          try {
-            const l = getLogCollector();
-            if (l?.log) {
-              l.log(
-                'INFO',
-                'main',
-                `[Main] Received protocol URL from second-instance: ${protocolUrl}`,
-              );
-            }
-          } catch (_e) {
-            /* best-effort logging */
-          }
+          logMain('INFO', `[Main] Received protocol URL from second-instance: ${protocolUrl}`);
           if (protocolUrl.startsWith('accomplish://callback/mcp')) {
             mainWindow.webContents.send('auth:mcp-callback', protocolUrl);
           } else if (protocolUrl.startsWith('accomplish://callback')) {
@@ -328,37 +260,16 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(async () => {
-    try {
-      const l = getLogCollector();
-      if (l?.log) {
-        l.log('INFO', 'main', `[Main] Electron app ready, version: ${app.getVersion()}`);
-      }
-    } catch (_e) {
-      /* best-effort logging */
-    }
+    logMain('INFO', `[Main] Electron app ready, version: ${app.getVersion()}`);
 
     if (process.env.CLEAN_START !== '1') {
       try {
         const didMigrate = migrateLegacyData();
         if (didMigrate) {
-          try {
-            const l = getLogCollector();
-            if (l?.log) {
-              l.log('INFO', 'main', '[Main] Migrated data from legacy userData path');
-            }
-          } catch (_e) {
-            /* best-effort logging */
-          }
+          logMain('INFO', '[Main] Migrated data from legacy userData path');
         }
       } catch (err) {
-        try {
-          const l = getLogCollector();
-          if (l?.log) {
-            l.log('ERROR', 'main', '[Main] Legacy data migration failed', { err: String(err) });
-          }
-        } catch (_e) {
-          /* best-effort logging */
-        }
+        logMain('ERROR', '[Main] Legacy data migration failed', { err: String(err) });
       }
     }
 
@@ -382,14 +293,7 @@ if (!gotTheLock) {
     try {
       workspaceManager.initialize();
     } catch (err) {
-      try {
-        const l = getLogCollector();
-        if (l?.log) {
-          l.log('ERROR', 'main', '[Main] Workspace initialization failed', { err: String(err) });
-        }
-      } catch (_e) {
-        /* best-effort logging */
-      }
+      logMain('ERROR', '[Main] Workspace initialization failed', { err: String(err) });
       throw err;
     }
 
@@ -402,43 +306,17 @@ if (!gotTheLock) {
         if (!credType || credType === 'api_key') {
           const key = getApiKey(providerId);
           if (!key) {
-            try {
-              const l = getLogCollector();
-              if (l?.log) {
-                l.log(
-                  'WARN',
-                  'main',
-                  `[Main] Provider ${providerId} has api_key auth but key not found in secure storage`,
-                );
-              }
-            } catch (_e) {
-              /* best-effort logging */
-            }
+            logMain(
+              'WARN',
+              `[Main] Provider ${providerId} has api_key auth but key not found in secure storage`,
+            );
             storage.removeConnectedProvider(providerId);
-            try {
-              const l = getLogCollector();
-              if (l?.log) {
-                l.log(
-                  'INFO',
-                  'main',
-                  `[Main] Removed provider ${providerId} due to missing API key`,
-                );
-              }
-            } catch (_e) {
-              /* best-effort logging */
-            }
+            logMain('INFO', `[Main] Removed provider ${providerId} due to missing API key`);
           }
         }
       }
     } catch (err) {
-      try {
-        const l = getLogCollector();
-        if (l?.log) {
-          l.log('ERROR', 'main', '[Main] Provider validation failed', { err: String(err) });
-        }
-      } catch (_e) {
-        /* best-effort logging */
-      }
+      logMain('ERROR', '[Main] Provider validation failed', { err: String(err) });
     }
 
     await skillsManager.initialize();
@@ -465,24 +343,10 @@ if (!gotTheLock) {
     const taskManager = getTaskManager();
     const storage = getStorage();
     await bootstrapDaemon({ taskManager, storage });
-    try {
-      const l = getLogCollector();
-      if (l?.log) {
-        l.log('INFO', 'main', '[Main] Daemon bootstrapped');
-      }
-    } catch (_e) {
-      /* best-effort logging */
-    }
+    logMain('INFO', '[Main] Daemon bootstrapped');
 
     registerIPCHandlers();
-    try {
-      const l = getLogCollector();
-      if (l?.log) {
-        l.log('INFO', 'main', '[Main] IPC handlers registered');
-      }
-    } catch (_e) {
-      /* best-effort logging */
-    }
+    logMain('INFO', '[Main] IPC handlers registered');
 
     createWindow();
 
@@ -495,26 +359,12 @@ if (!gotTheLock) {
         if (!isQuitting) {
           event.preventDefault();
           mainWindow?.hide();
-          try {
-            const l = getLogCollector();
-            if (l?.log) {
-              l.log('INFO', 'main', '[Main] Window hidden to tray');
-            }
-          } catch (_e) {
-            /* best-effort logging */
-          }
+          logMain('INFO', '[Main] Window hidden to tray');
         }
       });
 
       createTray(mainWindow);
-      try {
-        const l = getLogCollector();
-        if (l?.log) {
-          l.log('INFO', 'main', '[Main] System tray created');
-        }
-      } catch (_e) {
-        /* best-effort logging */
-      }
+      logMain('INFO', '[Main] System tray created');
     }
 
     app.on('activate', () => {
@@ -549,14 +399,7 @@ app.on('window-all-closed', () => {
   // With system tray, the app stays alive when all windows are closed.
   // On macOS this was already the default behavior.
   // On Windows/Linux the tray keeps the app running.
-  try {
-    const l = getLogCollector();
-    if (l?.log) {
-      l.log('INFO', 'main', '[Main] All windows closed — app continues in system tray');
-    }
-  } catch (_e) {
-    /* best-effort logging */
-  }
+  logMain('INFO', '[Main] All windows closed — app continues in system tray');
 });
 
 app.on('before-quit', (event) => {
