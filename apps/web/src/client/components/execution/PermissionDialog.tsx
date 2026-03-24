@@ -67,7 +67,7 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-      data-testid="execution-permission-modal"
+      data-testid="execution-permission-card"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}

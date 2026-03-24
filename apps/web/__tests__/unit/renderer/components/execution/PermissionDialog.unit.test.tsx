@@ -15,11 +15,11 @@ import { PermissionDialog } from '@/components/execution/PermissionDialog';
 
 describe('PermissionDialog', () => {
   describe('renders the inline card', () => {
-    it('should render with data-testid execution-permission-modal', () => {
+    it('should render with data-testid execution-permission-card', () => {
       const onRespond = vi.fn();
       render(<PermissionDialog permissionRequest={createToolPermission()} onRespond={onRespond} />);
 
-      expect(screen.getByTestId('execution-permission-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('execution-permission-card')).toBeInTheDocument();
     });
 
     it('should render allow and deny buttons for tool permission', () => {
@@ -169,7 +169,7 @@ describe('PermissionDialog', () => {
         />,
       );
 
-      expect(screen.getByTestId('execution-permission-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('execution-permission-card')).toBeInTheDocument();
       expect(screen.queryByText(/undefined/i)).toBeNull();
     });
   });
