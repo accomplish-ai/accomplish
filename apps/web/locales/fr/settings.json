@@ -253,7 +253,8 @@
     "appearance": "Apparence",
     "about": "À propos",
     "browsers": "Navigateurs cloud",
-    "general": "Général"
+    "general": "Général",
+    "daemon": "Démon"
   },
   "notifications": {
     "toggle": {

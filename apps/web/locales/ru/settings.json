@@ -253,7 +253,8 @@
     "workspaces": "Рабочие пространства",
     "about": "О программе",
     "browsers": "Облачные браузеры",
-    "general": "Общие"
+    "general": "Общие",
+    "daemon": "Фоновый процесс"
   },
   "notifications": {
     "toggle": {

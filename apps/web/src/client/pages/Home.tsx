@@ -115,7 +115,15 @@ export function HomePage() {
       setWorkingDirectory(undefined);
       navigate(`/execution/${task.id}`);
     }
-  }, [prompt, attachments, workingDirectory, isLoading, startTask, navigate, buildPromptWithAttachments]);
+  }, [
+    prompt,
+    attachments,
+    workingDirectory,
+    isLoading,
+    startTask,
+    navigate,
+    buildPromptWithAttachments,
+  ]);
 
   const handleSubmit = async () => {
     if (isLoading) {
