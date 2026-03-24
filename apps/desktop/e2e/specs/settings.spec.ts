@@ -141,8 +141,6 @@ test.describe('Settings Dialog', () => {
 
     await window.waitForLoadState('domcontentloaded');
     await settingsPage.navigateToSettings();
-
-    // Debug toggle is in the General tab
     await settingsPage.navigateToGeneralTab();
 
     // Scroll to debug toggle
@@ -164,8 +162,6 @@ test.describe('Settings Dialog', () => {
 
     await window.waitForLoadState('domcontentloaded');
     await settingsPage.navigateToSettings();
-
-    // Debug toggle is in the General tab
     await settingsPage.navigateToGeneralTab();
 
     // Scroll to debug toggle
@@ -594,8 +590,6 @@ test.describe('Settings Dialog', () => {
 
     // Step 1: Open settings and toggle debug mode
     await settingsPage.navigateToSettings();
-
-    // Debug toggle is in the General tab
     await settingsPage.navigateToGeneralTab();
     await expect(settingsPage.debugModeToggle).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
