@@ -8,6 +8,8 @@ import {
   getOpenCodeAuthPath,
   isTokenExpired,
   refreshAccessToken,
+  PERMISSION_API_PORT,
+  QUESTION_API_PORT,
 } from '@accomplish_ai/agent-core';
 import type { BrowserConfig } from '@accomplish_ai/agent-core';
 import { getApiKey, getAllApiKeys } from '../store/secureStorage';
@@ -17,9 +19,8 @@ import { skillsManager } from '../skills';
 import { getLogCollector } from '../logging';
 
 function logOC(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
-  try { const l = getLogCollector(); if (l?.log) l.log(level, 'opencode', msg, data); } catch (_e) {}
+  try { const l = getLogCollector(); if (l?.log) l.log(level, 'opencode', msg, data); } catch (_e) { /* best-effort logging */ }
 }
-import { PERMISSION_API_PORT, QUESTION_API_PORT } from '@accomplish_ai/agent-core';
 
 export { ACCOMPLISH_AGENT_NAME };
 

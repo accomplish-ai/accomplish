@@ -35,7 +35,7 @@ export function handle<Args extends unknown[], ReturnType = unknown>(
     try {
       return await handler(event, ...(args as Args));
     } catch (error) {
-      try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'ipc', `IPC handler ${channel} failed`, { error: String(error) }); } catch (_e) {}
+      try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'ipc', `IPC handler ${channel} failed`, { error: String(error) }); } catch (_e) { /* best-effort logging */ }
       throw normalizeIpcError(error);
     }
   });

@@ -71,7 +71,7 @@ export async function executeMockTaskFlow(
   const { taskId, prompt, scenario, delayMs = 100 } = config;
 
   if (window.isDestroyed()) {
-    try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'main', '[MockTaskFlow] Window destroyed, skipping mock flow'); } catch (_e) {}
+    try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'main', '[MockTaskFlow] Window destroyed, skipping mock flow'); } catch (_e) { /* best-effort logging */ }
     return;
   }
 

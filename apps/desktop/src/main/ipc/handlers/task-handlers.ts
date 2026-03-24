@@ -91,7 +91,7 @@ export function registerTaskHandlers(): void {
         }
       })
       .catch((err) => {
-        try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'ipc', '[IPC] Failed to generate task summary', { err: String(err) }); } catch (_e) {}
+        try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'ipc', '[IPC] Failed to generate task summary', { err: String(err) }); } catch (_e) { /* best-effort logging */ }
       });
 
     return task;

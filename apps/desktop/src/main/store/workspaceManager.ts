@@ -21,7 +21,7 @@ import { getTaskManager } from '../opencode';
 import { getLogCollector } from '../logging';
 
 function log(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
-  try { const l = getLogCollector(); if (l?.log) l.log(level, 'main', msg, data); } catch (_e) {}
+  try { const l = getLogCollector(); if (l?.log) l.log(level, 'main', msg, data); } catch (_e) { /* best-effort logging */ }
 }
 
 function getMetaDatabasePath(): string {

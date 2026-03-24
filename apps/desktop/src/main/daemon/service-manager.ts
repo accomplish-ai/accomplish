@@ -16,7 +16,7 @@ import { execSync } from 'child_process';
 import { getLogCollector } from '../logging';
 
 function logD(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
-  try { const l = getLogCollector(); if (l?.log) l.log(level, 'daemon', msg, data); } catch (_e) {}
+  try { const l = getLogCollector(); if (l?.log) l.log(level, 'daemon', msg, data); } catch (_e) { /* best-effort logging */ }
 }
 
 /** Whether the daemon is registered to auto-start on login. */

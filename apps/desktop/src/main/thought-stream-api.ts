@@ -108,14 +108,14 @@ export function startThoughtStreamServer(): http.Server {
   });
 
   server.listen(THOUGHT_STREAM_PORT, '127.0.0.1', () => {
-    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Thought Stream API] Server listening on port ${THOUGHT_STREAM_PORT}`); } catch (_e) {}
+    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Thought Stream API] Server listening on port ${THOUGHT_STREAM_PORT}`); } catch (_e) { /* best-effort logging */ }
   });
 
   server.on('error', (error: NodeJS.ErrnoException) => {
     if (error.code === 'EADDRINUSE') {
-      try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'main', `[Thought Stream API] Port ${THOUGHT_STREAM_PORT} already in use, skipping server start`); } catch (_e) {}
+      try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'main', `[Thought Stream API] Port ${THOUGHT_STREAM_PORT} already in use, skipping server start`); } catch (_e) { /* best-effort logging */ }
     } else {
-      try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'main', '[Thought Stream API] Server error', { error: String(error) }); } catch (_e) {}
+      try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'main', '[Thought Stream API] Server error', { error: String(error) }); } catch (_e) { /* best-effort logging */ }
     }
   });
 
