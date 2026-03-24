@@ -51,20 +51,20 @@ if (process.argv.includes('--e2e-mock-tasks') || process.env.E2E_MOCK_TASK_EVENT
 
 if (process.env.CLEAN_START === '1') {
   const userDataPath = app.getPath('userData');
-  console.log('[Clean Mode] Clearing userData directory:', userDataPath);
+  try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Clean Mode] Clearing userData directory: ${userDataPath}`); } catch (_e) {}
   try {
     if (fs.existsSync(userDataPath)) {
       fs.rmSync(userDataPath, { recursive: true, force: true });
-      console.log('[Clean Mode] Successfully cleared userData');
+      try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Clean Mode] Successfully cleared userData'); } catch (_e) {}
     }
   } catch (err) {
-    console.error('[Clean Mode] Failed to clear userData:', err);
+    try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'main', '[Clean Mode] Failed to clear userData', { err: String(err) }); } catch (_e) {}
   }
   // Clear secure storage first (while singleton still exists), then null the reference.
   // Reversing this order would cause getStorage() to re-create the singleton.
   clearSecureStorage();
   resetStorageSingleton();
-  console.log('[Clean Mode] All singletons reset');
+  try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Clean Mode] All singletons reset'); } catch (_e) {}
 }
 
 app.setName('Accomplish');
@@ -95,7 +95,7 @@ function getPreloadPath(): string {
 }
 
 function createWindow() {
-  console.log('[Main] Creating main application window');
+  try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] Creating main application window'); } catch (_e) {}
 
   const iconFile = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
   const iconPath = app.isPackaged
@@ -107,7 +107,7 @@ function createWindow() {
   }
 
   const preloadPath = getPreloadPath();
-  console.log('[Main] Using preload script:', preloadPath);
+  try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Main] Using preload script: ${preloadPath}`); } catch (_e) {}
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -182,11 +182,11 @@ function createWindow() {
   });
 
   if (ROUTER_URL) {
-    console.log('[Main] Loading from router URL:', ROUTER_URL);
+    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Main] Loading from router URL: ${ROUTER_URL}`); } catch (_e) {}
     mainWindow.loadURL(ROUTER_URL);
   } else {
     const indexPath = path.join(WEB_DIST, 'index.html');
-    console.log('[Main] Loading from file:', indexPath);
+    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Main] Loading from file: ${indexPath}`); } catch (_e) {}
     mainWindow.loadFile(indexPath);
   }
 }
@@ -215,7 +215,7 @@ process.on('unhandledRejection', (reason) => {
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
-  console.log('[Main] Second instance attempted; quitting');
+  try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] Second instance attempted; quitting'); } catch (_e) {}
   app.quit();
 } else {
   initializeLogCollector();
@@ -230,12 +230,12 @@ if (!gotTheLock) {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
-      console.log('[Main] Focused existing instance after second-instance event');
+      try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] Focused existing instance after second-instance event'); } catch (_e) {}
 
       if (process.platform === 'win32') {
         const protocolUrl = commandLine.find((arg) => arg.startsWith('accomplish://'));
         if (protocolUrl) {
-          console.log('[Main] Received protocol URL from second-instance:', protocolUrl);
+          try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Main] Received protocol URL from second-instance: ${protocolUrl}`); } catch (_e) {}
           if (protocolUrl.startsWith('accomplish://callback/mcp')) {
             mainWindow.webContents.send('auth:mcp-callback', protocolUrl);
           } else if (protocolUrl.startsWith('accomplish://callback')) {
@@ -247,16 +247,16 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(async () => {
-    console.log('[Main] Electron app ready, version:', app.getVersion());
+    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Main] Electron app ready, version: ${app.getVersion()}`); } catch (_e) {}
 
     if (process.env.CLEAN_START !== '1') {
       try {
         const didMigrate = migrateLegacyData();
         if (didMigrate) {
-          console.log('[Main] Migrated data from legacy userData path');
+          try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] Migrated data from legacy userData path'); } catch (_e) {}
         }
       } catch (err) {
-        console.error('[Main] Legacy data migration failed:', err);
+        try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'main', '[Main] Legacy data migration failed', { err: String(err) }); } catch (_e) {}
       }
     }
 
@@ -280,7 +280,7 @@ if (!gotTheLock) {
     try {
       workspaceManager.initialize();
     } catch (err) {
-      console.error('[Main] Workspace initialization failed:', err);
+      try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'main', '[Main] Workspace initialization failed', { err: String(err) }); } catch (_e) {}
       throw err;
     }
 
@@ -293,16 +293,14 @@ if (!gotTheLock) {
         if (!credType || credType === 'api_key') {
           const key = getApiKey(providerId);
           if (!key) {
-            console.warn(
-              `[Main] Provider ${providerId} has api_key auth but key not found in secure storage`,
-            );
+            try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'main', `[Main] Provider ${providerId} has api_key auth but key not found in secure storage`); } catch (_e) {}
             storage.removeConnectedProvider(providerId);
-            console.log(`[Main] Removed provider ${providerId} due to missing API key`);
+            try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Main] Removed provider ${providerId} due to missing API key`); } catch (_e) {}
           }
         }
       }
     } catch (err) {
-      console.error('[Main] Provider validation failed:', err);
+      try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'main', '[Main] Provider validation failed', { err: String(err) }); } catch (_e) {}
     }
 
     await skillsManager.initialize();
@@ -329,10 +327,10 @@ if (!gotTheLock) {
     const taskManager = getTaskManager();
     const storage = getStorage();
     await bootstrapDaemon({ taskManager, storage });
-    console.log('[Main] Daemon bootstrapped');
+    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] Daemon bootstrapped'); } catch (_e) {}
 
     registerIPCHandlers();
-    console.log('[Main] IPC handlers registered');
+    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] IPC handlers registered'); } catch (_e) {}
 
     createWindow();
 
@@ -345,12 +343,12 @@ if (!gotTheLock) {
         if (!isQuitting) {
           event.preventDefault();
           mainWindow?.hide();
-          console.log('[Main] Window hidden to tray');
+          try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] Window hidden to tray'); } catch (_e) {}
         }
       });
 
       createTray(mainWindow);
-      console.log('[Main] System tray created');
+      try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] System tray created'); } catch (_e) {}
     }
 
     app.on('activate', () => {
@@ -385,7 +383,7 @@ app.on('window-all-closed', () => {
   // With system tray, the app stays alive when all windows are closed.
   // On macOS this was already the default behavior.
   // On Windows/Linux the tray keeps the app running.
-  console.log('[Main] All windows closed — app continues in system tray');
+  try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] All windows closed — app continues in system tray'); } catch (_e) {}
 });
 
 app.on('before-quit', (event) => {

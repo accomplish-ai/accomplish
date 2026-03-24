@@ -18,6 +18,11 @@ import type {
   WorkspaceUpdateInput,
 } from '@accomplish_ai/agent-core';
 import { getTaskManager } from '../opencode';
+import { getLogCollector } from '../logging';
+
+function log(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
+  try { const l = getLogCollector(); if (l?.log) l.log(level, 'main', msg, data); } catch (_e) {}
+}
 
 function getMetaDatabasePath(): string {
   const dbName = app.isPackaged ? 'workspace-meta.db' : 'workspace-meta-dev.db';
@@ -41,7 +46,7 @@ export function getActiveWorkspace(): string | null {
  * Does NOT initialize the main app database - that's done separately.
  */
 export function initialize(): void {
-  console.log('[WorkspaceManager] Initializing...');
+  log('INFO', '[WorkspaceManager] Initializing...');
 
   try {
     // Initialize the meta database (workspace metadata only)
@@ -49,7 +54,7 @@ export function initialize(): void {
 
     // Ensure default workspace exists
     const defaultWorkspace = createDefaultWorkspace();
-    console.log('[WorkspaceManager] Default workspace:', defaultWorkspace.id);
+    log('INFO', `[WorkspaceManager] Default workspace: ${defaultWorkspace.id}`);
 
     // Get the active workspace (or fall back to default)
     let activeId = getActiveWorkspaceId();
@@ -61,9 +66,9 @@ export function initialize(): void {
     _activeWorkspaceId = activeId;
     _initialized = true;
 
-    console.log('[WorkspaceManager] Initialized with active workspace:', activeId);
+    log('INFO', `[WorkspaceManager] Initialized with active workspace: ${activeId}`);
   } catch (err) {
-    console.error('[WorkspaceManager] Initialization failed:', err);
+    log('ERROR', '[WorkspaceManager] Initialization failed', { err: String(err) });
     _activeWorkspaceId = null;
     throw err;
   }
@@ -78,9 +83,7 @@ export function switchWorkspace(workspaceId: string): boolean {
   const taskManager = getTaskManager();
   const activeTaskId = taskManager.getActiveTaskId();
   if (activeTaskId) {
-    console.warn(
-      `[WorkspaceManager] Cannot switch workspace while task ${activeTaskId} is running`,
-    );
+    log('WARN', `[WorkspaceManager] Cannot switch workspace while task ${activeTaskId} is running`);
     return false;
   }
 
@@ -89,7 +92,7 @@ export function switchWorkspace(workspaceId: string): boolean {
     throw new Error(`Workspace not found: ${workspaceId}`);
   }
 
-  console.log('[WorkspaceManager] Switching to workspace:', workspace.name, `(${workspaceId})`);
+  log('INFO', `[WorkspaceManager] Switching to workspace: ${workspace.name} (${workspaceId})`);
 
   _activeWorkspaceId = workspaceId;
   setActiveWorkspaceId(workspaceId);
@@ -116,9 +119,7 @@ export function deleteWorkspace(id: string): boolean {
     const taskManager = getTaskManager();
     const activeTaskId = taskManager.getActiveTaskId();
     if (activeTaskId) {
-      console.warn(
-        `[WorkspaceManager] Cannot delete active workspace while task ${activeTaskId} is running`,
-      );
+      log('WARN', `[WorkspaceManager] Cannot delete active workspace while task ${activeTaskId} is running`);
       return false;
     }
 
@@ -139,7 +140,7 @@ export function deleteWorkspace(id: string): boolean {
 export { listWorkspaces, getWorkspace };
 
 export function close(): void {
-  console.log('[WorkspaceManager] Closing...');
+  log('INFO', '[WorkspaceManager] Closing...');
   closeMetaDatabase();
   _activeWorkspaceId = null;
   _initialized = false;
