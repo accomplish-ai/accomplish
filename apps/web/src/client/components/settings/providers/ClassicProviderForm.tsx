@@ -476,13 +476,18 @@ export function ClassicProviderForm({
                 />
 
                 {hasEditableBaseUrl && connectedProvider?.customBaseUrl && (
-                  <input
-                    type="text"
-                    value={connectedProvider.customBaseUrl}
-                    disabled
-                    data-testid="base-url-display"
-                    className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
-                  />
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
+                      {t('baseUrl.title', { defaultValue: 'Base URL' })}
+                    </label>
+                    <input
+                      type="text"
+                      value={connectedProvider.customBaseUrl}
+                      readOnly
+                      data-testid="base-url-display"
+                      className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+                    />
+                  </div>
                 )}
 
                 <ConnectedControls onDisconnect={onDisconnect} />

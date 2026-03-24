@@ -435,5 +435,8 @@
     "tooltipError": "Error during transcription - Click to retry",
     "tooltipDefault": "Click to record or hold Alt to record voice input",
     "processing": "Processing..."
+  },
+  "baseUrl": {
+    "title": "Base URL"
   }
 }

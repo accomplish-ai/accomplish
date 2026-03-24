@@ -435,5 +435,8 @@
     "tooltipError": "Erreur lors de la transcription - Cliquez pour réessayer",
     "tooltipDefault": "Cliquez pour enregistrer ou maintenez Alt pour enregistrer la saisie vocale",
     "processing": "Traitement..."
+  },
+  "baseUrl": {
+    "title": "URL de base"
   }
 }
