@@ -163,6 +163,10 @@ export class SettingsPage {
     await this.settingsDialog.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
   }
 
+  async navigateToGeneralTab() {
+    await this.page.getByRole('button', { name: 'General' }).click();
+  }
+
   async selectProvider(providerId: string) {
     await this.getProviderCard(providerId).click();
     // Wait for provider settings panel to render
