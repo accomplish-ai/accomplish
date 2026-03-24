@@ -1,4 +1,4 @@
-import { BrowserWindow, Notification } from 'electron';
+import { BrowserWindow } from 'electron';
 import type {
   TaskMessage,
   TaskResult,
@@ -12,18 +12,7 @@ import type { TaskCallbacks } from '../opencode';
 import { getStorage } from '../store/storage';
 import { updateTray } from '../tray';
 import { stopBrowserPreviewStream } from '../services/browserPreview';
-
-function isWindowHidden(): boolean {
-  const windows = BrowserWindow.getAllWindows();
-  return windows.length === 0 || windows.every((w) => !w.isVisible() || w.isMinimized());
-}
-
-function sendBackgroundNotification(title: string, body: string): void {
-  if (!isWindowHidden() || !Notification.isSupported()) {
-    return;
-  }
-  new Notification({ title, body }).show();
-}
+import { notifyTaskCompletion } from '../services/task-notification';
 
 const DEV_BROWSER_TOOL_PREFIXES = ['dev-browser-mcp_', 'dev_browser_mcp_', 'browser_'];
 const BROWSER_FAILURE_WINDOW_MS = 12000;
@@ -138,6 +127,13 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
       if (result.status === 'success') {
         storage.clearTodosForTask(taskId);
       }
+
+      if (result.status !== 'interrupted') {
+        notifyTaskCompletion(window, storage, {
+          status: result.status === 'success' ? 'success' : 'error',
+          label: taskId.slice(0, 8),
+        });
+      }
     },
 
     onError: (error: Error) => {
@@ -152,6 +148,10 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
       void stopBrowserPreviewStream(taskId);
 
       storage.updateTaskStatus(taskId, 'failed', new Date().toISOString());
+      notifyTaskCompletion(window, storage, {
+        status: 'error',
+        label: `Task ${taskId.slice(0, 8)} failed`,
+      });
     },
 
     onDebug: (log: { type: string; message: string; data?: unknown }) => {
@@ -314,15 +314,16 @@ export function createDaemonTaskCallbacks(options: DaemonTaskCallbacksOptions): 
 
       if (result.status === 'success') {
         storage.clearTodosForTask(taskId);
-        sendBackgroundNotification(
-          'Task Completed',
-          `Task ${taskId.slice(0, 8)} finished successfully.`,
-        );
-      } else {
-        sendBackgroundNotification(
-          'Task Finished',
-          `Task ${taskId.slice(0, 8)} finished with status: ${result.status}`,
-        );
+      }
+
+      if (result.status !== 'interrupted') {
+        const win = getWindow?.() ?? BrowserWindow.getAllWindows()[0];
+        if (win) {
+          notifyTaskCompletion(win, storage, {
+            status: result.status === 'success' ? 'success' : 'error',
+            label: `Task ${taskId.slice(0, 8)}`,
+          });
+        }
       }
 
       updateTray();
@@ -331,10 +332,13 @@ export function createDaemonTaskCallbacks(options: DaemonTaskCallbacksOptions): 
     onError: (error: Error) => {
       forwardToRenderer('task:update', { taskId, type: 'error', error: error.message });
       storage.updateTaskStatus(taskId, 'failed', new Date().toISOString());
-      sendBackgroundNotification(
-        'Task Failed',
-        `Task ${taskId.slice(0, 8)} failed: ${error.message}`,
-      );
+      const win = getWindow?.() ?? BrowserWindow.getAllWindows()[0];
+      if (win) {
+        notifyTaskCompletion(win, storage, {
+          status: 'error',
+          label: `Task ${taskId.slice(0, 8)} failed`,
+        });
+      }
       updateTray();
     },
 

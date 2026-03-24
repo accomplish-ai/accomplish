@@ -26,6 +26,7 @@ interface AppSettingsRow {
   run_in_background: number;
   sandbox_config: string;
   cloud_browser_config: string | null;
+  notifications_enabled: number;
 }
 
 export interface AppSettings {
@@ -224,6 +225,15 @@ export function setCloudBrowserConfig(config: CloudBrowserConfig | null): void {
   );
 }
 
+export function getNotificationsEnabled(): boolean {
+  return getRow().notifications_enabled === 1;
+}
+
+export function setNotificationsEnabled(enabled: boolean): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET notifications_enabled = ? WHERE id = 1').run(enabled ? 1 : 0);
+}
+
 export function getAppSettings(): AppSettings {
   const row = getRow();
   return {
@@ -257,7 +267,8 @@ export function clearAppSettings(): void {
       theme = 'system',
       run_in_background = 0,
       sandbox_config = '${JSON.stringify(DEFAULT_SANDBOX_CONFIG)}',
-      cloud_browser_config = NULL
+      cloud_browser_config = NULL,
+      notifications_enabled = 1
     WHERE id = 1`,
   ).run();
 }

@@ -253,7 +253,14 @@
     "voiceInput": "Voice Input",
     "workspaces": "Workspaces",
     "appearance": "Appearance",
+    "general": "General",
     "about": "About"
+  },
+  "notifications": {
+    "toggle": {
+      "label": "Desktop Notifications",
+      "description": "Show OS notifications when tasks complete while the app is in the background."
+    }
   },
   "appearance": {
     "title": "Theme",

@@ -209,6 +209,8 @@ vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
     isFavorite: vi.fn((taskId: string) => mockFavorites.some((f) => f.taskId === taskId)),
 
     // App settings
+    getNotificationsEnabled: vi.fn(() => true),
+    setNotificationsEnabled: vi.fn(),
     getDebugMode: vi.fn(() => mockDebugMode),
     setDebugMode: vi.fn((enabled: boolean) => {
       mockDebugMode = enabled;

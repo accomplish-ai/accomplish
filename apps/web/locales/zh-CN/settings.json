@@ -225,7 +225,14 @@
     "voiceInput": "语音输入",
     "workspaces": "工作区",
     "appearance": "外观",
+    "general": "通用",
     "about": "关于"
+  },
+  "notifications": {
+    "toggle": {
+      "label": "桌面通知",
+      "description": "当应用在后台运行时，任务完成后显示系统通知。"
+    }
   },
   "appearance": {
     "title": "主题",

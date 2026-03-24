@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrowserWindow, WebContents } from 'electron';
 import type { TaskMessage } from '@accomplish_ai/agent-core';
 
+vi.mock('@main/services/task-notification', () => ({
+  notifyTaskCompletion: vi.fn(),
+}));
+
 const mockStorage = {
   addTaskMessage: vi.fn(),
   updateTaskStatus: vi.fn(),
@@ -9,6 +13,7 @@ const mockStorage = {
   clearTodosForTask: vi.fn(),
   saveTodosForTask: vi.fn(),
   getDebugMode: vi.fn(() => false),
+  getNotificationsEnabled: vi.fn(() => true),
 };
 
 const mockTaskManager = {
@@ -32,6 +37,7 @@ vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
 });
 
 import { createTaskCallbacks } from '@main/ipc/task-callbacks';
+import { notifyTaskCompletion } from '@main/services/task-notification';
 
 describe('task-callbacks', () => {
   beforeEach(() => {
@@ -90,5 +96,60 @@ describe('task-callbacks', () => {
 
     expect(sender.send).toHaveBeenCalledTimes(1);
     expect(mockStorage.addTaskMessage).toHaveBeenCalledTimes(2);
+  });
+
+  describe('notifications', () => {
+    it('calls notifyTaskCompletion on task success', () => {
+      const window = {
+        isDestroyed: vi.fn(() => false),
+        isFocused: vi.fn(() => false),
+      } as unknown as BrowserWindow;
+      const sender = {
+        isDestroyed: vi.fn(() => false),
+        send: vi.fn(),
+      } as unknown as WebContents;
+
+      const callbacks = createTaskCallbacks({ taskId: 'task-1', window, sender });
+      callbacks.onComplete({ status: 'success', sessionId: 'sess-1' } as never);
+
+      expect(notifyTaskCompletion).toHaveBeenCalledWith(window, mockStorage, {
+        status: 'success',
+        label: 'task-1'.slice(0, 8),
+      });
+    });
+
+    it('calls notifyTaskCompletion on task error', () => {
+      const window = {
+        isDestroyed: vi.fn(() => false),
+        isFocused: vi.fn(() => false),
+      } as unknown as BrowserWindow;
+      const sender = {
+        isDestroyed: vi.fn(() => false),
+        send: vi.fn(),
+      } as unknown as WebContents;
+
+      const callbacks = createTaskCallbacks({ taskId: 'task-1', window, sender });
+      callbacks.onError(new Error('something failed'));
+
+      expect(notifyTaskCompletion).toHaveBeenCalledWith(window, mockStorage, {
+        status: 'error',
+        label: 'Task task-1 failed',
+      });
+    });
+
+    it('does not call notifyTaskCompletion when task is interrupted', () => {
+      const window = {
+        isDestroyed: vi.fn(() => false),
+      } as unknown as BrowserWindow;
+      const sender = {
+        isDestroyed: vi.fn(() => false),
+        send: vi.fn(),
+      } as unknown as WebContents;
+
+      const callbacks = createTaskCallbacks({ taskId: 'task-1', window, sender });
+      callbacks.onComplete({ status: 'interrupted', sessionId: 'sess-1' } as never);
+
+      expect(notifyTaskCompletion).not.toHaveBeenCalled();
+    });
   });
 });

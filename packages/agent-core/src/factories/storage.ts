@@ -51,6 +51,8 @@ import {
   clearAppSettings,
   getSandboxConfig,
   setSandboxConfig,
+  getNotificationsEnabled,
+  setNotificationsEnabled,
 } from '../storage/repositories/appSettings.js';
 import {
   getProviderSettings,
@@ -155,6 +157,8 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     clearAppSettings: () => clearAppSettings(),
     getSandboxConfig: () => getSandboxConfig(),
     setSandboxConfig: (config) => setSandboxConfig(config),
+    getNotificationsEnabled: () => getNotificationsEnabled(),
+    setNotificationsEnabled: (enabled) => setNotificationsEnabled(enabled),
 
     // Provider Settings
     getProviderSettings: () => getProviderSettings(),

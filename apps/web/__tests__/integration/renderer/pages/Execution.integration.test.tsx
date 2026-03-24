@@ -71,6 +71,8 @@ const mockAccomplish = {
   getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
   getOllamaConfig: vi.fn().mockResolvedValue(null),
   getDebugMode: vi.fn().mockResolvedValue(false),
+  getNotificationsEnabled: vi.fn().mockResolvedValue(true),
+  setNotificationsEnabled: vi.fn().mockResolvedValue(undefined),
   isE2EMode: vi.fn().mockResolvedValue(false),
   getProviderSettings: vi.fn().mockResolvedValue({
     activeProviderId: 'anthropic',

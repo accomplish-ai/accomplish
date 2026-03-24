@@ -60,6 +60,8 @@ const mockAccomplish = {
   loginSlackMcp: vi.fn().mockResolvedValue({ ok: true }),
   logoutSlackMcp: vi.fn().mockResolvedValue(undefined),
   getDebugMode: vi.fn().mockResolvedValue(false),
+  getNotificationsEnabled: vi.fn().mockResolvedValue(true),
+  setNotificationsEnabled: vi.fn().mockResolvedValue(undefined),
   getVersion: vi.fn().mockResolvedValue('0.1.0-test'),
 };
 

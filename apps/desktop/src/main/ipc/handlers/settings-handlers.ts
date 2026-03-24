@@ -12,6 +12,20 @@ import { registerOpenCodeHandlers } from './settings-handlers/opencode-handlers'
 export function registerSettingsHandlers(): void {
   const storage = getStorage();
 
+  handle('settings:notifications-enabled', async (_event: IpcMainInvokeEvent) => {
+    return storage.getNotificationsEnabled();
+  });
+
+  handle(
+    'settings:set-notifications-enabled',
+    async (_event: IpcMainInvokeEvent, enabled: boolean) => {
+      if (typeof enabled !== 'boolean') {
+        throw new Error('Invalid notifications-enabled flag');
+      }
+      storage.setNotificationsEnabled(enabled);
+    },
+  );
+
   handle('settings:debug-mode', async (_event: IpcMainInvokeEvent) => {
     return storage.getDebugMode();
   });

@@ -58,6 +58,10 @@ const accomplishAPI = {
   addApiKey: (provider: ProviderType, key: string, label?: string): Promise<unknown> =>
     ipcRenderer.invoke('settings:add-api-key', provider, key, label),
   removeApiKey: (id: string): Promise<void> => ipcRenderer.invoke('settings:remove-api-key', id),
+  getNotificationsEnabled: (): Promise<boolean> =>
+    ipcRenderer.invoke('settings:notifications-enabled'),
+  setNotificationsEnabled: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('settings:set-notifications-enabled', enabled),
   getDebugMode: (): Promise<boolean> => ipcRenderer.invoke('settings:debug-mode'),
   setDebugMode: (enabled: boolean): Promise<void> =>
     ipcRenderer.invoke('settings:set-debug-mode', enabled),

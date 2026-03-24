@@ -253,7 +253,14 @@
     "appearance": "Apparence",
     "about": "À propos",
     "browsers": "Navigateurs cloud",
+    "general": "Général",
     "daemon": "Démon"
+  },
+  "notifications": {
+    "toggle": {
+      "label": "Notifications de bureau",
+      "description": "Afficher les notifications du système lorsque les tâches se terminent en arrière-plan."
+    }
   },
   "appearance": {
     "title": "Thème",

@@ -153,6 +153,10 @@ export interface AppSettingsAPI {
   getCloudBrowserConfig(): CloudBrowserConfig | null;
   /** Set cloud browser configuration */
   setCloudBrowserConfig(config: CloudBrowserConfig | null): void;
+  /** Get whether desktop notifications are enabled */
+  getNotificationsEnabled(): boolean;
+  /** Enable or disable desktop notifications */
+  setNotificationsEnabled(enabled: boolean): void;
   /** Get all application settings as a snapshot */
   getAppSettings(): AppSettings;
   /** Reset all application settings to defaults */

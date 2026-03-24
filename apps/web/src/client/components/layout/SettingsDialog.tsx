@@ -13,7 +13,7 @@ import { SpeechSettingsForm } from '@/components/settings/SpeechSettingsForm';
 import { SkillsPanel, AddSkillDropdown } from '@/components/settings/skills';
 import { WorkspacesPanel } from '@/components/settings/WorkspacesPanel';
 import { AboutTab } from '@/components/settings/AboutTab';
-import { DebugSection } from '@/components/settings/DebugSection';
+import { GeneralTab } from '@/components/settings/GeneralTab';
 import { SandboxSection } from '@/components/settings/SandboxSection';
 import { ConnectorsPanel } from '@/components/settings/connectors';
 import { DaemonPanel } from '@/components/settings/DaemonPanel';
@@ -27,6 +27,7 @@ import {
   Robot,
   FolderSimple,
   Globe,
+  GearSix,
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import logoImage from '/assets/logo-1.png';
@@ -39,6 +40,7 @@ const TABS = [
   { id: 'browsers' as const, labelKey: 'tabs.browsers', icon: Globe },
   { id: 'workspaces' as const, labelKey: 'tabs.workspaces', icon: FolderSimple },
   { id: 'voice' as const, labelKey: 'tabs.voiceInput', icon: Microphone },
+  { id: 'general' as const, labelKey: 'tabs.general', icon: GearSix },
   { id: 'about' as const, labelKey: 'tabs.about', icon: Info },
 ];
 
@@ -61,6 +63,7 @@ interface SettingsDialogProps {
     | 'daemon'
     | 'browsers'
     | 'workspaces'
+    | 'general'
     | 'about';
 }
 
@@ -77,7 +80,15 @@ export function SettingsDialog({
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    'providers' | 'voice' | 'skills' | 'connectors' | 'daemon' | 'browsers' | 'workspaces' | 'about'
+    | 'providers'
+    | 'voice'
+    | 'skills'
+    | 'connectors'
+    | 'daemon'
+    | 'browsers'
+    | 'workspaces'
+    | 'general'
+    | 'about'
   >(initialTab);
   const [appVersion, setAppVersion] = useState<string>('');
   const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
@@ -94,6 +105,7 @@ export function SettingsDialog({
 
   // Debug mode state - stored in appSettings, not providerSettings
   const [debugMode, setDebugModeState] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
   const accomplish = getAccomplish();
 
   // Refetch settings and debug mode when dialog opens
@@ -102,6 +114,7 @@ export function SettingsDialog({
     refetch();
     // Load debug mode from appSettings (correct store)
     accomplish.getDebugMode().then(setDebugModeState);
+    accomplish.getNotificationsEnabled().then(setNotificationsEnabledState);
     // Load app version
     accomplish.getVersion().then(setAppVersion);
   }, [open, refetch, accomplish]);
@@ -236,6 +249,13 @@ export function SettingsDialog({
     await accomplish.setDebugMode(newValue);
     setDebugModeState(newValue);
   }, [debugMode, accomplish]);
+
+  // Handle notifications toggle
+  const handleNotificationsToggle = useCallback(async () => {
+    const newValue = !notificationsEnabled;
+    await accomplish.setNotificationsEnabled(newValue);
+    setNotificationsEnabledState(newValue);
+  }, [notificationsEnabled, accomplish]);
 
   // Handle done button (close with validation)
   const handleDone = useCallback(() => {
@@ -441,20 +461,6 @@ export function SettingsDialog({
                     )}
                   </AnimatePresence>
 
-                  <AnimatePresence>
-                    {selectedProvider && (
-                      <motion.section
-                        variants={settingsVariants.slideDown}
-                        initial="initial"
-                        animate="animate"
-                        exit="exit"
-                        transition={{ ...settingsTransitions.enter, delay: 0.05 }}
-                      >
-                        <DebugSection debugMode={debugMode} onDebugToggle={handleDebugToggle} />
-                      </motion.section>
-                    )}
-                  </AnimatePresence>
-
                   {/* Sandbox Toggle - always visible in providers tab */}
                   <SandboxSection visible={!!selectedProvider} />
                 </div>
@@ -500,6 +506,16 @@ export function SettingsDialog({
                 <div className="space-y-6">
                   <SpeechSettingsForm />
                 </div>
+              )}
+
+              {/* General Tab */}
+              {activeTab === 'general' && (
+                <GeneralTab
+                  notificationsEnabled={notificationsEnabled}
+                  onNotificationsToggle={handleNotificationsToggle}
+                  debugMode={debugMode}
+                  onDebugToggle={handleDebugToggle}
+                />
               )}
 
               {/* About Tab */}

@@ -90,6 +90,8 @@ interface AccomplishAPI {
     label?: string,
   ): Promise<ApiKeyConfig>;
   removeApiKey(id: string): Promise<void>;
+  getNotificationsEnabled(): Promise<boolean>;
+  setNotificationsEnabled(enabled: boolean): Promise<void>;
   getDebugMode(): Promise<boolean>;
   setDebugMode(enabled: boolean): Promise<void>;
   getTheme(): Promise<string>;
