@@ -437,6 +437,7 @@
     "processing": "处理中..."
   },
   "baseUrl": {
-    "title": "基础 URL"
+    "title": "基础 URL",
+    "description": "留空以使用默认 URL。"
   }
 }

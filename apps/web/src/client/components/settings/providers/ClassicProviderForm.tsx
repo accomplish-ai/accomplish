@@ -424,10 +424,14 @@ export function ClassicProviderForm({
 
                 {hasEditableBaseUrl && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">
+                    <label
+                      htmlFor={`${providerId}-base-url-input`}
+                      className="text-sm font-medium text-foreground"
+                    >
                       {t('baseUrl.title', { defaultValue: 'Base URL' })}
                     </label>
                     <input
+                      id={`${providerId}-base-url-input`}
                       type="text"
                       value={customBaseUrl}
                       onChange={(e) => setCustomBaseUrl(e.target.value)}
@@ -477,10 +481,14 @@ export function ClassicProviderForm({
 
                 {hasEditableBaseUrl && connectedProvider?.customBaseUrl && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">
+                    <label
+                      htmlFor={`${providerId}-base-url-display`}
+                      className="text-sm font-medium text-foreground"
+                    >
                       {t('baseUrl.title', { defaultValue: 'Base URL' })}
                     </label>
                     <input
+                      id={`${providerId}-base-url-display`}
                       type="text"
                       value={connectedProvider.customBaseUrl}
                       readOnly

@@ -437,6 +437,7 @@
     "processing": "Traitement..."
   },
   "baseUrl": {
-    "title": "URL de base"
+    "title": "URL de base",
+    "description": "Laissez vide pour utiliser l'URL par défaut."
   }
 }

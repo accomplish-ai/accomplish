@@ -437,6 +437,7 @@
     "processing": "Processing..."
   },
   "baseUrl": {
-    "title": "Base URL"
+    "title": "Base URL",
+    "description": "Leave empty to use the default URL."
   }
 }
