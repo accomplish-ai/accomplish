@@ -70,32 +70,47 @@ export function ClassicProviderForm({
   const defaultBaseUrl = providerConfig?.baseUrl ?? '';
 
   useEffect(() => {
-    if (!isOpenAI) return;
+    if (!isOpenAI) {
+      return;
+    }
 
     const accomplish = getAccomplish();
     accomplish.getOpenAiBaseUrl().then(setOpenAiBaseUrl).catch(console.error);
   }, [isOpenAI]);
 
   useEffect(() => {
-    if (!hasEditableBaseUrl) return;
+    if (!hasEditableBaseUrl) {
+      return;
+    }
     setCustomBaseUrl(connectedProvider?.customBaseUrl || '');
   }, [hasEditableBaseUrl, connectedProvider?.customBaseUrl]);
 
   // Get translated provider name
   const providerName = t(`providers.${providerId}`, { defaultValue: meta.name });
 
+  const connectedProviderBaseUrl =
+    hasEditableBaseUrl
+      ? connectedProvider?.customBaseUrl || defaultBaseUrl || undefined
+      : undefined;
+
   // Auto-fetch models for already-connected providers that don't have availableModels yet,
   // or for OAuth-connected OpenAI users (who may only have the hardcoded fallback list).
   useEffect(() => {
-    if (!isConnected) return;
+    if (!isConnected) {
+      return;
+    }
     const isOAuth = connectedProvider?.credentials?.type === 'oauth';
-    if (!isOAuth && connectedProvider?.availableModels?.length) return;
-    if (!providerConfig?.modelsEndpoint) return;
+    if (!isOAuth && connectedProvider?.availableModels?.length) {
+      return;
+    }
+    if (!providerConfig?.modelsEndpoint) {
+      return;
+    }
 
     const accomplish = getAccomplish();
     accomplish
       .fetchProviderModels(providerId, {
-        baseUrl: isOpenAI ? openAiBaseUrl.trim() || undefined : undefined,
+        baseUrl: isOpenAI ? openAiBaseUrl.trim() || undefined : connectedProviderBaseUrl,
       })
       .then((result) => {
         if (result.success && result.models?.length) {
@@ -103,8 +118,16 @@ export function ClassicProviderForm({
         }
       })
       .catch(console.error);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, providerId]);
+  }, [
+    connectedProvider?.availableModels?.length,
+    connectedProvider?.credentials?.type,
+    connectedProviderBaseUrl,
+    isConnected,
+    isOpenAI,
+    openAiBaseUrl,
+    providerConfig?.modelsEndpoint,
+    providerId,
+  ]);
 
   const handleConnect = async () => {
     if (!apiKey.trim()) {
