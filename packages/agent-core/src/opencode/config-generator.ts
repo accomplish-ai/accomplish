@@ -608,7 +608,7 @@ Example bad narration (too terse):
   const configJson = JSON.stringify(config, null, 2);
   fs.writeFileSync(configPath, configJson);
 
-  log.info('[OpenCode Config] Generated config at:', configPath);
+  log.info(`[OpenCode Config] Generated config at: ${configPath}`);
 
   const environment: Record<string, string> = {
     OPENCODE_CONFIG: configPath,
