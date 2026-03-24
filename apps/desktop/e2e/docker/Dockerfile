@@ -25,10 +25,9 @@ RUN apt-get update && apt-get install -y \
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files first for better caching
+# Copy package files needed for pnpm install (cached in image layer)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/agent-core/package.json ./packages/agent-core/
 COPY apps/web/package.json ./apps/web/
@@ -37,25 +36,10 @@ COPY apps/daemon/package.json ./apps/daemon/
 
 # Copy scripts directory (needed by root postinstall script)
 COPY scripts/ ./scripts/
-
-# Copy mcp-tools directories (needed by desktop postinstall script)
-# MCP tools are now in packages/agent-core/mcp-tools
 COPY packages/agent-core/mcp-tools ./packages/agent-core/mcp-tools
-
-# Copy scripts directory (needed by postinstall script)
 COPY apps/desktop/scripts ./apps/desktop/scripts
 
-# Install dependencies
+# Install dependencies (cached unless package files change)
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
-COPY . .
-
-# Build all packages (core must be built before desktop)
-RUN pnpm build
-
-# Set display for Xvfb
 ENV DISPLAY=:99
-
-# Default command: start Xvfb and run tests (using native Playwright, not Docker)
-CMD ["sh", "-c", "Xvfb :99 -screen 0 1920x1080x24 & sleep 1 && pnpm -F @accomplish/desktop test:e2e:native"]
