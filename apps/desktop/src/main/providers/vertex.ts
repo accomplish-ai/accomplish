@@ -21,7 +21,14 @@ function execAsync(command: string, args: string[], timeoutMs = 5000): Promise<s
 
 export function registerVertexHandlers(handle: IpcHandler): void {
   handle('vertex:validate', async (_event: IpcMainInvokeEvent, credentials: string) => {
-    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Vertex] Validation requested'); } catch (_e) { /* best-effort logging */ }
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'main', '[Vertex] Validation requested');
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
     return validateVertexCredentials(credentials);
   });
 
@@ -34,7 +41,14 @@ export function registerVertexHandlers(handle: IpcHandler): void {
       }
       return result;
     } catch (error) {
-      try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'main', '[Vertex] Failed to fetch models', { error: String(error) }); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('ERROR', 'main', '[Vertex] Failed to fetch models', { error: String(error) });
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
       return { success: false, error: normalizeIpcError(error), models: [] };
     }
   });

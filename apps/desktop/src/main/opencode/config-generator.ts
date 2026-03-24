@@ -19,7 +19,14 @@ import { skillsManager } from '../skills';
 import { getLogCollector } from '../logging';
 
 function logOC(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
-  try { const l = getLogCollector(); if (l?.log) l.log(level, 'opencode', msg, data); } catch (_e) { /* best-effort logging */ }
+  try {
+    const l = getLogCollector();
+    if (l?.log) {
+      l.log(level, 'opencode', msg, data);
+    }
+  } catch (_e) {
+    /* best-effort logging */
+  }
 }
 
 export { ACCOMPLISH_AGENT_NAME };
@@ -118,12 +125,17 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
           });
           storage.storeConnectorTokens(connector.id, tokens);
         } catch (err) {
-          logOC('WARN', `[Connectors] Token refresh failed for ${connector.name}`, { err: String(err) });
+          logOC('WARN', `[Connectors] Token refresh failed for ${connector.name}`, {
+            err: String(err),
+          });
           storage.setConnectorStatus(connector.id, 'error');
           continue;
         }
       } else {
-        logOC('WARN', `[Connectors] Access token expired for ${connector.name} and cannot be refreshed`);
+        logOC(
+          'WARN',
+          `[Connectors] Access token expired for ${connector.name} and cannot be refreshed`,
+        );
         storage.setConnectorStatus(connector.id, 'error');
         continue;
       }
@@ -173,7 +185,10 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
 
   logOC('INFO', `[OpenCode Config] Generated config at: ${result.configPath}`);
   logOC('INFO', `[OpenCode Config] OPENCODE_CONFIG env set to: ${process.env.OPENCODE_CONFIG}`);
-  logOC('INFO', `[OpenCode Config] OPENCODE_CONFIG_DIR env set to: ${process.env.OPENCODE_CONFIG_DIR}`);
+  logOC(
+    'INFO',
+    `[OpenCode Config] OPENCODE_CONFIG_DIR env set to: ${process.env.OPENCODE_CONFIG_DIR}`,
+  );
 
   return result.configPath;
 }

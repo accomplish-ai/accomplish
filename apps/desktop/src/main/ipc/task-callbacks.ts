@@ -74,7 +74,18 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
     } catch (error) {
       hasRendererSendFailure = true;
       const errorMessage = error instanceof Error ? error.message : String(error);
-      try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'ipc', '[TaskCallbacks] Failed to send IPC event to renderer', { taskId, channel, error: errorMessage }); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('ERROR', 'ipc', '[TaskCallbacks] Failed to send IPC event to renderer', {
+            taskId,
+            channel,
+            error: errorMessage,
+          });
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
     }
   };
 
@@ -222,7 +233,14 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
         (now - browserFailureWindowStart) / 1000,
       )}s). Reconnecting browser...`;
 
-      try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'ipc', `[TaskCallbacks] ${reason}`); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('WARN', 'ipc', `[TaskCallbacks] ${reason}`);
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
 
       void recoverDevBrowserServer(
         {
@@ -237,7 +255,14 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
       )
         .catch((error) => {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'ipc', `[TaskCallbacks] Browser recovery failed: ${errorMessage}`); } catch (_e) { /* best-effort logging */ }
+          try {
+            const l = getLogCollector();
+            if (l?.log) {
+              l.log('WARN', 'ipc', `[TaskCallbacks] Browser recovery failed: ${errorMessage}`);
+            }
+          } catch (_e) {
+            /* best-effort logging */
+          }
           if (storage.getDebugMode()) {
             forwardToRenderer('debug:log', {
               taskId,

@@ -21,7 +21,14 @@ import { getTaskManager } from '../opencode';
 import { getLogCollector } from '../logging';
 
 function log(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
-  try { const l = getLogCollector(); if (l?.log) l.log(level, 'main', msg, data); } catch (_e) { /* best-effort logging */ }
+  try {
+    const l = getLogCollector();
+    if (l?.log) {
+      l.log(level, 'main', msg, data);
+    }
+  } catch (_e) {
+    /* best-effort logging */
+  }
 }
 
 function getMetaDatabasePath(): string {
@@ -119,7 +126,10 @@ export function deleteWorkspace(id: string): boolean {
     const taskManager = getTaskManager();
     const activeTaskId = taskManager.getActiveTaskId();
     if (activeTaskId) {
-      log('WARN', `[WorkspaceManager] Cannot delete active workspace while task ${activeTaskId} is running`);
+      log(
+        'WARN',
+        `[WorkspaceManager] Cannot delete active workspace while task ${activeTaskId} is running`,
+      );
       return false;
     }
 

@@ -39,14 +39,35 @@ export class SkillsManager {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[SkillsManager] Initializing...'); } catch (_e) { /* best-effort logging */ }
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'main', '[SkillsManager] Initializing...');
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
     await this.getCoreManager().initialize();
     this.initialized = true;
-    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[SkillsManager] Initialized'); } catch (_e) { /* best-effort logging */ }
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'main', '[SkillsManager] Initialized');
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
   }
 
   async resync(): Promise<void> {
-    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[SkillsManager] Resyncing skills...'); } catch (_e) { /* best-effort logging */ }
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'main', '[SkillsManager] Resyncing skills...');
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
     await this.getCoreManager().resync();
   }
 

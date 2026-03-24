@@ -81,7 +81,18 @@ export function registerPermissionHandlers(taskManager: TaskManagerAPI): Permiss
       if (resolved) {
         return;
       }
-      try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'ipc', `[IPC] File permission request ${requestId} not found in pending requests`); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log(
+            'WARN',
+            'ipc',
+            `[IPC] File permission request ${requestId} not found in pending requests`,
+          );
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
       return;
     }
 
@@ -95,12 +106,26 @@ export function registerPermissionHandlers(taskManager: TaskManagerAPI): Permiss
       if (resolved) {
         return;
       }
-      try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'ipc', `[IPC] Question request ${requestId} not found in pending requests`); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('WARN', 'ipc', `[IPC] Question request ${requestId} not found in pending requests`);
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
       return;
     }
 
     if (!taskManager.hasActiveTask(taskId)) {
-      try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'ipc', `[IPC] Permission response for inactive task ${taskId}`); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('WARN', 'ipc', `[IPC] Permission response for inactive task ${taskId}`);
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
       return;
     }
 

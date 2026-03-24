@@ -51,20 +51,48 @@ if (process.argv.includes('--e2e-mock-tasks') || process.env.E2E_MOCK_TASK_EVENT
 
 if (process.env.CLEAN_START === '1') {
   const userDataPath = app.getPath('userData');
-  try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Clean Mode] Clearing userData directory: ${userDataPath}`); } catch (_e) { /* best-effort logging */ }
+  try {
+    const l = getLogCollector();
+    if (l?.log) {
+      l.log('INFO', 'main', `[Clean Mode] Clearing userData directory: ${userDataPath}`);
+    }
+  } catch (_e) {
+    /* best-effort logging */
+  }
   try {
     if (fs.existsSync(userDataPath)) {
       fs.rmSync(userDataPath, { recursive: true, force: true });
-      try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Clean Mode] Successfully cleared userData'); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('INFO', 'main', '[Clean Mode] Successfully cleared userData');
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
     }
   } catch (err) {
-    try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'main', '[Clean Mode] Failed to clear userData', { err: String(err) }); } catch (_e) { /* best-effort logging */ }
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('ERROR', 'main', '[Clean Mode] Failed to clear userData', { err: String(err) });
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
   }
   // Clear secure storage first (while singleton still exists), then null the reference.
   // Reversing this order would cause getStorage() to re-create the singleton.
   clearSecureStorage();
   resetStorageSingleton();
-  try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Clean Mode] All singletons reset'); } catch (_e) { /* best-effort logging */ }
+  try {
+    const l = getLogCollector();
+    if (l?.log) {
+      l.log('INFO', 'main', '[Clean Mode] All singletons reset');
+    }
+  } catch (_e) {
+    /* best-effort logging */
+  }
 }
 
 app.setName('Accomplish');
@@ -95,7 +123,14 @@ function getPreloadPath(): string {
 }
 
 function createWindow() {
-  try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] Creating main application window'); } catch (_e) { /* best-effort logging */ }
+  try {
+    const l = getLogCollector();
+    if (l?.log) {
+      l.log('INFO', 'main', '[Main] Creating main application window');
+    }
+  } catch (_e) {
+    /* best-effort logging */
+  }
 
   const iconFile = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
   const iconPath = app.isPackaged
@@ -107,7 +142,14 @@ function createWindow() {
   }
 
   const preloadPath = getPreloadPath();
-  try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Main] Using preload script: ${preloadPath}`); } catch (_e) { /* best-effort logging */ }
+  try {
+    const l = getLogCollector();
+    if (l?.log) {
+      l.log('INFO', 'main', `[Main] Using preload script: ${preloadPath}`);
+    }
+  } catch (_e) {
+    /* best-effort logging */
+  }
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -182,11 +224,25 @@ function createWindow() {
   });
 
   if (ROUTER_URL) {
-    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Main] Loading from router URL: ${ROUTER_URL}`); } catch (_e) { /* best-effort logging */ }
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'main', `[Main] Loading from router URL: ${ROUTER_URL}`);
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
     mainWindow.loadURL(ROUTER_URL);
   } else {
     const indexPath = path.join(WEB_DIST, 'index.html');
-    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Main] Loading from file: ${indexPath}`); } catch (_e) { /* best-effort logging */ }
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'main', `[Main] Loading from file: ${indexPath}`);
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
     mainWindow.loadFile(indexPath);
   }
 }
@@ -215,7 +271,14 @@ process.on('unhandledRejection', (reason) => {
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
-  try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] Second instance attempted; quitting'); } catch (_e) { /* best-effort logging */ }
+  try {
+    const l = getLogCollector();
+    if (l?.log) {
+      l.log('INFO', 'main', '[Main] Second instance attempted; quitting');
+    }
+  } catch (_e) {
+    /* best-effort logging */
+  }
   app.quit();
 } else {
   initializeLogCollector();
@@ -230,12 +293,30 @@ if (!gotTheLock) {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
-      try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] Focused existing instance after second-instance event'); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('INFO', 'main', '[Main] Focused existing instance after second-instance event');
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
 
       if (process.platform === 'win32') {
         const protocolUrl = commandLine.find((arg) => arg.startsWith('accomplish://'));
         if (protocolUrl) {
-          try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Main] Received protocol URL from second-instance: ${protocolUrl}`); } catch (_e) { /* best-effort logging */ }
+          try {
+            const l = getLogCollector();
+            if (l?.log) {
+              l.log(
+                'INFO',
+                'main',
+                `[Main] Received protocol URL from second-instance: ${protocolUrl}`,
+              );
+            }
+          } catch (_e) {
+            /* best-effort logging */
+          }
           if (protocolUrl.startsWith('accomplish://callback/mcp')) {
             mainWindow.webContents.send('auth:mcp-callback', protocolUrl);
           } else if (protocolUrl.startsWith('accomplish://callback')) {
@@ -247,16 +328,37 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(async () => {
-    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Main] Electron app ready, version: ${app.getVersion()}`); } catch (_e) { /* best-effort logging */ }
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'main', `[Main] Electron app ready, version: ${app.getVersion()}`);
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
 
     if (process.env.CLEAN_START !== '1') {
       try {
         const didMigrate = migrateLegacyData();
         if (didMigrate) {
-          try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] Migrated data from legacy userData path'); } catch (_e) { /* best-effort logging */ }
+          try {
+            const l = getLogCollector();
+            if (l?.log) {
+              l.log('INFO', 'main', '[Main] Migrated data from legacy userData path');
+            }
+          } catch (_e) {
+            /* best-effort logging */
+          }
         }
       } catch (err) {
-        try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'main', '[Main] Legacy data migration failed', { err: String(err) }); } catch (_e) { /* best-effort logging */ }
+        try {
+          const l = getLogCollector();
+          if (l?.log) {
+            l.log('ERROR', 'main', '[Main] Legacy data migration failed', { err: String(err) });
+          }
+        } catch (_e) {
+          /* best-effort logging */
+        }
       }
     }
 
@@ -280,7 +382,14 @@ if (!gotTheLock) {
     try {
       workspaceManager.initialize();
     } catch (err) {
-      try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'main', '[Main] Workspace initialization failed', { err: String(err) }); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('ERROR', 'main', '[Main] Workspace initialization failed', { err: String(err) });
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
       throw err;
     }
 
@@ -293,14 +402,43 @@ if (!gotTheLock) {
         if (!credType || credType === 'api_key') {
           const key = getApiKey(providerId);
           if (!key) {
-            try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'main', `[Main] Provider ${providerId} has api_key auth but key not found in secure storage`); } catch (_e) { /* best-effort logging */ }
+            try {
+              const l = getLogCollector();
+              if (l?.log) {
+                l.log(
+                  'WARN',
+                  'main',
+                  `[Main] Provider ${providerId} has api_key auth but key not found in secure storage`,
+                );
+              }
+            } catch (_e) {
+              /* best-effort logging */
+            }
             storage.removeConnectedProvider(providerId);
-            try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', `[Main] Removed provider ${providerId} due to missing API key`); } catch (_e) { /* best-effort logging */ }
+            try {
+              const l = getLogCollector();
+              if (l?.log) {
+                l.log(
+                  'INFO',
+                  'main',
+                  `[Main] Removed provider ${providerId} due to missing API key`,
+                );
+              }
+            } catch (_e) {
+              /* best-effort logging */
+            }
           }
         }
       }
     } catch (err) {
-      try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'main', '[Main] Provider validation failed', { err: String(err) }); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('ERROR', 'main', '[Main] Provider validation failed', { err: String(err) });
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
     }
 
     await skillsManager.initialize();
@@ -327,10 +465,24 @@ if (!gotTheLock) {
     const taskManager = getTaskManager();
     const storage = getStorage();
     await bootstrapDaemon({ taskManager, storage });
-    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] Daemon bootstrapped'); } catch (_e) { /* best-effort logging */ }
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'main', '[Main] Daemon bootstrapped');
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
 
     registerIPCHandlers();
-    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] IPC handlers registered'); } catch (_e) { /* best-effort logging */ }
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'main', '[Main] IPC handlers registered');
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
 
     createWindow();
 
@@ -343,12 +495,26 @@ if (!gotTheLock) {
         if (!isQuitting) {
           event.preventDefault();
           mainWindow?.hide();
-          try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] Window hidden to tray'); } catch (_e) { /* best-effort logging */ }
+          try {
+            const l = getLogCollector();
+            if (l?.log) {
+              l.log('INFO', 'main', '[Main] Window hidden to tray');
+            }
+          } catch (_e) {
+            /* best-effort logging */
+          }
         }
       });
 
       createTray(mainWindow);
-      try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] System tray created'); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('INFO', 'main', '[Main] System tray created');
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
     }
 
     app.on('activate', () => {
@@ -383,7 +549,14 @@ app.on('window-all-closed', () => {
   // With system tray, the app stays alive when all windows are closed.
   // On macOS this was already the default behavior.
   // On Windows/Linux the tray keeps the app running.
-  try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'main', '[Main] All windows closed — app continues in system tray'); } catch (_e) { /* best-effort logging */ }
+  try {
+    const l = getLogCollector();
+    if (l?.log) {
+      l.log('INFO', 'main', '[Main] All windows closed — app continues in system tray');
+    }
+  } catch (_e) {
+    /* best-effort logging */
+  }
 });
 
 app.on('before-quit', (event) => {

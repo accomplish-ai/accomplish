@@ -148,7 +148,14 @@ export function registerFileHandlers(): void {
       validateHttpUrl(url, 'External URL');
       await shell.openExternal(url);
     } catch (error) {
-      try { const l = getLogCollector(); if (l?.log) l.log('ERROR', 'ipc', 'Failed to open external URL', { error: String(error) }); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('ERROR', 'ipc', 'Failed to open external URL', { error: String(error) });
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
       throw error;
     }
   });

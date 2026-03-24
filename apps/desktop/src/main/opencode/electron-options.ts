@@ -28,7 +28,14 @@ import { getStorage } from '../store/storage';
 import { getLogCollector } from '../logging';
 
 function logOC(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
-  try { const l = getLogCollector(); if (l?.log) l.log(level, 'opencode', msg, data); } catch (_e) { /* best-effort logging */ }
+  try {
+    const l = getLogCollector();
+    if (l?.log) {
+      l.log(level, 'opencode', msg, data);
+    }
+  } catch (_e) {
+    /* best-effort logging */
+  }
 }
 import { getAllApiKeys, getBedrockCredentials, getApiKey } from '../store/secureStorage';
 import {

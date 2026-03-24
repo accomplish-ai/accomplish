@@ -33,13 +33,38 @@ export class OAuthBrowserFlow {
 
   async start(): Promise<LoginResult> {
     if (this.isInProgress()) {
-      try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'opencode', '[OAuthBrowserFlow] Cancelling previous flow before starting new one'); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log(
+            'INFO',
+            'opencode',
+            '[OAuthBrowserFlow] Cancelling previous flow before starting new one',
+          );
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
       await this.cancel();
       try {
         await waitForPortRelease(1455, 2000);
-        try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'opencode', '[OAuthBrowserFlow] Port 1455 released'); } catch (_e) { /* best-effort logging */ }
+        try {
+          const l = getLogCollector();
+          if (l?.log) {
+            l.log('INFO', 'opencode', '[OAuthBrowserFlow] Port 1455 released');
+          }
+        } catch (_e) {
+          /* best-effort logging */
+        }
       } catch {
-        try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'opencode', '[OAuthBrowserFlow] Port 1455 still in use after 2000ms'); } catch (_e) { /* best-effort logging */ }
+        try {
+          const l = getLogCollector();
+          if (l?.log) {
+            l.log('WARN', 'opencode', '[OAuthBrowserFlow] Port 1455 still in use after 2000ms');
+          }
+        } catch (_e) {
+          /* best-effort logging */
+        }
       }
     }
 
@@ -143,11 +168,25 @@ export class OAuthBrowserFlow {
 
   async cancel(): Promise<void> {
     if (!this.activePty) {
-      try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'opencode', '[OAuthBrowserFlow] No active flow to cancel'); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('INFO', 'opencode', '[OAuthBrowserFlow] No active flow to cancel');
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
       return;
     }
 
-    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'opencode', '[OAuthBrowserFlow] Cancelling active OAuth flow'); } catch (_e) { /* best-effort logging */ }
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'opencode', '[OAuthBrowserFlow] Cancelling active OAuth flow');
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
 
     const ptyProcess = this.activePty;
 
@@ -161,11 +200,27 @@ export class OAuthBrowserFlow {
     const gracefulExited = await this.waitForExit(ptyProcess, 1000);
 
     if (!gracefulExited && this.activePty === ptyProcess) {
-      try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'opencode', '[OAuthBrowserFlow] Force killing after graceful timeout'); } catch (_e) { /* best-effort logging */ }
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('INFO', 'opencode', '[OAuthBrowserFlow] Force killing after graceful timeout');
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
       try {
         ptyProcess.kill();
       } catch (err) {
-        try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'opencode', '[OAuthBrowserFlow] Error during force kill', { err: String(err) }); } catch (_e) { /* best-effort logging */ }
+        try {
+          const l = getLogCollector();
+          if (l?.log) {
+            l.log('WARN', 'opencode', '[OAuthBrowserFlow] Error during force kill', {
+              err: String(err),
+            });
+          }
+        } catch (_e) {
+          /* best-effort logging */
+        }
       }
     }
 
@@ -175,14 +230,30 @@ export class OAuthBrowserFlow {
   dispose(): void {
     if (this.isDisposed) return;
 
-    try { const l = getLogCollector(); if (l?.log) l.log('INFO', 'opencode', '[OAuthBrowserFlow] Disposing'); } catch (_e) { /* best-effort logging */ }
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'opencode', '[OAuthBrowserFlow] Disposing');
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
     this.isDisposed = true;
 
     if (this.activePty) {
       try {
         this.activePty.kill();
       } catch (err) {
-        try { const l = getLogCollector(); if (l?.log) l.log('WARN', 'opencode', '[OAuthBrowserFlow] Error killing PTY during dispose', { err: String(err) }); } catch (_e) { /* best-effort logging */ }
+        try {
+          const l = getLogCollector();
+          if (l?.log) {
+            l.log('WARN', 'opencode', '[OAuthBrowserFlow] Error killing PTY during dispose', {
+              err: String(err),
+            });
+          }
+        } catch (_e) {
+          /* best-effort logging */
+        }
       }
       this.activePty = null;
     }
