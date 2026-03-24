@@ -442,5 +442,9 @@
     "tooltipError": "转录过程中出错 - 点击重试",
     "tooltipDefault": "点击录音或按住 Alt 键进行语音输入",
     "processing": "处理中..."
+  },
+  "baseUrl": {
+    "title": "基础 URL",
+    "description": "留空以使用默认 URL。"
   }
 }

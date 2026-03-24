@@ -1,5 +1,7 @@
 import type { ZaiRegion } from './providerSettings.js';
 
+export const MINIMAX_DEFAULT_BASE_URL = 'https://api.minimax.io/v1';
+
 export const ZAI_ENDPOINTS: Record<ZaiRegion, string> = {
   china: 'https://open.bigmodel.cn/api/paas/v4',
   international: 'https://api.z.ai/api/coding/paas/v4',
@@ -134,6 +136,8 @@ export interface ProviderConfig {
   defaultModelId?: string;
   /** Config for dynamically fetching models from the provider API */
   modelsEndpoint?: ModelsEndpointConfig;
+  /** Whether the user can customize the base URL for this provider */
+  editableBaseUrl?: boolean;
 }
 
 export interface ModelConfig {
@@ -334,7 +338,8 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     name: 'MiniMax',
     requiresApiKey: true,
     apiKeyEnvVar: 'MINIMAX_API_KEY',
-    baseUrl: 'https://api.minimax.io',
+    baseUrl: MINIMAX_DEFAULT_BASE_URL,
+    editableBaseUrl: true,
     defaultModelId: 'minimax/MiniMax-M2.5',
     models: [
       {

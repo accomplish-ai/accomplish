@@ -50,6 +50,7 @@ export function ClassicProviderForm({
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openAiBaseUrl, setOpenAiBaseUrl] = useState('');
+  const [customBaseUrl, setCustomBaseUrl] = useState('');
   const [signingIn, setSigningIn] = useState(false);
   const [fetchedModels, setFetchedModels] = useState<Array<{ id: string; name: string }> | null>(
     null,
@@ -65,29 +66,51 @@ export function ClassicProviderForm({
   const isConnected = connectedProvider?.connectionStatus === 'connected';
   const logoSrc = PROVIDER_LOGOS[providerId];
   const isOpenAI = providerId === 'openai';
+  const hasEditableBaseUrl = providerConfig?.editableBaseUrl === true;
+  const defaultBaseUrl = providerConfig?.baseUrl ?? '';
 
   useEffect(() => {
-    if (!isOpenAI) return;
+    if (!isOpenAI) {
+      return;
+    }
 
     const accomplish = getAccomplish();
     accomplish.getOpenAiBaseUrl().then(setOpenAiBaseUrl).catch(console.error);
   }, [isOpenAI]);
 
+  useEffect(() => {
+    if (!hasEditableBaseUrl) {
+      return;
+    }
+    setCustomBaseUrl(connectedProvider?.customBaseUrl || '');
+  }, [hasEditableBaseUrl, connectedProvider?.customBaseUrl]);
+
   // Get translated provider name
   const providerName = t(`providers.${providerId}`, { defaultValue: meta.name });
+
+  const connectedProviderBaseUrl =
+    hasEditableBaseUrl
+      ? connectedProvider?.customBaseUrl || defaultBaseUrl || undefined
+      : undefined;
 
   // Auto-fetch models for already-connected providers that don't have availableModels yet,
   // or for OAuth-connected OpenAI users (who may only have the hardcoded fallback list).
   useEffect(() => {
-    if (!isConnected) return;
+    if (!isConnected) {
+      return;
+    }
     const isOAuth = connectedProvider?.credentials?.type === 'oauth';
-    if (!isOAuth && connectedProvider?.availableModels?.length) return;
-    if (!providerConfig?.modelsEndpoint) return;
+    if (!isOAuth && connectedProvider?.availableModels?.length) {
+      return;
+    }
+    if (!providerConfig?.modelsEndpoint) {
+      return;
+    }
 
     const accomplish = getAccomplish();
     accomplish
       .fetchProviderModels(providerId, {
-        baseUrl: isOpenAI ? openAiBaseUrl.trim() || undefined : undefined,
+        baseUrl: isOpenAI ? openAiBaseUrl.trim() || undefined : connectedProviderBaseUrl,
       })
       .then((result) => {
         if (result.success && result.models?.length) {
@@ -95,8 +118,16 @@ export function ClassicProviderForm({
         }
       })
       .catch(console.error);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, providerId]);
+  }, [
+    connectedProvider?.availableModels?.length,
+    connectedProvider?.credentials?.type,
+    connectedProviderBaseUrl,
+    isConnected,
+    isOpenAI,
+    openAiBaseUrl,
+    providerConfig?.modelsEndpoint,
+    providerId,
+  ]);
 
   const handleConnect = async () => {
     if (!apiKey.trim()) {
@@ -117,6 +148,19 @@ export function ClassicProviderForm({
       }
     }
 
+    if (hasEditableBaseUrl && customBaseUrl.trim()) {
+      try {
+        const parsed = new URL(customBaseUrl.trim());
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          setError(t('connectors.urlMustBeHttp'));
+          return;
+        }
+      } catch {
+        setError(t('connectors.invalidUrl'));
+        return;
+      }
+    }
+
     setConnecting(true);
     setError(null);
 
@@ -127,7 +171,14 @@ export function ClassicProviderForm({
         await accomplish.setOpenAiBaseUrl(openAiBaseUrl.trim());
       }
 
-      const validation = await accomplish.validateApiKeyForProvider(providerId, apiKey.trim());
+      const explicitCustomBaseUrl = hasEditableBaseUrl ? customBaseUrl.trim() : '';
+      const resolvedBaseUrl = hasEditableBaseUrl
+        ? explicitCustomBaseUrl || defaultBaseUrl || undefined
+        : undefined;
+
+      const validation = await accomplish.validateApiKeyForProvider(providerId, apiKey.trim(), {
+        baseUrl: resolvedBaseUrl,
+      });
 
       if (!validation.valid) {
         setError(validation.error || t('apiKey.invalidKey'));
@@ -142,7 +193,7 @@ export function ClassicProviderForm({
       let fetchedModels: Array<{ id: string; name: string }> | undefined;
       if (providerConfig?.modelsEndpoint) {
         const fetchResult = await accomplish.fetchProviderModels(providerId, {
-          baseUrl: isOpenAI ? openAiBaseUrl.trim() || undefined : undefined,
+          baseUrl: isOpenAI ? openAiBaseUrl.trim() || undefined : resolvedBaseUrl,
         });
         if (fetchResult.success && fetchResult.models) {
           fetchedModels = fetchResult.models;
@@ -172,6 +223,7 @@ export function ClassicProviderForm({
         } as ApiKeyCredentials,
         lastConnectedAt: new Date().toISOString(),
         ...(fetchedModels ? { availableModels: fetchedModels } : {}),
+        ...(explicitCustomBaseUrl ? { customBaseUrl: explicitCustomBaseUrl } : {}),
       };
 
       onConnect(provider);
@@ -370,6 +422,32 @@ export function ClassicProviderForm({
                   </button>
                 </div>
 
+                {hasEditableBaseUrl && (
+                  <div className="space-y-2">
+                    <label
+                      htmlFor={`${providerId}-base-url-input`}
+                      className="text-sm font-medium text-foreground"
+                    >
+                      {t('baseUrl.title', { defaultValue: 'Base URL' })}
+                    </label>
+                    <input
+                      id={`${providerId}-base-url-input`}
+                      type="text"
+                      value={customBaseUrl}
+                      onChange={(e) => setCustomBaseUrl(e.target.value)}
+                      placeholder={defaultBaseUrl}
+                      disabled={connecting}
+                      data-testid="base-url-input"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm disabled:opacity-50"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t('baseUrl.description', {
+                        defaultValue: 'Leave empty to use the default URL.',
+                      })}
+                    </p>
+                  </div>
+                )}
+
                 <FormError error={error} />
                 <ConnectButton
                   onClick={handleConnect}
@@ -391,13 +469,34 @@ export function ClassicProviderForm({
                   type="text"
                   value={(() => {
                     const creds = connectedProvider?.credentials as ApiKeyCredentials | undefined;
-                    if (creds?.keyPrefix) return creds.keyPrefix;
+                    if (creds?.keyPrefix) {
+                      return creds.keyPrefix;
+                    }
                     return t('apiKey.savedReconnectToSee');
                   })()}
                   disabled
                   data-testid="api-key-display"
                   className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />
+
+                {hasEditableBaseUrl && connectedProvider?.customBaseUrl && (
+                  <div className="space-y-2">
+                    <label
+                      htmlFor={`${providerId}-base-url-display`}
+                      className="text-sm font-medium text-foreground"
+                    >
+                      {t('baseUrl.title', { defaultValue: 'Base URL' })}
+                    </label>
+                    <input
+                      id={`${providerId}-base-url-display`}
+                      type="text"
+                      value={connectedProvider.customBaseUrl}
+                      readOnly
+                      data-testid="base-url-display"
+                      className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+                    />
+                  </div>
+                )}
 
                 <ConnectedControls onDisconnect={onDisconnect} />
 

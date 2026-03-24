@@ -6,7 +6,12 @@ import type {
 } from '../common/types/providerSettings.js';
 import type { BedrockCredentials } from '../common/types/auth.js';
 import type { ProviderSettings } from '../common/types/providerSettings.js';
-import { ZAI_ENDPOINTS, DEFAULT_PROVIDERS, PROVIDER_ID_TO_OPENCODE } from '../common/index.js';
+import {
+  ZAI_ENDPOINTS,
+  DEFAULT_PROVIDERS,
+  PROVIDER_ID_TO_OPENCODE,
+  MINIMAX_DEFAULT_BASE_URL,
+} from '../common/index.js';
 import type { ProviderConfig, ProviderModelConfig } from './config-generator.js';
 import { ensureAzureFoundryProxy, ensureMoonshotProxy } from './proxies/index.js';
 import {
@@ -613,6 +618,28 @@ export async function buildProviderConfigs(
         });
       }
     }
+  }
+
+  // MiniMax provider
+  const minimaxProvider = providerSettings.connectedProviders.minimax;
+  if (minimaxProvider?.connectionStatus === 'connected' && minimaxProvider.selectedModelId) {
+    const modelId = minimaxProvider.selectedModelId.replace(/^minimax\//, '');
+    const minimaxApiKey = getApiKey('minimax');
+    const rawBaseUrl = (minimaxProvider.customBaseUrl || MINIMAX_DEFAULT_BASE_URL).trim();
+    const baseUrl = rawBaseUrl.replace(/\/+$/, '') || MINIMAX_DEFAULT_BASE_URL;
+    providerConfigs.push({
+      id: 'minimax',
+      npm: '@ai-sdk/openai-compatible',
+      name: 'MiniMax',
+      options: {
+        baseURL: baseUrl,
+        ...(minimaxApiKey ? { apiKey: minimaxApiKey } : {}),
+      },
+      models: {
+        [modelId]: { name: modelId, tools: true },
+      },
+    });
+    console.log('[OpenCode Config Builder] MiniMax configured:', modelId, 'baseURL:', baseUrl);
   }
 
   // Z.AI provider

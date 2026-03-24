@@ -21,6 +21,7 @@ interface ProviderRow {
   credentials_data: string | null;
   last_connected_at: string | null;
   available_models: string | null;
+  custom_base_url?: string;
 }
 
 function getMetaRow(): ProviderMetaRow {
@@ -43,6 +44,7 @@ function rowToProvider(row: ProviderRow): ConnectedProvider {
     availableModels:
       safeParseJsonWithFallback<Array<{ id: string; name: string }>>(row.available_models) ??
       undefined,
+    customBaseUrl: row.custom_base_url || undefined,
   };
 }
 
@@ -86,8 +88,8 @@ export function setConnectedProvider(providerId: ProviderId, provider: Connected
   const db = getDatabase();
   db.prepare(
     `INSERT OR REPLACE INTO providers
-      (provider_id, connection_status, selected_model_id, credentials_type, credentials_data, last_connected_at, available_models)
-    VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      (provider_id, connection_status, selected_model_id, credentials_type, credentials_data, last_connected_at, available_models, custom_base_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     providerId,
     provider.connectionStatus,
@@ -96,6 +98,7 @@ export function setConnectedProvider(providerId: ProviderId, provider: Connected
     JSON.stringify(provider.credentials),
     provider.lastConnectedAt,
     provider.availableModels ? JSON.stringify(provider.availableModels) : null,
+    provider.customBaseUrl ?? null,
   );
 }
 

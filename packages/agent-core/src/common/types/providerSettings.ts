@@ -282,6 +282,8 @@ export interface ConnectedProvider {
   credentials: ProviderCredentials;
   lastConnectedAt: string;
   availableModels?: Array<{ id: string; name: string; toolSupport?: ToolSupportStatus }>;
+  /** Custom base URL override set by the user (for providers with editableBaseUrl: true) */
+  customBaseUrl?: string;
 }
 
 export interface ProviderSettings {

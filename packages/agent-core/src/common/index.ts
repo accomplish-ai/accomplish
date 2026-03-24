@@ -48,6 +48,7 @@ export {
   ALLOWED_API_KEY_PROVIDERS,
   STANDARD_VALIDATION_PROVIDERS,
   ZAI_ENDPOINTS,
+  MINIMAX_DEFAULT_BASE_URL,
 } from './types/provider.js';
 
 // Provider settings types
