@@ -13,11 +13,7 @@ describe('SnapshotManager', () => {
   const simpleSnapshot = `- button "Submit" [ref=e1]`;
 
   it('returns full snapshot on first call', () => {
-    const result = manager.processSnapshot(
-      simpleSnapshot,
-      'https://example.com',
-      'Test Page'
-    );
+    const result = manager.processSnapshot(simpleSnapshot, 'https://example.com', 'Test Page');
 
     expect(result.type).toBe('full');
     expect(result.content).toBe(simpleSnapshot);
@@ -28,11 +24,7 @@ describe('SnapshotManager', () => {
     manager.processSnapshot(simpleSnapshot, 'https://example.com', 'Test');
 
     // Second call - same URL
-    const result = manager.processSnapshot(
-      simpleSnapshot,
-      'https://example.com',
-      'Test'
-    );
+    const result = manager.processSnapshot(simpleSnapshot, 'https://example.com', 'Test');
 
     expect(result.type).toBe('diff');
   });
@@ -42,11 +34,7 @@ describe('SnapshotManager', () => {
     manager.processSnapshot(simpleSnapshot, 'https://example.com/page1', 'Page 1');
 
     // Second call - different URL
-    const result = manager.processSnapshot(
-      simpleSnapshot,
-      'https://example.com/page2',
-      'Page 2'
-    );
+    const result = manager.processSnapshot(simpleSnapshot, 'https://example.com/page2', 'Page 2');
 
     expect(result.type).toBe('full');
   });
@@ -56,12 +44,9 @@ describe('SnapshotManager', () => {
     manager.processSnapshot(simpleSnapshot, 'https://example.com', 'Test');
 
     // Second call with full_snapshot: true
-    const result = manager.processSnapshot(
-      simpleSnapshot,
-      'https://example.com',
-      'Test',
-      { fullSnapshot: true }
-    );
+    const result = manager.processSnapshot(simpleSnapshot, 'https://example.com', 'Test', {
+      fullSnapshot: true,
+    });
 
     expect(result.type).toBe('full');
   });
@@ -74,7 +59,7 @@ describe('SnapshotManager', () => {
     const result = manager.processSnapshot(
       simpleSnapshot,
       'https://example.com/page#section2',
-      'Test'
+      'Test',
     );
 
     expect(result.type).toBe('diff');
@@ -88,11 +73,7 @@ describe('SnapshotManager', () => {
     manager.reset();
 
     // Should act like first call again
-    const result = manager.processSnapshot(
-      simpleSnapshot,
-      'https://example.com',
-      'Test'
-    );
+    const result = manager.processSnapshot(simpleSnapshot, 'https://example.com', 'Test');
 
     expect(result.type).toBe('full');
   });
@@ -113,11 +94,7 @@ describe('SnapshotManager', () => {
 
     it('should limit history to 10 entries', () => {
       for (let i = 0; i < 15; i++) {
-        manager.processSnapshot(
-          simpleSnapshot,
-          `https://example.com/page${i}`,
-          `Page ${i}`
-        );
+        manager.processSnapshot(simpleSnapshot, `https://example.com/page${i}`, `Page ${i}`);
       }
 
       const summary = manager.getSessionSummary();
@@ -147,24 +124,14 @@ describe('SnapshotManager', () => {
 - link "Results" [ref=e6]`;
 
       // Simulate navigation to first page
-      const result1 = manager.processSnapshot(
-        yaml1,
-        'https://example.com/home',
-        'Home',
-        {}
-      );
+      const result1 = manager.processSnapshot(yaml1, 'https://example.com/home', 'Home', {});
 
       // First snapshot should be full
       expect(result1.type).toBe('full');
       expect(result1.content).toBe(yaml1);
 
       // Simulate navigation to second page
-      const result2 = manager.processSnapshot(
-        yaml2,
-        'https://example.com/search',
-        'Search',
-        {}
-      );
+      const result2 = manager.processSnapshot(yaml2, 'https://example.com/search', 'Search', {});
 
       // New page should also be full snapshot
       expect(result2.type).toBe('full');
@@ -190,7 +157,7 @@ describe('SnapshotManager', () => {
         initialYaml,
         'https://example.com/form',
         'Form Page',
-        {}
+        {},
       );
       expect(result1.type).toBe('full');
 
@@ -199,7 +166,7 @@ describe('SnapshotManager', () => {
         updatedYaml,
         'https://example.com/form',
         'Form Page',
-        {}
+        {},
       );
       expect(result2.type).toBe('diff');
 
@@ -233,7 +200,7 @@ describe('SnapshotManager', () => {
         searchWithResultsYaml,
         'https://example.com/search',
         'Search',
-        {}
+        {},
       );
       expect(resultUpdate.type).toBe('diff');
 

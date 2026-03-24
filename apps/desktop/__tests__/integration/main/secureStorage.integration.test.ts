@@ -92,7 +92,7 @@ describe('secureStorage Integration', () => {
 
       // Assert - check that the raw file does not contain the key in plain text
       const files = fs.readdirSync(tempDir);
-      const storeFile = files.find(f => f.includes('secure-storage'));
+      const storeFile = files.find((f) => f.includes('secure-storage'));
       if (storeFile) {
         const content = fs.readFileSync(path.join(tempDir, storeFile), 'utf-8');
         expect(content).not.toContain(testKey);
@@ -344,7 +344,8 @@ describe('secureStorage Integration', () => {
   describe('clearSecureStorage', () => {
     it('should remove all stored API keys', async () => {
       // Arrange
-      const { storeApiKey, getAllApiKeys, clearSecureStorage } = await import('@main/store/secureStorage');
+      const { storeApiKey, getAllApiKeys, clearSecureStorage } =
+        await import('@main/store/secureStorage');
       storeApiKey('anthropic', 'anthropic-key');
       storeApiKey('openai', 'openai-key');
       storeApiKey('google', 'google-key');
@@ -375,7 +376,8 @@ describe('secureStorage Integration', () => {
 
     it('should allow storing new keys after clear', async () => {
       // Arrange
-      const { storeApiKey, getApiKey, clearSecureStorage } = await import('@main/store/secureStorage');
+      const { storeApiKey, getApiKey, clearSecureStorage } =
+        await import('@main/store/secureStorage');
       storeApiKey('anthropic', 'old-key');
       clearSecureStorage();
 
@@ -389,7 +391,8 @@ describe('secureStorage Integration', () => {
 
     it('should reset salt and derived key', async () => {
       // Arrange
-      const { storeApiKey, getApiKey, clearSecureStorage } = await import('@main/store/secureStorage');
+      const { storeApiKey, getApiKey, clearSecureStorage } =
+        await import('@main/store/secureStorage');
       storeApiKey('anthropic', 'test-key-1');
 
       // Act
@@ -438,7 +441,11 @@ describe('secureStorage Integration', () => {
       // This test verifies that the same plaintext produces different ciphertext
       // due to random IV generation by storing the same value twice
       // and confirming decryption works for both
-      const { storeApiKey, getApiKey, clearSecureStorage } = await import('@main/store/secureStorage');
+      const {
+        storeApiKey,
+        getApiKey,
+        clearSecureStorage: _clearSecureStorage,
+      } = await import('@main/store/secureStorage');
 
       // Store the same plaintext for two different providers
       storeApiKey('anthropic', 'same-key-value');

@@ -38,12 +38,12 @@ CDP_ENDPOINT=ws://remote-browser:9222 CDP_SECRET=my-token npx tsx src/index.ts
 
 ### Environment variables
 
-| Variable | Mode | Description |
-|----------|------|-------------|
-| `CDP_ENDPOINT` | remote | CDP endpoint URL (http or ws). When set, enables remote mode. |
-| `CDP_SECRET` | remote | Sent as `X-CDP-Secret` header for authenticated endpoints. |
-| `DEV_BROWSER_PORT` | builtin | Port for the dev-browser HTTP server (default: `9224`). |
-| `ACCOMPLISH_TASK_ID` | both | Task ID for page name isolation (default: `default`). |
+| Variable             | Mode    | Description                                                   |
+| -------------------- | ------- | ------------------------------------------------------------- |
+| `CDP_ENDPOINT`       | remote  | CDP endpoint URL (http or ws). When set, enables remote mode. |
+| `CDP_SECRET`         | remote  | Sent as `X-CDP-Secret` header for authenticated endpoints.    |
+| `DEV_BROWSER_PORT`   | builtin | Port for the dev-browser HTTP server (default: `9224`).       |
+| `ACCOMPLISH_TASK_ID` | both    | Task ID for page name isolation (default: `default`).         |
 
 ### Launching a headless browser for remote mode
 
@@ -62,15 +62,15 @@ All `browser_*` tools (navigate, snapshot, click, type, evaluate, screenshot, ta
 
 ## browser_snapshot Parameters
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| page_name | string | "main" | Name of the page to snapshot |
-| interactive_only | boolean | true | Only include interactive elements |
-| full_snapshot | boolean | false | Bypass all limits (escape hatch) |
-| max_elements | number | 300 | Maximum elements (1-1000) |
-| max_tokens | number | 8000 | Token budget (1000-50000) |
-| viewport_only | boolean | false | Filter to viewport-visible elements |
-| include_history | boolean | true | Include navigation history |
+| Parameter        | Type    | Default | Description                         |
+| ---------------- | ------- | ------- | ----------------------------------- |
+| page_name        | string  | "main"  | Name of the page to snapshot        |
+| interactive_only | boolean | true    | Only include interactive elements   |
+| full_snapshot    | boolean | false   | Bypass all limits (escape hatch)    |
+| max_elements     | number  | 300     | Maximum elements (1-1000)           |
+| max_tokens       | number  | 8000    | Token budget (1000-50000)           |
+| viewport_only    | boolean | false   | Filter to viewport-visible elements |
+| include_history  | boolean | true    | Include navigation history          |
 
 ### Token Optimization
 
@@ -81,6 +81,7 @@ The snapshot tool automatically optimizes output using a 3-tier system:
 3. **Context Management** - Tracks session navigation history
 
 When truncated, output includes metadata header:
+
 ```yaml
 # Elements: 300 of 5538 (truncated: element limit)
 # Tokens: ~4500

@@ -129,7 +129,7 @@ async function waitForServerReady(serverUrl: string, timeout: number): Promise<v
   const start = Date.now();
   while (Date.now() - start < timeout) {
     if (await isOllamaRunning(serverUrl)) return;
-    await new Promise(resolve => setTimeout(resolve, SERVER_POLL_INTERVAL));
+    await new Promise((resolve) => setTimeout(resolve, SERVER_POLL_INTERVAL));
   }
   throw new Error(`Ollama server did not become ready within ${timeout}ms`);
 }
@@ -228,7 +228,7 @@ export class OllamaTestDriver {
 
     this.ollamaProcess.kill('SIGTERM');
 
-    const exited = await new Promise<boolean>(resolve => {
+    const exited = await new Promise<boolean>((resolve) => {
       const timer = setTimeout(() => resolve(false), SIGTERM_GRACE_PERIOD);
       this.ollamaProcess!.on('exit', () => {
         clearTimeout(timer);

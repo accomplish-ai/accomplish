@@ -52,7 +52,7 @@ export function getElementPriority(role: string, inViewport: boolean): number {
 
 export function truncateElements<T extends TruncatableElement>(
   elements: T[],
-  options: TruncateOptions
+  options: TruncateOptions,
 ): TruncateResult<T> {
   const maxElements = options.maxElements ?? 300;
   const totalElements = elements.length;
@@ -66,14 +66,14 @@ export function truncateElements<T extends TruncatableElement>(
     };
   }
 
-  const scored = elements.map(element => ({
+  const scored = elements.map((element) => ({
     element,
     score: getElementPriority(element.role, element.inViewport),
   }));
 
   scored.sort((a, b) => b.score - a.score);
 
-  const truncatedElements = scored.slice(0, maxElements).map(s => s.element);
+  const truncatedElements = scored.slice(0, maxElements).map((s) => s.element);
 
   return {
     elements: truncatedElements,

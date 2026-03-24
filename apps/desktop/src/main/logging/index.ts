@@ -6,8 +6,4 @@ export {
   type LogLevel,
   type LogSource,
 } from './log-file-writer';
-export {
-  getLogCollector,
-  initializeLogCollector,
-  shutdownLogCollector,
-} from './log-collector';
+export { getLogCollector, initializeLogCollector, shutdownLogCollector } from './log-collector';

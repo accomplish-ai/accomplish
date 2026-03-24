@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import path from 'path';
 import { createSkillsManager, type SkillsManagerAPI } from '@accomplish_ai/agent-core';
+import { getLogCollector } from '../logging';
 
 function getBundledSkillsPath(): string {
   if (app.isPackaged) {
@@ -38,14 +39,35 @@ export class SkillsManager {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    console.log('[SkillsManager] Initializing...');
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'main', '[SkillsManager] Initializing...');
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
     await this.getCoreManager().initialize();
     this.initialized = true;
-    console.log('[SkillsManager] Initialized');
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'main', '[SkillsManager] Initialized');
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
   }
 
   async resync(): Promise<void> {
-    console.log('[SkillsManager] Resyncing skills...');
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'main', '[SkillsManager] Resyncing skills...');
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
     await this.getCoreManager().resync();
   }
 
@@ -67,6 +89,10 @@ export class SkillsManager {
 
   async addFromFile(sourcePath: string) {
     return this.getCoreManager().addSkill(sourcePath);
+  }
+
+  async addFromFolder(folderPath: string) {
+    return this.getCoreManager().addSkill(folderPath);
   }
 
   async addFromGitHub(rawUrl: string) {

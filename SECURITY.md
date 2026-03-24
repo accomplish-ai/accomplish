@@ -29,6 +29,7 @@ We take security seriously. If you discover a security vulnerability, please rep
 ### Scope
 
 Security issues we're interested in:
+
 - Remote code execution
 - Local privilege escalation
 - Data exposure
@@ -36,6 +37,7 @@ Security issues we're interested in:
 - IPC security issues
 
 Out of scope:
+
 - Denial of service
 - Social engineering
 - Issues requiring physical access
@@ -43,6 +45,7 @@ Out of scope:
 ## Security Best Practices
 
 When using Accomplish:
+
 - Keep the application updated
 - Only grant file permissions when necessary
 - Review task outputs before approving sensitive operations

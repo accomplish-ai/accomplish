@@ -1,14 +1,10 @@
 # @accomplish_ai/agent-core
 
-Core library for the Accomplish desktop automation assistant. Provides factory-based APIs for task management, persistent storage, permission handling, logging, and more -- designed for embedding the Accomplish agent runtime into Node.js host applications.
+Core library for the Accomplish desktop automation assistant. Provides factory-based APIs for task management, persistent storage, permission handling, logging, and more.
 
-## Installation
+## Usage
 
-```bash
-npm install @accomplish_ai/agent-core
-# or
-pnpm add @accomplish_ai/agent-core
-```
+This package is internal to the Accomplish monorepo and is consumed via workspace dependencies (for example, `"@accomplish_ai/agent-core": "workspace:*"`).
 
 ## Quick Start
 
@@ -37,13 +33,17 @@ const taskManager = createTaskManager({
 });
 
 // Start a task
-await taskManager.startTask('task-1', { prompt: 'Hello' }, {
-  onMessage: (msg) => console.log(msg),
-  onProgress: (p) => console.log(p.stage),
-  onPermissionRequest: (req) => console.log(req),
-  onComplete: (result) => console.log('Done:', result),
-  onError: (err) => console.error(err),
-});
+await taskManager.startTask(
+  'task-1',
+  { prompt: 'Hello' },
+  {
+    onMessage: (msg) => console.log(msg),
+    onProgress: (p) => console.log(p.stage),
+    onPermissionRequest: (req) => console.log(req),
+    onComplete: (result) => console.log('Done:', result),
+    onError: (err) => console.error(err),
+  },
+);
 ```
 
 ## API
@@ -121,7 +121,7 @@ generateConfig({
   browser: {
     mode: 'remote',
     cdpEndpoint: 'http://localhost:9222',
-    cdpHeaders: { 'X-CDP-Secret': 'token' },  // optional auth
+    cdpHeaders: { 'X-CDP-Secret': 'token' }, // optional auth
   },
 });
 
@@ -129,11 +129,11 @@ generateConfig({
 generateConfig({ browser: { mode: 'none' } });
 ```
 
-| Mode | Description |
-|------|-------------|
-| `builtin` | Default. Connects via the dev-browser HTTP server (used by the desktop app). |
-| `remote` | Connects directly to a CDP endpoint (headless Chromium, remote browser, etc.). |
-| `none` | Disables browser tools. Strips browser identity from the agent's system prompt. |
+| Mode      | Description                                                                     |
+| --------- | ------------------------------------------------------------------------------- |
+| `builtin` | Default. Connects via the dev-browser HTTP server (used by the desktop app).    |
+| `remote`  | Connects directly to a CDP endpoint (headless Chromium, remote browser, etc.).  |
+| `none`    | Disables browser tools. Strips browser identity from the agent's system prompt. |
 
 ## Sub-path Exports
 

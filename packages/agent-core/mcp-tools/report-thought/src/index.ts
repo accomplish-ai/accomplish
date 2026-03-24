@@ -19,7 +19,7 @@ interface ReportThoughtInput {
 
 const server = new Server(
   { name: 'report-thought', version: '1.0.0' },
-  { capabilities: { tools: {} } }
+  { capabilities: { tools: {} } },
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({

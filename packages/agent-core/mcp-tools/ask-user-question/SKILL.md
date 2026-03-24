@@ -26,15 +26,17 @@ You MUST call this tool to display a modal in the UI.
 
 ```json
 {
-  "questions": [{
-    "question": "Your question to the user",
-    "header": "Short label (max 12 chars)",
-    "options": [
-      { "label": "Option 1", "description": "What this does" },
-      { "label": "Option 2", "description": "What this does" }
-    ],
-    "multiSelect": false
-  }]
+  "questions": [
+    {
+      "question": "Your question to the user",
+      "header": "Short label (max 12 chars)",
+      "options": [
+        { "label": "Option 1", "description": "What this does" },
+        { "label": "Option 2", "description": "What this does" }
+      ],
+      "multiSelect": false
+    }
+  ]
 }
 ```
 
@@ -103,6 +105,7 @@ AskUserQuestion({
 ## Response Format
 
 The tool returns the user's selection:
+
 - `User selected: By file type` - Single selection
 - `User selected: Option A, Option B` - Multiple selections (if multiSelect: true)
 - `User responded: [custom text]` - If user typed a custom response
@@ -111,6 +114,7 @@ The tool returns the user's selection:
 ## Wrong vs Correct
 
 **WRONG** (user won't see this):
+
 ```
 I'll help organize your files. How would you like them organized?
 - By type
@@ -119,6 +123,7 @@ I'll help organize your files. How would you like them organized?
 ```
 
 **CORRECT** (user will see a modal):
+
 ```
 AskUserQuestion({
   "questions": [{

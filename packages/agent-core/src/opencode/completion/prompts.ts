@@ -15,8 +15,19 @@ Keep working if there's more to do.`;
 export function getPartialContinuationPrompt(
   remainingWork: string,
   originalRequest: string,
-  completedSummary: string
+  completedSummary: string,
+  incompleteTodos?: string,
 ): string {
+  if (incompleteTodos) {
+    return `Your complete_task call was rejected because these todo items are still marked incomplete:
+
+${incompleteTodos}
+
+Call todowrite to mark each item as "completed" or "cancelled", then call complete_task with status="success".
+
+If any items are not done yet, complete them first.`;
+  }
+
   return `You called complete_task with status="partial" but the task is not done yet.
 
 ## Original Request
@@ -52,12 +63,4 @@ Before continuing, you MUST:
 - Do NOT ask the user "would you like me to continue?" - just continue working
 
 Now create your continuation plan and resume working on the remaining items.`;
-}
-
-export function getIncompleteTodosPrompt(incompleteTodos: string): string {
-  return `You marked the task complete but have incomplete todos:
-
-${incompleteTodos}
-
-Either complete these items or update the todo list to mark them as cancelled if no longer needed. Then call complete_task again.`;
 }

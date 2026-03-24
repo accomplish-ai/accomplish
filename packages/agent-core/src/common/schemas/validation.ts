@@ -29,7 +29,7 @@ export const resumeSessionSchema = z.object({
 
 export function validate<TSchema extends z.ZodTypeAny>(
   schema: TSchema,
-  payload: unknown
+  payload: unknown,
 ): z.infer<TSchema> {
   const result = schema.safeParse(payload);
   if (!result.success) {

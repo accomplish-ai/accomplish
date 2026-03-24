@@ -1,4 +1,7 @@
 import { fetchWithTimeout } from '../utils/fetch.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'OpenRouter' });
 
 const DEFAULT_TIMEOUT_MS = 10000;
 
@@ -24,7 +27,7 @@ export interface FetchModelsResult {
  */
 export async function fetchOpenRouterModels(
   apiKey: string,
-  timeout: number = DEFAULT_TIMEOUT_MS
+  timeout: number = DEFAULT_TIMEOUT_MS,
 ): Promise<FetchModelsResult> {
   if (!apiKey) {
     return { success: false, error: 'No OpenRouter API key configured' };
@@ -39,7 +42,7 @@ export async function fetchOpenRouterModels(
           Authorization: `Bearer ${apiKey}`,
         },
       },
-      timeout
+      timeout,
     );
 
     if (!response.ok) {
@@ -63,11 +66,11 @@ export async function fetchOpenRouterModels(
       };
     });
 
-    console.log(`[OpenRouter] Fetched ${models.length} models`);
+    log.info(`[OpenRouter] Fetched ${models.length} models`);
     return { success: true, models };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch models';
-    console.warn('[OpenRouter] Fetch failed:', message);
+    log.warn(`[OpenRouter] Fetch failed: ${message}`);
 
     if (error instanceof Error && error.name === 'AbortError') {
       return { success: false, error: 'Request timed out. Check your internet connection.' };

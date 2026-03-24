@@ -1,10 +1,6 @@
 import type { SnapshotElement, ParsedSnapshot } from './types.js';
 
-export function parseSnapshot(
-  yamlSnapshot: string,
-  url: string,
-  title: string
-): ParsedSnapshot {
+export function parseSnapshot(yamlSnapshot: string, url: string, title: string): ParsedSnapshot {
   const elements = new Map<string, SnapshotElement>();
   const lines = yamlSnapshot.split('\n');
 

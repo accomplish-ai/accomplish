@@ -1,72 +1,56 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "cron"
-      cronjob: "0 8 * * 0,3"
-      timezone: "UTC"
+      interval: 'weekly'
+      timezone: 'UTC'
     open-pull-requests-limit: 10
-    versioning-strategy: "increase-if-necessary"
+    versioning-strategy: 'increase-if-necessary'
     labels:
-      - "dependencies"
+      - 'dependencies'
     commit-message:
-      prefix: "chore(deps)"
+      prefix: 'chore(deps)'
     groups:
-      npm-production-minor-patch:
-        dependency-type: "production"
+      npm-minor-patch:
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
         patterns:
-          - "*"
-      npm-development-minor-patch:
-        dependency-type: "development"
+          - '*'
+      npm-major:
         update-types:
-          - "minor"
-          - "patch"
+          - 'major'
         patterns:
-          - "*"
-      npm-production-major:
-        dependency-type: "production"
-        update-types:
-          - "major"
-        patterns:
-          - "*"
-      npm-development-major:
-        dependency-type: "development"
-        update-types:
-          - "major"
-        patterns:
-          - "*"
+          - '*'
       npm-catch-all:
         patterns:
-          - "*"
+          - '*'
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "cron"
-      cronjob: "0 8 * * 0,3"
-      timezone: "UTC"
+      interval: 'cron'
+      cronjob: '0 8 * * 0,3'
+      timezone: 'UTC'
     open-pull-requests-limit: 5
     labels:
-      - "dependencies"
-      - "github-actions"
+      - 'dependencies'
+      - 'github-actions'
     commit-message:
-      prefix: "chore(ci)"
+      prefix: 'chore(ci)'
     groups:
       github-actions-minor-patch:
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
         patterns:
-          - "*"
+          - '*'
       github-actions-major:
         update-types:
-          - "major"
+          - 'major'
         patterns:
-          - "*"
+          - '*'
       github-actions-catch-all:
         patterns:
-          - "*"
+          - '*'

@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { CompletionState, CompletionFlowState, CompleteTaskArgs } from '../../../../src/opencode/completion/completion-state.js';
+import {
+  CompletionState,
+  CompletionFlowState,
+  CompleteTaskArgs,
+} from '../../../../src/opencode/completion/completion-state.js';
 
 describe('CompletionState', () => {
   let state: CompletionState;
@@ -37,8 +41,8 @@ describe('CompletionState', () => {
       expect(state.isDone()).toBe(false);
     });
 
-    it('should use default max continuation attempts of 50', () => {
-      expect(state.getMaxContinuationAttempts()).toBe(50);
+    it('should use default max continuation attempts of 10', () => {
+      expect(state.getMaxContinuationAttempts()).toBe(10);
     });
   });
 
@@ -169,9 +173,7 @@ describe('CompletionState', () => {
     });
 
     it('should throw error when not in CONTINUATION_PENDING state', () => {
-      expect(() => state.startContinuation()).toThrow(
-        'Cannot start continuation from state IDLE'
-      );
+      expect(() => state.startContinuation()).toThrow('Cannot start continuation from state IDLE');
     });
 
     it('should throw error when in DONE state', () => {
@@ -181,9 +183,7 @@ describe('CompletionState', () => {
         original_request_summary: 'Test',
       });
 
-      expect(() => state.startContinuation()).toThrow(
-        'Cannot start continuation from state DONE'
-      );
+      expect(() => state.startContinuation()).toThrow('Cannot start continuation from state DONE');
     });
   });
 
@@ -205,7 +205,7 @@ describe('CompletionState', () => {
 
     it('should throw error when not in PARTIAL_CONTINUATION_PENDING state', () => {
       expect(() => state.startPartialContinuation()).toThrow(
-        'Cannot start partial continuation from state IDLE'
+        'Cannot start partial continuation from state IDLE',
       );
     });
 

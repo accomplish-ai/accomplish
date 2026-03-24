@@ -21,19 +21,18 @@ test.describe('Task Launch Guard', () => {
     await expect(settingsPage.providerGrid).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Verify at least some provider cards are visible
-    await expect(settingsPage.getProviderCard('anthropic')).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
-    await expect(settingsPage.getProviderCard('openai')).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.getProviderCard('anthropic')).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
+    await expect(settingsPage.getProviderCard('openai')).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
-    await captureForAI(
-      window,
-      'task-launch-guard',
-      'provider-grid-visible',
-      [
-        'Provider grid is displayed',
-        'Provider cards are visible',
-        'User can select a provider'
-      ]
-    );
+    await captureForAI(window, 'task-launch-guard', 'provider-grid-visible', [
+      'Provider grid is displayed',
+      'Provider cards are visible',
+      'User can select a provider',
+    ]);
   });
 
   test('should show provider settings panel when selecting a provider', async ({ window }) => {
@@ -52,16 +51,11 @@ test.describe('Task Launch Guard', () => {
     // Verify API key input is shown
     await expect(settingsPage.apiKeyInput).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
-    await captureForAI(
-      window,
-      'task-launch-guard',
-      'provider-settings-panel',
-      [
-        'Provider settings panel is visible',
-        'API key input is shown',
-        'User can configure the provider'
-      ]
-    );
+    await captureForAI(window, 'task-launch-guard', 'provider-settings-panel', [
+      'Provider settings panel is visible',
+      'API key input is shown',
+      'User can configure the provider',
+    ]);
   });
 
   test('should have Done button in settings dialog', async ({ window }) => {
@@ -73,15 +67,10 @@ test.describe('Task Launch Guard', () => {
     // Verify Done button is visible
     await expect(settingsPage.doneButton).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
 
-    await captureForAI(
-      window,
-      'task-launch-guard',
-      'done-button-visible',
-      [
-        'Done button is visible in settings',
-        'User can close settings dialog'
-      ]
-    );
+    await captureForAI(window, 'task-launch-guard', 'done-button-visible', [
+      'Done button is visible in settings',
+      'User can close settings dialog',
+    ]);
   });
 
   test('should display Close Anyway button when close warning appears', async ({ window }) => {
@@ -101,28 +90,18 @@ test.describe('Task Launch Guard', () => {
       // Warning appeared - verify Close Anyway button
       await expect(settingsPage.closeAnywayButton).toBeVisible();
 
-      await captureForAI(
-        window,
-        'task-launch-guard',
-        'close-warning-visible',
-        [
-          'Close warning is displayed',
-          'Close Anyway button is visible',
-          'User is warned about missing provider'
-        ]
-      );
+      await captureForAI(window, 'task-launch-guard', 'close-warning-visible', [
+        'Close warning is displayed',
+        'Close Anyway button is visible',
+        'User is warned about missing provider',
+      ]);
     } else if (dialogClosed) {
       // Dialog closed - a provider must be ready (E2E mode may pre-configure one)
-      await captureForAI(
-        window,
-        'task-launch-guard',
-        'dialog-closed-with-provider',
-        [
-          'Dialog closed successfully',
-          'A provider was ready (E2E mode pre-configured)',
-          'Task submission should work'
-        ]
-      );
+      await captureForAI(window, 'task-launch-guard', 'dialog-closed-with-provider', [
+        'Dialog closed successfully',
+        'A provider was ready (E2E mode pre-configured)',
+        'Task submission should work',
+      ]);
     }
   });
 
@@ -142,21 +121,20 @@ test.describe('Task Launch Guard', () => {
       await settingsPage.closeAnywayButton.click();
 
       // Verify dialog closed
-      await expect(settingsPage.settingsDialog).not.toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+      await expect(settingsPage.settingsDialog).not.toBeVisible({
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      });
 
-      await captureForAI(
-        window,
-        'task-launch-guard',
-        'close-anyway-clicked',
-        [
-          'Close Anyway button was clicked',
-          'Dialog closed despite warning',
-          'User can proceed without provider'
-        ]
-      );
+      await captureForAI(window, 'task-launch-guard', 'close-anyway-clicked', [
+        'Close Anyway button was clicked',
+        'Dialog closed despite warning',
+        'User can proceed without provider',
+      ]);
     } else {
       // Dialog closed directly - provider was ready
-      await expect(settingsPage.providerGrid).not.toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+      await expect(settingsPage.providerGrid).not.toBeVisible({
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      });
     }
   });
 
@@ -171,26 +149,33 @@ test.describe('Task Launch Guard', () => {
 
     // Verify all provider cards are visible
     const providerIds = [
-      'openai', 'anthropic', 'google', 'bedrock',
-      'moonshot', 'azure-foundry', 'deepseek', 'zai',
-      'ollama', 'lmstudio', 'xai', 'openrouter',
-      'litellm', 'minimax',
+      'openai',
+      'anthropic',
+      'google',
+      'bedrock',
+      'moonshot',
+      'azure-foundry',
+      'deepseek',
+      'zai',
+      'ollama',
+      'lmstudio',
+      'xai',
+      'openrouter',
+      'litellm',
+      'minimax',
     ];
 
     for (const providerId of providerIds) {
-      await expect(settingsPage.getProviderCard(providerId)).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+      await expect(settingsPage.getProviderCard(providerId)).toBeVisible({
+        timeout: TEST_TIMEOUTS.NAVIGATION,
+      });
     }
 
-    await captureForAI(
-      window,
-      'task-launch-guard',
-      'all-providers-visible',
-      [
-        'All 10 provider cards are visible',
-        'Show All expanded the grid',
-        'User can select any provider'
-      ]
-    );
+    await captureForAI(window, 'task-launch-guard', 'all-providers-visible', [
+      'All 10 provider cards are visible',
+      'Show All expanded the grid',
+      'User can select any provider',
+    ]);
   });
 
   test('should filter providers by search', async ({ window }) => {
@@ -206,22 +191,19 @@ test.describe('Task Launch Guard', () => {
     await settingsPage.searchProvider('ollama');
 
     // Ollama should be visible
-    await expect(settingsPage.getProviderCard('ollama')).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.getProviderCard('ollama')).toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Other providers should not be visible
     await expect(settingsPage.getProviderCard('anthropic')).not.toBeVisible();
     await expect(settingsPage.getProviderCard('openai')).not.toBeVisible();
 
-    await captureForAI(
-      window,
-      'task-launch-guard',
-      'search-filters-providers',
-      [
-        'Search filters provider grid',
-        'Only matching provider is visible',
-        'Search functionality works correctly'
-      ]
-    );
+    await captureForAI(window, 'task-launch-guard', 'search-filters-providers', [
+      'Search filters provider grid',
+      'Only matching provider is visible',
+      'Search functionality works correctly',
+    ]);
   });
 
   test('should be able to navigate back to home and submit task', async ({ window }) => {
@@ -241,7 +223,9 @@ test.describe('Task Launch Guard', () => {
     }
 
     // Wait for dialog to close
-    await expect(settingsPage.settingsDialog).not.toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(settingsPage.settingsDialog).not.toBeVisible({
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
 
     // Enter a task
     await homePage.enterTask(TEST_SCENARIOS.SUCCESS.keyword);
@@ -249,16 +233,11 @@ test.describe('Task Launch Guard', () => {
     // Submit button should be enabled
     await expect(homePage.submitButton).toBeEnabled();
 
-    await captureForAI(
-      window,
-      'task-launch-guard',
-      'ready-to-submit-task',
-      [
-        'Settings dialog closed',
-        'Task input is ready',
-        'Submit button is enabled'
-      ]
-    );
+    await captureForAI(window, 'task-launch-guard', 'ready-to-submit-task', [
+      'Settings dialog closed',
+      'Task input is ready',
+      'Submit button is enabled',
+    ]);
   });
 
   test('should display connected badge on provider card when connected', async ({ window }) => {
@@ -277,32 +256,22 @@ test.describe('Task Launch Guard', () => {
       const isVisible = await badge.isVisible().catch(() => false);
       if (isVisible) {
         foundConnected = true;
-        await captureForAI(
-          window,
-          'task-launch-guard',
-          'connected-badge-visible',
-          [
-            `${providerId} provider has connected badge`,
-            'Badge indicates provider is configured',
-            'User can see which providers are ready'
-          ]
-        );
+        await captureForAI(window, 'task-launch-guard', 'connected-badge-visible', [
+          `${providerId} provider has connected badge`,
+          'Badge indicates provider is configured',
+          'User can see which providers are ready',
+        ]);
         break;
       }
     }
 
     if (!foundConnected) {
       // No connected badge - this is expected in fresh state
-      await captureForAI(
-        window,
-        'task-launch-guard',
-        'no-connected-badge',
-        [
-          'No provider has connected badge',
-          'User needs to configure a provider',
-          'Provider grid shows available options'
-        ]
-      );
+      await captureForAI(window, 'task-launch-guard', 'no-connected-badge', [
+        'No provider has connected badge',
+        'User needs to configure a provider',
+        'Provider grid shows available options',
+      ]);
     }
   });
 });

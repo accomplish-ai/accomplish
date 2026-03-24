@@ -1,8 +1,5 @@
 // Factory functions from agent-core
-export {
-  OpenCodeCliNotFoundError,
-  createTaskManager,
-} from '@accomplish_ai/agent-core';
+export { OpenCodeCliNotFoundError, createTaskManager } from '@accomplish_ai/agent-core';
 
 // Types from agent-core
 export type {
@@ -20,8 +17,9 @@ export {
   isCliAvailable,
   onBeforeStart,
   onBeforeTaskStart,
+  recoverDevBrowserServer,
   getOpenCodeCliPath,
-  isOpenCodeBundled,
+  isOpenCodeCliAvailable,
   getBundledOpenCodeVersion,
   cleanupVertexServiceAccountKey,
 } from './electron-options';

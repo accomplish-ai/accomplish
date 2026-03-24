@@ -20,6 +20,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
+env:
+  HUSKY: '0'
+
 jobs:
   # Run core package tests
   core-tests:
@@ -28,13 +31,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
@@ -58,13 +61,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
@@ -80,7 +83,7 @@ jobs:
 
       - name: Upload unit test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: unit-test-results
           path: apps/desktop/coverage/
@@ -92,13 +95,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
@@ -114,7 +117,7 @@ jobs:
 
       - name: Upload integration test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: integration-test-results
           path: apps/desktop/coverage/
@@ -127,13 +130,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
@@ -155,22 +158,55 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
+          package-manager-cache: false
           # Note: No cache here - E2E tests run in Docker so pnpm store isn't on host
 
-      - name: Run E2E tests in Docker
-        run: pnpm -F @accomplish/desktop test:e2e
+      - name: Cache E2E Docker image
+        id: docker-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/e2e-image.tar
+          key: e2e-docker-${{ hashFiles('apps/desktop/e2e/docker/Dockerfile') }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/package.json', 'pnpm-workspace.yaml') }}-${{ hashFiles('scripts/**', 'apps/desktop/scripts/**', 'packages/agent-core/mcp-tools/**') }}
+
+      - name: Load cached Docker image
+        if: steps.docker-cache.outputs.cache-hit == 'true'
+        run: |
+          docker load -i /tmp/e2e-image.tar
+          # Re-tag to what run-e2e.sh will look for
+          LOADED_TAG="$(docker images 'accomplish-e2e' --format '{{.Repository}}:{{.Tag}}' | head -1)"
+          EXPECTED_TAG="$(bash apps/desktop/e2e/docker/run-e2e.sh --print-tag)"
+          if [ "$LOADED_TAG" != "$EXPECTED_TAG" ] && [ -n "$LOADED_TAG" ]; then
+            docker tag "$LOADED_TAG" "$EXPECTED_TAG"
+          fi
+
+      - name: Build E2E Docker image
+        if: steps.docker-cache.outputs.cache-hit != 'true'
+        run: bash apps/desktop/e2e/docker/run-e2e.sh --build-only
+
+      - name: Save Docker image to cache
+        if: steps.docker-cache.outputs.cache-hit != 'true'
+        run: |
+          IMAGE="$(docker images 'accomplish-e2e' --format '{{.Repository}}:{{.Tag}}' | head -1)"
+          if [ -z "$IMAGE" ]; then
+            echo "No accomplish-e2e image found to cache" >&2
+            exit 1
+          fi
+          docker save "$IMAGE" -o /tmp/e2e-image.tar
+
+      - name: Run E2E tests
+        run: bash apps/desktop/e2e/docker/run-e2e.sh
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: e2e-test-results
@@ -183,16 +219,18 @@ jobs:
   windows-ci:
     name: Windows CI
     runs-on: windows-latest
+    env:
+      npm_config_script_shell: pwsh.exe
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
@@ -206,6 +244,12 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      - name: Verify local dev bootstrap paths
+        timeout-minutes: 10
+        run: |
+          pnpm dev:check
+          pnpm dev:clean:check
+
       - name: Run unit tests
         run: pnpm -F @accomplish/desktop test:unit
 
@@ -214,7 +258,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-test-results
           path: apps/desktop/coverage/

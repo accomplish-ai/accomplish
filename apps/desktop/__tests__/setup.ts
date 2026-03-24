@@ -1,32 +1,34 @@
 /**
- * Vitest setup file for tests
- * Configures testing-library matchers and global test utilities
+ * Vitest setup file for desktop tests (main process + preload only)
  */
 
-import { expect, vi } from 'vitest';
-import * as matchers from '@testing-library/jest-dom/matchers';
+import { vi } from 'vitest';
 
-expect.extend(matchers);
-
-// Mock scrollIntoView for jsdom (not implemented in jsdom)
-// Only apply when running in jsdom environment (Element is defined)
-if (typeof Element !== 'undefined') {
-  Element.prototype.scrollIntoView = () => {};
-}
-
-// Mock ResizeObserver for jsdom (not implemented, required by Radix UI tooltips)
-if (typeof globalThis.ResizeObserver === 'undefined') {
-  globalThis.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
-}
+// Mock the logging module so handlers that call getLogCollector() don't require
+// a real Electron app.getPath() or agent-core createLogWriter during unit tests.
+vi.mock('@main/logging', () => ({
+  getLogCollector: vi.fn(() => ({
+    write: vi.fn(),
+    logEnv: vi.fn(),
+    flush: vi.fn(),
+    getCurrentLogPath: vi.fn(() => '/mock/logs/app.log'),
+    getLogDir: vi.fn(() => '/mock/logs'),
+    initialize: vi.fn(),
+    shutdown: vi.fn(),
+  })),
+  getLogFileWriter: vi.fn(() => ({
+    write: vi.fn(),
+    initialize: vi.fn(),
+    shutdown: vi.fn(),
+  })),
+  initializeLogCollector: vi.fn(),
+  shutdownLogCollector: vi.fn(),
+  initializeLogFileWriter: vi.fn(),
+  shutdownLogFileWriter: vi.fn(),
+}));
 
 // Mock better-sqlite3 native module (not available in test environment)
-// This prevents the native module from being loaded, which would fail in CI
 vi.mock('better-sqlite3', () => {
-  // Create a mock database class that can be instantiated with `new`
   class MockDatabase {
     pragma = vi.fn().mockReturnThis();
     prepare = vi.fn().mockReturnValue({
@@ -43,10 +45,5 @@ vi.mock('better-sqlite3', () => {
     default: MockDatabase,
   };
 });
-
-// Extend global types for test utilities
-declare global {
-  // Add any global test utilities here if needed
-}
 
 export {};

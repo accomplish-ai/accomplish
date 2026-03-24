@@ -19,7 +19,7 @@ describe('Database', () => {
   beforeAll(async () => {
     try {
       databaseModule = await import('../../../src/storage/database.js');
-    } catch (err) {
+    } catch (_err) {
       console.warn('Skipping database tests: better-sqlite3 native module not available');
       console.warn('To fix: pnpm rebuild better-sqlite3');
     }
@@ -27,7 +27,10 @@ describe('Database', () => {
 
   beforeEach(() => {
     // Create a unique temporary directory for each test
-    testDir = path.join(os.tmpdir(), `db-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = path.join(
+      os.tmpdir(),
+      `db-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     fs.mkdirSync(testDir, { recursive: true });
     dbPath = path.join(testDir, 'test.db');
 
@@ -256,9 +259,9 @@ describe('Database', () => {
 
       const db = databaseModule.initializeDatabase({ databasePath: dbPath });
 
-      const result = db
-        .prepare("SELECT value FROM schema_meta WHERE key = 'version'")
-        .get() as { value: string } | undefined;
+      const result = db.prepare("SELECT value FROM schema_meta WHERE key = 'version'").get() as
+        | { value: string }
+        | undefined;
 
       expect(result?.value).toBeDefined();
       expect(parseInt(result!.value, 10)).toBeGreaterThan(0);

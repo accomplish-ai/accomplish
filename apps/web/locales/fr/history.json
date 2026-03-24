@@ -1,0 +1,8 @@
+{
+  "title": "Historique des tâches",
+  "recentTasks": "Tâches récentes",
+  "noTasks": "Aucune tâche pour le moment. Commencez par décrire ce que vous souhaitez accomplir.",
+  "viewAll": "Voir les {{count}} tâches",
+  "confirmClear": "Voulez-vous vraiment effacer tout l'historique des tâches ?",
+  "confirmDelete": "Supprimer cette tâche ?"
+}

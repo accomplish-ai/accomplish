@@ -21,9 +21,11 @@ interface StoredTask {
 }
 
 let mockTaskStore: Map<string, StoredTask> = new Map();
+let mockFavoritesStore: Set<string> = new Set();
 
 function resetMockStore() {
   mockTaskStore = new Map();
+  mockFavoritesStore = new Set();
 }
 
 // Mock the taskHistory module with in-memory behavior
@@ -76,6 +78,23 @@ vi.mock('@accomplish_ai/agent-core', () => ({
     }
   }),
 
+  addFavorite: vi.fn((taskId: string, _prompt: string, _summary?: string) => {
+    mockFavoritesStore.add(taskId);
+  }),
+
+  removeFavorite: vi.fn((taskId: string) => {
+    mockFavoritesStore.delete(taskId);
+  }),
+
+  getFavorites: vi.fn(() =>
+    Array.from(mockFavoritesStore).map((taskId) => {
+      const task = mockTaskStore.get(taskId);
+      return { taskId, prompt: task?.prompt ?? '', favoritedAt: new Date().toISOString() };
+    }),
+  ),
+
+  isFavorite: vi.fn((taskId: string) => mockFavoritesStore.has(taskId)),
+
   deleteTask: vi.fn((taskId: string) => {
     mockTaskStore.delete(taskId);
   }),
@@ -104,7 +123,7 @@ function createMockTask(id: string, prompt: string = 'Test task'): Task {
 function createMockMessage(
   id: string,
   type: 'assistant' | 'user' | 'tool' | 'system' = 'assistant',
-  content: string = 'Test message'
+  content: string = 'Test message',
 ): TaskMessage {
   return {
     id,

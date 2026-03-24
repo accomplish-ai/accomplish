@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.md">English</a> | <strong>中文</strong> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a>
+  <a href="README.md">English</a> | <strong>中文</strong> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.ru.md">Русский</a> | <a href="README.es.md">Español</a> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a> | <a href="README.ta.md">தமிழ்</a> | <a href="README.hi.md">हिन्दी</a>
 </p>
 
 <p align="center">
@@ -11,7 +11,13 @@
   <a href="https://github.com/accomplish-ai/accomplish/stargazers"><img src="https://img.shields.io/github/stars/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Stars" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/issues"><img src="https://img.shields.io/github/issues/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Issues" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/commits"><img src="https://img.shields.io/github/last-commit/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="最近提交" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-0ea5e9?style=flat-square" alt="下载 macOS 版" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="下载 macOS 版 (Apple Silicon)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="下载 macOS 版 (Intel)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="下载 Windows 11 版" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(ARM64)-0ea5e9?style=flat-square" alt="下载 Linux 版（ARM64）" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(x64)-0ea5e9?style=flat-square" alt="下载 Linux 版（x64）" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb"><img src="https://img.shields.io/badge/Download-Linux_(.deb_x64)-0ea5e9?style=flat-square" alt="下载 Linux 版 (.deb x64)" /></a>
+  <a href="https://discord.gg/YH86b2P8"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
 # Accomplish™ - 开源 AI 桌面代理
@@ -23,9 +29,17 @@ Accomplish 是一款开源 AI 桌面代理，可在您的本地机器上自动�
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><strong>下载 Mac 版（Apple Silicon）</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg"><strong>下载 Mac 版（Apple Silicon）</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe"><strong>下载 Windows 11 版</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg"><strong>下载 Mac 版（Intel）</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe"><strong>下载 Windows 11 版</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage"><strong>下载 Linux 版（ARM64）</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage"><strong>下载 Linux 版（x64）</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb"><strong>下载 Linux 版（.deb x64）</strong></a>
   ·
   <a href="https://www.accomplish.ai/">Accomplish 官网</a>
   ·
@@ -111,13 +125,13 @@ Accomplish 是一款开源 AI 桌面代理，可在您的本地机器上自动�
 
 ## 实际功能
 
-| | | |
-|:--|:--|:--|
-| **📁 文件管理** | **✍️ 文档撰写** | **🔗 工具连接** |
-| 根据内容或您设定的规则对文件进行排序、重命名和移动 | 提示它撰写、总结或重写文档 | 与 Notion、Google Drive、Dropbox 等配合使用（通过本地 API） |
-| | | |
-| **⚙️ 自定义技能** | **🛡️ 完全控制** | |
-| 定义可重复的工作流程，保存为技能 | 您批准每一个操作。您可以查看日志。您可以随时停止它。 | |
+|                                                    |                                                      |                                                             |
+| :------------------------------------------------- | :--------------------------------------------------- | :---------------------------------------------------------- |
+| **📁 文件管理**                                    | **✍️ 文档撰写**                                      | **🔗 工具连接**                                             |
+| 根据内容或您设定的规则对文件进行排序、重命名和移动 | 提示它撰写、总结或重写文档                           | 与 Notion、Google Drive、Dropbox 等配合使用（通过本地 API） |
+|                                                    |                                                      |                                                             |
+| **⚙️ 自定义技能**                                  | **🛡️ 完全控制**                                      |                                                             |
+| 定义可重复的工作流程，保存为技能                   | 您批准每一个操作。您可以查看日志。您可以随时停止它。 |                                                             |
 
 <br />
 
@@ -141,6 +155,7 @@ Accomplish 是一款开源 AI 桌面代理，可在您的本地机器上自动�
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
@@ -160,6 +175,8 @@ Accomplish 在您的机器上本地运行。您的文件保留在您的设备上
 
 - macOS（Apple Silicon）
 - Windows 11
+- Ubuntu (ARM64)
+- Ubuntu (x64)
 
 <br />
 
@@ -171,21 +188,20 @@ Accomplish 在您的机器上本地运行。您的文件保留在您的设备上
 
 > **设置只需 2 分钟。**
 
-| 步骤 | 操作 | 详情 |
-|:----:|--------|---------|
-| **1** | **安装应用** | 下载 DMG 并将其拖入应用程序文件夹 |
-| **2** | **连接您的 AI** | 使用您自己的 Google、OpenAI、Anthropic（或其他）API 密钥——或使用 ChatGPT（Plus/Pro）登录。无订阅。 |
-| **3** | **授予访问权限** | 选择它可以查看哪些文件夹。您保持控制权。 |
-| **4** | **开始工作** | 让它总结文档、整理文件夹或创建报告。您批准所有操作。 |
+| 步骤  | 操作             | 详情                                                                                               |
+| :---: | ---------------- | -------------------------------------------------------------------------------------------------- |
+| **1** | **安装应用**     | 下载 DMG 并将其拖入应用程序文件夹                                                                  |
+| **2** | **连接您的 AI**  | 使用您自己的 Google、OpenAI、Anthropic（或其他）API 密钥——或使用 ChatGPT（Plus/Pro）登录。无订阅。 |
+| **3** | **授予访问权限** | 选择它可以查看哪些文件夹。您保持控制权。                                                           |
+| **4** | **开始工作**     | 让它总结文档、整理文件夹或创建报告。您批准所有操作。                                               |
 
 <br />
-
 
 <br />
 
 <div align="center">
 
-[**下载 Mac 版（Apple Silicon）**](https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg) · [**下载 Windows 11 版**](https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe)
+[**下载 Mac 版（Apple Silicon）**](https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg) · [**下载 Mac 版（Intel）**](https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg) · [**下载 Windows 11 版**](https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe) · [**下载 Linux 版（ARM64）**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage) · [**下载 Linux 版（x64）**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage) · [**下载 Linux 版（.deb x64）**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb)
 
 </div>
 
@@ -223,7 +239,7 @@ Accomplish 在您的机器上本地运行。您的文件保留在您的设备上
 是的。Accomplish 是开源的，采用 MIT 许可证。
 
 **支持哪些平台？**
-macOS（Apple Silicon）和 Windows 11 现已可用。
+macOS（Apple Silicon）和 Windows 11 现已可用。 Ubuntu (ARM64) 和 Ubuntu (x64) 同样支持。
 
 <br />
 
@@ -251,25 +267,27 @@ pnpm dev
 <details>
 <summary><strong>所有命令</strong></summary>
 
-| 命令 | 描述 |
-|---------|-------------|
-| `pnpm dev` | 在开发模式下运行桌面应用 |
-| `pnpm dev:clean` | 干净启动的开发模式 |
-| `pnpm build` | 构建所有工作区 |
-| `pnpm build:desktop` | 仅构建桌面应用 |
-| `pnpm lint` | TypeScript 检查 |
-| `pnpm typecheck` | 类型验证 |
-| `pnpm -F @accomplish/desktop test:e2e` | Playwright E2E 测试 |
+| 命令                                        | 描述                             |
+| ------------------------------------------- | -------------------------------- |
+| `pnpm dev`                                  | 在开发模式下运行桌面应用         |
+| `pnpm dev:clean`                            | 干净启动的开发模式               |
+| `pnpm build`                                | 构建所有工作区                   |
+| `pnpm build:desktop`                        | 仅构建桌面应用                   |
+| `pnpm -F @accomplish/desktop package:win`   | 构建 Windows 安装程序 (x64)      |
+| `pnpm -F @accomplish/desktop package:linux` | 构建 Linux 构件 (AppImage + deb) |
+| `pnpm lint`                                 | TypeScript 检查                  |
+| `pnpm typecheck`                            | 类型验证                         |
+| `pnpm -F @accomplish/desktop test:e2e`      | Playwright E2E 测试              |
 
 </details>
 
 <details>
 <summary><strong>环境变量</strong></summary>
 
-| 变量 | 描述 |
-|----------|-------------|
-| `CLEAN_START=1` | 应用启动时清除所有存储数据 |
-| `E2E_SKIP_AUTH=1` | 跳过引导流程（用于测试） |
+| 变量              | 描述                       |
+| ----------------- | -------------------------- |
+| `CLEAN_START=1`   | 应用启动时清除所有存储数据 |
+| `E2E_SKIP_AUTH=1` | 跳过引导流程（用于测试）   |
 
 </details>
 

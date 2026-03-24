@@ -1,10 +1,8 @@
 import { execFile } from 'child_process';
-import {
-  validateVertexCredentials,
-  fetchVertexModels,
-} from '@accomplish_ai/agent-core';
+import { validateVertexCredentials, fetchVertexModels } from '@accomplish_ai/agent-core';
 import type { VertexCredentials } from '@accomplish_ai/agent-core';
 import { storeApiKey, getApiKey } from '../store/secureStorage';
+import { getLogCollector } from '../logging';
 import { normalizeIpcError } from '../ipc/validation';
 import type { IpcHandler } from '../ipc/types';
 import type { IpcMainInvokeEvent } from 'electron';
@@ -23,7 +21,14 @@ function execAsync(command: string, args: string[], timeoutMs = 5000): Promise<s
 
 export function registerVertexHandlers(handle: IpcHandler): void {
   handle('vertex:validate', async (_event: IpcMainInvokeEvent, credentials: string) => {
-    console.log('[Vertex] Validation requested');
+    try {
+      const l = getLogCollector();
+      if (l?.log) {
+        l.log('INFO', 'main', '[Vertex] Validation requested');
+      }
+    } catch (_e) {
+      /* best-effort logging */
+    }
     return validateVertexCredentials(credentials);
   });
 
@@ -36,7 +41,14 @@ export function registerVertexHandlers(handle: IpcHandler): void {
       }
       return result;
     } catch (error) {
-      console.error('[Vertex] Failed to fetch models:', error);
+      try {
+        const l = getLogCollector();
+        if (l?.log) {
+          l.log('ERROR', 'main', '[Vertex] Failed to fetch models', { error: String(error) });
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
       return { success: false, error: normalizeIpcError(error), models: [] };
     }
   });
@@ -59,7 +71,8 @@ export function registerVertexHandlers(handle: IpcHandler): void {
 
     storeApiKey('vertex', credentials);
 
-    const label = parsed.authType === 'serviceAccount' ? 'Service Account' : 'Application Default Credentials';
+    const label =
+      parsed.authType === 'serviceAccount' ? 'Service Account' : 'Application Default Credentials';
     const keyPrefix = `${parsed.projectId} (${parsed.location})`;
 
     return {
@@ -107,7 +120,11 @@ export function registerVertexHandlers(handle: IpcHandler): void {
 
   handle('vertex:list-projects', async (_event: IpcMainInvokeEvent) => {
     try {
-      const token = await execAsync('gcloud', ['auth', 'application-default', 'print-access-token'], 20000);
+      const token = await execAsync(
+        'gcloud',
+        ['auth', 'application-default', 'print-access-token'],
+        20000,
+      );
 
       if (!token) {
         return { success: false, projects: [], error: 'No ADC token available' };
@@ -130,7 +147,11 @@ export function registerVertexHandlers(handle: IpcHandler): void {
 
         if (!response.ok) {
           const errorText = await response.text().catch(() => '');
-          return { success: false, projects: [], error: `Failed to list projects (${response.status}): ${errorText}` };
+          return {
+            success: false,
+            projects: [],
+            error: `Failed to list projects (${response.status}): ${errorText}`,
+          };
         }
 
         const data = (await response.json()) as {

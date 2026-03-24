@@ -8,7 +8,10 @@ const __dirname = path.dirname(__filename);
 
 const TEST_LOCAL_AGENT_HTTP_PORT = 9226;
 const TEST_LOCAL_AGENT_CDP_PORT = 9227;
-const TEST_LOCAL_AGENT_CHROME_PROFILE = path.join(os.homedir(), '.accomplish-test-local-agent-chrome');
+const TEST_LOCAL_AGENT_CHROME_PROFILE = path.join(
+  os.homedir(),
+  '.accomplish-test-local-agent-chrome',
+);
 
 const PERMISSION_API_PORT = 3847;
 const QUESTION_API_PORT = 3848;
@@ -37,11 +40,12 @@ function getMcpToolsPath(): string {
 }
 
 function getSystemPrompt(): string {
-  const platformInstructions = process.platform === 'darwin'
-    ? 'You are running on macOS.'
-    : process.platform === 'win32'
-    ? 'You are running on Windows. Use PowerShell syntax.'
-    : 'You are running on Linux.';
+  const platformInstructions =
+    process.platform === 'darwin'
+      ? 'You are running on macOS.'
+      : process.platform === 'win32'
+        ? 'You are running on Windows. Use PowerShell syntax.'
+        : 'You are running on Linux.';
 
   return `<identity>
 You are Accomplish, a browser automation assistant.
@@ -135,7 +139,10 @@ export function generateTestLocalAgentConfig(): string {
   fs.writeFileSync(configPath, configJson);
 
   console.log('[test-local-agent] Config generated at:', configPath);
-  console.log('[test-local-agent] Using ports:', { http: TEST_LOCAL_AGENT_HTTP_PORT, cdp: TEST_LOCAL_AGENT_CDP_PORT });
+  console.log('[test-local-agent] Using ports:', {
+    http: TEST_LOCAL_AGENT_HTTP_PORT,
+    cdp: TEST_LOCAL_AGENT_CDP_PORT,
+  });
   console.log('[test-local-agent] Chrome profile:', TEST_LOCAL_AGENT_CHROME_PROFILE);
 
   return configPath;

@@ -1,5 +1,5 @@
 import type { ProviderType } from '../common/types/provider.js';
-import { ZAI_ENDPOINTS } from '../common/types/provider.js';
+import { ZAI_ENDPOINTS, DEFAULT_PROVIDERS } from '../common/types/provider.js';
 import type { ZaiRegion } from '../common/types/providerSettings.js';
 
 import { fetchWithTimeout } from '../utils/fetch.js';
@@ -20,7 +20,7 @@ const DEFAULT_TIMEOUT_MS = 10000;
 export async function validateApiKey(
   provider: ProviderType,
   apiKey: string,
-  options?: ValidationOptions
+  options?: ValidationOptions,
 ): Promise<ValidationResult> {
   const timeout = options?.timeout ?? DEFAULT_TIMEOUT_MS;
 
@@ -44,7 +44,7 @@ export async function validateApiKey(
               messages: [{ role: 'user', content: 'test' }],
             }),
           },
-          timeout
+          timeout,
         );
         break;
 
@@ -58,7 +58,7 @@ export async function validateApiKey(
               Authorization: `Bearer ${apiKey}`,
             },
           },
-          timeout
+          timeout,
         );
         break;
       }
@@ -69,7 +69,7 @@ export async function validateApiKey(
           {
             method: 'GET',
           },
-          timeout
+          timeout,
         );
         break;
 
@@ -82,7 +82,7 @@ export async function validateApiKey(
               Authorization: `Bearer ${apiKey}`,
             },
           },
-          timeout
+          timeout,
         );
         break;
 
@@ -95,7 +95,7 @@ export async function validateApiKey(
               Authorization: `Bearer ${apiKey}`,
             },
           },
-          timeout
+          timeout,
         );
         break;
 
@@ -108,7 +108,7 @@ export async function validateApiKey(
               Authorization: `Bearer ${apiKey}`,
             },
           },
-          timeout
+          timeout,
         );
         break;
 
@@ -127,7 +127,7 @@ export async function validateApiKey(
               messages: [{ role: 'user', content: 'test' }],
             }),
           },
-          timeout
+          timeout,
         );
         break;
 
@@ -142,7 +142,7 @@ export async function validateApiKey(
               Authorization: `Bearer ${apiKey}`,
             },
           },
-          timeout
+          timeout,
         );
         break;
       }
@@ -158,12 +158,12 @@ export async function validateApiKey(
               'anthropic-version': '2023-06-01',
             },
             body: JSON.stringify({
-              model: 'MiniMax-M2',
+              model: 'MiniMax-M2.5',
               max_tokens: 1,
               messages: [{ role: 'user', content: 'test' }],
             }),
           },
-          timeout
+          timeout,
         );
         break;
 
@@ -174,8 +174,34 @@ export async function validateApiKey(
       case 'litellm':
       case 'lmstudio':
       case 'custom':
-      default:
         return { valid: true };
+
+      default: {
+        // Data-driven validation: fetch from modelsEndpoint configured in DEFAULT_PROVIDERS.
+        // This enables validation for any OpenAI-compatible provider without adding new cases.
+        const providerConfig = DEFAULT_PROVIDERS.find((p) => p.id === provider);
+        if (providerConfig?.modelsEndpoint) {
+          const { url, authStyle } = providerConfig.modelsEndpoint;
+          const headers: Record<string, string> = {};
+          let fetchUrl = url;
+
+          if (authStyle === 'bearer') {
+            headers['Authorization'] = `Bearer ${apiKey}`;
+          } else if (authStyle === 'query-param') {
+            fetchUrl = `${url}?key=${apiKey}`;
+          } else if (authStyle === 'x-api-key') {
+            headers['x-api-key'] = apiKey;
+          }
+
+          if (providerConfig.modelsEndpoint.extraHeaders) {
+            Object.assign(headers, providerConfig.modelsEndpoint.extraHeaders);
+          }
+
+          response = await fetchWithTimeout(fetchUrl, { method: 'GET', headers }, timeout);
+          break;
+        }
+        return { valid: true };
+      }
     }
 
     if (response.ok) {

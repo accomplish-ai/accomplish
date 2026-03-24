@@ -1,0 +1,81 @@
+{
+  "title": "Qu'allez-vous accomplir aujourd'hui ?",
+  "inputPlaceholder": "Décrivez une tâche et laissez l'IA s'en charger",
+  "plusMenu": {
+    "addContent": "Ajouter du contenu",
+    "attachFiles": "Joindre des fichiers",
+    "soon": "Bientôt",
+    "useSkills": "Utiliser des compétences",
+    "connectors": "Connecteurs",
+    "noConnectors": "Aucun connecteur",
+    "manage": "Gérer",
+    "dropFilesHere": "Déposez les fichiers ici pour les joindre",
+    "dropFilesHint": "(max {max} fichiers, {size}Mo chacun)",
+    "fileTooLarge": "{name} dépasse la limite de taille {limit}",
+    "tooManyFiles": "Maximum {max} fichiers autorisés",
+    "selectFolder": "Sélectionner un dossier"
+  },
+  "examplePrompts": "Exemples de requêtes",
+  "useCases": {
+    "calendarPrepNotes": {
+      "title": "Préparation réunions",
+      "description": "Consultez les réunions de demain et rédigez des notes de préparation.",
+      "prompt": "Consultez mon Google Agenda pour les réunions de demain et rédigez des notes de préparation dans un nouveau Google Doc."
+    },
+    "inboxPromoCleanup": {
+      "title": "Nettoyage des promotions",
+      "description": "Supprimez les e-mails promotionnels des dernières 24 heures.",
+      "prompt": "Allez dans ma boîte Gmail et supprimez tous les e-mails promotionnels des dernières 24 heures."
+    },
+    "competitorPricingDeck": {
+      "title": "Analyse tarifaire concurrentielle",
+      "description": "Analysez les tarifs concurrents et rédigez une diapositive avec des recommandations.",
+      "prompt": "Récupérez les tarifs et fonctionnalités de ces 5 sites concurrents [liste des URL], enregistrez dans un CSV, analysez nos écarts de prix et rédigez une diapositive de recommandation dans Google Slides pour la réunion de lundi."
+    },
+    "notionApiAudit": {
+      "title": "Audit API Notion",
+      "description": "Parcourez un wiki Notion pour trouver les anciennes mentions d'API avec liens directs.",
+      "prompt": "Parcourez ce wiki Notion à [URL] et trouvez toutes les mentions de l'ancienne API, en les listant avec les liens des pages."
+    },
+    "stagingVsProdVisual": {
+      "title": "Comparaison visuelle Staging/Prod",
+      "description": "Comparez visuellement le staging et la production avec des captures d'écran.",
+      "prompt": "Comparez mon site de staging à [URL] avec la production à [URL] et capturez les différences visuelles."
+    },
+    "prodBrokenLinks": {
+      "title": "Liens cassés en production",
+      "description": "Vérifiez les liens cassés sur mon site web.",
+      "prompt": "Ouvrez [URL], cliquez sur chaque lien et signalez les erreurs 404."
+    },
+    "portfolioMonitoring": {
+      "title": "Suivi de portefeuille",
+      "description": "Surveillez les cours des actions et alertez en cas de baisses et de hausses.",
+      "prompt": "Surveillez mon portefeuille d'actions sur [site de courtage], alertez en cas de baisses et de hausses de prix."
+    },
+    "jobApplicationAutomation": {
+      "title": "Automatisation des candidatures",
+      "description": "Filtrez les offres d'emploi et soumettez des candidatures avec les profils enregistrés.",
+      "prompt": "Trouvez les offres d'emploi sur LinkedIn pour [requête], triez par salaire et postulez aux 5 meilleures avec mon profil."
+    },
+    "eventCalendarBuilder": {
+      "title": "Création de calendrier d'événements",
+      "description": "Sélectionnez les meilleurs événements et ajoutez-les au calendrier.",
+      "prompt": "Parcourez les événements sur Eventbrite, filtrez par lieu et ajoutez les 5 meilleurs à mon calendrier."
+    }
+  },
+  "favorites": {
+    "title": "Favoris",
+    "empty": "Marquez les tâches terminées ou interrompues comme favorites pour les voir ici.",
+    "showAll": "Afficher les {{count}} favoris",
+    "showAll_one": "Afficher {{count}} favori",
+    "showAll_few": "Afficher les {{count}} favoris",
+    "showAll_many": "Afficher les {{count}} favoris",
+    "showAll_other": "Afficher les {{count}} favoris"
+  },
+  "selectFolder": "Sélectionner un dossier",
+  "selectedFolder": {
+    "badge": "📁 {folder}",
+    "clearAriaLabel": "Effacer le dossier sélectionné",
+    "clearButton": "✕"
+  }
+}

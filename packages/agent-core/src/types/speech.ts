@@ -62,9 +62,8 @@ export interface SpeechServiceAPI {
    */
   transcribeAudio(
     audioData: Buffer,
-    mimeType?: string
+    mimeType?: string,
   ): Promise<
-    | { success: true; result: TranscriptionResult }
-    | { success: false; error: TranscriptionError }
+    { success: true; result: TranscriptionResult } | { success: false; error: TranscriptionError }
   >;
 }

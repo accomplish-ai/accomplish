@@ -21,6 +21,7 @@ type ElectronFixtures = {
  * Each test gets a fresh app instance to ensure isolation.
  */
 export const test = base.extend<ElectronFixtures>({
+  // eslint-disable-next-line no-empty-pattern
   electronApp: async ({}, use) => {
     const mainPath = resolve(__dirname, '../../dist-electron/main/index.js');
 
@@ -36,6 +37,7 @@ export const test = base.extend<ElectronFixtures>({
         ...process.env,
         E2E_SKIP_AUTH: '1',
         E2E_MOCK_TASK_EVENTS: '1',
+        CLEAN_START: '1',
         NODE_ENV: 'test',
       },
     });
@@ -44,7 +46,7 @@ export const test = base.extend<ElectronFixtures>({
 
     // Close app and wait for single-instance lock release
     await app.close();
-    await new Promise(resolve => setTimeout(resolve, TEST_TIMEOUTS.APP_RESTART));
+    await new Promise((resolve) => setTimeout(resolve, TEST_TIMEOUTS.APP_RESTART));
   },
 
   window: async ({ electronApp }, use) => {

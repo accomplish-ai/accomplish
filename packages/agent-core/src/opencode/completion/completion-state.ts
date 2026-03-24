@@ -4,7 +4,7 @@ export enum CompletionFlowState {
   PARTIAL_CONTINUATION_PENDING,
   CONTINUATION_PENDING,
   MAX_RETRIES_REACHED,
-  DONE
+  DONE,
 }
 
 export interface CompleteTaskArgs {
@@ -20,7 +20,7 @@ export class CompletionState {
   private completeTaskArgs: CompleteTaskArgs | null = null;
   private readonly maxContinuationAttempts: number;
 
-  constructor(maxContinuationAttempts: number = 50) {
+  constructor(maxContinuationAttempts: number = 10) {
     this.maxContinuationAttempts = maxContinuationAttempts;
   }
 
@@ -41,9 +41,11 @@ export class CompletionState {
   }
 
   isCompleteTaskCalled(): boolean {
-    return this.state !== CompletionFlowState.IDLE &&
-           this.state !== CompletionFlowState.CONTINUATION_PENDING &&
-           this.state !== CompletionFlowState.PARTIAL_CONTINUATION_PENDING;
+    return (
+      this.state !== CompletionFlowState.IDLE &&
+      this.state !== CompletionFlowState.CONTINUATION_PENDING &&
+      this.state !== CompletionFlowState.PARTIAL_CONTINUATION_PENDING
+    );
   }
 
   isPendingContinuation(): boolean {
@@ -55,8 +57,10 @@ export class CompletionState {
   }
 
   isDone(): boolean {
-    return this.state === CompletionFlowState.DONE ||
-           this.state === CompletionFlowState.MAX_RETRIES_REACHED;
+    return (
+      this.state === CompletionFlowState.DONE ||
+      this.state === CompletionFlowState.MAX_RETRIES_REACHED
+    );
   }
 
   recordCompleteTaskCall(args: CompleteTaskArgs): void {
@@ -71,8 +75,10 @@ export class CompletionState {
   }
 
   scheduleContinuation(): boolean {
-    if (this.state !== CompletionFlowState.IDLE &&
-        this.state !== CompletionFlowState.CONTINUATION_PENDING) {
+    if (
+      this.state !== CompletionFlowState.IDLE &&
+      this.state !== CompletionFlowState.CONTINUATION_PENDING
+    ) {
       return false;
     }
 
@@ -95,7 +101,9 @@ export class CompletionState {
 
   startPartialContinuation(): boolean {
     if (this.state !== CompletionFlowState.PARTIAL_CONTINUATION_PENDING) {
-      throw new Error(`Cannot start partial continuation from state ${CompletionFlowState[this.state]}`);
+      throw new Error(
+        `Cannot start partial continuation from state ${CompletionFlowState[this.state]}`,
+      );
     }
 
     this.continuationAttempts++;

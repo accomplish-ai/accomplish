@@ -45,9 +45,7 @@ describe('testOllamaConnection', () => {
       }),
     } as Response);
 
-    mockedToolSupport
-      .mockResolvedValueOnce('supported')
-      .mockResolvedValueOnce('unsupported');
+    mockedToolSupport.mockResolvedValueOnce('supported').mockResolvedValueOnce('unsupported');
 
     const result = await testOllamaConnection('http://localhost:11434');
 

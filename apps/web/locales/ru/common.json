@@ -1,0 +1,100 @@
+{
+  "app": {
+    "name": "Accomplish"
+  },
+  "buttons": {
+    "send": "Отправить",
+    "submit": "Подтвердить",
+    "stop": "Остановить",
+    "cancel": "Отмена",
+    "close": "Закрыть",
+    "save": "Сохранить",
+    "delete": "Удалить",
+    "deleteAll": "Удалить все",
+    "allow": "Разрешить",
+    "deny": "Отклонить",
+    "continue": "Продолжить",
+    "doneContinue": "Готово, продолжить",
+    "goHome": "На главную",
+    "startNewTask": "Новая задача",
+    "test": "Тест",
+    "testing": "Тестирование...",
+    "saving": "Сохранение...",
+    "validating": "Проверка...",
+    "export": "Экспорт",
+    "exported": "Экспортировано",
+    "clear": "Очистить",
+    "clearAll": "Очистить все",
+    "yes": "Да",
+    "no": "Нет",
+    "retry": "Повторить",
+    "saveApiKey": "Сохранить API-ключ",
+    "copyToClipboard": "Копировать в буфер обмена",
+    "dismiss": "Скрыть",
+    "messageTooLong": "Сообщение слишком длинное",
+    "enterMessage": "Введите сообщение",
+    "quit": "Выход"
+  },
+  "aria": {
+    "scrollToBottom": "Прокрутить вниз",
+    "customResponse": "Свой ответ"
+  },
+  "status": {
+    "running": "Выполняется",
+    "completed": "Завершено",
+    "failed": "Ошибка",
+    "cancelled": "Отменено",
+    "queued": "В очереди",
+    "pending": "Ожидание",
+    "waiting": "Ожидание",
+    "stopped": "Остановлено",
+    "interrupted": "Прервано"
+  },
+  "time": {
+    "justNow": "только что",
+    "minutesAgo": "{{count}} мин. назад",
+    "hoursAgo": "{{count}} ч. назад",
+    "daysAgo": "{{count}} дн. назад",
+    "today": "Сегодня",
+    "yesterday": "Вчера"
+  },
+  "nav": {
+    "home": "Главная",
+    "history": "История",
+    "settings": "Настройки"
+  },
+  "labels": {
+    "awsCredentials": "Учётные данные AWS",
+    "gcpCredentials": "Учётные данные GCP",
+    "localApiKey": "Локальный API-ключ",
+    "azureFoundryEntraId": "Azure Foundry (Entra ID)",
+    "bedrockApiKey": "API-ключ Bedrock",
+    "awsAccessKeys": "Ключи доступа AWS",
+    "awsProfile": "Профиль AWS: {{name}}"
+  },
+  "contextMenu": {
+    "addToDictionary": "Добавить в словарь"
+  },
+  "fileFilters": {
+    "text": "Текстовые файлы",
+    "log": "Файлы журнала",
+    "skill": "Файлы навыков",
+    "all": "Все файлы"
+  },
+  "model": {
+    "selectModel": "Выбрать модель",
+    "current": "Текущая",
+    "configureModel": "Настроить модель",
+    "changeModel": "Сменить модель"
+  },
+  "messages": "{{count}} сообщений",
+  "favorite": "Избранное",
+  "theme": {
+    "switchToLight": "Светлая тема",
+    "switchToDark": "Тёмная тема",
+    "switchToSystem": "Системная тема",
+    "lightMode": "Светлый",
+    "darkMode": "Тёмный",
+    "systemMode": "Система"
+  }
+}

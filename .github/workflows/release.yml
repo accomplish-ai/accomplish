@@ -20,6 +20,7 @@ on:
         options:
           - all
           - macos-only
+          - linux-only
         default: all
       dry_run:
         description: 'Test mode - skips push to main, creates test release'
@@ -45,14 +46,15 @@ jobs:
       platforms: ${{ steps.inputs.outputs.platforms }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
+          package-manager-cache: false
 
       - name: Determine bump type
         id: inputs
@@ -236,21 +238,21 @@ jobs:
     runs-on: macos-14
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: v${{ needs.version-bump.outputs.new_version }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -272,7 +274,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Accomplish-macOS-arm64
           path: |
@@ -287,21 +289,21 @@ jobs:
     runs-on: macos-15-large
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: v${{ needs.version-bump.outputs.new_version }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -323,12 +325,106 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Accomplish-macOS-x64
           path: |
             apps/desktop/release/*-x64.dmg
             apps/desktop/release/*-x64.zip
+          retention-days: 30
+
+  build-linux-arm64:
+    name: Build Linux (ARM64)
+    needs: version-bump
+    if: needs.version-bump.outputs.platforms == 'all' || needs.version-bump.outputs.platforms == 'linux-only'
+    runs-on: ubuntu-22.04-arm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.version-bump.outputs.new_version }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libnotify-dev libnss3 libxss1 libxtst6 xvfb
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download Node.js binaries
+        run: pnpm -F @accomplish/desktop download:nodejs
+
+      - name: Build desktop app
+        run: pnpm -F @accomplish/desktop build
+
+      - name: Package (unsigned)
+        run: node scripts/package.cjs --linux --arm64 --publish never
+        working-directory: apps/desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: Accomplish-Linux-arm64
+          path: |
+            apps/desktop/release/*-arm64.AppImage
+            apps/desktop/release/*-arm64.deb
+          retention-days: 30
+
+  build-linux-x64:
+    name: Build Linux (x64)
+    needs: version-bump
+    if: needs.version-bump.outputs.platforms == 'all' || needs.version-bump.outputs.platforms == 'linux-only'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.version-bump.outputs.new_version }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libnotify-dev libnss3 libxss1 libxtst6 xvfb
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download Node.js binaries
+        run: pnpm -F @accomplish/desktop download:nodejs
+
+      - name: Build desktop app
+        run: pnpm -F @accomplish/desktop build
+
+      - name: Package (unsigned)
+        run: node scripts/package.cjs --linux --x64 --publish never
+        working-directory: apps/desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: Accomplish-Linux-x64
+          path: |
+            apps/desktop/release/*-x64.AppImage
+            apps/desktop/release/*-x64.deb
           retention-days: 30
 
   # build-windows-x64:
@@ -338,15 +434,15 @@ jobs:
   #   runs-on: windows-latest
   #   steps:
   #     - name: Checkout code
-  #       uses: actions/checkout@v4
+  #       uses: actions/checkout@v6
   #       with:
   #         ref: v${{ needs.version-bump.outputs.new_version }}
   #
   #     - name: Setup pnpm
-  #       uses: pnpm/action-setup@v4
+  #       uses: pnpm/action-setup@v5
   #
   #     - name: Setup Node.js
-  #       uses: actions/setup-node@v4
+  #       uses: actions/setup-node@v6
   #       with:
   #         node-version: '20'
   #         cache: 'pnpm'
@@ -368,7 +464,7 @@ jobs:
   #         CSC_IDENTITY_AUTO_DISCOVERY: false
   #
   #     - name: Upload artifacts
-  #       uses: actions/upload-artifact@v4
+  #       uses: actions/upload-artifact@v7
   #       with:
   #         name: Accomplish-Windows-x64
   #         path: apps/desktop/release/*.exe
@@ -376,7 +472,7 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    needs: [version-bump, build-mac-arm64, build-mac-x64]
+    needs: [version-bump, build-mac-arm64, build-mac-x64, build-linux-arm64, build-linux-x64]
     if: always() && needs.version-bump.result == 'success'
     runs-on: ubuntu-latest
     steps:
@@ -385,9 +481,11 @@ jobs:
           PLATFORMS="${{ needs.version-bump.outputs.platforms }}"
           MAC_ARM64="${{ needs.build-mac-arm64.result }}"
           MAC_X64="${{ needs.build-mac-x64.result }}"
+          LINUX_ARM64="${{ needs.build-linux-arm64.result }}"
+          LINUX_X64="${{ needs.build-linux-x64.result }}"
 
           echo "Requested platforms: $PLATFORMS"
-          echo "Build results: macOS-arm64=$MAC_ARM64, macOS-x64=$MAC_X64"
+          echo "Build results: macOS-arm64=$MAC_ARM64, macOS-x64=$MAC_X64, Linux-arm64=$LINUX_ARM64, Linux-x64=$LINUX_X64"
 
           # Validate all requested platform builds succeeded
           FAILED=0
@@ -403,6 +501,17 @@ jobs:
             fi
           fi
 
+          if [ "$PLATFORMS" == "all" ] || [ "$PLATFORMS" == "linux-only" ]; then
+            if [ "$LINUX_ARM64" != "success" ]; then
+              echo "Error: Linux ARM64 build failed (result: $LINUX_ARM64)"
+              FAILED=1
+            fi
+            if [ "$LINUX_X64" != "success" ]; then
+              echo "Error: Linux x64 build failed (result: $LINUX_X64)"
+              FAILED=1
+            fi
+          fi
+
           if [ $FAILED -eq 1 ]; then
             echo "Error: One or more requested platform builds failed"
             exit 1
@@ -411,7 +520,7 @@ jobs:
           echo "All requested platform builds succeeded"
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: v${{ needs.version-bump.outputs.new_version }}
 
@@ -426,24 +535,38 @@ jobs:
 
       - name: Download macOS ARM64 artifacts
         if: needs.build-mac-arm64.result == 'success'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: Accomplish-macOS-arm64
           path: ./release/arm64
 
       - name: Download macOS x64 artifacts
         if: needs.build-mac-x64.result == 'success'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: Accomplish-macOS-x64
           path: ./release/x64
 
       # - name: Download Windows x64 artifacts
       #   if: needs.build-windows-x64.result == 'success'
-      #   uses: actions/download-artifact@v4
+      #   uses: actions/download-artifact@v8
       #   with:
       #     name: Accomplish-Windows-x64
       #     path: ./release/win-x64
+
+      - name: Download Linux ARM64 artifacts
+        if: needs.build-linux-arm64.result == 'success'
+        uses: actions/download-artifact@v8
+        with:
+          name: Accomplish-Linux-arm64
+          path: ./release/linux-arm64
+
+      - name: Download Linux x64 artifacts
+        if: needs.build-linux-x64.result == 'success'
+        uses: actions/download-artifact@v8
+        with:
+          name: Accomplish-Linux-x64
+          path: ./release/linux-x64
 
       - name: List release artifacts
         run: |
@@ -461,6 +584,8 @@ jobs:
           files: |
             ./release/arm64/*
             ./release/x64/*
+            ./release/linux-arm64/*
+            ./release/linux-x64/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

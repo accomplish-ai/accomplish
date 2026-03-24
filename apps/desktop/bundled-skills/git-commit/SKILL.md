@@ -22,6 +22,7 @@ Use conventional commit format:
 ```
 
 ### Types
+
 - **feat**: New feature
 - **fix**: Bug fix
 - **docs**: Documentation changes

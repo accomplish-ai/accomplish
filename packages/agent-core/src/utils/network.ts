@@ -28,10 +28,7 @@ export function isPortInUse(port: number): Promise<boolean> {
  * @param timeoutMs - Maximum time to wait in milliseconds
  * @returns Promise that resolves when port is free or rejects on timeout
  */
-export async function waitForPortRelease(
-  port: number,
-  timeoutMs: number
-): Promise<void> {
+export async function waitForPortRelease(port: number, timeoutMs: number): Promise<void> {
   const startTime = Date.now();
   const pollInterval = 100;
 

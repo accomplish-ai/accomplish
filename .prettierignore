@@ -1,0 +1,11 @@
+dist/
+.wrangler/
+release/
+node_modules/
+pnpm-lock.yaml
+*.min.js
+dist-electron/
+playwright-report/
+coverage/
+# Auto-generated files not tracked by git
+**/public/theme-init.js

@@ -42,6 +42,7 @@ export interface CheckpointEvent {
 }
 
 /** Options for creating a ThoughtStreamHandler instance */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- intentional extension point for future options
 export interface ThoughtStreamOptions {
   // Currently no options needed, but interface provided for future extensibility
 }

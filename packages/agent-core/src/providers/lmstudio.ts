@@ -4,6 +4,9 @@ import { fetchWithTimeout } from '../utils/fetch.js';
 import { validateHttpUrl } from '../utils/url.js';
 import { sanitizeString } from '../utils/sanitize.js';
 import { testLMStudioModelToolSupport } from './tool-support-testing.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'LMStudio' });
 
 /** Default timeout for LM Studio API requests in milliseconds */
 export const LMSTUDIO_REQUEST_TIMEOUT_MS = 15000;
@@ -55,9 +58,7 @@ export interface LMStudioFetchModelsOptions {
  * @returns Human-readable display name
  */
 function formatModelDisplayName(modelId: string): string {
-  return modelId
-    .replace(/-/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return modelId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /**
@@ -70,7 +71,7 @@ function formatModelDisplayName(modelId: string): string {
  * @returns Connection result with models if successful
  */
 export async function testLMStudioConnection(
-  options: LMStudioConnectionOptions
+  options: LMStudioConnectionOptions,
 ): Promise<LMStudioConnectionResult> {
   const { url, timeoutMs = LMSTUDIO_REQUEST_TIMEOUT_MS } = options;
 
@@ -90,7 +91,7 @@ export async function testLMStudioConnection(
     const response = await fetchWithTimeout(
       `${sanitizedUrl}/v1/models`,
       { method: 'GET' },
-      timeoutMs
+      timeoutMs,
     );
 
     if (!response.ok) {
@@ -123,14 +124,14 @@ export async function testLMStudioConnection(
         toolSupport,
       });
 
-      console.log(`[LM Studio] Model ${m.id}: toolSupport=${toolSupport}`);
+      log.info(`[LM Studio] Model ${m.id}: toolSupport=${toolSupport}`);
     }
 
-    console.log(`[LM Studio] Connection successful, found ${models.length} models`);
+    log.info(`[LM Studio] Connection successful, found ${models.length} models`);
     return { success: true, models };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Connection failed';
-    console.warn('[LM Studio] Connection failed:', message);
+    log.warn(`[LM Studio] Connection failed: ${message}`);
 
     if (error instanceof Error && error.name === 'AbortError') {
       return {
@@ -152,16 +153,12 @@ export async function testLMStudioConnection(
  * @returns Result with models if successful
  */
 export async function fetchLMStudioModels(
-  options: LMStudioFetchModelsOptions
+  options: LMStudioFetchModelsOptions,
 ): Promise<LMStudioConnectionResult> {
   const { baseUrl, timeoutMs = LMSTUDIO_REQUEST_TIMEOUT_MS } = options;
 
   try {
-    const response = await fetchWithTimeout(
-      `${baseUrl}/v1/models`,
-      { method: 'GET' },
-      timeoutMs
-    );
+    const response = await fetchWithTimeout(`${baseUrl}/v1/models`, { method: 'GET' }, timeoutMs);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -190,7 +187,7 @@ export async function fetchLMStudioModels(
     return { success: true, models };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch models';
-    console.warn('[LM Studio] Fetch failed:', message);
+    log.warn(`[LM Studio] Fetch failed: ${message}`);
 
     if (error instanceof Error && error.name === 'AbortError') {
       return {

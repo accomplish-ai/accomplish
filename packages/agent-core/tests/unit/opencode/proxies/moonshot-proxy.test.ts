@@ -26,7 +26,7 @@ describe('Moonshot Proxy', () => {
           model: 'kimi',
           messages: [{ role: 'user', content: 'Hello' }],
           enable_thinking: true,
-        })
+        }),
       );
 
       const result = transformMoonshotRequestBody(body);
@@ -41,7 +41,7 @@ describe('Moonshot Proxy', () => {
           model: 'kimi',
           messages: [{ role: 'user', content: 'Hello' }],
           reasoning: true,
-        })
+        }),
       );
 
       const result = transformMoonshotRequestBody(body);
@@ -56,7 +56,7 @@ describe('Moonshot Proxy', () => {
           model: 'kimi',
           messages: [{ role: 'user', content: 'Hello' }],
           reasoning_effort: 'high',
-        })
+        }),
       );
 
       const result = transformMoonshotRequestBody(body);
@@ -71,7 +71,7 @@ describe('Moonshot Proxy', () => {
           model: 'kimi',
           messages: [{ role: 'user', content: 'Hello' }],
           max_completion_tokens: 1000,
-        })
+        }),
       );
 
       const result = transformMoonshotRequestBody(body);
@@ -88,7 +88,7 @@ describe('Moonshot Proxy', () => {
           messages: [{ role: 'user', content: 'Hello' }],
           max_completion_tokens: 1000,
           max_tokens: 500,
-        })
+        }),
       );
 
       const result = transformMoonshotRequestBody(body);
@@ -108,7 +108,7 @@ describe('Moonshot Proxy', () => {
             { role: 'user', content: 'Hello' },
             { role: 'assistant', content: 'Hi there!' },
           ],
-        })
+        }),
       );
 
       const result = transformMoonshotRequestBody(body);
@@ -125,7 +125,7 @@ describe('Moonshot Proxy', () => {
             { role: 'user', content: 'Hello' },
             { role: 'assistant', content: 'Hi!', reasoning_content: 'I thought about this' },
           ],
-        })
+        }),
       );
 
       const result = transformMoonshotRequestBody(body);
@@ -142,7 +142,7 @@ describe('Moonshot Proxy', () => {
             { role: 'user', content: 'Hello' },
             { role: 'system', content: 'You are helpful' },
           ],
-        })
+        }),
       );
 
       const result = transformMoonshotRequestBody(body);
@@ -165,7 +165,7 @@ describe('Moonshot Proxy', () => {
         JSON.stringify({
           model: 'kimi',
           messages: [],
-        })
+        }),
       );
 
       const result = transformMoonshotRequestBody(body);
@@ -179,11 +179,9 @@ describe('Moonshot Proxy', () => {
         JSON.stringify({
           model: 'kimi',
           nested: {
-            messages: [
-              { role: 'assistant', content: 'Nested message' },
-            ],
+            messages: [{ role: 'assistant', content: 'Nested message' }],
           },
-        })
+        }),
       );
 
       const result = transformMoonshotRequestBody(body);
@@ -203,7 +201,7 @@ describe('Moonshot Proxy', () => {
           enable_thinking: true,
           reasoning_effort: 'high',
           max_completion_tokens: 2000,
-        })
+        }),
       );
 
       const result = transformMoonshotRequestBody(body);
@@ -246,7 +244,7 @@ describe('Moonshot Proxy', () => {
 
     it('should throw for unsupported protocol', async () => {
       await expect(ensureMoonshotProxy('ftp://api.moonshot.cn')).rejects.toThrow(
-        'Invalid protocol: ftp:'
+        'Invalid protocol: ftp:',
       );
     });
   });

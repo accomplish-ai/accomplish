@@ -12,29 +12,34 @@ This skill provides thorough code review with actionable feedback.
 ## Review Checklist
 
 ### Correctness
+
 - Logic errors
 - Edge cases not handled
 - Incorrect assumptions
 
 ### Security
+
 - Input validation
 - SQL injection
 - XSS vulnerabilities
 - Hardcoded secrets
 
 ### Performance
+
 - Unnecessary loops
 - N+1 queries
 - Memory leaks
 - Inefficient algorithms
 
 ### Maintainability
+
 - Code clarity
 - Naming conventions
 - Function length
 - Documentation
 
 ### Best Practices
+
 - DRY (Don't Repeat Yourself)
 - SOLID principles
 - Error handling

@@ -21,7 +21,7 @@ interface ReportCheckpointInput {
 
 const server = new Server(
   { name: 'report-checkpoint', version: '1.0.0' },
-  { capabilities: { tools: {} } }
+  { capabilities: { tools: {} } },
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({

@@ -109,7 +109,9 @@ describe('Preload Script Integration', () => {
     describe('Task Operations', () => {
       it('startTask should invoke task:start with config', async () => {
         const config = { description: 'Test task' };
-        await (capturedAccomplishAPI.startTask as (config: { description: string }) => Promise<unknown>)(config);
+        await (
+          capturedAccomplishAPI.startTask as (config: { description: string }) => Promise<unknown>
+        )(config);
         expect(mockInvoke).toHaveBeenCalledWith('task:start', config);
       });
 
@@ -119,7 +121,9 @@ describe('Preload Script Integration', () => {
       });
 
       it('interruptTask should invoke task:interrupt with taskId', async () => {
-        await (capturedAccomplishAPI.interruptTask as (taskId: string) => Promise<void>)('task_123');
+        await (capturedAccomplishAPI.interruptTask as (taskId: string) => Promise<void>)(
+          'task_123',
+        );
         expect(mockInvoke).toHaveBeenCalledWith('task:interrupt', 'task_123');
       });
 
@@ -142,20 +146,62 @@ describe('Preload Script Integration', () => {
         await (capturedAccomplishAPI.clearTaskHistory as () => Promise<void>)();
         expect(mockInvoke).toHaveBeenCalledWith('task:clear-history');
       });
+
+      it('addFavorite should invoke favorites:add with taskId', async () => {
+        await (capturedAccomplishAPI.addFavorite as (taskId: string) => Promise<void>)('task_123');
+        expect(mockInvoke).toHaveBeenCalledWith('favorites:add', 'task_123');
+      });
+
+      it('removeFavorite should invoke favorites:remove with taskId', async () => {
+        await (capturedAccomplishAPI.removeFavorite as (taskId: string) => Promise<void>)(
+          'task_123',
+        );
+        expect(mockInvoke).toHaveBeenCalledWith('favorites:remove', 'task_123');
+      });
+
+      it('listFavorites should invoke favorites:list', async () => {
+        await (capturedAccomplishAPI.listFavorites as () => Promise<unknown[]>)();
+        expect(mockInvoke).toHaveBeenCalledWith('favorites:list');
+      });
+
+      it('isFavorite should invoke favorites:has with taskId', async () => {
+        await (capturedAccomplishAPI.isFavorite as (taskId: string) => Promise<boolean>)(
+          'task_123',
+        );
+        expect(mockInvoke).toHaveBeenCalledWith('favorites:has', 'task_123');
+      });
     });
 
     describe('Permission Operations', () => {
       it('respondToPermission should invoke permission:respond', async () => {
         const response = { taskId: 'task_123', allowed: true };
-        await (capturedAccomplishAPI.respondToPermission as (r: { taskId: string; allowed: boolean }) => Promise<void>)(response);
+        await (
+          capturedAccomplishAPI.respondToPermission as (r: {
+            taskId: string;
+            allowed: boolean;
+          }) => Promise<void>
+        )(response);
         expect(mockInvoke).toHaveBeenCalledWith('permission:respond', response);
       });
     });
 
     describe('Session Operations', () => {
       it('resumeSession should invoke session:resume', async () => {
-        await (capturedAccomplishAPI.resumeSession as (s: string, p: string, t?: string) => Promise<unknown>)('session_123', 'Continue', 'task_456');
-        expect(mockInvoke).toHaveBeenCalledWith('session:resume', 'session_123', 'Continue', 'task_456');
+        await (
+          capturedAccomplishAPI.resumeSession as (
+            s: string,
+            p: string,
+            t?: string,
+            attachments?: unknown[],
+          ) => Promise<unknown>
+        )('session_123', 'Continue', 'task_456');
+        expect(mockInvoke).toHaveBeenCalledWith(
+          'session:resume',
+          'session_123',
+          'Continue',
+          'task_456',
+          undefined,
+        );
       });
     });
 
@@ -173,6 +219,21 @@ describe('Preload Script Integration', () => {
       it('getAppSettings should invoke settings:app-settings', async () => {
         await (capturedAccomplishAPI.getAppSettings as () => Promise<unknown>)();
         expect(mockInvoke).toHaveBeenCalledWith('settings:app-settings');
+      });
+
+      it('getSlackMcpOauthStatus should invoke opencode:auth:slack:status', async () => {
+        await (capturedAccomplishAPI.getSlackMcpOauthStatus as () => Promise<unknown>)();
+        expect(mockInvoke).toHaveBeenCalledWith('opencode:auth:slack:status');
+      });
+
+      it('loginSlackMcp should invoke opencode:auth:slack:login', async () => {
+        await (capturedAccomplishAPI.loginSlackMcp as () => Promise<unknown>)();
+        expect(mockInvoke).toHaveBeenCalledWith('opencode:auth:slack:login');
+      });
+
+      it('logoutSlackMcp should invoke opencode:auth:slack:logout', async () => {
+        await (capturedAccomplishAPI.logoutSlackMcp as () => Promise<void>)();
+        expect(mockInvoke).toHaveBeenCalledWith('opencode:auth:slack:logout');
       });
     });
 
@@ -193,7 +254,9 @@ describe('Preload Script Integration', () => {
       });
 
       it('validateApiKey should invoke api-key:validate', async () => {
-        await (capturedAccomplishAPI.validateApiKey as (key: string) => Promise<unknown>)('sk-test');
+        await (capturedAccomplishAPI.validateApiKey as (key: string) => Promise<unknown>)(
+          'sk-test',
+        );
         expect(mockInvoke).toHaveBeenCalledWith('api-key:validate', 'sk-test');
       });
 
@@ -233,7 +296,12 @@ describe('Preload Script Integration', () => {
 
       it('setSelectedModel should invoke model:set', async () => {
         const model = { provider: 'anthropic', model: 'claude-3-opus' };
-        await (capturedAccomplishAPI.setSelectedModel as (m: { provider: string; model: string }) => Promise<void>)(model);
+        await (
+          capturedAccomplishAPI.setSelectedModel as (m: {
+            provider: string;
+            model: string;
+          }) => Promise<void>
+        )(model);
         expect(mockInvoke).toHaveBeenCalledWith('model:set', model);
       });
     });
@@ -243,6 +311,13 @@ describe('Preload Script Integration', () => {
         const payload = { level: 'info', message: 'Test' };
         await (capturedAccomplishAPI.logEvent as (p: unknown) => Promise<unknown>)(payload);
         expect(mockInvoke).toHaveBeenCalledWith('log:event', payload);
+      });
+    });
+
+    describe('Skills Operations', () => {
+      it('getUserSkillsPath should invoke skills:get-user-skills-path', async () => {
+        await (capturedAccomplishAPI.getUserSkillsPath as () => Promise<string>)();
+        expect(mockInvoke).toHaveBeenCalledWith('skills:get-user-skills-path');
       });
     });
   });
@@ -256,20 +331,26 @@ describe('Preload Script Integration', () => {
 
     it('onTaskUpdate should return unsubscribe function', () => {
       const callback = vi.fn();
-      const unsubscribe = (capturedAccomplishAPI.onTaskUpdate as (cb: (e: unknown) => void) => () => void)(callback);
+      const unsubscribe = (
+        capturedAccomplishAPI.onTaskUpdate as (cb: (e: unknown) => void) => () => void
+      )(callback);
       unsubscribe();
       expect(mockRemoveListener).toHaveBeenCalledWith('task:update', expect.any(Function));
     });
 
     it('onTaskUpdateBatch should subscribe to task:update:batch', () => {
       const callback = vi.fn();
-      (capturedAccomplishAPI.onTaskUpdateBatch as (cb: (e: unknown) => void) => () => void)(callback);
+      (capturedAccomplishAPI.onTaskUpdateBatch as (cb: (e: unknown) => void) => () => void)(
+        callback,
+      );
       expect(mockOn).toHaveBeenCalledWith('task:update:batch', expect.any(Function));
     });
 
     it('onPermissionRequest should subscribe to permission:request', () => {
       const callback = vi.fn();
-      (capturedAccomplishAPI.onPermissionRequest as (cb: (e: unknown) => void) => () => void)(callback);
+      (capturedAccomplishAPI.onPermissionRequest as (cb: (e: unknown) => void) => () => void)(
+        callback,
+      );
       expect(mockOn).toHaveBeenCalledWith('permission:request', expect.any(Function));
     });
 
@@ -287,7 +368,9 @@ describe('Preload Script Integration', () => {
 
     it('onTaskStatusChange should subscribe to task:status-change', () => {
       const callback = vi.fn();
-      (capturedAccomplishAPI.onTaskStatusChange as (cb: (e: unknown) => void) => () => void)(callback);
+      (capturedAccomplishAPI.onTaskStatusChange as (cb: (e: unknown) => void) => () => void)(
+        callback,
+      );
       expect(mockOn).toHaveBeenCalledWith('task:status-change', expect.any(Function));
     });
   });
@@ -299,7 +382,7 @@ describe('Preload Script Integration', () => {
 
       // Get the registered listener from mockOn calls
       const registeredListener = mockOn.mock.calls.find(
-        (call: unknown[]) => call[0] === 'task:update'
+        (call: unknown[]) => call[0] === 'task:update',
       )?.[1] as (event: unknown, data: unknown) => void;
 
       // Simulate IPC event
@@ -311,10 +394,12 @@ describe('Preload Script Integration', () => {
 
     it('onPermissionRequest callback should receive request data', () => {
       const callback = vi.fn();
-      (capturedAccomplishAPI.onPermissionRequest as (cb: (e: unknown) => void) => () => void)(callback);
+      (capturedAccomplishAPI.onPermissionRequest as (cb: (e: unknown) => void) => () => void)(
+        callback,
+      );
 
       const registeredListener = mockOn.mock.calls.find(
-        (call: unknown[]) => call[0] === 'permission:request'
+        (call: unknown[]) => call[0] === 'permission:request',
       )?.[1] as (event: unknown, data: unknown) => void;
 
       const requestData = { id: 'req_123', taskId: 'task_456' };

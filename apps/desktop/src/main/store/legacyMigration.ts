@@ -16,15 +16,15 @@ function getLegacyPaths(): LegacyPath[] {
     { path: path.join(appDataPath, 'accomplish') },
     {
       path: path.join(appDataPath, 'Openwork'),
-      dbName: isPackaged ? 'openwork.db' : 'openwork-dev.db'
+      dbName: isPackaged ? 'openwork.db' : 'openwork-dev.db',
     },
     {
       path: path.join(appDataPath, 'openwork'),
-      dbName: isPackaged ? 'openwork.db' : 'openwork-dev.db'
+      dbName: isPackaged ? 'openwork.db' : 'openwork-dev.db',
     },
     {
       path: path.join(appDataPath, '@accomplish', 'desktop-v2'),
-      dbName: isPackaged ? 'openwork.db' : 'openwork-dev.db'
+      dbName: isPackaged ? 'openwork.db' : 'openwork-dev.db',
     },
   ];
 }
@@ -56,7 +56,9 @@ export function migrateLegacyData(): boolean {
     for (const legacyDbName of legacyDbNames) {
       const currentLegacyDb = path.join(currentPath, legacyDbName);
       if (fs.existsSync(currentLegacyDb)) {
-        console.log(`[Migration] Found legacy database name in current userData path: ${legacyDbName}`);
+        console.log(
+          `[Migration] Found legacy database name in current userData path: ${legacyDbName}`,
+        );
         const filesToMigrate = getFilesToMigrate(legacyDbName);
         let migratedCount = 0;
         for (const file of filesToMigrate) {

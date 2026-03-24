@@ -12,7 +12,7 @@ export default defineConfig({
   timeout: 60000,
   expect: {
     timeout: 10000,
-    toHaveScreenshot: { maxDiffPixels: 100, threshold: 0.2 }
+    toHaveScreenshot: { maxDiffPixels: 100, threshold: 0.2 },
   },
 
   // Retry on CI
@@ -22,7 +22,7 @@ export default defineConfig({
   reporter: [
     ['html', { outputFolder: './html-report' }],
     ['json', { outputFile: './test-results.json' }],
-    ['list']
+    ['list'],
   ],
 
   use: {

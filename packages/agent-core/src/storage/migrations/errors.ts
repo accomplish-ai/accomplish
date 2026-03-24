@@ -3,10 +3,10 @@ export class FutureSchemaError extends Error {
 
   constructor(
     public readonly storedVersion: number,
-    public readonly appVersion: number
+    public readonly appVersion: number,
   ) {
     super(
-      `Database schema v${storedVersion} is newer than app supports (v${appVersion}). Please update Accomplish.`
+      `Database schema v${storedVersion} is newer than app supports (v${appVersion}). Please update Accomplish.`,
     );
   }
 }
@@ -16,7 +16,7 @@ export class MigrationError extends Error {
 
   constructor(
     public readonly version: number,
-    public readonly cause: Error
+    public readonly cause: Error,
   ) {
     super(`Migration to v${version} failed: ${cause.message}`);
   }

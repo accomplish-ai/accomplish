@@ -74,7 +74,7 @@ export class LogFileWriter {
     }
 
     const lines = this.buffer.map(
-      (entry) => `[${entry.timestamp}] [${entry.level}] [${entry.source}] ${entry.message}`
+      (entry) => `[${entry.timestamp}] [${entry.level}] [${entry.source}] ${entry.message}`,
     );
 
     try {
@@ -113,7 +113,7 @@ export class LogFileWriter {
       // Write buffered entries to old file directly to avoid recursion from calling flush()
       if (this.currentDate && this.buffer.length > 0 && this.currentFilePath) {
         const lines = this.buffer.map(
-          (entry) => `[${entry.timestamp}] [${entry.level}] [${entry.source}] ${entry.message}`
+          (entry) => `[${entry.timestamp}] [${entry.level}] [${entry.source}] ${entry.message}`,
         );
         try {
           fs.appendFileSync(this.currentFilePath, lines.join('\n') + '\n');

@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <strong>Español</strong> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a>
+  <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a> | <a href="README.ru.md">Русский</a> | <strong>Español</strong> | <a href="README.tr.md">Türkçe</a> | <a href="README.ar.md">العربية</a> | <a href="README.id.md">Bahasa Indonesia</a> | <a href="README.ta.md">தமிழ்</a> | <a href="README.hi.md">हिन्दी</a>
 </p>
 
 <p align="center">
@@ -11,7 +11,13 @@
   <a href="https://github.com/accomplish-ai/accomplish/stargazers"><img src="https://img.shields.io/github/stars/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Stars" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/issues"><img src="https://img.shields.io/github/issues/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Issues" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/commits"><img src="https://img.shields.io/github/last-commit/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="Último Commit" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-0ea5e9?style=flat-square" alt="Descargar para macOS" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="Descargar para macOS (Apple Silicon)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="Descargar para macOS (Intel)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Descargar para Windows 11" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(ARM64)-0ea5e9?style=flat-square" alt="Descargar para Linux (ARM64)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(x64)-0ea5e9?style=flat-square" alt="Descargar para Linux (x64)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb"><img src="https://img.shields.io/badge/Download-Linux_(.deb_x64)-0ea5e9?style=flat-square" alt="Descargar para Linux (.deb x64)" /></a>
+  <a href="https://discord.gg/YH86b2P8"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
 # Accomplish™ - Agente de Escritorio de IA de Código Abierto
@@ -23,9 +29,17 @@ Accomplish es un agente de escritorio de IA de código abierto que automatiza la
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg"><strong>Descargar para Mac (Apple Silicon)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg"><strong>Descargar para Mac (Apple Silicon)</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe"><strong>Descargar para Windows 11</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg"><strong>Descargar para Mac (Intel)</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe"><strong>Descargar para Windows 11</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage"><strong>Descargar para Linux (ARM64)</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage"><strong>Descargar para Linux (x64)</strong></a>
+  ·
+  <a href="https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb"><strong>Descargar para Linux (.deb x64)</strong></a>
   ·
   <a href="https://www.accomplish.ai/">Sitio web de Accomplish</a>
   ·
@@ -111,13 +125,13 @@ Accomplish es un agente de escritorio de IA de código abierto que automatiza la
 
 ## Lo que realmente hace
 
-| | | |
-|:--|:--|:--|
-| **📁 Gestión de Archivos** | **✍️ Escritura de Documentos** | **🔗 Conexiones de Herramientas** |
-| Ordena, renombra y mueve archivos según contenido o reglas que definas | Pídele que escriba, resuma o reescriba documentos | Funciona con Notion, Google Drive, Dropbox y más (a través de APIs locales) |
-| | | |
-| **⚙️ Habilidades Personalizadas** | **🛡️ Control Total** | |
-| Define flujos de trabajo repetibles, guárdalos como habilidades | Apruebas cada acción. Puedes ver los registros. Puedes detenerlo en cualquier momento. | |
+|                                                                        |                                                                                        |                                                                             |
+| :--------------------------------------------------------------------- | :------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------- |
+| **📁 Gestión de Archivos**                                             | **✍️ Escritura de Documentos**                                                         | **🔗 Conexiones de Herramientas**                                           |
+| Ordena, renombra y mueve archivos según contenido o reglas que definas | Pídele que escriba, resuma o reescriba documentos                                      | Funciona con Notion, Google Drive, Dropbox y más (a través de APIs locales) |
+|                                                                        |                                                                                        |                                                                             |
+| **⚙️ Habilidades Personalizadas**                                      | **🛡️ Control Total**                                                                   |                                                                             |
+| Define flujos de trabajo repetibles, guárdalos como habilidades        | Apruebas cada acción. Puedes ver los registros. Puedes detenerlo en cualquier momento. |                                                                             |
 
 <br />
 
@@ -141,6 +155,7 @@ Accomplish es un agente de escritorio de IA de código abierto que automatiza la
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Venice.ai
 - Amazon Bedrock
 - Azure Foundry
 - OpenRouter
@@ -160,6 +175,8 @@ Accomplish se ejecuta localmente en tu máquina. Tus archivos permanecen en tu d
 
 - macOS (Apple Silicon)
 - Windows 11
+- Ubuntu (ARM64)
+- Ubuntu (x64)
 
 <br />
 
@@ -171,21 +188,20 @@ Accomplish se ejecuta localmente en tu máquina. Tus archivos permanecen en tu d
 
 > **Se configura en 2 minutos.**
 
-| Paso | Acción | Detalles |
-|:----:|--------|---------|
-| **1** | **Instala la App** | Descarga el DMG y arrástralo a Aplicaciones |
-| **2** | **Conecta tu IA** | Usa tu propia clave API de Google, OpenAI, Anthropic (u otra) — o inicia sesión con ChatGPT (Plus/Pro). Sin suscripciones. |
-| **3** | **Dale Acceso** | Elige qué carpetas puede ver. Tú mantienes el control. |
-| **4** | **Empieza a Trabajar** | Pídele que resuma un documento, organice una carpeta o cree un informe. Apruebas todo. |
+| Paso  | Acción                 | Detalles                                                                                                                   |
+| :---: | ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **1** | **Instala la App**     | Descarga el DMG y arrástralo a Aplicaciones                                                                                |
+| **2** | **Conecta tu IA**      | Usa tu propia clave API de Google, OpenAI, Anthropic (u otra) — o inicia sesión con ChatGPT (Plus/Pro). Sin suscripciones. |
+| **3** | **Dale Acceso**        | Elige qué carpetas puede ver. Tú mantienes el control.                                                                     |
+| **4** | **Empieza a Trabajar** | Pídele que resuma un documento, organice una carpeta o cree un informe. Apruebas todo.                                     |
 
 <br />
-
 
 <br />
 
 <div align="center">
 
-[**Descargar para Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.3.8/macos/Accomplish-0.3.8-mac-arm64.dmg) · [**Descargar para Windows 11**](https://downloads.accomplish.ai/downloads/0.3.8/windows/Accomplish-v2-0.3.8-win-x64.exe)
+[**Descargar para Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-arm64.dmg) · [**Descargar para Mac (Intel)**](https://downloads.accomplish.ai/downloads/0.4.6/macos/Accomplish-0.4.6-mac-x64.dmg) · [**Descargar para Windows 11**](https://downloads.accomplish.ai/downloads/0.4.6/windows/Accomplish-0.4.6-win-x64.exe) · [**Descargar para Linux (ARM64)**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-arm64.AppImage) · [**Descargar para Linux (x64)**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-x86_64.AppImage) · [**Descargar para Linux (.deb x64)**](https://downloads.accomplish.ai/downloads/0.4.6/linux/Accomplish-0.4.6-linux-amd64.deb)
 
 </div>
 
@@ -223,7 +239,7 @@ Puedes usar tus propias claves API (OpenAI, Anthropic, Google, xAI, etc.) o ejec
 Sí. Accomplish es de código abierto y tiene licencia MIT.
 
 **¿Qué plataformas son compatibles?**
-macOS (Apple Silicon) y Windows 11 están disponibles ahora.
+macOS (Apple Silicon) y Windows 11 están disponibles ahora. Ubuntu (ARM64) y Ubuntu (x64) también son compatibles.
 
 <br />
 
@@ -251,25 +267,27 @@ Eso es todo.
 <details>
 <summary><strong>Todos los comandos</strong></summary>
 
-| Comando | Descripción |
-|---------|-------------|
-| `pnpm dev` | Ejecutar app de escritorio en modo desarrollo |
-| `pnpm dev:clean` | Modo desarrollo con inicio limpio |
-| `pnpm build` | Compilar todos los workspaces |
-| `pnpm build:desktop` | Compilar solo app de escritorio |
-| `pnpm lint` | Verificaciones de TypeScript |
-| `pnpm typecheck` | Validación de tipos |
-| `pnpm -F @accomplish/desktop test:e2e` | Pruebas E2E con Playwright |
+| Comando                                     | Descripción                                   |
+| ------------------------------------------- | --------------------------------------------- |
+| `pnpm dev`                                  | Ejecutar app de escritorio en modo desarrollo |
+| `pnpm dev:clean`                            | Modo desarrollo con inicio limpio             |
+| `pnpm build`                                | Compilar todos los workspaces                 |
+| `pnpm build:desktop`                        | Compilar solo app de escritorio               |
+| `pnpm -F @accomplish/desktop package:win`   | Compilar instalador de Windows (x64)          |
+| `pnpm -F @accomplish/desktop package:linux` | Compilar artefactos de Linux (AppImage + deb) |
+| `pnpm lint`                                 | Verificaciones de TypeScript                  |
+| `pnpm typecheck`                            | Validación de tipos                           |
+| `pnpm -F @accomplish/desktop test:e2e`      | Pruebas E2E con Playwright                    |
 
 </details>
 
 <details>
 <summary><strong>Variables de entorno</strong></summary>
 
-| Variable | Descripción |
-|----------|-------------|
-| `CLEAN_START=1` | Borrar todos los datos almacenados al iniciar la app |
-| `E2E_SKIP_AUTH=1` | Saltar flujo de onboarding (para pruebas) |
+| Variable          | Descripción                                          |
+| ----------------- | ---------------------------------------------------- |
+| `CLEAN_START=1`   | Borrar todos los datos almacenados al iniciar la app |
+| `E2E_SKIP_AUTH=1` | Saltar flujo de onboarding (para pruebas)            |
 
 </details>
 

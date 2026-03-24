@@ -11,6 +11,9 @@ import {
   setSkillEnabled as dbSetSkillEnabled,
   deleteSkill as dbDeleteSkill,
 } from '../../storage/repositories/skills.js';
+import { createConsoleLogger } from '../../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'SkillsManager' });
 
 export type { SkillsManagerOptions };
 
@@ -27,7 +30,7 @@ export class SkillsManager {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    console.log('[SkillsManager] Initializing...');
+    log.info('[SkillsManager] Initializing...');
 
     if (!fs.existsSync(this.userSkillsPath)) {
       fs.mkdirSync(this.userSkillsPath, { recursive: true });
@@ -36,11 +39,11 @@ export class SkillsManager {
     await this.resync();
 
     this.initialized = true;
-    console.log('[SkillsManager] Initialized');
+    log.info('[SkillsManager] Initialized');
   }
 
   async resync(): Promise<Skill[]> {
-    console.log('[SkillsManager] Resyncing skills...');
+    log.info('[SkillsManager] Resyncing skills...');
 
     const existingSkills = this.getAllSkills();
     const existingById = new Map(existingSkills.map((s) => [s.id, s]));
@@ -78,14 +81,14 @@ export class SkillsManager {
 
     for (const existingSkill of existingSkills) {
       if (!processedPaths.has(existingSkill.filePath)) {
-        console.log(
-          `[SkillsManager] Removing stale skill: ${existingSkill.name} (${existingSkill.filePath})`
+        log.info(
+          `[SkillsManager] Removing stale skill: ${existingSkill.name} (${existingSkill.filePath})`,
         );
         dbDeleteSkill(existingSkill.id);
       }
     }
 
-    console.log(`[SkillsManager] Synced ${allFoundSkills.length} skills`);
+    log.info(`[SkillsManager] Synced ${allFoundSkills.length} skills`);
 
     return this.getAllSkills();
   }
@@ -122,6 +125,11 @@ export class SkillsManager {
       return this.addFromUrl(sourcePath);
     }
 
+    const stat = fs.statSync(sourcePath);
+    if (stat.isDirectory()) {
+      return this.addFromFolder(sourcePath);
+    }
+
     return this.addFromFile(sourcePath);
   }
 
@@ -132,7 +140,7 @@ export class SkillsManager {
     }
 
     if (skill.source === 'official') {
-      console.warn('[SkillsManager] Cannot delete official skills');
+      log.warn('[SkillsManager] Cannot delete official skills');
       return false;
     }
 
@@ -186,7 +194,7 @@ export class SkillsManager {
           updatedAt: new Date().toISOString(),
         });
       } catch (err) {
-        console.error(`[SkillsManager] Failed to parse ${skillMdPath}:`, err);
+        log.error(`[SkillsManager] Failed to parse ${skillMdPath}: ${err}`);
       }
     }
 
@@ -238,10 +246,46 @@ export class SkillsManager {
     return this.persistSkill(frontmatter, destPath, 'custom');
   }
 
+  private addFromFolder(folderPath: string): Skill {
+    const skillMdPath = path.join(folderPath, 'SKILL.md');
+    if (!fs.existsSync(skillMdPath)) {
+      throw new Error(`Selected folder does not contain a SKILL.md file: ${folderPath}`);
+    }
+
+    const content = fs.readFileSync(skillMdPath, 'utf-8');
+    const frontmatter = this.validateSkillFrontmatter(content);
+    const destSkillMdPath = this.prepareSkillDir(frontmatter);
+    const destDir = path.dirname(destSkillMdPath);
+
+    const resolvedSourceDir = path.resolve(folderPath);
+    const resolvedDestDir = path.resolve(destDir);
+
+    // Skip delete+copy when re-importing an already-installed skill (same directory)
+    if (resolvedSourceDir === resolvedDestDir) {
+      return this.persistSkill(frontmatter, destSkillMdPath, 'custom');
+    }
+
+    // Remove existing contents so re-imports don't leave stale files
+    if (fs.existsSync(destDir)) {
+      fs.rmSync(destDir, { recursive: true });
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+
+    // Copy only top-level files from source folder
+    const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isFile()) {
+        fs.copyFileSync(path.join(folderPath, entry.name), path.join(destDir, entry.name));
+      }
+    }
+
+    return this.persistSkill(frontmatter, destSkillMdPath, 'custom');
+  }
+
   private async addFromUrl(rawUrl: string): Promise<Skill> {
     const fetchUrl = this.resolveGithubRawUrl(rawUrl);
 
-    console.log('[SkillsManager] Fetching from:', fetchUrl);
+    log.info(`[SkillsManager] Fetching from: ${fetchUrl}`);
 
     const response = await fetch(fetchUrl);
     if (!response.ok) {
@@ -277,16 +321,12 @@ export class SkillsManager {
 
     let fetchUrl = rawUrl;
     if (rawUrl.includes('/tree/')) {
-      fetchUrl = rawUrl
-        .replace('github.com', 'raw.githubusercontent.com')
-        .replace('/tree/', '/');
+      fetchUrl = rawUrl.replace('github.com', 'raw.githubusercontent.com').replace('/tree/', '/');
       if (!fetchUrl.endsWith('SKILL.md')) {
         fetchUrl = fetchUrl.replace(/\/?$/, '/SKILL.md');
       }
     } else if (rawUrl.includes('/blob/')) {
-      fetchUrl = rawUrl
-        .replace('github.com', 'raw.githubusercontent.com')
-        .replace('/blob/', '/');
+      fetchUrl = rawUrl.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
     } else {
       fetchUrl = rawUrl.replace('github.com', 'raw.githubusercontent.com');
       if (!fetchUrl.endsWith('SKILL.md')) {

@@ -11,8 +11,8 @@ import * as os from 'os';
  * database connections and file systems.
  *
  * Note: These tests require better-sqlite3 native module. If the native module
- * is not available (Node.js version mismatch), tests will be skipped.
- * To fix native module issues, run: pnpm rebuild better-sqlite3
+ * is not available - Node.js version mismatch, tests will be skipped.
+ * To fix native module issues,run: pnpm rebuild better-sqlite3
  */
 
 describe('Core Package Integration', () => {
@@ -39,7 +39,7 @@ describe('Core Package Integration', () => {
       skillsModule = await import('../../src/skills/skills-manager.js');
       pathsModule = await import('../../src/utils/paths.js');
       moduleAvailable = true;
-    } catch (err) {
+    } catch (_err) {
       console.warn('Skipping integration tests: better-sqlite3 native module not available');
       console.warn('To fix: pnpm rebuild better-sqlite3');
     }
@@ -281,7 +281,11 @@ describe('Core Package Integration', () => {
   });
 
   describe('Skills manager with database sync', () => {
-    function createSkillFile(basePath: string, name: string, frontmatter: Record<string, unknown> = {}) {
+    function createSkillFile(
+      basePath: string,
+      name: string,
+      frontmatter: Record<string, unknown> = {},
+    ) {
       const skillDir = path.join(basePath, name);
       fs.mkdirSync(skillDir, { recursive: true });
 
@@ -482,7 +486,13 @@ Imported content here.
 
   describe('Full workflow integration', () => {
     it('should support complete app initialization workflow', async () => {
-      if (!moduleAvailable || !databaseModule || !secureStorageModule || !skillsModule || !pathsModule)
+      if (
+        !moduleAvailable ||
+        !databaseModule ||
+        !secureStorageModule ||
+        !skillsModule ||
+        !pathsModule
+      )
         return;
 
       // 1. Create platform config

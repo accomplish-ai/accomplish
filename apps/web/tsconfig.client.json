@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/client/*"],
+      "@accomplish_ai/agent-core/common": ["../../packages/agent-core/src/common.ts"],
+      "@accomplish_ai/agent-core": ["../../packages/agent-core/src/index.ts"],
+      "@accomplish_ai/agent-core/*": ["../../packages/agent-core/src/*"],
+      "@locales/*": ["locales/*"]
+    }
+  },
+  "include": ["src/client/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

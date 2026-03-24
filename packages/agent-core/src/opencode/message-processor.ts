@@ -1,11 +1,15 @@
 import type { OpenCodeMessage, OpenCodeToolUseMessage } from '../common/types/opencode.js';
 import type { TaskMessage } from '../common/types/task.js';
 import { createMessageId } from '../common/index.js';
+import { isHiddenToolName } from './tool-classification.js';
 
 /**
  * Delay in milliseconds for batching messages before sending to renderer.
  */
 export const MESSAGE_BATCH_DELAY_MS = 50;
+const MAX_TOOL_OUTPUT_LENGTH = 200_000;
+const MAX_SCREENSHOT_ATTACHMENT_COUNT = 1;
+const MAX_SCREENSHOT_ATTACHMENT_LENGTH = 200_000;
 
 /**
  * Attachment extracted from tool output.
@@ -40,34 +44,108 @@ export function extractScreenshots(output: string): {
   const dataUrlRegex = /data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+/g;
   let match;
   while ((match = dataUrlRegex.exec(output)) !== null) {
-    attachments.push({
-      type: 'screenshot',
-      data: match[0],
-      label: 'Browser screenshot',
-    });
-  }
-
-  const rawBase64Regex = /(?<![;,])(?:^|["\s])?(iVBORw0[A-Za-z0-9+/=]{100,})(?:["\s]|$)/g;
-  while ((match = rawBase64Regex.exec(output)) !== null) {
-    const base64Data = match[1];
-    if (base64Data && base64Data.length > 100) {
+    const screenshotData = match[0];
+    if (
+      attachments.length < MAX_SCREENSHOT_ATTACHMENT_COUNT &&
+      screenshotData.length <= MAX_SCREENSHOT_ATTACHMENT_LENGTH
+    ) {
       attachments.push({
         type: 'screenshot',
-        data: `data:image/png;base64,${base64Data}`,
+        data: screenshotData,
         label: 'Browser screenshot',
       });
     }
   }
 
+  const rawBase64Regex =
+    /(?<![;,])(^|["\s])?((?:iVBORw0|\/9j\/|UklGR|R0lGOD)[A-Za-z0-9+/=]{100,})(["\s]|$)/g;
+  while ((match = rawBase64Regex.exec(output)) !== null) {
+    const base64Data = match[2];
+    if (base64Data && base64Data.length > 100) {
+      let mimeType = 'image/png';
+      if (base64Data.startsWith('/9j/')) {
+        mimeType = 'image/jpeg';
+      } else if (base64Data.startsWith('UklGR')) {
+        mimeType = 'image/webp';
+      } else if (base64Data.startsWith('R0lGOD')) {
+        mimeType = 'image/gif';
+      }
+
+      const screenshotData = `data:${mimeType};base64,${base64Data}`;
+      if (
+        attachments.length < MAX_SCREENSHOT_ATTACHMENT_COUNT &&
+        screenshotData.length <= MAX_SCREENSHOT_ATTACHMENT_LENGTH
+      ) {
+        attachments.push({
+          type: 'screenshot',
+          data: screenshotData,
+          label: 'Browser screenshot',
+        });
+      }
+    }
+  }
+
   let cleanedText = output
     .replace(dataUrlRegex, '[Screenshot captured]')
-    .replace(rawBase64Regex, '[Screenshot captured]');
+    .replace(rawBase64Regex, (_fullMatch, prefix = '', _data = '', suffix = '') => {
+      return `${prefix}[Screenshot captured]${suffix}`;
+    });
 
   cleanedText = cleanedText
-    .replace(/"[Screenshot captured]"/g, '"[Screenshot]"')
+    .replace(/"\[Screenshot captured\]"/g, '"[Screenshot]"')
     .replace(/\[Screenshot captured\]\[Screenshot captured\]/g, '[Screenshot captured]');
 
   return { cleanedText, attachments };
+}
+
+const TOOL_DISPLAY_NAMES: Record<string, string | null> = {
+  browser_evaluate: 'Evaluating page',
+  browser_snapshot: 'Taking screenshot',
+  browser_canvas_type: 'Typing text',
+  browser_script: 'Running script',
+  browser_click: 'Clicking element',
+  browser_keyboard: 'Typing',
+  request_connector_auth: 'Waiting for connector authentication',
+};
+
+const INSTRUCTION_BLOCK_RE = /<instruction\b[^>]*>[\s\S]*?<\/instruction>/gi;
+const NUDGE_BLOCK_RE = /<nudge>[\s\S]*?<\/nudge>/gi;
+const THOUGHT_BLOCK_RE = /<thought>[\s\S]*?<\/thought>/gi;
+const SCRATCHPAD_BLOCK_RE = /<scratchpad>[\s\S]*?<\/scratchpad>/gi;
+const THINKING_BLOCK_RE = /<thinking>[\s\S]*?<\/thinking>/gi;
+const REFLECTION_BLOCK_RE = /<reflection>[\s\S]*?<\/reflection>/gi;
+const UNCLOSED_INTERNAL_TAG_RE =
+  /<(?:thought|nudge|instruction|scratchpad|thinking|reflection)(?:\b[^>]*)?>[\s\S]*$/gi;
+const ORPHAN_TAGS_RE =
+  /<\/?(?:nudge|thought|scratchpad|thinking|reflection)>|<instruction\b[^>]*>|<\/instruction>/gi;
+const INTERNAL_LINES_RE =
+  /^.*(?:context_management_protocol|policy_level=critical|<prunable-tools>|thoughtSignature).*$/gm;
+const EXCESSIVE_NEWLINES_RE = /\n{3,}/g;
+
+export function sanitizeAssistantTextForDisplay(text: string): string | null {
+  let result = text;
+  result = result.replace(INSTRUCTION_BLOCK_RE, '');
+  result = result.replace(NUDGE_BLOCK_RE, '');
+  result = result.replace(THOUGHT_BLOCK_RE, '');
+  result = result.replace(SCRATCHPAD_BLOCK_RE, '');
+  result = result.replace(THINKING_BLOCK_RE, '');
+  result = result.replace(REFLECTION_BLOCK_RE, '');
+  result = result.replace(UNCLOSED_INTERNAL_TAG_RE, '');
+  result = result.replace(ORPHAN_TAGS_RE, '');
+  result = result.replace(INTERNAL_LINES_RE, '');
+  result = result.replace(EXCESSIVE_NEWLINES_RE, '\n\n');
+  result = result.trim();
+  return result.length > 0 ? result : null;
+}
+
+export function getToolDisplayName(toolName: string): string | null {
+  if (isHiddenToolName(toolName)) {
+    return null;
+  }
+  if (Object.prototype.hasOwnProperty.call(TOOL_DISPLAY_NAMES, toolName)) {
+    return TOOL_DISPLAY_NAMES[toolName];
+  }
+  return toolName;
 }
 
 /**
@@ -77,12 +155,17 @@ export function extractScreenshots(output: string): {
 export function sanitizeToolOutput(text: string, isError: boolean): string {
   let result = text;
 
+  // eslint-disable-next-line no-control-regex
   result = result.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+  // eslint-disable-next-line no-control-regex
   result = result.replace(/\x1B\[2m|\x1B\[22m|\x1B\[0m/g, '');
 
   result = result.replace(/ws:\/\/[^\s\]]+/g, '[connection]');
+  result = result.replace(/\[ref=e\d+\]/g, '');
+  result = result.replace(/\[cursor=\w+\]/g, '');
 
   result = result.replace(/\s*Call log:[\s\S]*/i, '');
+  result = result.replace(/ {2,}/g, ' ');
 
   if (isError) {
     const timeoutMatch = result.match(/timed? ?out after (\d+)ms/i);
@@ -111,11 +194,12 @@ export function sanitizeToolOutput(text: string, isError: boolean): string {
  */
 export function toTaskMessage(message: OpenCodeMessage): TaskMessage | null {
   if (message.type === 'text') {
-    if (message.part.text) {
+    const sanitized = sanitizeAssistantTextForDisplay(message.part.text || '');
+    if (sanitized) {
       return {
         id: createMessageId(),
         type: 'assistant',
-        content: message.part.text,
+        content: sanitized,
         timestamp: new Date().toISOString(),
       };
     }
@@ -123,10 +207,14 @@ export function toTaskMessage(message: OpenCodeMessage): TaskMessage | null {
   }
 
   if (message.type === 'tool_call') {
+    const displayName = getToolDisplayName(message.part.tool);
+    if (displayName === null) {
+      return null;
+    }
     return {
       id: createMessageId(),
       type: 'tool',
-      content: `Using tool: ${message.part.tool}`,
+      content: `Using tool: ${displayName}`,
       toolName: message.part.tool,
       toolInput: message.part.input,
       timestamp: new Date().toISOString(),
@@ -136,17 +224,24 @@ export function toTaskMessage(message: OpenCodeMessage): TaskMessage | null {
   if (message.type === 'tool_use') {
     const toolUseMsg = message as OpenCodeToolUseMessage;
     const toolName = toolUseMsg.part.tool || 'unknown';
+    const displayName = getToolDisplayName(toolName);
+    if (displayName === null) {
+      return null;
+    }
     const toolInput = toolUseMsg.part.state?.input;
     const toolOutput = toolUseMsg.part.state?.output || '';
     const status = toolUseMsg.part.state?.status;
 
     if (status === 'completed' || status === 'error') {
-      const { cleanedText, attachments } = extractScreenshots(toolOutput);
+      const wasTruncated = toolOutput.length > MAX_TOOL_OUTPUT_LENGTH;
+      const stableOutput = wasTruncated
+        ? `${toolOutput.slice(0, MAX_TOOL_OUTPUT_LENGTH)}\n[Tool output truncated]`
+        : toolOutput;
+      const { cleanedText, attachments } = extractScreenshots(stableOutput);
       const isError = status === 'error';
       const sanitizedText = sanitizeToolOutput(cleanedText, isError);
-      const displayText = sanitizedText.length > 500
-        ? sanitizedText.substring(0, 500) + '...'
-        : sanitizedText;
+      const displayText =
+        sanitizedText.length > 500 ? sanitizedText.substring(0, 500) + '...' : sanitizedText;
 
       return {
         id: createMessageId(),
@@ -155,7 +250,7 @@ export function toTaskMessage(message: OpenCodeMessage): TaskMessage | null {
         toolName,
         toolInput,
         timestamp: new Date().toISOString(),
-        attachments: attachments.length > 0 ? attachments : undefined,
+        attachments: !wasTruncated && attachments.length > 0 ? attachments : undefined,
       };
     }
     return null;
@@ -180,7 +275,7 @@ const messageBatchers = new Map<string, MessageBatcher>();
 export function createMessageBatcher(
   taskId: string,
   forwardToRenderer: (channel: string, data: unknown) => void,
-  addTaskMessage: (taskId: string, message: TaskMessage) => void
+  addTaskMessage: (taskId: string, message: TaskMessage) => void,
 ): MessageBatcher {
   const batcher: MessageBatcher = {
     pendingMessages: [],
@@ -223,7 +318,7 @@ export function queueMessage(
   taskId: string,
   message: TaskMessage,
   forwardToRenderer: (channel: string, data: unknown) => void,
-  addTaskMessage: (taskId: string, message: TaskMessage) => void
+  addTaskMessage: (taskId: string, message: TaskMessage) => void,
 ): void {
   let batcher = messageBatchers.get(taskId);
   if (!batcher) {

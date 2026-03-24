@@ -195,10 +195,20 @@ test.describe('Settings - All Providers', () => {
 
       // All providers should be visible
       const allProviders = [
-        'openai', 'anthropic', 'google', 'bedrock',
-        'moonshot', 'azure-foundry', 'deepseek', 'zai',
-        'ollama', 'lmstudio', 'xai', 'openrouter',
-        'litellm', 'minimax',
+        'openai',
+        'anthropic',
+        'google',
+        'bedrock',
+        'moonshot',
+        'azure-foundry',
+        'deepseek',
+        'zai',
+        'ollama',
+        'lmstudio',
+        'xai',
+        'openrouter',
+        'litellm',
+        'minimax',
       ];
 
       for (const providerId of allProviders) {

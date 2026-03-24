@@ -1,11 +1,25 @@
 import { OpenCodeAdapter, AdapterOptions, OpenCodeCliNotFoundError } from './OpenCodeAdapter.js';
-import type { TaskConfig, Task, TaskMessage, TaskResult, TaskStatus } from '../../common/types/task.js';
+import type {
+  TaskConfig,
+  Task,
+  TaskMessage,
+  TaskResult,
+  TaskStatus,
+} from '../../common/types/task.js';
 import type { OpenCodeMessage } from '../../common/types/opencode.js';
 import type { PermissionRequest } from '../../common/types/permission.js';
 import type { TodoItem } from '../../common/types/todo.js';
-import { toTaskMessage, flushAndCleanupBatcher, queueMessage } from '../../opencode/message-processor.js';
+import type { BrowserFramePayload } from '../../common/types/browser-view.js';
+import {
+  toTaskMessage,
+  flushAndCleanupBatcher,
+  queueMessage,
+} from '../../opencode/message-processor.js';
 import { stopAzureFoundryProxy } from '../../opencode/proxies/azure-foundry-proxy.js';
 import { stopMoonshotProxy } from '../../opencode/proxies/moonshot-proxy.js';
+import { createConsoleLogger } from '../../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'TaskManager' });
 
 export interface TaskProgressEvent {
   stage: string;
@@ -25,6 +39,28 @@ export interface TaskCallbacks {
   onDebug?: (log: { type: string; message: string; data?: unknown }) => void;
   onTodoUpdate?: (todos: TodoItem[]) => void;
   onAuthError?: (error: { providerId: string; message: string }) => void;
+  /** Called when a browser frame is captured for live preview (ENG-695).
+   *  Contributed by samarthsinh2660 (PR #414). */
+  onBrowserFrame?: (data: BrowserFramePayload) => void;
+  onReasoning?: (text: string) => void;
+  onToolUse?: (toolName: string, toolInput: unknown) => void;
+  onToolCallComplete?: (data: {
+    toolName: string;
+    toolInput: unknown;
+    toolOutput: string;
+    sessionId?: string;
+  }) => void;
+  onStepFinish?: (data: {
+    reason: string;
+    model?: string;
+    tokens?: {
+      input: number;
+      output: number;
+      reasoning: number;
+      cache?: { read: number; write: number };
+    };
+    cost?: number;
+  }) => void;
 }
 
 export interface TaskManagerOptions {
@@ -70,36 +106,30 @@ export class TaskManager {
     return this.isFirstTask;
   }
 
-  async startTask(
-    taskId: string,
-    config: TaskConfig,
-    callbacks: TaskCallbacks
-  ): Promise<Task> {
+  async startTask(taskId: string, config: TaskConfig, callbacks: TaskCallbacks): Promise<Task> {
     const cliInstalled = await this.options.isCliAvailable();
     if (!cliInstalled) {
       throw new OpenCodeCliNotFoundError();
     }
 
-    if (this.activeTasks.has(taskId) || this.taskQueue.some(q => q.taskId === taskId)) {
+    if (this.activeTasks.has(taskId) || this.taskQueue.some((q) => q.taskId === taskId)) {
       throw new Error(`Task ${taskId} is already running or queued`);
     }
 
     if (this.activeTasks.size >= this.maxConcurrentTasks) {
-      console.log(`[TaskManager] At max concurrent tasks (${this.maxConcurrentTasks}). Queueing task ${taskId}`);
+      log.info(
+        `[TaskManager] At max concurrent tasks (${this.maxConcurrentTasks}). Queueing task ${taskId}`,
+      );
       return this.queueTask(taskId, config, callbacks);
     }
 
     return this.executeTask(taskId, config, callbacks);
   }
 
-  private queueTask(
-    taskId: string,
-    config: TaskConfig,
-    callbacks: TaskCallbacks
-  ): Task {
+  private queueTask(taskId: string, config: TaskConfig, callbacks: TaskCallbacks): Task {
     if (this.taskQueue.length >= this.maxConcurrentTasks) {
       throw new Error(
-        `Maximum queued tasks (${this.maxConcurrentTasks}) reached. Please wait for tasks to complete.`
+        `Maximum queued tasks (${this.maxConcurrentTasks}) reached. Please wait for tasks to complete.`,
       );
     }
 
@@ -111,7 +141,7 @@ export class TaskManager {
     };
 
     this.taskQueue.push(queuedTask);
-    console.log(`[TaskManager] Task ${taskId} queued. Queue length: ${this.taskQueue.length}`);
+    log.info(`[TaskManager] Task ${taskId} queued. Queue length: ${this.taskQueue.length}`);
 
     return {
       id: taskId,
@@ -125,7 +155,7 @@ export class TaskManager {
   private async executeTask(
     taskId: string,
     config: TaskConfig,
-    callbacks: TaskCallbacks
+    callbacks: TaskCallbacks,
   ): Promise<Task> {
     const adapterOptions: AdapterOptions = {
       ...this.options.adapterOptions,
@@ -193,6 +223,43 @@ export class TaskManager {
       callbacks.onAuthError?.(error);
     };
 
+    /** Forward browser-frame events to the task callbacks.
+     *  Contributed by samarthsinh2660 (PR #414) for ENG-695. */
+    const onBrowserFrame = (data: BrowserFramePayload) => {
+      callbacks.onBrowserFrame?.(data);
+    };
+
+    const onReasoning = (text: string) => {
+      callbacks.onReasoning?.(text);
+    };
+
+    const onToolUse = (toolName: string, toolInput: unknown) => {
+      callbacks.onToolUse?.(toolName, toolInput);
+    };
+
+    const onToolCallComplete = (data: {
+      toolName: string;
+      toolInput: unknown;
+      toolOutput: string;
+      sessionId?: string;
+    }) => {
+      callbacks.onToolCallComplete?.(data);
+    };
+
+    const onStepFinish = (data: {
+      reason: string;
+      model?: string;
+      tokens?: {
+        input: number;
+        output: number;
+        reasoning: number;
+        cache?: { read: number; write: number };
+      };
+      cost?: number;
+    }) => {
+      callbacks.onStepFinish?.(data);
+    };
+
     adapter.on('message', onMessage);
     adapter.on('progress', onProgress);
     adapter.on('permission-request', onPermissionRequest);
@@ -201,6 +268,11 @@ export class TaskManager {
     adapter.on('debug', onDebug);
     adapter.on('todo:update', onTodoUpdate);
     adapter.on('auth-error', onAuthError);
+    adapter.on('reasoning', onReasoning);
+    adapter.on('tool-use', onToolUse);
+    adapter.on('tool-call-complete', onToolCallComplete);
+    adapter.on('step-finish', onStepFinish);
+    adapter.on('browser-frame', onBrowserFrame);
 
     const cleanup = () => {
       adapter.off('message', onMessage);
@@ -211,6 +283,11 @@ export class TaskManager {
       adapter.off('debug', onDebug);
       adapter.off('todo:update', onTodoUpdate);
       adapter.off('auth-error', onAuthError);
+      adapter.off('reasoning', onReasoning);
+      adapter.off('tool-use', onToolUse);
+      adapter.off('tool-call-complete', onToolCallComplete);
+      adapter.off('step-finish', onStepFinish);
+      adapter.off('browser-frame', onBrowserFrame);
       adapter.dispose();
     };
 
@@ -223,7 +300,7 @@ export class TaskManager {
     };
     this.activeTasks.set(taskId, managedTask);
 
-    console.log(`[TaskManager] Executing task ${taskId}. Active tasks: ${this.activeTasks.size}`);
+    log.info(`[TaskManager] Executing task ${taskId}. Active tasks: ${this.activeTasks.size}`);
 
     const task: Task = {
       id: taskId,
@@ -246,7 +323,11 @@ export class TaskManager {
           this.isFirstTask = false;
         }
 
-        callbacks.onProgress({ stage: 'environment', message: 'Setting up environment...', isFirstTask });
+        callbacks.onProgress({
+          stage: 'environment',
+          message: 'Setting up environment...',
+          isFirstTask,
+        });
 
         await adapter.startTask({
           ...config,
@@ -254,6 +335,7 @@ export class TaskManager {
           workingDirectory: config.workingDirectory || this.options.defaultWorkingDirectory,
         });
       } catch (error) {
+        log.error(`[TaskManager] Task startup failed for ${taskId}: ${error}`);
         callbacks.onError(error instanceof Error ? error : new Error(String(error)));
         this.cleanupTask(taskId);
         this.processQueue();
@@ -266,38 +348,40 @@ export class TaskManager {
   private async processQueue(): Promise<void> {
     while (this.taskQueue.length > 0 && this.activeTasks.size < this.maxConcurrentTasks) {
       const nextTask = this.taskQueue.shift()!;
-      console.log(`[TaskManager] Processing queue. Starting task ${nextTask.taskId}. Active: ${this.activeTasks.size}, Remaining in queue: ${this.taskQueue.length}`);
+      log.info(
+        `[TaskManager] Processing queue. Starting task ${nextTask.taskId}. Active: ${this.activeTasks.size}, Remaining in queue: ${this.taskQueue.length}`,
+      );
 
       nextTask.callbacks.onStatusChange?.('running');
 
       try {
         await this.executeTask(nextTask.taskId, nextTask.config, nextTask.callbacks);
       } catch (error) {
-        console.error(`[TaskManager] Error starting queued task ${nextTask.taskId}:`, error);
+        log.error(`[TaskManager] Error starting queued task ${nextTask.taskId}: ${error}`);
         nextTask.callbacks.onError(error instanceof Error ? error : new Error(String(error)));
       }
     }
 
     if (this.taskQueue.length === 0) {
-      console.log('[TaskManager] Queue empty, no more tasks to process');
+      log.info('[TaskManager] Queue empty, no more tasks to process');
     }
   }
 
   async cancelTask(taskId: string): Promise<void> {
-    const queueIndex = this.taskQueue.findIndex(q => q.taskId === taskId);
+    const queueIndex = this.taskQueue.findIndex((q) => q.taskId === taskId);
     if (queueIndex !== -1) {
-      console.log(`[TaskManager] Cancelling queued task ${taskId}`);
+      log.info(`[TaskManager] Cancelling queued task ${taskId}`);
       this.taskQueue.splice(queueIndex, 1);
       return;
     }
 
     const managedTask = this.activeTasks.get(taskId);
     if (!managedTask) {
-      console.warn(`[TaskManager] Task ${taskId} not found for cancellation`);
+      log.warn(`[TaskManager] Task ${taskId} not found for cancellation`);
       return;
     }
 
-    console.log(`[TaskManager] Cancelling running task ${taskId}`);
+    log.info(`[TaskManager] Cancelling running task ${taskId}`);
 
     try {
       await managedTask.adapter.cancelTask();
@@ -310,21 +394,21 @@ export class TaskManager {
   async interruptTask(taskId: string): Promise<void> {
     const managedTask = this.activeTasks.get(taskId);
     if (!managedTask) {
-      console.warn(`[TaskManager] Task ${taskId} not found for interruption`);
+      log.warn(`[TaskManager] Task ${taskId} not found for interruption`);
       return;
     }
 
-    console.log(`[TaskManager] Interrupting task ${taskId}`);
+    log.info(`[TaskManager] Interrupting task ${taskId}`);
     await managedTask.adapter.interruptTask();
   }
 
   cancelQueuedTask(taskId: string): boolean {
-    const queueIndex = this.taskQueue.findIndex(q => q.taskId === taskId);
+    const queueIndex = this.taskQueue.findIndex((q) => q.taskId === taskId);
     if (queueIndex === -1) {
       return false;
     }
 
-    console.log(`[TaskManager] Removing task ${taskId} from queue`);
+    log.info(`[TaskManager] Removing task ${taskId} from queue`);
     this.taskQueue.splice(queueIndex, 1);
     return true;
   }
@@ -361,7 +445,7 @@ export class TaskManager {
   }
 
   isTaskQueued(taskId: string): boolean {
-    return this.taskQueue.some(q => q.taskId === taskId);
+    return this.taskQueue.some((q) => q.taskId === taskId);
   }
 
   getQueueLength(): number {
@@ -386,13 +470,13 @@ export class TaskManager {
   }
 
   cancelAllTasks(): void {
-    console.log(`[TaskManager] Cancelling all ${this.activeTasks.size} active tasks`);
+    log.info(`[TaskManager] Cancelling all ${this.activeTasks.size} active tasks`);
 
     this.taskQueue = [];
 
     for (const [taskId] of this.activeTasks) {
-      this.cancelTask(taskId).catch(err => {
-        console.error(`[TaskManager] Error cancelling task ${taskId}:`, err);
+      this.cancelTask(taskId).catch((err) => {
+        log.error(`[TaskManager] Error cancelling task ${taskId}: ${err}`);
       });
     }
   }
@@ -400,15 +484,19 @@ export class TaskManager {
   private cleanupTask(taskId: string): void {
     const managedTask = this.activeTasks.get(taskId);
     if (managedTask) {
-      console.log(`[TaskManager] Cleaning up task ${taskId}`);
+      log.info(`[TaskManager] Cleaning up task ${taskId}`);
       managedTask.cleanup();
       this.activeTasks.delete(taskId);
-      console.log(`[TaskManager] Task ${taskId} cleaned up. Active tasks: ${this.activeTasks.size}`);
+      log.info(
+        `[TaskManager] Task ${taskId} cleaned up. Active tasks: ${this.activeTasks.size}`,
+      );
     }
   }
 
   dispose(): void {
-    console.log(`[TaskManager] Disposing all tasks (${this.activeTasks.size} active, ${this.taskQueue.length} queued)`);
+    log.info(
+      `[TaskManager] Disposing all tasks (${this.activeTasks.size} active, ${this.taskQueue.length} queued)`,
+    );
 
     this.taskQueue = [];
 
@@ -417,7 +505,7 @@ export class TaskManager {
         flushAndCleanupBatcher(taskId);
         managedTask.cleanup();
       } catch (error) {
-        console.error(`[TaskManager] Error cleaning up task ${taskId}:`, error);
+        log.error(`[TaskManager] Error cleaning up task ${taskId}: ${error}`);
       }
     }
 
@@ -425,13 +513,13 @@ export class TaskManager {
 
     // Clean up proxies
     stopAzureFoundryProxy().catch((err) => {
-      console.error('[TaskManager] Failed to stop Azure Foundry proxy:', err);
+      log.error(`[TaskManager] Failed to stop Azure Foundry proxy: ${err}`);
     });
     stopMoonshotProxy().catch((err) => {
-      console.error('[TaskManager] Failed to stop Moonshot proxy:', err);
+      log.error(`[TaskManager] Failed to stop Moonshot proxy: ${err}`);
     });
 
-    console.log('[TaskManager] All tasks disposed');
+    log.info('[TaskManager] All tasks disposed');
   }
 }
 

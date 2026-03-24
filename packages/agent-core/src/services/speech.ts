@@ -11,6 +11,9 @@
 
 import { fetchWithTimeout } from '../utils/fetch.js';
 import type { SecureStorage } from '../storage/secure-storage.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'Speech' });
 
 const ELEVENLABS_API_TIMEOUT_MS = 30000;
 const DEFAULT_ELEVENLABS_STT_MODEL_ID = 'scribe_v2';
@@ -56,9 +59,7 @@ export class SpeechService {
   /**
    * Validate ElevenLabs API key by making a test request
    */
-  async validateElevenLabsApiKey(
-    apiKey?: string
-  ): Promise<{ valid: boolean; error?: string }> {
+  async validateElevenLabsApiKey(apiKey?: string): Promise<{ valid: boolean; error?: string }> {
     const key = apiKey || this.getElevenLabsApiKey();
 
     if (!key || !key.trim()) {
@@ -74,7 +75,7 @@ export class SpeechService {
             'xi-api-key': key.trim(),
           },
         },
-        ELEVENLABS_API_TIMEOUT_MS
+        ELEVENLABS_API_TIMEOUT_MS,
       );
 
       if (response.ok) {
@@ -114,30 +115,26 @@ export class SpeechService {
    */
   async transcribeAudio(
     audioData: Buffer,
-    mimeType: string = 'audio/webm'
+    mimeType: string = 'audio/webm',
   ): Promise<
-    | { success: true; result: TranscriptionResult }
-    | { success: false; error: TranscriptionError }
+    { success: true; result: TranscriptionResult } | { success: false; error: TranscriptionError }
   > {
     const apiKey = this.getElevenLabsApiKey();
-    const modelId =
-      process.env.ELEVENLABS_STT_MODEL_ID?.trim() ||
-      DEFAULT_ELEVENLABS_STT_MODEL_ID;
+    const modelId = process.env.ELEVENLABS_STT_MODEL_ID?.trim() || DEFAULT_ELEVENLABS_STT_MODEL_ID;
 
     if (!apiKey) {
       return {
         success: false,
         error: {
           code: 'MISSING_API_KEY',
-          message:
-            'ElevenLabs API key is not configured. Please add it in settings.',
+          message: 'ElevenLabs API key is not configured. Please add it in settings.',
         },
       };
     }
 
     const startTime = Date.now();
 
-    console.log('[ElevenLabs] Starting transcription:', {
+    log.info('[ElevenLabs] Starting transcription:', {
       audioSize: audioData.length,
       mimeType,
       modelId,
@@ -149,7 +146,7 @@ export class SpeechService {
       const uint8Array = new Uint8Array(audioData);
       const blob = new Blob([uint8Array], { type: mimeType });
 
-      console.log('[ElevenLabs] Created blob:', {
+      log.info('[ElevenLabs] Created blob:', {
         blobSize: blob.size,
         blobType: blob.type,
       });
@@ -168,7 +165,7 @@ export class SpeechService {
           },
           body: formData,
         },
-        ELEVENLABS_API_TIMEOUT_MS
+        ELEVENLABS_API_TIMEOUT_MS,
       );
 
       const duration = Date.now() - startTime;
@@ -182,7 +179,7 @@ export class SpeechService {
           // Not JSON, use raw text
         }
 
-        console.error('[ElevenLabs] API error:', {
+        log.error('[ElevenLabs] API error:', {
           status: response.status,
           statusText: response.statusText,
           errorData: JSON.stringify(errorData, null, 2),
@@ -194,8 +191,7 @@ export class SpeechService {
             success: false,
             error: {
               code: 'INVALID_API_KEY',
-              message:
-                'Invalid or expired ElevenLabs API key. Please check your settings.',
+              message: 'Invalid or expired ElevenLabs API key. Please check your settings.',
             },
           };
         }
@@ -228,21 +224,14 @@ export class SpeechService {
           } else {
             errorMessage = JSON.stringify(detail);
           }
-        } else if (
-          (errorData as { error?: { message?: unknown } })?.error?.message
-        ) {
-          const nestedMessage = (errorData as { error: { message: unknown } })
-            .error.message;
+        } else if ((errorData as { error?: { message?: unknown } })?.error?.message) {
+          const nestedMessage = (errorData as { error: { message: unknown } }).error.message;
           errorMessage =
-            typeof nestedMessage === 'string'
-              ? nestedMessage
-              : JSON.stringify(nestedMessage);
+            typeof nestedMessage === 'string' ? nestedMessage : JSON.stringify(nestedMessage);
         } else if ((errorData as { message?: unknown })?.message) {
           const rootMessage = (errorData as { message: unknown }).message;
           errorMessage =
-            typeof rootMessage === 'string'
-              ? rootMessage
-              : JSON.stringify(rootMessage);
+            typeof rootMessage === 'string' ? rootMessage : JSON.stringify(rootMessage);
         } else if (errorText) {
           errorMessage = errorText.substring(0, 200);
         } else {

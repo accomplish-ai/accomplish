@@ -1,6 +1,4 @@
-export type SafeParseResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+export type SafeParseResult<T> = { success: true; data: T } | { success: false; error: string };
 
 export function safeParseJson<T>(json: string | null): SafeParseResult<T> {
   if (!json) {
@@ -14,7 +12,10 @@ export function safeParseJson<T>(json: string | null): SafeParseResult<T> {
   }
 }
 
-export function safeParseJsonWithFallback<T>(json: string | null, fallback: T | null = null): T | null {
+export function safeParseJsonWithFallback<T>(
+  json: string | null,
+  fallback: T | null = null,
+): T | null {
   const result = safeParseJson<T>(json);
   return result.success ? result.data : fallback;
 }

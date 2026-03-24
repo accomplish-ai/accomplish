@@ -19,7 +19,12 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
-import type { TaskConfig, TaskResult, OpenCodeMessage, PermissionRequest } from '@accomplish_ai/agent-core';
+import type {
+  TaskConfig,
+  TaskResult,
+  OpenCodeMessage,
+  PermissionRequest,
+} from '@accomplish_ai/agent-core';
 import type { TaskManagerOptions } from '@accomplish_ai/agent-core';
 
 // Mock electron module
@@ -94,7 +99,13 @@ class MockOpenCodeAdapter extends EventEmitter {
   private sessionId: string | null = null;
   private disposed = false;
   public running = true;
-  private startTaskFn: (config: TaskConfig) => Promise<{ id: string; prompt: string; status: string; messages: never[]; createdAt: string }>;
+  private startTaskFn: (config: TaskConfig) => Promise<{
+    id: string;
+    prompt: string;
+    status: string;
+    messages: never[];
+    createdAt: string;
+  }>;
 
   constructor(_options: unknown, taskId?: string) {
     super();
@@ -216,7 +227,7 @@ vi.mock('@main/opencode/electron-options', () => ({
   onBeforeStart: vi.fn(() => Promise.resolve()),
   onBeforeTaskStart: vi.fn(() => Promise.resolve()),
   getOpenCodeCliPath: vi.fn(() => ({ command: 'opencode', args: [] })),
-  isOpenCodeBundled: vi.fn(() => true),
+  isOpenCodeCliAvailable: vi.fn(() => true),
   getBundledOpenCodeVersion: vi.fn(() => '1.0.0'),
 }));
 
@@ -243,7 +254,9 @@ vi.mock('child_process', () => ({
 }));
 
 // Helper function to create mock TaskManagerOptions
-function createMockTaskManagerOptions(overrides?: { maxConcurrentTasks?: number }): TaskManagerOptions {
+function createMockTaskManagerOptions(overrides?: {
+  maxConcurrentTasks?: number;
+}): TaskManagerOptions {
   return {
     adapterOptions: {
       platform: 'darwin' as NodeJS.Platform,
@@ -339,9 +352,9 @@ describe('Task Manager Module', () => {
         await manager.startTask('task-1', config, callbacks);
 
         // Act & Assert
-        await expect(
-          manager.startTask('task-1', config, createMockCallbacks())
-        ).rejects.toThrow('already running or queued');
+        await expect(manager.startTask('task-1', config, createMockCallbacks())).rejects.toThrow(
+          'already running or queued',
+        );
       });
 
       it('should execute multiple tasks in parallel up to limit', async () => {
@@ -368,7 +381,11 @@ describe('Task Manager Module', () => {
         // Act
         await manager.startTask('task-1', { prompt: 'Task 1' }, createMockCallbacks());
         await manager.startTask('task-2', { prompt: 'Task 2' }, createMockCallbacks());
-        const task3 = await manager.startTask('task-3', { prompt: 'Task 3' }, createMockCallbacks());
+        const task3 = await manager.startTask(
+          'task-3',
+          { prompt: 'Task 3' },
+          createMockCallbacks(),
+        );
 
         // Assert
         expect(manager.getActiveTaskCount()).toBe(2);
@@ -386,10 +403,9 @@ describe('Task Manager Module', () => {
 
         // Act & Assert
         await expect(
-          manager.startTask('task-3', { prompt: 'Task 3' }, createMockCallbacks())
+          manager.startTask('task-3', { prompt: 'Task 3' }, createMockCallbacks()),
         ).rejects.toThrow('Maximum queued tasks');
       });
-
     });
 
     describe('Task Event Handling', () => {
@@ -566,7 +582,7 @@ describe('Task Manager Module', () => {
         // in the test environment. This verifies that the task manager correctly delegates
         // to the adapter's sendResponse method.
         await expect(manager.sendResponse('task-1', 'user response')).rejects.toThrow(
-          'No active process'
+          'No active process',
         );
       });
 
@@ -576,7 +592,7 @@ describe('Task Manager Module', () => {
 
         // Act & Assert
         await expect(manager.sendResponse('non-existent', 'response')).rejects.toThrow(
-          'not found or not active'
+          'not found or not active',
         );
       });
     });

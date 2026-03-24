@@ -1,3 +1,7 @@
+import { createConsoleLogger } from '../../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'AzureTokenManager' });
+
 interface CachedToken {
   token: string;
   expiresAt: Date;
@@ -34,9 +38,7 @@ export async function getAzureEntraToken(): Promise<
       expiresAt,
     };
 
-    console.log(
-      `[Azure Token Manager] Acquired new token, expires at ${expiresAt.toISOString()}`
-    );
+    log.info(`[Azure Token Manager] Acquired new token, expires at ${expiresAt.toISOString()}`);
 
     return { success: true, token: tokenResponse.token };
   } catch (error) {
@@ -60,7 +62,7 @@ export async function getAzureEntraToken(): Promise<
 
 export function clearAzureTokenCache(): void {
   tokenCache = null;
-  console.log('[Azure Token Manager] Token cache cleared');
+  log.info('[Azure Token Manager] Token cache cleared');
 }
 
 export function hasValidToken(): boolean {

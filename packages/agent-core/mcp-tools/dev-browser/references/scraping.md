@@ -24,28 +24,28 @@ This prevents wasting time debugging a complex script when the issue is a simple
 First, intercept a request to understand URL structure and required headers:
 
 ```typescript
-import { connect, waitForPageLoad } from "@/client.js";
-import * as fs from "node:fs";
+import { connect, waitForPageLoad } from '@/client.js';
+import * as fs from 'node:fs';
 
 const client = await connect();
-const page = await client.page("site");
+const page = await client.page('site');
 
 let capturedRequest = null;
-page.on("request", (request) => {
+page.on('request', (request) => {
   const url = request.url();
   // Look for API endpoints (adjust pattern for your target site)
-  if (url.includes("/api/") || url.includes("/graphql/")) {
+  if (url.includes('/api/') || url.includes('/graphql/')) {
     capturedRequest = {
       url: url,
       headers: request.headers(),
       method: request.method(),
     };
-    fs.writeFileSync("tmp/request-details.json", JSON.stringify(capturedRequest, null, 2));
-    console.log("Captured request:", url.substring(0, 80) + "...");
+    fs.writeFileSync('tmp/request-details.json', JSON.stringify(capturedRequest, null, 2));
+    console.log('Captured request:', url.substring(0, 80) + '...');
   }
 });
 
-await page.goto("https://example.com/profile");
+await page.goto('https://example.com/profile');
 await waitForPageLoad(page);
 await page.waitForTimeout(3000);
 
@@ -57,12 +57,12 @@ await client.disconnect();
 Save a raw response to inspect the data structure:
 
 ```typescript
-page.on("response", async (response) => {
+page.on('response', async (response) => {
   const url = response.url();
-  if (url.includes("UserTweets") || url.includes("/api/data")) {
+  if (url.includes('UserTweets') || url.includes('/api/data')) {
     const json = await response.json();
-    fs.writeFileSync("tmp/api-response.json", JSON.stringify(json, null, 2));
-    console.log("Captured response");
+    fs.writeFileSync('tmp/api-response.json', JSON.stringify(json, null, 2));
+    console.log('Captured response');
   }
 });
 ```
@@ -78,15 +78,15 @@ Then analyze the structure to find:
 Once you understand the schema, replay requests directly:
 
 ```typescript
-import { connect } from "@/client.js";
-import * as fs from "node:fs";
+import { connect } from '@/client.js';
+import * as fs from 'node:fs';
 
 const client = await connect();
-const page = await client.page("site");
+const page = await client.page('site');
 
 const results = new Map(); // Use Map for deduplication
-const headers = JSON.parse(fs.readFileSync("tmp/request-details.json", "utf8")).headers;
-const baseUrl = "https://example.com/api/data";
+const headers = JSON.parse(fs.readFileSync('tmp/request-details.json', 'utf8')).headers;
+const baseUrl = 'https://example.com/api/data';
 
 let cursor = null;
 let hasMore = true;
@@ -103,13 +103,13 @@ while (hasMore) {
       const res = await fetch(url, { headers });
       return res.json();
     },
-    { url, headers }
+    { url, headers },
   );
 
   // Extract data and cursor (adjust paths for your API)
   const entries = response?.data?.entries || [];
   for (const entry of entries) {
-    if (entry.type === "cursor-bottom") {
+    if (entry.type === 'cursor-bottom') {
       cursor = entry.value;
     } else if (entry.id && !results.has(entry.id)) {
       results.set(entry.id, {
@@ -131,7 +131,7 @@ while (hasMore) {
 
 // Export results
 const data = Array.from(results.values());
-fs.writeFileSync("tmp/results.json", JSON.stringify(data, null, 2));
+fs.writeFileSync('tmp/results.json', JSON.stringify(data, null, 2));
 console.log(`Saved ${data.length} items`);
 
 await client.disconnect();

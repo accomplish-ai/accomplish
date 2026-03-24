@@ -2,6 +2,9 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { isSystemChromeInstalled, isPlaywrightInstalled } from './detection.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'Browser' });
 
 export interface BrowserServerConfig {
   mcpToolsPath: string;
@@ -28,51 +31,77 @@ function buildNodeEnvironment(bundledNodeBinPath?: string): NodeJS.ProcessEnv {
   return spawnEnv;
 }
 
-function getNpxExecutable(bundledNodeBinPath?: string): string {
-  if (bundledNodeBinPath) {
-    const npxName = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-    const npxPath = path.join(bundledNodeBinPath, npxName);
-    if (fs.existsSync(npxPath)) {
-      return npxPath;
-    }
+function getNodeExecutable(bundledNodeBinPath?: string): string {
+  if (!bundledNodeBinPath) {
+    throw new Error(
+      '[Browser] Bundled Node.js path is missing. ' +
+        'Run "pnpm -F @accomplish/desktop download:nodejs" and rebuild artifacts.',
+    );
   }
-  return 'npx';
+
+  const nodeName = process.platform === 'win32' ? 'node.exe' : 'node';
+  const nodePath = path.join(bundledNodeBinPath, nodeName);
+  if (fs.existsSync(nodePath)) {
+    return nodePath;
+  }
+
+  throw new Error(
+    `[Browser] Missing bundled Node.js executable: ${nodePath}. ` +
+      'Run "pnpm -F @accomplish/desktop download:nodejs" and rebuild artifacts.',
+  );
 }
 
-function getNodeExecutable(bundledNodeBinPath?: string): string {
-  if (bundledNodeBinPath) {
-    const nodeName = process.platform === 'win32' ? 'node.exe' : 'node';
-    const nodePath = path.join(bundledNodeBinPath, nodeName);
-    if (fs.existsSync(nodePath)) {
-      return nodePath;
+function resolvePlaywrightCliPath(mcpToolsPath: string): string {
+  const candidates = [
+    path.join(mcpToolsPath, 'dev-browser', 'node_modules', 'playwright', 'cli.js'),
+    path.join(mcpToolsPath, 'node_modules', 'playwright', 'cli.js'),
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
     }
   }
-  return 'node';
+
+  throw new Error(
+    '[Browser] Playwright CLI not found for dev-browser setup. ' +
+      `Checked: ${candidates.join(', ')}. ` +
+      `Run "npm --prefix \\"${mcpToolsPath}\\" install --omit=dev".`,
+  );
 }
 
 export async function installPlaywrightChromium(
   config: BrowserServerConfig,
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const devBrowserDir = path.join(config.mcpToolsPath, 'dev-browser');
-    const npxPath = getNpxExecutable(config.bundledNodeBinPath);
+    if (!fs.existsSync(devBrowserDir)) {
+      const message =
+        `[Browser] Missing dev-browser directory: ${devBrowserDir}. ` +
+        'Run "pnpm -F @accomplish/desktop build:mcp-tools:dev" and rebuild artifacts.';
+      onProgress?.(message);
+      reject(new Error(message));
+      return;
+    }
+
+    const nodeExe = getNodeExecutable(config.bundledNodeBinPath);
+    const playwrightCliPath = resolvePlaywrightCliPath(config.mcpToolsPath);
     const spawnEnv = buildNodeEnvironment(config.bundledNodeBinPath);
 
-    console.log(`[Browser] Installing Playwright Chromium using npx: ${npxPath}`);
     onProgress?.('Downloading browser...');
 
-    const child = spawn(npxPath, ['playwright', 'install', 'chromium'], {
+    const child = spawn(nodeExe, [playwrightCliPath, 'install', 'chromium'], {
       cwd: devBrowserDir,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: spawnEnv,
-      shell: process.platform === 'win32',
+      shell: false,
     });
 
     child.stdout?.on('data', (data: Buffer) => {
       const line = data.toString().trim();
       if (line) {
-        console.log(`[Playwright Install] ${line}`);
+        log.info(`[Playwright Install] ${line}`);
         if (line.includes('%') || line.toLowerCase().startsWith('downloading')) {
           onProgress?.(line);
         }
@@ -82,13 +111,13 @@ export async function installPlaywrightChromium(
     child.stderr?.on('data', (data: Buffer) => {
       const line = data.toString().trim();
       if (line) {
-        console.log(`[Playwright Install] ${line}`);
+        log.info(`[Playwright Install] ${line}`);
       }
     });
 
     child.on('close', (code) => {
       if (code === 0) {
-        console.log('[Browser] Playwright Chromium installed successfully');
+        log.info('[Browser] Playwright Chromium installed successfully');
         onProgress?.('Browser installed successfully!');
         resolve();
       } else {
@@ -119,19 +148,23 @@ export async function isDevBrowserServerReady(port: number): Promise<boolean> {
 export async function waitForDevBrowserServer(
   port: number,
   maxWaitMs = 15000,
-  pollIntervalMs = 500
+  pollIntervalMs = 500,
 ): Promise<boolean> {
   const startTime = Date.now();
   let attempts = 0;
   while (Date.now() - startTime < maxWaitMs) {
     attempts++;
     if (await isDevBrowserServerReady(port)) {
-      console.log(`[Browser] Dev-browser server ready after ${attempts} attempts (${Date.now() - startTime}ms)`);
+      log.info(
+        `[Browser] Dev-browser server ready after ${attempts} attempts (${Date.now() - startTime}ms)`,
+      );
       return true;
     }
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
   }
-  console.log(`[Browser] Dev-browser server not ready after ${attempts} attempts (${maxWaitMs}ms timeout)`);
+  log.info(
+    `[Browser] Dev-browser server not ready after ${attempts} attempts (${maxWaitMs}ms timeout)`,
+  );
   return false;
 }
 
@@ -142,21 +175,27 @@ export interface ServerStartResult {
 }
 
 export async function startDevBrowserServer(
-  config: BrowserServerConfig
+  config: BrowserServerConfig,
 ): Promise<ServerStartResult> {
   const serverScript = path.join(config.mcpToolsPath, 'dev-browser', 'server.cjs');
   const serverCwd = path.join(config.mcpToolsPath, 'dev-browser');
+  if (!fs.existsSync(serverScript)) {
+    throw new Error(
+      `[Browser] Missing dev-browser launcher script: ${serverScript}. ` +
+        'Run "pnpm -F @accomplish/desktop build:mcp-tools:dev" before starting the app.',
+    );
+  }
   const spawnEnv = buildNodeEnvironment(config.bundledNodeBinPath);
   const nodeExe = getNodeExecutable(config.bundledNodeBinPath);
 
   const serverLogs: string[] = [];
 
-  console.log('[Browser] ========== DEV-BROWSER SERVER STARTUP ==========');
-  console.log('[Browser] Node executable:', nodeExe);
-  console.log('[Browser] Server script:', serverScript);
-  console.log('[Browser] Working directory:', serverCwd);
-  console.log('[Browser] Script exists:', fs.existsSync(serverScript));
-  console.log('[Browser] CWD exists:', fs.existsSync(serverCwd));
+  log.info('[Browser] ========== DEV-BROWSER SERVER STARTUP ==========');
+  log.info(`[Browser] Node executable: ${nodeExe}`);
+  log.info(`[Browser] Server script: ${serverScript}`);
+  log.info(`[Browser] Working directory: ${serverCwd}`);
+  log.info(`[Browser] Script exists: ${fs.existsSync(serverScript)}`);
+  log.info(`[Browser] CWD exists: ${fs.existsSync(serverCwd)}`);
 
   // detached + unref allows server to outlive parent process
   const child = spawn(nodeExe, [serverScript], {
@@ -168,50 +207,53 @@ export async function startDevBrowserServer(
   });
 
   child.stdout?.on('data', (data: Buffer) => {
-    const lines = data.toString().split('\n').filter((l) => l.trim());
+    const lines = data
+      .toString()
+      .split('\n')
+      .filter((l) => l.trim());
     for (const line of lines) {
       serverLogs.push(`[stdout] ${line}`);
-      console.log('[DevBrowser stdout]', line);
+      log.info(`[DevBrowser stdout] ${line}`);
     }
   });
 
   child.stderr?.on('data', (data: Buffer) => {
-    const lines = data.toString().split('\n').filter((l) => l.trim());
+    const lines = data
+      .toString()
+      .split('\n')
+      .filter((l) => l.trim());
     for (const line of lines) {
       serverLogs.push(`[stderr] ${line}`);
-      console.log('[DevBrowser stderr]', line);
+      log.info(`[DevBrowser stderr] ${line}`);
     }
   });
 
   child.on('error', (err) => {
     const errorMsg = `Spawn error: ${err.message} (code: ${(err as NodeJS.ErrnoException).code})`;
     serverLogs.push(`[error] ${errorMsg}`);
-    console.error('[Browser] Dev-browser spawn error:', err);
+    log.error('[Browser] Dev-browser spawn error:', { error: String(err) });
   });
 
   child.on('exit', (code, signal) => {
     const exitMsg = `Process exited with code ${code}, signal ${signal}`;
     serverLogs.push(`[exit] ${exitMsg}`);
-    console.log('[Browser] Dev-browser', exitMsg);
+    log.info(`[Browser] Dev-browser ${exitMsg}`);
     if (code !== 0 && code !== null) {
-      console.error('[Browser] Dev-browser server failed. Logs:');
-      for (const log of serverLogs) {
-        console.error('[Browser]  ', log);
-      }
+      log.error('[Browser] Dev-browser server failed. Logs:', { logs: serverLogs.join('\n') });
     }
   });
 
   child.unref();
 
-  console.log('[Browser] Dev-browser server spawn initiated (PID:', child.pid, ')');
+  log.info(`[Browser] Dev-browser server spawn initiated (PID: ${child.pid})`);
 
   // Windows needs longer timeout due to slower process startup
   const maxWaitMs = process.platform === 'win32' ? 30000 : 15000;
-  console.log(`[Browser] Waiting for dev-browser server to be ready (max ${maxWaitMs}ms)...`);
+  log.info(`[Browser] Waiting for dev-browser server to be ready (max ${maxWaitMs}ms)...`);
 
   const serverReady = await waitForDevBrowserServer(config.devBrowserPort, maxWaitMs);
 
-  console.log('[Browser] ========== END DEV-BROWSER SERVER STARTUP ==========');
+  log.info('[Browser] ========== END DEV-BROWSER SERVER STARTUP ==========');
 
   return {
     ready: serverReady,
@@ -222,15 +264,15 @@ export async function startDevBrowserServer(
 
 export async function ensureDevBrowserServer(
   config: BrowserServerConfig,
-  onProgress?: (progress: { stage: string; message?: string }) => void
+  onProgress?: (progress: { stage: string; message?: string }) => void,
 ): Promise<ServerStartResult> {
   const hasChrome = isSystemChromeInstalled();
   const hasPlaywright = isPlaywrightInstalled();
 
-  console.log(`[Browser] Browser check: Chrome=${hasChrome}, Playwright=${hasPlaywright}`);
+  log.info(`[Browser] Browser check: Chrome=${hasChrome}, Playwright=${hasPlaywright}`);
 
   if (!hasChrome && !hasPlaywright) {
-    console.log('[Browser] No browser available, installing Playwright Chromium...');
+    log.info('[Browser] No browser available, installing Playwright Chromium...');
     onProgress?.({
       stage: 'setup',
       message: 'Chrome not found. Downloading browser (one-time setup, ~2 min)...',
@@ -241,7 +283,7 @@ export async function ensureDevBrowserServer(
         onProgress?.({ stage: 'setup', message: msg });
       });
     } catch (error) {
-      console.error('[Browser] Failed to install Playwright:', error);
+      log.error('[Browser] Failed to install Playwright:', { error: String(error) });
       // Don't throw - let agent handle the failure
     }
   }
@@ -249,7 +291,7 @@ export async function ensureDevBrowserServer(
   // Skip check on macOS to avoid triggering Local Network permission dialog
   if (process.platform !== 'darwin') {
     if (await isDevBrowserServerReady(config.devBrowserPort)) {
-      console.log('[Browser] Dev-browser server already running');
+      log.info('[Browser] Dev-browser server already running');
       return { ready: true, logs: [] };
     }
   }

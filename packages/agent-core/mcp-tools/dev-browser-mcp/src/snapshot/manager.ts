@@ -1,4 +1,9 @@
-import type { ParsedSnapshot, SnapshotResult, SessionHistoryEntry, SessionSummary } from './types.js';
+import type {
+  ParsedSnapshot,
+  SnapshotResult,
+  SessionHistoryEntry,
+  SessionSummary,
+} from './types.js';
 import { parseSnapshot } from './parser.js';
 import { diffSnapshots, formatDiff } from './differ.js';
 
@@ -19,7 +24,7 @@ export class SnapshotManager {
     rawYaml: string,
     url: string,
     title: string,
-    options: SnapshotManagerOptions = {}
+    options: SnapshotManagerOptions = {},
   ): SnapshotResult {
     const currentSnapshot = parseSnapshot(rawYaml, url, title);
     const now = Date.now();
@@ -104,9 +109,7 @@ export class SnapshotManager {
       return { history: '', pagesVisited: 0 };
     }
 
-    const history = this.sessionHistory
-      .map(h => h.title || new URL(h.url).pathname)
-      .join(' → ');
+    const history = this.sessionHistory.map((h) => h.title || new URL(h.url).pathname).join(' → ');
 
     return {
       history,

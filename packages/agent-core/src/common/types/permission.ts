@@ -1,4 +1,11 @@
-export const FILE_OPERATIONS = ['create', 'delete', 'rename', 'move', 'modify', 'overwrite'] as const;
+export const FILE_OPERATIONS = [
+  'create',
+  'delete',
+  'rename',
+  'move',
+  'modify',
+  'overwrite',
+] as const;
 
 export type FileOperation = (typeof FILE_OPERATIONS)[number];
 
@@ -8,7 +15,7 @@ export const QUESTION_REQUEST_PREFIX = 'questionreq_';
 export interface PermissionRequest {
   id: string;
   taskId: string;
-  type: 'tool' | 'question' | 'file';
+  type: 'tool' | 'question' | 'file' | 'desktop';
   toolName?: string;
   toolInput?: unknown;
   question?: string;
@@ -20,6 +27,9 @@ export interface PermissionRequest {
   filePaths?: string[];
   targetPath?: string;
   contentPreview?: string;
+  desktopAction?: string;
+  targetWindow?: string;
+  coordinates?: { x: number; y: number };
   timeoutMs?: number;
   createdAt: string;
 }

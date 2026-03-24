@@ -25,6 +25,7 @@ Before deleting ANY file, you MUST:
 ## Examples
 
 Single file:
+
 ```json
 {
   "operation": "delete",
@@ -33,6 +34,7 @@ Single file:
 ```
 
 Multiple files (batched into one prompt):
+
 ```json
 {
   "operation": "delete",
@@ -43,6 +45,7 @@ Multiple files (batched into one prompt):
 ## No Workarounds
 
 Never bypass deletion warnings by:
+
 - Emptying files instead of deleting
 - Moving to hidden/temp locations
 - Using obscure commands

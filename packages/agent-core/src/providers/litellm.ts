@@ -2,6 +2,9 @@ import type { LiteLLMModel, LiteLLMConfig } from '../common/types/provider.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { validateHttpUrl } from '../utils/url.js';
 import { sanitizeString } from '../utils/sanitize.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'LiteLLM' });
 
 const DEFAULT_TIMEOUT_MS = 10000;
 
@@ -30,7 +33,7 @@ interface LiteLLMModelsResponse {
  */
 export async function testLiteLLMConnection(
   url: string,
-  apiKey?: string
+  apiKey?: string,
 ): Promise<LiteLLMConnectionResult> {
   const sanitizedUrl = sanitizeString(url, 'litellmUrl', 256);
   const sanitizedApiKey = apiKey ? sanitizeString(apiKey, 'apiKey', 256) : undefined;
@@ -50,15 +53,14 @@ export async function testLiteLLMConnection(
     const response = await fetchWithTimeout(
       `${sanitizedUrl}/v1/models`,
       { method: 'GET', headers },
-      DEFAULT_TIMEOUT_MS
+      DEFAULT_TIMEOUT_MS,
     );
 
     if (!response.ok) {
       const errorData = (await response.json().catch(() => ({}))) as {
         error?: { message?: string };
       };
-      const errorMessage =
-        errorData?.error?.message || `API returned status ${response.status}`;
+      const errorMessage = errorData?.error?.message || `API returned status ${response.status}`;
       return { success: false, error: errorMessage };
     }
 
@@ -73,11 +75,11 @@ export async function testLiteLLMConnection(
       };
     });
 
-    console.log(`[LiteLLM] Connection successful, found ${models.length} models`);
+    log.info(`[LiteLLM] Connection successful, found ${models.length} models`);
     return { success: true, models };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Connection failed';
-    console.warn('[LiteLLM] Connection failed:', message);
+    log.warn(`[LiteLLM] Connection failed: ${message}`);
 
     if (error instanceof Error && error.name === 'AbortError') {
       return { success: false, error: 'Connection timed out. Make sure LiteLLM proxy is running.' };
@@ -99,7 +101,7 @@ export interface FetchLiteLLMModelsOptions {
  * @returns Result with formatted models on success
  */
 export async function fetchLiteLLMModels(
-  options: FetchLiteLLMModelsOptions
+  options: FetchLiteLLMModelsOptions,
 ): Promise<LiteLLMConnectionResult> {
   const { config, apiKey } = options;
 
@@ -116,15 +118,14 @@ export async function fetchLiteLLMModels(
     const response = await fetchWithTimeout(
       `${config.baseUrl}/v1/models`,
       { method: 'GET', headers },
-      DEFAULT_TIMEOUT_MS
+      DEFAULT_TIMEOUT_MS,
     );
 
     if (!response.ok) {
       const errorData = (await response.json().catch(() => ({}))) as {
         error?: { message?: string };
       };
-      const errorMessage =
-        errorData?.error?.message || `API returned status ${response.status}`;
+      const errorMessage = errorData?.error?.message || `API returned status ${response.status}`;
       return { success: false, error: errorMessage };
     }
 
@@ -152,11 +153,11 @@ export async function fetchLiteLLMModels(
       };
     });
 
-    console.log(`[LiteLLM] Fetched ${models.length} models`);
+    log.info(`[LiteLLM] Fetched ${models.length} models`);
     return { success: true, models };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch models';
-    console.warn('[LiteLLM] Fetch failed:', message);
+    log.warn(`[LiteLLM] Fetch failed: ${message}`);
 
     if (error instanceof Error && error.name === 'AbortError') {
       return { success: false, error: 'Request timed out. Check your LiteLLM proxy.' };

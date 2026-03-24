@@ -8,16 +8,22 @@ import * as os from 'os';
  * If the native module is not available (Node.js version mismatch),
  * these tests will be skipped.
  *
- * To fix native module issues, run: pnpm rebuild better-sqlite3
+ * To fix native module issues, run pnpm rebuild better-sqlite3
  */
 
 describe('SkillsManager', () => {
   let testDir: string;
   let bundledSkillsPath: string;
   let userSkillsPath: string;
-  let SkillsManager: typeof import('../../../src/internal/classes/SkillsManager.js').SkillsManager | null = null;
-  let manager: InstanceType<typeof import('../../../src/internal/classes/SkillsManager.js').SkillsManager> | null = null;
-  let initializeDatabase: typeof import('../../../src/storage/database.js').initializeDatabase | null = null;
+  let SkillsManager:
+    | typeof import('../../../src/internal/classes/SkillsManager.js').SkillsManager
+    | null = null;
+  let manager: InstanceType<
+    typeof import('../../../src/internal/classes/SkillsManager.js').SkillsManager
+  > | null = null;
+  let initializeDatabase:
+    | typeof import('../../../src/storage/database.js').initializeDatabase
+    | null = null;
   let closeDatabase: typeof import('../../../src/storage/database.js').closeDatabase | null = null;
   let getDatabase: typeof import('../../../src/storage/database.js').getDatabase | null = null;
   let moduleAvailable = false;
@@ -33,7 +39,7 @@ describe('SkillsManager', () => {
       const skillsModule = await import('../../../src/internal/classes/SkillsManager.js');
       SkillsManager = skillsModule.SkillsManager;
       moduleAvailable = true;
-    } catch (err) {
+    } catch (_err) {
       console.warn('Skipping skills-manager tests: better-sqlite3 native module not available');
       console.warn('To fix: pnpm rebuild better-sqlite3');
     }
@@ -43,7 +49,10 @@ describe('SkillsManager', () => {
     if (!moduleAvailable) return;
 
     // Create a unique temporary directory for each test
-    testDir = path.join(os.tmpdir(), `skills-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = path.join(
+      os.tmpdir(),
+      `skills-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     bundledSkillsPath = path.join(testDir, 'bundled-skills');
     userSkillsPath = path.join(testDir, 'user-skills');
 
@@ -76,7 +85,11 @@ describe('SkillsManager', () => {
     vi.restoreAllMocks();
   });
 
-  function createSkillFile(basePath: string, name: string, frontmatter: Record<string, unknown> = {}) {
+  function createSkillFile(
+    basePath: string,
+    name: string,
+    frontmatter: Record<string, unknown> = {},
+  ) {
     const skillDir = path.join(basePath, name);
     fs.mkdirSync(skillDir, { recursive: true });
 
@@ -203,7 +216,7 @@ name: Minimal Skill
 ---
 
 Content here.
-`
+`,
       );
 
       await manager.initialize();
@@ -463,6 +476,51 @@ Content.
       fs.writeFileSync(sourcePath, skillContent);
 
       await expect(manager.addSkill(sourcePath)).rejects.toThrow('must have a name');
+    });
+  });
+
+  describe('addSkill from folder', () => {
+    it('should import SKILL.md and all companion files from a folder', async () => {
+      if (!moduleAvailable || !manager) return;
+
+      await manager.initialize();
+
+      const sourceDir = path.join(testDir, 'my-skill-folder');
+      fs.mkdirSync(sourceDir, { recursive: true });
+
+      const skillContent = `---
+name: Folder Skill
+description: A skill with companion files
+---
+
+Uses template_layouts.md and data.json for reference.
+`;
+      fs.writeFileSync(path.join(sourceDir, 'SKILL.md'), skillContent);
+      fs.writeFileSync(path.join(sourceDir, 'template_layouts.md'), '# Template');
+      fs.writeFileSync(path.join(sourceDir, 'data.json'), '{"key": "value"}');
+
+      const skill = await manager.addSkill(sourceDir);
+
+      expect(skill).not.toBeNull();
+      expect(skill?.name).toBe('Folder Skill');
+      expect(skill?.source).toBe('custom');
+
+      const destDir = path.join(userSkillsPath, 'Folder-Skill');
+      expect(fs.existsSync(path.join(destDir, 'SKILL.md'))).toBe(true);
+      expect(fs.existsSync(path.join(destDir, 'template_layouts.md'))).toBe(true);
+      expect(fs.existsSync(path.join(destDir, 'data.json'))).toBe(true);
+    });
+
+    it('should throw when selected folder has no SKILL.md', async () => {
+      if (!moduleAvailable || !manager) return;
+
+      await manager.initialize();
+
+      const emptyDir = path.join(testDir, 'empty-folder');
+      fs.mkdirSync(emptyDir, { recursive: true });
+      fs.writeFileSync(path.join(emptyDir, 'notes.txt'), 'no skill here');
+
+      await expect(manager.addSkill(emptyDir)).rejects.toThrow('does not contain a SKILL.md');
     });
   });
 

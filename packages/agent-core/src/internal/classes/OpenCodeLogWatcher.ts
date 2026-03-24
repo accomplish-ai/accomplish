@@ -2,6 +2,9 @@ import { EventEmitter } from 'events';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { createConsoleLogger } from '../../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'LogWatcher' });
 
 export interface OpenCodeLogError {
   timestamp: string;
@@ -21,7 +24,8 @@ const ERROR_PATTERNS: Array<{
   extract: (match: RegExpMatchArray, line: string) => Partial<OpenCodeLogError>;
 }> = [
   {
-    pattern: /openai.*(?:invalid_api_key|invalid_token|token.*expired|oauth.*invalid|Incorrect API key)/i,
+    pattern:
+      /openai.*(?:invalid_api_key|invalid_token|token.*expired|oauth.*invalid|Incorrect API key)/i,
     extract: () => ({
       errorName: 'OAuthExpiredError',
       statusCode: 401,
@@ -141,7 +145,7 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
         }
       });
     } catch (err) {
-      console.warn('[LogWatcher] Could not watch log directory:', err);
+      log.warn('[LogWatcher] Could not watch log directory:', { error: String(err) });
     }
   }
 
@@ -196,9 +200,9 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
       const stat = await this.fileHandle.stat();
       this.readPosition = stat.size;
 
-      console.log('[LogWatcher] Watching log file:', latestLog);
+      log.info(`[LogWatcher] Watching log file: ${latestLog}`);
     } catch (err) {
-      console.warn('[LogWatcher] Error finding latest log:', err);
+      log.warn('[LogWatcher] Error finding latest log:', { error: String(err) });
     }
   }
 
@@ -215,12 +219,7 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
 
       const bufferSize = stat.size - this.readPosition;
       const buffer = Buffer.alloc(bufferSize);
-      const { bytesRead } = await this.fileHandle.read(
-        buffer,
-        0,
-        bufferSize,
-        this.readPosition
-      );
+      const { bytesRead } = await this.fileHandle.read(buffer, 0, bufferSize, this.readPosition);
 
       this.readPosition += bytesRead;
 
@@ -274,7 +273,7 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
           raw: line,
         };
 
-        console.log('[LogWatcher] Detected error:', error.errorName, error.message);
+        log.info(`[LogWatcher] Detected error: ${error.errorName} ${error.message}`);
         this.emit('error', error);
         return;
       }

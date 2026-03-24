@@ -20,7 +20,7 @@ interface FilePermissionInput {
 
 const server = new Server(
   { name: 'file-permission', version: '1.0.0' },
-  { capabilities: { tools: {} } }
+  { capabilities: { tools: {} } },
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -44,7 +44,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           filePaths: {
             type: 'array',
             items: { type: 'string' },
-            description: 'Array of absolute paths for batch operations (e.g., deleting multiple files)',
+            description:
+              'Array of absolute paths for batch operations (e.g., deleting multiple files)',
           },
           targetPath: {
             type: 'string',
@@ -74,7 +75,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
 
   if (!operation || (!filePath && (!filePaths || filePaths.length === 0))) {
     return {
-      content: [{ type: 'text', text: 'Error: operation and either filePath or filePaths are required' }],
+      content: [
+        { type: 'text', text: 'Error: operation and either filePath or filePaths are required' },
+      ],
       isError: true,
     };
   }
@@ -95,7 +98,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
     if (!response.ok) {
       const errorText = await response.text();
       return {
-        content: [{ type: 'text', text: `Error: Permission API returned ${response.status}: ${errorText}` }],
+        content: [
+          { type: 'text', text: `Error: Permission API returned ${response.status}: ${errorText}` },
+        ],
         isError: true,
       };
     }
