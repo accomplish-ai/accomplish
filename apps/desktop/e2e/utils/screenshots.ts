@@ -47,7 +47,7 @@ export async function captureForAI(
   page: Page,
   testName: string,
   stateName: string,
-  evaluationCriteria: string[]
+  evaluationCriteria: string[],
 ): Promise<CaptureResult> {
   const timestamp = Date.now();
   const sanitizedTestName = sanitizeFilename(testName);
@@ -78,10 +78,7 @@ export async function captureForAI(
       evaluationCriteria,
     };
 
-    await fs.writeFile(
-      screenshotPath.replace('.png', '.json'),
-      JSON.stringify(metadata, null, 2)
-    );
+    await fs.writeFile(screenshotPath.replace('.png', '.json'), JSON.stringify(metadata, null, 2));
 
     return { success: true, path: screenshotPath };
   } catch (error) {

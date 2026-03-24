@@ -80,7 +80,9 @@ describe('validation.ts', () => {
         const payload = { name: 'Alice', age: -5 };
 
         // Act & Assert
-        expect(() => validate(testSchema, payload)).toThrow('Invalid payload: Age must be positive');
+        expect(() => validate(testSchema, payload)).toThrow(
+          'Invalid payload: Age must be positive',
+        );
       });
 
       it('should concatenate multiple error messages with semicolons', () => {

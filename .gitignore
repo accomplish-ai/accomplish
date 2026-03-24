@@ -59,7 +59,12 @@ docs/plans/
 
 # Claude Code
 .claude/
+!.claude/PROJECT_RULES.md
+!.claude/.env.example
 .mcp.json
+
+# Speckit
+.specify/
 
 # Misc
 *.pem
@@ -74,3 +79,4 @@ apps/desktop/resources/nodejs/
 # Test local agent Chrome profile
 .accomplish-test-local-agent-chrome/
 .worktrees
+/.run/

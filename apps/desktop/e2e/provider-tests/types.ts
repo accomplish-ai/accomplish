@@ -54,8 +54,6 @@ export interface BedrockAccessKeySecrets {
   region?: string;
 }
 
-
-
 export interface BedrockProfileSecrets {
   profileName: string;
   region?: string;

@@ -1,7 +1,4 @@
-import {
-  FILE_PERMISSION_REQUEST_PREFIX,
-  QUESTION_REQUEST_PREFIX,
-} from '../types/permission.js';
+import { FILE_PERMISSION_REQUEST_PREFIX, QUESTION_REQUEST_PREFIX } from '../types/permission.js';
 
 export function createTaskId(): string {
   return `task_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;

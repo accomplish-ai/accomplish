@@ -24,7 +24,7 @@ export interface FetchProviderModelsOptions {
 function buildRequest(
   config: ModelsEndpointConfig,
   apiKey: string,
-  urlOverride?: string
+  urlOverride?: string,
 ): { url: string; headers: Record<string, string> } {
   let url = urlOverride || config.url;
   const headers: Record<string, string> = {};
@@ -52,7 +52,7 @@ function buildRequest(
 function parseOpenAIResponse(
   data: unknown,
   prefix: string,
-  filter?: RegExp
+  filter?: RegExp,
 ): Array<{ id: string; name: string }> {
   const response = data as { data?: Array<{ id: string }> };
   if (!response.data || !Array.isArray(response.data)) return [];
@@ -75,7 +75,7 @@ function parseOpenAIResponse(
 function parseAnthropicResponse(
   data: unknown,
   prefix: string,
-  filter?: RegExp
+  filter?: RegExp,
 ): Array<{ id: string; name: string }> {
   const response = data as {
     data?: Array<{ id: string; display_name?: string; type?: string }>;
@@ -100,7 +100,7 @@ function parseAnthropicResponse(
 function parseGoogleResponse(
   data: unknown,
   prefix: string,
-  filter?: RegExp
+  filter?: RegExp,
 ): Array<{ id: string; name: string }> {
   const response = data as {
     models?: Array<{
@@ -112,8 +112,8 @@ function parseGoogleResponse(
   if (!response.models || !Array.isArray(response.models)) return [];
 
   // Only include models that support content generation
-  let models = response.models.filter((m) =>
-    m.supportedGenerationMethods?.includes('generateContent')
+  const models = response.models.filter((m) =>
+    m.supportedGenerationMethods?.includes('generateContent'),
   );
 
   // Strip "models/" prefix from Google's model names
@@ -152,7 +152,7 @@ const PARSERS: Record<
  * - `modelFilter` optionally filters model IDs by regex
  */
 export async function fetchProviderModels(
-  options: FetchProviderModelsOptions
+  options: FetchProviderModelsOptions,
 ): Promise<FetchProviderModelsResult> {
   const { endpointConfig, apiKey, urlOverride } = options;
   const timeout = options.timeout ?? DEFAULT_TIMEOUT_MS;
@@ -165,11 +165,7 @@ export async function fetchProviderModels(
   try {
     const { url, headers } = buildRequest(endpointConfig, apiKey, urlOverride);
 
-    const response = await fetchWithTimeout(
-      url,
-      { method: 'GET', headers },
-      timeout
-    );
+    const response = await fetchWithTimeout(url, { method: 'GET', headers }, timeout);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

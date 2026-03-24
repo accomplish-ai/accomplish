@@ -35,13 +35,18 @@ interface ChatCompletionResponse {
  * @param options - Test configuration options
  * @returns The tool support status: 'supported', 'unsupported', or 'unknown'
  */
-export async function testModelToolSupport(options: ToolSupportTestOptions): Promise<ToolSupportStatus> {
+export async function testModelToolSupport(
+  options: ToolSupportTestOptions,
+): Promise<ToolSupportStatus> {
   const { baseUrl, modelId, providerName, timeoutMs = 10000 } = options;
 
   const testPayload = {
     model: modelId,
     messages: [
-      { role: 'user', content: 'What is the current time? You must use the get_current_time tool.' }
+      {
+        role: 'user',
+        content: 'What is the current time? You must use the get_current_time tool.',
+      },
     ],
     tools: [
       {
@@ -54,13 +59,13 @@ export async function testModelToolSupport(options: ToolSupportTestOptions): Pro
             properties: {
               timezone: {
                 type: 'string',
-                description: 'Timezone (e.g., UTC, America/New_York)'
-              }
+                description: 'Timezone (e.g., UTC, America/New_York)',
+              },
             },
-            required: []
-          }
-        }
-      }
+            required: [],
+          },
+        },
+      },
     ],
     tool_choice: 'required',
     max_tokens: 100,
@@ -81,7 +86,11 @@ export async function testModelToolSupport(options: ToolSupportTestOptions): Pro
 
     if (!response.ok) {
       const errorText = await response.text();
-      if (errorText.includes('tool') || errorText.includes('function') || errorText.includes('does not support')) {
+      if (
+        errorText.includes('tool') ||
+        errorText.includes('function') ||
+        errorText.includes('does not support')
+      ) {
         console.log(`[${providerName}] Model ${modelId} does not support tools (error response)`);
         return 'unsupported';
       }
@@ -89,7 +98,7 @@ export async function testModelToolSupport(options: ToolSupportTestOptions): Pro
       return 'unknown';
     }
 
-    const data = await response.json() as ChatCompletionResponse;
+    const data = (await response.json()) as ChatCompletionResponse;
 
     const choice = data.choices?.[0];
     if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
@@ -129,7 +138,7 @@ export async function testModelToolSupport(options: ToolSupportTestOptions): Pro
  */
 export async function testOllamaModelToolSupport(
   baseUrl: string,
-  modelId: string
+  modelId: string,
 ): Promise<ToolSupportStatus> {
   try {
     const response = await fetchWithTimeout(
@@ -139,7 +148,7 @@ export async function testOllamaModelToolSupport(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: modelId }),
       },
-      5000
+      5000,
     );
 
     if (!response.ok) {
@@ -147,7 +156,7 @@ export async function testOllamaModelToolSupport(
       return 'unknown';
     }
 
-    const data = await response.json() as { capabilities?: string[] };
+    const data = (await response.json()) as { capabilities?: string[] };
 
     if (data.capabilities?.includes('tools')) {
       console.log(`[Ollama] Model ${modelId} supports tools (capabilities)`);
@@ -155,7 +164,9 @@ export async function testOllamaModelToolSupport(
     }
 
     if (Array.isArray(data.capabilities)) {
-      console.log(`[Ollama] Model ${modelId} does not support tools (capabilities: ${data.capabilities.join(', ')})`);
+      console.log(
+        `[Ollama] Model ${modelId} does not support tools (capabilities: ${data.capabilities.join(', ')})`,
+      );
       return 'unsupported';
     }
 
@@ -176,7 +187,7 @@ export async function testOllamaModelToolSupport(
  */
 export async function testLMStudioModelToolSupport(
   baseUrl: string,
-  modelId: string
+  modelId: string,
 ): Promise<ToolSupportStatus> {
   return testModelToolSupport({
     baseUrl,

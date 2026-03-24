@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { OpenCodeLogWatcher, OpenCodeLogError, createLogWatcher } from '../../../src/opencode/log-watcher.js';
+import {
+  OpenCodeLogWatcher,
+  OpenCodeLogError,
+  createLogWatcher,
+} from '../../../src/internal/classes/OpenCodeLogWatcher.js';
 
 describe('OpenCodeLogWatcher', () => {
   let testDir: string;
@@ -10,7 +14,10 @@ describe('OpenCodeLogWatcher', () => {
   let watcher: OpenCodeLogWatcher;
 
   beforeEach(() => {
-    testDir = path.join(os.tmpdir(), `log-watcher-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = path.join(
+      os.tmpdir(),
+      `log-watcher-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     logDir = path.join(testDir, 'log');
     fs.mkdirSync(logDir, { recursive: true });
 

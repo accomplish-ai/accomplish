@@ -10,7 +10,10 @@ describe('SecureStorage', () => {
 
   beforeEach(() => {
     // Create a unique temporary directory for each test
-    testDir = path.join(os.tmpdir(), `secure-storage-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = path.join(
+      os.tmpdir(),
+      `secure-storage-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     fs.mkdirSync(testDir, { recursive: true });
 
     storage = createSecureStorage({
@@ -45,7 +48,8 @@ describe('SecureStorage', () => {
     });
 
     it('should handle unicode values', () => {
-      const unicodeValue = 'Test value with unicode: \u4e2d\u6587, \ud83c\udf89, \u00e9\u00e8\u00ea';
+      const unicodeValue =
+        'Test value with unicode: \u4e2d\u6587, \ud83c\udf89, \u00e9\u00e8\u00ea';
       storage.set('unicodeKey', unicodeValue);
       expect(storage.get('unicodeKey')).toBe(unicodeValue);
     });

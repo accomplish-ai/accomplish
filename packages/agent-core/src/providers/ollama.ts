@@ -56,7 +56,7 @@ export async function testOllamaConnection(url: string): Promise<OllamaConnectio
     const response = await fetchWithTimeout(
       `${sanitizedUrl}/api/tags`,
       { method: 'GET' },
-      OLLAMA_API_TIMEOUT_MS
+      OLLAMA_API_TIMEOUT_MS,
     );
 
     if (!response.ok) {
@@ -79,7 +79,7 @@ export async function testOllamaConnection(url: string): Promise<OllamaConnectio
         batch.map(async (m) => {
           const toolSupport = await testOllamaModelToolSupport(sanitizedUrl, m.name);
           return { id: m.name, displayName: m.name, size: m.size, toolSupport };
-        })
+        }),
       );
       models.push(...results);
     }

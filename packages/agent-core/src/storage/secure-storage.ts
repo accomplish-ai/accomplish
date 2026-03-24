@@ -32,10 +32,7 @@ export class SecureStorage {
   constructor(options: SecureStorageOptions) {
     this.storagePath = options.storagePath;
     this.appId = options.appId;
-    this.filePath = path.join(
-      this.storagePath,
-      options.fileName || 'secure-storage.json'
-    );
+    this.filePath = path.join(this.storagePath, options.fileName || 'secure-storage.json');
   }
 
   private loadData(): SecureStorageSchema {
@@ -101,22 +98,11 @@ export class SecureStorage {
       return this.derivedKey;
     }
 
-    const machineData = [
-      os.platform(),
-      os.homedir(),
-      os.userInfo().username,
-      this.appId,
-    ].join(':');
+    const machineData = [os.platform(), os.homedir(), os.userInfo().username, this.appId].join(':');
 
     const salt = this.getSalt();
 
-    this.derivedKey = crypto.pbkdf2Sync(
-      machineData,
-      salt,
-      100000,
-      32,
-      'sha256'
-    );
+    this.derivedKey = crypto.pbkdf2Sync(machineData, salt, 100000, 32, 'sha256');
 
     return this.derivedKey;
   }

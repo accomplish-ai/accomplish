@@ -26,7 +26,7 @@ describe('Azure Foundry Proxy', () => {
           model: 'gpt-4',
           messages: [{ role: 'user', content: 'Hello' }],
           reasoning_effort: 'high',
-        })
+        }),
       );
 
       const result = transformRequestBody(body);
@@ -43,7 +43,7 @@ describe('Azure Foundry Proxy', () => {
           model: 'gpt-4',
           messages: [{ role: 'user', content: 'Hello' }],
           max_tokens: 1000,
-        })
+        }),
       );
 
       const result = transformRequestBody(body);
@@ -60,7 +60,7 @@ describe('Azure Foundry Proxy', () => {
           messages: [{ role: 'user', content: 'Hello' }],
           max_tokens: 1000,
           max_completion_tokens: 500,
-        })
+        }),
       );
 
       const result = transformRequestBody(body);
@@ -98,7 +98,7 @@ describe('Azure Foundry Proxy', () => {
           messages: [{ role: 'user', content: 'Hello' }],
           max_tokens: 2000,
           reasoning_effort: 'medium',
-        })
+        }),
       );
 
       const result = transformRequestBody(body);
@@ -149,7 +149,7 @@ describe('Azure Foundry Proxy', () => {
 
     it('should throw for unsupported protocol', async () => {
       await expect(ensureAzureFoundryProxy('ftp://api.azure.com')).rejects.toThrow(
-        'Invalid protocol: ftp:'
+        'Invalid protocol: ftp:',
       );
     });
   });

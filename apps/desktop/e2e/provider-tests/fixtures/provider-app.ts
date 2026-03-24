@@ -8,7 +8,12 @@
  * - Have longer timeouts for real API calls
  */
 
-import { test as base, _electron as electron, type ElectronApplication, type Page } from '@playwright/test';
+import {
+  test as base,
+  _electron as electron,
+  type ElectronApplication,
+  type Page,
+} from '@playwright/test';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
@@ -29,6 +34,7 @@ const APP_RESTART_DELAY = 1500;
 const HOME_SCREEN_TIMEOUT = 30000;
 
 export const test = base.extend<ProviderTestFixtures>({
+  // eslint-disable-next-line no-empty-pattern
   electronApp: async ({}, use) => {
     // Pass the app directory (not the compiled entry file) so that
     // app.getAppPath() returns 'apps/desktop/' — needed for correct
@@ -63,7 +69,7 @@ export const test = base.extend<ProviderTestFixtures>({
     await use(app);
 
     await app.close();
-    await new Promise(resolve => setTimeout(resolve, APP_RESTART_DELAY));
+    await new Promise((resolve) => setTimeout(resolve, APP_RESTART_DELAY));
   },
 
   window: async ({ electronApp }, use) => {

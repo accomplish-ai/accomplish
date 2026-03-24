@@ -108,6 +108,7 @@ function findOpenCodeCli(): string {
       return globalPath;
     }
   } catch {
+    // ignore - fall through to other lookup methods
   }
 
   const homeDir = process.env.HOME || '';
@@ -127,7 +128,16 @@ function findOpenCodeCli(): string {
 }
 
 async function startDevBrowserServer(): Promise<ChildProcess> {
-  const devBrowserDir = path.resolve(__dirname, '..', '..', '..', 'packages', 'core', 'mcp-tools', 'dev-browser');
+  const devBrowserDir = path.resolve(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    'packages',
+    'core',
+    'mcp-tools',
+    'dev-browser',
+  );
   const serverScript = path.join(devBrowserDir, 'scripts', 'start-server.ts');
 
   log('test-local-agent', `Starting dev-browser server on port ${TEST_LOCAL_AGENT_HTTP_PORT}...`);
@@ -171,6 +181,7 @@ async function startDevBrowserServer(): Promise<ChildProcess> {
           return;
         }
       } catch {
+        // polling - ignore connection errors
       }
       setTimeout(poll, pollInterval);
     };
@@ -187,7 +198,7 @@ async function runOpenCode(
   configPath: string,
   prompt: string,
   model?: string,
-  cwd?: string
+  cwd?: string,
 ): Promise<void> {
   const args = ['run', prompt, '--format', 'json', '--agent', 'accomplish'];
 
@@ -229,10 +240,14 @@ async function runOpenCode(
   return new Promise((resolve, reject) => {
     cliProcess.on('exit', (code) => {
       if (code === 0) {
-        console.log(`\n${colors.green}[test-local-agent] Task completed successfully${colors.reset}`);
+        console.log(
+          `\n${colors.green}[test-local-agent] Task completed successfully${colors.reset}`,
+        );
         resolve();
       } else {
-        console.log(`\n${colors.red}[test-local-agent] Task failed with exit code ${code}${colors.reset}`);
+        console.log(
+          `\n${colors.red}[test-local-agent] Task failed with exit code ${code}${colors.reset}`,
+        );
         reject(new Error(`Exit code ${code}`));
       }
     });
@@ -241,7 +256,10 @@ async function runOpenCode(
   });
 }
 
-function formatOutput(message: { type: string; part?: { text?: string; tool?: string; input?: unknown; output?: string } }): void {
+function formatOutput(message: {
+  type: string;
+  part?: { text?: string; tool?: string; input?: unknown; output?: string };
+}): void {
   switch (message.type) {
     case 'text':
       if (message.part?.text) {
@@ -263,7 +281,9 @@ function formatOutput(message: { type: string; part?: { text?: string; tool?: st
     case 'tool_result':
       if (message.part?.output) {
         const output = message.part.output.substring(0, 500);
-        console.log(`${colors.green}[result]${colors.reset} ${output}${message.part.output.length > 500 ? '...' : ''}`);
+        console.log(
+          `${colors.green}[result]${colors.reset} ${output}${message.part.output.length > 500 ? '...' : ''}`,
+        );
       }
       break;
 

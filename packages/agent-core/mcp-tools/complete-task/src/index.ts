@@ -1,14 +1,11 @@
 #!/usr/bin/env node
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 const server = new Server(
   { name: 'complete-task', version: '1.0.0' },
-  { capabilities: { tools: {} } }
+  { capabilities: { tools: {} } },
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -51,13 +48,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     throw new Error(`Unknown tool: ${request.params.name}`);
   }
 
-  const { status, summary, original_request_summary, remaining_work } =
-    request.params.arguments as {
-      status: 'success' | 'blocked' | 'partial';
-      summary: string;
-      original_request_summary: string;
-      remaining_work?: string;
-    };
+  const { status, summary, original_request_summary, remaining_work } = request.params
+    .arguments as {
+    status: 'success' | 'blocked' | 'partial';
+    summary: string;
+    original_request_summary: string;
+    remaining_work?: string;
+  };
 
   console.error(`[complete-task] status=${status}`);
   console.error(`[complete-task] original_request=${original_request_summary}`);

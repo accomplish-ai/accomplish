@@ -1,0 +1,117 @@
+{
+  "api": {
+    "timeout": "Request timed out. Please check your internet connection.",
+    "timeoutRetry": "Request timed out. Please check your internet connection and try again.",
+    "invalidKey": "Invalid API key",
+    "noKey": "Please enter an API key.",
+    "validationFailed": "API key validation failed",
+    "networkError": "Network error. Please check your connection.",
+    "connectionFailed": "Failed to validate API key. Check your internet connection.",
+    "unsupportedProvider": "Unsupported provider"
+  },
+  "task": {
+    "notFound": "Task not found",
+    "startFailed": "Failed to start task",
+    "cancelFailed": "Failed to cancel task",
+    "taskFailed": "Task failed",
+    "noActiveTask": "No active task to continue",
+    "noSession": "No session to continue - please start a new task",
+    "sendMessageFailed": "Failed to send message"
+  },
+  "adapter": {
+    "cliNotFound": "OpenCode CLI is not available. The bundled CLI may be missing or corrupted. Please reinstall the application.",
+    "disposed": "Adapter has been disposed and cannot start new tasks",
+    "noActiveProcess": "No active process",
+    "exitWithCode": "OpenCode CLI exited with code {{code}}"
+  },
+  "validation": {
+    "mustBeString": "{{field}} must be a string",
+    "required": "{{field}} is required",
+    "exceedsLength": "{{field}} exceeds maximum length",
+    "unsupportedProvider": "Unsupported API key provider",
+    "untrustedWindow": "Untrusted window",
+    "focusedWindowRequired": "IPC request must originate from the focused window"
+  },
+  "provider": {
+    "notReady": "No provider is ready. Please connect a provider and select a model in Settings.",
+    "noModelsEndpoint": "No models endpoint configured for this provider",
+    "noApiKey": "No API key found for this provider"
+  },
+  "ollama": {
+    "connectionFailed": "Connection failed",
+    "noModels": "No models found",
+    "saveFailed": "Failed to save",
+    "invalidUrl": "Invalid URL format",
+    "protocolNotAllowed": "Only http and https URLs are allowed",
+    "invalidConfig": "Invalid Ollama configuration",
+    "modelsArray": "Invalid Ollama configuration: models must be an array",
+    "invalidModelFormat": "Invalid Ollama configuration: invalid model format",
+    "connectionTimeout": "Connection timed out. Make sure Ollama is running.",
+    "cannotConnect": "Cannot connect to Ollama: {{message}}"
+  },
+  "bedrock": {
+    "invalidCredentials": "Invalid credentials",
+    "saveFailed": "Failed to save credentials",
+    "invalidAuthType": "Invalid authentication type",
+    "invalidAwsCredentials": "Invalid AWS credentials. Please check your Access Key ID and Secret Access Key.",
+    "accessDenied": "Access denied. Ensure your AWS credentials have Bedrock permissions.",
+    "profileNotFound": "AWS profile not found. Check your ~/.aws/credentials file.",
+    "accessKeyRequired": "Access Key ID and Secret Access Key are required",
+    "profileNameRequired": "Profile name is required",
+    "apiKeyRequired": "API Key is required"
+  },
+  "model": {
+    "invalidConfig": "Invalid model configuration"
+  },
+  "litellm": {
+    "invalidConfig": "Invalid LiteLLM configuration",
+    "modelsArray": "Invalid LiteLLM configuration: models must be an array",
+    "invalidModelFormat": "Invalid LiteLLM configuration: invalid model format"
+  },
+  "lmstudio": {
+    "notConfigured": "No LM Studio configured"
+  },
+  "azureFoundry": {
+    "baseUrlRequired": "Invalid Azure Foundry configuration: baseUrl is required",
+    "deploymentRequired": "Invalid Azure Foundry configuration: deploymentName is required",
+    "invalidAuthType": "Invalid Azure Foundry configuration: authType must be api-key or entra-id",
+    "invalidEnabled": "Invalid Azure Foundry configuration: enabled must be a boolean",
+    "invalidBaseUrl": "Invalid Azure Foundry configuration: Invalid base URL format"
+  },
+  "connector": {
+    "protocolRequired": "Connector URL must use http:// or https://",
+    "invalidUrl": "Invalid connector URL: {{url}}"
+  },
+  "settings": {
+    "invalidDebugFlag": "Invalid debug mode flag",
+    "invalidTheme": "Invalid theme value",
+    "invalidBaseUrl": "Invalid base URL"
+  },
+  "i18n": {
+    "unsupportedLanguage": "Unsupported language"
+  },
+  "url": {
+    "protocolNotAllowed": "Only http and https URLs are allowed"
+  },
+  "permission": {
+    "denied": "Permission denied",
+    "required": "Permission required"
+  },
+  "generic": {
+    "unknown": "An unknown error occurred",
+    "tryAgain": "Please try again"
+  },
+  "app": {
+    "mustRunInDesktop": "This application must be run inside the Accomplish desktop app.",
+    "unableToStart": "Unable to Start",
+    "updateRequired": "Update Required",
+    "schemaNewerMessage": "This data was created by a newer version of Accomplish (schema v{{version}}).",
+    "schemaNewerDetail": "Your app supports up to schema v{{version}}. Please update Accomplish to continue."
+  },
+  "auth": {
+    "sessionExpired": "{{provider}} Session Expired",
+    "reLoginTo": "Re-login to {{provider}}",
+    "connectorAttention": "{{provider}} needs attention",
+    "openConnectorSettings": "Open Settings -> Connectors -> {{provider}}"
+  }
+}

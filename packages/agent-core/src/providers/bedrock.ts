@@ -15,7 +15,7 @@ import type { ValidationResult } from './validation.js';
  * @returns ValidationResult indicating if credentials are valid
  */
 export async function validateBedrockCredentials(
-  credentialsJson: string
+  credentialsJson: string,
 ): Promise<ValidationResult> {
   const parseResult = safeParseJson<BedrockCredentials>(credentialsJson);
   if (!parseResult.success) {
@@ -72,7 +72,10 @@ export async function validateBedrockCredentials(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Validation failed';
 
-    if (message.includes('UnrecognizedClientException') || message.includes('InvalidSignatureException')) {
+    if (
+      message.includes('UnrecognizedClientException') ||
+      message.includes('InvalidSignatureException')
+    ) {
       return {
         valid: false,
         error: 'Invalid AWS credentials. Please check your Access Key ID and Secret Access Key.',
@@ -122,7 +125,7 @@ export interface FetchBedrockModelsResult {
  * @returns Object with success status, models array, and optional error message
  */
 export async function fetchBedrockModels(
-  credentials: BedrockCredentials
+  credentials: BedrockCredentials,
 ): Promise<FetchBedrockModelsResult> {
   let bedrockClient: BedrockClient;
   let originalToken: string | undefined;

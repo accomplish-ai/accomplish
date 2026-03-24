@@ -18,10 +18,10 @@ const NODE_VERSION = '20.18.1';
  * @see https://github.com/electron-userland/electron-builder/blob/master/packages/builder-util/src/arch.ts
  */
 const ARCH_MAP = {
-  0: 'ia32',   // Arch.ia32
-  1: 'x64',    // Arch.x64
+  0: 'ia32', // Arch.ia32
+  1: 'x64', // Arch.x64
   2: 'armv7l', // Arch.armv7l
-  3: 'arm64',  // Arch.arm64
+  3: 'arm64', // Arch.arm64
   4: 'universal', // Arch.universal (macOS only)
 };
 
@@ -107,7 +107,13 @@ exports.default = async function afterPack(context) {
 async function copyNodePtyPrebuilds(context, arch) {
   const { appOutDir } = context;
 
-  const nodePtyBase = path.join(appOutDir, 'resources', 'app.asar.unpacked', 'node_modules', 'node-pty');
+  const nodePtyBase = path.join(
+    appOutDir,
+    'resources',
+    'app.asar.unpacked',
+    'node_modules',
+    'node-pty',
+  );
   const prebuildsDir = path.join(nodePtyBase, 'prebuilds', `win32-${arch}`);
   const buildReleaseDir = path.join(nodePtyBase, 'build', 'Release');
 
@@ -158,7 +164,13 @@ async function pruneNodePtyArm64(context, arch) {
   }
 
   const { appOutDir } = context;
-  const nodePtyBase = path.join(appOutDir, 'resources', 'app.asar.unpacked', 'node_modules', 'node-pty');
+  const nodePtyBase = path.join(
+    appOutDir,
+    'resources',
+    'app.asar.unpacked',
+    'node_modules',
+    'node-pty',
+  );
   const arm64Prebuilds = path.join(nodePtyBase, 'prebuilds', 'win32-arm64');
   const conptyRoot = path.join(nodePtyBase, 'third_party', 'conpty');
 
@@ -183,7 +195,6 @@ async function pruneNodePtyArm64(context, arch) {
   }
 }
 
-
 /**
  * Copy Node.js binary for a specific platform/arch combination
  */
@@ -200,12 +211,13 @@ async function copyNodeBinary(context, platform, arch) {
     'resources',
     'nodejs',
     `${platform}-${arch}`,
-    nodeDirName
+    nodeDirName,
   );
 
   // Check if source exists - fail the build if missing
   if (!fs.existsSync(sourceDir)) {
-    const errorMsg = `[after-pack] ERROR: Node.js binary not found at ${sourceDir}\n` +
+    const errorMsg =
+      `[after-pack] ERROR: Node.js binary not found at ${sourceDir}\n` +
       `Run "pnpm -F @accomplish/desktop download:nodejs" first to download the binaries.`;
     console.error(errorMsg);
     throw new Error(errorMsg);
@@ -301,7 +313,9 @@ function copyDirRecursive(src, dest, rootDest = dest, excludeDirs = []) {
       // e.g., bin/npm -> ../lib/node_modules/npm/bin/npm-cli.js is valid
       const resolvedPath = path.resolve(path.dirname(destPath), linkTarget);
       if (!resolvedPath.startsWith(rootDest)) {
-        console.warn(`[after-pack] Skipping symlink that escapes directory: ${srcPath} -> ${linkTarget}`);
+        console.warn(
+          `[after-pack] Skipping symlink that escapes directory: ${srcPath} -> ${linkTarget}`,
+        );
         continue;
       }
 
@@ -314,7 +328,6 @@ function copyDirRecursive(src, dest, rootDest = dest, excludeDirs = []) {
     }
   }
 }
-
 
 /**
  * Re-sign macOS app after modifying the bundle.

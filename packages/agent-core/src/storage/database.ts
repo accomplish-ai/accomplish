@@ -13,9 +13,7 @@ let _currentPath: string | null = null;
 
 export function getDatabase(): Database.Database {
   if (!_db) {
-    throw new Error(
-      'Database not initialized. Call initializeDatabase() first.'
-    );
+    throw new Error('Database not initialized. Call initializeDatabase() first.');
   }
   return _db;
 }

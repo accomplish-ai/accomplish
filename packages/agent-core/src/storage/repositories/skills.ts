@@ -53,7 +53,8 @@ export function getSkillById(id: string): Skill | null {
 
 export function upsertSkill(skill: Skill): void {
   const db = getDatabase();
-  db.prepare(`
+  db.prepare(
+    `
     INSERT INTO skills (id, name, command, description, source, is_enabled, is_verified, is_hidden, file_path, github_url, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
@@ -66,7 +67,8 @@ export function upsertSkill(skill: Skill): void {
       file_path = excluded.file_path,
       github_url = excluded.github_url,
       updated_at = excluded.updated_at
-  `).run(
+  `,
+  ).run(
     skill.id,
     skill.name,
     skill.command,
@@ -77,7 +79,7 @@ export function upsertSkill(skill: Skill): void {
     skill.isHidden ? 1 : 0,
     skill.filePath,
     skill.githubUrl || null,
-    skill.updatedAt
+    skill.updatedAt,
   );
 }
 

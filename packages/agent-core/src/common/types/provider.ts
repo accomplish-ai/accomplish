@@ -1,11 +1,34 @@
 import type { ZaiRegion } from './providerSettings.js';
 
+export const MINIMAX_DEFAULT_BASE_URL = 'https://api.minimax.io/v1';
+
 export const ZAI_ENDPOINTS: Record<ZaiRegion, string> = {
   china: 'https://open.bigmodel.cn/api/paas/v4',
   international: 'https://api.z.ai/api/coding/paas/v4',
 };
 
-export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'ollama' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'litellm' | 'minimax' | 'lmstudio' | 'vertex';
+export type ProviderType =
+  | 'anthropic'
+  | 'openai'
+  | 'openrouter'
+  | 'google'
+  | 'xai'
+  | 'ollama'
+  | 'deepseek'
+  | 'moonshot'
+  | 'zai'
+  | 'azure-foundry'
+  | 'custom'
+  | 'bedrock'
+  | 'litellm'
+  | 'minimax'
+  | 'lmstudio'
+  | 'vertex'
+  | 'nebius'
+  | 'together'
+  | 'fireworks'
+  | 'groq'
+  | 'venice';
 
 export type ApiKeyProvider =
   | 'anthropic'
@@ -23,7 +46,15 @@ export type ApiKeyProvider =
   | 'minimax'
   | 'lmstudio'
   | 'vertex'
-  | 'elevenlabs';
+  | 'nebius'
+  | 'together'
+  | 'fireworks'
+  | 'groq'
+  | 'venice'
+  | 'elevenlabs'
+  | 'aws-agentcore'
+  | 'browserbase'
+  | 'steel';
 
 /**
  * Providers that accept API key storage via the setApiKey IPC handler.
@@ -46,7 +77,15 @@ export const ALLOWED_API_KEY_PROVIDERS: ReadonlySet<string> = new Set<string>([
   'minimax',
   'lmstudio',
   'vertex',
+  'nebius',
+  'together',
+  'fireworks',
+  'groq',
+  'venice',
   'elevenlabs',
+  'aws-agentcore',
+  'browserbase',
+  'steel',
 ]);
 
 /**
@@ -64,6 +103,11 @@ export const STANDARD_VALIDATION_PROVIDERS: ReadonlySet<string> = new Set<string
   'moonshot',
   'zai',
   'minimax',
+  'nebius',
+  'together',
+  'fireworks',
+  'groq',
+  'venice',
 ]);
 
 export interface ModelsEndpointConfig {
@@ -92,6 +136,8 @@ export interface ProviderConfig {
   defaultModelId?: string;
   /** Config for dynamically fetching models from the provider API */
   modelsEndpoint?: ModelsEndpointConfig;
+  /** Whether the user can customize the base URL for this provider */
+  editableBaseUrl?: boolean;
 }
 
 export interface ModelConfig {
@@ -166,13 +212,14 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     name: 'Anthropic',
     requiresApiKey: true,
     apiKeyEnvVar: 'ANTHROPIC_API_KEY',
-    defaultModelId: 'anthropic/claude-opus-4-6',
+    defaultModelId: 'anthropic/claude-opus-4-5',
     modelsEndpoint: {
       url: 'https://api.anthropic.com/v1/models',
       authStyle: 'x-api-key',
       extraHeaders: { 'anthropic-version': '2023-06-01' },
       responseFormat: 'anthropic',
       modelIdPrefix: 'anthropic/',
+      modelFilter: /^claude-/,
     },
     models: [],
   },
@@ -263,7 +310,16 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
       responseFormat: 'openai',
       modelIdPrefix: 'zai/',
     },
-    models: [],
+    models: [
+      {
+        id: 'glm-5',
+        displayName: 'GLM-5',
+        provider: 'zai',
+        fullId: 'zai/glm-5',
+        contextWindow: 128000,
+        supportsVision: false,
+      },
+    ],
   },
   {
     id: 'bedrock',
@@ -282,12 +338,13 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     name: 'MiniMax',
     requiresApiKey: true,
     apiKeyEnvVar: 'MINIMAX_API_KEY',
-    baseUrl: 'https://api.minimax.io',
-    defaultModelId: 'minimax/MiniMax-M2',
+    baseUrl: MINIMAX_DEFAULT_BASE_URL,
+    editableBaseUrl: true,
+    defaultModelId: 'minimax/MiniMax-M2.5',
     models: [
       {
         id: 'MiniMax-M2',
-        displayName: 'MiniMax-M2',
+        displayName: 'MiniMax M2',
         provider: 'minimax',
         fullId: 'minimax/MiniMax-M2',
         contextWindow: 196608,
@@ -295,17 +352,116 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
       },
       {
         id: 'MiniMax-M2.1',
-        displayName: 'MiniMax-M2.1',
+        displayName: 'MiniMax M2.1',
         provider: 'minimax',
         fullId: 'minimax/MiniMax-M2.1',
         contextWindow: 204800,
         supportsVision: false,
       },
+      {
+        id: 'MiniMax-M2.1-highspeed',
+        displayName: 'MiniMax M2.1 Highspeed',
+        provider: 'minimax',
+        fullId: 'minimax/MiniMax-M2.1-highspeed',
+        contextWindow: 204800,
+        supportsVision: false,
+      },
+      {
+        id: 'MiniMax-M2.5',
+        displayName: 'MiniMax M2.5',
+        provider: 'minimax',
+        fullId: 'minimax/MiniMax-M2.5',
+        contextWindow: 204800,
+        supportsVision: false,
+      },
+      {
+        id: 'MiniMax-M2.5-highspeed',
+        displayName: 'MiniMax M2.5 Highspeed',
+        provider: 'minimax',
+        fullId: 'minimax/MiniMax-M2.5-highspeed',
+        contextWindow: 204800,
+        supportsVision: false,
+      },
     ],
+  },
+  {
+    id: 'nebius',
+    name: 'Nebius AI',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'NEBIUS_API_KEY',
+    baseUrl: 'https://api.studio.nebius.ai/v1',
+    modelsEndpoint: {
+      url: 'https://api.studio.nebius.ai/v1/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'nebius/',
+    },
+    models: [],
+    defaultModelId: 'nebius/meta-llama/Meta-Llama-3.1-70B-Instruct',
+  },
+  {
+    id: 'together',
+    name: 'Together AI',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'TOGETHER_API_KEY',
+    baseUrl: 'https://api.together.xyz/v1',
+    modelsEndpoint: {
+      url: 'https://api.together.xyz/v1/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'together/',
+    },
+    models: [],
+    defaultModelId: 'together/meta-llama/Llama-3-70b-chat-hf',
+  },
+  {
+    id: 'fireworks',
+    name: 'Fireworks AI',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'FIREWORKS_API_KEY',
+    baseUrl: 'https://api.fireworks.ai/inference/v1',
+    modelsEndpoint: {
+      url: 'https://api.fireworks.ai/inference/v1/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'fireworks/',
+    },
+    models: [],
+    defaultModelId: 'fireworks/accounts/fireworks/models/llama-v3-70b-instruct',
+  },
+  {
+    id: 'groq',
+    name: 'Groq',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'GROQ_API_KEY',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    modelsEndpoint: {
+      url: 'https://api.groq.com/openai/v1/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'groq/',
+    },
+    models: [],
+    defaultModelId: 'groq/llama3-70b-8192',
+  },
+  {
+    id: 'venice',
+    name: 'Venice AI',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'VENICE_API_KEY',
+    baseUrl: 'https://api.venice.ai/api/v1',
+    defaultModelId: 'venice/llama-3.3-70b',
+    modelsEndpoint: {
+      url: 'https://api.venice.ai/api/v1/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'venice/',
+    },
+    models: [],
   },
 ];
 
 export const DEFAULT_MODEL: SelectedModel = {
   provider: 'anthropic',
-  model: 'anthropic/claude-opus-4-6',
+  model: 'anthropic/claude-opus-4-5',
 };

@@ -11,8 +11,9 @@ function getNvmNodePaths(): string[] {
   }
 
   try {
-    const versions = fs.readdirSync(nvmVersionsDir)
-      .filter(name => name.startsWith('v'))
+    const versions = fs
+      .readdirSync(nvmVersionsDir)
+      .filter((name) => name.startsWith('v'))
       .sort((a, b) => {
         const parseVersion = (v: string) => {
           const parts = v.replace('v', '').split('.').map(Number);
@@ -21,7 +22,7 @@ function getNvmNodePaths(): string[] {
         return parseVersion(b) - parseVersion(a);
       });
 
-    return versions.map(v => path.join(nvmVersionsDir, v, 'bin'));
+    return versions.map((v) => path.join(nvmVersionsDir, v, 'bin'));
   } catch {
     return [];
   }
@@ -36,8 +37,9 @@ function getFnmNodePaths(): string[] {
   }
 
   try {
-    const versions = fs.readdirSync(fnmVersionsDir)
-      .filter(name => name.startsWith('v'))
+    const versions = fs
+      .readdirSync(fnmVersionsDir)
+      .filter((name) => name.startsWith('v'))
       .sort((a, b) => {
         const parseVersion = (v: string) => {
           const parts = v.replace('v', '').split('.').map(Number);
@@ -46,7 +48,7 @@ function getFnmNodePaths(): string[] {
         return parseVersion(b) - parseVersion(a);
       });
 
-    return versions.map(v => path.join(fnmVersionsDir, v, 'installation', 'bin'));
+    return versions.map((v) => path.join(fnmVersionsDir, v, 'installation', 'bin'));
   } catch {
     return [];
   }
@@ -70,7 +72,7 @@ function getCommonNodePaths(): string[] {
     '/usr/local/opt/node/bin',
     '/opt/local/bin',
     `${home}/.local/bin`,
-  ].filter(p => p && !p.includes('undefined'));
+  ].filter((p) => p && !p.includes('undefined'));
 }
 
 function getSystemPathFromPathHelper(): string | null {
@@ -145,6 +147,7 @@ export function findCommandInPath(command: string, searchPath: string): string |
               fs.accessSync(fullPath, fs.constants.X_OK);
               return fullPath;
             } catch {
+              // intentionally empty
             }
           } else {
             return fullPath;
@@ -152,6 +155,7 @@ export function findCommandInPath(command: string, searchPath: string): string |
         }
       }
     } catch {
+      // intentionally empty
     }
   }
 

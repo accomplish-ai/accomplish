@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { getElementPriority, ROLE_PRIORITIES, truncateElements, type TruncatableElement } from './priority';
+import {
+  getElementPriority,
+  ROLE_PRIORITIES,
+  truncateElements,
+  type TruncatableElement,
+} from './priority';
 
 describe('priority scoring', () => {
   describe('getElementPriority', () => {
@@ -34,8 +39,16 @@ describe('priority scoring', () => {
   describe('ROLE_PRIORITIES', () => {
     it('should define priorities for all interactive roles', () => {
       const interactiveRoles = [
-        'button', 'link', 'textbox', 'checkbox', 'radio',
-        'combobox', 'listbox', 'option', 'tab', 'menuitem',
+        'button',
+        'link',
+        'textbox',
+        'checkbox',
+        'radio',
+        'combobox',
+        'listbox',
+        'option',
+        'tab',
+        'menuitem',
       ];
       for (const role of interactiveRoles) {
         expect(ROLE_PRIORITIES[role]).toBeDefined();
@@ -46,7 +59,11 @@ describe('priority scoring', () => {
 });
 
 describe('truncateElements', () => {
-  const createElements = (count: number, role = 'button', inViewport = true): TruncatableElement[] => {
+  const createElements = (
+    count: number,
+    role = 'button',
+    inViewport = true,
+  ): TruncatableElement[] => {
     return Array.from({ length: count }, (_, i) => ({
       ref: `e${i + 1}`,
       role,
@@ -78,7 +95,7 @@ describe('truncateElements', () => {
     const result = truncateElements(mixed, { maxElements: 5 });
 
     // Should keep all viewport elements
-    expect(result.elements.every(e => e.inViewport)).toBe(true);
+    expect(result.elements.every((e) => e.inViewport)).toBe(true);
   });
 
   it('should prioritize by role', () => {
@@ -90,7 +107,7 @@ describe('truncateElements', () => {
     const result = truncateElements(mixed, { maxElements: 3 });
 
     // Should keep buttons (highest priority)
-    expect(result.elements.every(e => e.role === 'button')).toBe(true);
+    expect(result.elements.every((e) => e.role === 'button')).toBe(true);
   });
 
   it('should return metadata about truncation', () => {

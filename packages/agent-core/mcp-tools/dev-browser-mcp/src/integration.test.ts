@@ -52,21 +52,28 @@ async function launchChromiumWithCDP(): Promise<{ process: ChildProcess; wsEndpo
   const executablePath = chromium.executablePath();
   const port = 9333 + Math.floor(Math.random() * 1000);
 
-  const proc = spawn(executablePath, [
-    `--remote-debugging-port=${port}`,
-    '--headless=new',
-    '--no-sandbox',
-    '--disable-gpu',
-    '--no-first-run',
-    '--no-default-browser-check',
-    'about:blank',
-  ], {
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
+  const proc = spawn(
+    executablePath,
+    [
+      `--remote-debugging-port=${port}`,
+      '--headless=new',
+      '--no-sandbox',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-default-browser-check',
+      'about:blank',
+    ],
+    {
+      stdio: ['pipe', 'pipe', 'pipe'],
+    },
+  );
 
   // Wait for DevTools listening message on stderr
   const wsEndpoint = await new Promise<string>((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('Timed out waiting for CDP endpoint')), 10000);
+    const timeout = setTimeout(
+      () => reject(new Error('Timed out waiting for CDP endpoint')),
+      10000,
+    );
     let stderrData = '';
 
     proc.stderr?.on('data', (chunk: Buffer) => {
@@ -86,7 +93,9 @@ async function launchChromiumWithCDP(): Promise<{ process: ChildProcess; wsEndpo
 
     proc.on('exit', (code) => {
       clearTimeout(timeout);
-      reject(new Error(`Chromium exited with code ${code} before CDP was ready. stderr: ${stderrData}`));
+      reject(
+        new Error(`Chromium exited with code ${code} before CDP was ready. stderr: ${stderrData}`),
+      );
     });
   });
 
@@ -113,7 +122,6 @@ afterAll(async () => {
 });
 
 describe('Remote CDP Integration', () => {
-
   // --- Connection ---
 
   it('connects to headless browser via remote CDP', async () => {
@@ -319,10 +327,7 @@ describe('Remote CDP Integration', () => {
 
   it('browser_batch_actions: navigates multiple URLs and extracts data', async () => {
     const page = await getPage('batch-test');
-    const urls = [
-      'data:text/html,<h1>Page A</h1>',
-      'data:text/html,<h1>Page B</h1>',
-    ];
+    const urls = ['data:text/html,<h1>Page A</h1>', 'data:text/html,<h1>Page B</h1>'];
 
     const results = [];
     for (const url of urls) {

@@ -15,7 +15,7 @@ export const MODEL_DISPLAY_NAMES: Record<string, string> = {
   'gpt-4o': 'GPT-4o',
   'gpt-4o-mini': 'GPT-4o Mini',
   'gpt-4-turbo': 'GPT-4 Turbo',
-  'o1': 'o1',
+  o1: 'o1',
   'o1-mini': 'o1 Mini',
   'o1-preview': 'o1 Preview',
   'o3-mini': 'o3 Mini',
@@ -38,6 +38,7 @@ export const MODEL_DISPLAY_NAMES: Record<string, string> = {
   'kimi-k2-turbo-preview': 'Kimi K2 Turbo',
   'kimi-latest': 'Kimi Latest',
   // Z.AI
+  'glm-5': 'GLM-5',
   'glm-4.7-flashx': 'GLM-4.7 FlashX',
   'glm-4.7': 'GLM-4.7',
   'glm-4.7-flash': 'GLM-4.7 Flash',
@@ -46,6 +47,9 @@ export const MODEL_DISPLAY_NAMES: Record<string, string> = {
   // MiniMax
   'MiniMax-M2': 'MiniMax M2',
   'MiniMax-M2.1': 'MiniMax M2.1',
+  'MiniMax-M2.1-highspeed': 'MiniMax M2.1 Highspeed',
+  'MiniMax-M2.5': 'MiniMax M2.5',
+  'MiniMax-M2.5-highspeed': 'MiniMax M2.5 Highspeed',
 };
 
 export const PROVIDER_PREFIXES = [
@@ -65,6 +69,12 @@ export const PROVIDER_PREFIXES = [
   'lmstudio/',
   'azure-foundry/',
   'vertex/',
+  'nebius/',
+  'together/',
+  'fireworks/',
+  'groq/',
+  'venice/',
+  'custom/',
 ];
 
 /**
@@ -101,7 +111,7 @@ export function getModelDisplayName(modelId: string): string {
   return (
     cleanId
       .split('-')
-      .map(part => {
+      .map((part) => {
         // Keep version numbers as-is
         if (/^\d/.test(part)) return part;
         // Capitalize first letter

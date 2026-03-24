@@ -55,9 +55,7 @@ export interface LMStudioFetchModelsOptions {
  * @returns Human-readable display name
  */
 function formatModelDisplayName(modelId: string): string {
-  return modelId
-    .replace(/-/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return modelId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /**
@@ -70,7 +68,7 @@ function formatModelDisplayName(modelId: string): string {
  * @returns Connection result with models if successful
  */
 export async function testLMStudioConnection(
-  options: LMStudioConnectionOptions
+  options: LMStudioConnectionOptions,
 ): Promise<LMStudioConnectionResult> {
   const { url, timeoutMs = LMSTUDIO_REQUEST_TIMEOUT_MS } = options;
 
@@ -90,7 +88,7 @@ export async function testLMStudioConnection(
     const response = await fetchWithTimeout(
       `${sanitizedUrl}/v1/models`,
       { method: 'GET' },
-      timeoutMs
+      timeoutMs,
     );
 
     if (!response.ok) {
@@ -152,16 +150,12 @@ export async function testLMStudioConnection(
  * @returns Result with models if successful
  */
 export async function fetchLMStudioModels(
-  options: LMStudioFetchModelsOptions
+  options: LMStudioFetchModelsOptions,
 ): Promise<LMStudioConnectionResult> {
   const { baseUrl, timeoutMs = LMSTUDIO_REQUEST_TIMEOUT_MS } = options;
 
   try {
-    const response = await fetchWithTimeout(
-      `${baseUrl}/v1/models`,
-      { method: 'GET' },
-      timeoutMs
-    );
+    const response = await fetchWithTimeout(`${baseUrl}/v1/models`, { method: 'GET' }, timeoutMs);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

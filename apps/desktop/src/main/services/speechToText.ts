@@ -50,7 +50,7 @@ export function isElevenLabsConfigured(): boolean {
  * Validate ElevenLabs API key by making a test request
  */
 export async function validateElevenLabsApiKey(
-  apiKey?: string
+  apiKey?: string,
 ): Promise<{ valid: boolean; error?: string }> {
   return getSpeechService().validateElevenLabsApiKey(apiKey);
 }
@@ -64,10 +64,9 @@ export async function validateElevenLabsApiKey(
  */
 export async function transcribeAudio(
   audioData: Buffer,
-  mimeType: string = 'audio/webm'
+  mimeType: string = 'audio/webm',
 ): Promise<
-  | { success: true; result: TranscriptionResult }
-  | { success: false; error: TranscriptionError }
+  { success: true; result: TranscriptionResult } | { success: false; error: TranscriptionError }
 > {
   return getSpeechService().transcribeAudio(audioData, mimeType);
 }

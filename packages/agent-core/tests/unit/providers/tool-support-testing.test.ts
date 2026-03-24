@@ -102,7 +102,7 @@ describe('testOllamaModelToolSupport', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: modelId }),
         signal: expect.any(AbortSignal),
-      })
+      }),
     );
   });
 });

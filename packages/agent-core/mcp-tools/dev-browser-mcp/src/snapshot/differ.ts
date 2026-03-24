@@ -2,7 +2,7 @@ import type { ParsedSnapshot, SnapshotDiff, ElementChange, SnapshotElement } fro
 
 export function diffSnapshots(
   previous: ParsedSnapshot,
-  current: ParsedSnapshot
+  current: ParsedSnapshot,
 ): SnapshotDiff | null {
   const unchangedRefs: string[] = [];
   const changes: ElementChange[] = [];
@@ -73,11 +73,7 @@ function hasElementChanged(previous: SnapshotElement, current: SnapshotElement):
   );
 }
 
-export function formatDiff(
-  diff: SnapshotDiff,
-  url: string,
-  title: string
-): string {
+export function formatDiff(diff: SnapshotDiff, url: string, title: string): string {
   const lines: string[] = [];
 
   lines.push(`[Same page: ${title}]`);
@@ -144,9 +140,7 @@ function formatChange(change: ElementChange): string {
 export function compressRefList(refs: string[]): string {
   if (refs.length === 0) return '';
 
-  const numbers = refs
-    .map(ref => parseInt(ref.replace('e', ''), 10))
-    .sort((a, b) => a - b);
+  const numbers = refs.map((ref) => parseInt(ref.replace('e', ''), 10)).sort((a, b) => a - b);
 
   const ranges: string[] = [];
   let rangeStart = numbers[0];

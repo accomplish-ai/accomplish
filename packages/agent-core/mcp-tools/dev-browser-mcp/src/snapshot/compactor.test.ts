@@ -16,21 +16,15 @@ describe('compactor', () => {
     });
 
     it('should return empty string for no nav elements', () => {
-      const elements: SnapshotElement[] = [
-        { ref: 'e1', role: 'button', name: 'Click Me' },
-      ];
+      const elements: SnapshotElement[] = [{ ref: 'e1', role: 'button', name: 'Click Me' }];
 
       const hash = hashNavigationPattern(elements);
       expect(hash).toBe('');
     });
 
     it('should produce same hash for same nav pattern', () => {
-      const elements1: SnapshotElement[] = [
-        { ref: 'e1', role: 'navigation', name: 'Main Nav' },
-      ];
-      const elements2: SnapshotElement[] = [
-        { ref: 'e99', role: 'navigation', name: 'Main Nav' },
-      ];
+      const elements1: SnapshotElement[] = [{ ref: 'e1', role: 'navigation', name: 'Main Nav' }];
+      const elements2: SnapshotElement[] = [{ ref: 'e99', role: 'navigation', name: 'Main Nav' }];
 
       expect(hashNavigationPattern(elements1)).toBe(hashNavigationPattern(elements2));
     });
@@ -51,7 +45,12 @@ describe('compactor', () => {
     it('should format multiple pages with arrows', () => {
       const history: SessionHistoryEntry[] = [
         { url: 'https://example.com', title: 'Home', timestamp: Date.now(), actionsTaken: [] },
-        { url: 'https://example.com/about', title: 'About', timestamp: Date.now(), actionsTaken: [] },
+        {
+          url: 'https://example.com/about',
+          title: 'About',
+          timestamp: Date.now(),
+          actionsTaken: [],
+        },
       ];
       expect(summarizeSession(history)).toBe('Navigation: Home → About');
     });

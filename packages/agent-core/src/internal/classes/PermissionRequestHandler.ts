@@ -12,7 +12,11 @@ import {
   createFilePermissionRequestId,
   createQuestionRequestId,
 } from '../../common/index.js';
-import type { FileOperation, PermissionRequest, PermissionOption } from '../../common/types/permission.js';
+import type {
+  FileOperation,
+  PermissionRequest,
+  PermissionOption,
+} from '../../common/types/permission.js';
 
 /**
  * Generic pending request interface
@@ -100,7 +104,10 @@ export class PermissionRequestHandler {
    * @param timeoutMs - Optional timeout override
    * @returns Promise that resolves when user responds
    */
-  createQuestionRequest(timeoutMs?: number): { requestId: string; promise: Promise<QuestionResponseData> } {
+  createQuestionRequest(timeoutMs?: number): {
+    requestId: string;
+    promise: Promise<QuestionResponseData>;
+  } {
     const requestId = createQuestionRequestId();
     const timeout = timeoutMs ?? this.defaultTimeoutMs;
 
@@ -213,7 +220,7 @@ export class PermissionRequestHandler {
   buildFilePermissionRequest(
     requestId: string,
     taskId: string,
-    data: FilePermissionRequestData
+    data: FilePermissionRequestData,
   ): PermissionRequest {
     return {
       id: requestId,
@@ -238,7 +245,7 @@ export class PermissionRequestHandler {
   buildQuestionRequest(
     requestId: string,
     taskId: string,
-    data: QuestionRequestData
+    data: QuestionRequestData,
   ): PermissionRequest {
     return {
       id: requestId,
@@ -285,13 +292,13 @@ export class PermissionRequestHandler {
    * Rejects all pending promises with a cancellation error
    */
   clearAll(): void {
-    for (const [requestId, pending] of this.pendingPermissions) {
+    for (const [_requestId, pending] of this.pendingPermissions) {
       clearTimeout(pending.timeoutId);
       pending.reject(new Error('Request cancelled'));
     }
     this.pendingPermissions.clear();
 
-    for (const [requestId, pending] of this.pendingQuestions) {
+    for (const [_requestId, pending] of this.pendingQuestions) {
       clearTimeout(pending.timeoutId);
       pending.reject(new Error('Request cancelled'));
     }

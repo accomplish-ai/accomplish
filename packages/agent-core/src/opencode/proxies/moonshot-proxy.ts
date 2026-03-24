@@ -77,6 +77,7 @@ function extractAndCacheReasoningContent(responseText: string): void {
         }
       }
     } catch {
+      // intentionally empty
     }
   }
 
@@ -93,6 +94,7 @@ function extractAndCacheReasoningContent(responseText: string): void {
         }
       }
     } catch {
+      // intentionally empty
     }
   }
 
@@ -105,7 +107,9 @@ function extractAndCacheReasoningContent(responseText: string): void {
     reasoningContentCache.set(hash, fullReasoningContent);
 
     if (DEBUG) {
-      console.log(`[Moonshot Proxy] Cached reasoning_content (${fullReasoningContent.length} chars) for hash: ${hash.slice(0, 50)}...`);
+      console.log(
+        `[Moonshot Proxy] Cached reasoning_content (${fullReasoningContent.length} chars) for hash: ${hash.slice(0, 50)}...`,
+      );
     }
 
     if (reasoningContentCache.size > 100) {
@@ -156,7 +160,9 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
         console.log('[Moonshot Proxy] Message count:', parsed.messages.length);
         parsed.messages.forEach((msg, i) => {
           const m = msg as Record<string, unknown>;
-          console.log(`[Moonshot Proxy] Message ${i}: role=${m.role}, has_tool_calls=${Boolean(m.tool_calls)}, has_reasoning_content=${'reasoning_content' in m}`);
+          console.log(
+            `[Moonshot Proxy] Message ${i}: role=${m.role}, has_tool_calls=${Boolean(m.tool_calls)}, has_reasoning_content=${'reasoning_content' in m}`,
+          );
         });
       }
     }
@@ -184,16 +190,24 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
         if (!message || typeof message !== 'object') continue;
         const msg = message as Record<string, unknown>;
         const role = msg.role;
-        const hasToolCalls = Boolean(msg.tool_calls);
-        const hasToolCallContent = Array.isArray(msg.content)
-          && msg.content.some(item => item && typeof item === 'object' && (item as Record<string, unknown>).type === 'tool_call');
+        const _hasToolCalls = Boolean(msg.tool_calls);
+        const _hasToolCallContent =
+          Array.isArray(msg.content) &&
+          msg.content.some(
+            (item) =>
+              item &&
+              typeof item === 'object' &&
+              (item as Record<string, unknown>).type === 'tool_call',
+          );
         if (typeof role === 'string' && role === 'assistant' && !('reasoning_content' in msg)) {
           const hash = hashMessageContent(msg);
           const cachedReasoning = reasoningContentCache.get(hash);
           if (cachedReasoning) {
             msg.reasoning_content = cachedReasoning;
             if (DEBUG) {
-              console.log(`[Moonshot Proxy] Restored reasoning_content from cache (${cachedReasoning.length} chars)`);
+              console.log(
+                `[Moonshot Proxy] Restored reasoning_content from cache (${cachedReasoning.length} chars)`,
+              );
             }
           } else {
             msg.reasoning_content = 'Thinking...';
@@ -228,7 +242,9 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
       if (Array.isArray(parsed.messages)) {
         parsed.messages.forEach((msg, i) => {
           const m = msg as Record<string, unknown>;
-          console.log(`[Moonshot Proxy] After transform msg ${i}: role=${m.role}, has_reasoning_content=${'reasoning_content' in m}, has_tool_calls=${Boolean(m.tool_calls)}`);
+          console.log(
+            `[Moonshot Proxy] After transform msg ${i}: role=${m.role}, has_reasoning_content=${'reasoning_content' in m}, has_tool_calls=${Boolean(m.tool_calls)}`,
+          );
         });
       }
     }
@@ -262,10 +278,12 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
 
   if (!targetBaseUrl) {
     res.writeHead(503, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      error: 'Moonshot proxy target not configured',
-      hint: 'Configure Moonshot AI in Settings > Providers'
-    }));
+    res.end(
+      JSON.stringify({
+        error: 'Moonshot proxy target not configured',
+        hint: 'Configure Moonshot AI in Settings > Providers',
+      }),
+    );
     return;
   }
 
@@ -273,7 +291,11 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
   if (!isValidRequestPath(url.pathname)) {
     console.warn(`[Moonshot Proxy] Rejected invalid path: ${url.pathname}`);
     res.writeHead(403, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Invalid request path. Only OpenAI-compatible API paths are allowed.' }));
+    res.end(
+      JSON.stringify({
+        error: 'Invalid request path. Only OpenAI-compatible API paths are allowed.',
+      }),
+    );
     return;
   }
 
@@ -307,7 +329,9 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
 
     if (DEBUG) {
       console.log(`[Moonshot Proxy] Request: ${req.method} ${req.url}`);
-      console.log(`[Moonshot Proxy] Content-Type: ${contentType}, Content-Encoding: ${contentEncoding}, Body size: ${rawBody.length}`);
+      console.log(
+        `[Moonshot Proxy] Content-Type: ${contentType}, Content-Encoding: ${contentEncoding}, Body size: ${rawBody.length}`,
+      );
     }
 
     const body =
@@ -365,11 +389,13 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
       if (!res.headersSent) {
         res.writeHead(502, { 'Content-Type': 'application/json' });
       }
-      res.end(JSON.stringify({
-        error: 'Moonshot proxy request failed',
-        details: error.message,
-        hint: 'Check your Moonshot API key and network connectivity'
-      }));
+      res.end(
+        JSON.stringify({
+          error: 'Moonshot proxy request failed',
+          details: error.message,
+          hint: 'Check your Moonshot API key and network connectivity',
+        }),
+      );
     });
 
     if (body.length > 0) {
@@ -402,10 +428,12 @@ export async function ensureMoonshotProxy(baseURL: string): Promise<MoonshotProx
         clearTimeout(timeout);
         server = null;
         if (error.code === 'EADDRINUSE') {
-          reject(new Error(
-            `Port ${MOONSHOT_PROXY_PORT} is already in use. ` +
-            'Please close other applications using this port or restart the app.'
-          ));
+          reject(
+            new Error(
+              `Port ${MOONSHOT_PROXY_PORT} is already in use. ` +
+                'Please close other applications using this port or restart the app.',
+            ),
+          );
         } else {
           reject(error);
         }

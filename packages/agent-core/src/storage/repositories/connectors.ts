@@ -46,7 +46,9 @@ function rowToConnector(row: ConnectorRow): McpConnector {
 
 export function getAllConnectors(): McpConnector[] {
   const db = getDatabase();
-  const rows = db.prepare('SELECT * FROM connectors ORDER BY created_at DESC').all() as ConnectorRow[];
+  const rows = db
+    .prepare('SELECT * FROM connectors ORDER BY created_at DESC')
+    .all() as ConnectorRow[];
   return rows.map(rowToConnector);
 }
 
@@ -60,13 +62,16 @@ export function getEnabledConnectors(): McpConnector[] {
 
 export function getConnectorById(id: string): McpConnector | null {
   const db = getDatabase();
-  const row = db.prepare('SELECT * FROM connectors WHERE id = ?').get(id) as ConnectorRow | undefined;
+  const row = db.prepare('SELECT * FROM connectors WHERE id = ?').get(id) as
+    | ConnectorRow
+    | undefined;
   return row ? rowToConnector(row) : null;
 }
 
 export function upsertConnector(connector: McpConnector): void {
   const db = getDatabase();
-  db.prepare(`
+  db.prepare(
+    `
     INSERT INTO connectors (id, name, url, status, is_enabled, oauth_metadata_json, client_registration_json, last_connected_at, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
@@ -78,7 +83,8 @@ export function upsertConnector(connector: McpConnector): void {
       client_registration_json = excluded.client_registration_json,
       last_connected_at = excluded.last_connected_at,
       updated_at = excluded.updated_at
-  `).run(
+  `,
+  ).run(
     connector.id,
     connector.name,
     connector.url,
@@ -94,14 +100,20 @@ export function upsertConnector(connector: McpConnector): void {
 
 export function setConnectorEnabled(id: string, enabled: boolean): void {
   const db = getDatabase();
-  db.prepare('UPDATE connectors SET is_enabled = ?, updated_at = ? WHERE id = ?')
-    .run(enabled ? 1 : 0, new Date().toISOString(), id);
+  db.prepare('UPDATE connectors SET is_enabled = ?, updated_at = ? WHERE id = ?').run(
+    enabled ? 1 : 0,
+    new Date().toISOString(),
+    id,
+  );
 }
 
 export function setConnectorStatus(id: string, status: ConnectorStatus): void {
   const db = getDatabase();
-  db.prepare('UPDATE connectors SET status = ?, updated_at = ? WHERE id = ?')
-    .run(status, new Date().toISOString(), id);
+  db.prepare('UPDATE connectors SET status = ?, updated_at = ? WHERE id = ?').run(
+    status,
+    new Date().toISOString(),
+    id,
+  );
 }
 
 export function deleteConnector(id: string): void {

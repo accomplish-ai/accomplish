@@ -41,3 +41,5 @@ export { redact } from './redact.js';
 export { mapResultToStatus } from './task-status.js';
 
 export { validateTaskConfig } from './task-validation.js';
+
+export { serializeError } from './error.js';

@@ -76,7 +76,7 @@ async function getAdcAccessToken(): Promise<string> {
           } else {
             resolve((stdout as string).trim());
           }
-        }
+        },
       );
     });
     if (!token) {
@@ -85,8 +85,14 @@ async function getAdcAccessToken(): Promise<string> {
     return token;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    if (message.includes('ENOENT') || message.includes('not found') || message.includes('not recognized')) {
-      throw new Error('gcloud CLI not found. Install the Google Cloud SDK and run "gcloud auth application-default login".');
+    if (
+      message.includes('ENOENT') ||
+      message.includes('not found') ||
+      message.includes('not recognized')
+    ) {
+      throw new Error(
+        'gcloud CLI not found. Install the Google Cloud SDK and run "gcloud auth application-default login".',
+      );
     }
     throw new Error(`Failed to get ADC token: ${message}`);
   }
@@ -131,7 +137,11 @@ export interface FetchVertexModelsResult {
 const VERTEX_CURATED_MODELS: Array<{ publisher: string; modelId: string; displayName: string }> = [
   // Google — Gemini 3 (preview)
   { publisher: 'google', modelId: 'gemini-3-pro-preview', displayName: 'Gemini 3 Pro (Preview)' },
-  { publisher: 'google', modelId: 'gemini-3-flash-preview', displayName: 'Gemini 3 Flash (Preview)' },
+  {
+    publisher: 'google',
+    modelId: 'gemini-3-flash-preview',
+    displayName: 'Gemini 3 Flash (Preview)',
+  },
   // Google — Gemini 2.5 (GA)
   { publisher: 'google', modelId: 'gemini-2.5-pro', displayName: 'Gemini 2.5 Pro' },
   { publisher: 'google', modelId: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash' },
@@ -151,9 +161,10 @@ export class VertexClient {
     readonly location: string,
     private readonly accessToken: string,
   ) {
-    this.baseUrl = location === 'global'
-      ? 'https://aiplatform.googleapis.com'
-      : `https://${location}-aiplatform.googleapis.com`;
+    this.baseUrl =
+      location === 'global'
+        ? 'https://aiplatform.googleapis.com'
+        : `https://${location}-aiplatform.googleapis.com`;
     this.headers = {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
@@ -186,10 +197,14 @@ export class VertexClient {
       }
       const errorText = await response.text().catch(() => '');
       if (response.status === 401 || response.status === 403) {
-        throw new Error('Authentication failed. Check your credentials and ensure the Vertex AI API is enabled.');
+        throw new Error(
+          'Authentication failed. Check your credentials and ensure the Vertex AI API is enabled.',
+        );
       }
       if (response.status === 404) {
-        throw new Error(`Project "${this.projectId}" or location "${this.location}" not found. Verify your project ID and location.`);
+        throw new Error(
+          `Project "${this.projectId}" or location "${this.location}" not found. Verify your project ID and location.`,
+        );
       }
       throw new Error(`Vertex AI API error (${response.status}): ${errorText}`);
     }
@@ -200,7 +215,7 @@ export class VertexClient {
  * Validates Vertex AI credentials by obtaining an access token and making a test API call.
  */
 export async function validateVertexCredentials(
-  credentialsJson: string
+  credentialsJson: string,
 ): Promise<ValidationResult> {
   const parseResult = safeParseJson<VertexCredentials>(credentialsJson);
   if (!parseResult.success) {
@@ -226,7 +241,11 @@ export async function validateVertexCredentials(
     }
     const key = keyResult.data;
     if (!key.type || !key.project_id || !key.private_key || !key.client_email) {
-      return { valid: false, error: 'Service account key missing required fields (type, project_id, private_key, client_email)' };
+      return {
+        valid: false,
+        error:
+          'Service account key missing required fields (type, project_id, private_key, client_email)',
+      };
     }
   }
 
@@ -244,9 +263,7 @@ export async function validateVertexCredentials(
  * Returns the curated list of models available on Vertex AI.
  * No API call needed — the list is hardcoded from Google's documentation.
  */
-export function fetchVertexModels(
-  _credentials: VertexCredentials
-): FetchVertexModelsResult {
+export function fetchVertexModels(_credentials: VertexCredentials): FetchVertexModelsResult {
   const models: VertexModel[] = VERTEX_CURATED_MODELS.map((m) => ({
     id: `vertex/${m.publisher}/${m.modelId}`,
     name: m.displayName,

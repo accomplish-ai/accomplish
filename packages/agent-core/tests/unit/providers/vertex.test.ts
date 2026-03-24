@@ -9,7 +9,11 @@ vi.mock('child_process', () => ({
   execFile: mockExecFile,
 }));
 
-import { validateVertexCredentials, fetchVertexModels, VertexClient } from '../../../src/providers/vertex.js';
+import {
+  validateVertexCredentials,
+  fetchVertexModels,
+  VertexClient,
+} from '../../../src/providers/vertex.js';
 
 /**
  * Helper: make mockExecFile resolve with a given stdout value.
@@ -17,9 +21,14 @@ import { validateVertexCredentials, fetchVertexModels, VertexClient } from '../.
  */
 function mockExecFileSuccess(stdout: string) {
   mockExecFile.mockImplementation(
-    (_cmd: string, _args: string[], _opts: unknown, cb: (err: Error | null, stdout: string, stderr: string) => void) => {
+    (
+      _cmd: string,
+      _args: string[],
+      _opts: unknown,
+      cb: (err: Error | null, stdout: string, stderr: string) => void,
+    ) => {
       cb(null, stdout, '');
-    }
+    },
   );
 }
 
@@ -28,9 +37,14 @@ function mockExecFileSuccess(stdout: string) {
  */
 function mockExecFileError(error: Error) {
   mockExecFile.mockImplementation(
-    (_cmd: string, _args: string[], _opts: unknown, cb: (err: Error | null, stdout: string, stderr: string) => void) => {
+    (
+      _cmd: string,
+      _args: string[],
+      _opts: unknown,
+      cb: (err: Error | null, stdout: string, stderr: string) => void,
+    ) => {
       cb(error, '', '');
-    }
+    },
   );
 }
 
@@ -62,7 +76,9 @@ function makeServiceAccountCredentialsJson(overrides: Record<string, unknown> = 
   });
 }
 
-function mockFetchResponses(...responses: Array<{ ok: boolean; status?: number; json?: unknown; text?: string }>) {
+function mockFetchResponses(
+  ...responses: Array<{ ok: boolean; status?: number; json?: unknown; text?: string }>
+) {
   for (const resp of responses) {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: resp.ok,
@@ -104,34 +120,40 @@ describe('Vertex AI Provider', () => {
     });
 
     it('should return error for service account with missing JSON key', async () => {
-      const result = await validateVertexCredentials(JSON.stringify({
-        authType: 'serviceAccount',
-        projectId: 'my-project',
-        location: 'us-central1',
-        serviceAccountJson: '',
-      }));
+      const result = await validateVertexCredentials(
+        JSON.stringify({
+          authType: 'serviceAccount',
+          projectId: 'my-project',
+          location: 'us-central1',
+          serviceAccountJson: '',
+        }),
+      );
       expect(result.valid).toBe(false);
       expect(result.error).toBe('Service account JSON key is required');
     });
 
     it('should return error for service account with invalid JSON key', async () => {
-      const result = await validateVertexCredentials(JSON.stringify({
-        authType: 'serviceAccount',
-        projectId: 'my-project',
-        location: 'us-central1',
-        serviceAccountJson: 'not-json',
-      }));
+      const result = await validateVertexCredentials(
+        JSON.stringify({
+          authType: 'serviceAccount',
+          projectId: 'my-project',
+          location: 'us-central1',
+          serviceAccountJson: 'not-json',
+        }),
+      );
       expect(result.valid).toBe(false);
       expect(result.error).toBe('Invalid service account JSON format');
     });
 
     it('should return error for service account key missing required fields', async () => {
-      const result = await validateVertexCredentials(JSON.stringify({
-        authType: 'serviceAccount',
-        projectId: 'my-project',
-        location: 'us-central1',
-        serviceAccountJson: JSON.stringify({ type: 'service_account' }),
-      }));
+      const result = await validateVertexCredentials(
+        JSON.stringify({
+          authType: 'serviceAccount',
+          projectId: 'my-project',
+          location: 'us-central1',
+          serviceAccountJson: JSON.stringify({ type: 'service_account' }),
+        }),
+      );
       expect(result.valid).toBe(false);
       expect(result.error).toContain('missing required fields');
     });
@@ -149,7 +171,7 @@ describe('Vertex AI Provider', () => {
           'gcloud',
           ['auth', 'application-default', 'print-access-token'],
           expect.objectContaining({ timeout: 15000 }),
-          expect.any(Function)
+          expect.any(Function),
         );
       });
 
@@ -217,7 +239,11 @@ describe('Vertex AI Provider', () => {
       });
 
       it('should treat 429 as valid (credentials work, just rate-limited)', async () => {
-        mockFetchResponses({ ok: false, status: 429, text: '{"error":{"code":429,"message":"Resource exhausted"}}' });
+        mockFetchResponses({
+          ok: false,
+          status: 429,
+          text: '{"error":{"code":429,"message":"Resource exhausted"}}',
+        });
 
         const result = await validateVertexCredentials(makeAdcCredentialsJson());
 
@@ -240,7 +266,7 @@ describe('Vertex AI Provider', () => {
 
         expect(fetch).toHaveBeenCalledWith(
           expect.stringContaining('https://europe-west1-aiplatform.googleapis.com'),
-          expect.any(Object)
+          expect.any(Object),
         );
       });
 
@@ -251,7 +277,7 @@ describe('Vertex AI Provider', () => {
 
         expect(fetch).toHaveBeenCalledWith(
           expect.stringContaining('https://aiplatform.googleapis.com'),
-          expect.any(Object)
+          expect.any(Object),
         );
       });
     });
@@ -308,11 +334,13 @@ describe('Vertex AI Provider', () => {
       it('should throw when token retrieval fails', async () => {
         mockExecFileError(new Error('gcloud failed'));
 
-        await expect(VertexClient.create({
-          authType: 'adc',
-          projectId: 'my-project',
-          location: 'us-central1',
-        })).rejects.toThrow('Failed to get ADC token');
+        await expect(
+          VertexClient.create({
+            authType: 'adc',
+            projectId: 'my-project',
+            location: 'us-central1',
+          }),
+        ).rejects.toThrow('Failed to get ADC token');
       });
     });
   });

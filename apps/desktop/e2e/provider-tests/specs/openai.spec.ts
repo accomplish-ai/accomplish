@@ -1,9 +1,6 @@
 import { test, expect } from '../fixtures';
 import { SettingsPage, HomePage, ExecutionPage } from '../../pages';
-import {
-  getProviderTestConfig,
-  DEFAULT_TEST_MODELS,
-} from '../provider-test-configs';
+import { getProviderTestConfig, DEFAULT_TEST_MODELS } from '../provider-test-configs';
 import { ApiKeySecrets } from '../types';
 
 const config = getProviderTestConfig('openai');
@@ -35,7 +32,7 @@ test.describe('OpenAI Provider', () => {
 
     // Step 6: Select a model
     const modelId = config.modelId || DEFAULT_TEST_MODELS['openai'];
-    
+
     if (modelId) {
       await settingsPage.selectModel(modelId);
     }

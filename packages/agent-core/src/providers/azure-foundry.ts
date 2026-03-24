@@ -29,7 +29,7 @@ export interface AzureFoundryConnectionResult {
  * @returns Connection result indicating success or failure with error message
  */
 export async function testAzureFoundryConnection(
-  options: AzureFoundryConnectionOptions
+  options: AzureFoundryConnectionOptions,
 ): Promise<AzureFoundryConnectionResult> {
   const { endpoint, deploymentName, authType, apiKey, timeout = DEFAULT_TIMEOUT_MS } = options;
 
@@ -38,7 +38,10 @@ export async function testAzureFoundryConnection(
     validateHttpUrl(endpoint, 'Azure Foundry endpoint');
     baseUrl = endpoint.replace(/\/$/, '');
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Invalid endpoint URL format' };
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : 'Invalid endpoint URL format',
+    };
   }
 
   try {
@@ -78,7 +81,7 @@ export async function testAzureFoundryConnection(
           max_completion_tokens: 5,
         }),
       },
-      timeout
+      timeout,
     );
 
     if (!response.ok) {
@@ -93,12 +96,14 @@ export async function testAzureFoundryConnection(
             max_tokens: 5,
           }),
         },
-        timeout
+        timeout,
       );
 
       if (!retryResponse.ok) {
         const errorData = await retryResponse.json().catch(() => ({}));
-        const errorMessage = (errorData as { error?: { message?: string } })?.error?.message || `API returned status ${retryResponse.status}`;
+        const errorMessage =
+          (errorData as { error?: { message?: string } })?.error?.message ||
+          `API returned status ${retryResponse.status}`;
         return { success: false, error: errorMessage };
       }
     }
@@ -110,7 +115,10 @@ export async function testAzureFoundryConnection(
     console.warn('[Azure Foundry] Connection test failed:', message);
 
     if (error instanceof Error && error.name === 'AbortError') {
-      return { success: false, error: 'Request timed out. Check your endpoint URL and network connection.' };
+      return {
+        success: false,
+        error: 'Request timed out. Check your endpoint URL and network connection.',
+      };
     }
     return { success: false, error: message };
   }
@@ -144,7 +152,7 @@ const DEFAULT_TIMEOUT_MS = 15000;
  */
 export async function validateAzureFoundry(
   config: AzureFoundryConfig | null,
-  options: AzureFoundryValidationOptions
+  options: AzureFoundryValidationOptions,
 ): Promise<ValidationResult> {
   const baseUrl = options.baseUrl || config?.baseUrl;
   const deploymentName = options.deploymentName || config?.deploymentName;
@@ -193,7 +201,10 @@ export async function validateAzureFoundry(
 
   if (authType === 'entra-id') {
     if (!entraToken) {
-      return { valid: false, error: 'Missing Entra ID access token for Azure Foundry validation request' };
+      return {
+        valid: false,
+        error: 'Missing Entra ID access token for Azure Foundry validation request',
+      };
     }
     headers['Authorization'] = `Bearer ${entraToken}`;
   } else {
@@ -208,15 +219,16 @@ export async function validateAzureFoundry(
         headers,
         body: JSON.stringify({
           messages: [{ role: 'user', content: 'test' }],
-          max_completion_tokens: 5
+          max_completion_tokens: 5,
         }),
       },
-      timeout
+      timeout,
     );
 
     if (!response.ok) {
       const firstErrorData = await response.json().catch(() => ({}));
-      const firstErrorMessage = (firstErrorData as { error?: { message?: string } })?.error?.message || '';
+      const firstErrorMessage =
+        (firstErrorData as { error?: { message?: string } })?.error?.message || '';
 
       // Some Azure OpenAI deployments don't support max_completion_tokens, retry with max_tokens
       if (firstErrorMessage.includes('max_completion_tokens')) {
@@ -227,13 +239,16 @@ export async function validateAzureFoundry(
             headers,
             body: JSON.stringify({
               messages: [{ role: 'user', content: 'test' }],
-              max_tokens: 5
+              max_tokens: 5,
             }),
           },
-          timeout
+          timeout,
         );
       } else {
-        return { valid: false, error: firstErrorMessage || `API returned status ${response.status}` };
+        return {
+          valid: false,
+          error: firstErrorMessage || `API returned status ${response.status}`,
+        };
       }
     }
 
@@ -243,13 +258,20 @@ export async function validateAzureFoundry(
     }
 
     const errorData = await response.json().catch(() => ({}));
-    const errorMessage = (errorData as { error?: { message?: string } })?.error?.message || `API returned status ${response.status}`;
+    const errorMessage =
+      (errorData as { error?: { message?: string } })?.error?.message ||
+      `API returned status ${response.status}`;
     console.warn('[Azure Foundry] Validation failed', { error: errorMessage });
     return { valid: false, error: errorMessage };
   } catch (error) {
-    console.error('[Azure Foundry] Validation error', { error: error instanceof Error ? error.message : String(error) });
+    console.error('[Azure Foundry] Validation error', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     if (error instanceof Error && error.name === 'AbortError') {
-      return { valid: false, error: 'Request timed out. Please check your internet connection and try again.' };
+      return {
+        valid: false,
+        error: 'Request timed out. Please check your internet connection and try again.',
+      };
     }
     return { valid: false, error: 'Failed to validate API key. Check your internet connection.' };
   }

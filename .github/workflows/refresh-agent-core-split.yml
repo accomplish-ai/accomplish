@@ -1,0 +1,98 @@
+name: refresh-agent-core-split
+
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: refresh-agent-core-split
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  reject-non-main-dispatch:
+    if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject manual dispatch outside main
+        run: |
+          echo "ERROR: workflow_dispatch is allowed only on refs/heads/main"
+          exit 1
+
+  refresh-and-notify:
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tested main commit (workflow_run)
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Checkout main (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Refresh agent-core-split
+        id: refresh
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin agent-core-split || true
+
+          if git rev-parse --verify agent-core-split >/dev/null 2>&1; then
+            git branch -D agent-core-split
+          fi
+
+          MAIN_TREE="$(git rev-parse HEAD:packages/agent-core)"
+          SPLIT_TREE="$(git rev-parse origin/agent-core-split^{tree} 2>/dev/null || echo none)"
+          if [ "${MAIN_TREE}" = "${SPLIT_TREE}" ]; then
+            echo "agent-core-split already matches main subtree. Nothing to refresh."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "split_sha=" >> "$GITHUB_OUTPUT"
+            echo "main_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git subtree split --prefix=packages/agent-core -b agent-core-split
+
+          for attempt in 1 2 3; do
+            if git push origin agent-core-split --force-with-lease; then
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+              echo "split_sha=$(git rev-parse agent-core-split)" >> "$GITHUB_OUTPUT"
+              echo "main_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            if [ "${attempt}" -eq 3 ]; then
+              echo "ERROR: failed to push agent-core-split after 3 attempts."
+              exit 1
+            fi
+
+            echo "Lease mismatch on push (attempt ${attempt}). Refetching and retrying..."
+            git fetch origin agent-core-split
+          done
+
+      - name: Notify downstream
+        if: steps.refresh.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.DISPATCH_TOKEN }}
+        run: |
+          gh api "repos/${{ secrets.DISPATCH_TARGET }}/dispatches" \
+            -f event_type=upstream-agent-core-changed \
+            -f client_payload[split_sha]="${{ steps.refresh.outputs.split_sha }}" \
+            -f client_payload[main_sha]="${{ steps.refresh.outputs.main_sha }}"

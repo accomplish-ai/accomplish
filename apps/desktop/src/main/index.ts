@@ -1,5 +1,14 @@
 import { config } from 'dotenv';
-import { app, BrowserWindow, shell, ipcMain, nativeImage, dialog, nativeTheme } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  shell,
+  ipcMain,
+  nativeImage,
+  dialog,
+  nativeTheme,
+  Menu,
+} from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -12,21 +21,26 @@ if (process.platform === 'win32') {
 }
 
 import { registerIPCHandlers } from './ipc/handlers';
-import {
-  FutureSchemaError,
-} from '@accomplish_ai/agent-core';
-import {
-  initThoughtStreamApi,
-  startThoughtStreamServer,
-} from './thought-stream-api';
+import { FutureSchemaError } from '@accomplish_ai/agent-core';
+import { initThoughtStreamApi, startThoughtStreamServer } from './thought-stream-api';
 import type { ProviderId } from '@accomplish_ai/agent-core';
-import { disposeTaskManager, cleanupVertexServiceAccountKey } from './opencode';
+import { getTaskManager, disposeTaskManager, cleanupVertexServiceAccountKey } from './opencode';
+import { stopAllBrowserPreviewStreams } from './services/browserPreview';
 import { oauthBrowserFlow } from './opencode/auth-browser';
+import { slackMcpOAuthFlow } from './opencode/slack-auth';
 import { migrateLegacyData } from './store/legacyMigration';
-import { initializeStorage, closeStorage, getStorage, resetStorageSingleton } from './store/storage';
+import {
+  initializeStorage,
+  closeStorage,
+  getStorage,
+  resetStorageSingleton,
+} from './store/storage';
 import { getApiKey, clearSecureStorage } from './store/secureStorage';
+import * as workspaceManager from './store/workspaceManager';
 import { initializeLogCollector, shutdownLogCollector, getLogCollector } from './logging';
 import { skillsManager } from './skills';
+import { createTray, destroyTray } from './tray';
+import { bootstrapDaemon, shutdownDaemon } from './daemon-bootstrap';
 
 if (process.argv.includes('--e2e-skip-auth')) {
   (global as Record<string, unknown>).E2E_SKIP_AUTH = true;
@@ -65,10 +79,16 @@ config({ path: envPath });
 process.env.APP_ROOT = path.join(__dirname, '../..');
 
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron');
-export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist');
-export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
+
+const ROUTER_URL = process.env.ACCOMPLISH_ROUTER_URL;
+
+// In production, web's build output is packaged as an extraResource.
+const WEB_DIST = app.isPackaged
+  ? path.join(process.resourcesPath, 'web-ui')
+  : path.join(process.env.APP_ROOT, '../web/dist/client');
 
 let mainWindow: BrowserWindow | null = null;
+let isQuitting = false;
 
 function getPreloadPath(): string {
   return path.join(__dirname, '../preload/index.cjs');
@@ -103,7 +123,33 @@ function createWindow() {
       preload: preloadPath,
       nodeIntegration: false,
       contextIsolation: true,
+      spellcheck: true,
     },
+  });
+
+  mainWindow.webContents.on('context-menu', (_event, params) => {
+    if (!params.misspelledWord) {
+      return;
+    }
+
+    const menuItems: Electron.MenuItemConstructorOptions[] = params.dictionarySuggestions.map(
+      (suggestion) => ({
+        label: suggestion,
+        click: () => mainWindow?.webContents.replaceMisspelling(suggestion),
+      }),
+    );
+
+    if (menuItems.length > 0) {
+      menuItems.push({ type: 'separator' });
+    }
+
+    menuItems.push({
+      label: 'Add to Dictionary',
+      click: () =>
+        mainWindow?.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord),
+    });
+
+    Menu.buildFromTemplate(menuItems).popup();
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -121,11 +167,25 @@ function createWindow() {
     mainWindow.webContents.openDevTools({ mode: 'right' });
   }
 
-  if (VITE_DEV_SERVER_URL) {
-    console.log('[Main] Loading from Vite dev server:', VITE_DEV_SERVER_URL);
-    mainWindow.loadURL(VITE_DEV_SERVER_URL);
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    // In dev mode, @vitejs/plugin-react injects an inline HMR preamble script that
+    // requires 'unsafe-inline'. This is safe since dev builds are never distributed.
+    const scriptSrc = app.isPackaged ? "'self'" : "'self' 'unsafe-inline'";
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          `default-src 'self' https:; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: ws: wss:; font-src 'self' https: data:; worker-src 'self' blob:`,
+        ],
+      },
+    });
+  });
+
+  if (ROUTER_URL) {
+    console.log('[Main] Loading from router URL:', ROUTER_URL);
+    mainWindow.loadURL(ROUTER_URL);
   } else {
-    const indexPath = path.join(RENDERER_DIST, 'index.html');
+    const indexPath = path.join(WEB_DIST, 'index.html');
     console.log('[Main] Loading from file:', indexPath);
     mainWindow.loadFile(indexPath);
   }
@@ -138,14 +198,18 @@ process.on('uncaughtException', (error) => {
       name: error.name,
       stack: error.stack,
     });
-  } catch {}
+  } catch {
+    // ignore - log collector may not be initialized
+  }
 });
 
 process.on('unhandledRejection', (reason) => {
   try {
     const collector = getLogCollector();
     collector.log('ERROR', 'main', 'Unhandled promise rejection', { reason });
-  } catch {}
+  } catch {
+    // ignore - log collector may not be initialized
+  }
 });
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -214,6 +278,13 @@ if (!gotTheLock) {
     }
 
     try {
+      workspaceManager.initialize();
+    } catch (err) {
+      console.error('[Main] Workspace initialization failed:', err);
+      throw err;
+    }
+
+    try {
       const storage = getStorage();
       const settings = storage.getProviderSettings();
       for (const [id, provider] of Object.entries(settings.connectedProviders)) {
@@ -222,7 +293,9 @@ if (!gotTheLock) {
         if (!credType || credType === 'api_key') {
           const key = getApiKey(providerId);
           if (!key) {
-            console.warn(`[Main] Provider ${providerId} has api_key auth but key not found in secure storage`);
+            console.warn(
+              `[Main] Provider ${providerId} has api_key auth but key not found in secure storage`,
+            );
             storage.removeConnectedProvider(providerId);
             console.log(`[Main] Removed provider ${providerId} due to missing API key`);
           }
@@ -252,6 +325,12 @@ if (!gotTheLock) {
       // First launch or corrupt DB — nativeTheme stays 'system'
     }
 
+    // Bootstrap the daemon RPC layer (child-process with in-process fallback)
+    const taskManager = getTaskManager();
+    const storage = getStorage();
+    await bootstrapDaemon({ taskManager, storage });
+    console.log('[Main] Daemon bootstrapped');
+
     registerIPCHandlers();
     console.log('[Main] IPC handlers registered');
 
@@ -260,35 +339,131 @@ if (!gotTheLock) {
     if (mainWindow) {
       initThoughtStreamApi(mainWindow);
       startThoughtStreamServer();
+
+      // Intercept window close: hide to tray instead of quitting
+      mainWindow.on('close', (event) => {
+        if (!isQuitting) {
+          event.preventDefault();
+          mainWindow?.hide();
+          console.log('[Main] Window hidden to tray');
+        }
+      });
+
+      createTray(mainWindow);
+      console.log('[Main] System tray created');
     }
 
     app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) {
+      const windows = BrowserWindow.getAllWindows();
+      if (windows.length === 0) {
         createWindow();
-        console.log('[Main] Application reactivated; recreated window');
+        try {
+          const l = getLogCollector();
+          if (l?.logEnv) {
+            l.logEnv('INFO', '[Main] Application reactivated; recreated window');
+          }
+        } catch (_e) {
+          /* ignore */
+        }
+      } else {
+        windows[0].show();
+        windows[0].focus();
+        try {
+          const l = getLogCollector();
+          if (l?.logEnv) {
+            l.logEnv('INFO', '[Main] Application reactivated; showed existing window');
+          }
+        } catch (_e) {
+          /* ignore */
+        }
       }
     });
   });
 }
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  // With system tray, the app stays alive when all windows are closed.
+  // On macOS this was already the default behavior.
+  // On Windows/Linux the tray keeps the app running.
+  console.log('[Main] All windows closed — app continues in system tray');
 });
 
-app.on('before-quit', () => {
-  disposeTaskManager(); // Also cleans up proxies internally
-  cleanupVertexServiceAccountKey();
-  oauthBrowserFlow.dispose();
-  closeStorage();
-  shutdownLogCollector();
+app.on('before-quit', (event) => {
+  if (isQuitting) {
+    return;
+  }
+  isQuitting = true;
+  event.preventDefault();
+
+  let logger: ReturnType<typeof getLogCollector> | null = null;
+  try {
+    logger = getLogCollector();
+  } catch {
+    /* logger may not be initialized on early quit paths */
+  }
+
+  // Await async cleanup before quitting (Dev0907, PR #480, ENG-695)
+  void (async () => {
+    destroyTray();
+    shutdownDaemon();
+
+    const stopBrowserPreviews = stopAllBrowserPreviewStreams();
+    try {
+      await Promise.race([
+        stopBrowserPreviews,
+        new Promise<void>((_, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('Timed out stopping browser preview streams'));
+          }, 5000);
+          void stopBrowserPreviews.finally(() => clearTimeout(timeoutId));
+        }),
+      ]);
+    } catch (error: unknown) {
+      logger?.logEnv('ERROR', `[Main] Failed to stop browser preview streams: ${String(error)}`);
+    }
+    try {
+      disposeTaskManager(); // Also cleans up proxies internally
+    } catch (error: unknown) {
+      logger?.logEnv('ERROR', `[Main] Error during disposeTaskManager: ${String(error)}`);
+    }
+    try {
+      cleanupVertexServiceAccountKey();
+    } catch (error: unknown) {
+      logger?.logEnv(
+        'ERROR',
+        `[Main] Error during cleanupVertexServiceAccountKey: ${String(error)}`,
+      );
+    }
+    try {
+      oauthBrowserFlow.dispose();
+    } catch (error: unknown) {
+      logger?.logEnv('ERROR', `[Main] Error during oauthBrowserFlow.dispose: ${String(error)}`);
+    }
+    try {
+      slackMcpOAuthFlow.dispose();
+    } catch (error: unknown) {
+      logger?.logEnv('ERROR', `[Main] Error during slackMcpOAuthFlow.dispose: ${String(error)}`);
+    }
+    try {
+      workspaceManager.close();
+    } catch (error: unknown) {
+      logger?.logEnv('ERROR', `[Main] Error during workspaceManager.close: ${String(error)}`);
+    }
+    try {
+      closeStorage();
+    } catch (error: unknown) {
+      logger?.logEnv('ERROR', `[Main] Error during closeStorage: ${String(error)}`);
+    }
+    try {
+      shutdownLogCollector();
+    } finally {
+      app.quit();
+    }
+  })();
 });
 
 if (process.platform === 'win32' && !app.isPackaged) {
-  app.setAsDefaultProtocolClient('accomplish', process.execPath, [
-    path.resolve(process.argv[1]),
-  ]);
+  app.setAsDefaultProtocolClient('accomplish', process.execPath, [path.resolve(process.argv[1])]);
 } else {
   app.setAsDefaultProtocolClient('accomplish');
 }
@@ -332,6 +507,8 @@ ipcMain.handle('app:platform', () => {
 });
 
 ipcMain.handle('app:is-e2e-mode', () => {
-  return (global as Record<string, unknown>).E2E_MOCK_TASK_EVENTS === true ||
-    process.env.E2E_MOCK_TASK_EVENTS === '1';
+  return (
+    (global as Record<string, unknown>).E2E_MOCK_TASK_EVENTS === true ||
+    process.env.E2E_MOCK_TASK_EVENTS === '1'
+  );
 });

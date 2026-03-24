@@ -119,11 +119,13 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
 
       const toolName = String(part?.tool || '').toLowerCase();
       const output = String(part?.output || '').toLowerCase();
-      if (toolName.includes('dev-browser') ||
-          toolName.includes('browser') ||
-          toolName.includes('mcp') ||
-          output.includes('dev-browser') ||
-          output.includes('browser')) {
+      if (
+        toolName.includes('dev-browser') ||
+        toolName.includes('browser') ||
+        toolName.includes('mcp') ||
+        output.includes('dev-browser') ||
+        output.includes('browser')
+      ) {
         console.log('[StreamParser] >>> DEV-BROWSER MESSAGE <<<');
         console.log('[StreamParser] Full message:', JSON.stringify(message, null, 2));
       }

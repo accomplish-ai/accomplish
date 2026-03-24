@@ -9,9 +9,10 @@ import {
   isTokenExpired,
   refreshAccessToken,
 } from '@accomplish_ai/agent-core';
+import type { BrowserConfig } from '@accomplish_ai/agent-core';
 import { getApiKey, getAllApiKeys } from '../store/secureStorage';
 import { getStorage } from '../store/storage';
-import { getNodePath } from '../utils/bundled-node';
+import { getBundledNodePaths } from '../utils/bundled-node';
 import { skillsManager } from '../skills';
 import { PERMISSION_API_PORT, QUESTION_API_PORT } from '@accomplish_ai/agent-core';
 
@@ -50,11 +51,16 @@ export function getOpenCodeConfigDir(): string {
 export async function generateOpenCodeConfig(azureFoundryToken?: string): Promise<string> {
   const mcpToolsPath = getMcpToolsPath();
   const userDataPath = app.getPath('userData');
-  const nodePath = getNodePath();
-  const bundledNodeBinPath = nodePath ? path.dirname(nodePath) : undefined;
+  const bundledNodeBinPath = getBundledNodePaths()?.binDir;
 
   console.log('[OpenCode Config] MCP tools path:', mcpToolsPath);
   console.log('[OpenCode Config] User data path:', userDataPath);
+  if (!bundledNodeBinPath) {
+    throw new Error(
+      '[OpenCode Config] Bundled Node.js path is missing. ' +
+        'Run "pnpm -F @accomplish/desktop download:nodejs" and rebuild before launching.',
+    );
+  }
 
   // Use the extracted buildProviderConfigs from core package
   const { providerConfigs, enabledProviders, modelOverride } = await buildProviderConfigs({
@@ -66,7 +72,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
   // with project-scoped keys (sk-proj-...) that lack /v1/chat/completions storage permission
   const openAiApiKey = getApiKey('openai');
   if (openAiApiKey) {
-    const existingOpenAi = providerConfigs.find(p => p.id === 'openai');
+    const existingOpenAi = providerConfigs.find((p) => p.id === 'openai');
     if (existingOpenAi) {
       existingOpenAi.options.store = false;
     } else {
@@ -111,7 +117,9 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
           continue;
         }
       } else {
-        console.warn(`[Connectors] Access token expired for ${connector.name} and cannot be refreshed`);
+        console.warn(
+          `[Connectors] Access token expired for ${connector.name} and cannot be refreshed`,
+        );
         storage.setConnectorStatus(connector.id, 'error');
         continue;
       }
@@ -123,6 +131,20 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
       url: connector.url,
       accessToken: tokens.accessToken,
     });
+  }
+
+  // Build browser config from cloud browser settings
+  const cloudBrowserConfig = storage.getCloudBrowserConfig();
+  let browserConfig: BrowserConfig | undefined;
+  if (cloudBrowserConfig?.activeProvider) {
+    const providerCfg = cloudBrowserConfig.providers[cloudBrowserConfig.activeProvider];
+    if (providerCfg?.endpoint) {
+      browserConfig = {
+        mode: 'remote',
+        cdpEndpoint: providerCfg.endpoint,
+        cdpHeaders: providerCfg.apiKey ? { 'X-CDP-Secret': providerCfg.apiKey } : undefined,
+      };
+    }
   }
 
   const result = generateConfig({
@@ -139,6 +161,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     model: modelOverride?.model,
     smallModel: modelOverride?.smallModel,
     connectors: connectors.length > 0 ? connectors : undefined,
+    browser: browserConfig,
   });
 
   process.env.OPENCODE_CONFIG = result.configPath;

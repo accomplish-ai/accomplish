@@ -35,9 +35,7 @@ describe('diffSnapshots', () => {
   });
 
   it('detects added elements', () => {
-    const prev = createSnapshot([
-      { ref: 'e1', role: 'button', name: 'Submit' },
-    ]);
+    const prev = createSnapshot([{ ref: 'e1', role: 'button', name: 'Submit' }]);
     const curr = createSnapshot([
       { ref: 'e1', role: 'button', name: 'Submit' },
       { ref: 'e2', role: 'textbox', name: 'Email' },
@@ -46,7 +44,7 @@ describe('diffSnapshots', () => {
     const diff = diffSnapshots(prev, curr);
 
     expect(diff!.addedRefs).toContain('e2');
-    expect(diff!.changes.find(c => c.ref === 'e2')?.changeType).toBe('added');
+    expect(diff!.changes.find((c) => c.ref === 'e2')?.changeType).toBe('added');
   });
 
   it('detects removed elements', () => {
@@ -67,7 +65,7 @@ describe('diffSnapshots', () => {
 
     expect(diff).not.toBeNull();
     expect(diff!.removedRefs).toContain('e2');
-    expect(diff!.changes.find(c => c.ref === 'e2')?.changeType).toBe('removed');
+    expect(diff!.changes.find((c) => c.ref === 'e2')?.changeType).toBe('removed');
   });
 
   it('detects value changes', () => {

@@ -103,7 +103,7 @@ export interface PermissionHandlerAPI {
   buildFilePermissionRequest(
     requestId: string,
     taskId: string,
-    data: FilePermissionRequestData
+    data: FilePermissionRequestData,
   ): PermissionRequest;
 
   /**
@@ -116,7 +116,7 @@ export interface PermissionHandlerAPI {
   buildQuestionRequest(
     requestId: string,
     taskId: string,
-    data: QuestionRequestData
+    data: QuestionRequestData,
   ): PermissionRequest;
 
   /**

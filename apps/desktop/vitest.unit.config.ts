@@ -1,18 +1,17 @@
 import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src/renderer'),
       '@main': path.resolve(__dirname, 'src/main'),
-      '@renderer': path.resolve(__dirname, 'src/renderer'),
-      '@accomplish_ai/agent-core/common': path.resolve(__dirname, '../../packages/agent-core/src/common'),
+      '@accomplish_ai/agent-core/common': path.resolve(
+        __dirname,
+        '../../packages/agent-core/src/common',
+      ),
       '@accomplish_ai/agent-core': path.resolve(__dirname, '../../packages/agent-core/src'),
     },
   },
@@ -24,11 +23,6 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/dist/**', '**/dist-electron/**', '**/release/**'],
     setupFiles: ['__tests__/setup.ts'],
     environment: 'node',
-    environmentMatchGlobs: [
-      ['__tests__/**/*.renderer.*.test.{ts,tsx}', 'jsdom'],
-      ['__tests__/**/renderer/**/*.test.{ts,tsx}', 'jsdom'],
-      ['__tests__/**/renderer/**/*.unit.test.{ts,tsx}', 'jsdom'],
-    ],
     testTimeout: 5000,
     hookTimeout: 10000,
   },

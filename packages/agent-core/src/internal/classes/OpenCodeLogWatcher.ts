@@ -21,7 +21,8 @@ const ERROR_PATTERNS: Array<{
   extract: (match: RegExpMatchArray, line: string) => Partial<OpenCodeLogError>;
 }> = [
   {
-    pattern: /openai.*(?:invalid_api_key|invalid_token|token.*expired|oauth.*invalid|Incorrect API key)/i,
+    pattern:
+      /openai.*(?:invalid_api_key|invalid_token|token.*expired|oauth.*invalid|Incorrect API key)/i,
     extract: () => ({
       errorName: 'OAuthExpiredError',
       statusCode: 401,
@@ -215,12 +216,7 @@ export class OpenCodeLogWatcher extends EventEmitter<LogWatcherEvents> {
 
       const bufferSize = stat.size - this.readPosition;
       const buffer = Buffer.alloc(bufferSize);
-      const { bytesRead } = await this.fileHandle.read(
-        buffer,
-        0,
-        bufferSize,
-        this.readPosition
-      );
+      const { bytesRead } = await this.fileHandle.read(buffer, 0, bufferSize, this.readPosition);
 
       this.readPosition += bytesRead;
 

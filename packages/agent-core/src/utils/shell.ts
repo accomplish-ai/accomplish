@@ -6,6 +6,7 @@ import * as fs from 'fs';
  * @returns The string with all ANSI escape codes removed
  */
 export function stripAnsi(input: string): string {
+  // eslint-disable-next-line no-control-regex
   return input.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
 }
 

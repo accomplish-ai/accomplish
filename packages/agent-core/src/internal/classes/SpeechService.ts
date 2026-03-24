@@ -56,9 +56,7 @@ export class SpeechService {
   /**
    * Validate ElevenLabs API key by making a test request
    */
-  async validateElevenLabsApiKey(
-    apiKey?: string
-  ): Promise<{ valid: boolean; error?: string }> {
+  async validateElevenLabsApiKey(apiKey?: string): Promise<{ valid: boolean; error?: string }> {
     const key = apiKey || this.getElevenLabsApiKey();
 
     if (!key || !key.trim()) {
@@ -74,7 +72,7 @@ export class SpeechService {
             'xi-api-key': key.trim(),
           },
         },
-        ELEVENLABS_API_TIMEOUT_MS
+        ELEVENLABS_API_TIMEOUT_MS,
       );
 
       if (response.ok) {
@@ -114,23 +112,19 @@ export class SpeechService {
    */
   async transcribeAudio(
     audioData: Buffer,
-    mimeType: string = 'audio/webm'
+    mimeType: string = 'audio/webm',
   ): Promise<
-    | { success: true; result: TranscriptionResult }
-    | { success: false; error: TranscriptionError }
+    { success: true; result: TranscriptionResult } | { success: false; error: TranscriptionError }
   > {
     const apiKey = this.getElevenLabsApiKey();
-    const modelId =
-      process.env.ELEVENLABS_STT_MODEL_ID?.trim() ||
-      DEFAULT_ELEVENLABS_STT_MODEL_ID;
+    const modelId = process.env.ELEVENLABS_STT_MODEL_ID?.trim() || DEFAULT_ELEVENLABS_STT_MODEL_ID;
 
     if (!apiKey) {
       return {
         success: false,
         error: {
           code: 'MISSING_API_KEY',
-          message:
-            'ElevenLabs API key is not configured. Please add it in settings.',
+          message: 'ElevenLabs API key is not configured. Please add it in settings.',
         },
       };
     }
@@ -168,7 +162,7 @@ export class SpeechService {
           },
           body: formData,
         },
-        ELEVENLABS_API_TIMEOUT_MS
+        ELEVENLABS_API_TIMEOUT_MS,
       );
 
       const duration = Date.now() - startTime;
@@ -194,8 +188,7 @@ export class SpeechService {
             success: false,
             error: {
               code: 'INVALID_API_KEY',
-              message:
-                'Invalid or expired ElevenLabs API key. Please check your settings.',
+              message: 'Invalid or expired ElevenLabs API key. Please check your settings.',
             },
           };
         }
@@ -228,21 +221,14 @@ export class SpeechService {
           } else {
             errorMessage = JSON.stringify(detail);
           }
-        } else if (
-          (errorData as { error?: { message?: unknown } })?.error?.message
-        ) {
-          const nestedMessage = (errorData as { error: { message: unknown } })
-            .error.message;
+        } else if ((errorData as { error?: { message?: unknown } })?.error?.message) {
+          const nestedMessage = (errorData as { error: { message: unknown } }).error.message;
           errorMessage =
-            typeof nestedMessage === 'string'
-              ? nestedMessage
-              : JSON.stringify(nestedMessage);
+            typeof nestedMessage === 'string' ? nestedMessage : JSON.stringify(nestedMessage);
         } else if ((errorData as { message?: unknown })?.message) {
           const rootMessage = (errorData as { message: unknown }).message;
           errorMessage =
-            typeof rootMessage === 'string'
-              ? rootMessage
-              : JSON.stringify(rootMessage);
+            typeof rootMessage === 'string' ? rootMessage : JSON.stringify(rootMessage);
         } else if (errorText) {
           errorMessage = errorText.substring(0, 200);
         } else {

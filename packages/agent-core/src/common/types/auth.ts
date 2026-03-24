@@ -1,6 +1,18 @@
 export interface ApiKeyConfig {
   id: string;
-  provider: 'anthropic' | 'openai' | 'openrouter' | 'google' | 'xai' | 'deepseek' | 'moonshot' | 'zai' | 'azure-foundry' | 'custom' | 'bedrock' | 'vertex';
+  provider:
+    | 'anthropic'
+    | 'openai'
+    | 'openrouter'
+    | 'google'
+    | 'xai'
+    | 'deepseek'
+    | 'moonshot'
+    | 'zai'
+    | 'azure-foundry'
+    | 'custom'
+    | 'bedrock'
+    | 'vertex';
   label?: string;
   keyPrefix?: string;
   isActive: boolean;

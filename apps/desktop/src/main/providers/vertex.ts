@@ -1,8 +1,5 @@
 import { execFile } from 'child_process';
-import {
-  validateVertexCredentials,
-  fetchVertexModels,
-} from '@accomplish_ai/agent-core';
+import { validateVertexCredentials, fetchVertexModels } from '@accomplish_ai/agent-core';
 import type { VertexCredentials } from '@accomplish_ai/agent-core';
 import { storeApiKey, getApiKey } from '../store/secureStorage';
 import { normalizeIpcError } from '../ipc/validation';
@@ -59,7 +56,8 @@ export function registerVertexHandlers(handle: IpcHandler): void {
 
     storeApiKey('vertex', credentials);
 
-    const label = parsed.authType === 'serviceAccount' ? 'Service Account' : 'Application Default Credentials';
+    const label =
+      parsed.authType === 'serviceAccount' ? 'Service Account' : 'Application Default Credentials';
     const keyPrefix = `${parsed.projectId} (${parsed.location})`;
 
     return {
@@ -107,7 +105,11 @@ export function registerVertexHandlers(handle: IpcHandler): void {
 
   handle('vertex:list-projects', async (_event: IpcMainInvokeEvent) => {
     try {
-      const token = await execAsync('gcloud', ['auth', 'application-default', 'print-access-token'], 20000);
+      const token = await execAsync(
+        'gcloud',
+        ['auth', 'application-default', 'print-access-token'],
+        20000,
+      );
 
       if (!token) {
         return { success: false, projects: [], error: 'No ADC token available' };
@@ -130,7 +132,11 @@ export function registerVertexHandlers(handle: IpcHandler): void {
 
         if (!response.ok) {
           const errorText = await response.text().catch(() => '');
-          return { success: false, projects: [], error: `Failed to list projects (${response.status}): ${errorText}` };
+          return {
+            success: false,
+            projects: [],
+            error: `Failed to list projects (${response.status}): ${errorText}`,
+          };
         }
 
         const data = (await response.json()) as {

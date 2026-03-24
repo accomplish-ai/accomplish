@@ -28,10 +28,7 @@ export function validateTaskConfig(config: TaskConfig): TaskConfig {
       .slice(0, 20);
   }
   if (config.systemPromptAppend) {
-    validated.systemPromptAppend = sanitizeString(
-      config.systemPromptAppend,
-      'systemPromptAppend'
-    );
+    validated.systemPromptAppend = sanitizeString(config.systemPromptAppend, 'systemPromptAppend');
   }
   if (config.outputSchema && typeof config.outputSchema === 'object') {
     validated.outputSchema = config.outputSchema;

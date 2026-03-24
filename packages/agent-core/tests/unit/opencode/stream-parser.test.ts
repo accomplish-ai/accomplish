@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { StreamParser } from '../../../src/opencode/stream-parser.js';
+import { StreamParser } from '../../../src/internal/classes/StreamParser.js';
 import type { OpenCodeMessage } from '../../../src/shared';
 
 describe('StreamParser', () => {
@@ -131,11 +131,21 @@ describe('StreamParser', () => {
 
   describe('multiple JSON objects in one chunk', () => {
     it('should handle multiple JSON objects in one chunk', () => {
-      const message1 = { type: 'text', part: { id: '1', sessionID: 's1', messageID: 'm1', type: 'text', text: 'First' } };
-      const message2 = { type: 'text', part: { id: '2', sessionID: 's1', messageID: 'm2', type: 'text', text: 'Second' } };
-      const message3 = { type: 'text', part: { id: '3', sessionID: 's1', messageID: 'm3', type: 'text', text: 'Third' } };
+      const message1 = {
+        type: 'text',
+        part: { id: '1', sessionID: 's1', messageID: 'm1', type: 'text', text: 'First' },
+      };
+      const message2 = {
+        type: 'text',
+        part: { id: '2', sessionID: 's1', messageID: 'm2', type: 'text', text: 'Second' },
+      };
+      const message3 = {
+        type: 'text',
+        part: { id: '3', sessionID: 's1', messageID: 'm3', type: 'text', text: 'Third' },
+      };
 
-      const combined = JSON.stringify(message1) + JSON.stringify(message2) + JSON.stringify(message3);
+      const combined =
+        JSON.stringify(message1) + JSON.stringify(message2) + JSON.stringify(message3);
 
       parser.feed(combined);
 
@@ -146,8 +156,14 @@ describe('StreamParser', () => {
     });
 
     it('should handle objects separated by newlines', () => {
-      const message1 = { type: 'text', part: { id: '1', sessionID: 's1', messageID: 'm1', type: 'text', text: 'A' } };
-      const message2 = { type: 'text', part: { id: '2', sessionID: 's1', messageID: 'm2', type: 'text', text: 'B' } };
+      const message1 = {
+        type: 'text',
+        part: { id: '1', sessionID: 's1', messageID: 'm1', type: 'text', text: 'A' },
+      };
+      const message2 = {
+        type: 'text',
+        part: { id: '2', sessionID: 's1', messageID: 'm2', type: 'text', text: 'B' },
+      };
 
       const combined = JSON.stringify(message1) + '\n' + JSON.stringify(message2);
 
@@ -177,7 +193,9 @@ describe('StreamParser', () => {
       parser.feed(JSON.stringify(message));
 
       expect(receivedMessages.length).toBe(1);
-      expect((receivedMessages[0] as typeof message).part.input.content).toContain('{ a: 1, b: { c: 2 } }');
+      expect((receivedMessages[0] as typeof message).part.input.content).toContain(
+        '{ a: 1, b: { c: 2 } }',
+      );
     });
 
     it('should handle deeply nested objects', () => {
@@ -241,7 +259,9 @@ describe('StreamParser', () => {
       parser.feed(JSON.stringify(message));
 
       expect(receivedMessages.length).toBe(1);
-      expect((receivedMessages[0] as typeof message).part.text).toBe('JSON example: {"key": "value"}');
+      expect((receivedMessages[0] as typeof message).part.text).toBe(
+        'JSON example: {"key": "value"}',
+      );
     });
 
     it('should handle backslashes in strings', () => {
@@ -259,13 +279,18 @@ describe('StreamParser', () => {
       parser.feed(JSON.stringify(message));
 
       expect(receivedMessages.length).toBe(1);
-      expect((receivedMessages[0] as typeof message).part.text).toBe('Path: C:\\Users\\test\\file.txt');
+      expect((receivedMessages[0] as typeof message).part.text).toBe(
+        'Path: C:\\Users\\test\\file.txt',
+      );
     });
   });
 
   describe('flush', () => {
     it('should attempt to parse remaining buffer on flush', () => {
-      const message = { type: 'text', part: { id: '1', sessionID: 's1', messageID: 'm1', type: 'text', text: 'test' } };
+      const message = {
+        type: 'text',
+        part: { id: '1', sessionID: 's1', messageID: 'm1', type: 'text', text: 'test' },
+      };
       parser.feed(JSON.stringify(message));
 
       parser.flush();
@@ -278,7 +303,10 @@ describe('StreamParser', () => {
       parser.flush();
 
       // Feed a new complete message
-      const message = { type: 'text', part: { id: '1', sessionID: 's1', messageID: 'm1', type: 'text', text: 'new' } };
+      const message = {
+        type: 'text',
+        part: { id: '1', sessionID: 's1', messageID: 'm1', type: 'text', text: 'new' },
+      };
       parser.feed(JSON.stringify(message));
 
       expect(receivedMessages.length).toBe(1);
@@ -291,7 +319,10 @@ describe('StreamParser', () => {
       parser.feed('{"incomplete":');
       parser.reset();
 
-      const message = { type: 'text', part: { id: '1', sessionID: 's1', messageID: 'm1', type: 'text', text: 'after reset' } };
+      const message = {
+        type: 'text',
+        part: { id: '1', sessionID: 's1', messageID: 'm1', type: 'text', text: 'after reset' },
+      };
       parser.feed(JSON.stringify(message));
 
       expect(receivedMessages.length).toBe(1);
@@ -315,7 +346,10 @@ describe('StreamParser', () => {
 
     it('should skip non-JSON content before JSON object', () => {
       const garbage = 'some random text ';
-      const message = { type: 'text', part: { id: '1', sessionID: 's1', messageID: 'm1', type: 'text', text: 'valid' } };
+      const message = {
+        type: 'text',
+        part: { id: '1', sessionID: 's1', messageID: 'm1', type: 'text', text: 'valid' },
+      };
 
       parser.feed(garbage + JSON.stringify(message));
 
@@ -327,7 +361,10 @@ describe('StreamParser', () => {
   describe('Windows PTY handling', () => {
     it('should sanitize carriage returns and newlines inside JSON', () => {
       // Simulate Windows PTY injecting CR/LF
-      const message = { type: 'text', part: { id: '1', sessionID: 's1', messageID: 'm1', type: 'text', text: 'line1\nline2' } };
+      const message = {
+        type: 'text',
+        part: { id: '1', sessionID: 's1', messageID: 'm1', type: 'text', text: 'line1\nline2' },
+      };
       const jsonStr = JSON.stringify(message);
 
       // PTY might inject raw CR/LF that corrupts the JSON string values

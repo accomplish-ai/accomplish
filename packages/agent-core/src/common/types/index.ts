@@ -115,3 +115,20 @@ export type {
 export type { ThoughtEvent, CheckpointEvent } from './thought-stream.js';
 
 export type { TodoItem } from './todo.js';
+export * from './auth.js';
+export * from './logging.js';
+export * from './opencode.js';
+export * from './permission.js';
+export * from './provider.js';
+export * from './providerSettings.js';
+export * from './skills.js';
+export * from './task.js';
+export * from './thought-stream.js';
+export * from './todo.js';
+export * from './workspace.js';
+
+export type {
+  BrowserFramePayload,
+  BrowserStatusPayload,
+  BrowserNavigatePayload,
+} from './browser-view.js';

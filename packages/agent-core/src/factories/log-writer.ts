@@ -8,12 +8,7 @@
 
 import { LogFileWriter } from '../internal/classes/LogFileWriter.js';
 import { LogCollector } from '../internal/classes/LogCollector.js';
-import type {
-  LogWriterAPI,
-  LogWriterOptions,
-  LogLevel,
-  LogSource,
-} from '../types/log-writer.js';
+import type { LogWriterAPI, LogWriterOptions, LogLevel, LogSource } from '../types/log-writer.js';
 
 /**
  * Create a new log writer instance

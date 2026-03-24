@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { validateApiKey, type ValidationResult } from '../../../src/providers/validation.js';
+import { validateApiKey } from '../../../src/providers/validation.js';
 
 describe('API Key Validation', () => {
   beforeEach(() => {
@@ -31,7 +31,7 @@ describe('API Key Validation', () => {
               'x-api-key': 'sk-ant-test-key',
               'anthropic-version': '2023-06-01',
             }),
-          })
+          }),
         );
       });
 
@@ -66,7 +66,7 @@ describe('API Key Validation', () => {
             headers: expect.objectContaining({
               Authorization: 'Bearer sk-test-key',
             }),
-          })
+          }),
         );
       });
 
@@ -95,7 +95,7 @@ describe('API Key Validation', () => {
 
         expect(fetch).toHaveBeenCalledWith(
           'https://custom.openai.com/v1/models',
-          expect.anything()
+          expect.anything(),
         );
       });
     });
@@ -114,7 +114,7 @@ describe('API Key Validation', () => {
           'https://generativelanguage.googleapis.com/v1beta/models?key=AIza-test-key',
           expect.objectContaining({
             method: 'GET',
-          })
+          }),
         );
       });
     });
@@ -136,7 +136,7 @@ describe('API Key Validation', () => {
             headers: expect.objectContaining({
               Authorization: 'Bearer xai-test-key',
             }),
-          })
+          }),
         );
       });
     });
@@ -151,10 +151,7 @@ describe('API Key Validation', () => {
         const result = await validateApiKey('deepseek', 'sk-deepseek-key');
 
         expect(result.valid).toBe(true);
-        expect(fetch).toHaveBeenCalledWith(
-          'https://api.deepseek.com/models',
-          expect.anything()
-        );
+        expect(fetch).toHaveBeenCalledWith('https://api.deepseek.com/models', expect.anything());
       });
     });
 
@@ -170,7 +167,7 @@ describe('API Key Validation', () => {
         expect(result.valid).toBe(true);
         expect(fetch).toHaveBeenCalledWith(
           'https://openrouter.ai/api/v1/auth/key',
-          expect.anything()
+          expect.anything(),
         );
       });
     });
@@ -189,7 +186,7 @@ describe('API Key Validation', () => {
           'https://api.moonshot.ai/v1/chat/completions',
           expect.objectContaining({
             method: 'POST',
-          })
+          }),
         );
       });
     });
@@ -205,10 +202,7 @@ describe('API Key Validation', () => {
 
         expect(result.valid).toBe(true);
         // Should use international endpoint by default
-        expect(fetch).toHaveBeenCalledWith(
-          expect.stringContaining('models'),
-          expect.anything()
-        );
+        expect(fetch).toHaveBeenCalledWith(expect.stringContaining('models'), expect.anything());
       });
 
       it('should use china region when specified', async () => {
@@ -241,7 +235,7 @@ describe('API Key Validation', () => {
               Authorization: 'Bearer minimax-key',
               'anthropic-version': '2023-06-01',
             }),
-          })
+          }),
         );
       });
     });
@@ -367,7 +361,7 @@ describe('API Key Validation', () => {
           expect.any(String),
           expect.objectContaining({
             signal: expect.any(AbortSignal),
-          })
+          }),
         );
       });
     });

@@ -8,16 +8,11 @@ test.describe('Home Page', () => {
     const homePage = new HomePage(window);
 
     // Capture initial home page state
-    await captureForAI(
-      window,
-      'home-page-load',
-      'initial-load',
-      [
-        'Title "What will you accomplish today?" is visible',
-        'Page layout is correct',
-        'All UI elements are rendered'
-      ]
-    );
+    await captureForAI(window, 'home-page-load', 'initial-load', [
+      'Title "What will you accomplish today?" is visible',
+      'Page layout is correct',
+      'All UI elements are rendered',
+    ]);
 
     // Assert title is visible and has correct text
     await expect(homePage.title).toBeVisible();
@@ -28,16 +23,11 @@ test.describe('Home Page', () => {
     const homePage = new HomePage(window);
 
     // Capture task input area
-    await captureForAI(
-      window,
-      'home-page-input',
-      'task-input-visible',
-      [
-        'Task input textarea is visible',
-        'Submit button is visible',
-        'Input area is ready for user interaction'
-      ]
-    );
+    await captureForAI(window, 'home-page-input', 'task-input-visible', [
+      'Task input textarea is visible',
+      'Submit button is visible',
+      'Input area is ready for user interaction',
+    ]);
 
     // Assert task input is visible and enabled
     await expect(homePage.taskInput).toBeVisible();
@@ -54,16 +44,11 @@ test.describe('Home Page', () => {
     await homePage.enterTask(testTask);
 
     // Capture filled task input
-    await captureForAI(
-      window,
-      'home-page-input',
-      'task-input-filled',
-      [
-        'Task input contains typed text',
-        'Text is clearly visible',
-        'Submit button is enabled with text'
-      ]
-    );
+    await captureForAI(window, 'home-page-input', 'task-input-filled', [
+      'Task input contains typed text',
+      'Text is clearly visible',
+      'Submit button is enabled with text',
+    ]);
 
     // Assert input value matches what was typed
     await expect(homePage.taskInput).toHaveValue(testTask);
@@ -75,16 +60,11 @@ test.describe('Home Page', () => {
     const homePage = new HomePage(window);
 
     // Capture example cards (examples are expanded by default)
-    await captureForAI(
-      window,
-      'home-page-examples',
-      'example-cards-visible',
-      [
-        'At least 3 example cards are visible',
-        'Example cards are properly styled',
-        'Cards show task examples to users'
-      ]
-    );
+    await captureForAI(window, 'home-page-examples', 'example-cards-visible', [
+      'At least 3 example cards are visible',
+      'Example cards are properly styled',
+      'Cards show task examples to users',
+    ]);
 
     // Assert at least 3 example cards are visible
     const exampleCard0 = homePage.getExampleCard(0);
@@ -106,24 +86,21 @@ test.describe('Home Page', () => {
     // Wait for input to be filled with example text
     await window.waitForFunction(
       () => {
-        const input = document.querySelector('[data-testid="task-input-textarea"]') as HTMLTextAreaElement;
+        const input = document.querySelector(
+          '[data-testid="task-input-textarea"]',
+        ) as HTMLTextAreaElement;
         return input && input.value.length > 0;
       },
       null,
-      { timeout: TEST_TIMEOUTS.NAVIGATION }
+      { timeout: TEST_TIMEOUTS.NAVIGATION },
     );
 
     // Capture state after clicking example
-    await captureForAI(
-      window,
-      'home-page-examples',
-      'example-card-clicked',
-      [
-        'Task input is filled with example text',
-        'Input value matches the example card content',
-        'User can now submit the pre-filled task'
-      ]
-    );
+    await captureForAI(window, 'home-page-examples', 'example-card-clicked', [
+      'Task input is filled with example text',
+      'Input value matches the example card content',
+      'User can now submit the pre-filled task',
+    ]);
 
     // Assert input is no longer empty
     const inputValue = await homePage.taskInput.inputValue();
@@ -140,15 +117,10 @@ test.describe('Home Page', () => {
     await expect(homePage.submitButton).toBeEnabled();
 
     // Capture before submission
-    await captureForAI(
-      window,
-      'home-page-submit',
-      'before-submit',
-      [
-        'Task is entered in input field',
-        'Submit button is ready to click'
-      ]
-    );
+    await captureForAI(window, 'home-page-submit', 'before-submit', [
+      'Task is entered in input field',
+      'Submit button is ready to click',
+    ]);
 
     // Submit the task
     await homePage.submitTask();
@@ -157,16 +129,11 @@ test.describe('Home Page', () => {
     await window.waitForURL(/.*#\/execution.*/, { timeout: TEST_TIMEOUTS.NAVIGATION });
 
     // Capture after navigation
-    await captureForAI(
-      window,
-      'home-page-submit',
-      'after-submit-navigation',
-      [
-        'URL changed to execution page',
-        'Navigation was successful',
-        'Execution page is loading'
-      ]
-    );
+    await captureForAI(window, 'home-page-submit', 'after-submit-navigation', [
+      'URL changed to execution page',
+      'Navigation was successful',
+      'Execution page is loading',
+    ]);
 
     // Assert URL changed to execution page
     expect(window.url()).toContain('#/execution');
@@ -176,16 +143,11 @@ test.describe('Home Page', () => {
     const homePage = new HomePage(window);
 
     // Capture empty input state
-    await captureForAI(
-      window,
-      'home-page-validation',
-      'empty-input',
-      [
-        'Task input is empty',
-        'Submit button is disabled',
-        'User cannot submit an empty task'
-      ]
-    );
+    await captureForAI(window, 'home-page-validation', 'empty-input', [
+      'Task input is empty',
+      'Submit button is disabled',
+      'User cannot submit an empty task',
+    ]);
 
     // Submit button should be disabled when input is empty
     await expect(homePage.submitButton).toBeDisabled();
@@ -199,16 +161,11 @@ test.describe('Home Page', () => {
     await homePage.enterTask(multiLineTask);
 
     // Capture multi-line input
-    await captureForAI(
-      window,
-      'home-page-input',
-      'multi-line-task',
-      [
-        'Task input supports multiple lines',
-        'All lines are visible in the textarea',
-        'Textarea expands to show content'
-      ]
-    );
+    await captureForAI(window, 'home-page-input', 'multi-line-task', [
+      'Task input supports multiple lines',
+      'All lines are visible in the textarea',
+      'Textarea expands to show content',
+    ]);
 
     // Assert all lines are preserved
     await expect(homePage.taskInput).toHaveValue(multiLineTask);

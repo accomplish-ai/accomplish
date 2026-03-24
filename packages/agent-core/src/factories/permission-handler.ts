@@ -4,8 +4,6 @@ import type {
   PermissionHandlerOptions,
 } from '../types/permission-handler.js';
 
-export function createPermissionHandler(
-  options?: PermissionHandlerOptions
-): PermissionHandlerAPI {
+export function createPermissionHandler(options?: PermissionHandlerOptions): PermissionHandlerAPI {
   return new PermissionRequestHandler(options?.defaultTimeoutMs);
 }

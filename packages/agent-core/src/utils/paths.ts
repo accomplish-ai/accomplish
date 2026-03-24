@@ -22,7 +22,7 @@ export function getDefaultTempPath(): string {
 
 export function createDefaultPlatformConfig(
   appName: string,
-  overrides?: Partial<PlatformConfig>
+  overrides?: Partial<PlatformConfig>,
 ): PlatformConfig {
   return {
     userDataPath: getDefaultUserDataPath(appName),
@@ -38,10 +38,7 @@ export function resolveUserDataPath(config: PlatformConfig, ...segments: string[
   return path.join(config.userDataPath, ...segments);
 }
 
-export function resolveResourcesPath(
-  config: PlatformConfig,
-  ...segments: string[]
-): string | null {
+export function resolveResourcesPath(config: PlatformConfig, ...segments: string[]): string | null {
   if (!config.resourcesPath) {
     return null;
   }

@@ -26,11 +26,7 @@ export {
   type Migration,
 } from './migrations/index.js';
 
-export {
-  FutureSchemaError,
-  MigrationError,
-  CorruptDatabaseError,
-} from './migrations/errors.js';
+export { FutureSchemaError, MigrationError, CorruptDatabaseError } from './migrations/errors.js';
 
 export {
   getDebugMode,
@@ -88,6 +84,10 @@ export {
   getTodosForTask,
   saveTodosForTask,
   clearTodosForTask,
+  addFavorite,
+  removeFavorite,
+  getFavorites,
+  isFavorite,
   type StoredTask,
 } from './repositories/index.js';
 

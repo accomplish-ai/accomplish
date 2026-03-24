@@ -1,0 +1,8 @@
+{
+  "title": "Task History",
+  "recentTasks": "Recent Tasks",
+  "noTasks": "No tasks yet. Start by describing what you want to accomplish.",
+  "viewAll": "View all {{count}} tasks",
+  "confirmClear": "Are you sure you want to clear all task history?",
+  "confirmDelete": "Delete this task?"
+}

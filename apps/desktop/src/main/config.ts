@@ -3,10 +3,7 @@ import { z } from 'zod';
 const PRODUCTION_API_URL = 'https://lite.accomplish.ai';
 
 const desktopConfigSchema = z.object({
-  apiUrl: z
-    .string()
-    .url()
-    .default(PRODUCTION_API_URL),
+  apiUrl: z.string().url().default(PRODUCTION_API_URL),
 });
 
 type DesktopConfig = z.infer<typeof desktopConfigSchema>;

@@ -60,9 +60,7 @@ function getMessagesForTask(taskId: string): TaskMessage[] {
   const db = getDatabase();
 
   const messageRows = db
-    .prepare(
-      'SELECT * FROM task_messages WHERE task_id = ? ORDER BY sort_order ASC'
-    )
+    .prepare('SELECT * FROM task_messages WHERE task_id = ? ORDER BY sort_order ASC')
     .all(taskId) as MessageRow[];
 
   const messages: TaskMessage[] = [];
@@ -109,32 +107,37 @@ function rowToTask(row: TaskRow): StoredTask {
   };
 }
 
-export function getTasks(): StoredTask[] {
+export function getTasks(workspaceId?: string | null): StoredTask[] {
   const db = getDatabase();
-  const rows = db
-    .prepare('SELECT * FROM tasks ORDER BY created_at DESC LIMIT ?')
-    .all(MAX_HISTORY_ITEMS) as TaskRow[];
+  let rows: TaskRow[];
+  if (workspaceId) {
+    rows = db
+      .prepare('SELECT * FROM tasks WHERE workspace_id = ? ORDER BY created_at DESC LIMIT ?')
+      .all(workspaceId, MAX_HISTORY_ITEMS) as TaskRow[];
+  } else {
+    rows = db
+      .prepare('SELECT * FROM tasks ORDER BY created_at DESC LIMIT ?')
+      .all(MAX_HISTORY_ITEMS) as TaskRow[];
+  }
 
   return rows.map(rowToTask);
 }
 
 export function getTask(taskId: string): StoredTask | undefined {
   const db = getDatabase();
-  const row = db
-    .prepare('SELECT * FROM tasks WHERE id = ?')
-    .get(taskId) as TaskRow | undefined;
+  const row = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId) as TaskRow | undefined;
 
   return row ? rowToTask(row) : undefined;
 }
 
-export function saveTask(task: Task): void {
+export function saveTask(task: Task, workspaceId?: string | null): void {
   const db = getDatabase();
 
   db.transaction(() => {
     db.prepare(
       `INSERT OR REPLACE INTO tasks
-        (id, prompt, summary, status, session_id, created_at, started_at, completed_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        (id, prompt, summary, status, session_id, created_at, started_at, completed_at, workspace_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       task.id,
       task.prompt,
@@ -143,7 +146,8 @@ export function saveTask(task: Task): void {
       task.sessionId || null,
       task.createdAt,
       task.startedAt || null,
-      task.completedAt || null
+      task.completedAt || null,
+      workspaceId || null,
     );
 
     db.prepare('DELETE FROM task_messages WHERE task_id = ?').run(task.id);
@@ -151,11 +155,11 @@ export function saveTask(task: Task): void {
     const insertMessage = db.prepare(
       `INSERT INTO task_messages
         (id, task_id, type, content, tool_name, tool_input, timestamp, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     );
 
     const insertAttachment = db.prepare(
-      `INSERT INTO task_attachments (message_id, type, data, label) VALUES (?, ?, ?, ?)`
+      `INSERT INTO task_attachments (message_id, type, data, label) VALUES (?, ?, ?, ?)`,
     );
 
     let sortOrder = 0;
@@ -168,7 +172,7 @@ export function saveTask(task: Task): void {
         msg.toolName || null,
         msg.toolInput ? JSON.stringify(msg.toolInput) : null,
         msg.timestamp,
-        sortOrder++
+        sortOrder++,
       );
 
       if (msg.attachments) {
@@ -178,26 +182,36 @@ export function saveTask(task: Task): void {
       }
     }
 
-    db.prepare(
-      `DELETE FROM tasks WHERE id NOT IN (
-        SELECT id FROM tasks ORDER BY created_at DESC LIMIT ?
-      )`
-    ).run(MAX_HISTORY_ITEMS);
+    if (workspaceId) {
+      db.prepare(
+        `DELETE FROM tasks
+         WHERE workspace_id = ?
+           AND id NOT IN (
+             SELECT id FROM tasks WHERE workspace_id = ?
+             ORDER BY created_at DESC LIMIT ?
+           )`,
+      ).run(workspaceId, workspaceId, MAX_HISTORY_ITEMS);
+    } else {
+      db.prepare(
+        `DELETE FROM tasks
+         WHERE workspace_id IS NULL
+           AND id NOT IN (
+             SELECT id FROM tasks WHERE workspace_id IS NULL
+             ORDER BY created_at DESC LIMIT ?
+           )`,
+      ).run(MAX_HISTORY_ITEMS);
+    }
   })();
 }
 
-export function updateTaskStatus(
-  taskId: string,
-  status: TaskStatus,
-  completedAt?: string
-): void {
+export function updateTaskStatus(taskId: string, status: TaskStatus, completedAt?: string): void {
   const db = getDatabase();
 
   if (completedAt) {
     db.prepare('UPDATE tasks SET status = ?, completed_at = ? WHERE id = ?').run(
       status,
       completedAt,
-      taskId
+      taskId,
     );
   } else {
     db.prepare('UPDATE tasks SET status = ? WHERE id = ?').run(status, taskId);
@@ -217,7 +231,7 @@ export function addTaskMessage(taskId: string, message: TaskMessage): void {
     db.prepare(
       `INSERT INTO task_messages
         (id, task_id, type, content, tool_name, tool_input, timestamp, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       message.id,
       taskId,
@@ -226,12 +240,12 @@ export function addTaskMessage(taskId: string, message: TaskMessage): void {
       message.toolName || null,
       message.toolInput ? JSON.stringify(message.toolInput) : null,
       message.timestamp,
-      sortOrder
+      sortOrder,
     );
 
     if (message.attachments) {
       const insertAttachment = db.prepare(
-        `INSERT INTO task_attachments (message_id, type, data, label) VALUES (?, ?, ?, ?)`
+        `INSERT INTO task_attachments (message_id, type, data, label) VALUES (?, ?, ?, ?)`,
       );
 
       for (const att of message.attachments) {
@@ -292,7 +306,7 @@ export function saveTodosForTask(taskId: string, todos: TodoItem[]): void {
 
     const insert = db.prepare(
       `INSERT INTO task_todos (task_id, todo_id, content, status, priority, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?)`,
     );
 
     todos.forEach((todo, index) => {

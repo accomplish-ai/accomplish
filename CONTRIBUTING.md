@@ -38,6 +38,7 @@ pnpm lint         # Run linting
 ## Commit Messages
 
 Use clear, descriptive commit messages:
+
 - `feat: add dark mode support`
 - `fix: resolve crash on startup`
 - `docs: update README with new instructions`
@@ -46,6 +47,7 @@ Use clear, descriptive commit messages:
 ## Reporting Issues
 
 When reporting issues, please include:
+
 - OS and version
 - Steps to reproduce
 - Expected vs actual behavior

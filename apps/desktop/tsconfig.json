@@ -3,8 +3,7 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "jsx": "react-jsx",
+    "lib": ["ES2022"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -14,16 +13,12 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/renderer/*"],
       "@main/*": ["src/main/*"],
       "@accomplish_ai/agent-core/common": ["../../packages/agent-core/src/common.ts"],
       "@accomplish_ai/agent-core": ["../../packages/agent-core/src/index.ts"],
       "@accomplish_ai/agent-core/*": ["../../packages/agent-core/src/*"]
     }
   },
-  "include": [
-    "src/**/*",
-    "../../packages/agent-core/src/**/*"
-  ],
+  "include": ["src/main/**/*", "src/preload/**/*", "../../packages/agent-core/src/**/*"],
   "exclude": ["node_modules", "dist", "dist-electron", "release"]
 }

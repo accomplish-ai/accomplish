@@ -59,7 +59,8 @@ export function createConsoleLogger(options: ConsoleLoggerOptions = {}): Logger 
     }
 
     const formattedMessage = formatMessage(level, message);
-    const consoleFn = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
+    const consoleFn =
+      level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
 
     if (context && Object.keys(context).length > 0) {
       consoleFn(formattedMessage, context);
@@ -94,7 +95,7 @@ export function createNoOpLogger(): Logger {
 }
 
 export function createBufferedLogger(
-  options: ConsoleLoggerOptions = {}
+  options: ConsoleLoggerOptions = {},
 ): Logger & { getEntries(): LogEntry[]; clear(): void } {
   const { prefix = '', minLevel = 'debug' } = options;
   const entries: LogEntry[] = [];

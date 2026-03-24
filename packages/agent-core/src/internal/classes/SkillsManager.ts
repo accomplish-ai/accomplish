@@ -79,7 +79,7 @@ export class SkillsManager {
     for (const existingSkill of existingSkills) {
       if (!processedPaths.has(existingSkill.filePath)) {
         console.log(
-          `[SkillsManager] Removing stale skill: ${existingSkill.name} (${existingSkill.filePath})`
+          `[SkillsManager] Removing stale skill: ${existingSkill.name} (${existingSkill.filePath})`,
         );
         dbDeleteSkill(existingSkill.id);
       }
@@ -120,6 +120,11 @@ export class SkillsManager {
   async addSkill(sourcePath: string): Promise<Skill | null> {
     if (sourcePath.startsWith('http://') || sourcePath.startsWith('https://')) {
       return this.addFromUrl(sourcePath);
+    }
+
+    const stat = fs.statSync(sourcePath);
+    if (stat.isDirectory()) {
+      return this.addFromFolder(sourcePath);
     }
 
     return this.addFromFile(sourcePath);
@@ -238,6 +243,42 @@ export class SkillsManager {
     return this.persistSkill(frontmatter, destPath, 'custom');
   }
 
+  private addFromFolder(folderPath: string): Skill {
+    const skillMdPath = path.join(folderPath, 'SKILL.md');
+    if (!fs.existsSync(skillMdPath)) {
+      throw new Error(`Selected folder does not contain a SKILL.md file: ${folderPath}`);
+    }
+
+    const content = fs.readFileSync(skillMdPath, 'utf-8');
+    const frontmatter = this.validateSkillFrontmatter(content);
+    const destSkillMdPath = this.prepareSkillDir(frontmatter);
+    const destDir = path.dirname(destSkillMdPath);
+
+    const resolvedSourceDir = path.resolve(folderPath);
+    const resolvedDestDir = path.resolve(destDir);
+
+    // Skip delete+copy when re-importing an already-installed skill (same directory)
+    if (resolvedSourceDir === resolvedDestDir) {
+      return this.persistSkill(frontmatter, destSkillMdPath, 'custom');
+    }
+
+    // Remove existing contents so re-imports don't leave stale files
+    if (fs.existsSync(destDir)) {
+      fs.rmSync(destDir, { recursive: true });
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+
+    // Copy only top-level files from source folder
+    const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isFile()) {
+        fs.copyFileSync(path.join(folderPath, entry.name), path.join(destDir, entry.name));
+      }
+    }
+
+    return this.persistSkill(frontmatter, destSkillMdPath, 'custom');
+  }
+
   private async addFromUrl(rawUrl: string): Promise<Skill> {
     const fetchUrl = this.resolveGithubRawUrl(rawUrl);
 
@@ -277,16 +318,12 @@ export class SkillsManager {
 
     let fetchUrl = rawUrl;
     if (rawUrl.includes('/tree/')) {
-      fetchUrl = rawUrl
-        .replace('github.com', 'raw.githubusercontent.com')
-        .replace('/tree/', '/');
+      fetchUrl = rawUrl.replace('github.com', 'raw.githubusercontent.com').replace('/tree/', '/');
       if (!fetchUrl.endsWith('SKILL.md')) {
         fetchUrl = fetchUrl.replace(/\/?$/, '/SKILL.md');
       }
     } else if (rawUrl.includes('/blob/')) {
-      fetchUrl = rawUrl
-        .replace('github.com', 'raw.githubusercontent.com')
-        .replace('/blob/', '/');
+      fetchUrl = rawUrl.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
     } else {
       fetchUrl = rawUrl.replace('github.com', 'raw.githubusercontent.com');
       if (!fetchUrl.endsWith('SKILL.md')) {

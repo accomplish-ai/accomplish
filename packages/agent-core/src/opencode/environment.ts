@@ -81,7 +81,11 @@ function setBedrockEnvironment(env: NodeJS.ProcessEnv, credentials: BedrockCrede
 /**
  * Sets Vertex AI credential environment variables.
  */
-function setVertexEnvironment(env: NodeJS.ProcessEnv, credentials: VertexCredentials, serviceAccountKeyPath?: string): void {
+function setVertexEnvironment(
+  env: NodeJS.ProcessEnv,
+  credentials: VertexCredentials,
+  serviceAccountKeyPath?: string,
+): void {
   env.GOOGLE_CLOUD_PROJECT = credentials.projectId;
   env.GOOGLE_CLOUD_LOCATION = credentials.location;
 
@@ -120,7 +124,7 @@ function setBundledNodeEnvironment(env: NodeJS.ProcessEnv, bundledNodeBinPath: s
  */
 export function buildOpenCodeEnvironment(
   baseEnv: NodeJS.ProcessEnv,
-  config: EnvironmentConfig
+  config: EnvironmentConfig,
 ): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...baseEnv };
 

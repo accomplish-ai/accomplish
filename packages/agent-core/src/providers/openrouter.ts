@@ -24,7 +24,7 @@ export interface FetchModelsResult {
  */
 export async function fetchOpenRouterModels(
   apiKey: string,
-  timeout: number = DEFAULT_TIMEOUT_MS
+  timeout: number = DEFAULT_TIMEOUT_MS,
 ): Promise<FetchModelsResult> {
   if (!apiKey) {
     return { success: false, error: 'No OpenRouter API key configured' };
@@ -39,7 +39,7 @@ export async function fetchOpenRouterModels(
           Authorization: `Bearer ${apiKey}`,
         },
       },
-      timeout
+      timeout,
     );
 
     if (!response.ok) {

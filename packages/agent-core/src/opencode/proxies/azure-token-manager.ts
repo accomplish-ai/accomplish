@@ -34,9 +34,7 @@ export async function getAzureEntraToken(): Promise<
       expiresAt,
     };
 
-    console.log(
-      `[Azure Token Manager] Acquired new token, expires at ${expiresAt.toISOString()}`
-    );
+    console.log(`[Azure Token Manager] Acquired new token, expires at ${expiresAt.toISOString()}`);
 
     return { success: true, token: tokenResponse.token };
   } catch (error) {

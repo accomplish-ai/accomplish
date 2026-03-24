@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { OpenCodeCliNotFoundError } from '../../../src/opencode/adapter.js';
+import { OpenCodeCliNotFoundError } from '../../../src/internal/classes/OpenCodeAdapter.js';
 
 /**
  * Tests for TaskManager module.
@@ -119,9 +119,9 @@ describe('TaskManager', () => {
     });
 
     it('should enforce queue limit', () => {
-      const maxConcurrent = 2;
+      const _maxConcurrent = 2;
       const maxQueued = 2;
-      const activeTasks = 2;
+      const _activeTasks = 2;
       const queuedTasks = 2;
 
       const canQueue = queuedTasks < maxQueued;
@@ -146,7 +146,7 @@ describe('TaskManager', () => {
       const taskQueue = [{ taskId: 'task-2' }];
 
       const isAlreadyExisting = (taskId: string) => {
-        return activeTasks.has(taskId) || taskQueue.some(q => q.taskId === taskId);
+        return activeTasks.has(taskId) || taskQueue.some((q) => q.taskId === taskId);
       };
 
       activeTasks.set('task-1', { taskId: 'task-1' });
@@ -204,14 +204,10 @@ describe('TaskManager', () => {
 
   describe('Task cancellation', () => {
     it('should remove task from queue', () => {
-      const queue = [
-        { taskId: 'task-1' },
-        { taskId: 'task-2' },
-        { taskId: 'task-3' },
-      ];
+      const queue = [{ taskId: 'task-1' }, { taskId: 'task-2' }, { taskId: 'task-3' }];
 
       const cancelQueued = (taskId: string) => {
-        const index = queue.findIndex(q => q.taskId === taskId);
+        const index = queue.findIndex((q) => q.taskId === taskId);
         if (index !== -1) {
           queue.splice(index, 1);
           return true;
@@ -221,7 +217,7 @@ describe('TaskManager', () => {
 
       expect(cancelQueued('task-2')).toBe(true);
       expect(queue.length).toBe(2);
-      expect(queue.map(q => q.taskId)).toEqual(['task-1', 'task-3']);
+      expect(queue.map((q) => q.taskId)).toEqual(['task-1', 'task-3']);
 
       expect(cancelQueued('task-4')).toBe(false);
     });

@@ -30,7 +30,7 @@ interface LiteLLMModelsResponse {
  */
 export async function testLiteLLMConnection(
   url: string,
-  apiKey?: string
+  apiKey?: string,
 ): Promise<LiteLLMConnectionResult> {
   const sanitizedUrl = sanitizeString(url, 'litellmUrl', 256);
   const sanitizedApiKey = apiKey ? sanitizeString(apiKey, 'apiKey', 256) : undefined;
@@ -50,15 +50,14 @@ export async function testLiteLLMConnection(
     const response = await fetchWithTimeout(
       `${sanitizedUrl}/v1/models`,
       { method: 'GET', headers },
-      DEFAULT_TIMEOUT_MS
+      DEFAULT_TIMEOUT_MS,
     );
 
     if (!response.ok) {
       const errorData = (await response.json().catch(() => ({}))) as {
         error?: { message?: string };
       };
-      const errorMessage =
-        errorData?.error?.message || `API returned status ${response.status}`;
+      const errorMessage = errorData?.error?.message || `API returned status ${response.status}`;
       return { success: false, error: errorMessage };
     }
 
@@ -99,7 +98,7 @@ export interface FetchLiteLLMModelsOptions {
  * @returns Result with formatted models on success
  */
 export async function fetchLiteLLMModels(
-  options: FetchLiteLLMModelsOptions
+  options: FetchLiteLLMModelsOptions,
 ): Promise<LiteLLMConnectionResult> {
   const { config, apiKey } = options;
 
@@ -116,15 +115,14 @@ export async function fetchLiteLLMModels(
     const response = await fetchWithTimeout(
       `${config.baseUrl}/v1/models`,
       { method: 'GET', headers },
-      DEFAULT_TIMEOUT_MS
+      DEFAULT_TIMEOUT_MS,
     );
 
     if (!response.ok) {
       const errorData = (await response.json().catch(() => ({}))) as {
         error?: { message?: string };
       };
-      const errorMessage =
-        errorData?.error?.message || `API returned status ${response.status}`;
+      const errorMessage = errorData?.error?.message || `API returned status ${response.status}`;
       return { success: false, error: errorMessage };
     }
 
