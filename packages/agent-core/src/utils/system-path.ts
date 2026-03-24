@@ -1,6 +1,9 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createConsoleLogger } from './logging.js';
+
+const log = createConsoleLogger({ prefix: 'SystemPath' });
 
 function getNvmNodePaths(): string[] {
   const home = process.env.HOME || '';
@@ -91,7 +94,7 @@ function getSystemPathFromPathHelper(): string | null {
       return match[1];
     }
   } catch (err) {
-    console.warn('[SystemPath] path_helper failed:', err);
+    log.warn('[SystemPath] path_helper failed:', { error: err });
   }
 
   return null;

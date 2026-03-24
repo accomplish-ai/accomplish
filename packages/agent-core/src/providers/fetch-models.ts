@@ -1,6 +1,9 @@
 import type { ModelsEndpointConfig } from '../common/types/provider.js';
 import { getModelDisplayName } from '../common/constants/model-display.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'FetchModels' });
 
 const DEFAULT_TIMEOUT_MS = 15000;
 
@@ -179,11 +182,11 @@ export async function fetchProviderModels(
     const parser = PARSERS[endpointConfig.responseFormat];
     const models = parser(data, prefix, endpointConfig.modelFilter);
 
-    console.log(`[FetchModels] Fetched ${models.length} models from ${endpointConfig.url}`);
+    log.info(`Fetched ${models.length} models from ${url}`);
     return { success: true, models };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch models';
-    console.warn('[FetchModels] Fetch failed:', message);
+    log.warn(`Fetch failed: ${message}`);
 
     if (error instanceof Error && error.name === 'AbortError') {
       return { success: false, error: 'Request timed out. Check your internet connection.' };

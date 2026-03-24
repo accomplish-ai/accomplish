@@ -2,6 +2,9 @@ import path from 'path';
 import fs from 'fs';
 import { execFileSync, spawnSync } from 'child_process';
 import type { CliResolverConfig, ResolvedCliPaths } from '../types.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'CLIResolver' });
 
 const WINDOWS_OPENCODE_X64_PACKAGE = 'opencode-windows-x64';
 const WINDOWS_OPENCODE_X64_BASELINE_PACKAGE = 'opencode-windows-x64-baseline';
@@ -144,7 +147,7 @@ function resolveLocalCliPath(appPath?: string): ResolvedCliPaths | null {
       for (const packageName of packageNames) {
         const cliPath = path.join(root, 'node_modules', packageName, 'bin', binaryName);
         if (fs.existsSync(cliPath)) {
-          console.log('[CLI Resolver] Using local OpenCode CLI executable:', cliPath);
+          log.info(`[CLI Resolver] Using local OpenCode CLI executable: ${cliPath}`);
           return {
             cliPath,
             cliDir: path.dirname(cliPath),
@@ -165,7 +168,7 @@ function resolveLocalCliPath(appPath?: string): ResolvedCliPaths | null {
 
     const cliPath = path.join(root, 'node_modules', '.bin', binaryName);
     if (fs.existsSync(cliPath)) {
-      console.log('[CLI Resolver] Using local OpenCode CLI executable:', cliPath);
+      log.info(`[CLI Resolver] Using local OpenCode CLI executable: ${cliPath}`);
       return {
         cliPath,
         cliDir: path.dirname(cliPath),
@@ -198,7 +201,7 @@ function resolveWindowsCliFromLauncher(
     for (const packageName of packageNames) {
       const cliPath = path.join(moduleRoot, packageName, 'bin', 'opencode.exe');
       if (fs.existsSync(cliPath)) {
-        console.log('[CLI Resolver] Using OpenCode CLI executable via launcher package:', cliPath);
+        log.info(`[CLI Resolver] Using OpenCode CLI executable via launcher package: ${cliPath}`);
         return {
           cliPath,
           cliDir: path.dirname(cliPath),

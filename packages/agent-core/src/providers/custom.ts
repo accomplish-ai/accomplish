@@ -1,6 +1,9 @@
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { validateHttpUrl } from '../utils/url.js';
 import { sanitizeString } from '../utils/sanitize.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'CustomProvider' });
 
 const DEFAULT_TIMEOUT_MS = 10000;
 
@@ -54,7 +57,7 @@ export async function testCustomConnection(
         ? `${normalizedUrl}/models`
         : `${normalizedUrl}/v1/models`;
     } else {
-      console.warn(
+      log.warn(
         '[Custom] URL path appears to be a specific endpoint rather than a base URL. ' +
           'For best results, provide a base URL ending in /v1 (e.g., https://api.example.com/v1).',
       );
@@ -69,7 +72,7 @@ export async function testCustomConnection(
 
     // Any response from the server indicates the endpoint is reachable
     if (response.ok) {
-      console.log('[Custom] Connection successful, /models endpoint responded');
+      log.info('[Custom] Connection successful, /models endpoint responded');
       return { success: true };
     }
 
@@ -86,7 +89,7 @@ export async function testCustomConnection(
       // If user provided an API key but /models returns 401/403, the endpoint
       // might not support /models at all. Trust the user and allow connection.
       // The real validation happens when they make an actual request.
-      console.log(
+      log.info(
         '[Custom] Connection successful (server reachable, /models may not be supported)',
       );
       return { success: true };
@@ -95,7 +98,7 @@ export async function testCustomConnection(
     if (status === 404) {
       // The /models endpoint doesn't exist, but the server is reachable
       // This is acceptable for custom endpoints that might not implement /models
-      console.log('[Custom] Connection successful (server reachable, /models not implemented)');
+      log.info('[Custom] Connection successful (server reachable, /models not implemented)');
       return { success: true };
     }
 
@@ -105,11 +108,11 @@ export async function testCustomConnection(
     };
     const errorMessage = errorData?.error?.message || `Server returned status ${status}`;
     // Still allow connection for most errors - the server is reachable
-    console.log(`[Custom] ${errorMessage}, but connection is reachable`);
+    log.info(`[Custom] ${errorMessage}, but connection is reachable`);
     return { success: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Connection failed';
-    console.warn('[Custom] Connection failed:', message);
+    log.warn(`[Custom] Connection failed: ${message}`);
 
     if (error instanceof Error && error.name === 'AbortError') {
       return {

@@ -2,6 +2,9 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import { runMigrations, getStoredVersion, CURRENT_VERSION } from './migrations/index.js';
 import { FutureSchemaError } from './migrations/errors.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'DB' });
 
 export interface DatabaseOptions {
   databasePath: string;
@@ -29,7 +32,7 @@ export function initializeDatabase(options: DatabaseOptions): Database.Database 
     closeDatabase();
   }
 
-  console.log('[DB] Opening database at:', databasePath);
+  log.info(`[DB] Opening database at: ${databasePath}`);
 
   _db = new Database(databasePath);
   _currentPath = databasePath;
@@ -46,7 +49,7 @@ export function initializeDatabase(options: DatabaseOptions): Database.Database 
     }
 
     runMigrations(_db);
-    console.log('[DB] Database initialized and migrations complete');
+    log.info('[DB] Database initialized and migrations complete');
   }
 
   return _db;
@@ -54,7 +57,7 @@ export function initializeDatabase(options: DatabaseOptions): Database.Database 
 
 export function closeDatabase(): void {
   if (_db) {
-    console.log('[DB] Closing database connection');
+    log.info('[DB] Closing database connection');
     _db.close();
     _db = null;
     _currentPath = null;
@@ -78,7 +81,7 @@ export function resetDatabase(databasePath: string): void {
 
   if (fs.existsSync(databasePath)) {
     const backupPath = `${databasePath}.corrupt.${Date.now()}`;
-    console.log('[DB] Backing up corrupt database to:', backupPath);
+    log.info(`[DB] Backing up corrupt database to: ${backupPath}`);
     fs.renameSync(databasePath, backupPath);
   }
 

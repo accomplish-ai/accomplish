@@ -11,6 +11,9 @@
 
 import { fetchWithTimeout } from '../utils/fetch.js';
 import type { SecureStorage } from '../storage/secure-storage.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'Speech' });
 
 const ELEVENLABS_API_TIMEOUT_MS = 30000;
 const DEFAULT_ELEVENLABS_STT_MODEL_ID = 'scribe_v2';
@@ -131,7 +134,7 @@ export class SpeechService {
 
     const startTime = Date.now();
 
-    console.log('[ElevenLabs] Starting transcription:', {
+    log.info('[ElevenLabs] Starting transcription:', {
       audioSize: audioData.length,
       mimeType,
       modelId,
@@ -143,7 +146,7 @@ export class SpeechService {
       const uint8Array = new Uint8Array(audioData);
       const blob = new Blob([uint8Array], { type: mimeType });
 
-      console.log('[ElevenLabs] Created blob:', {
+      log.info('[ElevenLabs] Created blob:', {
         blobSize: blob.size,
         blobType: blob.type,
       });
@@ -176,7 +179,7 @@ export class SpeechService {
           // Not JSON, use raw text
         }
 
-        console.error('[ElevenLabs] API error:', {
+        log.error('[ElevenLabs] API error:', {
           status: response.status,
           statusText: response.statusText,
           errorData: JSON.stringify(errorData, null, 2),

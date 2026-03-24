@@ -2,6 +2,9 @@ import type { LiteLLMModel, LiteLLMConfig } from '../common/types/provider.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { validateHttpUrl } from '../utils/url.js';
 import { sanitizeString } from '../utils/sanitize.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'LiteLLM' });
 
 const DEFAULT_TIMEOUT_MS = 10000;
 
@@ -72,11 +75,11 @@ export async function testLiteLLMConnection(
       };
     });
 
-    console.log(`[LiteLLM] Connection successful, found ${models.length} models`);
+    log.info(`[LiteLLM] Connection successful, found ${models.length} models`);
     return { success: true, models };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Connection failed';
-    console.warn('[LiteLLM] Connection failed:', message);
+    log.warn(`[LiteLLM] Connection failed: ${message}`);
 
     if (error instanceof Error && error.name === 'AbortError') {
       return { success: false, error: 'Connection timed out. Make sure LiteLLM proxy is running.' };
@@ -150,11 +153,11 @@ export async function fetchLiteLLMModels(
       };
     });
 
-    console.log(`[LiteLLM] Fetched ${models.length} models`);
+    log.info(`[LiteLLM] Fetched ${models.length} models`);
     return { success: true, models };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch models';
-    console.warn('[LiteLLM] Fetch failed:', message);
+    log.warn(`[LiteLLM] Fetch failed: ${message}`);
 
     if (error instanceof Error && error.name === 'AbortError') {
       return { success: false, error: 'Request timed out. Check your LiteLLM proxy.' };

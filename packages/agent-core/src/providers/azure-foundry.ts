@@ -5,6 +5,9 @@ import { sanitizeString } from '../utils/sanitize.js';
 import { validateHttpUrl } from '../utils/url.js';
 import { getAzureEntraToken } from '../opencode/proxies/azure-token-manager.js';
 import type { ValidationResult } from './validation.js';
+import { createConsoleLogger } from '../utils/logging.js';
+
+const log = createConsoleLogger({ prefix: 'AzureFoundry' });
 
 export interface AzureFoundryConnectionOptions {
   endpoint: string;
@@ -108,11 +111,11 @@ export async function testAzureFoundryConnection(
       }
     }
 
-    console.log('[Azure Foundry] Connection test successful for deployment:', deploymentName);
+    log.info(`[Azure Foundry] Connection test successful for deployment: ${deploymentName}`);
     return { success: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Connection failed';
-    console.warn('[Azure Foundry] Connection test failed:', message);
+    log.warn(`[Azure Foundry] Connection test failed: ${message}`);
 
     if (error instanceof Error && error.name === 'AbortError') {
       return {
@@ -188,7 +191,7 @@ export async function validateAzureFoundry(
 
   // Skip validation if missing required config
   if (!baseUrl || !deploymentName) {
-    console.log('[Azure Foundry] Skipping validation (missing config or options)');
+    log.info('[Azure Foundry] Skipping validation (missing config or options)');
     return { valid: true };
   }
 
@@ -253,7 +256,7 @@ export async function validateAzureFoundry(
     }
 
     if (response.ok) {
-      console.log('[Azure Foundry] Validation succeeded');
+      log.info('[Azure Foundry] Validation succeeded');
       return { valid: true };
     }
 
@@ -261,10 +264,10 @@ export async function validateAzureFoundry(
     const errorMessage =
       (errorData as { error?: { message?: string } })?.error?.message ||
       `API returned status ${response.status}`;
-    console.warn('[Azure Foundry] Validation failed', { error: errorMessage });
+    log.warn('[Azure Foundry] Validation failed', { error: errorMessage });
     return { valid: false, error: errorMessage };
   } catch (error) {
-    console.error('[Azure Foundry] Validation error', {
+    log.error('[Azure Foundry] Validation error', {
       error: error instanceof Error ? error.message : String(error),
     });
     if (error instanceof Error && error.name === 'AbortError') {
