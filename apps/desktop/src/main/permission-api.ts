@@ -22,6 +22,26 @@ import {
 import { getLogCollector } from './logging';
 import { readJsonBody, HttpError } from './http/readJsonBody';
 
+/**
+ * Reads and parses a JSON request body, writing an appropriate error response
+ * if parsing fails. Returns the parsed body or null (response already sent).
+ */
+async function parseJsonRequest<T extends Record<string, unknown>>(
+  req: import('http').IncomingMessage,
+  res: import('http').ServerResponse,
+  maxBytes = 1 * 1024 * 1024,
+): Promise<T | null> {
+  try {
+    return await readJsonBody<T>(req, { maxBytes });
+  } catch (err) {
+    const status = err instanceof HttpError ? err.statusCode : 400;
+    const message = err instanceof HttpError ? err.message : 'Invalid request';
+    res.writeHead(status, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: message }));
+    return null;
+  }
+}
+
 export { PERMISSION_API_PORT, QUESTION_API_PORT, isFilePermissionRequest, isQuestionRequest };
 
 // Singleton permission request handler
@@ -112,14 +132,8 @@ export function startPermissionApiServer(): http.Server {
     }
 
     // Parse request body with a 1 MB size cap to prevent memory exhaustion.
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = await readJsonBody<Record<string, unknown>>(req, { maxBytes: 1 * 1024 * 1024 });
-    } catch (err) {
-      const status = err instanceof HttpError ? err.statusCode : 400;
-      const message = err instanceof HttpError ? err.message : 'Invalid request';
-      res.writeHead(status, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: message }));
+    const parsed = await parseJsonRequest(req, res);
+    if (!parsed) {
       return;
     }
 
@@ -252,14 +266,8 @@ export function startQuestionApiServer(): http.Server {
     }
 
     // Parse request body with a 1 MB size cap to prevent memory exhaustion.
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = await readJsonBody<Record<string, unknown>>(req, { maxBytes: 1 * 1024 * 1024 });
-    } catch (err) {
-      const status = err instanceof HttpError ? err.statusCode : 400;
-      const message = err instanceof HttpError ? err.message : 'Invalid request';
-      res.writeHead(status, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: message }));
+    const parsed = await parseJsonRequest(req, res);
+    if (!parsed) {
       return;
     }
 
