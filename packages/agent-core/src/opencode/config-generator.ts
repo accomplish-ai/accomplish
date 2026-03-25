@@ -183,7 +183,9 @@ Set \`needs_planning: true\` if completing the request will require tools beyond
 - Use desktop.type() only after focusing the target input with desktop.click().
 - **CRITICAL:** Any task that involves desktop.* tools MUST use \`needs_planning: true\` in the start_task call. Desktop automation is inherently destructive — plan your steps before executing.
 
-Set \`needs_planning: false\` if you can answer from knowledge alone using only start_task → text response → stop. This includes greetings, knowledge questions, meta-questions about your capabilities, help requests, and conversational messages.
+Set \`needs_planning: false\` for conversational responses that do not require tools.
+In this mode, respond directly and stop (no \`start_task\`, no \`complete_task\`).
+This includes greetings, short knowledge questions, meta-questions about capabilities, help requests, and conversational messages.
 
 **When needs_planning is TRUE** — provide goal, steps, verification:
 
