@@ -50,6 +50,7 @@ export function HomePage() {
 
   const useCaseExamples = useMemo(() => {
     return USE_CASE_KEYS.map(({ key, icons }) => ({
+      key,
       title: t(`useCases.${key}.title`),
       description: t(`useCases.${key}.description`),
       prompt: t(`useCases.${key}.prompt`),
