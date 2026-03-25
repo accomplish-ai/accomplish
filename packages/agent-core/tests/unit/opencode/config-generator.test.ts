@@ -786,7 +786,7 @@ describe('ConfigGenerator', () => {
 
     it('should contain needs_planning: false for conversational messages', () => {
       expect(prompt).toContain('needs_planning: false');
-      expect(prompt).toContain('you can answer from knowledge alone using only start_task');
+      expect(prompt).toContain('conversational responses that do not require tools');
     });
 
     it('should contain explicit instruction not to call complete_task for conversational responses', () => {
