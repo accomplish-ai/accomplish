@@ -43,7 +43,8 @@
   "packageManager": "pnpm@9.15.0",
   "pnpm": {
     "overrides": {
-      "fast-xml-parser": ">=5.3.4"
+      "fast-xml-parser": ">=5.3.4",
+      "@electron/rebuild>node-gyp": "^12.1.0"
     }
   },
   "devDependencies": {

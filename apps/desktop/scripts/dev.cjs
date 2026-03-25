@@ -64,11 +64,11 @@ function ensureNativeModules(commandEnv) {
 }
 
 function runElectronRebuild(commandEnv) {
-  // Pass --msvs_version=2022 so node-gyp selects VS 2022 Build Tools even
-  // when a newer Visual Studio (e.g. 2026) is the system default.
-  // This fixes compilation on machines that only have VS 2026 installed
-  // alongside the VS 2022 Build Tools workload. See GitHub issue #445.
-  runPnpmSync(['exec', 'electron-rebuild', '-f', '--', '--msvs_version=2022'], {
+  // Let electron-rebuild delegate Visual Studio discovery to node-gyp so
+  // Windows developers can build with whichever supported MSVC toolchain is
+  // installed, including Visual Studio 2026. The root package.json pins
+  // electron-rebuild to a node-gyp release that supports newer VS versions.
+  runPnpmSync(['exec', 'electron-rebuild', '-f'], {
     cwd: desktopRoot,
     env: commandEnv,
   });
