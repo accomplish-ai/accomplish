@@ -26,24 +26,33 @@ interface NimModelsResponse {
 }
 
 function mapNimModels(rawModels: NimModelsResponse['data']): NimModel[] {
-  return (rawModels || []).map((m) => {
+  const results: NimModel[] = [];
+  for (const m of rawModels || []) {
+    if (!m || typeof m.id !== 'string' || !m.id.trim()) {
+      continue;
+    }
     const parts = m.id.split('/');
-    const provider = parts.length > 1 ? parts[0] : m.owned_by || 'nvidia';
+    const rawProvider = parts.length > 1 ? parts[0] : m.owned_by || 'nvidia';
+    const provider = rawProvider || m.owned_by || 'nvidia';
     const modelPart = parts.length > 1 ? parts.slice(1).join('/') : m.id;
-    const providerDisplay = provider.charAt(0).toUpperCase() + provider.slice(1);
+    const providerDisplay = provider ? provider.charAt(0).toUpperCase() + provider.slice(1) : '';
     const modelDisplay = modelPart
-      .split(/[-_]/)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-    const displayName = parts.length > 1 ? `${providerDisplay}: ${modelDisplay}` : modelDisplay;
+      ? modelPart
+          .split(/[-_]/)
+          .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ''))
+          .join(' ')
+      : m.id;
+    const displayName =
+      parts.length > 1 && providerDisplay ? `${providerDisplay}: ${modelDisplay}` : modelDisplay;
 
-    return {
+    results.push({
       id: m.id,
-      name: displayName,
+      name: displayName || m.id,
       provider,
       contextLength: 0,
-    };
-  });
+    });
+  }
+  return results;
 }
 
 /**
@@ -123,7 +132,9 @@ export async function fetchNimModels(options: FetchNimModelsOptions): Promise<Ni
     return { success: false, error: 'No NVIDIA NIM endpoint configured' };
   }
 
-  if (!apiKey) {
+  const sanitizedApiKey = sanitizeString(apiKey || '', 'apiKey', 256);
+
+  if (!sanitizedApiKey) {
     return { success: false, error: 'API key is required for NVIDIA NIM' };
   }
 
@@ -134,8 +145,6 @@ export async function fetchNimModels(options: FetchNimModelsOptions): Promise<Ni
   } catch (_e) {
     return { success: false, error: 'Invalid NVIDIA NIM endpoint URL' };
   }
-
-  const sanitizedApiKey = sanitizeString(apiKey, 'apiKey', 256);
 
   try {
     const headers: Record<string, string> = {
