@@ -461,6 +461,10 @@
       "type": "Note type",
       "content": "Note content"
     },
+    "errors": {
+      "updateFailed": "Note not found or could not be updated.",
+      "deleteFailed": "Note not found or could not be deleted."
+    },
     "empty": "No knowledge notes yet. Add notes to give your AI persistent context.",
     "maxNotes": "Maximum {{max}} notes per workspace"
   }

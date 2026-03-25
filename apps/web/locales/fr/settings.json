@@ -461,6 +461,10 @@
       "type": "Type de note",
       "content": "Contenu de la note"
     },
+    "errors": {
+      "updateFailed": "Note introuvable ou impossible à mettre à jour.",
+      "deleteFailed": "Note introuvable ou impossible à supprimer."
+    },
     "empty": "Aucune note de contexte. Ajoutez des notes pour donner à votre IA un contexte persistant.",
     "maxNotes": "Maximum {{max}} notes par espace de travail"
   }

@@ -461,6 +461,10 @@
       "type": "笔记类型",
       "content": "笔记内容"
     },
+    "errors": {
+      "updateFailed": "找不到笔记或无法更新。",
+      "deleteFailed": "找不到笔记或无法删除。"
+    },
     "empty": "暂无知识笔记。添加笔记以为 AI 提供持久上下文。",
     "maxNotes": "每个工作空间最多 {{max}} 条笔记"
   }

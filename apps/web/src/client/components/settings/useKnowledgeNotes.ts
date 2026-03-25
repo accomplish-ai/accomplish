@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getAccomplish } from '@/lib/accomplish';
 import type { KnowledgeNote, KnowledgeNoteType } from '@accomplish_ai/agent-core';
 
@@ -29,6 +30,7 @@ export function useKnowledgeNotes(
   accomplish: AccomplishInstance,
   workspaceId: string,
 ): UseKnowledgeNotesReturn {
+  const { t } = useTranslation('settings');
   const [notes, setNotes] = useState<KnowledgeNote[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -38,28 +40,45 @@ export function useKnowledgeNotes(
   const [editType, setEditType] = useState<KnowledgeNoteType>('context');
   const [editContent, setEditContent] = useState('');
 
+  // Shared request counter — incrementing it abandons any in-flight fetch.
+  const activeRequestRef = useRef(0);
+
+  // Used by mutation handlers after create/update/delete.
   const loadNotes = useCallback(async () => {
-    const loaded = await accomplish.listKnowledgeNotes(workspaceId);
-    setNotes(loaded);
+    const requestId = ++activeRequestRef.current;
+    try {
+      const loaded = await accomplish.listKnowledgeNotes(workspaceId);
+      if (requestId === activeRequestRef.current) {
+        setError(null);
+        setNotes(loaded);
+      }
+    } catch (err) {
+      if (requestId === activeRequestRef.current) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    }
   }, [accomplish, workspaceId]);
 
+  // Initial load on mount / workspaceId change. Uses the same activeRequestRef
+  // guard so a cleanup (workspace switch) abandons any in-flight request from
+  // either this effect or a concurrent mutation-triggered loadNotes call.
   useEffect(() => {
-    let isActive = true;
+    const requestId = ++activeRequestRef.current;
     accomplish
       .listKnowledgeNotes(workspaceId)
       .then((loaded) => {
-        if (isActive) {
+        if (requestId === activeRequestRef.current) {
           setError(null);
           setNotes(loaded);
         }
       })
       .catch((err: unknown) => {
-        if (isActive) {
+        if (requestId === activeRequestRef.current) {
           setError(err instanceof Error ? err.message : String(err));
         }
       });
     return () => {
-      isActive = false;
+      activeRequestRef.current++;
     };
   }, [accomplish, workspaceId]);
 
@@ -94,7 +113,7 @@ export function useKnowledgeNotes(
           content: editContent.trim(),
         });
         if (updated === null) {
-          setError('Note not found or could not be updated.');
+          setError(t('knowledgeNotes.errors.updateFailed'));
           return;
         }
         setError(null);
@@ -104,7 +123,7 @@ export function useKnowledgeNotes(
         setError(err instanceof Error ? err.message : String(err));
       }
     },
-    [accomplish, workspaceId, editType, editContent, loadNotes],
+    [accomplish, workspaceId, editType, editContent, loadNotes, t],
   );
 
   const handleDelete = useCallback(
@@ -112,7 +131,7 @@ export function useKnowledgeNotes(
       try {
         const deleted = await accomplish.deleteKnowledgeNote(id, workspaceId);
         if (!deleted) {
-          setError('Note not found or could not be deleted.');
+          setError(t('knowledgeNotes.errors.deleteFailed'));
           return;
         }
         setError(null);
@@ -121,7 +140,7 @@ export function useKnowledgeNotes(
         setError(err instanceof Error ? err.message : String(err));
       }
     },
-    [accomplish, workspaceId, loadNotes],
+    [accomplish, workspaceId, loadNotes, t],
   );
 
   const startEdit = useCallback((note: KnowledgeNote) => {
