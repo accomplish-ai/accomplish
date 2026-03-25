@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getAccomplish } from '@/lib/accomplish';
-import type { KnowledgeNote, KnowledgeNoteType } from '@accomplish_ai/agent-core/common';
+import type { KnowledgeNote, KnowledgeNoteType } from '@accomplish_ai/agent-core';
 
 const NOTE_TYPES: KnowledgeNoteType[] = ['context', 'instruction', 'reference'];
 const MAX_CONTENT_LENGTH = 500;
@@ -25,6 +25,7 @@ export function KnowledgeNotesPanel({ workspaceId }: KnowledgeNotesPanelProps) {
   const [newContent, setNewContent] = useState('');
   const [editType, setEditType] = useState<KnowledgeNoteType>('context');
   const [editContent, setEditContent] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const loadNotes = useCallback(async () => {
     const loaded = await accomplish.listKnowledgeNotes(workspaceId);
@@ -47,15 +48,19 @@ export function KnowledgeNotesPanel({ workspaceId }: KnowledgeNotesPanelProps) {
     if (!newContent.trim()) {
       return;
     }
-    await accomplish.createKnowledgeNote({
-      workspaceId,
-      type: newType,
-      content: newContent.trim(),
-    });
-    setNewContent('');
-    setNewType('context');
-    setShowAddForm(false);
-    await loadNotes();
+    try {
+      await accomplish.createKnowledgeNote({
+        workspaceId,
+        type: newType,
+        content: newContent.trim(),
+      });
+      setNewContent('');
+      setNewType('context');
+      setShowAddForm(false);
+      await loadNotes();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
   }, [accomplish, workspaceId, newType, newContent, loadNotes]);
 
   const handleEdit = useCallback(
@@ -63,22 +68,30 @@ export function KnowledgeNotesPanel({ workspaceId }: KnowledgeNotesPanelProps) {
       if (!editContent.trim()) {
         return;
       }
-      await accomplish.updateKnowledgeNote(id, {
-        type: editType,
-        content: editContent.trim(),
-      });
-      setEditingId(null);
-      await loadNotes();
+      try {
+        await accomplish.updateKnowledgeNote(id, workspaceId, {
+          type: editType,
+          content: editContent.trim(),
+        });
+        setEditingId(null);
+        await loadNotes();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
     },
-    [accomplish, editType, editContent, loadNotes],
+    [accomplish, workspaceId, editType, editContent, loadNotes],
   );
 
   const handleDelete = useCallback(
     async (id: string) => {
-      await accomplish.deleteKnowledgeNote(id);
-      await loadNotes();
+      try {
+        await accomplish.deleteKnowledgeNote(id, workspaceId);
+        await loadNotes();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
     },
-    [accomplish, loadNotes],
+    [accomplish, workspaceId, loadNotes],
   );
 
   const startEdit = useCallback((note: KnowledgeNote) => {
@@ -171,6 +184,8 @@ export function KnowledgeNotesPanel({ workspaceId }: KnowledgeNotesPanelProps) {
         </div>
       )}
 
+      {error && <p className="mb-2 text-xs text-destructive">{error}</p>}
+
       {notes.length === 0 && !showAddForm && (
         <p className="text-xs text-muted-foreground italic">{t('knowledgeNotes.empty')}</p>
       )}
@@ -253,7 +268,9 @@ export function KnowledgeNotesPanel({ workspaceId }: KnowledgeNotesPanelProps) {
       </div>
 
       {notes.length >= MAX_NOTES && (
-        <p className="mt-2 text-xs text-muted-foreground">{t('knowledgeNotes.maxNotes')}</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {t('knowledgeNotes.maxNotes', { max: MAX_NOTES })}
+        </p>
       )}
     </div>
   );

@@ -458,6 +458,6 @@
       "reference": "Reference"
     },
     "empty": "No knowledge notes yet. Add notes to give your AI persistent context.",
-    "maxNotes": "Maximum 20 notes per workspace"
+    "maxNotes": "Maximum {{max}} notes per workspace"
   }
 }

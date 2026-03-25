@@ -82,12 +82,20 @@ export function registerWorkspaceHandlers(): void {
 
   handle(
     'knowledge-notes:update',
-    async (_event: IpcMainInvokeEvent, id: string, input: KnowledgeNoteUpdateInput) => {
-      return updateKnowledgeNote(id, input);
+    async (
+      _event: IpcMainInvokeEvent,
+      id: string,
+      workspaceId: string,
+      input: KnowledgeNoteUpdateInput,
+    ) => {
+      return updateKnowledgeNote(id, workspaceId, input);
     },
   );
 
-  handle('knowledge-notes:delete', async (_event: IpcMainInvokeEvent, id: string) => {
-    return deleteKnowledgeNote(id);
-  });
+  handle(
+    'knowledge-notes:delete',
+    async (_event: IpcMainInvokeEvent, id: string, workspaceId: string) => {
+      return deleteKnowledgeNote(id, workspaceId);
+    },
+  );
 }

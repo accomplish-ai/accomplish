@@ -38,11 +38,11 @@ export function listKnowledgeNotes(workspaceId: string): KnowledgeNote[] {
   return rows.map(rowToNote);
 }
 
-export function getKnowledgeNote(id: string): KnowledgeNote | null {
+export function getKnowledgeNote(id: string, workspaceId: string): KnowledgeNote | null {
   const db = getMetaDatabase();
-  const row = db.prepare('SELECT * FROM knowledge_notes WHERE id = ?').get(id) as
-    | Record<string, unknown>
-    | undefined;
+  const row = db
+    .prepare('SELECT * FROM knowledge_notes WHERE id = ? AND workspace_id = ?')
+    .get(id, workspaceId) as Record<string, unknown> | undefined;
   return row ? rowToNote(row) : null;
 }
 
@@ -65,15 +65,16 @@ export function createKnowledgeNote(input: KnowledgeNoteCreateInput): KnowledgeN
      VALUES (?, ?, ?, ?, ?, ?)`,
   ).run(id, input.workspaceId, input.type, content, now, now);
 
-  return getKnowledgeNote(id)!;
+  return getKnowledgeNote(id, input.workspaceId)!;
 }
 
 export function updateKnowledgeNote(
   id: string,
+  workspaceId: string,
   input: KnowledgeNoteUpdateInput,
 ): KnowledgeNote | null {
   const db = getMetaDatabase();
-  const existing = getKnowledgeNote(id);
+  const existing = getKnowledgeNote(id, workspaceId);
   if (!existing) {
     return null;
   }
@@ -90,12 +91,14 @@ export function updateKnowledgeNote(
     id,
   );
 
-  return getKnowledgeNote(id);
+  return getKnowledgeNote(id, workspaceId);
 }
 
-export function deleteKnowledgeNote(id: string): boolean {
+export function deleteKnowledgeNote(id: string, workspaceId: string): boolean {
   const db = getMetaDatabase();
-  const result = db.prepare('DELETE FROM knowledge_notes WHERE id = ?').run(id);
+  const result = db
+    .prepare('DELETE FROM knowledge_notes WHERE id = ? AND workspace_id = ?')
+    .run(id, workspaceId);
   return result.changes > 0;
 }
 
@@ -112,6 +115,9 @@ export function getKnowledgeNotesForPrompt(workspaceId: string): string {
   };
 
   for (const note of notes) {
+    if (!grouped[note.type]) {
+      continue;
+    }
     grouped[note.type].push(note.content);
   }
 

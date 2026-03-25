@@ -458,6 +458,6 @@
       "reference": "Référence"
     },
     "empty": "Aucune note de contexte. Ajoutez des notes pour donner à votre IA un contexte persistant.",
-    "maxNotes": "Maximum 20 notes par espace de travail"
+    "maxNotes": "Maximum {{max}} notes par espace de travail"
   }
 }

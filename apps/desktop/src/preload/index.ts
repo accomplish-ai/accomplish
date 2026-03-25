@@ -684,10 +684,12 @@ const accomplishAPI = {
     ipcRenderer.invoke('knowledge-notes:create', input),
   updateKnowledgeNote: (
     id: string,
+    workspaceId: string,
     input: KnowledgeNoteUpdateInput,
-  ): Promise<KnowledgeNote | null> => ipcRenderer.invoke('knowledge-notes:update', id, input),
-  deleteKnowledgeNote: (id: string): Promise<boolean> =>
-    ipcRenderer.invoke('knowledge-notes:delete', id),
+  ): Promise<KnowledgeNote | null> =>
+    ipcRenderer.invoke('knowledge-notes:update', id, workspaceId, input),
+  deleteKnowledgeNote: (id: string, workspaceId: string): Promise<boolean> =>
+    ipcRenderer.invoke('knowledge-notes:delete', id, workspaceId),
 
   // Workspace event subscriptions
   onWorkspaceChanged: (callback: (data: { workspaceId: string }) => void) => {

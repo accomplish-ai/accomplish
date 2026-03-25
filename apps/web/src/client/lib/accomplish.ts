@@ -464,8 +464,12 @@ interface AccomplishAPI {
   // Knowledge Notes
   listKnowledgeNotes(workspaceId: string): Promise<KnowledgeNote[]>;
   createKnowledgeNote(input: KnowledgeNoteCreateInput): Promise<KnowledgeNote>;
-  updateKnowledgeNote(id: string, input: KnowledgeNoteUpdateInput): Promise<KnowledgeNote | null>;
-  deleteKnowledgeNote(id: string): Promise<boolean>;
+  updateKnowledgeNote(
+    id: string,
+    workspaceId: string,
+    input: KnowledgeNoteUpdateInput,
+  ): Promise<KnowledgeNote | null>;
+  deleteKnowledgeNote(id: string, workspaceId: string): Promise<boolean>;
 
   // Workspace event subscriptions
   onWorkspaceChanged?(callback: (data: { workspaceId: string }) => void): () => void;
