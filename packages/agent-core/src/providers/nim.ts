@@ -25,6 +25,27 @@ interface NimModelsResponse {
   }>;
 }
 
+function mapNimModels(rawModels: NimModelsResponse['data']): NimModel[] {
+  return (rawModels || []).map((m) => {
+    const parts = m.id.split('/');
+    const provider = parts.length > 1 ? parts[0] : m.owned_by || 'nvidia';
+    const modelPart = parts.length > 1 ? parts.slice(1).join('/') : m.id;
+    const providerDisplay = provider.charAt(0).toUpperCase() + provider.slice(1);
+    const modelDisplay = modelPart
+      .split(/[-_]/)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    const displayName = parts.length > 1 ? `${providerDisplay}: ${modelDisplay}` : modelDisplay;
+
+    return {
+      id: m.id,
+      name: displayName,
+      provider,
+      contextLength: 0,
+    };
+  });
+}
+
 /**
  * Tests connection to an NVIDIA NIM endpoint and retrieves available models.
  * Makes an HTTP request to the OpenAI-compatible /models endpoint.
@@ -67,24 +88,7 @@ export async function testNimConnection(url: string, apiKey: string): Promise<Ni
     }
 
     const data = (await response.json()) as NimModelsResponse;
-    const models: NimModel[] = (data.data || []).map((m) => {
-      const parts = m.id.split('/');
-      const provider = parts.length > 1 ? parts[0] : m.owned_by || 'nvidia';
-      const modelPart = parts.length > 1 ? parts.slice(1).join('/') : m.id;
-      const providerDisplay = provider.charAt(0).toUpperCase() + provider.slice(1);
-      const modelDisplay = modelPart
-        .split(/[-_]/)
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-      const displayName = parts.length > 1 ? `${providerDisplay}: ${modelDisplay}` : modelDisplay;
-
-      return {
-        id: m.id,
-        name: displayName,
-        provider,
-        contextLength: 0,
-      };
-    });
+    const models = mapNimModels(data.data);
 
     log.info(`[NIM] Connection successful, found ${models.length} models`);
     return { success: true, models };
@@ -121,13 +125,16 @@ export async function fetchNimModels(options: FetchNimModelsOptions): Promise<Ni
     return { success: false, error: 'API key is required for NVIDIA NIM' };
   }
 
+  const sanitizedUrl = sanitizeString(config.baseUrl, 'nimUrl', 256).replace(/\/$/, '');
+  const sanitizedApiKey = sanitizeString(apiKey, 'apiKey', 256);
+
   try {
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${sanitizedApiKey}`,
     };
 
     const response = await fetchWithTimeout(
-      `${config.baseUrl}/models`,
+      `${sanitizedUrl}/models`,
       { method: 'GET', headers },
       DEFAULT_TIMEOUT_MS,
     );
@@ -141,24 +148,7 @@ export async function fetchNimModels(options: FetchNimModelsOptions): Promise<Ni
     }
 
     const data = (await response.json()) as NimModelsResponse;
-    const models: NimModel[] = (data.data || []).map((m) => {
-      const parts = m.id.split('/');
-      const provider = parts.length > 1 ? parts[0] : m.owned_by || 'nvidia';
-      const modelPart = parts.length > 1 ? parts.slice(1).join('/') : m.id;
-      const providerDisplay = provider.charAt(0).toUpperCase() + provider.slice(1);
-      const modelDisplay = modelPart
-        .split(/[-_]/)
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-      const displayName = parts.length > 1 ? `${providerDisplay}: ${modelDisplay}` : modelDisplay;
-
-      return {
-        id: m.id,
-        name: displayName,
-        provider,
-        contextLength: 0,
-      };
-    });
+    const models = mapNimModels(data.data);
 
     log.info(`[NIM] Fetched ${models.length} models`);
     return { success: true, models };
