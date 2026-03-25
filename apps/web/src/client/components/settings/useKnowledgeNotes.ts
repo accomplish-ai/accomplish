@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAccomplish } from '@/lib/accomplish';
 import type { KnowledgeNote, KnowledgeNoteType } from '@accomplish_ai/agent-core';
@@ -42,18 +42,24 @@ export function useKnowledgeNotes(
 
   // Shared request counter — incrementing it abandons any in-flight fetch.
   const activeRequestRef = useRef(0);
+  // Tracks the active workspace. Updated via useLayoutEffect (runs synchronously
+  // after each commit, before microtasks) so async callbacks can detect a
+  // workspace switch that occurred while they were in flight.
+  const workspaceIdRef = useRef(workspaceId);
+  useLayoutEffect(() => {
+    workspaceIdRef.current = workspaceId;
+  }, [workspaceId]);
 
-  // Used by mutation handlers after create/update/delete.
   const loadNotes = useCallback(async () => {
     const requestId = ++activeRequestRef.current;
     try {
       const loaded = await accomplish.listKnowledgeNotes(workspaceId);
-      if (requestId === activeRequestRef.current) {
+      if (requestId === activeRequestRef.current && workspaceIdRef.current === workspaceId) {
         setError(null);
         setNotes(loaded);
       }
     } catch (err) {
-      if (requestId === activeRequestRef.current) {
+      if (requestId === activeRequestRef.current && workspaceIdRef.current === workspaceId) {
         setError(err instanceof Error ? err.message : String(err));
       }
     }
@@ -67,13 +73,13 @@ export function useKnowledgeNotes(
     accomplish
       .listKnowledgeNotes(workspaceId)
       .then((loaded) => {
-        if (requestId === activeRequestRef.current) {
+        if (requestId === activeRequestRef.current && workspaceIdRef.current === workspaceId) {
           setError(null);
           setNotes(loaded);
         }
       })
       .catch((err: unknown) => {
-        if (requestId === activeRequestRef.current) {
+        if (requestId === activeRequestRef.current && workspaceIdRef.current === workspaceId) {
           setError(err instanceof Error ? err.message : String(err));
         }
       });
@@ -92,13 +98,18 @@ export function useKnowledgeNotes(
         type: newType,
         content: newContent.trim(),
       });
+      if (workspaceIdRef.current !== workspaceId) {
+        return;
+      }
       setError(null);
       setNewContent('');
       setNewType('context');
       setShowAddForm(false);
       await loadNotes();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      if (workspaceIdRef.current === workspaceId) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
     }
   }, [accomplish, workspaceId, newType, newContent, loadNotes]);
 
@@ -112,6 +123,9 @@ export function useKnowledgeNotes(
           type: editType,
           content: editContent.trim(),
         });
+        if (workspaceIdRef.current !== workspaceId) {
+          return;
+        }
         if (updated === null) {
           setError(t('knowledgeNotes.errors.updateFailed'));
           return;
@@ -120,7 +134,9 @@ export function useKnowledgeNotes(
         setEditingId(null);
         await loadNotes();
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        if (workspaceIdRef.current === workspaceId) {
+          setError(err instanceof Error ? err.message : String(err));
+        }
       }
     },
     [accomplish, workspaceId, editType, editContent, loadNotes, t],
@@ -130,6 +146,9 @@ export function useKnowledgeNotes(
     async (id: string) => {
       try {
         const deleted = await accomplish.deleteKnowledgeNote(id, workspaceId);
+        if (workspaceIdRef.current !== workspaceId) {
+          return;
+        }
         if (!deleted) {
           setError(t('knowledgeNotes.errors.deleteFailed'));
           return;
@@ -137,7 +156,9 @@ export function useKnowledgeNotes(
         setError(null);
         await loadNotes();
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        if (workspaceIdRef.current === workspaceId) {
+          setError(err instanceof Error ? err.message : String(err));
+        }
       }
     },
     [accomplish, workspaceId, loadNotes, t],
