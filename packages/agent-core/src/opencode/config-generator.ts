@@ -52,6 +52,8 @@ export interface ConfigGeneratorOptions {
     url: string;
     accessToken: string;
   }>;
+  /** Formatted workspace knowledge notes to inject into the system prompt */
+  knowledgeNotes?: string;
 }
 
 export interface ProviderConfig {
@@ -414,6 +416,26 @@ Use empty array [] if no skills apply to your task.
 </available-skills>
 `;
     systemPrompt += skillsSection;
+  }
+
+  if (options.knowledgeNotes) {
+    const knowledgeSection = `
+
+<workspace-knowledge>
+##############################################################################
+# WORKSPACE KNOWLEDGE - Persistent context for this workspace
+##############################################################################
+
+The user has saved the following knowledge notes for this workspace.
+Use this information as context for all tasks. Do not ask the user to
+re-explain anything covered here.
+
+${options.knowledgeNotes}
+
+##############################################################################
+</workspace-knowledge>
+`;
+    systemPrompt += knowledgeSection;
   }
 
   if (!bundledNodeBinPath) {

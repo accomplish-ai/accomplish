@@ -173,6 +173,16 @@ export {
   setActiveWorkspaceId,
 } from './storage/repositories/workspaces.js';
 
+// Knowledge Notes repository
+export {
+  listKnowledgeNotes,
+  getKnowledgeNote,
+  createKnowledgeNote,
+  updateKnowledgeNote,
+  deleteKnowledgeNote,
+  getKnowledgeNotesForPrompt,
+} from './storage/repositories/knowledgeNotes.js';
+
 // -----------------------------------------------------------------------------
 // Providers Module (from ./providers/)
 // -----------------------------------------------------------------------------
@@ -382,6 +392,10 @@ export type {
   Workspace,
   WorkspaceCreateInput,
   WorkspaceUpdateInput,
+  KnowledgeNote,
+  KnowledgeNoteType,
+  KnowledgeNoteCreateInput,
+  KnowledgeNoteUpdateInput,
 } from './common/types/workspace.js';
 
 // Connector types
@@ -530,4 +544,3 @@ export type {
   BrowserStatusPayload,
   BrowserNavigatePayload,
 } from './common/types/browser-view.js';
-

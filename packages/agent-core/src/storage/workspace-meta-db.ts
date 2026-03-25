@@ -24,6 +24,16 @@ CREATE TABLE IF NOT EXISTS workspace_meta (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS knowledge_notes (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'context',
+  content TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+);
 `;
 
 export function initializeMetaDatabase(dbPath: string): Database.Database {

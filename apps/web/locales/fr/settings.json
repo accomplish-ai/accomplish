@@ -446,5 +446,18 @@
   "baseUrl": {
     "title": "URL de base",
     "description": "Laissez vide pour utiliser l'URL par défaut."
+  },
+  "knowledgeNotes": {
+    "title": "Notes de contexte",
+    "description": "Contexte persistant injecte dans chaque tache de cet espace de travail",
+    "addNote": "Ajouter une note",
+    "placeholder": "Ajouter du contexte, des instructions ou des references...",
+    "types": {
+      "context": "Contexte",
+      "instruction": "Instruction",
+      "reference": "Reference"
+    },
+    "empty": "Aucune note de contexte. Ajoutez des notes pour donner a votre IA un contexte persistant.",
+    "maxNotes": "Maximum 20 notes par espace de travail"
   }
 }
