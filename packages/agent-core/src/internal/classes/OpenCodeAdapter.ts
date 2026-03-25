@@ -298,7 +298,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           try {
             this.ptyProcess.kill();
           } catch (err) {
-            log.warn('[OpenCode Adapter] Error killing PTY after log error:', { error: String(err) });
+            log.warn('[OpenCode Adapter] Error killing PTY after log error:', {
+              error: String(err),
+            });
           }
           this.ptyProcess = null;
         }
@@ -362,7 +364,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           );
           log.info(`[OpenCode CLI] Created workspace package.json at: ${dummyPackageJson}`);
         } catch (err) {
-          log.warn('[OpenCode CLI] Could not create workspace package.json:', { error: String(err) });
+          log.warn('[OpenCode CLI] Could not create workspace package.json:', {
+            error: String(err),
+          });
         }
       }
     }
@@ -937,7 +941,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     const cliArgs = await this.options.buildCliArgs(config);
 
     const { command, args: baseArgs } = this.options.getCliCommand();
-    log.info(`[OpenCode Adapter] Session resumption command: ${command} ${[...baseArgs, ...cliArgs].join(' ')}`);
+    log.info(
+      `[OpenCode Adapter] Session resumption command: ${command} ${[...baseArgs, ...cliArgs].join(' ')}`,
+    );
 
     const env = await this.options.buildEnvironment(this.currentTaskId || 'default');
 

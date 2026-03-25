@@ -106,7 +106,9 @@ export class StreamParser extends EventEmitter<StreamParserEvents> {
       log.info(`[StreamParser] Parsed message type: ${message.type}`);
       this.emitMessage(message);
     } catch (e) {
-      log.info(`[StreamParser] Failed to parse JSON: ${sanitized.substring(0, 100)}`, { error: String(e) });
+      log.info(`[StreamParser] Failed to parse JSON: ${sanitized.substring(0, 100)}`, {
+        error: String(e),
+      });
     }
   }
 

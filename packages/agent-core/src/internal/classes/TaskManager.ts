@@ -487,9 +487,7 @@ export class TaskManager {
       log.info(`[TaskManager] Cleaning up task ${taskId}`);
       managedTask.cleanup();
       this.activeTasks.delete(taskId);
-      log.info(
-        `[TaskManager] Task ${taskId} cleaned up. Active tasks: ${this.activeTasks.size}`,
-      );
+      log.info(`[TaskManager] Task ${taskId} cleaned up. Active tasks: ${this.activeTasks.size}`);
     }
   }
 

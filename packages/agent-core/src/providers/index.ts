@@ -57,3 +57,10 @@ export {
   type FetchProviderModelsOptions,
 } from './fetch-models.js';
 export { testCustomConnection, type CustomConnectionResult } from './custom.js';
+export {
+  testNimConnection,
+  fetchNimModels,
+  NIM_DEFAULT_BASE_URL,
+  type NimConnectionResult,
+  type FetchNimModelsOptions,
+} from './nim.js';

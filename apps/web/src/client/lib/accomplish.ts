@@ -88,7 +88,14 @@ interface AccomplishAPI {
       | 'together'
       | 'fireworks'
       | 'groq'
-      | 'elevenlabs',
+      | 'elevenlabs'
+      | 'nim'
+      | 'minimax'
+      | 'vertex'
+      | 'venice'
+      | 'aws-agentcore'
+      | 'browserbase'
+      | 'steel',
     key: string,
     label?: string,
   ): Promise<ApiKeyConfig>;
@@ -290,6 +297,21 @@ interface AccomplishAPI {
       models?: Array<{ id: string; name: string; toolSupport: ToolSupportStatus }>;
     } | null,
   ): Promise<void>;
+
+  // NVIDIA NIM configuration
+  testNimConnection(
+    url: string,
+    apiKey: string,
+  ): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }>;
+  fetchNimModels(): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }>;
 
   // Custom OpenAI-compatible endpoint configuration
   testCustomConnection(

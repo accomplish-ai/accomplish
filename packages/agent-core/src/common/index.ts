@@ -41,6 +41,8 @@ export type {
   LiteLLMModel,
   LiteLLMConfig,
   LMStudioConfig,
+  NimModel,
+  NimConfig,
 } from './types/provider.js';
 export {
   DEFAULT_PROVIDERS,
@@ -49,6 +51,7 @@ export {
   STANDARD_VALIDATION_PROVIDERS,
   ZAI_ENDPOINTS,
   MINIMAX_DEFAULT_BASE_URL,
+  NIM_DEFAULT_BASE_URL,
 } from './types/provider.js';
 
 // Provider settings types
@@ -69,6 +72,7 @@ export type {
   AzureFoundryCredentials,
   OAuthCredentials,
   CustomCredentials,
+  NimCredentials,
   ProviderCredentials,
   ToolSupportStatus,
   ConnectedProvider,

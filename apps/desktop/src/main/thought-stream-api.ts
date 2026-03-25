@@ -16,6 +16,7 @@ import {
   type ThoughtStreamEvent as ThoughtEvent,
   type ThoughtStreamCheckpointEvent as CheckpointEvent,
 } from '@accomplish_ai/agent-core';
+import { readJsonBody, HttpError } from './http/readJsonBody';
 
 // Re-export types and constant for backwards compatibility
 export { THOUGHT_STREAM_PORT };
@@ -72,18 +73,15 @@ export function startThoughtStreamServer(): http.Server {
       return;
     }
 
-    // Parse request body
-    let body = '';
-    for await (const chunk of req) {
-      body += chunk;
-    }
-
+    // Parse request body with a 1 MB size cap to prevent memory exhaustion.
     let data: Record<string, unknown>;
     try {
-      data = JSON.parse(body);
-    } catch {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      data = await readJsonBody<Record<string, unknown>>(req, { maxBytes: 1 * 1024 * 1024 });
+    } catch (err) {
+      const status = err instanceof HttpError ? err.statusCode : 400;
+      const message = err instanceof HttpError ? err.message : 'Invalid request';
+      res.writeHead(status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
       return;
     }
 

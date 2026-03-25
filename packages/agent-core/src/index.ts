@@ -199,6 +199,8 @@ export { fetchOpenRouterModels } from './providers/openrouter.js';
 
 export { testLiteLLMConnection, fetchLiteLLMModels } from './providers/litellm.js';
 
+export { testNimConnection, fetchNimModels, NIM_DEFAULT_BASE_URL } from './providers/nim.js';
+
 export { testOllamaConnection } from './providers/ollama.js';
 
 export { testOllamaModelToolSupport } from './providers/tool-support-testing.js';
@@ -318,6 +320,8 @@ export type {
   LiteLLMModel,
   LiteLLMConfig,
   LMStudioConfig,
+  NimModel,
+  NimConfig,
 } from './common/types/provider.js';
 export {
   DEFAULT_PROVIDERS,
@@ -345,6 +349,7 @@ export type {
   AzureFoundryCredentials,
   OAuthCredentials,
   CustomCredentials,
+  NimCredentials,
   ProviderCredentials,
   ToolSupportStatus,
   ConnectedProvider,

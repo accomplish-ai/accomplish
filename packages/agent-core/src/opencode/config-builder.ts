@@ -378,7 +378,10 @@ export async function buildProviderConfigs(
       options: bedrockOptions,
       ...(Object.keys(bedrockModels).length > 0 ? { models: bedrockModels } : {}),
     });
-    log.info('[OpenCode Config Builder] Bedrock configured:', { options: bedrockOptions, models: Object.keys(bedrockModels) });
+    log.info('[OpenCode Config Builder] Bedrock configured:', {
+      options: bedrockOptions,
+      models: Object.keys(bedrockModels),
+    });
   } else {
     const bedrockCredsJson = getApiKey('bedrock');
     if (bedrockCredsJson) {
@@ -403,7 +406,10 @@ export async function buildProviderConfigs(
           options: bedrockOptions,
           ...(Object.keys(bedrockModels).length > 0 ? { models: bedrockModels } : {}),
         });
-        log.info('[OpenCode Config Builder] Bedrock (legacy) configured:', { options: bedrockOptions, models: Object.keys(bedrockModels) });
+        log.info('[OpenCode Config Builder] Bedrock (legacy) configured:', {
+          options: bedrockOptions,
+          models: Object.keys(bedrockModels),
+        });
       } catch (e) {
         log.warn(`[OpenCode Config Builder] Failed to parse Bedrock credentials: ${e}`);
       }
@@ -445,7 +451,10 @@ export async function buildProviderConfigs(
       options: vertexOptions,
       ...(Object.keys(vertexModels).length > 0 ? { models: vertexModels } : {}),
     });
-    log.info('[OpenCode Config Builder] Vertex AI configured:', { options: vertexOptions, models: Object.keys(vertexModels) });
+    log.info('[OpenCode Config Builder] Vertex AI configured:', {
+      options: vertexOptions,
+      models: Object.keys(vertexModels),
+    });
   }
 
   if (activeModel?.provider === 'vertex' && activeModel.model) {
@@ -526,6 +535,34 @@ export async function buildProviderConfigs(
     }
   }
 
+  // NVIDIA NIM provider
+  const nimProvider = providerSettings.connectedProviders.nim;
+  if (
+    nimProvider?.connectionStatus === 'connected' &&
+    nimProvider.credentials.type === 'nim' &&
+    nimProvider.selectedModelId
+  ) {
+    const nimApiKey = getApiKey('nim');
+    const serverUrl = nimProvider.credentials.serverUrl;
+    const modelId = nimProvider.selectedModelId.replace(/^nim\//, '');
+    providerConfigs.push({
+      id: 'nim',
+      npm: '@ai-sdk/openai-compatible',
+      name: 'NVIDIA NIM',
+      options: {
+        baseURL: serverUrl,
+        ...(nimApiKey ? { apiKey: nimApiKey } : {}),
+      },
+      models: {
+        [modelId]: { name: modelId, tools: true },
+      },
+    });
+    if (!enabledProviders.includes('nim')) {
+      enabledProviders.push('nim');
+    }
+    log.info(`[OpenCode Config Builder] NVIDIA NIM configured: ${modelId} baseURL: ${serverUrl}`);
+  }
+
   // Custom OpenAI-compatible provider
   const customProvider = providerSettings.connectedProviders.custom;
   if (
@@ -553,7 +590,9 @@ export async function buildProviderConfigs(
     if (!enabledProviders.includes('custom')) {
       enabledProviders.push('custom');
     }
-    log.info(`[OpenCode Config Builder] Custom endpoint configured: ${modelId} baseURL: ${baseURL}`);
+    log.info(
+      `[OpenCode Config Builder] Custom endpoint configured: ${modelId} baseURL: ${baseURL}`,
+    );
   }
 
   // Azure Foundry provider
