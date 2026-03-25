@@ -172,7 +172,7 @@ jobs:
 
       - name: Cache E2E Docker image
         id: docker-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/e2e-image.tar
           key: e2e-docker-${{ hashFiles('apps/desktop/e2e/docker/Dockerfile') }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/package.json', 'pnpm-workspace.yaml') }}-${{ hashFiles('scripts/**', 'apps/desktop/scripts/**', 'packages/agent-core/mcp-tools/**') }}
