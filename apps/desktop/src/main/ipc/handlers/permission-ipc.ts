@@ -28,12 +28,8 @@ function createPermissionApiInitializer(): (
   let initialized = false;
 
   return async (window: BrowserWindow, getActiveTaskId: () => string | null): Promise<void> => {
-    if (initialized) {
-      return;
-    }
-    // Set flag synchronously to prevent concurrent initialization on overlapping calls.
-    initialized = true;
-    // Pass a getter so the current (non-destroyed) window is resolved at request time.
+    // Always update the window reference on every task:start so the permission/question
+    // APIs use the current window (handles window recreation on macOS reactivation).
     // Prefer the explicitly-passed trusted window when it is still alive, falling back
     // to the focused window or any non-destroyed window for robustness after reloads.
     initPermissionApi(
@@ -44,6 +40,12 @@ function createPermissionApiInitializer(): (
         null,
       getActiveTaskId,
     );
+
+    if (initialized) {
+      return;
+    }
+    // Set flag synchronously to prevent concurrent initialization on overlapping calls.
+    initialized = true;
     const permServer = startPermissionApiServer();
     const questionServer = startQuestionApiServer();
     // Await actual server readiness. Listen for both 'listening' and 'error' so that an

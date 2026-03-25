@@ -215,7 +215,12 @@ export function ExecutionPage() {
   }, []);
 
   useEffect(() => {
-    accomplish.getDebugMode().then(setDebugModeEnabled);
+    accomplish
+      .getDebugMode()
+      .then(setDebugModeEnabled)
+      .catch((err) => {
+        logger.error('Failed to get debug mode:', err);
+      });
     const unsubscribeDebugMode = accomplish.onDebugModeChange?.(({ enabled }) => {
       setDebugModeEnabled(enabled);
     });
