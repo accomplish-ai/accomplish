@@ -1,6 +1,7 @@
 import { Check, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { KnowledgeNoteType } from '@accomplish_ai/agent-core';
+import { Textarea } from '@/components/ui/textarea';
 
 const NOTE_TYPES: KnowledgeNoteType[] = ['context', 'instruction', 'reference'];
 const MAX_CONTENT_LENGTH = 500;
@@ -38,7 +39,7 @@ export function AddNoteForm({
           </option>
         ))}
       </select>
-      <textarea
+      <Textarea
         aria-label={t('knowledgeNotes.labels.content')}
         value={newContent}
         onChange={(e) => setNewContent(e.target.value.slice(0, MAX_CONTENT_LENGTH))}
@@ -52,6 +53,7 @@ export function AddNoteForm({
         </span>
         <div className="flex gap-2">
           <button
+            type="button"
             aria-label={t('knowledgeNotes.cancel')}
             title={t('knowledgeNotes.cancel')}
             onClick={onCancel}
@@ -60,6 +62,7 @@ export function AddNoteForm({
             <X className="h-4 w-4" />
           </button>
           <button
+            type="button"
             aria-label={t('knowledgeNotes.save')}
             title={t('knowledgeNotes.save')}
             onClick={onSave}

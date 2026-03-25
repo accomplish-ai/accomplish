@@ -89,10 +89,14 @@ export function useKnowledgeNotes(
         return;
       }
       try {
-        await accomplish.updateKnowledgeNote(id, workspaceId, {
+        const updated = await accomplish.updateKnowledgeNote(id, workspaceId, {
           type: editType,
           content: editContent.trim(),
         });
+        if (updated === null) {
+          setError('Note not found or could not be updated.');
+          return;
+        }
         setError(null);
         setEditingId(null);
         await loadNotes();
@@ -106,7 +110,11 @@ export function useKnowledgeNotes(
   const handleDelete = useCallback(
     async (id: string) => {
       try {
-        await accomplish.deleteKnowledgeNote(id, workspaceId);
+        const deleted = await accomplish.deleteKnowledgeNote(id, workspaceId);
+        if (!deleted) {
+          setError('Note not found or could not be deleted.');
+          return;
+        }
         setError(null);
         await loadNotes();
       } catch (err) {
