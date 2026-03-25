@@ -219,7 +219,7 @@ export function ExecutionPage() {
       .getDebugMode()
       .then(setDebugModeEnabled)
       .catch((err) => {
-        console.error('Failed to get debug mode:', err);
+        logger.error('Failed to get debug mode:', err);
       });
     const unsubscribeDebugMode = accomplish.onDebugModeChange?.(({ enabled }) => {
       setDebugModeEnabled(enabled);

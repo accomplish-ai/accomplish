@@ -8,6 +8,7 @@ import { MAX_FILES, processFileAttachments } from '@/lib/fileUtils';
 import { SettingsDialog } from '@/components/layout/SettingsDialog';
 import { useTaskStore } from '@/stores/taskStore';
 import { getAccomplish } from '@/lib/accomplish';
+import { createLogger } from '@/lib/logger';
 import { springs } from '@/lib/animations';
 import { X, ArrowUpLeft } from '@phosphor-icons/react';
 import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
@@ -27,6 +28,8 @@ const USE_CASE_KEYS = [
 ] as const;
 
 const FAVORITES_PREVIEW_COUNT = 6;
+
+const logger = createLogger('Home');
 
 export function HomePage() {
   const [prompt, setPrompt] = useState('');
@@ -147,7 +150,7 @@ export function HomePage() {
 
       await executeTask();
     } catch (err) {
-      console.error('Failed to submit task:', err);
+      logger.error('Failed to submit task:', err);
     }
   };
 
