@@ -166,7 +166,9 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
     });
 
     proxy.on('error', (error) => {
-      log.error('[Azure Foundry Proxy] Request error:', { error: error instanceof Error ? error.message : String(error) });
+      log.error('[Azure Foundry Proxy] Request error:', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       if (!res.headersSent) {
         res.writeHead(502, { 'Content-Type': 'application/json' });
       }
@@ -186,7 +188,9 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse): void
   });
 
   req.on('error', (error) => {
-    log.error('[Azure Foundry Proxy] Incoming request error:', { error: error instanceof Error ? error.message : String(error) });
+    log.error('[Azure Foundry Proxy] Incoming request error:', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     if (!res.headersSent) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
     }
@@ -251,7 +255,9 @@ export async function stopAzureFoundryProxy(): Promise<void> {
     server!.close((err) => {
       clearTimeout(timeout);
       if (err && (err as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') {
-        log.error('[Azure Foundry Proxy] Error during shutdown:', { error: err instanceof Error ? err.message : String(err) });
+        log.error('[Azure Foundry Proxy] Error during shutdown:', {
+          error: err instanceof Error ? err.message : String(err),
+        });
         reject(err);
       } else {
         log.info('[Azure Foundry Proxy] Server stopped');

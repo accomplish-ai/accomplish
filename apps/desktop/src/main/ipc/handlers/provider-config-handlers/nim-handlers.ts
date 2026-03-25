@@ -8,12 +8,9 @@ import { getStorage } from '../../../store/storage';
 export function registerNimHandlers(handle: IpcHandler): void {
   const storage = getStorage();
 
-  handle(
-    'nim:test-connection',
-    async (_event: IpcMainInvokeEvent, url: string, apiKey: string) => {
-      return testNimConnection(url, apiKey);
-    },
-  );
+  handle('nim:test-connection', async (_event: IpcMainInvokeEvent, url: string, apiKey: string) => {
+    return testNimConnection(url, apiKey);
+  });
 
   handle('nim:fetch-models', async (_event: IpcMainInvokeEvent) => {
     const config = storage.getNimConfig();

@@ -535,4 +535,3 @@ export type {
   BrowserStatusPayload,
   BrowserNavigatePayload,
 } from './common/types/browser-view.js';
-

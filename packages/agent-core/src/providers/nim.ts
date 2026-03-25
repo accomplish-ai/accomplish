@@ -33,10 +33,7 @@ interface NimModelsResponse {
  * @param apiKey - NVIDIA API key (NGC)
  * @returns Connection result with available models on success
  */
-export async function testNimConnection(
-  url: string,
-  apiKey: string,
-): Promise<NimConnectionResult> {
+export async function testNimConnection(url: string, apiKey: string): Promise<NimConnectionResult> {
   const sanitizedUrl = sanitizeString(url, 'nimUrl', 256);
   const sanitizedApiKey = sanitizeString(apiKey, 'apiKey', 256);
 
@@ -72,7 +69,7 @@ export async function testNimConnection(
     const data = (await response.json()) as NimModelsResponse;
     const models: NimModel[] = (data.data || []).map((m) => {
       const parts = m.id.split('/');
-      const provider = parts.length > 1 ? parts[0] : (m.owned_by || 'nvidia');
+      const provider = parts.length > 1 ? parts[0] : m.owned_by || 'nvidia';
       const modelPart = parts.length > 1 ? parts.slice(1).join('/') : m.id;
       const providerDisplay = provider.charAt(0).toUpperCase() + provider.slice(1);
       const modelDisplay = modelPart
@@ -113,9 +110,7 @@ export interface FetchNimModelsOptions {
  * @param options - Configuration and API key
  * @returns Result with formatted models on success
  */
-export async function fetchNimModels(
-  options: FetchNimModelsOptions,
-): Promise<NimConnectionResult> {
+export async function fetchNimModels(options: FetchNimModelsOptions): Promise<NimConnectionResult> {
   const { config, apiKey } = options;
 
   if (!config || !config.baseUrl) {
@@ -148,7 +143,7 @@ export async function fetchNimModels(
     const data = (await response.json()) as NimModelsResponse;
     const models: NimModel[] = (data.data || []).map((m) => {
       const parts = m.id.split('/');
-      const provider = parts.length > 1 ? parts[0] : (m.owned_by || 'nvidia');
+      const provider = parts.length > 1 ? parts[0] : m.owned_by || 'nvidia';
       const modelPart = parts.length > 1 ? parts.slice(1).join('/') : m.id;
       const providerDisplay = provider.charAt(0).toUpperCase() + provider.slice(1);
       const modelDisplay = modelPart

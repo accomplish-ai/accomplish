@@ -89,9 +89,7 @@ export async function testCustomConnection(
       // If user provided an API key but /models returns 401/403, the endpoint
       // might not support /models at all. Trust the user and allow connection.
       // The real validation happens when they make an actual request.
-      log.info(
-        '[Custom] Connection successful (server reachable, /models may not be supported)',
-      );
+      log.info('[Custom] Connection successful (server reachable, /models may not be supported)');
       return { success: true };
     }
 
