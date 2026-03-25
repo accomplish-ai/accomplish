@@ -53,6 +53,7 @@ export function HomePage() {
 
   const useCaseExamples = useMemo(() => {
     return USE_CASE_KEYS.map(({ key, icons }) => ({
+      key,
       title: t(`useCases.${key}.title`),
       description: t(`useCases.${key}.description`),
       prompt: t(`useCases.${key}.prompt`),
@@ -389,7 +390,7 @@ export function HomePage() {
                 <div className="grid grid-cols-3 gap-4 w-full">
                   {useCaseExamples.map((example, index) => (
                     <motion.button
-                      key={index}
+                      key={example.key}
                       data-testid={`home-example-${index}`}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}

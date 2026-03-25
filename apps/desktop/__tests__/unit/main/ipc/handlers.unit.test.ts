@@ -1463,7 +1463,7 @@ describe('IPC Handlers Integration', () => {
       expect(startPermissionApiServer).toHaveBeenCalled();
     });
 
-    it('task:start should only initialize permission API once', async () => {
+    it('task:start should update window reference on every call but start servers only once', async () => {
       // Arrange
       const config = { prompt: 'Test task' };
       mockTaskManager.startTask.mockResolvedValue({
@@ -1478,9 +1478,12 @@ describe('IPC Handlers Integration', () => {
       await invokeHandler('task:start', config);
       await invokeHandler('task:start', { prompt: 'Second task' });
 
-      // Assert - should only be called once
-      const { initPermissionApi } = await import('@main/permission-api');
-      expect(initPermissionApi).toHaveBeenCalledTimes(1);
+      // Assert - initPermissionApi called on every task:start to keep window ref fresh
+      // (fixes stale window after macOS reactivation / window recreation)
+      const { initPermissionApi, startPermissionApiServer } = await import('@main/permission-api');
+      expect(initPermissionApi).toHaveBeenCalledTimes(2);
+      // Servers should only start once
+      expect(startPermissionApiServer).toHaveBeenCalledTimes(1);
     });
 
     it('task:start should create initial user message', async () => {
