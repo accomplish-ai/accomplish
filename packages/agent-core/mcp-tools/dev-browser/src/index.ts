@@ -23,18 +23,31 @@ async function fetchWithRetry(
   url: string,
   maxRetries = 5,
   delayMs = 500,
+  timeoutMs = 30_000,
 ): Promise<globalThis.Response> {
   let lastError: Error | null = null;
   for (let i = 0; i < maxRetries; i++) {
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: controller.signal });
       if (res.ok) return res;
       throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
+      if (timedOut) {
+        lastError = new Error(`Request timed out after ${timeoutMs}ms`);
+      } else {
+        lastError = err instanceof Error ? err : new Error(String(err));
+      }
       if (i < maxRetries - 1) {
         await new Promise((resolve) => setTimeout(resolve, delayMs * (i + 1)));
       }
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
   throw new Error(`Failed after ${maxRetries} retries: ${lastError?.message}`);
