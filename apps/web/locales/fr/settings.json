@@ -457,6 +457,10 @@
       "instruction": "Instruction",
       "reference": "Référence"
     },
+    "labels": {
+      "type": "Type de note",
+      "content": "Contenu de la note"
+    },
     "empty": "Aucune note de contexte. Ajoutez des notes pour donner à votre IA un contexte persistant.",
     "maxNotes": "Maximum {{max}} notes par espace de travail"
   }

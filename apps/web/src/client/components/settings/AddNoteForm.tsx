@@ -27,7 +27,7 @@ export function AddNoteForm({
   return (
     <div className="mb-3 rounded-md border border-border bg-background p-3 space-y-2">
       <select
-        aria-label="Note type"
+        aria-label={t('knowledgeNotes.labels.type')}
         value={newType}
         onChange={(e) => setNewType(e.target.value as KnowledgeNoteType)}
         className="w-full rounded-md border border-border bg-background px-2 py-1 text-sm"
@@ -39,7 +39,7 @@ export function AddNoteForm({
         ))}
       </select>
       <textarea
-        aria-label="Note content"
+        aria-label={t('knowledgeNotes.labels.content')}
         value={newContent}
         onChange={(e) => setNewContent(e.target.value.slice(0, MAX_CONTENT_LENGTH))}
         placeholder={t('knowledgeNotes.placeholder')}

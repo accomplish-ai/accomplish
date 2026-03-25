@@ -73,6 +73,7 @@ export function useKnowledgeNotes(
         type: newType,
         content: newContent.trim(),
       });
+      setError(null);
       setNewContent('');
       setNewType('context');
       setShowAddForm(false);
@@ -92,6 +93,7 @@ export function useKnowledgeNotes(
           type: editType,
           content: editContent.trim(),
         });
+        setError(null);
         setEditingId(null);
         await loadNotes();
       } catch (err) {
@@ -105,6 +107,7 @@ export function useKnowledgeNotes(
     async (id: string) => {
       try {
         await accomplish.deleteKnowledgeNote(id, workspaceId);
+        setError(null);
         await loadNotes();
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));

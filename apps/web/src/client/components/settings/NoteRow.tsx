@@ -48,7 +48,7 @@ export function NoteRow({
       {isEditing ? (
         <div className="space-y-2">
           <select
-            aria-label="Note type"
+            aria-label={t('knowledgeNotes.labels.type')}
             value={editType}
             onChange={(e) => setEditType(e.target.value as KnowledgeNoteType)}
             className="w-full rounded-md border border-border bg-background px-2 py-1 text-sm"
@@ -60,7 +60,7 @@ export function NoteRow({
             ))}
           </select>
           <textarea
-            aria-label="Note content"
+            aria-label={t('knowledgeNotes.labels.content')}
             value={editContent}
             onChange={(e) => setEditContent(e.target.value.slice(0, MAX_CONTENT_LENGTH))}
             rows={2}
@@ -110,7 +110,7 @@ export function NoteRow({
               aria-label={t('knowledgeNotes.delete')}
               title={t('knowledgeNotes.delete')}
               onClick={() => onDelete(note.id)}
-              className="p-1 text-muted-foreground hover:text-danger transition-colors"
+              className="p-1 text-muted-foreground hover:text-destructive transition-colors"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>

@@ -457,6 +457,10 @@
       "instruction": "Instruction",
       "reference": "Reference"
     },
+    "labels": {
+      "type": "Note type",
+      "content": "Note content"
+    },
     "empty": "No knowledge notes yet. Add notes to give your AI persistent context.",
     "maxNotes": "Maximum {{max}} notes per workspace"
   }
