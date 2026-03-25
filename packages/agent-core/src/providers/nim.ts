@@ -55,6 +55,43 @@ function mapNimModels(rawModels: NimModelsResponse['data']): NimModel[] {
   return results;
 }
 
+async function requestNimModels(
+  normalizedUrl: string,
+  sanitizedApiKey: string,
+  timeoutErrorMessage: string,
+  genericErrorPrefix: string,
+): Promise<NimConnectionResult> {
+  try {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${sanitizedApiKey}`,
+    };
+
+    const response = await fetchWithTimeout(
+      `${normalizedUrl}/models`,
+      { method: 'GET', headers },
+      DEFAULT_TIMEOUT_MS,
+    );
+
+    if (!response.ok) {
+      const errorData = (await response.json().catch(() => ({}))) as {
+        error?: { message?: string };
+      };
+      const errorMessage = errorData?.error?.message || `API returned status ${response.status}`;
+      return { success: false, error: errorMessage };
+    }
+
+    const data = (await response.json()) as NimModelsResponse;
+    const models = mapNimModels(data.data);
+    return { success: true, models };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    if (error instanceof Error && error.name === 'AbortError') {
+      return { success: false, error: timeoutErrorMessage };
+    }
+    return { success: false, error: `${genericErrorPrefix}: ${message}` };
+  }
+}
+
 /**
  * Tests connection to an NVIDIA NIM endpoint and retrieves available models.
  * Makes an HTTP request to the OpenAI-compatible /models endpoint.
@@ -77,41 +114,22 @@ export async function testNimConnection(url: string, apiKey: string): Promise<Ni
     return { success: false, error: 'API key is required for NVIDIA NIM' };
   }
 
-  const normalizedUrl = sanitizedUrl.replace(/\/$/, '');
+  const normalizedUrl = sanitizedUrl.replace(/\/+$/, '');
 
-  try {
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${sanitizedApiKey}`,
-    };
+  const result = await requestNimModels(
+    normalizedUrl,
+    sanitizedApiKey,
+    'Connection timed out. Check your NVIDIA NIM endpoint.',
+    'Cannot connect to NVIDIA NIM',
+  );
 
-    const response = await fetchWithTimeout(
-      `${normalizedUrl}/models`,
-      { method: 'GET', headers },
-      DEFAULT_TIMEOUT_MS,
-    );
-
-    if (!response.ok) {
-      const errorData = (await response.json().catch(() => ({}))) as {
-        error?: { message?: string };
-      };
-      const errorMessage = errorData?.error?.message || `API returned status ${response.status}`;
-      return { success: false, error: errorMessage };
-    }
-
-    const data = (await response.json()) as NimModelsResponse;
-    const models = mapNimModels(data.data);
-
-    log.info(`Connection successful, found ${models.length} models`);
-    return { success: true, models };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Connection failed';
-    log.warn(`Connection failed: ${message}`);
-
-    if (error instanceof Error && error.name === 'AbortError') {
-      return { success: false, error: 'Connection timed out. Check your NVIDIA NIM endpoint.' };
-    }
-    return { success: false, error: `Cannot connect to NVIDIA NIM: ${message}` };
+  if (result.success) {
+    log.info(`Connection successful, found ${result.models?.length ?? 0} models`);
+  } else {
+    log.warn(`Connection failed: ${result.error}`);
   }
+
+  return result;
 }
 
 export interface FetchNimModelsOptions {
@@ -138,7 +156,7 @@ export async function fetchNimModels(options: FetchNimModelsOptions): Promise<Ni
     return { success: false, error: 'API key is required for NVIDIA NIM' };
   }
 
-  const sanitizedUrl = sanitizeString(config.baseUrl, 'nimUrl', 256).replace(/\/$/, '');
+  const sanitizedUrl = sanitizeString(config.baseUrl, 'nimUrl', 256).replace(/\/+$/, '');
 
   try {
     validateHttpUrl(sanitizedUrl, 'NIM URL');
@@ -146,37 +164,18 @@ export async function fetchNimModels(options: FetchNimModelsOptions): Promise<Ni
     return { success: false, error: 'Invalid NVIDIA NIM endpoint URL' };
   }
 
-  try {
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${sanitizedApiKey}`,
-    };
+  const result = await requestNimModels(
+    sanitizedUrl,
+    sanitizedApiKey,
+    'Request timed out. Check your NVIDIA NIM endpoint.',
+    'Failed to fetch models',
+  );
 
-    const response = await fetchWithTimeout(
-      `${sanitizedUrl}/models`,
-      { method: 'GET', headers },
-      DEFAULT_TIMEOUT_MS,
-    );
-
-    if (!response.ok) {
-      const errorData = (await response.json().catch(() => ({}))) as {
-        error?: { message?: string };
-      };
-      const errorMessage = errorData?.error?.message || `API returned status ${response.status}`;
-      return { success: false, error: errorMessage };
-    }
-
-    const data = (await response.json()) as NimModelsResponse;
-    const models = mapNimModels(data.data);
-
-    log.info(`Fetched ${models.length} models`);
-    return { success: true, models };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch models';
-    log.warn(`Fetch failed: ${message}`);
-
-    if (error instanceof Error && error.name === 'AbortError') {
-      return { success: false, error: 'Request timed out. Check your NVIDIA NIM endpoint.' };
-    }
-    return { success: false, error: `Failed to fetch models: ${message}` };
+  if (result.success) {
+    log.info(`Fetched ${result.models?.length ?? 0} models`);
+  } else {
+    log.warn(`Fetch failed: ${result.error}`);
   }
+
+  return result;
 }
