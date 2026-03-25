@@ -134,17 +134,21 @@ export function HomePage() {
       return;
     }
 
-    const isE2EMode = await accomplish.isE2EMode();
-    if (!isE2EMode) {
-      const settings = await accomplish.getProviderSettings();
-      if (!hasAnyReadyProvider(settings)) {
-        setSettingsInitialTab('providers');
-        setShowSettingsDialog(true);
-        return;
+    try {
+      const isE2EMode = await accomplish.isE2EMode();
+      if (!isE2EMode) {
+        const settings = await accomplish.getProviderSettings();
+        if (!hasAnyReadyProvider(settings)) {
+          setSettingsInitialTab('providers');
+          setShowSettingsDialog(true);
+          return;
+        }
       }
-    }
 
-    await executeTask();
+      await executeTask();
+    } catch (err) {
+      console.error('Failed to submit task:', err);
+    }
   };
 
   const handleSettingsDialogChange = (open: boolean) => {
