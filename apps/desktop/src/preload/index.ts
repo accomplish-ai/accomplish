@@ -308,6 +308,22 @@ const accomplishAPI = {
     } | null,
   ): Promise<void> => ipcRenderer.invoke('lmstudio:set-config', config),
 
+  // NVIDIA NIM configuration
+  testNimConnection: (
+    url: string,
+    apiKey: string,
+  ): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }> => ipcRenderer.invoke('nim:test-connection', url, apiKey),
+
+  fetchNimModels: (): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }> => ipcRenderer.invoke('nim:fetch-models'),
+
   // Custom OpenAI-compatible endpoint configuration
   testCustomConnection: (
     baseUrl: string,

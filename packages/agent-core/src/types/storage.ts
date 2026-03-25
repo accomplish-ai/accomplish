@@ -6,6 +6,7 @@ import type {
   LiteLLMConfig,
   AzureFoundryConfig,
   LMStudioConfig,
+  NimConfig,
 } from '../common/types/provider.js';
 import type {
   ProviderId,
@@ -137,6 +138,10 @@ export interface AppSettingsAPI {
   getLMStudioConfig(): LMStudioConfig | null;
   /** Set the LM Studio configuration */
   setLMStudioConfig(config: LMStudioConfig | null): void;
+  /** Get the NVIDIA NIM configuration */
+  getNimConfig(): NimConfig | null;
+  /** Set the NVIDIA NIM configuration */
+  setNimConfig(config: NimConfig | null): void;
   /** Get the custom OpenAI base URL */
   getOpenAiBaseUrl(): string;
   /** Set the custom OpenAI base URL */

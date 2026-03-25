@@ -786,7 +786,7 @@ describe('ConfigGenerator', () => {
 
     it('should contain needs_planning: false for conversational messages', () => {
       expect(prompt).toContain('needs_planning: false');
-      expect(prompt).toContain('you can answer from knowledge alone using only start_task');
+      expect(prompt).toContain('conversational responses that do not require tools');
     });
 
     it('should contain explicit instruction not to call complete_task for conversational responses', () => {
@@ -821,9 +821,9 @@ describe('ConfigGenerator', () => {
       expect(prompt).toContain('bash commands');
     });
 
-    it('should still contain start_task as mandatory first tool', () => {
-      expect(prompt).toContain('You MUST call start_task before any other tool');
-      expect(prompt).toContain('CALL start_task FIRST - THIS IS MANDATORY');
+    it('should still contain start_task as mandatory first tool for non-conversational tasks', () => {
+      expect(prompt).toContain('For non-conversational tasks, you MUST call start_task');
+      expect(prompt).toContain('TASK WORKFLOW (NON-CONVERSATIONAL TASKS)');
     });
 
     it('should still contain todowrite instructions under needs_planning=true path', () => {

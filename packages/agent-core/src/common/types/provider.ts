@@ -28,7 +28,8 @@ export type ProviderType =
   | 'together'
   | 'fireworks'
   | 'groq'
-  | 'venice';
+  | 'venice'
+  | 'nim';
 
 export type ApiKeyProvider =
   | 'anthropic'
@@ -51,6 +52,7 @@ export type ApiKeyProvider =
   | 'fireworks'
   | 'groq'
   | 'venice'
+  | 'nim'
   | 'elevenlabs'
   | 'aws-agentcore'
   | 'browserbase'
@@ -82,6 +84,7 @@ export const ALLOWED_API_KEY_PROVIDERS: ReadonlySet<string> = new Set<string>([
   'fireworks',
   'groq',
   'venice',
+  'nim',
   'elevenlabs',
   'aws-agentcore',
   'browserbase',
@@ -460,6 +463,22 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     models: [],
   },
 ];
+
+export const NIM_DEFAULT_BASE_URL = 'https://integrate.api.nvidia.com/v1';
+
+export interface NimModel {
+  id: string;
+  name: string;
+  provider: string;
+  contextLength: number;
+}
+
+export interface NimConfig {
+  baseUrl: string;
+  enabled: boolean;
+  lastValidated?: number;
+  models?: NimModel[];
+}
 
 export const DEFAULT_MODEL: SelectedModel = {
   provider: 'anthropic',

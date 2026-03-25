@@ -27,6 +27,7 @@ const PROVIDER_ORDER: ProviderId[] = [
   'fireworks',
   'groq',
   'venice',
+  'nim',
   'custom',
 ];
 

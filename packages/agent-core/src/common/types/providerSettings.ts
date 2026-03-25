@@ -19,6 +19,7 @@ export type ProviderId =
   | 'fireworks'
   | 'groq'
   | 'venice'
+  | 'nim'
   | 'custom';
 
 export type ProviderCategory = 'classic' | 'aws' | 'gcp' | 'azure' | 'local' | 'proxy' | 'hybrid';
@@ -176,6 +177,14 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     logoKey: 'venice',
     helpUrl: 'https://venice.ai/settings/api',
   },
+  nim: {
+    id: 'nim',
+    name: 'NVIDIA NIM',
+    category: 'classic',
+    label: 'NVIDIA-hosted models',
+    logoKey: 'nim',
+    helpUrl: 'https://org.ngc.nvidia.com/setup/api-key',
+  },
   custom: {
     id: 'custom',
     name: 'Custom Endpoint',
@@ -239,6 +248,12 @@ export interface CustomCredentials {
   keyPrefix?: string;
 }
 
+export interface NimCredentials {
+  type: 'nim';
+  serverUrl: string;
+  keyPrefix: string;
+}
+
 export interface AzureFoundryCredentials {
   type: 'azure-foundry';
   authMethod: 'api-key' | 'entra-id';
@@ -271,7 +286,8 @@ export type ProviderCredentials =
   | AzureFoundryCredentials
   | LMStudioCredentials
   | OAuthCredentials
-  | CustomCredentials;
+  | CustomCredentials
+  | NimCredentials;
 
 export type ToolSupportStatus = 'supported' | 'unsupported' | 'unknown';
 
@@ -329,6 +345,7 @@ export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
   fireworks: 'fireworks/accounts/fireworks/models/llama-v3-70b-instruct',
   groq: 'groq/llama3-70b-8192',
   venice: 'venice/llama-3.3-70b',
+  nim: 'nim/meta/llama-3.1-70b-instruct',
 };
 
 export function getDefaultModelForProvider(providerId: ProviderId): string | null {
@@ -360,5 +377,6 @@ export const PROVIDER_ID_TO_OPENCODE: Record<ProviderId, string> = {
   fireworks: 'fireworks',
   groq: 'groq',
   venice: 'venice',
+  nim: 'nim',
   custom: 'custom',
 };

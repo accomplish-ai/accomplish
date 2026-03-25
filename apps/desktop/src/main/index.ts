@@ -48,7 +48,9 @@ function logMain(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<st
     if (l?.log) {
       l.log(level, 'main', msg, data);
     }
-  } catch (_e) { /* best-effort logging */ }
+  } catch (_e) {
+    /* best-effort logging */
+  }
 }
 
 if (process.argv.includes('--e2e-skip-auth')) {

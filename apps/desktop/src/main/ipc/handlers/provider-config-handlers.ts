@@ -6,11 +6,13 @@ import { registerAzureFoundryHandlers } from './provider-config-handlers/azure-f
 import { registerLiteLLMHandlers } from './provider-config-handlers/litellm-handlers';
 import { registerLMStudioHandlers } from './provider-config-handlers/lmstudio-handlers';
 import { registerProviderSettingsHandlers } from './provider-config-handlers/provider-settings-handlers';
+import { registerNimHandlers } from './provider-config-handlers/nim-handlers';
 
 export function registerProviderConfigHandlers(): void {
   registerOllamaHandlers(handle);
   registerAzureFoundryHandlers(handle);
   registerLiteLLMHandlers(handle);
   registerLMStudioHandlers(handle);
+  registerNimHandlers(handle);
   registerProviderSettingsHandlers(handle);
 }

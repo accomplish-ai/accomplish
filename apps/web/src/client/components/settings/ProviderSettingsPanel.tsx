@@ -14,6 +14,7 @@ import {
   LMStudioProviderForm,
   VertexProviderForm,
   CustomProviderForm,
+  NimProviderForm,
 } from './providers';
 import { ZaiProviderForm } from './providers/ZaiProviderForm';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
@@ -42,6 +43,19 @@ export function ProviderSettingsPanel({
 
   // Render form content based on provider category
   const renderForm = () => {
+    // Handle NVIDIA NIM separately (has custom endpoint + API key)
+    if (providerId === 'nim') {
+      return (
+        <NimProviderForm
+          connectedProvider={connectedProvider}
+          onConnect={onConnect}
+          onDisconnect={onDisconnect}
+          onModelChange={onModelChange}
+          showModelError={showModelError}
+        />
+      );
+    }
+
     // Handle Z.AI separately (has region selector)
     if (providerId === 'zai') {
       return (

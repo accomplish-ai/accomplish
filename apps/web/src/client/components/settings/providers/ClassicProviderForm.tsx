@@ -78,7 +78,10 @@ export function ClassicProviderForm({
     }
 
     const accomplish = getAccomplish();
-    accomplish.getOpenAiBaseUrl().then(setOpenAiBaseUrl).catch((err) => logger.error('Failed to load OpenAI base URL:', err));
+    accomplish
+      .getOpenAiBaseUrl()
+      .then(setOpenAiBaseUrl)
+      .catch((err) => logger.error('Failed to load OpenAI base URL:', err));
   }, [isOpenAI]);
 
   useEffect(() => {
@@ -91,10 +94,9 @@ export function ClassicProviderForm({
   // Get translated provider name
   const providerName = t(`providers.${providerId}`, { defaultValue: meta.name });
 
-  const connectedProviderBaseUrl =
-    hasEditableBaseUrl
-      ? connectedProvider?.customBaseUrl || defaultBaseUrl || undefined
-      : undefined;
+  const connectedProviderBaseUrl = hasEditableBaseUrl
+    ? connectedProvider?.customBaseUrl || defaultBaseUrl || undefined
+    : undefined;
 
   // Auto-fetch models for already-connected providers that don't have availableModels yet,
   // or for OAuth-connected OpenAI users (who may only have the hardcoded fallback list).

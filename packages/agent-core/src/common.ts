@@ -70,6 +70,7 @@ export type {
   LiteLLMCredentials,
   ZaiRegion,
   ZaiCredentials,
+  NimCredentials,
   LMStudioCredentials,
   AzureFoundryCredentials,
   OAuthCredentials,

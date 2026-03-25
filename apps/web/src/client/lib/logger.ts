@@ -10,8 +10,8 @@ function createLogger(prefix: string) {
   const fmt = (msg: string) => `[${prefix}] ${msg}`;
   return {
     debug: (msg: string, ...args: unknown[]) => console.debug(fmt(msg), ...args),
-    info:  (msg: string, ...args: unknown[]) => console.info(fmt(msg), ...args),
-    warn:  (msg: string, ...args: unknown[]) => console.warn(fmt(msg), ...args),
+    info: (msg: string, ...args: unknown[]) => console.info(fmt(msg), ...args),
+    warn: (msg: string, ...args: unknown[]) => console.warn(fmt(msg), ...args),
     error: (msg: string, ...args: unknown[]) => console.error(fmt(msg), ...args),
   };
 }
