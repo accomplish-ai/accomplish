@@ -20,6 +20,7 @@ import {
   type PermissionQuestionResponseData as QuestionResponseData,
 } from '@accomplish_ai/agent-core';
 import { getLogCollector } from './logging';
+import { readJsonBody, HttpError } from './http/readJsonBody';
 
 export { PERMISSION_API_PORT, QUESTION_API_PORT, isFilePermissionRequest, isQuestionRequest };
 
@@ -110,25 +111,15 @@ export function startPermissionApiServer(): http.Server {
       return;
     }
 
-    // Parse request body
-    let body = '';
-    for await (const chunk of req) {
-      body += chunk;
-    }
-
+    // Parse request body with a 1 MB size cap to prevent memory exhaustion.
     let parsed: Record<string, unknown>;
-
     try {
-      const rawParsed: unknown = JSON.parse(body);
-      if (typeof rawParsed !== 'object' || rawParsed === null || Array.isArray(rawParsed)) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
-        return;
-      }
-      parsed = rawParsed as Record<string, unknown>;
-    } catch {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      parsed = await readJsonBody<Record<string, unknown>>(req, { maxBytes: 1 * 1024 * 1024 });
+    } catch (err) {
+      const status = err instanceof HttpError ? err.statusCode : 400;
+      const message = err instanceof HttpError ? err.message : 'Invalid request';
+      res.writeHead(status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
       return;
     }
 
@@ -260,25 +251,15 @@ export function startQuestionApiServer(): http.Server {
       return;
     }
 
-    // Parse request body
-    let body = '';
-    for await (const chunk of req) {
-      body += chunk;
-    }
-
+    // Parse request body with a 1 MB size cap to prevent memory exhaustion.
     let parsed: Record<string, unknown>;
-
     try {
-      const rawParsed: unknown = JSON.parse(body);
-      if (typeof rawParsed !== 'object' || rawParsed === null || Array.isArray(rawParsed)) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
-        return;
-      }
-      parsed = rawParsed as Record<string, unknown>;
-    } catch {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      parsed = await readJsonBody<Record<string, unknown>>(req, { maxBytes: 1 * 1024 * 1024 });
+    } catch (err) {
+      const status = err instanceof HttpError ? err.statusCode : 400;
+      const message = err instanceof HttpError ? err.message : 'Invalid request';
+      res.writeHead(status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
       return;
     }
 
