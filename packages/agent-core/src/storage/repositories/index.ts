@@ -81,3 +81,12 @@ export {
   deleteConnector,
   clearAllConnectors,
 } from './connectors.js';
+
+export {
+  listKnowledgeNotes,
+  getKnowledgeNote,
+  createKnowledgeNote,
+  updateKnowledgeNote,
+  deleteKnowledgeNote,
+  getKnowledgeNotesForPrompt,
+} from './knowledgeNotes.js';

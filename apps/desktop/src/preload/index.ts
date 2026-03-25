@@ -14,6 +14,9 @@ import type {
   Workspace,
   WorkspaceCreateInput,
   WorkspaceUpdateInput,
+  KnowledgeNote,
+  KnowledgeNoteCreateInput,
+  KnowledgeNoteUpdateInput,
 } from '@accomplish_ai/agent-core';
 import type { CloudBrowserConfig } from '@accomplish_ai/agent-core/common';
 
@@ -657,6 +660,18 @@ const accomplishAPI = {
   updateWorkspace: (id: string, input: WorkspaceUpdateInput): Promise<Workspace | null> =>
     ipcRenderer.invoke('workspace:update', id, input),
   deleteWorkspace: (id: string): Promise<boolean> => ipcRenderer.invoke('workspace:delete', id),
+
+  // Knowledge Notes
+  listKnowledgeNotes: (workspaceId: string): Promise<KnowledgeNote[]> =>
+    ipcRenderer.invoke('knowledge-notes:list', workspaceId),
+  createKnowledgeNote: (input: KnowledgeNoteCreateInput): Promise<KnowledgeNote> =>
+    ipcRenderer.invoke('knowledge-notes:create', input),
+  updateKnowledgeNote: (
+    id: string,
+    input: KnowledgeNoteUpdateInput,
+  ): Promise<KnowledgeNote | null> => ipcRenderer.invoke('knowledge-notes:update', id, input),
+  deleteKnowledgeNote: (id: string): Promise<boolean> =>
+    ipcRenderer.invoke('knowledge-notes:delete', id),
 
   // Workspace event subscriptions
   onWorkspaceChanged: (callback: (data: { workspaceId: string }) => void) => {

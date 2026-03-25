@@ -1,7 +1,18 @@
 import { BrowserWindow } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
-import type { WorkspaceCreateInput, WorkspaceUpdateInput } from '@accomplish_ai/agent-core';
+import type {
+  WorkspaceCreateInput,
+  WorkspaceUpdateInput,
+  KnowledgeNoteCreateInput,
+  KnowledgeNoteUpdateInput,
+} from '@accomplish_ai/agent-core';
 import * as workspaceManager from '../../store/workspaceManager';
+import {
+  listKnowledgeNotes,
+  createKnowledgeNote,
+  updateKnowledgeNote,
+  deleteKnowledgeNote,
+} from '@accomplish_ai/agent-core';
 import { handle } from './utils';
 
 export function registerWorkspaceHandlers(): void {
@@ -55,5 +66,28 @@ export function registerWorkspaceHandlers(): void {
     }
 
     return deleted;
+  });
+
+  // Knowledge Notes handlers
+  handle('knowledge-notes:list', async (_event: IpcMainInvokeEvent, workspaceId: string) => {
+    return listKnowledgeNotes(workspaceId);
+  });
+
+  handle(
+    'knowledge-notes:create',
+    async (_event: IpcMainInvokeEvent, input: KnowledgeNoteCreateInput) => {
+      return createKnowledgeNote(input);
+    },
+  );
+
+  handle(
+    'knowledge-notes:update',
+    async (_event: IpcMainInvokeEvent, id: string, input: KnowledgeNoteUpdateInput) => {
+      return updateKnowledgeNote(id, input);
+    },
+  );
+
+  handle('knowledge-notes:delete', async (_event: IpcMainInvokeEvent, id: string) => {
+    return deleteKnowledgeNote(id);
   });
 }

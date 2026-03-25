@@ -28,6 +28,9 @@ import type {
   Workspace,
   WorkspaceCreateInput,
   WorkspaceUpdateInput,
+  KnowledgeNote,
+  KnowledgeNoteCreateInput,
+  KnowledgeNoteUpdateInput,
   StoredFavorite,
   BrowserFramePayload,
   BrowserStatusPayload,
@@ -435,6 +438,12 @@ interface AccomplishAPI {
   createWorkspace(input: WorkspaceCreateInput): Promise<Workspace>;
   updateWorkspace(id: string, input: WorkspaceUpdateInput): Promise<Workspace | null>;
   deleteWorkspace(id: string): Promise<boolean>;
+
+  // Knowledge Notes
+  listKnowledgeNotes(workspaceId: string): Promise<KnowledgeNote[]>;
+  createKnowledgeNote(input: KnowledgeNoteCreateInput): Promise<KnowledgeNote>;
+  updateKnowledgeNote(id: string, input: KnowledgeNoteUpdateInput): Promise<KnowledgeNote | null>;
+  deleteKnowledgeNote(id: string): Promise<boolean>;
 
   // Workspace event subscriptions
   onWorkspaceChanged?(callback: (data: { workspaceId: string }) => void): () => void;

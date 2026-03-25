@@ -446,5 +446,18 @@
   "baseUrl": {
     "title": "基础 URL",
     "description": "留空以使用默认 URL。"
+  },
+  "knowledgeNotes": {
+    "title": "知识笔记",
+    "description": "注入到此工作空间每个任务的持久上下文",
+    "addNote": "添加笔记",
+    "placeholder": "添加上下文、说明或参考信息...",
+    "types": {
+      "context": "上下文",
+      "instruction": "说明",
+      "reference": "参考"
+    },
+    "empty": "暂无知识笔记。添加笔记以为 AI 提供持久上下文。",
+    "maxNotes": "每个工作空间最多 20 条笔记"
   }
 }
