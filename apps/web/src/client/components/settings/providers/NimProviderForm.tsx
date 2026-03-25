@@ -25,6 +25,143 @@ interface NimProviderFormProps {
   showModelError: boolean;
 }
 
+interface DisconnectedNimFormProps {
+  serverUrl: string;
+  onServerUrlChange: (url: string) => void;
+  apiKey: string;
+  onApiKeyChange: (key: string) => void;
+  connecting: boolean;
+  error: string | null;
+  onConnect: () => void;
+}
+
+function DisconnectedNimForm({
+  serverUrl,
+  onServerUrlChange,
+  apiKey,
+  onApiKeyChange,
+  connecting,
+  error,
+  onConnect,
+}: DisconnectedNimFormProps) {
+  const { t } = useTranslation('settings');
+  return (
+    <motion.div
+      key="disconnected"
+      variants={settingsVariants.fadeSlide}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={settingsTransitions.enter}
+      className="space-y-3"
+    >
+      <div>
+        <label htmlFor="nim-server-url" className="mb-2 block text-sm font-medium text-foreground">
+          {t('nim.serverUrl', 'Endpoint URL')}
+        </label>
+        <input
+          id="nim-server-url"
+          type="text"
+          value={serverUrl}
+          onChange={(e) => onServerUrlChange(e.target.value)}
+          placeholder={NIM_DEFAULT_BASE_URL}
+          data-testid="nim-server-url"
+          className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
+        />
+      </div>
+      <div>
+        <label htmlFor="nim-api-key" className="mb-2 block text-sm font-medium text-foreground">
+          {t('apiKey.title')}
+          <span className="text-destructive ml-0.5">*</span>
+        </label>
+        <input
+          id="nim-api-key"
+          type="password"
+          value={apiKey}
+          onChange={(e) => onApiKeyChange(e.target.value)}
+          placeholder={t('nim.apiKeyPlaceholder', 'nvapi-...')}
+          data-testid="nim-api-key"
+          className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
+        />
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t('nim.apiKeyHint', 'Get your API key from NGC: org.ngc.nvidia.com/setup/api-key')}
+        </p>
+      </div>
+      <FormError error={error} />
+      <ConnectButton onClick={onConnect} connecting={connecting} />
+    </motion.div>
+  );
+}
+
+interface ConnectedNimDetailsProps {
+  connectedProvider: ConnectedProvider;
+  onDisconnect: () => void;
+  onModelChange: (modelId: string) => void;
+  showModelError: boolean;
+}
+
+function ConnectedNimDetails({
+  connectedProvider,
+  onDisconnect,
+  onModelChange,
+  showModelError,
+}: ConnectedNimDetailsProps) {
+  const { t } = useTranslation('settings');
+  const credentials = connectedProvider.credentials as NimCredentials;
+  const models = connectedProvider.availableModels || [];
+  return (
+    <motion.div
+      key="connected"
+      variants={settingsVariants.fadeSlide}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={settingsTransitions.enter}
+      className="space-y-3"
+    >
+      <div className="space-y-3">
+        <div>
+          <label
+            htmlFor="nim-server-url-connected"
+            className="mb-2 block text-sm font-medium text-foreground"
+          >
+            {t('nim.serverUrl', 'Endpoint URL')}
+          </label>
+          <input
+            id="nim-server-url-connected"
+            type="text"
+            value={credentials?.serverUrl || NIM_DEFAULT_BASE_URL}
+            disabled
+            className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="nim-api-key-connected"
+            className="mb-2 block text-sm font-medium text-foreground"
+          >
+            {t('apiKey.title')}
+          </label>
+          <input
+            id="nim-api-key-connected"
+            type="text"
+            value={credentials?.keyPrefix || t('apiKey.saved')}
+            disabled
+            className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
+          />
+        </div>
+      </div>
+      <ConnectedControls onDisconnect={onDisconnect} />
+      <ModelSelector
+        models={models}
+        value={connectedProvider.selectedModelId || null}
+        onChange={onModelChange}
+        error={showModelError && !connectedProvider.selectedModelId}
+      />
+    </motion.div>
+  );
+}
+
 export function NimProviderForm({
   connectedProvider,
   onConnect,
@@ -56,7 +193,6 @@ export function NimProviderForm({
 
       const trimmedUrl = serverUrl.trim() || NIM_DEFAULT_BASE_URL;
 
-      // Test connection and fetch models
       const result = await accomplish.testNimConnection(trimmedUrl, trimmedKey);
       if (!result.success) {
         setError(result.error || t('status.connectionFailed'));
@@ -64,10 +200,8 @@ export function NimProviderForm({
         return;
       }
 
-      // Save API key
       await accomplish.addApiKey('nim', trimmedKey);
 
-      // Map models to the expected format, preserving all metadata including toolSupport
       const models = result.models?.map((m) => ({ ...m })) || [];
 
       const provider: ConnectedProvider = {
@@ -92,121 +226,31 @@ export function NimProviderForm({
     }
   };
 
-  const models = connectedProvider?.availableModels || [];
-
   return (
     <div
       className="rounded-xl border border-border bg-card p-5"
       data-testid="provider-settings-panel"
     >
       <ProviderFormHeader logoSrc={nimLogo} providerName="NVIDIA NIM" />
-
       <div className="space-y-3">
         <AnimatePresence mode="wait">
           {!isConnected ? (
-            <motion.div
-              key="disconnected"
-              variants={settingsVariants.fadeSlide}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={settingsTransitions.enter}
-              className="space-y-3"
-            >
-              <div>
-                <label htmlFor="nim-server-url" className="mb-2 block text-sm font-medium text-foreground">
-                  {t('nim.serverUrl', 'Endpoint URL')}
-                </label>
-                <input
-                  id="nim-server-url"
-                  type="text"
-                  value={serverUrl}
-                  onChange={(e) => setServerUrl(e.target.value)}
-                  placeholder={NIM_DEFAULT_BASE_URL}
-                  data-testid="nim-server-url"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="nim-api-key" className="mb-2 block text-sm font-medium text-foreground">
-                  {t('apiKey.title')}
-                  <span className="text-destructive ml-0.5">*</span>
-                </label>
-                <input
-                  id="nim-api-key"
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder={t('nim.apiKeyPlaceholder', 'nvapi-...')}
-                  data-testid="nim-api-key"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
-                />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t(
-                    'nim.apiKeyHint',
-                    'Get your API key from NGC: org.ngc.nvidia.com/setup/api-key',
-                  )}
-                </p>
-              </div>
-
-              <FormError error={error} />
-              <ConnectButton onClick={handleConnect} connecting={connecting} />
-            </motion.div>
+            <DisconnectedNimForm
+              serverUrl={serverUrl}
+              onServerUrlChange={setServerUrl}
+              apiKey={apiKey}
+              onApiKeyChange={setApiKey}
+              connecting={connecting}
+              error={error}
+              onConnect={handleConnect}
+            />
           ) : (
-            <motion.div
-              key="connected"
-              variants={settingsVariants.fadeSlide}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={settingsTransitions.enter}
-              className="space-y-3"
-            >
-              {/* Display saved connection details */}
-              <div className="space-y-3">
-                <div>
-                  <label htmlFor="nim-server-url-connected" className="mb-2 block text-sm font-medium text-foreground">
-                    {t('nim.serverUrl', 'Endpoint URL')}
-                  </label>
-                  <input
-                    id="nim-server-url-connected"
-                    type="text"
-                    value={
-                      (connectedProvider?.credentials as NimCredentials)?.serverUrl ||
-                      NIM_DEFAULT_BASE_URL
-                    }
-                    disabled
-                    className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="nim-api-key-connected" className="mb-2 block text-sm font-medium text-foreground">
-                    {t('apiKey.title')}
-                  </label>
-                  <input
-                    id="nim-api-key-connected"
-                    type="text"
-                    value={
-                      (connectedProvider?.credentials as NimCredentials)?.keyPrefix ||
-                      t('apiKey.saved')
-                    }
-                    disabled
-                    className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
-                  />
-                </div>
-              </div>
-
-              <ConnectedControls onDisconnect={onDisconnect} />
-
-              {/* Model Selector */}
-              <ModelSelector
-                models={models}
-                value={connectedProvider?.selectedModelId || null}
-                onChange={onModelChange}
-                error={showModelError && !connectedProvider?.selectedModelId}
-              />
-            </motion.div>
+            <ConnectedNimDetails
+              connectedProvider={connectedProvider}
+              onDisconnect={onDisconnect}
+              onModelChange={onModelChange}
+              showModelError={showModelError}
+            />
           )}
         </AnimatePresence>
       </div>

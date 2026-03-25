@@ -282,6 +282,7 @@ export function clearAppSettings(): void {
       litellm_config = NULL,
       azure_foundry_config = NULL,
       lmstudio_config = NULL,
+      nim_config = NULL,
       openai_base_url = '',
       theme = 'system',
       run_in_background = 0,
