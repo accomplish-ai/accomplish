@@ -169,9 +169,16 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
   let knowledgeNotes: string | undefined;
   const activeWorkspaceId = workspaceManager.getActiveWorkspace();
   if (activeWorkspaceId) {
-    const formatted = getKnowledgeNotesForPrompt(activeWorkspaceId);
-    if (formatted) {
-      knowledgeNotes = formatted;
+    try {
+      const formatted = getKnowledgeNotesForPrompt(activeWorkspaceId);
+      if (formatted) {
+        knowledgeNotes = formatted;
+      }
+    } catch (error) {
+      logOC('WARN', '[OpenCode Config] Failed to load workspace knowledge notes', {
+        activeWorkspaceId,
+        err: String(error),
+      });
     }
   }
 

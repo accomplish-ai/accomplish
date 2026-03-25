@@ -32,7 +32,15 @@ export function KnowledgeNotesPanel({ workspaceId }: KnowledgeNotesPanelProps) {
   }, [accomplish, workspaceId]);
 
   useEffect(() => {
-    void accomplish.listKnowledgeNotes(workspaceId).then(setNotes);
+    let isActive = true;
+    void accomplish.listKnowledgeNotes(workspaceId).then((loaded) => {
+      if (isActive) {
+        setNotes(loaded);
+      }
+    });
+    return () => {
+      isActive = false;
+    };
   }, [accomplish, workspaceId]);
 
   const handleAdd = useCallback(async () => {
@@ -139,6 +147,8 @@ export function KnowledgeNotesPanel({ workspaceId }: KnowledgeNotesPanelProps) {
             </span>
             <div className="flex gap-2">
               <button
+                aria-label={t('knowledgeNotes.cancel')}
+                title={t('knowledgeNotes.cancel')}
                 onClick={() => {
                   setShowAddForm(false);
                   setNewContent('');
@@ -148,6 +158,8 @@ export function KnowledgeNotesPanel({ workspaceId }: KnowledgeNotesPanelProps) {
                 <X className="h-4 w-4" />
               </button>
               <button
+                aria-label={t('knowledgeNotes.save')}
+                title={t('knowledgeNotes.save')}
                 onClick={handleAdd}
                 disabled={!newContent.trim()}
                 className="p-1 text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
@@ -187,12 +199,16 @@ export function KnowledgeNotesPanel({ workspaceId }: KnowledgeNotesPanelProps) {
                 />
                 <div className="flex justify-end gap-2">
                   <button
+                    aria-label={t('knowledgeNotes.cancel')}
+                    title={t('knowledgeNotes.cancel')}
                     onClick={() => setEditingId(null)}
                     className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <X className="h-4 w-4" />
                   </button>
                   <button
+                    aria-label={t('knowledgeNotes.save')}
+                    title={t('knowledgeNotes.save')}
                     onClick={() => handleEdit(note.id)}
                     className="p-1 text-primary hover:text-primary/80 transition-colors"
                   >
@@ -214,12 +230,16 @@ export function KnowledgeNotesPanel({ workspaceId }: KnowledgeNotesPanelProps) {
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <button
+                    aria-label={t('knowledgeNotes.edit')}
+                    title={t('knowledgeNotes.edit')}
                     onClick={() => startEdit(note)}
                     className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
                   <button
+                    aria-label={t('knowledgeNotes.delete')}
+                    title={t('knowledgeNotes.delete')}
                     onClick={() => handleDelete(note.id)}
                     className="p-1 text-muted-foreground hover:text-danger transition-colors"
                   >
