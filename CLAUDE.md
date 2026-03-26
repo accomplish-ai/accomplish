@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working with this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 Full architecture details are in [AGENTS.md](AGENTS.md) and [docs/architecture.md](docs/architecture.md).
 Full project rules are in [.claude/PROJECT_RULES.md](.claude/PROJECT_RULES.md).
 
@@ -9,6 +9,7 @@ Full project rules are in [.claude/PROJECT_RULES.md](.claude/PROJECT_RULES.md).
 ```
 apps/desktop/          # Electron shell: main process, preload, loads web build output
 apps/web/              # Standalone React UI (Vite + React Router + Zustand)
+apps/daemon/           # Background daemon process — plain Node.js, NO electron imports allowed
 packages/agent-core/   # Core business logic, types, storage, MCP tools (@accomplish_ai/agent-core, ESM)
 ```
 
@@ -37,14 +38,17 @@ pnpm -F @accomplish/desktop test:unit        # Desktop main-process unit tests
 pnpm -F @accomplish/desktop test:integration # Desktop integration tests
 pnpm -F @accomplish/desktop test:e2e:native  # Playwright E2E tests (serial, Electron)
 pnpm -F @accomplish_ai/agent-core test       # Agent-core tests
+pnpm -F @accomplish/daemon test              # Daemon tests
 
 # Run a single test file
 pnpm -F @accomplish/desktop vitest run --config vitest.unit.config.ts path/to/file.unit.test.ts
+pnpm -F @accomplish/web vitest run --config vitest.unit.config.ts path/to/file.unit.test.ts
 
 # Environment variables for dev/testing
-# CLEAN_START=1        — clear all stored data on start
-# E2E_SKIP_AUTH=1      — skip onboarding flow
-# E2E_MOCK_TASK_EVENTS=1 — mock task events
+# CLEAN_START=1           — clear all stored data on start
+# E2E_SKIP_AUTH=1         — skip onboarding flow
+# E2E_MOCK_TASK_EVENTS=1  — mock task events
+# ACCOMPLISH_BUNDLED_MCP=1 — bundle MCP tools (used in package/release scripts only)
 ```
 
 ## Architecture
@@ -58,8 +62,12 @@ Preload (contextBridge) — apps/desktop/src/preload/index.ts
   ↓ ipcRenderer.invoke / ipcRenderer.on
 Main Process — apps/desktop/src/main/ipc/handlers.ts
   ↓ agent-core factories (TaskManager, Storage, etc.)
+  ↓ forks child process on startup
+Daemon (apps/daemon) — plain Node.js, handles storage via DaemonRpcServer
   ↑ IPC events → taskStore subscriptions in renderer
 ```
+
+The daemon is a **child process** forked by the Electron main process. It handles storage queries via RPC (`DaemonRpcServer` / `DaemonClient`). It must never import from `electron`.
 
 ### Adding an IPC handler (required sequence)
 
@@ -107,7 +115,8 @@ Desktop does **not** have an `@/*` alias — UI code lives in `apps/web`.
 ### Code
 
 - **No `require()` in agent-core** — it is ESM; use `import`
-- **`.js` extensions required** on all imports within agent-core
+- **`.js` extensions required** on all imports within agent-core and daemon
+- **No `electron` imports in `apps/daemon`** — it runs as plain Node.js
 - **Image assets** must use ES module imports (`import logo from '/assets/logo.png'`), never absolute paths — they break in the packaged app
 - **Always use braces** for `if`/`else`/`for`/`while` (enforced by ESLint `curly` rule)
 - **No nested ternaries** — use mapper objects or if/else
@@ -115,6 +124,10 @@ Desktop does **not** have an `@/*` alias — UI code lives in `apps/web`.
 - **Reuse UI components** — check `apps/web/src/client/components/ui/` before creating new ones
 - **New files must be < 200 lines** — split into logical modules if needed (exceptions: generated files, migrations)
 - **No `console.log` in production code** — use the app's existing logger
+- **No Node.js-only imports in web code** — `apps/web` runs in the browser; importing `fs`, `path`, `crypto`, or Node-only SDKs breaks the build. Run `pnpm build:web` to catch leaks.
+- **Never roll custom encryption** — use `SecureStorage` from agent-core (AES-256-GCM with atomic writes)
+- **Migrations must explain WHY** — add a comment in `up()` explaining the reason for the schema change
+- **Async store actions need token guards** — capture a request token before async calls, validate before applying results to prevent stale state overwrites (see `_taskStateToken` pattern in `taskStore.ts`)
 
 ### Never remove features
 
@@ -133,7 +146,7 @@ components, types, IPC handlers, UI elements, routes, and config entries.
 
 ```bash
 # 1. Install deps if any package.json changed
-git diff --name-only | grep "package\.json" && pnpm install
+git diff --name-only origin/main...HEAD | grep "package\.json" && pnpm install
 
 # 2. Typecheck → Lint → Format → Build
 pnpm typecheck && pnpm lint:eslint && pnpm format:check && pnpm build
@@ -142,6 +155,7 @@ pnpm typecheck && pnpm lint:eslint && pnpm format:check && pnpm build
 pnpm -F @accomplish/web test:unit          # if apps/web changed
 pnpm -F @accomplish/desktop test:unit      # if apps/desktop changed
 pnpm -F @accomplish_ai/agent-core test     # if packages/agent-core changed
+pnpm -F @accomplish/daemon test            # if apps/daemon changed
 ```
 
 Do not push if any step fails.

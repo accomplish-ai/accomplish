@@ -18,6 +18,7 @@ import {
   type EnvironmentConfig,
   type SandboxPaths,
 } from '@accomplish_ai/agent-core';
+import { getHuggingFaceServerStatus } from '../providers/huggingface-local';
 import { getModelDisplayName } from '@accomplish_ai/agent-core';
 import type {
   AzureFoundryCredentials,
@@ -47,9 +48,6 @@ import { getExtendedNodePath } from '../utils/system-path';
 import { getBundledNodePaths, logBundledNodeInfo } from '../utils/bundled-node';
 
 const VERTEX_SA_KEY_FILENAME = 'vertex-sa-key.json';
-const BROWSER_RECOVERY_COOLDOWN_MS = 10000;
-let browserEnsurePromise: Promise<void> | null = null;
-let lastBrowserRecoveryAt = 0;
 
 /**
  * Removes the Vertex AI service account key file from disk if it exists.
@@ -80,9 +78,11 @@ export function getOpenCodeCliPath(): { command: string; args: string[] } {
   if (resolved) {
     return { command: resolved.cliPath, args: [] };
   }
-  throw new Error(
-    '[CLI Path] OpenCode CLI executable not found. Reinstall dependencies to restore platform binaries.',
-  );
+  throw new Error('OpenCode CLI executable not found');
+}
+
+export function isOpenCodeBundled(): boolean {
+  return coreIsCliAvailable(getCliResolverConfig());
 }
 
 export function isOpenCodeCliAvailable(): boolean {
@@ -90,9 +90,14 @@ export function isOpenCodeCliAvailable(): boolean {
 }
 
 export function getBundledOpenCodeVersion(): string | null {
+  try {
+    getOpenCodeCliPath();
+  } catch {
+    return null;
+  }
   if (app.isPackaged) {
     try {
-      const packageName = 'opencode-ai';
+      const packageName = process.platform === 'win32' ? 'opencode-windows-x64' : 'opencode-ai';
       const packageJsonPath = path.join(
         process.resourcesPath,
         'app.asar.unpacked',
@@ -132,52 +137,38 @@ export function getBundledOpenCodeVersion(): string | null {
 export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEnv> {
   // Start with base environment
   let env: NodeJS.ProcessEnv = { ...process.env };
-  const bundledNode = getBundledNodePaths();
 
-  if (!bundledNode) {
-    throw new Error(
-      '[OpenCode CLI] Bundled Node.js path is missing. ' +
-        'Run "pnpm -F @accomplish/desktop download:nodejs" and rebuild before launching.',
-    );
-  }
+  // Handle Electron-specific environment setup for packaged app
+  if (app.isPackaged) {
+    env.ELECTRON_RUN_AS_NODE = '1';
+    logBundledNodeInfo();
 
-  if (!fs.existsSync(bundledNode.nodePath)) {
-    throw new Error(
-      `[OpenCode CLI] Bundled Node.js executable not found at ${bundledNode.nodePath}. ` +
-        'Run "pnpm -F @accomplish/desktop download:nodejs" and rebuild before launching.',
-    );
-  }
+    const bundledNodePaths = getBundledNodePaths();
+    if (!bundledNodePaths) {
+      throw new Error(
+        'Bundled Node.js not found in packaged build. Cannot spawn opencode without it.',
+      );
+    }
+    const delimiter = process.platform === 'win32' ? ';' : ':';
+    const existingPath = env.PATH ?? env.Path ?? '';
+    const combinedPath = existingPath
+      ? `${bundledNodePaths.binDir}${delimiter}${existingPath}`
+      : bundledNodePaths.binDir;
+    env.PATH = combinedPath;
+    if (process.platform === 'win32') {
+      env.Path = combinedPath;
+    }
+    logOC('INFO', `[OpenCode CLI] Added bundled Node.js to PATH: ${bundledNodePaths.binDir}`);
 
-  try {
-    fs.accessSync(bundledNode.nodePath, fs.constants.X_OK);
-  } catch {
-    throw new Error(
-      `[OpenCode CLI] Bundled Node.js executable is not executable at ${bundledNode.nodePath}. ` +
-        'Run "pnpm -F @accomplish/desktop download:nodejs" and rebuild before launching.',
-    );
-  }
-
-  env.ELECTRON_RUN_AS_NODE = '1';
-  logBundledNodeInfo();
-
-  const delimiter = process.platform === 'win32' ? ';' : ':';
-  const existingPath = env.PATH ?? env.Path ?? '';
-  const combinedPath = existingPath
-    ? `${bundledNode.binDir}${delimiter}${existingPath}`
-    : bundledNode.binDir;
-  env.PATH = combinedPath;
-  if (process.platform === 'win32') {
-    env.Path = combinedPath;
-  }
-  logOC('INFO', `[OpenCode CLI] Added bundled Node.js to PATH: ${bundledNode.binDir}`);
-
-  if (process.platform === 'darwin') {
-    env.PATH = getExtendedNodePath(env.PATH);
+    if (process.platform === 'darwin') {
+      env.PATH = getExtendedNodePath(env.PATH);
+    }
   }
 
   // Gather configuration for the reusable environment builder
   const apiKeys = await getAllApiKeys();
   const bedrockCredentials = getBedrockCredentials() as BedrockCredentials | null;
+  const bundledNode = getBundledNodePaths();
 
   // Determine OpenAI base URL
   const storage = getStorage();
@@ -191,6 +182,18 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
     ollamaHost = activeModel.baseUrl;
   } else if (selectedModel?.provider === 'ollama' && selectedModel.baseUrl) {
     ollamaHost = selectedModel.baseUrl;
+  }
+
+  // Determine HuggingFace Local server URL
+  const hfProvider =
+    activeModel?.provider === 'huggingface-local' ||
+    selectedModel?.provider === 'huggingface-local';
+  let hfBaseUrl: string | undefined;
+  if (hfProvider) {
+    const hfStatus = getHuggingFaceServerStatus();
+    if (hfStatus.running && hfStatus.port) {
+      hfBaseUrl = `http://127.0.0.1:${hfStatus.port}/v1`;
+    }
   }
 
   // Handle Vertex AI credentials
@@ -217,9 +220,16 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
     bedrockCredentials: bedrockCredentials || undefined,
     vertexCredentials,
     vertexServiceAccountKeyPath,
-    bundledNodeBinPath: bundledNode.binDir,
+    bundledNodeBinPath: bundledNode?.binDir,
     taskId: taskId || undefined,
-    openAiBaseUrl: configuredOpenAiBaseUrl || undefined,
+    openAiBaseUrl: hfProvider
+      ? (hfBaseUrl ??
+        (() => {
+          throw new Error(
+            'HuggingFace Local server is not running. Please start the server before sending requests.',
+          );
+        })())
+      : configuredOpenAiBaseUrl || undefined,
     ollamaHost,
   };
 
@@ -255,7 +265,7 @@ export function getCliCommand(): { command: string; args: string[] } {
 }
 
 export async function isCliAvailable(): Promise<boolean> {
-  return isOpenCodeCliAvailable();
+  return isOpenCodeBundled();
 }
 
 export async function onBeforeStart(): Promise<void> {
@@ -287,17 +297,15 @@ export async function onBeforeStart(): Promise<void> {
   await generateOpenCodeConfig(azureFoundryToken);
 }
 
+const BROWSER_RECOVERY_COOLDOWN_MS = 30_000;
+let browserEnsurePromise: Promise<void> | null = null;
+let lastBrowserRecoveryAt = 0;
+
 function getBrowserServerConfig(): BrowserServerConfig {
   const bundledPaths = getBundledNodePaths();
-  if (!bundledPaths) {
-    throw new Error(
-      '[Browser] Bundled Node.js path is missing. ' +
-        'Run "pnpm -F @accomplish/desktop download:nodejs" and rebuild before launching.',
-    );
-  }
   return {
     mcpToolsPath: getMcpToolsPath(),
-    bundledNodeBinPath: bundledPaths.binDir,
+    bundledNodeBinPath: bundledPaths?.binDir,
     devBrowserPort: DEV_BROWSER_PORT,
   };
 }
@@ -347,7 +355,8 @@ export async function onBeforeTaskStart(
     callbacks.onProgress({ stage: 'browser', message: 'Preparing browser...', isFirstTask });
   }
 
-  await ensureBrowserServer(callbacks);
+  const browserConfig = getBrowserServerConfig();
+  await ensureDevBrowserServer(browserConfig, callbacks.onProgress);
 }
 
 export function createElectronTaskManagerOptions(): TaskManagerOptions {

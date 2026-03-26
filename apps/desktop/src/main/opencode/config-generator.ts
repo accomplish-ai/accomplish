@@ -12,11 +12,13 @@ import {
   QUESTION_API_PORT,
 } from '@accomplish_ai/agent-core';
 import type { BrowserConfig } from '@accomplish_ai/agent-core';
+import { getKnowledgeNotesForPrompt } from '@accomplish_ai/agent-core';
 import { getApiKey, getAllApiKeys } from '../store/secureStorage';
 import { getStorage } from '../store/storage';
 import { getBundledNodePaths } from '../utils/bundled-node';
 import { skillsManager } from '../skills';
 import { getLogCollector } from '../logging';
+import * as workspaceManager from '../store/workspaceManager';
 
 function logOC(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
   try {
@@ -163,6 +165,23 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     }
   }
 
+  // Retrieve knowledge notes for the active workspace
+  let knowledgeNotes: string | undefined;
+  const activeWorkspaceId = workspaceManager.getActiveWorkspace();
+  if (activeWorkspaceId) {
+    try {
+      const formatted = getKnowledgeNotesForPrompt(activeWorkspaceId);
+      if (formatted) {
+        knowledgeNotes = formatted;
+      }
+    } catch (error) {
+      logOC('WARN', '[OpenCode Config] Failed to load workspace knowledge notes', {
+        activeWorkspaceId,
+        err: String(error),
+      });
+    }
+  }
+
   const result = generateConfig({
     platform: process.platform,
     mcpToolsPath,
@@ -178,6 +197,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     smallModel: modelOverride?.smallModel,
     connectors: connectors.length > 0 ? connectors : undefined,
     browser: browserConfig,
+    knowledgeNotes,
   });
 
   process.env.OPENCODE_CONFIG = result.configPath;

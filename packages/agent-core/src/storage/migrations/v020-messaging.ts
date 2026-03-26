@@ -1,5 +1,5 @@
 /**
- * Migration v017 — add messaging_config column to app_settings
+ * Migration v020 — add messaging_config column to app_settings
  *
  * Stores per-platform messaging integration configuration (WhatsApp, Slack, etc.)
  * as a JSON blob. Introduced by ENG-684.
@@ -8,7 +8,7 @@ import type { Database } from 'better-sqlite3';
 import type { Migration } from './index.js';
 
 export const migration: Migration = {
-  version: 17,
+  version: 20,
   up: (db: Database) => {
     const columns = db.prepare(`PRAGMA table_info(app_settings)`).all() as Array<{
       name: string;

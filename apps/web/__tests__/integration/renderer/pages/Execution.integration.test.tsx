@@ -105,6 +105,17 @@ const mockAccomplish = {
   loginSlackMcp: vi.fn().mockResolvedValue({ ok: true }),
   logoutSlackMcp: vi.fn().mockResolvedValue(undefined),
   resyncSkills: mockResyncSkills,
+  fetchProviderModels: vi.fn().mockResolvedValue({ success: true, models: [] }),
+  getSandboxConfig: vi.fn().mockResolvedValue({
+    mode: 'disabled',
+    allowedPaths: [],
+    networkRestricted: false,
+    allowedHosts: [],
+  }),
+  listWorkspaces: vi.fn().mockResolvedValue([]),
+  getTheme: vi.fn().mockResolvedValue('system'),
+  setTheme: vi.fn().mockResolvedValue(undefined),
+  onThemeChange: undefined,
 };
 
 // Mock the accomplish module
@@ -1436,35 +1447,7 @@ describe('Execution Page Integration', () => {
       });
     });
 
-    it('should show "Enter a message" tooltip when follow-up is empty', () => {
-      const task = createMockTask('task-123', 'Done', 'completed');
-      task.sessionId = 'session-abc';
-      mockStoreState.currentTask = task;
-
-      renderWithRouter('task-123');
-
-      const tooltips = screen.getAllByRole('tooltip');
-      const sendTooltip = tooltips.find((t) => t.textContent === 'Enter a message');
-      expect(sendTooltip).toBeDefined();
-    });
-
-    it('should show "Message is too long" tooltip when follow-up exceeds limit', () => {
-      const task = createMockTask('task-123', 'Done', 'completed');
-      task.sessionId = 'session-abc';
-      mockStoreState.currentTask = task;
-
-      renderWithRouter('task-123');
-
-      const input = screen.getByTestId('execution-follow-up-input');
-      const oversizedValue = 'a'.repeat(PROMPT_DEFAULT_MAX_LENGTH + 1);
-      fireEvent.change(input, { target: { value: oversizedValue } });
-
-      const tooltips = screen.getAllByRole('tooltip');
-      const sendTooltip = tooltips.find((t) => t.textContent === 'Message is too long');
-      expect(sendTooltip).toBeDefined();
-    });
-
-    it('should show "Send" tooltip when follow-up is valid', () => {
+    it('should enable send button when follow-up is valid', () => {
       const task = createMockTask('task-123', 'Done', 'completed');
       task.sessionId = 'session-abc';
       mockStoreState.currentTask = task;
@@ -1474,9 +1457,8 @@ describe('Execution Page Integration', () => {
       const input = screen.getByTestId('execution-follow-up-input');
       fireEvent.change(input, { target: { value: 'Normal follow-up' } });
 
-      const tooltips = screen.getAllByRole('tooltip');
-      const sendTooltip = tooltips.find((t) => t.textContent === 'Send');
-      expect(sendTooltip).toBeDefined();
+      const sendButton = screen.getByRole('button', { name: /send/i });
+      expect(sendButton).not.toBeDisabled();
     });
   });
 

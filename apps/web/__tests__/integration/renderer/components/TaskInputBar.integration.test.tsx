@@ -5,7 +5,7 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
@@ -44,6 +44,7 @@ const mockAccomplish = {
   validateBedrockCredentials: vi.fn().mockResolvedValue({ valid: true }),
   saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
   speechIsConfigured: vi.fn().mockResolvedValue(true),
+  getEnabledSkills: vi.fn().mockResolvedValue([]),
 };
 
 // Mock the accomplish module
@@ -487,6 +488,113 @@ describe('TaskInputBar Integration', () => {
       // Assert - now uses consistent text-[16px] regardless of large prop
       const textarea = screen.getByRole('textbox');
       expect(textarea.className).toContain('text-[16px]');
+    });
+  });
+
+  describe('slash command integration', () => {
+    const mockSkills = [
+      {
+        id: 'skill-code-review',
+        name: 'Code Review',
+        description: 'Review code for quality',
+        command: '/code-review',
+        source: 'official',
+        isHidden: false,
+        isEnabled: true,
+        isVerified: true,
+        filePath: '/skills/code-review',
+        updatedAt: '2024-01-01',
+      },
+      {
+        id: 'skill-git-helper',
+        name: 'Git Helper',
+        description: 'Helps with git tasks',
+        command: '/git-helper',
+        source: 'community',
+        isHidden: false,
+        isEnabled: true,
+        isVerified: false,
+        filePath: '/skills/git-helper',
+        updatedAt: '2024-01-01',
+      },
+    ];
+
+    beforeEach(() => {
+      vi.mocked(mockAccomplish.getEnabledSkills).mockResolvedValue(mockSkills);
+    });
+
+    afterEach(() => {
+      vi.mocked(mockAccomplish.getEnabledSkills).mockResolvedValue([]);
+    });
+
+    it('should show slash command popover when "/" is typed', async () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+
+      renderWithRouter(<TaskInputBar value="" onChange={onChange} onSubmit={onSubmit} />);
+
+      const textarea = screen.getByRole('textbox');
+      fireEvent.change(textarea, { target: { value: '/', selectionStart: 1 } });
+
+      const codeReview = await screen.findByText('/code-review');
+      expect(codeReview).toBeInTheDocument();
+
+      const gitHelper = await screen.findByText('/git-helper');
+      expect(gitHelper).toBeInTheDocument();
+    });
+
+    it('should not submit when Enter is pressed with slash popover open', async () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+
+      const { rerender } = renderWithRouter(
+        <TaskInputBar value="" onChange={onChange} onSubmit={onSubmit} />,
+      );
+
+      const textarea = screen.getByRole('textbox');
+      fireEvent.change(textarea, { target: { value: '/', selectionStart: 1 } });
+
+      rerender(
+        <MemoryRouter>
+          <TaskInputBar value="/" onChange={onChange} onSubmit={onSubmit} />
+        </MemoryRouter>,
+      );
+
+      await screen.findByText('/code-review');
+
+      fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
+
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(onChange).toHaveBeenCalledWith('/code-review');
+    });
+
+    it('should dismiss popover on Escape without affecting the textarea', async () => {
+      const onChange = vi.fn();
+      const onSubmit = vi.fn();
+
+      const { rerender } = renderWithRouter(
+        <TaskInputBar value="" onChange={onChange} onSubmit={onSubmit} />,
+      );
+
+      const textarea = screen.getByRole('textbox');
+      fireEvent.change(textarea, { target: { value: '/', selectionStart: 1 } });
+
+      rerender(
+        <MemoryRouter>
+          <TaskInputBar value="/" onChange={onChange} onSubmit={onSubmit} />
+        </MemoryRouter>,
+      );
+
+      await screen.findByText('/code-review');
+
+      onChange.mockClear();
+
+      fireEvent.keyDown(textarea, { key: 'Escape' });
+
+      expect(screen.queryByText('/code-review')).not.toBeInTheDocument();
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(onChange).not.toHaveBeenCalled();
+      expect(textarea.value).toBe('/');
     });
   });
 

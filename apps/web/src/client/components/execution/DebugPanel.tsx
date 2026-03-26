@@ -328,7 +328,7 @@ export function DebugPanel({
                   <div className="space-y-1">
                     {filteredDebugLogs.map((log, index) => (
                       <div
-                        key={index}
+                        key={`${log.taskId}-${log.timestamp}-${index}`}
                         ref={(el) => {
                           if (el) debugLogRefs.current.set(index, el);
                           else debugLogRefs.current.delete(index);

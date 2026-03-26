@@ -15,6 +15,9 @@ import type {
   Workspace,
   WorkspaceCreateInput,
   WorkspaceUpdateInput,
+  KnowledgeNote,
+  KnowledgeNoteCreateInput,
+  KnowledgeNoteUpdateInput,
 } from '@accomplish_ai/agent-core';
 import type { CloudBrowserConfig } from '@accomplish_ai/agent-core/common';
 
@@ -90,6 +93,18 @@ const accomplishAPI = {
     ipcRenderer.invoke('opencode:auth:slack:status'),
   loginSlackMcp: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('opencode:auth:slack:login'),
   logoutSlackMcp: (): Promise<void> => ipcRenderer.invoke('opencode:auth:slack:logout'),
+  getCopilotOAuthStatus: (): Promise<{
+    connected: boolean;
+    username?: string;
+    expiresAt?: number;
+  }> => ipcRenderer.invoke('opencode:auth:copilot:status'),
+  loginGithubCopilot: (): Promise<{
+    ok: boolean;
+    userCode?: string;
+    verificationUri?: string;
+    expiresIn?: number;
+  }> => ipcRenderer.invoke('opencode:auth:copilot:login'),
+  logoutGithubCopilot: (): Promise<void> => ipcRenderer.invoke('opencode:auth:copilot:logout'),
 
   // API Key management (new simplified handlers)
   hasApiKey: (): Promise<boolean> => ipcRenderer.invoke('api-key:exists'),
@@ -308,6 +323,22 @@ const accomplishAPI = {
       }>;
     } | null,
   ): Promise<void> => ipcRenderer.invoke('lmstudio:set-config', config),
+
+  // NVIDIA NIM configuration
+  testNimConnection: (
+    url: string,
+    apiKey: string,
+  ): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }> => ipcRenderer.invoke('nim:test-connection', url, apiKey),
+
+  fetchNimModels: (): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }> => ipcRenderer.invoke('nim:fetch-models'),
 
   // Custom OpenAI-compatible endpoint configuration
   testCustomConnection: (
@@ -621,6 +652,64 @@ const accomplishAPI = {
     };
   },
 
+  // HuggingFace Local configuration (ENG-687)
+  startHuggingFaceServer: (
+    modelId: string,
+  ): Promise<{ success: boolean; port?: number; error?: string }> =>
+    ipcRenderer.invoke('huggingface-local:start-server', modelId),
+  stopHuggingFaceServer: (): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('huggingface-local:stop-server'),
+  getHuggingFaceServerStatus: (): Promise<{
+    running: boolean;
+    port: number | null;
+    loadedModel: string | null;
+    isLoading: boolean;
+  }> => ipcRenderer.invoke('huggingface-local:server-status'),
+  getHuggingFaceLocalConfig: (): Promise<{
+    selectedModelId: string | null;
+    serverPort: number | null;
+    enabled: boolean;
+  } | null> => ipcRenderer.invoke('huggingface-local:get-config'),
+  setHuggingFaceLocalConfig: (
+    config: {
+      selectedModelId: string | null;
+      serverPort: number | null;
+      enabled: boolean;
+    } | null,
+  ): Promise<void> => ipcRenderer.invoke('huggingface-local:set-config', config),
+  testHuggingFaceConnection: (): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('huggingface-local:test-connection'),
+  downloadHuggingFaceModel: (modelId: string): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('huggingface-local:download-model', modelId),
+  listHuggingFaceModels: (): Promise<{
+    cached: Array<{ id: string; displayName: string; sizeBytes?: number; downloaded: boolean }>;
+    suggested: Array<{ id: string; displayName: string; sizeBytes?: number; downloaded: boolean }>;
+  }> => ipcRenderer.invoke('huggingface-local:list-models'),
+  deleteHuggingFaceModel: (modelId: string): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('huggingface-local:delete-model', modelId),
+  onHuggingFaceDownloadProgress: (
+    callback: (progress: {
+      modelId: string;
+      status: 'downloading' | 'complete' | 'error';
+      progress: number;
+      error?: string;
+    }) => void,
+  ) => {
+    const listener = (
+      _: unknown,
+      progress: {
+        modelId: string;
+        status: 'downloading' | 'complete' | 'error';
+        progress: number;
+        error?: string;
+      },
+    ) => callback(progress);
+    ipcRenderer.on('huggingface-local:download-progress', listener);
+    return () => {
+      ipcRenderer.removeListener('huggingface-local:download-progress', listener);
+    };
+  },
+
   // Debug bug reporting
   captureScreenshot: (): Promise<{
     success: boolean;
@@ -658,6 +747,20 @@ const accomplishAPI = {
   updateWorkspace: (id: string, input: WorkspaceUpdateInput): Promise<Workspace | null> =>
     ipcRenderer.invoke('workspace:update', id, input),
   deleteWorkspace: (id: string): Promise<boolean> => ipcRenderer.invoke('workspace:delete', id),
+
+  // Knowledge Notes
+  listKnowledgeNotes: (workspaceId: string): Promise<KnowledgeNote[]> =>
+    ipcRenderer.invoke('knowledge-notes:list', workspaceId),
+  createKnowledgeNote: (input: KnowledgeNoteCreateInput): Promise<KnowledgeNote> =>
+    ipcRenderer.invoke('knowledge-notes:create', input),
+  updateKnowledgeNote: (
+    id: string,
+    workspaceId: string,
+    input: KnowledgeNoteUpdateInput,
+  ): Promise<KnowledgeNote | null> =>
+    ipcRenderer.invoke('knowledge-notes:update', id, workspaceId, input),
+  deleteKnowledgeNote: (id: string, workspaceId: string): Promise<boolean> =>
+    ipcRenderer.invoke('knowledge-notes:delete', id, workspaceId),
 
   // Workspace event subscriptions
   onWorkspaceChanged: (callback: (data: { workspaceId: string }) => void) => {

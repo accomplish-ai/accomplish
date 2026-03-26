@@ -110,13 +110,18 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
       }
       this.disposeSocket();
 
-      this.socket = makeWASocket({
+      const socket = makeWASocket({
         version,
         auth: state,
         logger: pino({ level: 'silent' }),
         printQRInTerminal: false,
         browser: ['Accomplish', 'Desktop', '1.0.0'],
       });
+      if (this.disposed) {
+        socket.end(new Error('WhatsApp service disposed during connect'));
+        return;
+      }
+      this.socket = socket;
       this.socket.ev.on('creds.update', saveCreds);
       this.socket.ev.on(
         'connection.update',
@@ -215,6 +220,7 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
 
   async disconnect(): Promise<void> {
     this.manualDisconnect = true;
+    this.qrCode = null;
     this.reconnect.scheduled = false;
     this.reconnect.attempts = 0;
     clearReconnectTimer(this.reconnect);

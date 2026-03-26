@@ -5,6 +5,7 @@ import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, Plus, X, Check } from 'lucide-react';
 import type { Workspace } from '@accomplish_ai/agent-core/common';
+import { KnowledgeNotesPanel } from './KnowledgeNotesPanel';
 
 const WORKSPACE_COLORS = [
   '#6366f1', // indigo
@@ -212,11 +213,16 @@ export function WorkspacesPanel() {
       <div className="space-y-2">
         {workspaces.map((workspace) => (
           <div key={workspace.id} className="rounded-lg border border-border bg-card p-4">
-            {editingId === workspace.id
-              ? renderEditForm(workspace)
-              : deletingId === workspace.id
-                ? renderDeleteConfirm(workspace)
-                : renderDefaultRow(workspace)}
+            {editingId === workspace.id ? (
+              renderEditForm(workspace)
+            ) : deletingId === workspace.id ? (
+              renderDeleteConfirm(workspace)
+            ) : (
+              <>
+                {renderDefaultRow(workspace)}
+                <KnowledgeNotesPanel workspaceId={workspace.id} />
+              </>
+            )}
           </div>
         ))}
       </div>

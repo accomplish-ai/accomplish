@@ -40,6 +40,7 @@ import { getApiKey, clearSecureStorage } from './store/secureStorage';
 import * as workspaceManager from './store/workspaceManager';
 import { initializeLogCollector, shutdownLogCollector, getLogCollector } from './logging';
 import { skillsManager } from './skills';
+import { startHuggingFaceServer, stopHuggingFaceServer } from './providers/huggingface-local';
 import { createTray, destroyTray } from './tray';
 import { bootstrapDaemon, shutdownDaemon } from './daemon-bootstrap';
 
@@ -318,6 +319,28 @@ if (!gotTheLock) {
           }
         }
       }
+
+      // Auto-start HuggingFace local server if enabled
+      const hfConfig = storage.getHuggingFaceLocalConfig();
+      if (hfConfig?.enabled && hfConfig.selectedModelId) {
+        logMain(
+          'INFO',
+          `[Main] Auto-starting HuggingFace server for model: ${hfConfig.selectedModelId}`,
+        );
+        startHuggingFaceServer(hfConfig.selectedModelId)
+          .then((result) => {
+            if (!result.success) {
+              logMain('ERROR', '[Main] Failed to auto-start HuggingFace local server', {
+                error: result.error,
+              });
+            }
+          })
+          .catch((err: unknown) => {
+            logMain('ERROR', '[Main] Failed to auto-start HuggingFace local server (thrown)', {
+              err: String(err),
+            });
+          });
+      }
     } catch (err) {
       logMain('ERROR', '[Main] Provider validation failed', { err: String(err) });
     }
@@ -448,6 +471,17 @@ app.on('before-quit', (event) => {
       disposeWhatsAppService();
     } catch (error: unknown) {
       logger?.logEnv('ERROR', `[Main] Error during disposeWhatsAppService: ${String(error)}`);
+    }
+    // Stop HuggingFace inference server so its port is released (ENG-687)
+    try {
+      await Promise.race([
+        stopHuggingFaceServer(),
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('HuggingFace server stop timed out after 5s')), 5000),
+        ),
+      ]);
+    } catch (error: unknown) {
+      logger?.logEnv('ERROR', `[Main] Failed to stop HuggingFace server: ${String(error)}`);
     }
     try {
       cleanupVertexServiceAccountKey();

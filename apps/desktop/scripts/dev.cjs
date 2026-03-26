@@ -64,6 +64,10 @@ function ensureNativeModules(commandEnv) {
 }
 
 function runElectronRebuild(commandEnv) {
+  // Let electron-rebuild delegate Visual Studio discovery to node-gyp so
+  // Windows developers can build with whichever supported MSVC toolchain is
+  // installed, including Visual Studio 2026. The root package.json pins
+  // electron-rebuild to a node-gyp release that supports newer VS versions.
   runPnpmSync(['exec', 'electron-rebuild', '-f'], {
     cwd: desktopRoot,
     env: commandEnv,

@@ -55,6 +55,7 @@
     "litellm": "LiteLLM",
     "vertex": "Vertex AI",
     "azure-foundry": "Azure AI Foundry",
+    "huggingface-local": "HuggingFace Local",
     "nebius": "Nebius AI",
     "together": "Together AI",
     "fireworks": "Fireworks AI",
@@ -76,6 +77,7 @@
     "litellm": "Unified proxy",
     "vertex": "Google Cloud",
     "azure-foundry": "Azure Service",
+    "huggingface-local": "Local inference",
     "nebius": "Llama & DeepSeek models",
     "together": "Llama & Mixtral models",
     "fireworks": "Fast inference models",
@@ -331,6 +333,14 @@
     "description": "Access 200+ AI models through OpenRouter's unified API.",
     "fetchModelsFailed": "Failed to fetch models"
   },
+  "huggingfaceLocal": {
+    "serverUrl": "HuggingFace Local Server URL",
+    "serverHint": "Run a local HuggingFace Transformers.js inference server with ONNX Runtime",
+    "selectModel": "Please select a model",
+    "selectModelPlaceholder": "Select a model...",
+    "infoBannerTitle": "Local inference with Transformers.js",
+    "infoBannerDescription": "Models run locally using ONNX Runtime. Smaller quantized models (Q4) are recommended for faster inference."
+  },
   "litellm": {
     "description": "Connect to your LiteLLM proxy server for unified model access.",
     "serverUrl": "Server URL",
@@ -471,5 +481,26 @@
   "baseUrl": {
     "title": "Base URL",
     "description": "Leave empty to use the default URL."
+  },
+  "knowledgeNotes": {
+    "title": "Knowledge Notes",
+    "description": "Persistent context injected into every task in this workspace",
+    "addNote": "Add Note",
+    "placeholder": "Add context, instructions, or references...",
+    "types": {
+      "context": "Context",
+      "instruction": "Instruction",
+      "reference": "Reference"
+    },
+    "labels": {
+      "type": "Note type",
+      "content": "Note content"
+    },
+    "errors": {
+      "updateFailed": "Note not found or could not be updated.",
+      "deleteFailed": "Note not found or could not be deleted."
+    },
+    "empty": "No knowledge notes yet. Add notes to give your AI persistent context.",
+    "maxNotes": "Maximum {{max}} notes per workspace"
   }
 }

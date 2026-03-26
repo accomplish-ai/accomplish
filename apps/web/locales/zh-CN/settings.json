@@ -58,7 +58,8 @@
     "nebius": "Nebius AI",
     "together": "Together AI",
     "fireworks": "Fireworks AI",
-    "groq": "Groq"
+    "groq": "Groq",
+    "huggingface-local": "HuggingFace Local"
   },
   "providerLabels": {
     "anthropic": "Claude 系列模型",
@@ -79,7 +80,8 @@
     "nebius": "Llama 和 DeepSeek 模型",
     "together": "Llama 和 Mixtral 模型",
     "fireworks": "快速推理模型",
-    "groq": "超快速 Llama 模型"
+    "groq": "超快速 Llama 模型",
+    "huggingface-local": "本地推理"
   },
   "status": {
     "connected": "已连接",
@@ -471,5 +473,34 @@
   "baseUrl": {
     "title": "基础 URL",
     "description": "留空以使用默认 URL。"
+  },
+  "huggingfaceLocal": {
+    "serverUrl": "HuggingFace Local 服务器地址",
+    "serverHint": "运行本地 HuggingFace Transformers.js 推理服务器，使用 ONNX Runtime",
+    "selectModel": "请选择模型",
+    "selectModelPlaceholder": "选择模型...",
+    "infoBannerTitle": "使用 Transformers.js 进行本地推理",
+    "infoBannerDescription": "模型使用 ONNX Runtime 在本地运行。建议使用较小的量化模型（Q4）以获得更快的推理速度。"
+  },
+  "knowledgeNotes": {
+    "title": "知识笔记",
+    "description": "注入到此工作空间每个任务的持久上下文",
+    "addNote": "添加笔记",
+    "placeholder": "添加上下文、说明或参考信息...",
+    "types": {
+      "context": "上下文",
+      "instruction": "说明",
+      "reference": "参考"
+    },
+    "labels": {
+      "type": "笔记类型",
+      "content": "笔记内容"
+    },
+    "errors": {
+      "updateFailed": "找不到笔记或无法更新。",
+      "deleteFailed": "找不到笔记或无法删除。"
+    },
+    "empty": "暂无知识笔记。添加笔记以为 AI 提供持久上下文。",
+    "maxNotes": "每个工作空间最多 {{max}} 条笔记"
   }
 }

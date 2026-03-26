@@ -28,23 +28,22 @@ export function wireTaskBridge(service: WhatsAppService): { bridge: TaskBridge }
       '---END MESSAGE---',
     ].join('\n');
 
-    service
-      .sendMessage(
-        senderId,
-        `⏳ Task started: "${text.slice(0, 80)}${text.length > 80 ? '…' : ''}"`,
-      )
-      .catch(() => {});
-
-    const activeModel = storage.getActiveProviderModel();
-    const selectedModel = activeModel || storage.getSelectedModel();
-    const existingSessionId = bridge.getSessionForSender(senderId);
-
     const PROGRESS_RATE_LIMIT_MS = 5_000;
     let lastAssistantContent = '';
     let lastProgressSentAt = 0;
 
     try {
       bridge.setActiveTask(senderId, taskId);
+      service
+        .sendMessage(
+          senderId,
+          `⏳ Task started: "${text.slice(0, 80)}${text.length > 80 ? '…' : ''}"`,
+        )
+        .catch(() => {});
+
+      const activeModel = storage.getActiveProviderModel();
+      const selectedModel = activeModel || storage.getSelectedModel();
+      const existingSessionId = bridge.getSessionForSender(senderId);
       storage.saveTask({
         id: taskId,
         prompt,

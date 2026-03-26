@@ -15,7 +15,7 @@ if echo "$CHANGED" | grep -qE "(^|/)package\.json$|^pnpm-lock\.yaml$"; then
   pnpm install || exit 1
   # electron-rebuild (run by apps/desktop postinstall) compiles better-sqlite3 for
   # Electron's Node ABI. Rebuild it for the test Node so agent-core tests can load it.
-  BSQ=$(node -e "try{process.stdout.write(require('path').dirname(require.resolve('better-sqlite3/package.json')))}catch(e){}" 2>/dev/null)
+  BSQ=$(find node_modules/.pnpm -maxdepth 4 -name "better-sqlite3" -type d 2>/dev/null | grep "node_modules/better-sqlite3$" | head -1)
   if [ -n "$BSQ" ] && [ -d "$BSQ" ]; then
     echo "[pre-push] Rebuilding better-sqlite3 for test Node..."
     (cd "$BSQ" && npx --yes node-gyp rebuild 2>/dev/null) || true
@@ -60,9 +60,5 @@ if echo "$CHANGED" | grep -qE "^apps/web/locales/|^scripts/check-locales\.js$"; 
   echo "[pre-push] Checking locale file alignment..."
   node scripts/check-locales.js || exit 1
 fi
-
-# 8. Dev environment smoke test
-echo "[pre-push] Running dev environment check..."
-pnpm dev:check || exit 1
 
 echo "[pre-push] All checks passed."

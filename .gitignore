@@ -69,6 +69,7 @@ docs/plans/
 # Misc
 *.pem
 .turbo/
+.pnpm-store/
 
 # Git worktrees
 .worktrees/
@@ -78,5 +79,8 @@ apps/desktop/resources/nodejs/
 
 # Test local agent Chrome profile
 .accomplish-test-local-agent-chrome/
-.worktrees
+
+# MCP tools npm lockfiles (generated at runtime by postinstall.cjs, not committed)
+packages/agent-core/mcp-tools/*/package-lock.json
+packages/agent-core/mcp-tools/package-lock.json
 /.run/

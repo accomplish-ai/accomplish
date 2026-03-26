@@ -47,6 +47,8 @@ export type {
   LiteLLMModel,
   LiteLLMConfig,
   LMStudioConfig,
+  HuggingFaceLocalModelInfo,
+  HuggingFaceLocalConfig,
 } from './common/types/provider.js';
 export {
   DEFAULT_PROVIDERS,
@@ -54,6 +56,7 @@ export {
   ALLOWED_API_KEY_PROVIDERS,
   STANDARD_VALIDATION_PROVIDERS,
   ZAI_ENDPOINTS,
+  COPILOT_MODELS,
 } from './common/types/provider.js';
 
 // Provider settings types
@@ -70,6 +73,7 @@ export type {
   LiteLLMCredentials,
   ZaiRegion,
   ZaiCredentials,
+  NimCredentials,
   LMStudioCredentials,
   AzureFoundryCredentials,
   OAuthCredentials,
@@ -78,6 +82,7 @@ export type {
   ToolSupportStatus,
   ConnectedProvider,
   ProviderSettings,
+  HuggingFaceLocalCredentials,
 } from './common/types/providerSettings.js';
 export {
   PROVIDER_META,
@@ -121,6 +126,10 @@ export type {
   Workspace,
   WorkspaceCreateInput,
   WorkspaceUpdateInput,
+  KnowledgeNote,
+  KnowledgeNoteType,
+  KnowledgeNoteCreateInput,
+  KnowledgeNoteUpdateInput,
 } from './common/types/workspace.js';
 
 // Connector types

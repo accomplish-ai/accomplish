@@ -125,6 +125,25 @@ const authBrowserMocks = vi.hoisted(() => ({
   loginOpenAiWithChatGpt: vi.fn(() => Promise.resolve({ openedUrl: undefined })),
 }));
 
+// Mock HuggingFace Local provider - used by handlers.ts for local inference
+vi.mock('@main/providers/huggingface-local', () => ({
+  startHuggingFaceServer: vi.fn(() => Promise.resolve({ success: true, port: 8080 })),
+  stopHuggingFaceServer: vi.fn(() => Promise.resolve()),
+  getHuggingFaceServerStatus: vi.fn(() => ({
+    running: false,
+    port: null,
+    loadedModel: null,
+    isLoading: false,
+  })),
+  testHuggingFaceConnection: vi.fn(() =>
+    Promise.resolve({ success: false, error: 'Server is not running' }),
+  ),
+  downloadModel: vi.fn(() => Promise.resolve({ success: true })),
+  listCachedModels: vi.fn(() => []),
+  deleteModel: vi.fn(() => Promise.resolve({ success: true })),
+  SUGGESTED_MODELS: [],
+}));
+
 const slackAuthMocks = vi.hoisted(() => ({
   loginSlackMcp: vi.fn(() => Promise.resolve()),
   logoutSlackMcp: vi.fn(() => Promise.resolve()),
@@ -575,6 +594,15 @@ describe('IPC Handlers Integration', () => {
 
       // Shell handler
       expect(handlers.has('shell:open-external')).toBe(true);
+
+      // HuggingFace Local handlers
+      expect(handlers.has('huggingface-local:start-server')).toBe(true);
+      expect(handlers.has('huggingface-local:stop-server')).toBe(true);
+      expect(handlers.has('huggingface-local:server-status')).toBe(true);
+      expect(handlers.has('huggingface-local:test-connection')).toBe(true);
+      expect(handlers.has('huggingface-local:download-model')).toBe(true);
+      expect(handlers.has('huggingface-local:list-models')).toBe(true);
+      expect(handlers.has('huggingface-local:delete-model')).toBe(true);
 
       // Log handler
       expect(handlers.has('log:event')).toBe(true);
@@ -1463,7 +1491,7 @@ describe('IPC Handlers Integration', () => {
       expect(startPermissionApiServer).toHaveBeenCalled();
     });
 
-    it('task:start should only initialize permission API once', async () => {
+    it('task:start should update window reference on every call but start servers only once', async () => {
       // Arrange
       const config = { prompt: 'Test task' };
       mockTaskManager.startTask.mockResolvedValue({
@@ -1478,9 +1506,12 @@ describe('IPC Handlers Integration', () => {
       await invokeHandler('task:start', config);
       await invokeHandler('task:start', { prompt: 'Second task' });
 
-      // Assert - should only be called once
-      const { initPermissionApi } = await import('@main/permission-api');
-      expect(initPermissionApi).toHaveBeenCalledTimes(1);
+      // Assert - initPermissionApi called on every task:start to keep window ref fresh
+      // (fixes stale window after macOS reactivation / window recreation)
+      const { initPermissionApi, startPermissionApiServer } = await import('@main/permission-api');
+      expect(initPermissionApi).toHaveBeenCalledTimes(2);
+      // Servers should only start once
+      expect(startPermissionApiServer).toHaveBeenCalledTimes(1);
     });
 
     it('task:start should create initial user message', async () => {

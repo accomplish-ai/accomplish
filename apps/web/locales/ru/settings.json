@@ -58,7 +58,8 @@
     "nebius": "Nebius AI",
     "together": "Together AI",
     "fireworks": "Fireworks AI",
-    "groq": "Groq"
+    "groq": "Groq",
+    "huggingface-local": "HuggingFace Local"
   },
   "providerLabels": {
     "anthropic": "Модели Claude",
@@ -79,7 +80,8 @@
     "nebius": "Модели Llama и DeepSeek",
     "together": "Модели Llama и Mixtral",
     "fireworks": "Модели быстрого вывода",
-    "groq": "Сверхбыстрые модели Llama"
+    "groq": "Сверхбыстрые модели Llama",
+    "huggingface-local": "Локальный вывод"
   },
   "status": {
     "connected": "Подключено",
@@ -471,5 +473,34 @@
   "baseUrl": {
     "title": "Базовый URL",
     "description": "Оставьте пустым, чтобы использовать URL по умолчанию."
+  },
+  "huggingfaceLocal": {
+    "serverUrl": "URL сервера HuggingFace Local",
+    "serverHint": "Запустите локальный сервер вывода HuggingFace Transformers.js с ONNX Runtime",
+    "selectModel": "Пожалуйста, выберите модель",
+    "selectModelPlaceholder": "Выберите модель...",
+    "infoBannerTitle": "Локальный вывод с Transformers.js",
+    "infoBannerDescription": "Модели работают локально с использованием ONNX Runtime. Рекомендуются небольшие квантованные модели (Q4) для более быстрого вывода."
+  },
+  "knowledgeNotes": {
+    "title": "Заметки контекста",
+    "description": "Постоянный контекст, добавляемый в каждую задачу этого рабочего пространства",
+    "addNote": "Добавить заметку",
+    "placeholder": "Добавьте контекст, инструкции или ссылки...",
+    "types": {
+      "context": "Контекст",
+      "instruction": "Инструкция",
+      "reference": "Справка"
+    },
+    "labels": {
+      "type": "Тип заметки",
+      "content": "Содержание заметки"
+    },
+    "errors": {
+      "updateFailed": "Заметка не найдена или не может быть обновлена.",
+      "deleteFailed": "Заметка не найдена или не может быть удалена."
+    },
+    "empty": "Заметок пока нет. Добавьте заметки, чтобы дать ИИ постоянный контекст.",
+    "maxNotes": "Максимум {{max}} заметок на рабочее пространство"
   }
 }

@@ -137,7 +137,7 @@ describe('OpenCode CLI Path Module', () => {
     });
   });
 
-  describe('isOpenCodeCliAvailable()', () => {
+  describe('isOpenCodeBundled()', () => {
     it('returns true when local workspace CLI is available', async () => {
       const appPath = '/mock/app/path';
       const localCliPath =
@@ -147,15 +147,15 @@ describe('OpenCode CLI Path Module', () => {
       mockApp.getAppPath.mockReturnValue(appPath);
       mockFs.existsSync.mockImplementation((p: string) => p === localCliPath);
 
-      const { isOpenCodeCliAvailable } = await import('@main/opencode/electron-options');
-      expect(isOpenCodeCliAvailable()).toBe(true);
+      const { isOpenCodeBundled } = await import('@main/opencode/electron-options');
+      expect(isOpenCodeBundled()).toBe(true);
     });
 
     it('returns false when no local workspace CLI is available', async () => {
       mockFs.existsSync.mockReturnValue(false);
 
-      const { isOpenCodeCliAvailable } = await import('@main/opencode/electron-options');
-      expect(isOpenCodeCliAvailable()).toBe(false);
+      const { isOpenCodeBundled } = await import('@main/opencode/electron-options');
+      expect(isOpenCodeBundled()).toBe(false);
     });
   });
 });

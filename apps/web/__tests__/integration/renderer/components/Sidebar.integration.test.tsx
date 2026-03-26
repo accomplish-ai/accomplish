@@ -61,6 +61,10 @@ const mockAccomplish = {
   validateApiKeyForProvider: vi.fn().mockResolvedValue({ valid: true }),
   validateBedrockCredentials: vi.fn().mockResolvedValue({ valid: true }),
   saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
+  listWorkspaces: vi.fn().mockResolvedValue([]),
+  getTheme: vi.fn().mockResolvedValue('system'),
+  setTheme: vi.fn().mockResolvedValue(undefined),
+  onThemeChange: undefined,
 };
 
 // Mock the accomplish module
@@ -82,8 +86,8 @@ vi.mock('@/stores/taskStore', () => ({
 }));
 
 // Mock the SettingsDialog to simplify testing
-vi.mock('@/components/layout/SettingsDialog', () => ({
-  SettingsDialog: ({
+vi.mock('@/components/layout/SettingsDialog', () => {
+  const MockSettingsDialog = ({
     open,
     onOpenChange,
   }: {
@@ -94,8 +98,12 @@ vi.mock('@/components/layout/SettingsDialog', () => ({
       <div data-testid="settings-dialog">
         <button onClick={() => onOpenChange(false)}>Close Settings</button>
       </div>
-    ) : null,
-}));
+    ) : null;
+  return {
+    default: MockSettingsDialog,
+    SettingsDialog: MockSettingsDialog,
+  };
+});
 
 // Mock framer-motion to simplify testing animations
 vi.mock('framer-motion', () => {
@@ -130,7 +138,7 @@ vi.mock('framer-motion', () => {
 });
 
 // Need to import after mocks are set up
-import { Sidebar } from '@/components/layout/Sidebar';
+import Sidebar from '@/components/layout/Sidebar';
 
 describe('Sidebar Integration', () => {
   beforeEach(() => {
@@ -371,7 +379,7 @@ describe('Sidebar Integration', () => {
 
       // Assert
       const taskItem = screen.getByText('Active task').closest('[role="button"]');
-      expect(taskItem?.className).toContain('bg-[#EDEBE7]');
+      expect(taskItem?.className).toContain('bg-accent');
     });
 
     it('should not highlight inactive conversations', () => {

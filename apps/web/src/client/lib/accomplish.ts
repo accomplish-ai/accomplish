@@ -28,6 +28,9 @@ import type {
   Workspace,
   WorkspaceCreateInput,
   WorkspaceUpdateInput,
+  KnowledgeNote,
+  KnowledgeNoteCreateInput,
+  KnowledgeNoteUpdateInput,
   StoredFavorite,
   BrowserFramePayload,
   BrowserStatusPayload,
@@ -88,7 +91,14 @@ interface AccomplishAPI {
       | 'together'
       | 'fireworks'
       | 'groq'
-      | 'elevenlabs',
+      | 'elevenlabs'
+      | 'nim'
+      | 'minimax'
+      | 'vertex'
+      | 'venice'
+      | 'aws-agentcore'
+      | 'browserbase'
+      | 'steel',
     key: string,
     label?: string,
   ): Promise<ApiKeyConfig>;
@@ -126,6 +136,14 @@ interface AccomplishAPI {
   getSlackMcpOauthStatus(): Promise<{ connected: boolean; pendingAuthorization: boolean }>;
   loginSlackMcp(): Promise<{ ok: boolean }>;
   logoutSlackMcp(): Promise<void>;
+  getCopilotOAuthStatus(): Promise<{ connected: boolean; username?: string; expiresAt?: number }>;
+  loginGithubCopilot(): Promise<{
+    ok: boolean;
+    userCode?: string;
+    verificationUri?: string;
+    expiresIn?: number;
+  }>;
+  logoutGithubCopilot(): Promise<void>;
 
   // API Key management
   hasApiKey(): Promise<boolean>;
@@ -307,6 +325,60 @@ interface AccomplishAPI {
     } | null,
   ): Promise<void>;
 
+  // HuggingFace configuration (ENG-687)
+  getHuggingFaceLocalConfig(): Promise<{
+    selectedModelId: string | null;
+    serverPort: number | null;
+    enabled: boolean;
+  } | null>;
+  setHuggingFaceLocalConfig(
+    config: {
+      selectedModelId: string | null;
+      serverPort: number | null;
+      enabled: boolean;
+    } | null,
+  ): Promise<void>;
+  listHuggingFaceModels(): Promise<{
+    cached: Array<{ id: string; displayName: string; sizeBytes?: number; downloaded: boolean }>;
+    suggested: Array<{ id: string; displayName: string; sizeBytes?: number; downloaded: boolean }>;
+  }>;
+  downloadHuggingFaceModel(modelId: string): Promise<{ success: boolean; error?: string }>;
+  startHuggingFaceServer(
+    modelId: string,
+  ): Promise<{ success: boolean; port?: number; error?: string }>;
+  stopHuggingFaceServer(): Promise<{ success: boolean; error?: string }>;
+  getHuggingFaceServerStatus(): Promise<{
+    running: boolean;
+    port: number | null;
+    loadedModel: string | null;
+    isLoading: boolean;
+  }>;
+  testHuggingFaceConnection(): Promise<{ success: boolean; error?: string }>;
+  deleteHuggingFaceModel(modelId: string): Promise<{ success: boolean; error?: string }>;
+  onHuggingFaceDownloadProgress(
+    callback: (progress: {
+      modelId: string;
+      status: 'downloading' | 'complete' | 'error';
+      progress: number;
+      error?: string;
+    }) => void,
+  ): () => void;
+
+  // NVIDIA NIM configuration
+  testNimConnection(
+    url: string,
+    apiKey: string,
+  ): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }>;
+  fetchNimModels(): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }>;
+
   // Custom OpenAI-compatible endpoint configuration
   testCustomConnection(
     baseUrl: string,
@@ -455,6 +527,16 @@ interface AccomplishAPI {
   updateWorkspace(id: string, input: WorkspaceUpdateInput): Promise<Workspace | null>;
   deleteWorkspace(id: string): Promise<boolean>;
 
+  // Knowledge Notes
+  listKnowledgeNotes(workspaceId: string): Promise<KnowledgeNote[]>;
+  createKnowledgeNote(input: KnowledgeNoteCreateInput): Promise<KnowledgeNote>;
+  updateKnowledgeNote(
+    id: string,
+    workspaceId: string,
+    input: KnowledgeNoteUpdateInput,
+  ): Promise<KnowledgeNote | null>;
+  deleteKnowledgeNote(id: string, workspaceId: string): Promise<boolean>;
+
   // Workspace event subscriptions
   onWorkspaceChanged?(callback: (data: { workspaceId: string }) => void): () => void;
   onWorkspaceDeleted?(callback: (data: { workspaceId: string }) => void): () => void;
@@ -567,6 +649,24 @@ export function getAccomplish() {
     detectVertexProject: () => window.accomplish!.detectVertexProject(),
 
     listVertexProjects: () => window.accomplish!.listVertexProjects(),
+
+    listHuggingFaceModels: () => window.accomplish!.listHuggingFaceModels(),
+
+    downloadHuggingFaceModel: (modelId: string) =>
+      window.accomplish!.downloadHuggingFaceModel(modelId),
+
+    startHuggingFaceServer: (modelId: string) => window.accomplish!.startHuggingFaceServer(modelId),
+
+    stopHuggingFaceServer: () => window.accomplish!.stopHuggingFaceServer(),
+
+    onHuggingFaceDownloadProgress: (
+      callback: (progress: {
+        modelId: string;
+        status: 'downloading' | 'complete' | 'error';
+        progress: number;
+        error?: string;
+      }) => void,
+    ) => window.accomplish!.onHuggingFaceDownloadProgress(callback),
   };
 }
 

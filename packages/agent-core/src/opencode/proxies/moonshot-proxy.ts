@@ -1,6 +1,5 @@
 import http from 'http';
 import https from 'https';
-import { URL } from 'url';
 import { createConsoleLogger } from '../../utils/logging.js';
 
 const log = createConsoleLogger({ prefix: 'MoonshotProxy' });

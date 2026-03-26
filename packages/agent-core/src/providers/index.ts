@@ -56,4 +56,36 @@ export {
   type FetchProviderModelsResult,
   type FetchProviderModelsOptions,
 } from './fetch-models.js';
+
+export {
+  HF_LOCAL_DEFAULT_URL,
+  HF_RECOMMENDED_MODELS,
+  searchHuggingFaceHubModels,
+  testHuggingFaceLocalConnection,
+  fetchHuggingFaceLocalModels,
+  type HuggingFaceHubModel,
+} from './huggingface-local.js';
 export { testCustomConnection, type CustomConnectionResult } from './custom.js';
+export {
+  testNimConnection,
+  fetchNimModels,
+  NIM_DEFAULT_BASE_URL,
+  type NimConnectionResult,
+  type FetchNimModelsOptions,
+} from './nim.js';
+export {
+  getCopilotOAuthStatus,
+  setCopilotOAuthTokens,
+  clearCopilotOAuth,
+  requestCopilotDeviceCode,
+  pollCopilotDeviceToken,
+  GITHUB_COPILOT_OAUTH_CLIENT_ID,
+  GITHUB_COPILOT_DEVICE_CODE_URL,
+  GITHUB_COPILOT_TOKEN_URL,
+  GITHUB_COPILOT_AUTH_URL,
+  GITHUB_COPILOT_SCOPE,
+  type CopilotDeviceCodeResponse,
+  type CopilotTokenResponse,
+  type CopilotOAuthStatus,
+  type CopilotAuthEntry,
+} from './copilot.js';
