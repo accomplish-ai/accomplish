@@ -45,7 +45,11 @@
     "overrides": {
       "fast-xml-parser": ">=5.3.4",
       "tar": ">=7.5.8",
-      "@electron/rebuild>node-gyp": "^12.1.0"
+      "@electron/rebuild>node-gyp": "^12.1.0",
+      "flatted": ">=3.4.2",
+      "minimatch": ">=9.0.6",
+      "music-metadata": ">=11.12.3",
+      "file-type": ">=21.3.1"
     },
     "ignoredOptionalDependencies": [
       "sharp"
