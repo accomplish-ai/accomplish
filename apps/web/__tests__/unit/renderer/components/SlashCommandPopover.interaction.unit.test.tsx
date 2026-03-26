@@ -52,7 +52,7 @@ describe('SlashCommandPopover – interactions', () => {
         onSelect={onSelect}
       />,
     );
-    fireEvent.mouseDown(screen.getByText('/code-review'));
+    fireEvent.click(screen.getByText('/code-review'));
     expect(onSelect).toHaveBeenCalledWith(mockSkills[0]);
   });
 
