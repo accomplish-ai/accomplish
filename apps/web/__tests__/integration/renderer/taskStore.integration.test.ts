@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { STARTUP_STAGES } from '@accomplish_ai/agent-core/common';
 import type {
   Task,
   TaskConfig,
@@ -40,6 +41,17 @@ function createMockMessage(
     content,
     timestamp: new Date().toISOString(),
   };
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
 }
 
 // Mock accomplish API
@@ -88,6 +100,14 @@ vi.mock('@/lib/accomplish', () => ({
 const mockOnTaskProgress = vi.fn();
 const mockOnTaskUpdate = vi.fn();
 
+function getTaskProgressHandler(): (progress: unknown) => void {
+  const handler = mockOnTaskProgress.mock.calls.at(-1)?.[0];
+  if (typeof handler !== 'function') {
+    throw new Error('Expected task progress handler to be registered');
+  }
+  return handler as (progress: unknown) => void;
+}
+
 vi.stubGlobal('window', {
   accomplish: {
     onTaskProgress: mockOnTaskProgress,
@@ -108,16 +128,24 @@ describe('taskStore Integration', () => {
     try {
       const { useTaskStore } = await import('@/stores/taskStore');
       useTaskStore.setState({
+        _taskStateToken: 0,
         currentTask: null,
         isLoading: false,
         error: null,
         tasks: [],
+        favorites: [],
+        favoritesLoaded: false,
         permissionRequests: {},
         setupProgress: null,
         setupProgressTaskId: null,
         setupDownloadStep: 1,
+        startupStage: null,
+        startupStageTaskId: null,
         todos: [],
         todosTaskId: null,
+        authError: null,
+        isLauncherOpen: false,
+        launcherInitialPrompt: null,
       });
     } catch {
       // Store may not be loaded
@@ -291,6 +319,28 @@ describe('taskStore Integration', () => {
       expect(state.tasks).toHaveLength(1);
       expect(state.tasks[0].prompt).toBe('New prompt');
     });
+
+    it('should ignore late startTask completion after history is cleared', async () => {
+      // Arrange
+      const { useTaskStore } = await import('@/stores/taskStore');
+      const deferred = createDeferred<Task>();
+      mockAccomplish.startTask.mockReturnValueOnce(deferred.promise);
+      mockAccomplish.clearTaskHistory.mockResolvedValueOnce(undefined);
+
+      // Act
+      const startTaskPromise = useTaskStore.getState().startTask({ prompt: 'Test prompt' });
+      await useTaskStore.getState().clearHistory();
+      deferred.resolve(createMockTask('task-123', 'Test prompt', 'running'));
+      const result = await startTaskPromise;
+      const state = useTaskStore.getState();
+
+      // Assert
+      expect(result).toBeNull();
+      expect(state.currentTask).toBeNull();
+      expect(state.tasks).toEqual([]);
+      expect(state.error).toBeNull();
+      expect(state.isLoading).toBe(false);
+    });
   });
 
   describe('sendFollowUp', () => {
@@ -449,6 +499,33 @@ describe('taskStore Integration', () => {
       // Assert
       expect(state.error).toBe('Resume failed');
       expect(state.currentTask?.status).toBe('failed');
+      expect(state.isLoading).toBe(false);
+    });
+
+    it('should ignore late follow-up completion after history is cleared', async () => {
+      // Arrange
+      const { useTaskStore } = await import('@/stores/taskStore');
+      const deferred = createDeferred<Task>();
+      const taskWithSession: Task = {
+        ...createMockTask('task-123', 'Test', 'completed'),
+        sessionId: 'session-abc',
+      };
+      useTaskStore.setState({ currentTask: taskWithSession, tasks: [taskWithSession] });
+      mockAccomplish.resumeSession.mockReturnValueOnce(deferred.promise);
+      mockAccomplish.clearTaskHistory.mockResolvedValueOnce(undefined);
+
+      // Act
+      const followUpPromise = useTaskStore.getState().sendFollowUp('Continue');
+      await useTaskStore.getState().clearHistory();
+      deferred.resolve(createMockTask('task-123', 'Test', 'running'));
+      const result = await followUpPromise;
+      const state = useTaskStore.getState();
+
+      // Assert
+      expect(result).toBe(false);
+      expect(state.currentTask).toBeNull();
+      expect(state.tasks).toEqual([]);
+      expect(state.error).toBeNull();
       expect(state.isLoading).toBe(false);
     });
   });
@@ -711,6 +788,28 @@ describe('taskStore Integration', () => {
       expect(state.currentTask).toBeNull();
       expect(state.error).toBe('Task not found');
     });
+
+    it('should ignore late loadTaskById completion after the task is deleted', async () => {
+      // Arrange
+      const { useTaskStore } = await import('@/stores/taskStore');
+      const deferred = createDeferred<Task | null>();
+      const trackedTask = createMockTask('task-123', 'Tracked task');
+      useTaskStore.setState({ tasks: [trackedTask] });
+      mockAccomplish.getTask.mockReturnValueOnce(deferred.promise);
+      mockAccomplish.deleteTask.mockResolvedValueOnce(undefined);
+
+      // Act
+      const loadTaskPromise = useTaskStore.getState().loadTaskById('task-123');
+      await useTaskStore.getState().deleteTask('task-123');
+      deferred.resolve(trackedTask);
+      await loadTaskPromise;
+      const state = useTaskStore.getState();
+
+      // Assert
+      expect(state.currentTask).toBeNull();
+      expect(state.tasks).toEqual([]);
+      expect(state.error).toBeNull();
+    });
   });
 
   describe('deleteTask', () => {
@@ -730,6 +829,125 @@ describe('taskStore Integration', () => {
       expect(state.tasks).toHaveLength(2);
       expect(state.tasks.find((t) => t.id === 'task-2')).toBeUndefined();
     });
+
+    it('should clear task-scoped state when deleting the current task', async () => {
+      const { useTaskStore } = await import('@/stores/taskStore');
+      const onTaskProgress = getTaskProgressHandler();
+      const activeTask = createMockTask('task-2', 'Active task', 'running');
+      useTaskStore.setState({
+        currentTask: activeTask,
+        error: 'Task failed',
+        isLoading: true,
+        tasks: [createMockTask('task-1'), activeTask, createMockTask('task-3')],
+        permissionRequests: {
+          'task-1': {
+            id: 'perm-1',
+            taskId: 'task-1',
+            type: 'file',
+          } as import('@accomplish_ai/agent-core/common').PermissionRequest,
+          'task-2': {
+            id: 'perm-2',
+            taskId: 'task-2',
+            type: 'file',
+          } as import('@accomplish_ai/agent-core/common').PermissionRequest,
+        },
+        setupProgress: 'Downloading dependencies...',
+        setupProgressTaskId: 'task-2',
+        setupDownloadStep: 2,
+        startupStage: {
+          stage: 'booting',
+          message: 'Starting model',
+          isFirstTask: false,
+          startTime: 123,
+        },
+        startupStageTaskId: 'task-2',
+        todos: [{ id: 'todo-1', content: 'Finish setup', status: 'in_progress' }],
+        todosTaskId: 'task-2',
+      });
+      mockAccomplish.deleteTask.mockResolvedValueOnce(undefined);
+
+      await useTaskStore.getState().deleteTask('task-2');
+      onTaskProgress({
+        taskId: 'task-2',
+        stage: 'setup',
+        message: 'Downloading Chromium',
+      });
+      onTaskProgress({
+        taskId: 'task-2',
+        stage: STARTUP_STAGES[0],
+        message: 'Starting model',
+      });
+
+      const state = useTaskStore.getState();
+      expect(state.currentTask).toBeNull();
+      expect(state.error).toBeNull();
+      expect(state.isLoading).toBe(false);
+      expect(state.tasks.map((task) => task.id)).toEqual(['task-1', 'task-3']);
+      expect(state.permissionRequests).toEqual({
+        'task-1': {
+          id: 'perm-1',
+          taskId: 'task-1',
+          type: 'file',
+        },
+      });
+      expect(state.setupProgress).toBeNull();
+      expect(state.setupProgressTaskId).toBeNull();
+      expect(state.setupDownloadStep).toBe(1);
+      expect(state.startupStage).toBeNull();
+      expect(state.startupStageTaskId).toBeNull();
+      expect(state.todos).toEqual([]);
+      expect(state.todosTaskId).toBeNull();
+    });
+
+    it('should preserve other task state when deleting a different task', async () => {
+      const { useTaskStore } = await import('@/stores/taskStore');
+      const activeTask = createMockTask('task-1', 'Active task', 'running');
+      useTaskStore.setState({
+        currentTask: activeTask,
+        isLoading: true,
+        tasks: [activeTask, createMockTask('task-2')],
+        permissionRequests: {
+          'task-1': {
+            id: 'perm-1',
+            taskId: 'task-1',
+            type: 'file',
+          } as import('@accomplish_ai/agent-core/common').PermissionRequest,
+        },
+        setupProgress: 'Downloading dependencies...',
+        setupProgressTaskId: 'task-1',
+        setupDownloadStep: 2,
+        startupStage: {
+          stage: 'booting',
+          message: 'Starting model',
+          isFirstTask: false,
+          startTime: 123,
+        },
+        startupStageTaskId: 'task-1',
+        todos: [{ id: 'todo-1', content: 'Finish setup', status: 'in_progress' }],
+        todosTaskId: 'task-1',
+      });
+      mockAccomplish.deleteTask.mockResolvedValueOnce(undefined);
+
+      await useTaskStore.getState().deleteTask('task-2');
+      const state = useTaskStore.getState();
+
+      expect(state.currentTask?.id).toBe('task-1');
+      expect(state.isLoading).toBe(true);
+      expect(state.tasks.map((task) => task.id)).toEqual(['task-1']);
+      expect(state.permissionRequests['task-1']).toBeDefined();
+      expect(state.setupProgress).toBe('Downloading dependencies...');
+      expect(state.setupProgressTaskId).toBe('task-1');
+      expect(state.setupDownloadStep).toBe(2);
+      expect(state.startupStage).toEqual({
+        stage: 'booting',
+        message: 'Starting model',
+        isFirstTask: false,
+        startTime: 123,
+      });
+      expect(state.startupStageTaskId).toBe('task-1');
+      expect(state.todos).toEqual([{ id: 'todo-1', content: 'Finish setup', status: 'in_progress' }]);
+      expect(state.todosTaskId).toBe('task-1');
+    });
   });
 
   describe('clearHistory', () => {
@@ -746,6 +964,64 @@ describe('taskStore Integration', () => {
       // Assert
       expect(mockAccomplish.clearTaskHistory).toHaveBeenCalled();
       expect(state.tasks).toEqual([]);
+    });
+
+    it('should clear current task and task-scoped state', async () => {
+      const { useTaskStore } = await import('@/stores/taskStore');
+      const onTaskProgress = getTaskProgressHandler();
+      const activeTask = createMockTask('task-1', 'Active task', 'running');
+      useTaskStore.setState({
+        currentTask: activeTask,
+        error: 'Task failed',
+        isLoading: true,
+        tasks: [activeTask, createMockTask('task-2')],
+        permissionRequests: {
+          'task-1': {
+            id: 'perm-1',
+            taskId: 'task-1',
+            type: 'file',
+          } as import('@accomplish_ai/agent-core/common').PermissionRequest,
+        },
+        setupProgress: 'Downloading dependencies...',
+        setupProgressTaskId: 'task-1',
+        setupDownloadStep: 3,
+        startupStage: {
+          stage: 'booting',
+          message: 'Starting model',
+          isFirstTask: false,
+          startTime: 123,
+        },
+        startupStageTaskId: 'task-1',
+        todos: [{ id: 'todo-1', content: 'Finish setup', status: 'in_progress' }],
+        todosTaskId: 'task-1',
+      });
+      mockAccomplish.clearTaskHistory.mockResolvedValueOnce(undefined);
+
+      await useTaskStore.getState().clearHistory();
+      onTaskProgress({
+        taskId: 'task-1',
+        stage: 'setup',
+        message: 'Downloading Chromium',
+      });
+      onTaskProgress({
+        taskId: 'task-1',
+        stage: STARTUP_STAGES[0],
+        message: 'Starting model',
+      });
+
+      const state = useTaskStore.getState();
+      expect(state.tasks).toEqual([]);
+      expect(state.currentTask).toBeNull();
+      expect(state.error).toBeNull();
+      expect(state.isLoading).toBe(false);
+      expect(state.permissionRequests).toEqual({});
+      expect(state.setupProgress).toBeNull();
+      expect(state.setupProgressTaskId).toBeNull();
+      expect(state.setupDownloadStep).toBe(1);
+      expect(state.startupStage).toBeNull();
+      expect(state.startupStageTaskId).toBeNull();
+      expect(state.todos).toEqual([]);
+      expect(state.todosTaskId).toBeNull();
     });
   });
 
