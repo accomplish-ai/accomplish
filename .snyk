@@ -1,0 +1,74 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+ignore:
+  snyk:lic:npm:img:sharp-libvips-linux-arm:LGPL-3.0:
+    - '@accomplish/desktop > @huggingface/transformers > sharp > @img/sharp-libvips-linux-arm':
+        reason: >-
+          sharp is an optional dependency of @huggingface/transformers that is
+          excluded via pnpm ignoredOptionalDependencies. It is not installed,
+          bundled, or distributed with the application.
+        expires: '2027-01-01T00:00:00.000Z'
+  snyk:lic:npm:img:sharp-libvips-linux-x64:LGPL-3.0:
+    - '@accomplish/desktop > @huggingface/transformers > sharp > @img/sharp-libvips-linux-x64':
+        reason: >-
+          sharp is an optional dependency of @huggingface/transformers that is
+          excluded via pnpm ignoredOptionalDependencies. It is not installed,
+          bundled, or distributed with the application.
+        expires: '2027-01-01T00:00:00.000Z'
+  snyk:lic:npm:img:sharp-libvips-darwin-x64:LGPL-3.0:
+    - '@accomplish/desktop > @huggingface/transformers > sharp > @img/sharp-darwin-x64 > @img/sharp-libvips-darwin-x64':
+        reason: >-
+          sharp is an optional dependency of @huggingface/transformers that is
+          excluded via pnpm ignoredOptionalDependencies. It is not installed,
+          bundled, or distributed with the application.
+        expires: '2027-01-01T00:00:00.000Z'
+  snyk:lic:npm:img:sharp-libvips-linux-arm64:LGPL-3.0:
+    - '@accomplish/desktop > @huggingface/transformers > sharp > @img/sharp-libvips-linux-arm64':
+        reason: >-
+          sharp is an optional dependency of @huggingface/transformers that is
+          excluded via pnpm ignoredOptionalDependencies. It is not installed,
+          bundled, or distributed with the application.
+        expires: '2027-01-01T00:00:00.000Z'
+  snyk:lic:npm:img:sharp-libvips-linux-ppc64:LGPL-3.0:
+    - '@accomplish/desktop > @huggingface/transformers > sharp > @img/sharp-libvips-linux-ppc64':
+        reason: >-
+          sharp is an optional dependency of @huggingface/transformers that is
+          excluded via pnpm ignoredOptionalDependencies. It is not installed,
+          bundled, or distributed with the application.
+        expires: '2027-01-01T00:00:00.000Z'
+  snyk:lic:npm:img:sharp-libvips-linux-s390x:LGPL-3.0:
+    - '@accomplish/desktop > @huggingface/transformers > sharp > @img/sharp-libvips-linux-s390x':
+        reason: >-
+          sharp is an optional dependency of @huggingface/transformers that is
+          excluded via pnpm ignoredOptionalDependencies. It is not installed,
+          bundled, or distributed with the application.
+        expires: '2027-01-01T00:00:00.000Z'
+  snyk:lic:npm:img:sharp-libvips-darwin-arm64:LGPL-3.0:
+    - '@accomplish/desktop > @huggingface/transformers > sharp > @img/sharp-darwin-arm64 > @img/sharp-libvips-darwin-arm64':
+        reason: >-
+          sharp is an optional dependency of @huggingface/transformers that is
+          excluded via pnpm ignoredOptionalDependencies. It is not installed,
+          bundled, or distributed with the application.
+        expires: '2027-01-01T00:00:00.000Z'
+  snyk:lic:npm:img:sharp-libvips-linux-riscv64:LGPL-3.0:
+    - '@accomplish/desktop > @huggingface/transformers > sharp > @img/sharp-libvips-linux-riscv64':
+        reason: >-
+          sharp is an optional dependency of @huggingface/transformers that is
+          excluded via pnpm ignoredOptionalDependencies. It is not installed,
+          bundled, or distributed with the application.
+        expires: '2027-01-01T00:00:00.000Z'
+  snyk:lic:npm:img:sharp-libvips-linuxmusl-x64:LGPL-3.0:
+    - '@accomplish/desktop > @huggingface/transformers > sharp > @img/sharp-libvips-linuxmusl-x64':
+        reason: >-
+          sharp is an optional dependency of @huggingface/transformers that is
+          excluded via pnpm ignoredOptionalDependencies. It is not installed,
+          bundled, or distributed with the application.
+        expires: '2027-01-01T00:00:00.000Z'
+  snyk:lic:npm:img:sharp-libvips-linuxmusl-arm64:LGPL-3.0:
+    - '@accomplish/desktop > @huggingface/transformers > sharp > @img/sharp-libvips-linuxmusl-arm64':
+        reason: >-
+          sharp is an optional dependency of @huggingface/transformers that is
+          excluded via pnpm ignoredOptionalDependencies. It is not installed,
+          bundled, or distributed with the application.
+        expires: '2027-01-01T00:00:00.000Z'
+patch: {}
