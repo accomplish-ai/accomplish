@@ -69,18 +69,20 @@ export async function loadModel(modelId: string): Promise<void> {
           });
           break;
         } catch (err) {
-          if (dtype === dtypesToTry[dtypesToTry.length - 1]) {
+          if (dtype === dtypesToTry[dtypesToTry.length - 1] && dtype !== 'fp32') {
             getLogCollector().logEnv(
               'WARN',
               `[HF Server] Failed to load ${dtype} model, trying fp32: ${err}`,
             );
-            // Last fallback: try fp32
+            // Last fallback: try fp32 (only if we haven't already tried fp32)
             model = await AutoModelForCausalLM.from_pretrained(modelId, {
               cache_dir: cacheDir,
               dtype: 'fp32',
               local_files_only: true,
               ...deviceOption,
             });
+          } else {
+            throw err;
           }
         }
       }
