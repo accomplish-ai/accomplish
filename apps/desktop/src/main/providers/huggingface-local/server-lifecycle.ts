@@ -6,7 +6,7 @@
 import http from 'http';
 import { getStorage } from '../../store/storage';
 import { getLogCollector } from '../../logging';
-import { state, startServerPromise, setStartServerPromise } from './server-state';
+import { state, startServerPromise, setStartServerPromise, loadModelPromise } from './server-state';
 import { loadModel } from './model-loader';
 import { createRequestHandler } from './http-handler';
 
@@ -99,6 +99,9 @@ async function _startServerImpl(
 export async function stopServer(): Promise<void> {
   // Signal any in-flight loadModel IIFE to abort state mutation
   state.isStopping = true;
+  // Capture any in-flight loadModel promise so we can wait for it to observe
+  // the isStopping flag before we reset it at the end of this function.
+  const pendingLoad = loadModelPromise;
 
   if (state.server) {
     await new Promise<void>((resolve) => {
@@ -132,6 +135,13 @@ export async function stopServer(): Promise<void> {
   state.tokenizer = null;
   state.model = null;
   state.isLoading = false;
+  // Wait for any in-flight loadModel to finish observing isStopping before
+  // we clear the flag, so a concurrent startup can't assign state after shutdown.
+  if (pendingLoad) {
+    await pendingLoad.catch(() => {
+      // Ignore errors from the aborted load
+    });
+  }
   state.isStopping = false;
 }
 
