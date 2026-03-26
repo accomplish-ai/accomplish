@@ -38,6 +38,40 @@ Referenced from `CLAUDE.md` and the `address-ticket` skill.
   const logo = '/assets/logo.png'
   ```
 
+### Browser bundle safety
+- `apps/web` runs in the browser — **never import Node.js-only modules** from agent-core
+  into web code. The Vite config externalizes `@aws-sdk/*` and Node built-ins, but new
+  Node-only deps you add won't be caught automatically.
+- If you add a Node.js-only import to agent-core that web also consumes, guard it behind
+  a separate entry point or move it to a file web doesn't import.
+- **Test the web build** (`pnpm build:web`) — it will fail if a Node.js module leaks in.
+
+### Encryption / secure storage
+- **Never create a new encryption scheme.** Use `SecureStorage` from agent-core for all
+  sensitive data (API keys, tokens). It uses AES-256-GCM with machine-derived PBKDF2 keys
+  and atomic file writes.
+- If you need to store new sensitive data, add a method to the existing `SecureStorage`
+  class — do not roll your own crypto.
+
+### Daemon workspace (`apps/daemon`)
+- The daemon is a plain Node.js process — **no Electron imports allowed** (`electron`,
+  `@electron/*`, `electron-store`, etc.). It must run without Electron.
+- Daemon depends on `@accomplish_ai/agent-core` only. If you need desktop-specific
+  logic, it belongs in `apps/desktop`, not `apps/daemon`.
+
+### Zustand store patterns
+- **Token-based deduplication**: When writing async store actions, capture a request
+  token before the async call and validate it before applying results. This prevents
+  stale responses from overwriting current state.
+  ```ts
+  // ✅ Capture token, validate before applying
+  const token = get()._requestToken;
+  const result = await api.fetch();
+  if (get()._requestToken !== token) { return; } // stale
+  set({ data: result });
+  ```
+- Increment the token when cancelling or clearing state.
+
 ---
 
 ## IPC Chain (Electron ↔ Web)
@@ -61,6 +95,8 @@ and has at least one test.
 - Current schema version: **6** — in `packages/agent-core/src/storage/migrations/index.ts`
 - **Never modify a released migration file** — always add a new `vXXX-description.ts`,
   import it, append it to the `migrations` array, and bump `CURRENT_VERSION`
+- **Every migration must explain WHY** — add a comment at the top of the `up()` function
+  explaining the reason for the schema change, not just what it does
 
 ---
 
@@ -142,6 +178,7 @@ pnpm build
 pnpm -F @accomplish/web test:unit          # if apps/web changed
 pnpm -F @accomplish/desktop test:unit      # if apps/desktop changed
 pnpm -F @accomplish_ai/agent-core test     # if packages/agent-core changed
+pnpm -F @accomplish/daemon test            # if apps/daemon changed
 ```
 
 Extra checks when touching the IPC layer:
@@ -201,3 +238,8 @@ Desktop does **not** have an `@/*` alias — UI code lives in `apps/web`.
 | Hardcode colors in CSS | CSS variables |
 | New UI component from scratch | Check `ui/` first |
 | New file > 200 lines | Split into modules |
+| Import `fs`/`path`/`crypto` in web code | Keep Node.js-only code out of web imports |
+| Import `electron` in daemon | Daemon is plain Node.js — no Electron |
+| Roll custom encryption | Use `SecureStorage` from agent-core |
+| Migration without WHY comment | Explain the reason in `up()` |
+| Async store action without token check | Capture token, validate before `set()` |
