@@ -146,7 +146,7 @@ components, types, IPC handlers, UI elements, routes, and config entries.
 
 ```bash
 # 1. Install deps if any package.json changed
-git diff --name-only HEAD~1 | grep "package\.json" && pnpm install
+git diff --name-only origin/main...HEAD | grep "package\.json" && pnpm install
 
 # 2. Typecheck → Lint → Format → Build
 pnpm typecheck && pnpm lint:eslint && pnpm format:check && pnpm build

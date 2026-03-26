@@ -26,9 +26,15 @@ export async function loadModel(modelId: string): Promise<void> {
     return;
   }
 
-  // Prevent concurrent loads — queue onto existing promise
+  // Prevent concurrent loads — queue onto existing promise.
+  // Swallow rejections so a failed/cancelled prior load doesn't abort this
+  // caller; re-check state below to decide whether to proceed.
   if (loadModelPromise) {
-    await loadModelPromise;
+    try {
+      await loadModelPromise;
+    } catch {
+      // Previous load failed or was cancelled — re-evaluate state below
+    }
     if (!state.isStopping && state.loadedModelId === modelId && state.tokenizer && state.model) {
       return;
     }
