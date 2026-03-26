@@ -14,6 +14,9 @@ import type {
   Workspace,
   WorkspaceCreateInput,
   WorkspaceUpdateInput,
+  KnowledgeNote,
+  KnowledgeNoteCreateInput,
+  KnowledgeNoteUpdateInput,
 } from '@accomplish_ai/agent-core';
 import type { CloudBrowserConfig } from '@accomplish_ai/agent-core/common';
 
@@ -89,6 +92,18 @@ const accomplishAPI = {
     ipcRenderer.invoke('opencode:auth:slack:status'),
   loginSlackMcp: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('opencode:auth:slack:login'),
   logoutSlackMcp: (): Promise<void> => ipcRenderer.invoke('opencode:auth:slack:logout'),
+  getCopilotOAuthStatus: (): Promise<{
+    connected: boolean;
+    username?: string;
+    expiresAt?: number;
+  }> => ipcRenderer.invoke('opencode:auth:copilot:status'),
+  loginGithubCopilot: (): Promise<{
+    ok: boolean;
+    userCode?: string;
+    verificationUri?: string;
+    expiresIn?: number;
+  }> => ipcRenderer.invoke('opencode:auth:copilot:login'),
+  logoutGithubCopilot: (): Promise<void> => ipcRenderer.invoke('opencode:auth:copilot:logout'),
 
   // API Key management (new simplified handlers)
   hasApiKey: (): Promise<boolean> => ipcRenderer.invoke('api-key:exists'),
@@ -307,6 +322,22 @@ const accomplishAPI = {
       }>;
     } | null,
   ): Promise<void> => ipcRenderer.invoke('lmstudio:set-config', config),
+
+  // NVIDIA NIM configuration
+  testNimConnection: (
+    url: string,
+    apiKey: string,
+  ): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }> => ipcRenderer.invoke('nim:test-connection', url, apiKey),
+
+  fetchNimModels: (): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }> => ipcRenderer.invoke('nim:fetch-models'),
 
   // Custom OpenAI-compatible endpoint configuration
   testCustomConnection: (
@@ -715,6 +746,20 @@ const accomplishAPI = {
   updateWorkspace: (id: string, input: WorkspaceUpdateInput): Promise<Workspace | null> =>
     ipcRenderer.invoke('workspace:update', id, input),
   deleteWorkspace: (id: string): Promise<boolean> => ipcRenderer.invoke('workspace:delete', id),
+
+  // Knowledge Notes
+  listKnowledgeNotes: (workspaceId: string): Promise<KnowledgeNote[]> =>
+    ipcRenderer.invoke('knowledge-notes:list', workspaceId),
+  createKnowledgeNote: (input: KnowledgeNoteCreateInput): Promise<KnowledgeNote> =>
+    ipcRenderer.invoke('knowledge-notes:create', input),
+  updateKnowledgeNote: (
+    id: string,
+    workspaceId: string,
+    input: KnowledgeNoteUpdateInput,
+  ): Promise<KnowledgeNote | null> =>
+    ipcRenderer.invoke('knowledge-notes:update', id, workspaceId, input),
+  deleteKnowledgeNote: (id: string, workspaceId: string): Promise<boolean> =>
+    ipcRenderer.invoke('knowledge-notes:delete', id, workspaceId),
 
   // Workspace event subscriptions
   onWorkspaceChanged: (callback: (data: { workspaceId: string }) => void) => {

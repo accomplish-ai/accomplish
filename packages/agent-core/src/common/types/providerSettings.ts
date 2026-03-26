@@ -20,7 +20,9 @@ export type ProviderId =
   | 'fireworks'
   | 'groq'
   | 'venice'
-  | 'custom';
+  | 'nim'
+  | 'custom'
+  | 'copilot';
 
 export type ProviderCategory = 'classic' | 'aws' | 'gcp' | 'azure' | 'local' | 'proxy' | 'hybrid';
 
@@ -184,12 +186,28 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     logoKey: 'venice',
     helpUrl: 'https://venice.ai/settings/api',
   },
+  nim: {
+    id: 'nim',
+    name: 'NVIDIA NIM',
+    category: 'classic',
+    label: 'NVIDIA-hosted models',
+    logoKey: 'nim',
+    helpUrl: 'https://org.ngc.nvidia.com/setup/api-key',
+  },
   custom: {
     id: 'custom',
     name: 'Custom Endpoint',
     category: 'hybrid',
     label: 'Custom',
     logoKey: 'custom',
+  },
+  copilot: {
+    id: 'copilot',
+    name: 'GitHub Copilot',
+    category: 'classic',
+    label: 'Service',
+    logoKey: 'github-copilot',
+    helpUrl: 'https://github.com/settings/copilot',
   },
 };
 
@@ -252,6 +270,12 @@ export interface CustomCredentials {
   keyPrefix?: string;
 }
 
+export interface NimCredentials {
+  type: 'nim';
+  serverUrl: string;
+  keyPrefix: string;
+}
+
 export interface AzureFoundryCredentials {
   type: 'azure-foundry';
   authMethod: 'api-key' | 'entra-id';
@@ -273,6 +297,10 @@ export interface OAuthCredentials {
   oauthProvider: 'chatgpt';
 }
 
+export interface CopilotOAuthCredentials {
+  type: 'copilot-oauth';
+}
+
 export type ProviderCredentials =
   | ApiKeyCredentials
   | BedrockProviderCredentials
@@ -285,7 +313,9 @@ export type ProviderCredentials =
   | LMStudioCredentials
   | OAuthCredentials
   | HuggingFaceLocalCredentials
-  | CustomCredentials;
+  | CopilotOAuthCredentials
+  | CustomCredentials
+  | NimCredentials;
 
 export type ToolSupportStatus = 'supported' | 'unsupported' | 'unknown';
 
@@ -343,6 +373,8 @@ export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
   fireworks: 'fireworks/accounts/fireworks/models/llama-v3-70b-instruct',
   groq: 'groq/llama3-70b-8192',
   venice: 'venice/llama-3.3-70b',
+  nim: 'nim/meta/llama-3.1-70b-instruct',
+  copilot: 'copilot/gpt-4o',
 };
 
 export function getDefaultModelForProvider(providerId: ProviderId): string | null {
@@ -376,5 +408,7 @@ export const PROVIDER_ID_TO_OPENCODE: Record<ProviderId, string> = {
   fireworks: 'fireworks',
   groq: 'groq',
   venice: 'venice',
+  nim: 'nim',
   custom: 'custom',
+  copilot: 'github-copilot',
 };

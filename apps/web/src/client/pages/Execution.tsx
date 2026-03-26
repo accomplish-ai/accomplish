@@ -10,7 +10,11 @@ const logger = createLogger('Execution');
 import { MAX_FILES } from '../lib/fileUtils';
 import { springs } from '../lib/animations';
 import { FAVORITABLE_STATUSES } from '../lib/task-utils';
-import { hasAnyReadyProvider, getOAuthProviderDisplayName } from '@accomplish_ai/agent-core/common';
+import {
+  hasAnyReadyProvider,
+  getOAuthProviderDisplayName,
+  PROMPT_DEFAULT_MAX_LENGTH,
+} from '@accomplish_ai/agent-core/common';
 import { Button } from '@/components/ui/button';
 import { StarButton } from '@/components/ui/StarButton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -33,6 +37,8 @@ import { ModelIndicator } from '../components/ui/ModelIndicator';
 import { useSpeechInput } from '../hooks/useSpeechInput';
 import { SpeechInputButton } from '../components/ui/SpeechInputButton';
 import { PlusMenu } from '../components/landing/PlusMenu';
+import { SlashCommandPopover } from '../components/landing/SlashCommandPopover';
+import { useSlashCommand } from '../hooks/useSlashCommand';
 import { SpinningIcon } from '../components/execution/SpinningIcon';
 import { MessageBubble } from '../components/execution/MessageList';
 import { ToolProgress } from '../components/execution/ToolProgress';
@@ -132,6 +138,7 @@ export function ExecutionPage() {
   const { t: tCommon } = useTranslation('common');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [followUp, setFollowUp] = useState('');
+  const isFollowUpOverLimit = followUp.length > PROMPT_DEFAULT_MAX_LENGTH;
   const followUpInputRef = useRef<HTMLTextAreaElement>(null);
   const [currentTool, setCurrentTool] = useState<string | null>(null);
   const [currentToolInput, setCurrentToolInput] = useState<unknown>(null);
@@ -197,6 +204,12 @@ export function ExecutionPage() {
     onError: () => {},
   });
 
+  const slashCommand = useSlashCommand({
+    value: followUp,
+    textareaRef: followUpInputRef,
+    onChange: setFollowUp,
+  });
+
   const scrollToBottom = useMemo(
     () =>
       debounce(() => {
@@ -215,7 +228,12 @@ export function ExecutionPage() {
   }, []);
 
   useEffect(() => {
-    accomplish.getDebugMode().then(setDebugModeEnabled);
+    accomplish
+      .getDebugMode()
+      .then(setDebugModeEnabled)
+      .catch((err) => {
+        logger.error('Failed to get debug mode:', err);
+      });
     const unsubscribeDebugMode = accomplish.onDebugModeChange?.(({ enabled }) => {
       setDebugModeEnabled(enabled);
     });
@@ -340,6 +358,7 @@ export function ExecutionPage() {
 
   const handleFollowUp = useCallback(async () => {
     if (!followUp.trim() && attachments.length === 0) return;
+    if (followUp.length > PROMPT_DEFAULT_MAX_LENGTH) return;
     const isE2EMode = await accomplish.isE2EMode();
     if (!isE2EMode) {
       const settings = await accomplish.getProviderSettings();
@@ -1130,17 +1149,23 @@ export function ExecutionPage() {
                   </div>
                 )}
 
-                <div className="px-4 pt-3 pb-2">
+                <div className="px-4 pt-3 pb-2 relative">
                   <textarea
                     ref={followUpInputRef}
                     value={followUp}
                     onChange={(e) => {
                       setFollowUp(e.target.value);
+                      slashCommand.handleChange(e.target.value, e.target.selectionStart);
                       e.target.style.height = 'auto';
                       e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
                     }}
                     onKeyDown={(e) => {
-                      if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+                      if (e.nativeEvent.isComposing || e.keyCode === 229) {
+                        return;
+                      }
+                      if (slashCommand.handleKeyDown(e)) {
+                        return;
+                      }
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleFollowUp();
@@ -1159,6 +1184,16 @@ export function ExecutionPage() {
                     rows={1}
                     className="w-full max-h-[160px] resize-none bg-transparent text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                     data-testid="execution-follow-up-input"
+                  />
+                  <SlashCommandPopover
+                    isOpen={slashCommand.state.isOpen}
+                    skills={slashCommand.state.filteredSkills}
+                    selectedIndex={slashCommand.state.selectedIndex}
+                    query={slashCommand.state.query}
+                    textareaRef={followUpInputRef}
+                    triggerStart={slashCommand.state.triggerStart}
+                    onSelect={slashCommand.selectSkill}
+                    onDismiss={slashCommand.dismiss}
                   />
                 </div>
                 <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-border/50">
@@ -1197,7 +1232,8 @@ export function ExecutionPage() {
                       disabled={
                         (!followUp.trim() && attachments.length === 0) ||
                         isLoading ||
-                        speechInput.isRecording
+                        speechInput.isRecording ||
+                        isFollowUpOverLimit
                       }
                       className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       title={tCommon('buttons.send')}

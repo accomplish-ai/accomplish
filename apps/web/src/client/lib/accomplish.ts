@@ -28,6 +28,9 @@ import type {
   Workspace,
   WorkspaceCreateInput,
   WorkspaceUpdateInput,
+  KnowledgeNote,
+  KnowledgeNoteCreateInput,
+  KnowledgeNoteUpdateInput,
   StoredFavorite,
   BrowserFramePayload,
   BrowserStatusPayload,
@@ -85,7 +88,14 @@ interface AccomplishAPI {
       | 'together'
       | 'fireworks'
       | 'groq'
-      | 'elevenlabs',
+      | 'elevenlabs'
+      | 'nim'
+      | 'minimax'
+      | 'vertex'
+      | 'venice'
+      | 'aws-agentcore'
+      | 'browserbase'
+      | 'steel',
     key: string,
     label?: string,
   ): Promise<ApiKeyConfig>;
@@ -107,6 +117,14 @@ interface AccomplishAPI {
   getSlackMcpOauthStatus(): Promise<{ connected: boolean; pendingAuthorization: boolean }>;
   loginSlackMcp(): Promise<{ ok: boolean }>;
   logoutSlackMcp(): Promise<void>;
+  getCopilotOAuthStatus(): Promise<{ connected: boolean; username?: string; expiresAt?: number }>;
+  loginGithubCopilot(): Promise<{
+    ok: boolean;
+    userCode?: string;
+    verificationUri?: string;
+    expiresIn?: number;
+  }>;
+  logoutGithubCopilot(): Promise<void>;
 
   // API Key management
   hasApiKey(): Promise<boolean>;
@@ -327,6 +345,21 @@ interface AccomplishAPI {
     }) => void,
   ): () => void;
 
+  // NVIDIA NIM configuration
+  testNimConnection(
+    url: string,
+    apiKey: string,
+  ): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }>;
+  fetchNimModels(): Promise<{
+    success: boolean;
+    models?: Array<{ id: string; name: string; provider: string; contextLength: number }>;
+    error?: string;
+  }>;
+
   // Custom OpenAI-compatible endpoint configuration
   testCustomConnection(
     baseUrl: string,
@@ -474,6 +507,16 @@ interface AccomplishAPI {
   createWorkspace(input: WorkspaceCreateInput): Promise<Workspace>;
   updateWorkspace(id: string, input: WorkspaceUpdateInput): Promise<Workspace | null>;
   deleteWorkspace(id: string): Promise<boolean>;
+
+  // Knowledge Notes
+  listKnowledgeNotes(workspaceId: string): Promise<KnowledgeNote[]>;
+  createKnowledgeNote(input: KnowledgeNoteCreateInput): Promise<KnowledgeNote>;
+  updateKnowledgeNote(
+    id: string,
+    workspaceId: string,
+    input: KnowledgeNoteUpdateInput,
+  ): Promise<KnowledgeNote | null>;
+  deleteKnowledgeNote(id: string, workspaceId: string): Promise<boolean>;
 
   // Workspace event subscriptions
   onWorkspaceChanged?(callback: (data: { workspaceId: string }) => void): () => void;

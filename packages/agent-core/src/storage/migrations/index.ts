@@ -23,7 +23,9 @@ import { migration as v013 } from './v013-daemon.js';
 import { migration as v014 } from './v014-desktop-blocklist.js';
 import { migration as v015 } from './v015-provider-base-url.js';
 import { migration as v016 } from './v016-notifications.js';
-import { migration as v018 } from './v018-huggingface-local.js';
+import { migration as v017 } from './v017-nim-config.js';
+import { migration as v018 } from './v018-copilot-provider.js';
+import { migration as v019 } from './v019-huggingface-local.js';
 
 const migrations: Migration[] = [
   v001,
@@ -42,14 +44,16 @@ const migrations: Migration[] = [
   v014,
   v015,
   v016,
+  v017,
   v018,
+  v019,
 ];
 export function registerMigration(migration: Migration): void {
   migrations.push(migration);
   migrations.sort((a, b) => a.version - b.version);
 }
 
-export const CURRENT_VERSION = 18;
+export const CURRENT_VERSION = 19;
 export function getStoredVersion(db: Database): number {
   try {
     const tableExists = db

@@ -5,6 +5,7 @@ import type {
   AzureFoundryConfig,
   LMStudioConfig,
   HuggingFaceLocalConfig,
+  NimConfig,
 } from '../../common/types/provider.js';
 import type { ThemePreference } from '../../types/storage.js';
 import type { SandboxConfig } from '../../common/types/sandbox.js';
@@ -29,6 +30,7 @@ interface AppSettingsRow {
   sandbox_config: string;
   cloud_browser_config: string | null;
   notifications_enabled: number;
+  nim_config: string | null;
 }
 
 export interface AppSettings {
@@ -168,6 +170,23 @@ export function setHuggingFaceLocalConfig(config: HuggingFaceLocalConfig | null)
   );
 }
 
+export function getNimConfig(): NimConfig | null {
+  const row = getRow();
+  if (!row.nim_config) return null;
+  try {
+    return JSON.parse(row.nim_config) as NimConfig;
+  } catch {
+    return null;
+  }
+}
+
+export function setNimConfig(config: NimConfig | null): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET nim_config = ? WHERE id = 1').run(
+    config ? JSON.stringify(config) : null,
+  );
+}
+
 export function getOpenAiBaseUrl(): string {
   const row = getRow();
   return row.openai_base_url || '';
@@ -287,6 +306,7 @@ export function clearAppSettings(): void {
       azure_foundry_config = NULL,
       lmstudio_config = NULL,
       huggingface_local_config = NULL,
+      nim_config = NULL,
       openai_base_url = '',
       theme = 'system',
       run_in_background = 0,

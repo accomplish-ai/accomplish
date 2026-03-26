@@ -535,6 +535,34 @@ export async function buildProviderConfigs(
     }
   }
 
+  // NVIDIA NIM provider
+  const nimProvider = providerSettings.connectedProviders.nim;
+  if (
+    nimProvider?.connectionStatus === 'connected' &&
+    nimProvider.credentials.type === 'nim' &&
+    nimProvider.selectedModelId
+  ) {
+    const nimApiKey = getApiKey('nim');
+    const serverUrl = nimProvider.credentials.serverUrl;
+    const modelId = nimProvider.selectedModelId.replace(/^nim\//, '');
+    providerConfigs.push({
+      id: 'nim',
+      npm: '@ai-sdk/openai-compatible',
+      name: 'NVIDIA NIM',
+      options: {
+        baseURL: serverUrl,
+        ...(nimApiKey ? { apiKey: nimApiKey } : {}),
+      },
+      models: {
+        [modelId]: { name: modelId, tools: true },
+      },
+    });
+    if (!enabledProviders.includes('nim')) {
+      enabledProviders.push('nim');
+    }
+    log.info(`[OpenCode Config Builder] NVIDIA NIM configured: ${modelId} baseURL: ${serverUrl}`);
+  }
+
   // Custom OpenAI-compatible provider
   const customProvider = providerSettings.connectedProviders.custom;
   if (
@@ -723,6 +751,36 @@ export async function buildProviderConfigs(
       ...(Object.keys(models).length > 0 ? { models } : {}),
     });
     log.info(`[OpenCode Config Builder] ${providerDef.name} configured`);
+  }
+
+  // GitHub Copilot provider (OAuth-based, no API key)
+  const copilotProvider = providerSettings.connectedProviders.copilot;
+  if (
+    copilotProvider?.connectionStatus === 'connected' &&
+    copilotProvider.credentials.type === 'copilot-oauth'
+  ) {
+    const copilotModels: Record<string, ProviderModelConfig> = {};
+    if (copilotProvider.availableModels && copilotProvider.availableModels.length > 0) {
+      for (const model of copilotProvider.availableModels) {
+        const modelId = model.id.replace(/^copilot\//, '');
+        copilotModels[modelId] = { name: model.name, tools: true };
+      }
+    } else if (copilotProvider.selectedModelId) {
+      const modelId = copilotProvider.selectedModelId.replace(/^copilot\//, '');
+      copilotModels[modelId] = { name: modelId, tools: true };
+    }
+
+    providerConfigs.push({
+      id: 'github-copilot',
+      npm: '@opencode/github-copilot',
+      name: 'GitHub Copilot',
+      options: {},
+      ...(Object.keys(copilotModels).length > 0 ? { models: copilotModels } : {}),
+    });
+    if (!enabledProviders.includes('github-copilot')) {
+      enabledProviders.push('github-copilot');
+    }
+    log.info('[OpenCode Config Builder] GitHub Copilot configured');
   }
 
   return { providerConfigs, enabledProviders, modelOverride };

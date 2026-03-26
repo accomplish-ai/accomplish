@@ -7,6 +7,11 @@ import {
   INSTALL_ERROR_MESSAGE,
 } from '../../../opencode/cli-error-utils';
 import { loginSlackMcp, logoutSlackMcp } from '../../../opencode/slack-auth';
+import {
+  loginGithubCopilot,
+  logoutGithubCopilot,
+  getCopilotOAuthStatus,
+} from '../../../opencode/copilot-auth';
 import type { IpcHandler } from '../../types';
 import { getStorage } from '../../../store/storage';
 
@@ -63,5 +68,25 @@ export function registerAuthHandlers(handle: IpcHandler): void {
 
   handle('opencode:auth:slack:logout', async (_event: IpcMainInvokeEvent) => {
     await logoutSlackMcp();
+  });
+
+  handle('opencode:auth:copilot:status', async (_event: IpcMainInvokeEvent) => {
+    return getCopilotOAuthStatus();
+  });
+
+  handle('opencode:auth:copilot:login', async (_event: IpcMainInvokeEvent) => {
+    try {
+      const result = await loginGithubCopilot();
+      return result;
+    } catch (err) {
+      if (err instanceof Error) {
+        throw err;
+      }
+      throw new Error(String(err));
+    }
+  });
+
+  handle('opencode:auth:copilot:logout', async (_event: IpcMainInvokeEvent) => {
+    logoutGithubCopilot();
   });
 }

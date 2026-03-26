@@ -15,6 +15,8 @@ export {
   setLMStudioConfig,
   getHuggingFaceLocalConfig,
   setHuggingFaceLocalConfig,
+  getNimConfig,
+  setNimConfig,
   getOpenAiBaseUrl,
   setOpenAiBaseUrl,
   getTheme,
@@ -83,3 +85,12 @@ export {
   deleteConnector,
   clearAllConnectors,
 } from './connectors.js';
+
+export {
+  listKnowledgeNotes,
+  getKnowledgeNote,
+  createKnowledgeNote,
+  updateKnowledgeNote,
+  deleteKnowledgeNote,
+  getKnowledgeNotesForPrompt,
+} from './knowledgeNotes.js';

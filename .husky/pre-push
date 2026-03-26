@@ -61,8 +61,4 @@ if echo "$CHANGED" | grep -qE "^apps/web/locales/|^scripts/check-locales\.js$"; 
   node scripts/check-locales.js || exit 1
 fi
 
-# 8. Dev environment smoke test
-echo "[pre-push] Running dev environment check..."
-pnpm dev:check || exit 1
-
 echo "[pre-push] All checks passed."

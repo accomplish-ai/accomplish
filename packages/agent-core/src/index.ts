@@ -173,6 +173,16 @@ export {
   setActiveWorkspaceId,
 } from './storage/repositories/workspaces.js';
 
+// Knowledge Notes repository
+export {
+  listKnowledgeNotes,
+  getKnowledgeNote,
+  createKnowledgeNote,
+  updateKnowledgeNote,
+  deleteKnowledgeNote,
+  getKnowledgeNotesForPrompt,
+} from './storage/repositories/knowledgeNotes.js';
+
 // -----------------------------------------------------------------------------
 // Providers Module (from ./providers/)
 // -----------------------------------------------------------------------------
@@ -189,6 +199,8 @@ export { fetchOpenRouterModels } from './providers/openrouter.js';
 
 export { testLiteLLMConnection, fetchLiteLLMModels } from './providers/litellm.js';
 
+export { testNimConnection, fetchNimModels, NIM_DEFAULT_BASE_URL } from './providers/nim.js';
+
 export { testOllamaConnection } from './providers/ollama.js';
 
 export { testOllamaModelToolSupport } from './providers/tool-support-testing.js';
@@ -203,6 +215,21 @@ export { fetchProviderModels } from './providers/fetch-models.js';
 export type { FetchProviderModelsResult } from './providers/fetch-models.js';
 
 export { testCustomConnection } from './providers/custom.js';
+
+export {
+  getCopilotOAuthStatus,
+  setCopilotOAuthTokens,
+  clearCopilotOAuth,
+  requestCopilotDeviceCode,
+  pollCopilotDeviceToken,
+  GITHUB_COPILOT_OAUTH_CLIENT_ID,
+  GITHUB_COPILOT_AUTH_URL,
+} from './providers/copilot.js';
+export type {
+  CopilotOAuthStatus,
+  CopilotDeviceCodeResponse,
+  CopilotTokenResponse,
+} from './providers/copilot.js';
 
 // -----------------------------------------------------------------------------
 // Utils Module (from ./utils/)
@@ -310,6 +337,8 @@ export type {
   LMStudioConfig,
   HuggingFaceLocalModelInfo,
   HuggingFaceLocalConfig,
+  NimModel,
+  NimConfig,
 } from './common/types/provider.js';
 export {
   DEFAULT_PROVIDERS,
@@ -317,6 +346,7 @@ export {
   ALLOWED_API_KEY_PROVIDERS,
   STANDARD_VALIDATION_PROVIDERS,
   ZAI_ENDPOINTS,
+  COPILOT_MODELS,
 } from './common/types/provider.js';
 
 // Provider settings types
@@ -336,7 +366,9 @@ export type {
   LMStudioCredentials,
   AzureFoundryCredentials,
   OAuthCredentials,
+  CopilotOAuthCredentials,
   CustomCredentials,
+  NimCredentials,
   ProviderCredentials,
   ToolSupportStatus,
   ConnectedProvider,
@@ -384,6 +416,10 @@ export type {
   Workspace,
   WorkspaceCreateInput,
   WorkspaceUpdateInput,
+  KnowledgeNote,
+  KnowledgeNoteType,
+  KnowledgeNoteCreateInput,
+  KnowledgeNoteUpdateInput,
 } from './common/types/workspace.js';
 
 // Connector types

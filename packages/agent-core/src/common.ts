@@ -72,6 +72,7 @@ export type {
   LiteLLMCredentials,
   ZaiRegion,
   ZaiCredentials,
+  NimCredentials,
   LMStudioCredentials,
   AzureFoundryCredentials,
   OAuthCredentials,
@@ -124,6 +125,10 @@ export type {
   Workspace,
   WorkspaceCreateInput,
   WorkspaceUpdateInput,
+  KnowledgeNote,
+  KnowledgeNoteType,
+  KnowledgeNoteCreateInput,
+  KnowledgeNoteUpdateInput,
 } from './common/types/workspace.js';
 
 // Connector types

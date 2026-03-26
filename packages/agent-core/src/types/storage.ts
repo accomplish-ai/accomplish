@@ -7,6 +7,7 @@ import type {
   AzureFoundryConfig,
   LMStudioConfig,
   HuggingFaceLocalConfig,
+  NimConfig,
 } from '../common/types/provider.js';
 import type {
   ProviderId,
@@ -143,6 +144,10 @@ export interface AppSettingsAPI {
   getHuggingFaceLocalConfig(): HuggingFaceLocalConfig | null;
   /** Set the Hugging Face Local configuration */
   setHuggingFaceLocalConfig(config: HuggingFaceLocalConfig | null): void;
+  /** Get the NVIDIA NIM configuration */
+  getNimConfig(): NimConfig | null;
+  /** Set the NVIDIA NIM configuration */
+  setNimConfig(config: NimConfig | null): void;
   /** Get the custom OpenAI base URL */
   getOpenAiBaseUrl(): string;
   /** Set the custom OpenAI base URL */

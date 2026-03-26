@@ -5,10 +5,18 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import Header from '@/components/layout/Header';
+
+vi.mock('@/lib/accomplish', () => ({
+  getAccomplish: () => ({
+    getTheme: vi.fn().mockResolvedValue('system'),
+    setTheme: vi.fn().mockResolvedValue(undefined),
+    onThemeChange: undefined,
+  }),
+}));
 
 describe('Header Integration', () => {
   describe('rendering', () => {

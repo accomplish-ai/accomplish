@@ -15,6 +15,8 @@ import {
   VertexProviderForm,
   HuggingFaceProviderForm,
   CustomProviderForm,
+  NimProviderForm,
+  CopilotProviderForm,
 } from './providers';
 import { ZaiProviderForm } from './providers/ZaiProviderForm';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
@@ -43,6 +45,32 @@ export function ProviderSettingsPanel({
 
   // Render form content based on provider category
   const renderForm = () => {
+    // Handle GitHub Copilot separately (device OAuth flow, no API key)
+    if (providerId === 'copilot') {
+      return (
+        <CopilotProviderForm
+          connectedProvider={connectedProvider}
+          onConnect={onConnect}
+          onDisconnect={onDisconnect}
+          onModelChange={onModelChange}
+          showModelError={showModelError}
+        />
+      );
+    }
+
+    // Handle NVIDIA NIM separately (has custom endpoint + API key)
+    if (providerId === 'nim') {
+      return (
+        <NimProviderForm
+          connectedProvider={connectedProvider}
+          onConnect={onConnect}
+          onDisconnect={onDisconnect}
+          onModelChange={onModelChange}
+          showModelError={showModelError}
+        />
+      );
+    }
+
     // Handle Z.AI separately (has region selector)
     if (providerId === 'zai') {
       return (

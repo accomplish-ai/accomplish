@@ -44,7 +44,8 @@
   "pnpm": {
     "overrides": {
       "fast-xml-parser": ">=5.3.4",
-      "tar": ">=7.5.8"
+      "tar": ">=7.5.8",
+      "@electron/rebuild>node-gyp": "^12.1.0"
     },
     "ignoredOptionalDependencies": [
       "sharp"

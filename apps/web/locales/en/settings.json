@@ -456,5 +456,26 @@
   "baseUrl": {
     "title": "Base URL",
     "description": "Leave empty to use the default URL."
+  },
+  "knowledgeNotes": {
+    "title": "Knowledge Notes",
+    "description": "Persistent context injected into every task in this workspace",
+    "addNote": "Add Note",
+    "placeholder": "Add context, instructions, or references...",
+    "types": {
+      "context": "Context",
+      "instruction": "Instruction",
+      "reference": "Reference"
+    },
+    "labels": {
+      "type": "Note type",
+      "content": "Note content"
+    },
+    "errors": {
+      "updateFailed": "Note not found or could not be updated.",
+      "deleteFailed": "Note not found or could not be deleted."
+    },
+    "empty": "No knowledge notes yet. Add notes to give your AI persistent context.",
+    "maxNotes": "Maximum {{max}} notes per workspace"
   }
 }

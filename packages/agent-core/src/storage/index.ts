@@ -45,6 +45,8 @@ export {
   setLMStudioConfig,
   getHuggingFaceLocalConfig,
   setHuggingFaceLocalConfig,
+  getNimConfig,
+  setNimConfig,
   getOpenAiBaseUrl,
   setOpenAiBaseUrl,
   getTheme,

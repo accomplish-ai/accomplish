@@ -81,7 +81,7 @@
     "together": "Modèles Llama et Mixtral",
     "fireworks": "Modèles d'inférence rapide",
     "groq": "Modèles Llama ultra-rapides",
-    "huggingface-local": "Local inference"
+    "huggingface-local": "Inférence locale"
   },
   "status": {
     "connected": "Connecté",
@@ -450,11 +450,32 @@
     "description": "Laissez vide pour utiliser l'URL par défaut."
   },
   "huggingfaceLocal": {
-    "serverUrl": "HuggingFace Local Server URL",
-    "serverHint": "Run a local HuggingFace Transformers.js inference server with ONNX Runtime",
-    "selectModel": "Please select a model",
-    "selectModelPlaceholder": "Select a model...",
-    "infoBannerTitle": "Local inference with Transformers.js",
-    "infoBannerDescription": "Models run locally using ONNX Runtime. Smaller quantized models (Q4) are recommended for faster inference."
+    "serverUrl": "URL du serveur HuggingFace Local",
+    "serverHint": "Exécutez un serveur d'inférence local HuggingFace Transformers.js avec ONNX Runtime",
+    "selectModel": "Veuillez sélectionner un modèle",
+    "selectModelPlaceholder": "Sélectionner un modèle...",
+    "infoBannerTitle": "Inférence locale avec Transformers.js",
+    "infoBannerDescription": "Les modèles s'exécutent localement avec ONNX Runtime. Les modèles quantifiés plus petits (Q4) sont recommandés pour une inférence plus rapide."
+  },
+  "knowledgeNotes": {
+    "title": "Notes de contexte",
+    "description": "Contexte persistant injecté dans chaque tâche de cet espace de travail",
+    "addNote": "Ajouter une note",
+    "placeholder": "Ajouter du contexte, des instructions ou des références...",
+    "types": {
+      "context": "Contexte",
+      "instruction": "Instruction",
+      "reference": "Référence"
+    },
+    "labels": {
+      "type": "Type de note",
+      "content": "Contenu de la note"
+    },
+    "errors": {
+      "updateFailed": "Note introuvable ou impossible à mettre à jour.",
+      "deleteFailed": "Note introuvable ou impossible à supprimer."
+    },
+    "empty": "Aucune note de contexte. Ajoutez des notes pour donner à votre IA un contexte persistant.",
+    "maxNotes": "Maximum {{max}} notes par espace de travail"
   }
 }

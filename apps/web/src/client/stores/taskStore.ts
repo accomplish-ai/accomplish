@@ -42,6 +42,7 @@ interface StartupStageInfo {
 
 interface TaskState {
   // Current task
+  _taskStateToken: number;
   currentTask: Task | null;
   isLoading: boolean;
   error: string | null;
@@ -103,7 +104,97 @@ interface TaskState {
   clearAuthError: () => void;
 }
 
+function hasTrackedTask(
+  state: Pick<TaskState, 'currentTask' | 'tasks'>,
+  taskId: string | null | undefined,
+): boolean {
+  if (!taskId) {
+    return false;
+  }
+
+  return state.currentTask?.id === taskId || state.tasks.some((task) => task.id === taskId);
+}
+
+function hasTaskStateToken(
+  state: Pick<TaskState, '_taskStateToken'>,
+  taskStateToken: number,
+): boolean {
+  return state._taskStateToken === taskStateToken;
+}
+
+function clearScopedTaskState(
+  state: Pick<
+    TaskState,
+    | '_taskStateToken'
+    | 'currentTask'
+    | 'isLoading'
+    | 'permissionRequests'
+    | 'setupProgressTaskId'
+    | 'startupStageTaskId'
+    | 'todosTaskId'
+  >,
+  taskId: string,
+): Partial<TaskState> {
+  const nextState: Partial<TaskState> = {};
+  let shouldBumpTaskStateToken = false;
+
+  if (state.currentTask?.id === taskId) {
+    nextState.currentTask = null;
+    nextState.isLoading = false;
+    nextState.error = null;
+    shouldBumpTaskStateToken = true;
+  }
+
+  if (taskId in state.permissionRequests) {
+    const { [taskId]: _, ...rest } = state.permissionRequests;
+    nextState.permissionRequests = rest;
+  }
+
+  if (state.setupProgressTaskId === taskId) {
+    nextState.setupProgress = null;
+    nextState.setupProgressTaskId = null;
+    nextState.setupDownloadStep = 1;
+    shouldBumpTaskStateToken = true;
+  }
+
+  if (state.startupStageTaskId === taskId) {
+    nextState.startupStage = null;
+    nextState.startupStageTaskId = null;
+    shouldBumpTaskStateToken = true;
+  }
+
+  if (state.todosTaskId === taskId) {
+    nextState.todos = [];
+    nextState.todosTaskId = null;
+    shouldBumpTaskStateToken = true;
+  }
+
+  if (shouldBumpTaskStateToken) {
+    nextState._taskStateToken = state._taskStateToken + 1;
+  }
+
+  return nextState;
+}
+
+function clearAllTaskScopedState(state: Pick<TaskState, '_taskStateToken'>): Partial<TaskState> {
+  return {
+    _taskStateToken: state._taskStateToken + 1,
+    currentTask: null,
+    isLoading: false,
+    error: null,
+    permissionRequests: {},
+    setupProgress: null,
+    setupProgressTaskId: null,
+    setupDownloadStep: 1,
+    startupStage: null,
+    startupStageTaskId: null,
+    todos: [],
+    todosTaskId: null,
+  };
+}
+
 export const useTaskStore = create<TaskState>((set, get) => ({
+  _taskStateToken: 0,
   currentTask: null,
   isLoading: false,
   error: null,
@@ -180,6 +271,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   startTask: async (config: TaskConfig) => {
     const accomplish = getAccomplish();
+    const taskStateToken = get()._taskStateToken;
     set({ isLoading: true, error: null });
     try {
       void accomplish.logEvent({
@@ -192,7 +284,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         },
       });
       const task = await accomplish.startTask(config);
-      const currentTasks = get().tasks;
+      const currentState = get();
+      if (!hasTaskStateToken(currentState, taskStateToken)) {
+        return null;
+      }
+
+      const currentTasks = currentState.tasks;
       set({
         currentTask: task,
         tasks: [task, ...currentTasks.filter((t) => t.id !== task.id)],
@@ -205,6 +302,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       });
       return task;
     } catch (err) {
+      if (!hasTaskStateToken(get(), taskStateToken)) {
+        return null;
+      }
+
       set({
         error: err instanceof Error ? err.message : 'Failed to start task',
         isLoading: false,
@@ -224,6 +325,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   ): Promise<boolean> => {
     const accomplish = getAccomplish();
     const { currentTask, startTask } = get();
+    const taskStateToken = get()._taskStateToken;
     if (!currentTask) {
       set({ error: 'No active task to continue' });
       void accomplish.logEvent({
@@ -292,6 +394,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       const task = await accomplish.resumeSession(sessionId, message, currentTask.id, attachments);
 
+      if (!hasTaskStateToken(get(), taskStateToken)) {
+        return false;
+      }
+
       set((state) => ({
         currentTask: state.currentTask ? { ...state.currentTask, status: task.status } : null,
         isLoading: task.status === 'queued',
@@ -299,6 +405,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }));
       return true;
     } catch (err) {
+      if (!hasTaskStateToken(get(), taskStateToken)) {
+        return false;
+      }
+
       set((state) => ({
         error: err instanceof Error ? err.message : 'Failed to send message',
         isLoading: false,
@@ -323,12 +433,18 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const accomplish = getAccomplish();
     const { currentTask } = get();
     if (currentTask) {
+      const taskStateToken = get()._taskStateToken;
       void accomplish.logEvent({
         level: 'info',
         message: 'UI cancel task',
         context: { taskId: currentTask.id },
       });
       await accomplish.cancelTask(currentTask.id);
+
+      if (!hasTaskStateToken(get(), taskStateToken)) {
+        return;
+      }
+
       set((state) => ({
         currentTask: state.currentTask ? { ...state.currentTask, status: 'cancelled' } : null,
         tasks: state.tasks.map((t) =>
@@ -526,13 +642,29 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   loadTasks: async () => {
     const accomplish = getAccomplish();
+    const taskStateToken = get()._taskStateToken;
     const tasks = await accomplish.listTasks();
+    if (!hasTaskStateToken(get(), taskStateToken)) {
+      return;
+    }
     set({ tasks });
   },
 
   loadTaskById: async (taskId: string) => {
     const accomplish = getAccomplish();
+    const currentState = get();
+    const taskStateToken = currentState._taskStateToken;
+    const requestTrackedTask = hasTrackedTask(currentState, taskId);
     const task = await accomplish.getTask(taskId);
+    const latestState = get();
+    if (!hasTaskStateToken(latestState, taskStateToken)) {
+      return;
+    }
+
+    if (requestTrackedTask && !hasTrackedTask(latestState, taskId)) {
+      return;
+    }
+
     set({ currentTask: task, error: task ? null : 'Task not found' });
   },
 
@@ -541,13 +673,17 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     await accomplish.deleteTask(taskId);
     set((state) => ({
       tasks: state.tasks.filter((t) => t.id !== taskId),
+      ...clearScopedTaskState(state, taskId),
     }));
   },
 
   clearHistory: async () => {
     const accomplish = getAccomplish();
     await accomplish.clearTaskHistory();
-    set({ tasks: [] });
+    set((state) => ({
+      tasks: [],
+      ...clearAllTaskScopedState(state),
+    }));
   },
 
   loadFavorites: async () => {
@@ -620,7 +756,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
   reset: () => {
-    set({
+    set((state) => ({
+      _taskStateToken: state._taskStateToken + 1,
       currentTask: null,
       isLoading: false,
       error: null,
@@ -634,7 +771,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       todosTaskId: null,
       authError: null,
       isLauncherOpen: false,
-    });
+    }));
   },
 
   setTodos: (taskId: string, todos: TodoItem[]) => {
@@ -663,6 +800,10 @@ if (typeof window !== 'undefined' && window.accomplish) {
   window.accomplish.onTaskProgress((progress: unknown) => {
     const event = progress as SetupProgressEvent;
     const state = useTaskStore.getState();
+
+    if (!hasTrackedTask(state, event.taskId)) {
+      return;
+    }
 
     if (STARTUP_STAGES.includes(event.stage)) {
       state.setStartupStage(

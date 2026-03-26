@@ -10,3 +10,5 @@ export { LMStudioProviderForm } from './LMStudioProviderForm';
 export { VertexProviderForm } from './vertex';
 export { HuggingFaceProviderForm } from './HuggingFaceProviderForm';
 export { CustomProviderForm } from './CustomProviderForm';
+export { NimProviderForm } from './NimProviderForm';
+export { CopilotProviderForm } from './CopilotProviderForm';
