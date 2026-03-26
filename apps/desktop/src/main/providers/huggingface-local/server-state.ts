@@ -67,3 +67,12 @@ export function setStartServerPromise(
 ): void {
   startServerPromise = p;
 }
+
+/** Counter tracking in-flight generation requests. Used by stopServer() to drain. */
+export let activeGenerations = 0;
+export function incrementGenerations(): void {
+  activeGenerations++;
+}
+export function decrementGenerations(): void {
+  activeGenerations--;
+}

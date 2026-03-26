@@ -6,7 +6,13 @@
 import http from 'http';
 import { getStorage } from '../../store/storage';
 import { getLogCollector } from '../../logging';
-import { state, startServerPromise, setStartServerPromise, loadModelPromise } from './server-state';
+import {
+  state,
+  startServerPromise,
+  setStartServerPromise,
+  loadModelPromise,
+  activeGenerations,
+} from './server-state';
 import { loadModel } from './model-loader';
 import { createRequestHandler } from './http-handler';
 
@@ -39,6 +45,9 @@ async function _startServerImpl(
       await loadModel(modelId);
       return { success: true, port: state.port! };
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return { success: false, error: 'Server stopped during model load' };
+      }
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to load model',
@@ -49,6 +58,9 @@ async function _startServerImpl(
   try {
     await loadModel(modelId);
   } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return { success: false, error: 'Server stopped during model load' };
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to load model',
@@ -66,7 +78,7 @@ async function _startServerImpl(
         state.port = address.port;
         getLogCollector().logEnv(
           'INFO',
-          '[HF Server] Listening on http://127.0.0.1:${address.port}',
+          `[HF Server] Listening on http://127.0.0.1:${address.port}`,
         );
         // Persist the chosen port so clients can reconnect after restart
         try {
@@ -119,7 +131,13 @@ export async function stopServer(): Promise<void> {
     });
   }
 
-  // Dispose model only after HTTP server is fully closed
+  // Wait for active generations to complete (max 10s)
+  const drainStart = Date.now();
+  while (activeGenerations > 0 && Date.now() - drainStart < 10000) {
+    await new Promise((r) => setTimeout(r, 100));
+  }
+
+  // Dispose model only after HTTP server is fully closed and generations drained
   if (state.model) {
     try {
       await state.model.dispose?.();

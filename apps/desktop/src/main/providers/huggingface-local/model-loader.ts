@@ -6,6 +6,7 @@
 import { app } from 'electron';
 import path from 'path';
 import { getLogCollector } from '../../logging';
+import { getStorage } from '../../store/storage';
 import { state, loadModelPromise, setLoadModelPromise, type ChatMessage } from './server-state';
 
 /**
@@ -13,7 +14,7 @@ import { state, loadModelPromise, setLoadModelPromise, type ChatMessage } from '
  */
 export async function loadModel(modelId: string): Promise<void> {
   if (state.loadedModelId === modelId && state.tokenizer && state.model) {
-    getLogCollector().logEnv('INFO', '[HF Server] Model ${modelId} already loaded');
+    getLogCollector().logEnv('INFO', `[HF Server] Model ${modelId} already loaded`);
     return;
   }
 
@@ -29,7 +30,7 @@ export async function loadModel(modelId: string): Promise<void> {
     state.isLoading = true;
     // Capture stop flag at start so we can detect a concurrent stopServer() call
     const stoppedAtStart = state.isStopping;
-    getLogCollector().logEnv('INFO', '[HF Server] Loading model: ${modelId}');
+    getLogCollector().logEnv('INFO', `[HF Server] Loading model: ${modelId}`);
 
     try {
       const { env, AutoTokenizer, AutoModelForCausalLM } =
@@ -45,23 +46,37 @@ export async function loadModel(modelId: string): Promise<void> {
         local_files_only: true,
       });
 
-      let model;
-      try {
-        model = await AutoModelForCausalLM.from_pretrained(modelId, {
-          cache_dir: cacheDir,
-          dtype: 'q4',
-          local_files_only: true,
-        });
-      } catch (err) {
-        getLogCollector().logEnv(
-          'WARN',
-          `[HF Server] Failed to load q4 model, trying fp32: ${err}`,
-        );
-        model = await AutoModelForCausalLM.from_pretrained(modelId, {
-          cache_dir: cacheDir,
-          dtype: 'fp32',
-          local_files_only: true,
-        });
+      // Get config to determine quantization preference
+      const config = getStorage().getHuggingFaceLocalConfig();
+      const quantization = config?.quantization ?? null;
+
+      // Use saved quantization, fall back to q4 then fp32
+      const dtypesToTry: string[] = quantization ? [quantization] : ['q4'];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let model: any;
+      for (const dtype of dtypesToTry) {
+        try {
+          model = await AutoModelForCausalLM.from_pretrained(modelId, {
+            cache_dir: cacheDir,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            dtype: dtype as any,
+            local_files_only: true,
+          });
+          break;
+        } catch (err) {
+          if (dtype === dtypesToTry[dtypesToTry.length - 1]) {
+            getLogCollector().logEnv(
+              'WARN',
+              `[HF Server] Failed to load ${dtype} model, trying fp32: ${err}`,
+            );
+            // Last fallback: try fp32
+            model = await AutoModelForCausalLM.from_pretrained(modelId, {
+              cache_dir: cacheDir,
+              dtype: 'fp32',
+              local_files_only: true,
+            });
+          }
+        }
       }
 
       // If stopServer() was called while we were loading, dispose the freshly
@@ -69,14 +84,14 @@ export async function loadModel(modelId: string): Promise<void> {
       if (state.isStopping || stoppedAtStart) {
         getLogCollector().logEnv(
           'INFO',
-          '[HF Server] Stop requested during load of ${modelId}; discarding.',
+          `[HF Server] Stop requested during load of ${modelId}; discarding.`,
         );
         try {
-          await model.dispose?.();
+          await model?.dispose?.();
         } catch {
           // Ignore dispose errors
         }
-        return;
+        throw new DOMException('Load cancelled by stopServer()', 'AbortError');
       }
 
       // Successfully loaded new model, safe to dispose old one
@@ -92,7 +107,7 @@ export async function loadModel(modelId: string): Promise<void> {
       state.model = model;
 
       state.loadedModelId = modelId;
-      getLogCollector().logEnv('INFO', '[HF Server] Model loaded: ${modelId}');
+      getLogCollector().logEnv('INFO', `[HF Server] Model loaded: ${modelId}`);
     } catch (error) {
       getLogCollector().logEnv('ERROR', `[HF Server] Failed to load model: ${modelId}`, {
         error: String(error),
