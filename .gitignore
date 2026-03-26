@@ -65,6 +65,7 @@ docs/plans/
 
 # Speckit
 .specify/
+specs/
 
 # Misc
 *.pem
