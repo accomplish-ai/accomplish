@@ -43,6 +43,17 @@ function createMockMessage(
   };
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
+}
+
 // Mock accomplish API
 const mockAccomplish = {
   startTask: vi.fn(),
@@ -117,6 +128,7 @@ describe('taskStore Integration', () => {
     try {
       const { useTaskStore } = await import('@/stores/taskStore');
       useTaskStore.setState({
+        _taskStateToken: 0,
         currentTask: null,
         isLoading: false,
         error: null,
@@ -307,6 +319,28 @@ describe('taskStore Integration', () => {
       expect(state.tasks).toHaveLength(1);
       expect(state.tasks[0].prompt).toBe('New prompt');
     });
+
+    it('should ignore late startTask completion after history is cleared', async () => {
+      // Arrange
+      const { useTaskStore } = await import('@/stores/taskStore');
+      const deferred = createDeferred<Task>();
+      mockAccomplish.startTask.mockReturnValueOnce(deferred.promise);
+      mockAccomplish.clearTaskHistory.mockResolvedValueOnce(undefined);
+
+      // Act
+      const startTaskPromise = useTaskStore.getState().startTask({ prompt: 'Test prompt' });
+      await useTaskStore.getState().clearHistory();
+      deferred.resolve(createMockTask('task-123', 'Test prompt', 'running'));
+      const result = await startTaskPromise;
+      const state = useTaskStore.getState();
+
+      // Assert
+      expect(result).toBeNull();
+      expect(state.currentTask).toBeNull();
+      expect(state.tasks).toEqual([]);
+      expect(state.error).toBeNull();
+      expect(state.isLoading).toBe(false);
+    });
   });
 
   describe('sendFollowUp', () => {
@@ -465,6 +499,33 @@ describe('taskStore Integration', () => {
       // Assert
       expect(state.error).toBe('Resume failed');
       expect(state.currentTask?.status).toBe('failed');
+      expect(state.isLoading).toBe(false);
+    });
+
+    it('should ignore late follow-up completion after history is cleared', async () => {
+      // Arrange
+      const { useTaskStore } = await import('@/stores/taskStore');
+      const deferred = createDeferred<Task>();
+      const taskWithSession: Task = {
+        ...createMockTask('task-123', 'Test', 'completed'),
+        sessionId: 'session-abc',
+      };
+      useTaskStore.setState({ currentTask: taskWithSession, tasks: [taskWithSession] });
+      mockAccomplish.resumeSession.mockReturnValueOnce(deferred.promise);
+      mockAccomplish.clearTaskHistory.mockResolvedValueOnce(undefined);
+
+      // Act
+      const followUpPromise = useTaskStore.getState().sendFollowUp('Continue');
+      await useTaskStore.getState().clearHistory();
+      deferred.resolve(createMockTask('task-123', 'Test', 'running'));
+      const result = await followUpPromise;
+      const state = useTaskStore.getState();
+
+      // Assert
+      expect(result).toBe(false);
+      expect(state.currentTask).toBeNull();
+      expect(state.tasks).toEqual([]);
+      expect(state.error).toBeNull();
       expect(state.isLoading).toBe(false);
     });
   });
@@ -726,6 +787,28 @@ describe('taskStore Integration', () => {
       // Assert
       expect(state.currentTask).toBeNull();
       expect(state.error).toBe('Task not found');
+    });
+
+    it('should ignore late loadTaskById completion after the task is deleted', async () => {
+      // Arrange
+      const { useTaskStore } = await import('@/stores/taskStore');
+      const deferred = createDeferred<Task | null>();
+      const trackedTask = createMockTask('task-123', 'Tracked task');
+      useTaskStore.setState({ tasks: [trackedTask] });
+      mockAccomplish.getTask.mockReturnValueOnce(deferred.promise);
+      mockAccomplish.deleteTask.mockResolvedValueOnce(undefined);
+
+      // Act
+      const loadTaskPromise = useTaskStore.getState().loadTaskById('task-123');
+      await useTaskStore.getState().deleteTask('task-123');
+      deferred.resolve(trackedTask);
+      await loadTaskPromise;
+      const state = useTaskStore.getState();
+
+      // Assert
+      expect(state.currentTask).toBeNull();
+      expect(state.tasks).toEqual([]);
+      expect(state.error).toBeNull();
     });
   });
 
