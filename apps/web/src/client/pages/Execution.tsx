@@ -1160,8 +1160,12 @@ export function ExecutionPage() {
                       e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
                     }}
                     onKeyDown={(e) => {
-                      if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-                      if (slashCommand.handleKeyDown(e)) return;
+                      if (e.nativeEvent.isComposing || e.keyCode === 229) {
+                        return;
+                      }
+                      if (slashCommand.handleKeyDown(e)) {
+                        return;
+                      }
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleFollowUp();
