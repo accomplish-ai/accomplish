@@ -46,9 +46,13 @@ export async function loadModel(modelId: string): Promise<void> {
         local_files_only: true,
       });
 
-      // Get config to determine quantization preference
+      // Get config to determine quantization + device preference
       const config = getStorage().getHuggingFaceLocalConfig();
       const quantization = config?.quantization ?? null;
+      const devicePreference = config?.devicePreference ?? null;
+      // Pass device only when explicitly set (not 'auto') — let Transformers.js auto-detect otherwise
+      const deviceOption =
+        devicePreference && devicePreference !== 'auto' ? { device: devicePreference } : {};
 
       // Use saved quantization, fall back to q4 then fp32
       const dtypesToTry: string[] = quantization ? [quantization] : ['q4'];
@@ -61,6 +65,7 @@ export async function loadModel(modelId: string): Promise<void> {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             dtype: dtype as any,
             local_files_only: true,
+            ...deviceOption,
           });
           break;
         } catch (err) {
@@ -74,6 +79,7 @@ export async function loadModel(modelId: string): Promise<void> {
               cache_dir: cacheDir,
               dtype: 'fp32',
               local_files_only: true,
+              ...deviceOption,
             });
           }
         }
