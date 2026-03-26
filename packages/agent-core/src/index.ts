@@ -216,6 +216,21 @@ export type { FetchProviderModelsResult } from './providers/fetch-models.js';
 
 export { testCustomConnection } from './providers/custom.js';
 
+export {
+  getCopilotOAuthStatus,
+  setCopilotOAuthTokens,
+  clearCopilotOAuth,
+  requestCopilotDeviceCode,
+  pollCopilotDeviceToken,
+  GITHUB_COPILOT_OAUTH_CLIENT_ID,
+  GITHUB_COPILOT_AUTH_URL,
+} from './providers/copilot.js';
+export type {
+  CopilotOAuthStatus,
+  CopilotDeviceCodeResponse,
+  CopilotTokenResponse,
+} from './providers/copilot.js';
+
 // -----------------------------------------------------------------------------
 // Utils Module (from ./utils/)
 // -----------------------------------------------------------------------------
@@ -329,6 +344,7 @@ export {
   ALLOWED_API_KEY_PROVIDERS,
   STANDARD_VALIDATION_PROVIDERS,
   ZAI_ENDPOINTS,
+  COPILOT_MODELS,
 } from './common/types/provider.js';
 
 // Provider settings types
@@ -348,6 +364,7 @@ export type {
   LMStudioCredentials,
   AzureFoundryCredentials,
   OAuthCredentials,
+  CopilotOAuthCredentials,
   CustomCredentials,
   NimCredentials,
   ProviderCredentials,

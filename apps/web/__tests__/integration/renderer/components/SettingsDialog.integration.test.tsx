@@ -63,6 +63,17 @@ const mockAccomplish = {
   getNotificationsEnabled: vi.fn().mockResolvedValue(true),
   setNotificationsEnabled: vi.fn().mockResolvedValue(undefined),
   getVersion: vi.fn().mockResolvedValue('0.1.0-test'),
+  fetchProviderModels: vi.fn().mockResolvedValue({ success: true, models: [] }),
+  getSandboxConfig: vi.fn().mockResolvedValue({
+    mode: 'disabled',
+    allowedPaths: [],
+    networkRestricted: false,
+    allowedHosts: [],
+  }),
+  listWorkspaces: vi.fn().mockResolvedValue([]),
+  getTheme: vi.fn().mockResolvedValue('system'),
+  setTheme: vi.fn().mockResolvedValue(undefined),
+  onThemeChange: undefined,
 };
 
 // Mock the accomplish module

@@ -72,6 +72,10 @@ g.window.accomplish = {
   pickFiles: vi.fn().mockResolvedValue([]),
   getFilePath: vi.fn((file: File) => file.name),
   processDroppedFiles: vi.fn().mockResolvedValue([]),
+  onTaskProgress: vi.fn().mockReturnValue(() => {}),
+  onTaskUpdate: vi.fn().mockReturnValue(() => {}),
+  onTaskSummary: vi.fn().mockReturnValue(() => {}),
+  onTodoUpdate: vi.fn().mockReturnValue(() => {}),
 };
 
 export {};

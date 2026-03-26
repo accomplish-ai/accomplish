@@ -69,5 +69,11 @@ export default defineConfig({
   build: {
     outDir: 'dist/client',
     emptyOutDir: true,
+    rollupOptions: {
+      // AWS SDK packages are Node.js-only (main process) and must not be
+      // bundled into the browser build. Rolldown >= rc.10 resolves these to
+      // their browser bundles which omit Node-only exports (e.g. fromIni).
+      external: [/^@aws-sdk\//],
+    },
   },
 });

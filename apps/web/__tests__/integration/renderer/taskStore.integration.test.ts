@@ -378,6 +378,7 @@ describe('taskStore Integration', () => {
         'session-abc',
         'Continue please',
         'task-123',
+        undefined,
       );
       expect(state.currentTask?.status).toBe('running');
     });
@@ -402,6 +403,7 @@ describe('taskStore Integration', () => {
         'result-session-xyz',
         'More work',
         'task-123',
+        undefined,
       );
     });
 

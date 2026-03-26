@@ -52,6 +52,7 @@ export {
   ZAI_ENDPOINTS,
   MINIMAX_DEFAULT_BASE_URL,
   NIM_DEFAULT_BASE_URL,
+  COPILOT_MODELS,
 } from './types/provider.js';
 
 // Provider settings types
@@ -71,6 +72,7 @@ export type {
   LMStudioCredentials,
   AzureFoundryCredentials,
   OAuthCredentials,
+  CopilotOAuthCredentials,
   CustomCredentials,
   NimCredentials,
   ProviderCredentials,
