@@ -5,7 +5,7 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
@@ -520,7 +520,11 @@ describe('TaskInputBar Integration', () => {
     ];
 
     beforeEach(() => {
-      mockAccomplish.getEnabledSkills = vi.fn().mockResolvedValue(mockSkills);
+      vi.mocked(mockAccomplish.getEnabledSkills).mockResolvedValue(mockSkills);
+    });
+
+    afterEach(() => {
+      vi.mocked(mockAccomplish.getEnabledSkills).mockResolvedValue([]);
     });
 
     it('should show slash command popover when "/" is typed', async () => {
