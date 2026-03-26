@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAccomplish } from '@/lib/accomplish';
 import type { ConnectedProvider, CopilotOAuthCredentials } from '@accomplish_ai/agent-core';
-import { COPILOT_MODELS } from '@accomplish_ai/agent-core';
+import { COPILOT_MODELS } from '@accomplish_ai/agent-core/common';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('useCopilotConnection');

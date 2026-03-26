@@ -54,6 +54,7 @@ export {
   ALLOWED_API_KEY_PROVIDERS,
   STANDARD_VALIDATION_PROVIDERS,
   ZAI_ENDPOINTS,
+  COPILOT_MODELS,
 } from './common/types/provider.js';
 
 // Provider settings types
