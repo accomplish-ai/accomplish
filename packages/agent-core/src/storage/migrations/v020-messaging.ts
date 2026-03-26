@@ -10,6 +10,7 @@ import type { Migration } from './index.js';
 export const migration: Migration = {
   version: 20,
   up: (db: Database) => {
+    // Add messaging_config column to store WhatsApp/Slack/etc integration settings (ENG-684)
     const columns = db.prepare(`PRAGMA table_info(app_settings)`).all() as Array<{
       name: string;
     }>;

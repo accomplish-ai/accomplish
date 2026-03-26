@@ -220,7 +220,6 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
 
   async disconnect(): Promise<void> {
     this.manualDisconnect = true;
-    this.qrCode = null;
     this.reconnect.scheduled = false;
     this.reconnect.attempts = 0;
     clearReconnectTimer(this.reconnect);

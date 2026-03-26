@@ -25,7 +25,7 @@ import { FutureSchemaError } from '@accomplish_ai/agent-core';
 import { initThoughtStreamApi, startThoughtStreamServer } from './thought-stream-api';
 import type { ProviderId } from '@accomplish_ai/agent-core';
 import { getTaskManager, disposeTaskManager, cleanupVertexServiceAccountKey } from './opencode';
-import { disposeWhatsAppService } from './services/whatsapp/singleton';
+import { disposeWhatsAppService } from './services/whatsapp';
 import { stopAllBrowserPreviewStreams } from './services/browserPreview';
 import { oauthBrowserFlow } from './opencode/auth-browser';
 import { slackMcpOAuthFlow } from './opencode/slack-auth';

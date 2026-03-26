@@ -114,8 +114,6 @@ interface AccomplishAPI {
   getCloudBrowserConfig(): Promise<CloudBrowserConfig | null>;
   setCloudBrowserConfig(config: CloudBrowserConfig | null): Promise<void>;
 
-  // WhatsApp Integration (ENG-684)
-  // Contributed by aryan877 (PR #595) and kartikangiras (PR #455)
   getWhatsAppConfig(): Promise<{
     providerId: string;
     enabled: boolean;
@@ -456,7 +454,6 @@ interface AccomplishAPI {
   onAuthError?(callback: (data: { providerId: string; message: string }) => void): () => void;
 
   // Browser Preview (ENG-695)
-  // Contributed by dhruvawani17 (PR #489), samarthsinh2660 (PR #414), david-mamani (PR #553)
   onBrowserFrame?(callback: (event: BrowserFramePayload & { taskId: string }) => void): () => void;
   onBrowserNavigate?(
     callback: (event: BrowserNavigatePayload & { taskId: string; pageName: string }) => void,
