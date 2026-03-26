@@ -103,6 +103,64 @@ interface TaskState {
   clearAuthError: () => void;
 }
 
+function clearScopedTaskState(
+  state: Pick<
+    TaskState,
+    | 'currentTask'
+    | 'isLoading'
+    | 'permissionRequests'
+    | 'setupProgressTaskId'
+    | 'startupStageTaskId'
+    | 'todosTaskId'
+  >,
+  taskId: string,
+): Partial<TaskState> {
+  const nextState: Partial<TaskState> = {};
+
+  if (state.currentTask?.id === taskId) {
+    nextState.currentTask = null;
+    nextState.isLoading = false;
+  }
+
+  if (taskId in state.permissionRequests) {
+    const { [taskId]: _, ...rest } = state.permissionRequests;
+    nextState.permissionRequests = rest;
+  }
+
+  if (state.setupProgressTaskId === taskId) {
+    nextState.setupProgress = null;
+    nextState.setupProgressTaskId = null;
+    nextState.setupDownloadStep = 1;
+  }
+
+  if (state.startupStageTaskId === taskId) {
+    nextState.startupStage = null;
+    nextState.startupStageTaskId = null;
+  }
+
+  if (state.todosTaskId === taskId) {
+    nextState.todos = [];
+    nextState.todosTaskId = null;
+  }
+
+  return nextState;
+}
+
+function clearAllTaskScopedState(): Partial<TaskState> {
+  return {
+    currentTask: null,
+    isLoading: false,
+    permissionRequests: {},
+    setupProgress: null,
+    setupProgressTaskId: null,
+    setupDownloadStep: 1,
+    startupStage: null,
+    startupStageTaskId: null,
+    todos: [],
+    todosTaskId: null,
+  };
+}
+
 export const useTaskStore = create<TaskState>((set, get) => ({
   currentTask: null,
   isLoading: false,
@@ -541,13 +599,17 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     await accomplish.deleteTask(taskId);
     set((state) => ({
       tasks: state.tasks.filter((t) => t.id !== taskId),
+      ...clearScopedTaskState(state, taskId),
     }));
   },
 
   clearHistory: async () => {
     const accomplish = getAccomplish();
     await accomplish.clearTaskHistory();
-    set({ tasks: [] });
+    set({
+      tasks: [],
+      ...clearAllTaskScopedState(),
+    });
   },
 
   loadFavorites: async () => {
