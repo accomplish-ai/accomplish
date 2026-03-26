@@ -572,17 +572,29 @@ describe('TaskInputBar Integration', () => {
       const onChange = vi.fn();
       const onSubmit = vi.fn();
 
-      renderWithRouter(<TaskInputBar value="" onChange={onChange} onSubmit={onSubmit} />);
+      const { rerender } = renderWithRouter(
+        <TaskInputBar value="" onChange={onChange} onSubmit={onSubmit} />,
+      );
 
       const textarea = screen.getByRole('textbox');
       fireEvent.change(textarea, { target: { value: '/', selectionStart: 1 } });
 
+      rerender(
+        <MemoryRouter>
+          <TaskInputBar value="/" onChange={onChange} onSubmit={onSubmit} />
+        </MemoryRouter>,
+      );
+
       await screen.findByText('/code-review');
+
+      onChange.mockClear();
 
       fireEvent.keyDown(textarea, { key: 'Escape' });
 
       expect(screen.queryByText('/code-review')).not.toBeInTheDocument();
       expect(onSubmit).not.toHaveBeenCalled();
+      expect(onChange).not.toHaveBeenCalled();
+      expect(textarea.value).toBe('/');
     });
   });
 

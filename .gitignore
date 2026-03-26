@@ -69,6 +69,7 @@ docs/plans/
 # Misc
 *.pem
 .turbo/
+.pnpm-store/
 
 # Git worktrees
 .worktrees/
