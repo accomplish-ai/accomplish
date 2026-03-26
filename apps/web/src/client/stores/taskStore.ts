@@ -103,6 +103,17 @@ interface TaskState {
   clearAuthError: () => void;
 }
 
+function hasTrackedTask(
+  state: Pick<TaskState, 'currentTask' | 'tasks'>,
+  taskId: string | null | undefined,
+): boolean {
+  if (!taskId) {
+    return false;
+  }
+
+  return state.currentTask?.id === taskId || state.tasks.some((task) => task.id === taskId);
+}
+
 function clearScopedTaskState(
   state: Pick<
     TaskState,
@@ -120,6 +131,7 @@ function clearScopedTaskState(
   if (state.currentTask?.id === taskId) {
     nextState.currentTask = null;
     nextState.isLoading = false;
+    nextState.error = null;
   }
 
   if (taskId in state.permissionRequests) {
@@ -150,6 +162,7 @@ function clearAllTaskScopedState(): Partial<TaskState> {
   return {
     currentTask: null,
     isLoading: false,
+    error: null,
     permissionRequests: {},
     setupProgress: null,
     setupProgressTaskId: null,
@@ -725,6 +738,10 @@ if (typeof window !== 'undefined' && window.accomplish) {
   window.accomplish.onTaskProgress((progress: unknown) => {
     const event = progress as SetupProgressEvent;
     const state = useTaskStore.getState();
+
+    if (!hasTrackedTask(state, event.taskId)) {
+      return;
+    }
 
     if (STARTUP_STAGES.includes(event.stage)) {
       state.setStartupStage(
