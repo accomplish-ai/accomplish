@@ -13,7 +13,7 @@ import {
 } from '../shared';
 
 // Import Azure logo
-import azureLogo from '/assets/ai-logos/azure.svg';
+import azureLogo from '@assets/ai-logos/azure.svg';
 
 interface AzureFoundryProviderFormProps {
   connectedProvider?: ConnectedProvider;

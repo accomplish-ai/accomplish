@@ -16,7 +16,7 @@ import {
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 
 // Import OpenRouter logo
-import openrouterLogo from '/assets/ai-logos/openrouter.svg';
+import openrouterLogo from '@assets/ai-logos/openrouter.svg';
 
 interface OpenRouterProviderFormProps {
   connectedProvider?: ConnectedProvider;

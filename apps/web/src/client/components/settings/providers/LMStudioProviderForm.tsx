@@ -16,7 +16,7 @@ import {
   ModelSelector,
 } from '../shared';
 
-import lmstudioLogo from '/assets/ai-logos/lmstudio.png';
+import lmstudioLogo from '@assets/ai-logos/lmstudio.png';
 
 interface LMStudioModel {
   id: string;

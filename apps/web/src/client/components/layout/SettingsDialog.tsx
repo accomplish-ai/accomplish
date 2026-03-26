@@ -30,7 +30,7 @@ import {
   GearSix,
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
-import logoImage from '/assets/logo-1.png';
+import logoImage from '@assets/logo-1.png';
 
 const TABS = [
   { id: 'providers' as const, labelKey: 'tabs.providers', icon: Key },

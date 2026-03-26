@@ -13,7 +13,7 @@ import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { getAccomplish } from '@/lib/accomplish';
 
 // Import NIM logo
-import nimLogo from '/assets/ai-logos/nim.svg';
+import nimLogo from '@assets/ai-logos/nim.svg';
 
 const NIM_DEFAULT_BASE_URL = 'https://integrate.api.nvidia.com/v1';
 

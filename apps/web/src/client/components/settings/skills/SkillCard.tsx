@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import accomplishFavicon from '/assets/accomplish-favicon.png';
+import accomplishFavicon from '@assets/accomplish-favicon.png';
 
 interface SkillCardProps {
   skill: Skill;

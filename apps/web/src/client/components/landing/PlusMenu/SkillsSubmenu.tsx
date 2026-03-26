@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { Skill } from '@accomplish_ai/agent-core/common';
 import { Input } from '@/components/ui/input';
 import { DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import accomplishFavicon from '/assets/accomplish-favicon.png';
+import accomplishFavicon from '@assets/accomplish-favicon.png';
 
 interface SkillsSubmenuProps {
   skills: Skill[];

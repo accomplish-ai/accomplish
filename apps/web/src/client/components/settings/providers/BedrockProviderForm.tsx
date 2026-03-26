@@ -21,7 +21,7 @@ import {
 import { BedrockApiKeyTab } from './BedrockApiKeyTab';
 
 // Import Bedrock logo
-import bedrockLogo from '/assets/ai-logos/bedrock.svg';
+import bedrockLogo from '@assets/ai-logos/bedrock.svg';
 
 interface BedrockProviderFormProps {
   connectedProvider?: ConnectedProvider;

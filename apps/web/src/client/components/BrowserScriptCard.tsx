@@ -14,7 +14,7 @@ import {
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { springs } from '../lib/animations';
-import loadingSymbol from '/assets/loading-symbol.svg';
+import loadingSymbol from '@assets/loading-symbol.svg';
 
 // Spinning Accomplish icon component
 const SpinningIcon = ({ className }: { className?: string }) => (

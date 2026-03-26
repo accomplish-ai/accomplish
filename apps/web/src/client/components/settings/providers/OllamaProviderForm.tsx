@@ -16,7 +16,7 @@ import {
   ModelSelector,
 } from '../shared';
 
-import ollamaLogo from '/assets/ai-logos/ollama.svg';
+import ollamaLogo from '@assets/ai-logos/ollama.svg';
 
 interface OllamaModel {
   id: string;
