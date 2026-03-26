@@ -60,7 +60,7 @@ export async function handleChatCompletion(
   const topP = req.top_p ?? 0.9;
 
   const prompt = formatChatPrompt(req.messages, state.tokenizer);
-  const inputs = state.tokenizer(prompt, { return_tensors: 'pt' });
+  const inputs = state.tokenizer(prompt, { return_tensor: true });
 
   incrementGenerations();
   try {
@@ -73,7 +73,7 @@ export async function handleChatCompletion(
     });
 
     const promptLength = inputs.input_ids.dims?.[1] || 0;
-    const generatedTokens = outputs.slice(null, [promptLength, null]);
+    const generatedTokens = outputs.slice(null, promptLength);
     const text = state.tokenizer!.decode(generatedTokens[0], { skip_special_tokens: true });
 
     const completionTokens = generatedTokens.dims?.[1] || 0;
@@ -129,7 +129,7 @@ export async function handleStreamingCompletion(
   });
 
   const prompt = formatChatPrompt(req.messages, state.tokenizer);
-  const inputs = state.tokenizer(prompt, { return_tensors: 'pt' });
+  const inputs = state.tokenizer(prompt, { return_tensor: true });
   const maxNewTokens = req.max_tokens ?? 512;
   const temperature = req.temperature ?? 0.7;
   const topP = req.top_p ?? 0.9;
@@ -146,7 +146,7 @@ export async function handleStreamingCompletion(
       do_sample: temperature > 0,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       callback_function: (output: any) => {
-        const lastToken = output.slice(null, [-1, null]);
+        const lastToken = output.slice(null, -1);
         // Capture tokenizer before async generate to avoid null-deref if stopServer fires mid-stream
         const tokenizer = state.tokenizer;
         if (!tokenizer) {
