@@ -224,8 +224,12 @@ export function TaskInputBar({
   }, [value]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-    if (slashCommand.handleKeyDown(e)) return;
+    if (e.nativeEvent.isComposing || e.keyCode === 229) {
+      return;
+    }
+    if (slashCommand.handleKeyDown(e)) {
+      return;
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (canSubmit && !speechInput.isRecording && !isLoading) {
@@ -293,6 +297,13 @@ export function TaskInputBar({
               placeholder={effectivePlaceholder}
               disabled={isInputDisabled || speechInput.isRecording}
               rows={3}
+              aria-expanded={slashCommand.state.isOpen}
+              aria-controls={slashCommand.state.isOpen ? 'slash-command-listbox' : undefined}
+              aria-activedescendant={
+                slashCommand.state.isOpen
+                  ? `slash-suggestion-${slashCommand.state.selectedIndex}`
+                  : undefined
+              }
               className="w-full min-h-[60px] max-h-[200px] resize-none overflow-y-auto bg-transparent text-[16px] leading-relaxed tracking-[-0.015em] text-foreground placeholder:text-muted-foreground/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             />
             <SlashCommandPopover
@@ -382,7 +393,9 @@ export function TaskInputBar({
                     });
                     onSubmit();
                   }}
-                  disabled={isSubmitDisabled || speechInput.isRecording}
+                  disabled={
+                    isSubmitDisabled || speechInput.isRecording || slashCommand.state.isOpen
+                  }
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 ease-accomplish ${
                     isLoading
                       ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'

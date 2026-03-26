@@ -44,6 +44,7 @@ const mockAccomplish = {
   validateBedrockCredentials: vi.fn().mockResolvedValue({ valid: true }),
   saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
   speechIsConfigured: vi.fn().mockResolvedValue(true),
+  getEnabledSkills: vi.fn().mockResolvedValue([]),
 };
 
 // Mock the accomplish module

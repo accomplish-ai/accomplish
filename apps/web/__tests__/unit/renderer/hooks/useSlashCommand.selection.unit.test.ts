@@ -75,7 +75,7 @@ describe('useSlashCommand – skill selection & insertion', () => {
       useSlashCommand({ value: '/more text', textareaRef: ref, onChange }),
     );
     await act(async () => {});
-    await openPopover(hook, '/', 1);
+    await openPopover(hook, '/more text', 1);
     act(() => {
       hook.result.current.selectSkill(hook.result.current.state.filteredSkills[0]);
     });

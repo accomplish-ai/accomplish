@@ -163,13 +163,23 @@ export function SlashCommandPopover({
               </span>
             </div>
           </div>
-          <div className="max-h-[240px] overflow-y-auto py-1">
+          <div
+            id="slash-command-listbox"
+            role="listbox"
+            className="max-h-[240px] overflow-y-auto py-1"
+          >
             {skills.map((skill, index) => (
               <button
+                type="button"
                 key={skill.id}
+                id={`slash-suggestion-${index}`}
+                role="option"
+                aria-selected={index === selectedIndex}
                 ref={index === selectedIndex ? selectedRef : undefined}
                 onMouseDown={(e) => {
                   e.preventDefault();
+                }}
+                onClick={() => {
                   onSelect(skill);
                 }}
                 className={cn(
