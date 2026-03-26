@@ -46,7 +46,7 @@ describe('useSlashCommand – skill selection & insertion', () => {
   });
 
   it('should replace slash query with skill command', async () => {
-    const { hook, onChange } = await renderSlashHook();
+    const { hook, onChange } = await renderSlashHook('/cod');
     await openPopover(hook, '/cod', 4);
     act(() => {
       hook.result.current.selectSkill(hook.result.current.state.filteredSkills[0]);

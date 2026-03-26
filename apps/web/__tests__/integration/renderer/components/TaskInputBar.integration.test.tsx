@@ -492,39 +492,35 @@ describe('TaskInputBar Integration', () => {
   });
 
   describe('slash command integration', () => {
+    const mockSkills = [
+      {
+        id: 'skill-code-review',
+        name: 'Code Review',
+        description: 'Review code for quality',
+        command: '/code-review',
+        source: 'official',
+        isHidden: false,
+        isEnabled: true,
+        isVerified: true,
+        filePath: '/skills/code-review',
+        updatedAt: '2024-01-01',
+      },
+      {
+        id: 'skill-git-helper',
+        name: 'Git Helper',
+        description: 'Helps with git tasks',
+        command: '/git-helper',
+        source: 'community',
+        isHidden: false,
+        isEnabled: true,
+        isVerified: false,
+        filePath: '/skills/git-helper',
+        updatedAt: '2024-01-01',
+      },
+    ];
+
     beforeEach(() => {
-      (window as Window & { accomplish: Record<string, unknown> }).accomplish = {
-        getEnabledSkills: vi.fn().mockResolvedValue([
-          {
-            id: 'skill-code-review',
-            name: 'Code Review',
-            description: 'Review code for quality',
-            command: '/code-review',
-            source: 'official',
-            isHidden: false,
-            isEnabled: true,
-            isVerified: true,
-            filePath: '/skills/code-review',
-            updatedAt: '2024-01-01',
-          },
-          {
-            id: 'skill-git-helper',
-            name: 'Git Helper',
-            description: 'Helps with git tasks',
-            command: '/git-helper',
-            source: 'community',
-            isHidden: false,
-            isEnabled: true,
-            isVerified: false,
-            filePath: '/skills/git-helper',
-            updatedAt: '2024-01-01',
-          },
-        ]),
-        getConnectors: vi.fn().mockResolvedValue([]),
-        logEvent: vi.fn().mockResolvedValue(undefined),
-        speechIsConfigured: vi.fn().mockResolvedValue(true),
-        getSelectedModel: vi.fn().mockResolvedValue(null),
-      };
+      mockAccomplish.getEnabledSkills = vi.fn().mockResolvedValue(mockSkills);
     });
 
     it('should show slash command popover when "/" is typed', async () => {
