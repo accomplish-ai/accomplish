@@ -7,13 +7,21 @@ import { app } from 'electron';
 import path from 'path';
 import { getLogCollector } from '../../logging';
 import { getStorage } from '../../store/storage';
-import { state, loadModelPromise, setLoadModelPromise, type ChatMessage } from './server-state';
+import {
+  state,
+  loadModelPromise,
+  setLoadModelPromise,
+  activeGenerations,
+  type ChatMessage,
+} from './server-state';
 
 /**
  * Load a model into memory using Transformers.js.
  */
 export async function loadModel(modelId: string): Promise<void> {
-  if (state.loadedModelId === modelId && state.tokenizer && state.model) {
+  // Gate fast-returns on !isStopping — stopServer() keeps the flag set while
+  // it disposes the model, so we must not report success while shutdown is active.
+  if (!state.isStopping && state.loadedModelId === modelId && state.tokenizer && state.model) {
     getLogCollector().logEnv('INFO', `[HF Server] Model ${modelId} already loaded`);
     return;
   }
@@ -21,7 +29,7 @@ export async function loadModel(modelId: string): Promise<void> {
   // Prevent concurrent loads — queue onto existing promise
   if (loadModelPromise) {
     await loadModelPromise;
-    if (state.loadedModelId === modelId && state.tokenizer && state.model) {
+    if (!state.isStopping && state.loadedModelId === modelId && state.tokenizer && state.model) {
       return;
     }
   }
@@ -102,8 +110,14 @@ export async function loadModel(modelId: string): Promise<void> {
         throw new DOMException('Load cancelled by stopServer()', 'AbortError');
       }
 
-      // Successfully loaded new model, safe to dispose old one
+      // Successfully loaded new model — drain in-flight generations before
+      // disposing the previous model instance to avoid tearing it down while
+      // a request is still using it (mirrors the shutdown drain in server-lifecycle).
       if (state.model) {
+        const start = Date.now();
+        while (activeGenerations > 0 && Date.now() - start < 10000) {
+          await new Promise((r) => setTimeout(r, 100));
+        }
         try {
           await state.model.dispose?.();
         } catch {
@@ -117,9 +131,14 @@ export async function loadModel(modelId: string): Promise<void> {
       state.loadedModelId = modelId;
       getLogCollector().logEnv('INFO', `[HF Server] Model loaded: ${modelId}`);
     } catch (error) {
-      getLogCollector().logEnv('ERROR', `[HF Server] Failed to load model: ${modelId}`, {
-        error: String(error),
-      });
+      // AbortError is an expected cancellation (stopServer called during load) — log at INFO
+      // to avoid false failure noise; all other errors are real failures logged at ERROR.
+      const isAbort = error instanceof DOMException && error.name === 'AbortError';
+      getLogCollector().logEnv(
+        isAbort ? 'INFO' : 'ERROR',
+        `[HF Server] ${isAbort ? 'Load cancelled' : 'Failed to load model'}: ${modelId}`,
+        isAbort ? undefined : { error: String(error) },
+      );
       throw error;
     } finally {
       state.isLoading = false;
