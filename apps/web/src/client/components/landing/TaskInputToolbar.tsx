@@ -43,6 +43,7 @@ export function TaskInputToolbar({
   const { t } = useTranslation('common');
   const accomplish = getAccomplish();
   const submitLabel = isLoading ? t('buttons.stop') : t('buttons.submit');
+  const isButtonDisabled = isSubmitDisabled || isRecording || slashCommandOpen;
 
   const buttonColorClass = isLoading
     ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
@@ -55,6 +56,7 @@ export function TaskInputToolbar({
     : !value.trim() && attachmentsCount === 0
       ? t('buttons.enterMessage')
       : submitLabel;
+  const buttonTitle = isButtonDisabled ? tooltipText : submitLabel;
 
   return (
     <div className="flex h-[36px] items-center justify-between pl-3 pr-2 mb-2">
@@ -86,28 +88,34 @@ export function TaskInputToolbar({
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
-              data-testid="task-input-submit"
-              type="button"
-              aria-label={submitLabel}
-              title={submitLabel}
-              onClick={() => {
-                accomplish.logEvent({
-                  level: 'info',
-                  message: 'Task input submit clicked',
-                  context: { prompt: value },
-                });
-                onSubmit();
-              }}
-              disabled={isSubmitDisabled || isRecording || slashCommandOpen}
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 ease-accomplish ${buttonColorClass}`}
-            >
-              {isLoading ? (
-                <span className="block h-[10px] w-[10px] rounded-[1.5px] bg-destructive-foreground" />
-              ) : (
-                <ArrowUp className="h-4 w-4" weight="bold" />
-              )}
-            </button>
+            <span className="inline-flex" title={buttonTitle}>
+              <button
+                data-testid="task-input-submit"
+                type="button"
+                aria-label={submitLabel}
+                aria-disabled={isButtonDisabled}
+                title={buttonTitle}
+                onClick={() => {
+                  accomplish.logEvent({
+                    level: 'info',
+                    message: 'Task input submit clicked',
+                    context: {
+                      promptLength: value.length,
+                      attachmentsCount,
+                    },
+                  });
+                  onSubmit();
+                }}
+                disabled={isButtonDisabled}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 ease-accomplish ${buttonColorClass}`}
+              >
+                {isLoading ? (
+                  <span className="block h-[10px] w-[10px] rounded-[1.5px] bg-destructive-foreground" />
+                ) : (
+                  <ArrowUp className="h-4 w-4" weight="bold" />
+                )}
+              </button>
+            </span>
           </TooltipTrigger>
           <TooltipContent>
             <span>{tooltipText}</span>

@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import type { FileAttachmentInfo } from '@accomplish_ai/agent-core/common';
-import { MAX_FILES, processFileAttachments } from '@/lib/fileUtils';
 import { useTaskStore } from '@/stores/taskStore';
 import { getAccomplish } from '@/lib/accomplish';
 import { createLogger } from '@/lib/logger';
 import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
 import { USE_CASE_KEYS, FAVORITES_PREVIEW_COUNT } from './homeConstants';
+import { usePromptAttachments } from './usePromptAttachments';
 
 export { FAVORITES_PREVIEW_COUNT } from './homeConstants';
 
@@ -18,10 +17,10 @@ const logger = createLogger('Home');
 export function useHomePage() {
   const [prompt, setPrompt] = useState('');
   const [showAllFavorites, setShowAllFavorites] = useState(false);
-  const [attachments, setAttachments] = useState<FileAttachmentInfo[]>([]);
   const [workingDirectory, setWorkingDirectory] = useState<string | undefined>(undefined);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsTab>('providers');
+  const [resumeAfterSettingsSave, setResumeAfterSettingsSave] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -66,22 +65,16 @@ export function useHomePage() {
       unsubscribePermission();
     };
   }, [addTaskUpdate, setPermissionRequest, accomplish]);
-
-  const buildPromptWithAttachments = useCallback(
-    (basePrompt: string, files: FileAttachmentInfo[]): string => {
-      if (files.length === 0) {
-        return basePrompt;
-      }
-      const fileRefs = files.map((file) => {
-        if (file.type === 'image') {
-          return `[Attached image: ${file.path}]`;
-        }
-        return `[Attached file: ${file.path}]`;
-      });
-      return `${basePrompt}\n\nAttached files:\n${fileRefs.join('\n')}`;
-    },
-    [],
-  );
+  const {
+    attachments,
+    setAttachments,
+    buildPromptWithAttachments,
+    handleExampleClick,
+    handleSkillSelect,
+    handleAttachFiles,
+    addFiles,
+    MAX_FILES,
+  } = usePromptAttachments({ setPrompt });
 
   const executeTask = useCallback(async () => {
     if ((!prompt.trim() && attachments.length === 0) || isLoading) {
@@ -106,6 +99,7 @@ export function useHomePage() {
     workingDirectory,
     isLoading,
     startTask,
+    setAttachments,
     navigate,
     buildPromptWithAttachments,
   ]);
@@ -123,6 +117,7 @@ export function useHomePage() {
       if (!isE2EMode) {
         const settings = await accomplish.getProviderSettings();
         if (!hasAnyReadyProvider(settings)) {
+          setResumeAfterSettingsSave(true);
           setSettingsInitialTab('providers');
           setShowSettingsDialog(true);
           return;
@@ -137,6 +132,7 @@ export function useHomePage() {
   const handleSettingsDialogChange = (open: boolean) => {
     setShowSettingsDialog(open);
     if (!open) {
+      setResumeAfterSettingsSave(false);
       setSettingsInitialTab('providers');
     }
   };
@@ -158,49 +154,12 @@ export function useHomePage() {
 
   const handleApiKeySaved = async () => {
     setShowSettingsDialog(false);
-    if (prompt.trim() || attachments.length > 0) {
-      await executeTask();
+    if (!resumeAfterSettingsSave) {
+      return;
     }
+    setResumeAfterSettingsSave(false);
+    await handleSubmit();
   };
-
-  const focusPromptTextarea = () => {
-    setTimeout(() => {
-      document.querySelector<HTMLTextAreaElement>('[data-testid="task-input-textarea"]')?.focus();
-    }, 0);
-  };
-
-  const handleExampleClick = (examplePrompt: string) => {
-    setPrompt(examplePrompt);
-    focusPromptTextarea();
-  };
-
-  const handleSkillSelect = (command: string) => {
-    setPrompt((prev) => `${command} ${prev}`.trim());
-    focusPromptTextarea();
-  };
-
-  const addFiles = useCallback(
-    (fileList: FileList | File[]) => {
-      const accepted = processFileAttachments(fileList, attachments.length);
-      if (accepted.length > 0) {
-        setAttachments((prev) => [...prev, ...accepted]);
-      }
-    },
-    [attachments.length],
-  );
-
-  const handleAttachFiles = useCallback(() => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.multiple = true;
-    input.onchange = () => {
-      if (input.files) {
-        addFiles(input.files);
-      }
-      input.remove();
-    };
-    input.click();
-  }, [addFiles]);
 
   const displayedFavorites = showAllFavorites
     ? favoritesList

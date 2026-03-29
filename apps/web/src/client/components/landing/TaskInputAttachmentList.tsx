@@ -23,7 +23,11 @@ export function TaskInputAttachmentList({
   return (
     <>
       {attachmentError && (
-        <div className="px-4 py-1.5 text-xs text-destructive flex items-center gap-1.5">
+        <div
+          role="alert"
+          aria-live="polite"
+          className="px-4 py-1.5 text-xs text-destructive flex items-center gap-1.5"
+        >
           <WarningCircle className="h-3 w-3 shrink-0" />
           {attachmentError}
         </div>

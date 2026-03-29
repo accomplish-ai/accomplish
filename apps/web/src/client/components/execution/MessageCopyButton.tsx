@@ -14,6 +14,18 @@ interface MessageCopyButtonProps {
 export function MessageCopyButton({ content, isUser }: MessageCopyButtonProps) {
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tone = isUser ? 'user' : 'assistant';
+  const stateClassMap = {
+    user: {
+      idle: 'text-primary-foreground/70 hover:text-primary-foreground',
+      copied: 'bg-accent text-foreground hover:bg-accent',
+    },
+    assistant: {
+      idle: 'text-muted-foreground hover:text-foreground',
+      copied: 'bg-accent text-foreground hover:bg-accent',
+    },
+  } as const;
+  const stateClasses = copied ? stateClassMap[tone].copied : stateClassMap[tone].idle;
 
   useEffect(() => {
     return () => {
@@ -50,16 +62,11 @@ export function MessageCopyButton({ content, isUser }: MessageCopyButtonProps) {
           data-testid="message-copy-button"
           className={cn(
             'absolute bottom-2 right-2',
-            'opacity-0 group-hover:opacity-100 transition-all duration-200',
+            'opacity-0 transition-all duration-200',
+            'group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100',
             'p-1 rounded',
             isUser ? 'hover:bg-primary-foreground/20' : 'hover:bg-accent',
-            isUser
-              ? !copied
-                ? 'text-primary-foreground/70 hover:text-primary-foreground'
-                : '!bg-green-500/20 !text-green-300'
-              : !copied
-                ? 'text-muted-foreground hover:text-foreground'
-                : '!bg-green-500/10 !text-green-600',
+            stateClasses,
           )}
           aria-label={'Copy to clipboard'}
         >

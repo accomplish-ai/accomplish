@@ -37,7 +37,11 @@ export function useOllamaProviderConnect({
   onUpdateProvider,
 }: UseOllamaProviderConnectOptions): UseOllamaProviderConnectReturn {
   const { t } = useTranslation('settings');
-  const [serverUrl, setServerUrl] = useState('http://localhost:11434');
+  const [serverUrl, setServerUrl] = useState(
+    () =>
+      (connectedProvider?.credentials as OllamaCredentials | undefined)?.serverUrl ||
+      'http://localhost:11434',
+  );
   const [connecting, setConnecting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +52,11 @@ export function useOllamaProviderConnect({
 
   useEffect(() => {
     latestProviderRef.current = connectedProvider;
+    const nextServerUrl = (connectedProvider?.credentials as OllamaCredentials | undefined)
+      ?.serverUrl;
+    if (nextServerUrl) {
+      setServerUrl(nextServerUrl);
+    }
   }, [connectedProvider]);
 
   const handleConnect = async () => {

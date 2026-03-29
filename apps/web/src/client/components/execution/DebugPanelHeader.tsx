@@ -147,9 +147,9 @@ export function DebugPanelHeader({
           </Button>
         )}
         {isOpen ? (
-          <CaretDown className="h-4 w-4 text-zinc-500" />
-        ) : (
           <CaretUp className="h-4 w-4 text-zinc-500" />
+        ) : (
+          <CaretDown className="h-4 w-4 text-zinc-500" />
         )}
       </div>
     </div>

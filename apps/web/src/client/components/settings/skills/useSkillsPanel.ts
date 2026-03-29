@@ -85,6 +85,8 @@ export function useSkillsPanel(refreshTrigger?: number): UseSkillsPanelResult {
   }, [filteredSkills, checkScrollPosition]);
 
   useEffect(() => {
+    let isCurrent = true;
+
     if (!window.accomplish) {
       logger.error('Accomplish API not available');
       setLoading(false);
@@ -92,9 +94,21 @@ export function useSkillsPanel(refreshTrigger?: number): UseSkillsPanelResult {
     }
     window.accomplish
       .getSkills()
-      .then(setSkills)
+      .then((nextSkills) => {
+        if (isCurrent) {
+          setSkills(nextSkills);
+        }
+      })
       .catch((err: unknown) => logger.error('Failed to load skills:', err))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (isCurrent) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
   }, [refreshTrigger]);
 
   const handleToggle = useCallback(

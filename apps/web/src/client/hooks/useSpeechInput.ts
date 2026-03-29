@@ -138,6 +138,7 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     if (recorder.isCapturing || state.isTranscribing) {
       return;
     }
+    lastAudioDataRef.current = null;
     if (!state.isConfigured) {
       const error = new SpeechRecognitionError(
         'NOT_CONFIGURED',
@@ -156,6 +157,7 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
       return;
     }
     recorder.cancelCapture();
+    lastAudioDataRef.current = null;
     setState((prev) => ({ ...prev, isRecording: false, error: null, recordingDuration: 0 }));
   }, [recorder]);
 

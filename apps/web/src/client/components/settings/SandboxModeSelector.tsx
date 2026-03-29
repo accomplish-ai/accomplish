@@ -3,12 +3,17 @@ import type { SandboxConfig } from '@accomplish_ai/agent-core';
 interface SandboxModeSelectorProps {
   mode: SandboxConfig['mode'];
   onModeChange: (mode: SandboxConfig['mode']) => void;
+  disabled?: boolean;
 }
 
-export function SandboxModeSelector({ mode, onModeChange }: SandboxModeSelectorProps) {
+export function SandboxModeSelector({
+  mode,
+  onModeChange,
+  disabled = false,
+}: SandboxModeSelectorProps) {
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      <div className="font-medium text-foreground">Sandbox Mode</div>
+    <fieldset className="rounded-lg border border-border bg-card p-5">
+      <legend className="font-medium text-foreground">Sandbox Mode</legend>
       <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
         Control how the agent executes tasks. Docker mode isolates the agent in a container with
         restricted filesystem and network access.
@@ -20,6 +25,7 @@ export function SandboxModeSelector({ mode, onModeChange }: SandboxModeSelectorP
             type="radio"
             name="sandbox-mode"
             checked={mode === 'disabled'}
+            disabled={disabled}
             onChange={() => onModeChange('disabled')}
             className="mt-1 h-4 w-4 rounded-full border-border text-primary focus:ring-primary/50"
           />
@@ -36,6 +42,7 @@ export function SandboxModeSelector({ mode, onModeChange }: SandboxModeSelectorP
             type="radio"
             name="sandbox-mode"
             checked={mode === 'native'}
+            disabled={disabled}
             onChange={() => onModeChange('native')}
             className="mt-1 h-4 w-4 rounded-full border-border text-primary focus:ring-primary/50"
           />
@@ -52,6 +59,7 @@ export function SandboxModeSelector({ mode, onModeChange }: SandboxModeSelectorP
             type="radio"
             name="sandbox-mode"
             checked={mode === 'docker'}
+            disabled={disabled}
             onChange={() => onModeChange('docker')}
             className="mt-1 h-4 w-4 rounded-full border-border text-primary focus:ring-primary/50"
           />
@@ -64,6 +72,6 @@ export function SandboxModeSelector({ mode, onModeChange }: SandboxModeSelectorP
           </div>
         </label>
       </div>
-    </div>
+    </fieldset>
   );
 }

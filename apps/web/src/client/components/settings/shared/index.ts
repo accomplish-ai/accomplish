@@ -1,4 +1,4 @@
-// apps/desktop/src/renderer/components/settings/shared/index.ts
+// apps/web/src/client/components/settings/shared/index.ts
 
 export { ConnectionStatus } from './ConnectionStatus';
 export { ApiKeyInput } from './ApiKeyInput';

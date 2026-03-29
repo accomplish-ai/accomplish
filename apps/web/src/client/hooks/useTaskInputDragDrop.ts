@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MAX_FILES, MAX_FILE_SIZE, processFileAttachments } from '@/lib/fileUtils';
-import type { FileAttachmentInfo } from '@accomplish_ai/agent-core/common';
+import type { FileAttachmentInfo } from '@accomplish_ai/agent-core';
 
 interface UseTaskInputDragDropOptions {
   attachments: FileAttachmentInfo[];

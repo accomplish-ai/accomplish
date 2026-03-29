@@ -4,15 +4,14 @@ import { createLogger } from '@/lib/logger';
 import type { SandboxConfig } from '@accomplish_ai/agent-core';
 
 const logger = createLogger('SandboxPanel');
+const DEFAULT_NETWORK_POLICY = { allowOutbound: true };
 
 export const DEFAULT_CONFIG: SandboxConfig = {
   mode: 'disabled',
   allowedPaths: [],
   networkRestricted: false,
   allowedHosts: [],
-  networkPolicy: {
-    allowOutbound: true,
-  },
+  networkPolicy: DEFAULT_NETWORK_POLICY,
 };
 
 /** Regex for validating Docker image references (SaaiAravindhRaja, PR #612) */
@@ -20,8 +19,10 @@ export const DOCKER_IMAGE_REGEX = /^[\w.-]+(\/[\w.-]+)*(:[\w.-]+)?$/;
 
 export interface UseSandboxPanelResult {
   config: SandboxConfig;
+  isLoaded: boolean;
   saving: boolean;
   configError: string | null;
+  loadError: string | null;
   saveError: string | null;
   dockerImageRef: React.RefObject<HTMLInputElement | null>;
   hostsRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -35,36 +36,65 @@ export interface UseSandboxPanelResult {
 
 export function useSandboxPanel(): UseSandboxPanelResult {
   const [config, setConfig] = useState<SandboxConfig>(DEFAULT_CONFIG);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const dockerImageRef = useRef<HTMLInputElement>(null);
   const hostsRef = useRef<HTMLTextAreaElement>(null);
   const pathsRef = useRef<HTMLTextAreaElement>(null);
+  const configRef = useRef<SandboxConfig>(DEFAULT_CONFIG);
   const accomplish = useAccomplish();
+
+  useEffect(() => {
+    configRef.current = config;
+  }, [config]);
 
   useEffect(() => {
     accomplish
       .getSandboxConfig()
       .then((c) => {
-        if (c) {
-          setConfig(c);
-        }
+        const mergedConfig: SandboxConfig = {
+          ...DEFAULT_CONFIG,
+          ...(c ?? {}),
+          networkPolicy: {
+            allowOutbound: c?.networkPolicy?.allowOutbound ?? DEFAULT_NETWORK_POLICY.allowOutbound,
+            ...(c?.networkPolicy ?? {}),
+          },
+        };
+        setConfig(mergedConfig);
+        setLoadError(null);
+        setIsLoaded(true);
       })
       .catch((err) => {
+        setLoadError('Failed to load sandbox configuration');
         logger.error('Failed to load sandbox config:', err);
       });
   }, [accomplish]);
 
   const saveConfig = useCallback(
-    async (newConfig: SandboxConfig) => {
+    async (patch: Partial<SandboxConfig>) => {
+      if (!isLoaded || loadError) {
+        return;
+      }
       setSaving(true);
       setSaveError(null);
-      let merged: SandboxConfig = DEFAULT_CONFIG;
-      setConfig((prev) => {
-        merged = { ...prev, ...newConfig };
-        return merged;
-      });
+      const merged: SandboxConfig = {
+        ...DEFAULT_CONFIG,
+        ...configRef.current,
+        ...patch,
+        networkPolicy: {
+          allowOutbound:
+            patch.networkPolicy?.allowOutbound ??
+            configRef.current.networkPolicy?.allowOutbound ??
+            DEFAULT_NETWORK_POLICY.allowOutbound,
+          ...(configRef.current.networkPolicy ?? {}),
+          ...(patch.networkPolicy ?? {}),
+        },
+      };
+      configRef.current = merged;
+      setConfig(merged);
       try {
         await accomplish.setSandboxConfig(merged);
       } catch (err) {
@@ -75,21 +105,20 @@ export function useSandboxPanel(): UseSandboxPanelResult {
         setSaving(false);
       }
     },
-    [accomplish],
+    [accomplish, isLoaded, loadError],
   );
 
   const handleModeChange = useCallback(
     async (mode: SandboxConfig['mode']) => {
-      await saveConfig({ ...config, mode });
+      await saveConfig({ mode });
     },
-    [config, saveConfig],
+    [saveConfig],
   );
 
   const handleNetworkToggle = useCallback(async () => {
     const currentPolicy = config.networkPolicy ?? { allowOutbound: !config.networkRestricted };
     const newAllowOutbound = !currentPolicy.allowOutbound;
     await saveConfig({
-      ...config,
       networkRestricted: !newAllowOutbound,
       networkPolicy: {
         ...currentPolicy,
@@ -108,7 +137,6 @@ export function useSandboxPanel(): UseSandboxPanelResult {
     const currentPolicy = config.networkPolicy ?? { allowOutbound: !config.networkRestricted };
     if (JSON.stringify(newHosts) !== JSON.stringify(currentPolicy.allowedHosts)) {
       saveConfig({
-        ...config,
         allowedHosts: newHosts ?? [],
         networkPolicy: { ...currentPolicy, allowedHosts: newHosts },
       });
@@ -122,7 +150,7 @@ export function useSandboxPanel(): UseSandboxPanelResult {
       .map((p) => p.trim())
       .filter(Boolean);
     if (JSON.stringify(pathList) !== JSON.stringify(config.allowedPaths)) {
-      saveConfig({ ...config, allowedPaths: pathList });
+      saveConfig({ allowedPaths: pathList });
     }
   }, [config, saveConfig]);
 
@@ -135,14 +163,16 @@ export function useSandboxPanel(): UseSandboxPanelResult {
     }
     setConfigError(null);
     if (trimmed !== config.dockerImage) {
-      saveConfig({ ...config, dockerImage: trimmed });
+      saveConfig({ dockerImage: trimmed });
     }
   }, [config, saveConfig]);
 
   return {
     config,
+    isLoaded,
     saving,
     configError,
+    loadError,
     saveError,
     dockerImageRef,
     hostsRef,

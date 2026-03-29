@@ -53,7 +53,11 @@ export function PermissionDialogDesktopTool({
   // type === 'tool'
   return (
     <>
-      <p className="text-sm text-muted-foreground mb-4">Allow {permissionRequest.toolName}?</p>
+      <p className="text-sm text-muted-foreground mb-4">
+        {permissionRequest.toolName
+          ? `Allow ${permissionRequest.toolName}?`
+          : 'Allow this tool action?'}
+      </p>
       {permissionRequest.toolName && (
         <div className="mb-4 p-3 rounded-lg bg-muted text-xs font-mono overflow-x-auto">
           <p className="text-muted-foreground mb-1">Tool: {permissionRequest.toolName}</p>

@@ -139,6 +139,7 @@ export function useVertexProviderConnect({
 
     const newModel = { id: fullId, name: `${modelId} (${publisher})` };
     const updatedModels = [...currentModels, newModel];
+    setAvailableModels(updatedModels);
     if (connectedProvider) {
       onConnect({
         ...connectedProvider,
@@ -162,6 +163,7 @@ export function useVertexProviderConnect({
       }
 
       const updatedModels = currentModels.filter((m) => m.id !== modelId);
+      setAvailableModels(updatedModels);
 
       if (connectedProvider) {
         const newSelectedId =

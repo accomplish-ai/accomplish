@@ -4,6 +4,7 @@
   "favorites": {
     "title": "Favorites",
     "empty": "Star completed or interrupted tasks to see them here.",
+    "remove": "Remove from favorites",
     "showAll": "Show all {{count}} favorites",
     "showAll_one": "Show {{count}} favorite",
     "showAll_few": "Show all {{count}} favorites",

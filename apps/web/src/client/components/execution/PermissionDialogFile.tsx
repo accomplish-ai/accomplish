@@ -13,15 +13,18 @@ interface PermissionDialogFileProps {
 export function PermissionDialogFile({ permissionRequest }: PermissionDialogFileProps) {
   const paths = getDisplayFilePaths(permissionRequest);
   const isDelete = isDeleteOperation(permissionRequest);
+  const hasPaths = paths.length > 0;
 
   return (
     <>
       {isDelete && (
         <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
           <p className="text-sm text-red-600">
-            {paths.length > 1
+            {hasPaths && paths.length > 1
               ? `${paths.length} files will be permanently deleted:`
-              : 'This file will be permanently deleted:'}
+              : hasPaths
+                ? 'This file will be permanently deleted:'
+                : 'No file paths were provided for deletion.'}
           </p>
         </div>
       )}
@@ -45,7 +48,9 @@ export function PermissionDialogFile({ permissionRequest }: PermissionDialogFile
           isDelete ? 'bg-red-500/5 border border-red-500/20' : 'bg-muted',
         )}
       >
-        {paths.length > 1 ? (
+        {!hasPaths ? (
+          <p className="text-sm text-muted-foreground">No file path provided.</p>
+        ) : paths.length > 1 ? (
           <ul className="space-y-1">
             {paths.map((path, idx) => (
               <li

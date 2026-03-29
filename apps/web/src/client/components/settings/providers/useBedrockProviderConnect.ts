@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAccomplish } from '@/lib/accomplish';
-import type {
-  ConnectedProvider,
-  BedrockProviderCredentials,
-} from '@accomplish_ai/agent-core/common';
-import { getDefaultModelForProvider } from '@accomplish_ai/agent-core/common';
+import {
+  getDefaultModelForProvider,
+  type BedrockProviderCredentials,
+  type ConnectedProvider,
+} from '@accomplish_ai/agent-core';
 
 export interface UseBedrockProviderConnectReturn {
   authTab: 'apiKey' | 'accessKey' | 'profile';
@@ -87,7 +87,11 @@ export function useBedrockProviderConnect({
 
       const credentialsJson = JSON.stringify(credentials);
       const modelsResult = await accomplish.fetchBedrockModels(credentialsJson);
-      const fetchedModels = modelsResult.success ? modelsResult.models : [];
+      if (!modelsResult.success) {
+        setError(modelsResult.error || t('status.connectionFailed'));
+        return;
+      }
+      const fetchedModels = modelsResult.models;
       setAvailableModels(fetchedModels);
 
       const defaultModelId = getDefaultModelForProvider('bedrock');

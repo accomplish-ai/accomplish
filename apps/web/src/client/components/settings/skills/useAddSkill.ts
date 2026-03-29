@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('AddSkillDropdown');
@@ -22,6 +22,7 @@ export interface UseAddSkillResult {
 }
 
 export function useAddSkill(): UseAddSkillResult {
+  const isLoadingRef = useRef(false);
   const [isGitHubDialogOpen, setIsGitHubDialogOpen] = useState(false);
   const [isUploadErrorDialogOpen, setIsUploadErrorDialogOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -31,10 +32,11 @@ export function useAddSkill(): UseAddSkillResult {
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleUploadSkill = async (onSkillAdded?: () => void) => {
-    if (!window.accomplish) {
+    if (isLoadingRef.current || !window.accomplish) {
       return;
     }
     try {
+      isLoadingRef.current = true;
       setIsLoading(true);
       setUploadError(null);
       const folderPath = await window.accomplish.pickSkillFolder();
@@ -54,18 +56,21 @@ export function useAddSkill(): UseAddSkillResult {
       setUploadError(errorMessage);
       setIsUploadErrorDialogOpen(true);
     } finally {
+      isLoadingRef.current = false;
       setIsLoading(false);
     }
   };
 
   const handleImportFromGitHub = async (onSkillAdded?: () => void) => {
-    if (!gitHubUrl.trim() || !window.accomplish) {
+    const normalizedGitHubUrl = gitHubUrl.trim();
+    if (isLoadingRef.current || !normalizedGitHubUrl || !window.accomplish) {
       return;
     }
     try {
+      isLoadingRef.current = true;
       setIsLoading(true);
       setError(null);
-      await window.accomplish.addSkillFromGitHub(gitHubUrl);
+      await window.accomplish.addSkillFromGitHub(normalizedGitHubUrl);
       setGitHubUrl('');
       setIsGitHubDialogOpen(false);
       onSkillAdded?.();
@@ -73,6 +78,7 @@ export function useAddSkill(): UseAddSkillResult {
       logger.error('Failed to import from GitHub:', err);
       setError(err instanceof Error ? err.message : 'Failed to import skill');
     } finally {
+      isLoadingRef.current = false;
       setIsLoading(false);
     }
   };
@@ -88,7 +94,7 @@ export function useAddSkill(): UseAddSkillResult {
   };
 
   const handleCloseGitHubDialog = () => {
-    if (!isLoading) {
+    if (!isLoadingRef.current) {
       setIsGitHubDialogOpen(false);
       setGitHubUrl('');
       setError(null);

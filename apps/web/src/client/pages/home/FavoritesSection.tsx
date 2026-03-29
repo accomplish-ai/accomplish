@@ -25,6 +25,7 @@ export function FavoritesSection({
   onShowAll,
 }: FavoritesSectionProps) {
   const { t } = useTranslation('home');
+  const removeFavoriteLabel = t('favorites.remove');
 
   return (
     <div
@@ -53,6 +54,9 @@ export function FavoritesSection({
                   layout
                   onClick={() => onSetPrompt(fav.prompt)}
                   onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) {
+                      return;
+                    }
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
                       onSetPrompt(fav.prompt);
@@ -69,13 +73,14 @@ export function FavoritesSection({
                       <button
                         type="button"
                         data-testid="favorite-remove"
+                        data-fav-remove
                         onClick={(e) => {
                           e.stopPropagation();
                           void onRemoveFavorite(fav.taskId);
                         }}
                         className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-card"
-                        title="Remove from favorites"
-                        aria-label="Remove from favorites"
+                        title={removeFavoriteLabel}
+                        aria-label={removeFavoriteLabel}
                       >
                         <X className="h-4 w-4" />
                       </button>

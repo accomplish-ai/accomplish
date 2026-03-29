@@ -14,8 +14,10 @@ import { SandboxModeSelector } from './SandboxModeSelector';
 export function SandboxPanel() {
   const {
     config,
+    isLoaded,
     saving,
     configError,
+    loadError,
     saveError,
     dockerImageRef,
     hostsRef,
@@ -32,7 +34,17 @@ export function SandboxPanel() {
 
   return (
     <div className="space-y-4">
-      <SandboxModeSelector mode={config.mode} onModeChange={handleModeChange} />
+      <SandboxModeSelector
+        mode={config.mode}
+        onModeChange={handleModeChange}
+        disabled={!isLoaded || !!loadError || saving}
+      />
+
+      {loadError && (
+        <div className="rounded-lg border border-destructive bg-destructive/10 p-3" role="alert">
+          <p className="text-sm text-destructive">{loadError}</p>
+        </div>
+      )}
 
       {isDockerMode && (
         <>
@@ -48,6 +60,7 @@ export function SandboxPanel() {
               placeholder="node:20-slim (default)"
               defaultValue={config.dockerImage ?? ''}
               onBlur={handleDockerImageBlur}
+              disabled={!isLoaded || !!loadError}
               className={`mt-3 w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
                 configError ? 'border-destructive' : 'border-border'
               }`}
@@ -70,7 +83,7 @@ export function SandboxPanel() {
                 aria-checked={netPolicy.allowOutbound}
                 aria-label="Toggle network access"
                 onClick={handleNetworkToggle}
-                disabled={saving}
+                disabled={!isLoaded || !!loadError || saving}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50 disabled:cursor-not-allowed ${
                   netPolicy.allowOutbound ? 'bg-primary' : 'bg-muted'
                 }`}
@@ -98,6 +111,7 @@ export function SandboxPanel() {
                   placeholder={'api.openai.com\napi.anthropic.com\ngithub.com'}
                   defaultValue={netPolicy.allowedHosts?.join('\n') ?? ''}
                   onBlur={handleAllowedHostsBlur}
+                  disabled={!isLoaded || !!loadError}
                   rows={3}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 font-mono"
                 />
@@ -126,6 +140,7 @@ export function SandboxPanel() {
               placeholder={'/Users/you/projects\n/tmp/accomplish-workspace'}
               defaultValue={config.allowedPaths?.join('\n') ?? ''}
               onBlur={handleAllowedPathsBlur}
+              disabled={!isLoaded || !!loadError}
               rows={3}
               className="mt-3 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 font-mono"
             />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createLogger } from '@/lib/logger';
 
@@ -64,6 +64,11 @@ export function TaskInputBar({
   const canSubmit = (!!value.trim() || attachments.length > 0) && !disabled && !isOverLimit;
   const isSubmitDisabled = !isLoading && (!canSubmit || isInputDisabled);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const latestValueRef = useRef(value);
+
+  useEffect(() => {
+    latestValueRef.current = value;
+  }, [value]);
 
   const animatedPlaceholder = useTypingPlaceholder({
     enabled: typingPlaceholder && !value,
@@ -95,7 +100,8 @@ export function TaskInputBar({
 
   const speechInput = useSpeechInput({
     onTranscriptionComplete: (text) => {
-      const newValue = value.trim() ? `${value} ${text}` : text;
+      const currentValue = latestValueRef.current;
+      const newValue = currentValue.trim() ? `${currentValue} ${text}` : text;
       onChange(newValue);
       if (autoSubmitOnTranscription && newValue.trim()) {
         behavior.pendingAutoSubmitRef.current = newValue;

@@ -1,4 +1,4 @@
-import type { ToolSupportStatus } from '@accomplish_ai/agent-core/common';
+import type { ToolSupportStatus } from '@accomplish_ai/agent-core';
 
 interface ToolSupportBadgeProps {
   status: ToolSupportStatus;

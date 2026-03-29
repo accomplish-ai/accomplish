@@ -38,7 +38,9 @@ export function BedrockConnectedSection({
       <div className="space-y-3">
         {creds?.authMethod === 'apiKey' ? (
           <div>
-            <label className="mb-2 block text-sm font-medium text-foreground">API Key</label>
+            <label className="mb-2 block text-sm font-medium text-foreground">
+              {t('bedrockApiKey.label')}
+            </label>
             <input
               type="text"
               value={creds?.apiKeyPrefix || '********'}

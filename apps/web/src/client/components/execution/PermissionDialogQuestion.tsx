@@ -85,6 +85,7 @@ export function PermissionDialogQuestion({
               return;
             }
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && customResponse.trim()) {
+              e.preventDefault();
               onSubmit();
             }
           }}
