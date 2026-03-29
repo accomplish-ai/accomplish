@@ -5,7 +5,9 @@
     "completed": "已完成",
     "failed": "失败",
     "cancelled": "已取消",
-    "stopped": "已停止"
+    "stopped": "已停止",
+    "pending": "待处理",
+    "waiting_permission": "等待权限"
   },
   "waiting": {
     "title": "等待其他任务完成",

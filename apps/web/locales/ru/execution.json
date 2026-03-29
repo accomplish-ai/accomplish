@@ -5,7 +5,9 @@
     "completed": "Завершено",
     "failed": "Ошибка",
     "cancelled": "Отменено",
-    "stopped": "Остановлено"
+    "stopped": "Остановлено",
+    "pending": "Ожидание",
+    "waiting_permission": "Ожидание разрешения"
   },
   "waiting": {
     "title": "Ожидание другой задачи",

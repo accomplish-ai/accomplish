@@ -5,7 +5,9 @@
     "completed": "Terminé",
     "failed": "Échoué",
     "cancelled": "Annulé",
-    "stopped": "Arrêté"
+    "stopped": "Arrêté",
+    "pending": "En attente",
+    "waiting_permission": "En attente de permission"
   },
   "waiting": {
     "title": "En attente d'une autre tâche",

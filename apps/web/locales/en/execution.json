@@ -5,7 +5,9 @@
     "completed": "Completed",
     "failed": "Failed",
     "cancelled": "Cancelled",
-    "stopped": "Stopped"
+    "stopped": "Stopped",
+    "pending": "Pending",
+    "waiting_permission": "Waiting for permission"
   },
   "waiting": {
     "title": "Waiting for another task",
