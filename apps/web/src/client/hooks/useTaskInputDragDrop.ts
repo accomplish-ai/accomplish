@@ -27,7 +27,7 @@ export function useTaskInputDragDrop({
   onAttachmentsChange,
   isInputDisabled,
 }: UseTaskInputDragDropOptions): UseTaskInputDragDropReturn {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation('home');
   const [isDragOver, setIsDragOver] = useState(false);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const dragCounterRef = useRef(0);

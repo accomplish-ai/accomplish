@@ -16,6 +16,7 @@ export function HomePage() {
     showAllFavorites,
     setShowAllFavorites,
     attachments,
+    attachmentError,
     setAttachments,
     workingDirectory,
     setWorkingDirectory,
@@ -80,6 +81,7 @@ export function HomePage() {
                 onOpenModelSettings={handleOpenModelSettings}
                 hideModelWhenNoModel={true}
                 attachments={attachments}
+                attachmentError={attachmentError}
                 onAttachmentsChange={setAttachments}
                 toolbarLeft={
                   <PlusMenu

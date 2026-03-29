@@ -4,7 +4,7 @@ import {
   type Task,
   type TaskStatus,
   type FileAttachmentInfo,
-} from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/common';
 import { getAccomplish } from '../lib/accomplish';
 import type { TaskState } from './taskStore';
 import { hasTaskStateToken } from './task-state-helpers';

@@ -29,6 +29,8 @@ export function PermissionDialogQuestion({
             .map((option, idx) => (
               <button
                 key={idx}
+                type="button"
+                aria-pressed={selectedOptions.includes(option.label)}
                 onClick={() => {
                   setCustomResponse('');
                   if (permissionRequest.multiSelect) {

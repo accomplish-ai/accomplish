@@ -67,6 +67,7 @@ export function useHomePage() {
   }, [addTaskUpdate, setPermissionRequest, accomplish]);
   const {
     attachments,
+    attachmentError,
     setAttachments,
     buildPromptWithAttachments,
     handleExampleClick,
@@ -172,6 +173,7 @@ export function useHomePage() {
     showAllFavorites,
     setShowAllFavorites,
     attachments,
+    attachmentError,
     setAttachments,
     workingDirectory,
     setWorkingDirectory,

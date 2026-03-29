@@ -5,7 +5,7 @@ import type {
   ConnectedProvider,
   OllamaCredentials,
   ToolSupportStatus,
-} from '@accomplish_ai/agent-core/common';
+} from '@accomplish_ai/agent-core';
 
 export interface OllamaModel {
   id: string;

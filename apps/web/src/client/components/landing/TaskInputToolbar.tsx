@@ -94,7 +94,6 @@ export function TaskInputToolbar({
                 type="button"
                 aria-label={submitLabel}
                 aria-disabled={isButtonDisabled}
-                title={buttonTitle}
                 onClick={() => {
                   accomplish.logEvent({
                     level: 'info',

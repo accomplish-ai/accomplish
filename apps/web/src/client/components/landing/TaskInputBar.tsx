@@ -38,6 +38,7 @@ interface TaskInputBarProps {
   toolbarLeft?: ReactNode;
   attachments?: FileAttachmentInfo[];
   onAttachmentsChange?: (attachments: FileAttachmentInfo[]) => void;
+  attachmentError?: string | null;
 }
 
 export function TaskInputBar({
@@ -57,6 +58,7 @@ export function TaskInputBar({
   toolbarLeft,
   attachments = [],
   onAttachmentsChange,
+  attachmentError: externalAttachmentError = null,
 }: TaskInputBarProps) {
   const { t } = useTranslation('common');
   const isInputDisabled = disabled || isLoading;
@@ -78,7 +80,7 @@ export function TaskInputBar({
 
   const {
     isDragOver,
-    attachmentError,
+    attachmentError: dragDropAttachmentError,
     removeAttachment,
     handleDragEnter,
     handleDragLeave,
@@ -91,6 +93,7 @@ export function TaskInputBar({
     onAttachmentsChange,
     isInputDisabled,
   });
+  const attachmentError = externalAttachmentError ?? dragDropAttachmentError;
 
   const slashCommand = useSlashCommand({
     value,

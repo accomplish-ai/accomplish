@@ -31,13 +31,14 @@ export function SandboxPanel() {
 
   const netPolicy = config.networkPolicy ?? { allowOutbound: !config.networkRestricted };
   const isDockerMode = config.mode === 'docker';
+  const isInteractionDisabled = !isLoaded || !!loadError || saving;
 
   return (
     <div className="space-y-4">
       <SandboxModeSelector
         mode={config.mode}
         onModeChange={handleModeChange}
-        disabled={!isLoaded || !!loadError || saving}
+        disabled={isInteractionDisabled}
       />
 
       {loadError && (
@@ -60,7 +61,7 @@ export function SandboxPanel() {
               placeholder="node:20-slim (default)"
               defaultValue={config.dockerImage ?? ''}
               onBlur={handleDockerImageBlur}
-              disabled={!isLoaded || !!loadError}
+              disabled={isInteractionDisabled}
               className={`mt-3 w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
                 configError ? 'border-destructive' : 'border-border'
               }`}
@@ -83,7 +84,7 @@ export function SandboxPanel() {
                 aria-checked={netPolicy.allowOutbound}
                 aria-label="Toggle network access"
                 onClick={handleNetworkToggle}
-                disabled={!isLoaded || !!loadError || saving}
+                disabled={isInteractionDisabled}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50 disabled:cursor-not-allowed ${
                   netPolicy.allowOutbound ? 'bg-primary' : 'bg-muted'
                 }`}
@@ -111,7 +112,7 @@ export function SandboxPanel() {
                   placeholder={'api.openai.com\napi.anthropic.com\ngithub.com'}
                   defaultValue={netPolicy.allowedHosts?.join('\n') ?? ''}
                   onBlur={handleAllowedHostsBlur}
-                  disabled={!isLoaded || !!loadError}
+                  disabled={isInteractionDisabled}
                   rows={3}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 font-mono"
                 />
@@ -140,7 +141,7 @@ export function SandboxPanel() {
               placeholder={'/Users/you/projects\n/tmp/accomplish-workspace'}
               defaultValue={config.allowedPaths?.join('\n') ?? ''}
               onBlur={handleAllowedPathsBlur}
-              disabled={!isLoaded || !!loadError}
+              disabled={isInteractionDisabled}
               rows={3}
               className="mt-3 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 font-mono"
             />

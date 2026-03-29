@@ -1,4 +1,5 @@
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { FileAttachmentInfo } from '@accomplish_ai/agent-core';
 import { MAX_FILES, processFileAttachments } from '@/lib/fileUtils';
 
@@ -8,6 +9,7 @@ interface UsePromptAttachmentsParams {
 
 interface UsePromptAttachmentsResult {
   attachments: FileAttachmentInfo[];
+  attachmentError: string | null;
   setAttachments: Dispatch<SetStateAction<FileAttachmentInfo[]>>;
   buildPromptWithAttachments: (basePrompt: string, files: FileAttachmentInfo[]) => string;
   handleExampleClick: (examplePrompt: string) => void;
@@ -20,7 +22,9 @@ interface UsePromptAttachmentsResult {
 export function usePromptAttachments({
   setPrompt,
 }: UsePromptAttachmentsParams): UsePromptAttachmentsResult {
+  const { t } = useTranslation('home');
   const [attachments, setAttachments] = useState<FileAttachmentInfo[]>([]);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
 
   const focusPromptTextarea = useCallback(() => {
     setTimeout(() => {
@@ -62,12 +66,17 @@ export function usePromptAttachments({
 
   const addFiles = useCallback(
     (fileList: FileList | File[]) => {
-      const accepted = processFileAttachments(fileList, attachments.length);
+      setAttachmentError(null);
+      const accepted = processFileAttachments(fileList, attachments.length, {
+        onOversize: (name, limit) =>
+          setAttachmentError(t('plusMenu.fileTooLarge', { name, limit })),
+        onOverLimit: (_count, max) => setAttachmentError(t('plusMenu.tooManyFiles', { max })),
+      });
       if (accepted.length > 0) {
         setAttachments((prev) => [...prev, ...accepted]);
       }
     },
-    [attachments.length],
+    [attachments.length, t],
   );
 
   const handleAttachFiles = useCallback(() => {
@@ -85,6 +94,7 @@ export function usePromptAttachments({
 
   return {
     attachments,
+    attachmentError,
     setAttachments,
     buildPromptWithAttachments,
     handleExampleClick,

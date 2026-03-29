@@ -7,6 +7,7 @@ import { VertexServiceAccountTab } from './VertexServiceAccountTab';
 import { VertexAdcTab } from './VertexAdcTab';
 import { VertexConnectedSection } from './VertexConnectedSection';
 import { useVertexProviderConnect } from './useVertexProviderConnect';
+import { isCuratedVertexModel } from './vertex-model-utils';
 import { PROVIDER_LOGOS } from '@/lib/provider-logos';
 
 interface VertexProviderFormProps {
@@ -48,9 +49,7 @@ export function VertexProviderForm({
 
   const isConnected = connectedProvider?.connectionStatus === 'connected';
   const models = connectedProvider?.availableModels || availableModels;
-
-  const curatedPrefixes = ['vertex/google/', 'vertex/anthropic/', 'vertex/mistralai/'];
-  const customModels = models.filter((m) => !curatedPrefixes.some((p) => m.id.startsWith(p)));
+  const customModels = models.filter((model) => !isCuratedVertexModel(model.id));
 
   return (
     <div

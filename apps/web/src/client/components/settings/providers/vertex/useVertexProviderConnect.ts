@@ -1,37 +1,12 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAccomplish } from '@/lib/accomplish';
+import type { ConnectedProvider, VertexProviderCredentials } from '@accomplish_ai/agent-core';
+import { isCuratedVertexModel } from './vertex-model-utils';
 import type {
-  ConnectedProvider,
-  VertexProviderCredentials,
-} from '@accomplish_ai/agent-core/common';
-
-export interface UseVertexProviderConnectReturn {
-  authTab: 'serviceAccount' | 'adc';
-  setAuthTab: (tab: 'serviceAccount' | 'adc') => void;
-  serviceAccountJson: string;
-  setServiceAccountJson: (v: string) => void;
-  projectId: string;
-  setProjectId: (v: string) => void;
-  location: string;
-  setLocation: (v: string) => void;
-  connecting: boolean;
-  error: string | null;
-  availableModels: Array<{ id: string; name: string }>;
-  customModelInput: string;
-  setCustomModelInput: (v: string) => void;
-  customModelError: string | null;
-  setCustomModelError: (v: string | null) => void;
-  handleConnect: () => Promise<void>;
-  handleAddCustomModel: () => void;
-  handleRemoveCustomModel: (modelId: string) => void;
-}
-
-interface UseVertexProviderConnectParams {
-  connectedProvider?: ConnectedProvider;
-  onConnect: (provider: ConnectedProvider) => void;
-  onModelChange: (modelId: string) => void;
-}
+  UseVertexProviderConnectParams,
+  UseVertexProviderConnectReturn,
+} from './useVertexProviderConnect.types';
 
 export function useVertexProviderConnect({
   connectedProvider,
@@ -157,8 +132,7 @@ export function useVertexProviderConnect({
     (modelId: string) => {
       const currentModels = connectedProvider?.availableModels || availableModels;
 
-      const curatedPrefixes = ['vertex/google/', 'vertex/anthropic/', 'vertex/mistralai/'];
-      if (curatedPrefixes.some((p) => modelId.startsWith(p))) {
+      if (isCuratedVertexModel(modelId)) {
         return;
       }
 

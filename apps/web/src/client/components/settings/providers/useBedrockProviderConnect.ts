@@ -5,7 +5,7 @@ import {
   getDefaultModelForProvider,
   type BedrockProviderCredentials,
   type ConnectedProvider,
-} from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/common';
 
 export interface UseBedrockProviderConnectReturn {
   authTab: 'apiKey' | 'accessKey' | 'profile';

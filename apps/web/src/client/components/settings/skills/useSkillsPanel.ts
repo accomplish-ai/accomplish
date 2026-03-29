@@ -1,10 +1,14 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import type { Skill } from '@accomplish_ai/agent-core/common';
+import type { Skill } from '@accomplish_ai/agent-core';
 import { createLogger } from '@/lib/logger';
+import {
+  type FilterType,
+  getFilterCounts,
+  getFilteredSkills,
+  getVisibleSkills,
+} from './skillsFiltering';
 
-const logger = createLogger('SkillsPanel');
-
-export type FilterType = 'all' | 'active' | 'inactive' | 'official';
+export type { FilterType } from './skillsFiltering';
 
 export interface UseSkillsPanelResult {
   loading: boolean;
@@ -25,6 +29,8 @@ export interface UseSkillsPanelResult {
   checkScrollPosition: () => void;
 }
 
+const logger = createLogger('SkillsPanel');
+
 export function useSkillsPanel(refreshTrigger?: number): UseSkillsPanelResult {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,41 +40,12 @@ export function useSkillsPanel(refreshTrigger?: number): UseSkillsPanelResult {
   const [isResyncing, setIsResyncing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const visibleSkills = useMemo(() => skills.filter((s) => !s.isHidden), [skills]);
-
-  const filterCounts = useMemo(
-    () => ({
-      all: visibleSkills.length,
-      active: visibleSkills.filter((s) => s.isEnabled).length,
-      inactive: visibleSkills.filter((s) => !s.isEnabled).length,
-      official: visibleSkills.filter((s) => s.source === 'official').length,
-    }),
-    [visibleSkills],
+  const visibleSkills = useMemo(() => getVisibleSkills(skills), [skills]);
+  const filterCounts = useMemo(() => getFilterCounts(visibleSkills), [visibleSkills]);
+  const filteredSkills = useMemo(
+    () => getFilteredSkills(visibleSkills, filter, searchQuery),
+    [visibleSkills, filter, searchQuery],
   );
-
-  const filteredSkills = useMemo(() => {
-    let result = visibleSkills;
-
-    if (filter === 'active') {
-      result = result.filter((s) => s.isEnabled);
-    } else if (filter === 'inactive') {
-      result = result.filter((s) => !s.isEnabled);
-    } else if (filter === 'official') {
-      result = result.filter((s) => s.source === 'official');
-    }
-
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (s) =>
-          s.name.toLowerCase().includes(query) ||
-          s.description.toLowerCase().includes(query) ||
-          s.command.toLowerCase().includes(query),
-      );
-    }
-
-    return result;
-  }, [visibleSkills, filter, searchQuery]);
 
   const checkScrollPosition = useCallback(() => {
     const el = scrollRef.current;

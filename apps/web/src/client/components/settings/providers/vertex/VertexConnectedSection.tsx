@@ -6,6 +6,7 @@ import type {
   VertexProviderCredentials,
 } from '@accomplish_ai/agent-core/common';
 import { ModelSelector, ConnectedControls } from '../../shared';
+import { isCuratedVertexModel } from './vertex-model-utils';
 
 interface VertexConnectedSectionProps {
   connectedProvider: ConnectedProvider;
@@ -156,25 +157,28 @@ export function VertexConnectedSection({
                 className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-1.5 text-sm"
               >
                 <span className="text-foreground">{model.name}</span>
-                <button
-                  onClick={() => handleRemoveCustomModel(model.id)}
-                  className="ml-2 text-muted-foreground transition-colors hover:text-destructive"
-                  title={t('vertex.removeModel')}
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                {!isCuratedVertexModel(model.id) && (
+                  <button
+                    onClick={() => handleRemoveCustomModel(model.id)}
+                    className="ml-2 text-muted-foreground transition-colors hover:text-destructive"
+                    title={t('vertex.removeModel')}
+                    type="button"
                   >
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                )}
               </div>
             ))}
           </div>

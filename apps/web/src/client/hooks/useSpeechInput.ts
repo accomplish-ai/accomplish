@@ -75,6 +75,7 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
       setState((prev) => ({
         ...prev,
         isRecording: false,
+        isTranscribing: false,
         error: speechError,
         recordingDuration: 0,
       }));
