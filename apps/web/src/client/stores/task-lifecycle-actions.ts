@@ -6,7 +6,10 @@ import { hasTaskStateToken } from './task-state-helpers';
 type SetFn = (partial: Partial<TaskState> | ((state: TaskState) => Partial<TaskState>)) => void;
 type GetFn = () => TaskState;
 
-/** cancelTask and interruptTask lifecycle actions. */
+/**
+ * Groups task-stop actions so the store can expose a consistent API for
+ * ending active work while guarding updates against stale task state.
+ */
 export function createTaskLifecycleActions(set: SetFn, get: GetFn) {
   return {
     cancelTask: async () => {
