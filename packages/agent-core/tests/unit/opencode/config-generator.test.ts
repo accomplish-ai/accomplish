@@ -9,9 +9,9 @@ import {
   ACCOMPLISH_AGENT_NAME,
   ConfigGeneratorOptions,
   ProviderConfig,
-  BrowserConfig,
-  buildCliArgs,
 } from '../../../src/opencode/config-generator.js';
+import type { BrowserConfig } from '../../../src/opencode/generator-mcp.js';
+import { buildCliArgs } from '../../../src/opencode/cli-args.js';
 
 describe('ConfigGenerator', () => {
   let testDir: string;

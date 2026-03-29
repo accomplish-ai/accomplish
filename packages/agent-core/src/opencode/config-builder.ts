@@ -1,40 +1,30 @@
-import path from 'path';
-import fs from 'fs';
-import type {
-  ZaiCredentials,
-  VertexProviderCredentials,
-} from '../common/types/providerSettings.js';
-import type { BedrockCredentials } from '../common/types/auth.js';
 import type { ProviderSettings } from '../common/types/providerSettings.js';
+import { PROVIDER_ID_TO_OPENCODE } from '../common/index.js';
+import type { ProviderConfig } from './config-generator.js';
 import {
-  ZAI_ENDPOINTS,
-  DEFAULT_PROVIDERS,
-  PROVIDER_ID_TO_OPENCODE,
-  MINIMAX_DEFAULT_BASE_URL,
-} from '../common/index.js';
-import type { ProviderConfig, ProviderModelConfig } from './config-generator.js';
-import { ensureAzureFoundryProxy, ensureMoonshotProxy } from './proxies/index.js';
-import {
-  getOllamaConfig,
-  getLMStudioConfig,
   getProviderSettings,
   getActiveProviderModel,
   getConnectedProviderIds,
-  getAzureFoundryConfig,
-  getSelectedModel,
+  getOllamaConfig,
 } from '../storage/repositories/index.js';
-import { createConsoleLogger } from '../utils/logging.js';
-
-const log = createConsoleLogger({ prefix: 'OpenCodeConfigBuilder' });
-
-/** Providers that use the @ai-sdk/openai-compatible adapter */
-const OPENAI_COMPATIBLE_PROVIDER_IDS = [
-  'nebius',
-  'together',
-  'fireworks',
-  'groq',
-  'venice',
-] as const;
+import { OPENAI_COMPATIBLE_PROVIDER_IDS } from './config-auth-sync.js';
+export { syncApiKeysToOpenCodeAuth } from './config-auth-sync.js';
+import { buildOllamaConfig, buildLMStudioConfig } from './config-providers-local.js';
+import { buildBedrockConfig } from './config-providers-bedrock.js';
+import { buildVertexConfig, buildAzureFoundryConfig } from './config-providers-vertex-azure.js';
+import { buildXaiConfig, buildGoogleConfig, buildZaiConfig } from './config-providers-ai-cloud.js';
+import {
+  buildOpenRouterConfig,
+  buildMoonshotConfig,
+  buildLiteLLMConfig,
+  buildMinimaxConfig,
+} from './config-providers-standard.js';
+import {
+  buildNimConfig,
+  buildCustomConfig,
+  buildOpenAICompatibleConfigs,
+  buildCopilotConfig,
+} from './config-providers-compat.js';
 
 /**
  * Paths required for config generation (Electron-specific resolution stays in desktop)
@@ -73,60 +63,9 @@ export interface BuildProviderConfigsOptions {
   providerSettings?: ProviderSettings;
 }
 
-async function buildAzureFoundryProviderConfig(
-  endpoint: string,
-  deploymentName: string,
-  authMethod: 'api-key' | 'entra-id',
-  getApiKey: (provider: string) => string | undefined | null,
-  azureFoundryToken?: string,
-): Promise<ProviderConfig | null> {
-  const baseUrl = endpoint.replace(/\/$/, '');
-  const targetBaseUrl = `${baseUrl}/openai/v1`;
-  const proxyInfo = await ensureAzureFoundryProxy(targetBaseUrl);
-
-  const azureOptions: ProviderConfig['options'] = {
-    baseURL: proxyInfo.baseURL,
-  };
-
-  if (authMethod === 'api-key') {
-    const azureApiKey = getApiKey('azure-foundry');
-    if (azureApiKey) {
-      azureOptions.apiKey = azureApiKey;
-    }
-  } else if (authMethod === 'entra-id' && azureFoundryToken) {
-    azureOptions.apiKey = '';
-    azureOptions.headers = {
-      Authorization: `Bearer ${azureFoundryToken}`,
-    };
-  }
-
-  return {
-    id: 'azure-foundry',
-    npm: '@ai-sdk/openai-compatible',
-    name: 'Azure AI Foundry',
-    options: azureOptions,
-    models: {
-      [deploymentName]: {
-        name: `Azure Foundry (${deploymentName})`,
-        tools: true,
-        limit: {
-          context: 128000,
-          output: 16384,
-        },
-      },
-    },
-  };
-}
-
 /**
- * Builds provider configurations for OpenCode CLI.
- *
- * This function extracts the reusable provider config building logic from the desktop app.
- * Electron-specific path resolution (getMcpToolsPath using app.isPackaged, process.resourcesPath)
- * stays in the desktop app.
- *
- * @param options - Options for building provider configs
- * @returns Provider configurations, enabled providers list, and optional model override
+ * Builds provider configurations for OpenCode CLI by delegating to per-provider builders.
+ * Each builder returns configs + extra enabled IDs + optional model override.
  */
 export async function buildProviderConfigs(
   options: BuildProviderConfigsOptions,
@@ -135,7 +74,7 @@ export async function buildProviderConfigs(
   const providerSettings = options.providerSettings ?? getProviderSettings();
   const connectedIds = getConnectedProviderIds();
   const activeModel = getActiveProviderModel();
-  const providerConfigs: ProviderConfig[] = [];
+  const ctx = { providerSettings, getApiKey, azureFoundryToken, activeModel };
 
   const baseProviders = [
     'anthropic',
@@ -152,11 +91,9 @@ export async function buildProviderConfigs(
     ...OPENAI_COMPATIBLE_PROVIDER_IDS,
   ];
   let enabledProviders = baseProviders;
-
   if (connectedIds.length > 0) {
     const mappedProviders = connectedIds.map((id) => PROVIDER_ID_TO_OPENCODE[id]);
     enabledProviders = [...new Set([...baseProviders, ...mappedProviders])];
-    log.info(`[OpenCode Config Builder] Using connected providers: ${mappedProviders}`);
   } else {
     const ollamaConfig = getOllamaConfig();
     if (ollamaConfig?.enabled) {
@@ -164,676 +101,39 @@ export async function buildProviderConfigs(
     }
   }
 
-  // Ollama provider
-  const ollamaProvider = providerSettings.connectedProviders.ollama;
-  if (
-    ollamaProvider?.connectionStatus === 'connected' &&
-    ollamaProvider.credentials.type === 'ollama'
-  ) {
-    if (ollamaProvider.selectedModelId) {
-      const modelId = ollamaProvider.selectedModelId.replace(/^ollama\//, '');
-      const ollamaModelInfo = ollamaProvider.availableModels?.find(
-        (m) => m.id === ollamaProvider.selectedModelId || m.id === modelId,
-      );
-      const ollamaSupportsTools =
-        (ollamaModelInfo as { toolSupport?: string })?.toolSupport === 'supported';
-      // Register model with both formats for compatibility
-      // Some code paths use "modelId" while others use "ollama/modelId"
-      providerConfigs.push({
-        id: 'ollama',
-        npm: '@ai-sdk/openai-compatible',
-        name: 'Ollama (local)',
-        options: {
-          baseURL: `${ollamaProvider.credentials.serverUrl}/v1`,
-        },
-        models: {
-          [modelId]: { name: modelId, tools: ollamaSupportsTools },
-          [`ollama/${modelId}`]: { name: modelId, tools: ollamaSupportsTools },
-        },
-      });
-      log.info(
-        `[OpenCode Config Builder] Ollama configured: ${modelId} (tools: ${ollamaSupportsTools})`,
-      );
-    }
-  } else {
-    const ollamaConfig = getOllamaConfig();
-    const ollamaModels = ollamaConfig?.models;
-    if (ollamaConfig?.enabled && ollamaModels && ollamaModels.length > 0) {
-      const models: Record<string, ProviderModelConfig> = {};
-      for (const model of ollamaModels) {
-        const legacyToolSupport =
-          model.toolSupport === 'supported' || model.toolSupport === undefined;
-        // Register both formats for compatibility
-        models[model.id] = { name: model.displayName, tools: legacyToolSupport };
-        models[`ollama/${model.id}`] = { name: model.displayName, tools: legacyToolSupport };
-      }
-      providerConfigs.push({
-        id: 'ollama',
-        npm: '@ai-sdk/openai-compatible',
-        name: 'Ollama (local)',
-        options: { baseURL: `${ollamaConfig.baseUrl}/v1` },
-        models,
-      });
-      log.info(`[OpenCode Config Builder] Ollama (legacy) configured: ${Object.keys(models)}`);
-    }
-  }
+  const results = await Promise.all([
+    buildOllamaConfig(ctx),
+    buildLMStudioConfig(ctx),
+    buildOpenRouterConfig(ctx),
+    buildMoonshotConfig(ctx),
+    buildLiteLLMConfig(ctx),
+    buildMinimaxConfig(ctx),
+    buildXaiConfig(ctx),
+    buildGoogleConfig(ctx),
+    buildZaiConfig(ctx),
+    buildBedrockConfig(ctx),
+    buildVertexConfig(ctx),
+    buildAzureFoundryConfig(ctx),
+    buildNimConfig(ctx),
+    buildCustomConfig(ctx),
+    buildOpenAICompatibleConfigs(ctx),
+    buildCopilotConfig(ctx),
+  ]);
 
-  // OpenRouter provider
-  const openrouterProvider = providerSettings.connectedProviders.openrouter;
-  if (
-    openrouterProvider?.connectionStatus === 'connected' &&
-    activeModel?.provider === 'openrouter'
-  ) {
-    const modelId = activeModel.model.replace('openrouter/', '');
-    providerConfigs.push({
-      id: 'openrouter',
-      npm: '@ai-sdk/openai-compatible',
-      name: 'OpenRouter',
-      options: { baseURL: 'https://openrouter.ai/api/v1' },
-      models: {
-        [modelId]: { name: modelId, tools: true },
-      },
-    });
-    log.info(`[OpenCode Config Builder] OpenRouter configured: ${modelId}`);
-  } else {
-    const openrouterKey = getApiKey('openrouter');
-    if (openrouterKey) {
-      const selectedModel = getSelectedModel();
-      if (selectedModel?.provider === 'openrouter' && selectedModel.model) {
-        const modelId = selectedModel.model.replace('openrouter/', '');
-        providerConfigs.push({
-          id: 'openrouter',
-          npm: '@ai-sdk/openai-compatible',
-          name: 'OpenRouter',
-          options: { baseURL: 'https://openrouter.ai/api/v1' },
-          models: {
-            [modelId]: { name: modelId, tools: true },
-          },
-        });
-        log.info(`[OpenCode Config Builder] OpenRouter (legacy) configured: ${modelId}`);
-      }
-    }
-  }
-
-  // Moonshot provider
-  const moonshotProvider = providerSettings.connectedProviders.moonshot;
-  if (moonshotProvider?.connectionStatus === 'connected' && moonshotProvider.selectedModelId) {
-    const modelId = moonshotProvider.selectedModelId.replace(/^moonshot\//, '');
-    const moonshotApiKey = getApiKey('moonshot');
-    const proxyInfo = await ensureMoonshotProxy('https://api.moonshot.ai/v1');
-    providerConfigs.push({
-      id: 'moonshot',
-      npm: '@ai-sdk/openai-compatible',
-      name: 'Moonshot AI',
-      options: {
-        baseURL: proxyInfo.baseURL,
-        ...(moonshotApiKey ? { apiKey: moonshotApiKey } : {}),
-      },
-      models: {
-        [modelId]: { name: modelId, tools: true },
-      },
-    });
-    log.info(`[OpenCode Config Builder] Moonshot configured: ${modelId}`);
-  }
-
-  // xAI provider — register selected model so OpenCode can resolve it.
-  // OpenCode's @ai-sdk/xai only knows its built-in model list; dynamically-fetched
-  // models (e.g. "grok-4-fast-reasoning") would otherwise cause
-  // ProviderModelNotFoundError at runtime. The xAI native API expects model names
-  // without the "xai/" prefix (unlike aggregators like OpenRouter).
-  const xaiProvider = providerSettings.connectedProviders.xai;
-  const xaiApiKey = getApiKey('xai');
-  if (xaiProvider?.connectionStatus === 'connected' && xaiApiKey) {
-    const selectedXaiModelId = xaiProvider.selectedModelId;
-    if (selectedXaiModelId) {
-      const modelId = selectedXaiModelId.replace(/^xai\//, '');
-
-      // Build models map: include all available models fetched from the xAI API
-      // so the user can switch between them without a restart.
-      const xaiModels: Record<string, ProviderModelConfig> = {};
-
-      if (xaiProvider.availableModels && xaiProvider.availableModels.length > 0) {
-        for (const model of xaiProvider.availableModels) {
-          const mId = model.id.replace(/^xai\//, '');
-          xaiModels[mId] = { name: model.name, tools: true };
-        }
-      }
-
-      // Final guard: always ensure the selected model is registered,
-      // even if availableModels is stale/partial and doesn't include it.
-      if (!xaiModels[modelId]) {
-        xaiModels[modelId] = { name: modelId, tools: true };
-      }
-
-      providerConfigs.push({
-        id: 'xai',
-        options: { apiKey: xaiApiKey },
-        models: xaiModels,
-      });
-      log.info(`[OpenCode Config Builder] xAI configured, selected model: ${modelId}`);
-    }
-  }
-
-  // Google AI provider — register selected model so OpenCode can resolve it.
-  // OpenCode's @ai-sdk/google only knows its built-in model list; dynamically-fetched
-  // models (e.g. "gemini-3.1-flash-lite-preview") would otherwise cause
-  // ProviderModelNotFoundError at runtime.
-  const googleProvider = providerSettings.connectedProviders.google;
-  const googleApiKey = getApiKey('google');
-  if (googleProvider?.connectionStatus === 'connected' && googleApiKey) {
-    const selectedGoogleModelId = googleProvider.selectedModelId;
-    if (selectedGoogleModelId) {
-      const modelId = selectedGoogleModelId.replace(/^google\//, '');
-
-      // Build models map: include all available models fetched from the Google API
-      // so the user can switch between them without a restart.
-      const googleModels: Record<string, ProviderModelConfig> = {};
-
-      if (googleProvider.availableModels && googleProvider.availableModels.length > 0) {
-        for (const model of googleProvider.availableModels) {
-          const mId = model.id.replace(/^google\//, '');
-          googleModels[mId] = { name: model.name, tools: true };
-        }
-      } else {
-        // Fallback: at minimum register the selected model
-        googleModels[modelId] = { name: modelId, tools: true };
-      }
-
-      providerConfigs.push({
-        id: 'google',
-        options: { apiKey: googleApiKey },
-        models: googleModels,
-      });
-      log.info(`[OpenCode Config Builder] Google AI configured, selected model: ${modelId}`);
-    }
-  }
-
+  const providerConfigs: ProviderConfig[] = [];
   let modelOverride: { model: string; smallModel: string } | undefined;
 
-  // Bedrock provider
-  const bedrockProvider = providerSettings.connectedProviders.bedrock;
-  if (
-    bedrockProvider?.connectionStatus === 'connected' &&
-    bedrockProvider.credentials.type === 'bedrock'
-  ) {
-    const creds = bedrockProvider.credentials;
-    const bedrockOptions: Record<string, string> = {
-      region: creds.region || 'us-east-1',
-    };
-    if (creds.authMethod === 'profile' && creds.profileName) {
-      bedrockOptions.profile = creds.profileName;
-    }
-
-    // For Bedrock, we need to register the selected model in the models field
-    // so OpenCode can find it (otherwise it looks in built-in models which have region prefixes)
-    const bedrockModels: Record<string, ProviderModelConfig> = {};
-    if (activeModel?.provider === 'bedrock' && activeModel.model) {
-      // Extract model ID without provider prefix (e.g., "anthropic.claude-opus..." from "amazon-bedrock/anthropic.claude-opus...")
-      const modelId = activeModel.model.replace(/^amazon-bedrock\//, '');
-      bedrockModels[modelId] = { name: modelId, tools: true };
-    }
-
-    providerConfigs.push({
-      id: 'amazon-bedrock',
-      options: bedrockOptions,
-      ...(Object.keys(bedrockModels).length > 0 ? { models: bedrockModels } : {}),
-    });
-    log.info('[OpenCode Config Builder] Bedrock configured:', {
-      options: bedrockOptions,
-      models: Object.keys(bedrockModels),
-    });
-  } else {
-    const bedrockCredsJson = getApiKey('bedrock');
-    if (bedrockCredsJson) {
-      try {
-        const creds = JSON.parse(bedrockCredsJson) as BedrockCredentials;
-        const bedrockOptions: Record<string, string> = {
-          region: creds.region || 'us-east-1',
-        };
-        if (creds.authType === 'profile' && creds.profileName) {
-          bedrockOptions.profile = creds.profileName;
-        }
-
-        // For Bedrock, register the selected model so OpenCode can find it
-        const bedrockModels: Record<string, ProviderModelConfig> = {};
-        if (activeModel?.provider === 'bedrock' && activeModel.model) {
-          const modelId = activeModel.model.replace(/^amazon-bedrock\//, '');
-          bedrockModels[modelId] = { name: modelId, tools: true };
-        }
-
-        providerConfigs.push({
-          id: 'amazon-bedrock',
-          options: bedrockOptions,
-          ...(Object.keys(bedrockModels).length > 0 ? { models: bedrockModels } : {}),
-        });
-        log.info('[OpenCode Config Builder] Bedrock (legacy) configured:', {
-          options: bedrockOptions,
-          models: Object.keys(bedrockModels),
-        });
-      } catch (e) {
-        log.warn(`[OpenCode Config Builder] Failed to parse Bedrock credentials: ${e}`);
+  for (const result of results) {
+    providerConfigs.push(...result.configs);
+    for (const id of result.enableToAdd) {
+      if (!enabledProviders.includes(id)) {
+        enabledProviders.push(id);
       }
     }
-  }
-
-  if (activeModel?.provider === 'bedrock' && activeModel.model) {
-    modelOverride = {
-      model: activeModel.model,
-      smallModel: activeModel.model,
-    };
-    log.info(`[OpenCode Config Builder] Bedrock model override: ${modelOverride}`);
-  }
-
-  // Vertex AI provider
-  const vertexProvider = providerSettings.connectedProviders.vertex;
-  if (
-    vertexProvider?.connectionStatus === 'connected' &&
-    vertexProvider.credentials.type === 'vertex'
-  ) {
-    const creds = vertexProvider.credentials as VertexProviderCredentials;
-    const vertexOptions: Record<string, string> = {
-      project: creds.projectId,
-      location: creds.location,
-    };
-
-    const vertexModels: Record<string, ProviderModelConfig> = {};
-    if (activeModel?.provider === 'vertex' && activeModel.model) {
-      // Model IDs are stored as "vertex/{publisher}/{model}" (e.g. "vertex/google/gemini-2.5-flash")
-      // but @ai-sdk/google-vertex expects just the model name (e.g. "gemini-2.5-flash")
-      const modelId = activeModel.model.replace(/^vertex\/[^/]+\//, '');
-      vertexModels[modelId] = { name: modelId, tools: true };
+    if (result.modelOverride) {
+      modelOverride = result.modelOverride;
     }
-
-    providerConfigs.push({
-      id: 'vertex',
-      npm: '@ai-sdk/google-vertex',
-      name: 'Google Vertex AI',
-      options: vertexOptions,
-      ...(Object.keys(vertexModels).length > 0 ? { models: vertexModels } : {}),
-    });
-    log.info('[OpenCode Config Builder] Vertex AI configured:', {
-      options: vertexOptions,
-      models: Object.keys(vertexModels),
-    });
-  }
-
-  if (activeModel?.provider === 'vertex' && activeModel.model) {
-    // Strip publisher from "vertex/{publisher}/{model}" → "vertex/{model}"
-    const vertexModelId = activeModel.model.replace(/^vertex\/[^/]+\//, '');
-    modelOverride = {
-      model: `vertex/${vertexModelId}`,
-      smallModel: `vertex/${vertexModelId}`,
-    };
-    log.info(`[OpenCode Config Builder] Vertex model override: ${modelOverride}`);
-  }
-
-  // LiteLLM provider
-  const litellmProvider = providerSettings.connectedProviders.litellm;
-  if (
-    litellmProvider?.connectionStatus === 'connected' &&
-    litellmProvider.credentials.type === 'litellm' &&
-    litellmProvider.selectedModelId
-  ) {
-    const litellmApiKey = getApiKey('litellm');
-    providerConfigs.push({
-      id: 'litellm',
-      npm: '@ai-sdk/openai-compatible',
-      name: 'LiteLLM',
-      options: {
-        baseURL: `${litellmProvider.credentials.serverUrl}/v1`,
-        ...(litellmApiKey ? { apiKey: litellmApiKey } : {}),
-      },
-      models: {
-        [litellmProvider.selectedModelId]: { name: litellmProvider.selectedModelId, tools: true },
-      },
-    });
-    log.info(`[OpenCode Config Builder] LiteLLM configured: ${litellmProvider.selectedModelId}`);
-  }
-
-  // LM Studio provider
-  const lmstudioProvider = providerSettings.connectedProviders.lmstudio;
-  if (
-    lmstudioProvider?.connectionStatus === 'connected' &&
-    lmstudioProvider.credentials.type === 'lmstudio' &&
-    lmstudioProvider.selectedModelId
-  ) {
-    const modelId = lmstudioProvider.selectedModelId.replace(/^lmstudio\//, '');
-    const modelInfo = lmstudioProvider.availableModels?.find(
-      (m) => m.id === lmstudioProvider.selectedModelId || m.id === modelId,
-    );
-    const supportsTools = (modelInfo as { toolSupport?: string })?.toolSupport === 'supported';
-    providerConfigs.push({
-      id: 'lmstudio',
-      npm: '@ai-sdk/openai-compatible',
-      name: 'LM Studio',
-      options: {
-        baseURL: `${lmstudioProvider.credentials.serverUrl}/v1`,
-      },
-      models: {
-        [modelId]: { name: modelId, tools: supportsTools },
-      },
-    });
-    log.info(
-      `[OpenCode Config Builder] LM Studio configured: ${modelId} (tools: ${supportsTools})`,
-    );
-  } else {
-    const lmstudioConfig = getLMStudioConfig();
-    const lmstudioModels = lmstudioConfig?.models;
-    if (lmstudioConfig?.enabled && lmstudioModels && lmstudioModels.length > 0) {
-      const models: Record<string, ProviderModelConfig> = {};
-      for (const model of lmstudioModels) {
-        models[model.id] = { name: model.name, tools: model.toolSupport === 'supported' };
-      }
-      providerConfigs.push({
-        id: 'lmstudio',
-        npm: '@ai-sdk/openai-compatible',
-        name: 'LM Studio',
-        options: { baseURL: `${lmstudioConfig.baseUrl}/v1` },
-        models,
-      });
-      log.info(`[OpenCode Config Builder] LM Studio (legacy) configured: ${Object.keys(models)}`);
-    }
-  }
-
-  // NVIDIA NIM provider
-  const nimProvider = providerSettings.connectedProviders.nim;
-  if (
-    nimProvider?.connectionStatus === 'connected' &&
-    nimProvider.credentials.type === 'nim' &&
-    nimProvider.selectedModelId
-  ) {
-    const nimApiKey = getApiKey('nim');
-    const serverUrl = nimProvider.credentials.serverUrl;
-    const modelId = nimProvider.selectedModelId.replace(/^nim\//, '');
-    providerConfigs.push({
-      id: 'nim',
-      npm: '@ai-sdk/openai-compatible',
-      name: 'NVIDIA NIM',
-      options: {
-        baseURL: serverUrl,
-        ...(nimApiKey ? { apiKey: nimApiKey } : {}),
-      },
-      models: {
-        [modelId]: { name: modelId, tools: true },
-      },
-    });
-    if (!enabledProviders.includes('nim')) {
-      enabledProviders.push('nim');
-    }
-    log.info(`[OpenCode Config Builder] NVIDIA NIM configured: ${modelId} baseURL: ${serverUrl}`);
-  }
-
-  // Custom OpenAI-compatible provider
-  const customProvider = providerSettings.connectedProviders.custom;
-  if (
-    customProvider?.connectionStatus === 'connected' &&
-    customProvider.credentials.type === 'custom' &&
-    customProvider.selectedModelId
-  ) {
-    const customApiKey = getApiKey('custom');
-    const creds = customProvider.credentials;
-    // Normalize base URL - remove trailing slash, use as-is (user should provide correct base URL)
-    const baseURL = creds.baseUrl.replace(/\/+$/, '');
-    const modelId = customProvider.selectedModelId.replace(/^custom\//, '');
-    providerConfigs.push({
-      id: 'custom',
-      npm: '@ai-sdk/openai-compatible',
-      name: 'Custom Endpoint',
-      options: {
-        baseURL,
-        ...(customApiKey ? { apiKey: customApiKey } : {}),
-      },
-      models: {
-        [modelId]: { name: modelId, tools: true },
-      },
-    });
-    if (!enabledProviders.includes('custom')) {
-      enabledProviders.push('custom');
-    }
-    log.info(
-      `[OpenCode Config Builder] Custom endpoint configured: ${modelId} baseURL: ${baseURL}`,
-    );
-  }
-
-  // Azure Foundry provider
-  const azureFoundryProvider = providerSettings.connectedProviders['azure-foundry'];
-  if (
-    azureFoundryProvider?.connectionStatus === 'connected' &&
-    azureFoundryProvider.credentials.type === 'azure-foundry'
-  ) {
-    const creds = azureFoundryProvider.credentials;
-    const config = await buildAzureFoundryProviderConfig(
-      creds.endpoint,
-      creds.deploymentName,
-      creds.authMethod,
-      getApiKey,
-      azureFoundryToken,
-    );
-    if (config) {
-      providerConfigs.push(config);
-      if (!enabledProviders.includes('azure-foundry')) {
-        enabledProviders.push('azure-foundry');
-      }
-      log.info('[OpenCode Config Builder] Azure Foundry configured:', {
-        deployment: creds.deploymentName,
-        authMethod: creds.authMethod,
-      });
-    }
-  } else {
-    const azureFoundryConfig = getAzureFoundryConfig();
-    if (azureFoundryConfig?.enabled && activeModel?.provider === 'azure-foundry') {
-      const config = await buildAzureFoundryProviderConfig(
-        azureFoundryConfig.baseUrl,
-        azureFoundryConfig.deploymentName || 'default',
-        azureFoundryConfig.authType,
-        getApiKey,
-        azureFoundryToken,
-      );
-      if (config) {
-        providerConfigs.push(config);
-        if (!enabledProviders.includes('azure-foundry')) {
-          enabledProviders.push('azure-foundry');
-        }
-        log.info('[OpenCode Config Builder] Azure Foundry (legacy) configured:', {
-          deployment: azureFoundryConfig.deploymentName,
-          authType: azureFoundryConfig.authType,
-        });
-      }
-    }
-  }
-
-  // MiniMax provider
-  const minimaxProvider = providerSettings.connectedProviders.minimax;
-  if (minimaxProvider?.connectionStatus === 'connected' && minimaxProvider.selectedModelId) {
-    const modelId = minimaxProvider.selectedModelId.replace(/^minimax\//, '');
-    const minimaxApiKey = getApiKey('minimax');
-    const rawBaseUrl = (minimaxProvider.customBaseUrl || MINIMAX_DEFAULT_BASE_URL).trim();
-    const baseUrl = rawBaseUrl.replace(/\/+$/, '') || MINIMAX_DEFAULT_BASE_URL;
-    providerConfigs.push({
-      id: 'minimax',
-      npm: '@ai-sdk/openai-compatible',
-      name: 'MiniMax',
-      options: {
-        baseURL: baseUrl,
-        ...(minimaxApiKey ? { apiKey: minimaxApiKey } : {}),
-      },
-      models: {
-        [modelId]: { name: modelId, tools: true },
-      },
-    });
-    log.info(`[OpenCode Config Builder] MiniMax configured: ${modelId} ${'baseURL:'} ${baseUrl}`);
-  }
-
-  // Z.AI provider
-  const zaiKey = getApiKey('zai');
-  if (zaiKey) {
-    const zaiProvider = providerSettings.connectedProviders.zai;
-    const zaiCredentials = zaiProvider?.credentials as ZaiCredentials | undefined;
-    const zaiRegion = zaiCredentials?.region || 'international';
-    const zaiEndpoint = ZAI_ENDPOINTS[zaiRegion];
-
-    const zaiModels: Record<string, ProviderModelConfig> = {};
-
-    // Prefer dynamically fetched models from connected provider
-    if (zaiProvider?.availableModels && zaiProvider.availableModels.length > 0) {
-      for (const model of zaiProvider.availableModels) {
-        const modelId = model.id.replace(/^zai\//, '');
-        zaiModels[modelId] = { name: model.name, tools: true };
-      }
-    } else {
-      // Fall back to static models from DEFAULT_PROVIDERS
-      const zaiProviderConfig = DEFAULT_PROVIDERS.find((p) => p.id === 'zai');
-      if (zaiProviderConfig) {
-        for (const model of zaiProviderConfig.models) {
-          zaiModels[model.id] = { name: model.displayName, tools: true };
-        }
-      }
-    }
-
-    providerConfigs.push({
-      id: 'zai-coding-plan',
-      npm: '@ai-sdk/openai-compatible',
-      name: 'Z.AI Coding Plan',
-      options: { baseURL: zaiEndpoint, apiKey: zaiKey },
-      models: zaiModels,
-    });
-    log.info(`[OpenCode Config Builder] Z.AI Coding Plan configured, region: ${zaiRegion}`);
-  }
-
-  // OpenAI-compatible cloud providers (Nebius, Together, Fireworks, Groq)
-  for (const providerId of OPENAI_COMPATIBLE_PROVIDER_IDS) {
-    const apiKey = getApiKey(providerId);
-    if (!apiKey) {
-      continue;
-    }
-
-    const providerDef = DEFAULT_PROVIDERS.find((p) => p.id === providerId);
-    if (!providerDef?.modelsEndpoint) {
-      log.warn(
-        `[config-builder] Skipping provider "${providerId}": missing provider definition or modelsEndpoint`,
-      );
-      continue;
-    }
-
-    const baseURL = providerDef.baseUrl
-      ? providerDef.baseUrl.replace(/\/$/, '')
-      : providerDef.modelsEndpoint.url.replace(/\/models$/, '');
-
-    const connectedProvider = providerSettings.connectedProviders[providerId];
-    const models: Record<string, ProviderModelConfig> = {};
-
-    if (connectedProvider?.availableModels && connectedProvider.availableModels.length > 0) {
-      for (const model of connectedProvider.availableModels) {
-        const prefix = `${providerId}/`;
-        const modelId = model.id.startsWith(prefix) ? model.id.slice(prefix.length) : model.id;
-        models[modelId] = { name: model.name, tools: true };
-      }
-    } else if (providerDef.models.length > 0) {
-      for (const model of providerDef.models) {
-        models[model.id] = { name: model.displayName, tools: true };
-      }
-    }
-
-    // Fall back to defaultModelId so the provider always has at least one resolvable model
-    if (Object.keys(models).length === 0 && providerDef.defaultModelId) {
-      const prefix = `${providerId}/`;
-      const modelId = providerDef.defaultModelId.startsWith(prefix)
-        ? providerDef.defaultModelId.slice(prefix.length)
-        : providerDef.defaultModelId;
-      models[modelId] = { name: modelId, tools: true };
-    }
-
-    providerConfigs.push({
-      id: providerId,
-      npm: '@ai-sdk/openai-compatible',
-      name: providerDef.name,
-      options: { baseURL, apiKey },
-      ...(Object.keys(models).length > 0 ? { models } : {}),
-    });
-    log.info(`[OpenCode Config Builder] ${providerDef.name} configured`);
-  }
-
-  // GitHub Copilot provider (OAuth-based, no API key)
-  const copilotProvider = providerSettings.connectedProviders.copilot;
-  if (
-    copilotProvider?.connectionStatus === 'connected' &&
-    copilotProvider.credentials.type === 'copilot-oauth'
-  ) {
-    const copilotModels: Record<string, ProviderModelConfig> = {};
-    if (copilotProvider.availableModels && copilotProvider.availableModels.length > 0) {
-      for (const model of copilotProvider.availableModels) {
-        const modelId = model.id.replace(/^copilot\//, '');
-        copilotModels[modelId] = { name: model.name, tools: true };
-      }
-    } else if (copilotProvider.selectedModelId) {
-      const modelId = copilotProvider.selectedModelId.replace(/^copilot\//, '');
-      copilotModels[modelId] = { name: modelId, tools: true };
-    }
-
-    providerConfigs.push({
-      id: 'github-copilot',
-      npm: '@opencode/github-copilot',
-      name: 'GitHub Copilot',
-      options: {},
-      ...(Object.keys(copilotModels).length > 0 ? { models: copilotModels } : {}),
-    });
-    if (!enabledProviders.includes('github-copilot')) {
-      enabledProviders.push('github-copilot');
-    }
-    log.info('[OpenCode Config Builder] GitHub Copilot configured');
   }
 
   return { providerConfigs, enabledProviders, modelOverride };
-}
-
-const AUTH_KEY_MAPPING: Record<string, string> = {
-  deepseek: 'deepseek',
-  zai: 'zai-coding-plan',
-  minimax: 'minimax',
-  ...Object.fromEntries(OPENAI_COMPATIBLE_PROVIDER_IDS.map((id) => [id, id])),
-};
-
-/**
- * Syncs API keys to OpenCode auth.json file.
- *
- * OpenCode auth.json keys must match provider IDs; the mapping bridges internal IDs to those keys.
- *
- * @param authPath - Path to the auth.json file
- * @param apiKeys - Record of provider IDs to API keys (null values are ignored)
- */
-export async function syncApiKeysToOpenCodeAuth(
-  authPath: string,
-  apiKeys: Record<string, string | null | undefined>,
-): Promise<void> {
-  const authDir = path.dirname(authPath);
-
-  if (!fs.existsSync(authDir)) {
-    fs.mkdirSync(authDir, { recursive: true });
-  }
-
-  let auth: Record<string, { type: string; key: string }> = {};
-  if (fs.existsSync(authPath)) {
-    try {
-      auth = JSON.parse(fs.readFileSync(authPath, 'utf-8'));
-    } catch (_e) {
-      log.warn('[OpenCode Auth] Failed to parse existing auth.json, creating new one');
-      auth = {};
-    }
-  }
-
-  let updated = false;
-
-  for (const [internalId, authId] of Object.entries(AUTH_KEY_MAPPING)) {
-    const key = apiKeys[internalId];
-    if (key && (!auth[authId] || auth[authId].key !== key)) {
-      auth[authId] = { type: 'api', key };
-      updated = true;
-      log.info(`[OpenCode Auth] Synced ${internalId} API key`);
-    }
-  }
-
-  if (updated) {
-    fs.writeFileSync(authPath, JSON.stringify(auth, null, 2));
-    log.info(`[OpenCode Auth] Updated auth.json at: ${authPath}`);
-  }
 }

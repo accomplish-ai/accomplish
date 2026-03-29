@@ -2,24 +2,17 @@ import path from 'path';
 import fs from 'fs';
 import type { ProviderId } from '../common/types/providerSettings.js';
 import type { Skill } from '../common/types/skills.js';
-import { OPENCODE_SLACK_MCP_SERVER_URL, OPENCODE_SLACK_MCP_CLIENT_ID } from './auth.js';
-import { MCP_TOOL_TIMEOUT_MS } from '../common/constants.js';
 import { createConsoleLogger } from '../utils/logging.js';
+import {
+  getPlatformEnvironmentInstructions,
+  ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE,
+} from './system-prompt.js';
+import { buildMcpServers } from './generator-mcp.js';
+export type { BrowserConfig, McpServerConfig } from './generator-mcp.js';
 
 const log = createConsoleLogger({ prefix: 'OpenCodeConfig' });
 
 export const ACCOMPLISH_AGENT_NAME = 'accomplish';
-
-export interface BrowserConfig {
-  /** 'builtin' = dev-browser HTTP server (default), 'remote' = connect to CDP endpoint, 'none' = no browser */
-  mode: 'builtin' | 'remote' | 'none';
-  /** For 'remote': the CDP endpoint URL */
-  cdpEndpoint?: string;
-  /** For 'remote': auth headers (e.g. { 'X-CDP-Secret': '...' }) */
-  cdpHeaders?: Record<string, string>;
-  /** For 'builtin': run headless */
-  headless?: boolean;
-}
 
 export interface ConfigGeneratorOptions {
   platform: NodeJS.Platform;
@@ -44,7 +37,7 @@ export interface ConfigGeneratorOptions {
   smallModel?: string;
   enabledProviders?: string[];
   /** Browser configuration. Defaults to { mode: 'builtin' } */
-  browser?: BrowserConfig;
+  browser?: import('./generator-mcp.js').BrowserConfig;
   /** Connected MCP remote servers with OAuth access tokens */
   connectors?: Array<{
     id: string;
@@ -76,27 +69,10 @@ export interface ProviderModelConfig {
 
 export interface GeneratedConfig {
   systemPrompt: string;
-  mcpServers: Record<string, McpServerConfig>;
+  mcpServers: Record<string, import('./generator-mcp.js').McpServerConfig>;
   environment: Record<string, string>;
   config: OpenCodeConfigFile;
   configPath: string;
-}
-
-interface McpServerConfig {
-  type?: 'local' | 'remote';
-  command?: string[];
-  url?: string;
-  headers?: Record<string, string>;
-  enabled?: boolean;
-  environment?: Record<string, string>;
-  timeout?: number;
-  oauth?:
-    | false
-    | {
-        clientId?: string;
-        clientSecret?: string;
-        scope?: string;
-      };
 }
 
 interface AgentConfig {
@@ -113,260 +89,10 @@ interface OpenCodeConfigFile {
   enabled_providers?: string[];
   permission?: string | Record<string, string | Record<string, string>>;
   agent?: Record<string, AgentConfig>;
-  mcp?: Record<string, McpServerConfig>;
+  mcp?: Record<string, import('./generator-mcp.js').McpServerConfig>;
   provider?: Record<string, Omit<ProviderConfig, 'id'>>;
   plugin?: string[];
   experimental?: Record<string, unknown>;
-}
-
-function getPlatformEnvironmentInstructions(platform: NodeJS.Platform): string {
-  if (platform === 'win32') {
-    return `<environment>
-**You are running on Windows.** Use Windows-compatible commands:
-- Use PowerShell syntax, not bash/Unix syntax
-- Use \`$env:TEMP\` for temp directory (not /tmp)
-- Use semicolon (;) for PATH separator (not colon)
-- Use \`$env:VAR\` for environment variables (not $VAR)
-</environment>`;
-  } else {
-    return `<environment>
-You are running on ${platform === 'darwin' ? 'macOS' : 'Linux'}.
-</environment>`;
-  }
-}
-
-const ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE = `<identity>
-You are Accomplish, a {{AGENT_ROLE}} assistant.
-</identity>
-
-{{ENVIRONMENT_INSTRUCTIONS}}
-
-<behavior name="conversational-bypass">
-##############################################################################
-# CONVERSATIONAL BYPASS - USE FOR SIMPLE CHAT
-##############################################################################
-
-If a request can be completed without tools or multi-step execution (for example: greetings,
-thanks, short acknowledgements, small talk, or simple direct questions), respond directly.
-
-In conversational mode:
-- Do NOT call start_task
-- Do NOT call todowrite
-- Do NOT call complete_task
-- Keep responses concise by default (1-3 sentences)
-- Do NOT proactively list capabilities
-
-Conversational-bypass interactions are not task workflows. The global complete_task
-requirement in TASK COMPLETION applies only to non-conversational task workflows.
-
-Only enter task workflow when the request needs tools, file operations, browsing, or clear
-multi-step execution.
-
-##############################################################################
-</behavior>
-
-<behavior name="task-planning">
-##############################################################################
-# CRITICAL: TASK WORKFLOW (NON-CONVERSATIONAL TASKS)
-##############################################################################
-
-For non-conversational tasks, you MUST call start_task before any other tool. This is enforced -
-other tools will fail until start_task is called.
-
-**Decide: Does this request need planning?**
-
-Set \`needs_planning: true\` if completing the request will require tools beyond start_task and complete_task (e.g., file operations, browser actions, bash commands, desktop automation).
-
-## Desktop Automation Safety
-- ALL desktop.* tools require per-action user approval — the user will see each action before it executes.
-- NEVER automate password managers (1Password, Bitwarden, etc.), banking apps, or system security tools.
-- ALWAYS use desktop.screenshot() to verify screen state before and after actions.
-- ALWAYS use desktop.listWindows() before interacting with a window to confirm it exists.
-- Use desktop.type() only after focusing the target input with desktop.click().
-- **CRITICAL:** Any task that involves desktop.* tools MUST use \`needs_planning: true\` in the start_task call. Desktop automation is inherently destructive — plan your steps before executing.
-
-Set \`needs_planning: false\` for conversational responses that do not require tools.
-In this mode, respond directly and stop (no \`start_task\`, no \`complete_task\`).
-This includes greetings, short knowledge questions, meta-questions about capabilities, help requests, and conversational messages.
-
-**When needs_planning is TRUE** — provide goal, steps, verification:
-
-start_task requires:
-- original_request: Echo the user's request exactly as stated
-- goal: What you aim to accomplish
-- steps: Array of planned actions to achieve the goal
-- verification: Array of how you will verify the task is complete
-- skills: Array of relevant skill names from <available-skills> (or empty [] if none apply)
-
-**STEP 2: UPDATE TODOS AS YOU PROGRESS**
-
-As you complete each step, call \`todowrite\` to update progress:
-- Mark completed steps as "completed"
-- Mark the current step as "in_progress"
-- Keep the same step content - do NOT change the text
-
-**STEP 3: COMPLETE ALL TODOS BEFORE FINISHING**
-
-All todos must be "completed" or "cancelled" before calling complete_task.
-
-WRONG: Starting work without calling start_task first
-WRONG: Forgetting to update todos as you progress
-CORRECT: Call start_task FIRST, update todos as you work, then complete_task
-
-Do not list capabilities unless the user explicitly asks.
-
-**When needs_planning is FALSE** — skip goal, steps, verification. Respond directly with your text answer and stop. Do NOT call complete_task for conversational responses.
-
-##############################################################################
-</behavior>
-
-<capabilities>
-When users ask about your capabilities, mention:
-{{BROWSER_CAPABILITY}}- **Desktop Automation**: Control the mouse, keyboard, and application windows on the native desktop; take screenshots
-- **File Management**: Sort, rename, and move files based on content or rules you give it
-- **Slack**: Use the built-in Slack connector for Slack work. When authenticated, read Slack context and send messages to channels, threads, or direct messages
-</capabilities>
-
-<important name="filesystem-rules">
-##############################################################################
-# CRITICAL: FILE PERMISSION WORKFLOW - NEVER SKIP
-##############################################################################
-
-BEFORE using Write, Edit, Bash (with file ops), or ANY tool that touches files:
-1. FIRST: Call request_file_permission tool and wait for response
-2. ONLY IF response is "allowed": Proceed with the file operation
-3. IF "denied": Stop and inform the user
-
-WRONG (never do this):
-  Write({ path: "/tmp/file.txt", content: "..." })  ← NO! Permission not requested!
-
-CORRECT (always do this):
-  request_file_permission({ operation: "create", filePath: "/tmp/file.txt" })
-  → Wait for "allowed"
-  Write({ path: "/tmp/file.txt", content: "..." })  ← OK after permission granted
-
-This applies to ALL file operations:
-- Creating files (Write tool, bash echo/cat, scripts that output files)
-- Renaming files (bash mv, rename commands)
-- Deleting files (bash rm, delete commands)
-- Modifying files (Edit tool, bash sed/awk, any content changes)
-##############################################################################
-</important>
-
-<tool name="request_file_permission">
-Use this MCP tool to request user permission before performing file operations.
-
-<parameters>
-Input:
-{
-  "operation": "create" | "delete" | "rename" | "move" | "modify" | "overwrite",
-  "filePath": "/absolute/path/to/file",
-  "targetPath": "/new/path",       // Required for rename/move
-  "contentPreview": "file content" // Optional preview for create/modify/overwrite
-}
-
-Operations:
-- create: Creating a new file
-- delete: Deleting an existing file or folder
-- rename: Renaming a file (provide targetPath)
-- move: Moving a file to different location (provide targetPath)
-- modify: Modifying existing file content
-- overwrite: Replacing entire file content
-
-Returns: "allowed" or "denied" - proceed only if allowed
-</parameters>
-
-<example>
-request_file_permission({
-  operation: "create",
-  filePath: "/Users/john/Desktop/report.txt"
-})
-// Wait for response, then proceed only if "allowed"
-</example>
-</tool>
-
-<important name="user-communication">
-CRITICAL: The user CANNOT see your text output or CLI prompts!
-To ask ANY question or get user input, you MUST use the AskUserQuestion MCP tool.
-See the ask-user-question MCP tool for full documentation and examples.
-</important>
-
-<behavior>
-- Use AskUserQuestion tool for clarifying questions before starting ambiguous tasks
-- For Slack-related requests, use the Slack MCP tools that are actually available at runtime instead of drafting a message and pretending it was sent
-- Typical Slack work includes sending a message, replying in a thread, checking recent Slack context before replying, and finding the right channel or conversation when the user gives enough detail
-- Never invent Slack tool names or assume Slack authentication already exists
-- For Slack-related requests, the built-in Slack connector is the default path. Prefer it over manual Slack instructions whenever possible
-- Never answer a Slack access request with generic advice like "open Slack directly" or "check Slack manually" unless the user explicitly asks for a manual workaround
-- If the user asks you to connect or authenticate Slack, use request-connector-auth_request_connector_auth instead of ask-user-question_AskUserQuestion
-- If Slack authentication is required or Slack tools are unavailable, stop and call request-connector-auth_request_connector_auth before you continue
-- For Slack auth pauses, use providerId: "slack", label: "Authenticate Slack", pendingLabel: "Authenticating Slack...", and successText: "Slack is connected."
-- In the message you pass to request-connector-auth_request_connector_auth, briefly explain why you need Slack and tell the user they can also authenticate manually via Settings -> Connectors -> Slack by clicking the Authenticate button on the Slack card
-- After calling request-connector-auth_request_connector_auth, stop and wait for the task to resume. Do not continue working until the user authenticates Slack
-- If the user wants you to send a Slack message but they did not specify the destination clearly enough, ask a clarifying question before sending anything
-- Do not claim a Slack message was sent unless the Slack MCP tool confirms success
-- After a successful Slack send, briefly confirm where you sent it and summarize what you sent
-{{BROWSER_BEHAVIOR}}- Don't announce server checks or startup - proceed directly to the task
-- Only use AskUserQuestion when you genuinely need user input or decisions
-
-**DO NOT ASK FOR PERMISSION TO CONTINUE:**
-If the user gave you a task with specific criteria (e.g., "find 8-15 results", "check all items"):
-- Keep working until you meet those criteria
-- Do NOT pause to ask "Would you like me to continue?" or "Should I keep going?"
-- Do NOT stop after reviewing just a few items when the task asks for more
-- Just continue working until the task requirements are met
-- Only use AskUserQuestion for genuine clarifications about requirements, NOT for progress check-ins
-
-**TASK COMPLETION - CRITICAL:**
-
-You MUST call the \`complete_task\` tool when \`needs_planning\` was true. For conversational responses (\`needs_planning: false\`), do NOT call complete_task — just respond and stop naturally.
-
-When to call \`complete_task\`:
-
-1. **status: "success"** - You verified EVERY part of the user's request is done
-   - Before calling, re-read the original request
-   - Check off each requirement mentally
-   - Summarize what you did for each part
-
-2. **status: "blocked"** - You hit an unresolvable TECHNICAL blocker
-   - Only use for: login walls, CAPTCHAs, rate limits, site errors, missing permissions
-   - NOT for: "task is large", "many items to check", "would take many steps"
-   - If the task is big but doable, KEEP WORKING - do not use blocked as an excuse to quit
-   - Explain what you were trying to do
-   - Describe what went wrong
-   - State what remains undone in \`remaining_work\`
-
-3. **status: "partial"** - AVOID THIS STATUS
-   - Only use if you are FORCED to stop mid-task (context limit approaching, etc.)
-   - The system will automatically continue you to finish the remaining work
-   - If you use partial, you MUST fill in remaining_work with specific next steps
-   - Do NOT use partial as a way to ask "should I continue?" - just keep working
-   - If you've done some work and can keep going, KEEP GOING - don't use partial
-
-**NEVER** just stop working. If you find yourself about to end without calling \`complete_task\`,
-ask yourself: "Did I actually finish what was asked?" If unsure, keep working.
-
-The \`original_request_summary\` field forces you to re-read the request - use this as a checklist.
-</behavior>
-`;
-
-function resolveMcpCommand(
-  mcpToolsPath: string,
-  mcpName: string,
-  distRelPath: string,
-  nodePath: string,
-): string[] {
-  const mcpDir = path.join(mcpToolsPath, mcpName);
-  const distPath = path.join(mcpDir, distRelPath);
-
-  if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `[OpenCode Config] Missing MCP dist entry: ${distPath}. ` +
-        'Run "pnpm -F @accomplish/desktop build:mcp-tools:dev" before launching.',
-    );
-  }
-
-  return [nodePath, distPath];
 }
 
 export function generateConfig(options: ConfigGeneratorOptions): GeneratedConfig {
@@ -450,116 +176,15 @@ ${options.knowledgeNotes}
     throw new Error(`[OpenCode Config] Missing bundled Node.js executable: ${nodeExe}`);
   }
 
-  const mcpServers: Record<string, McpServerConfig> = {
-    slack: {
-      type: 'remote',
-      url: OPENCODE_SLACK_MCP_SERVER_URL,
-      oauth: {
-        clientId: OPENCODE_SLACK_MCP_CLIENT_ID,
-      },
-    },
-    'file-permission': {
-      type: 'local',
-      command: resolveMcpCommand(mcpToolsPath, 'file-permission', 'dist/index.mjs', nodeExe),
-      enabled: true,
-      environment: {
-        PERMISSION_API_PORT: String(permissionApiPort),
-      },
-      timeout: 30000,
-    },
-    'ask-user-question': {
-      type: 'local',
-      command: resolveMcpCommand(mcpToolsPath, 'ask-user-question', 'dist/index.mjs', nodeExe),
-      enabled: true,
-      environment: {
-        QUESTION_API_PORT: String(questionApiPort),
-      },
-      timeout: 600000, // 10 minutes — user needs time to read and respond
-    },
-    'request-connector-auth': {
-      type: 'local',
-      command: resolveMcpCommand(mcpToolsPath, 'request-connector-auth', 'dist/index.mjs', nodeExe),
-      enabled: true,
-      timeout: MCP_TOOL_TIMEOUT_MS,
-    },
-    'complete-task': {
-      type: 'local',
-      command: resolveMcpCommand(mcpToolsPath, 'complete-task', 'dist/index.mjs', nodeExe),
-      enabled: true,
-      timeout: 30000,
-    },
-    'start-task': {
-      type: 'local',
-      command: resolveMcpCommand(mcpToolsPath, 'start-task', 'dist/index.mjs', nodeExe),
-      enabled: true,
-      timeout: 30000,
-    },
-    'desktop-control': {
-      type: 'local',
-      command: resolveMcpCommand(mcpToolsPath, 'desktop-control', 'dist/index.mjs', nodeExe),
-      enabled: true,
-      environment: {
-        PERMISSION_API_PORT: String(permissionApiPort),
-      },
-      timeout: 60000,
-    },
-  };
-
-  // Conditionally register dev-browser-mcp based on browser config
-  const browserConfig = options.browser ?? { mode: 'builtin' };
-
-  if (browserConfig.mode !== 'none') {
-    const browserEnv: Record<string, string> = {};
-
-    if (browserConfig.mode === 'remote') {
-      if (browserConfig.cdpEndpoint) {
-        browserEnv.CDP_ENDPOINT = browserConfig.cdpEndpoint;
-      }
-      if (browserConfig.cdpHeaders) {
-        for (const [key, value] of Object.entries(browserConfig.cdpHeaders)) {
-          if (key === 'X-CDP-Secret') {
-            browserEnv.CDP_SECRET = value;
-          }
-        }
-      }
-    }
-
-    mcpServers['dev-browser-mcp'] = {
-      type: 'local',
-      command: resolveMcpCommand(mcpToolsPath, 'dev-browser-mcp', 'dist/index.mjs', nodeExe),
-      enabled: true,
-      ...(Object.keys(browserEnv).length > 0 && { environment: browserEnv }),
-      timeout: 30000,
-    };
-  }
-
-  // Add connected MCP connectors as remote servers
-  if (options.connectors) {
-    for (const connector of options.connectors) {
-      // Use short sanitized name + ID suffix as key to prevent collisions
-      const sanitized = connector.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '')
-        .slice(0, 20);
-      const baseName = sanitized || 'mcp-remote';
-      const idSuffix = connector.id.slice(0, 6);
-      let key = `connector-${baseName}-${idSuffix}`;
-      // Guard against unlikely collision with existing keys
-      if (mcpServers[key]) {
-        let i = 1;
-        while (mcpServers[`${key}-${i}`]) i += 1;
-        key = `${key}-${i}`;
-      }
-      mcpServers[key] = {
-        type: 'remote',
-        url: connector.url,
-        headers: { Authorization: `Bearer ${connector.accessToken}` },
-        enabled: true,
-      };
-    }
-  }
+  const browserConfig = options.browser ?? { mode: 'builtin' as const };
+  const mcpServers = buildMcpServers({
+    mcpToolsPath,
+    nodeExe,
+    permissionApiPort,
+    questionApiPort,
+    browserConfig,
+    connectors: options.connectors,
+  });
 
   // Fill browser-specific template sections based on mode
   const hasBrowser = browserConfig.mode !== 'none';
@@ -635,10 +260,7 @@ Example too terse (avoid):
     ...(smallModel && { small_model: smallModel }),
     default_agent: ACCOMPLISH_AGENT_NAME,
     enabled_providers: enabledProviders,
-    permission: {
-      '*': 'allow',
-      todowrite: 'allow',
-    },
+    permission: { '*': 'allow', todowrite: 'allow' },
     provider: Object.keys(providerConfig).length > 0 ? providerConfig : undefined,
     plugin: ['@tarquinen/opencode-dcp@^2.0.0'],
     agent: {
@@ -675,74 +297,9 @@ Example too terse (avoid):
     environment.NODE_BIN_PATH = bundledNodeBinPath;
   }
 
-  return {
-    systemPrompt,
-    mcpServers,
-    environment,
-    config,
-    configPath,
-  };
+  return { systemPrompt, mcpServers, environment, config, configPath };
 }
 
 export function getOpenCodeConfigPath(userDataPath: string): string {
   return path.join(userDataPath, 'opencode', 'opencode.json');
-}
-
-export interface BuildCliArgsOptions {
-  prompt: string;
-  sessionId?: string;
-  selectedModel?: {
-    provider: string;
-    model: string;
-  } | null;
-}
-
-export function buildCliArgs(options: BuildCliArgsOptions): string[] {
-  const { prompt, sessionId, selectedModel } = options;
-
-  const args: string[] = ['run'];
-
-  // CRITICAL: JSON format required for StreamParser to parse messages
-  args.push('--format', 'json');
-
-  if (selectedModel?.model) {
-    if (selectedModel.provider === 'zai') {
-      const modelId = selectedModel.model.split('/').pop();
-      args.push('--model', `zai-coding-plan/${modelId}`);
-    } else if (selectedModel.provider === 'deepseek') {
-      const modelId = selectedModel.model.split('/').pop();
-      args.push('--model', `deepseek/${modelId}`);
-    } else if (selectedModel.provider === 'openrouter') {
-      args.push('--model', selectedModel.model);
-    } else if (selectedModel.provider === 'ollama') {
-      // Accept both "qwen3:4b" and "ollama/qwen3:4b" inputs consistently
-      const normalizedModelId = selectedModel.model.replace(/^ollama\//, '');
-      args.push('--model', `ollama/${normalizedModelId}`);
-    } else if (selectedModel.provider === 'litellm') {
-      const modelId = selectedModel.model.replace(/^litellm\//, '');
-      args.push('--model', `litellm/${modelId}`);
-    } else if (selectedModel.provider === 'lmstudio') {
-      const modelId = selectedModel.model.replace(/^lmstudio\//, '');
-      args.push('--model', `lmstudio/${modelId}`);
-    } else if (selectedModel.provider === 'vertex') {
-      // Model IDs stored as "vertex/{publisher}/{model}" — strip publisher for @ai-sdk/google-vertex
-      const modelId = selectedModel.model.replace(/^vertex\/[^/]+\//, '');
-      args.push('--model', `vertex/${modelId}`);
-    } else if (selectedModel.provider === 'custom') {
-      const modelId = selectedModel.model.replace(/^custom\//, '');
-      args.push('--model', `custom/${modelId}`);
-    } else {
-      args.push('--model', selectedModel.model);
-    }
-  }
-
-  if (sessionId) {
-    args.push('--session', sessionId);
-  }
-
-  args.push('--agent', ACCOMPLISH_AGENT_NAME);
-
-  args.push(prompt);
-
-  return args;
 }

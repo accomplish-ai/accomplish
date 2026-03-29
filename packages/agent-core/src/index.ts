@@ -107,13 +107,11 @@ export { OpenCodeCliNotFoundError } from './internal/classes/OpenCodeAdapter.js'
 
 // Low-level OpenCode utilities for advanced integrations
 export { resolveCliPath, isCliAvailable } from './opencode/cli-resolver.js';
-export {
-  generateConfig,
-  buildCliArgs,
-  ACCOMPLISH_AGENT_NAME,
-} from './opencode/config-generator.js';
+export { generateConfig, ACCOMPLISH_AGENT_NAME } from './opencode/config-generator.js';
+export { buildCliArgs } from './opencode/cli-args.js';
+export type { BuildCliArgsOptions } from './opencode/cli-args.js';
 
-export type { BrowserConfig } from './opencode/config-generator.js';
+export type { BrowserConfig } from './opencode/generator-mcp.js';
 
 export { buildOpenCodeEnvironment } from './opencode/environment.js';
 export type { EnvironmentConfig } from './opencode/environment.js';

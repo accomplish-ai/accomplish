@@ -1,25 +1,10 @@
-import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Input } from '@/components/ui/input';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
-import { ConnectorCard } from './ConnectorCard';
-import { useConnectors } from './useConnectors';
-import { createLogger } from '@/lib/logger';
-
-const logger = createLogger('ConnectorsPanel');
-
-const slackStatusClass = {
-  connected: 'text-green-600',
-  disconnected: 'text-muted-foreground',
-  pending: 'text-yellow-600',
-};
-
-const slackStatusDotClass = {
-  connected: 'bg-green-500',
-  disconnected: 'bg-muted-foreground',
-  pending: 'bg-yellow-500 animate-pulse',
-};
+import { SlackConnectorSection } from './SlackConnectorSection';
+import { ConnectorAddForm } from './ConnectorAddForm';
+import { ConnectorList } from './ConnectorList';
+import { useConnectorsPanel } from './useConnectorsPanel';
 
 export function ConnectorsPanel() {
   const { t } = useTranslation('settings');
@@ -27,151 +12,21 @@ export function ConnectorsPanel() {
     connectors,
     slackAuth,
     loading,
-    addConnector,
     deleteConnector,
     toggleEnabled,
-    startOAuth,
-    completeOAuth,
     disconnect,
-    authenticateSlack,
-    disconnectSlack,
-  } = useConnectors();
-
-  const [url, setUrl] = useState('');
-  const [adding, setAdding] = useState(false);
-  const [slackActionLoading, setSlackActionLoading] = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
-  const [oauthError, setOauthError] = useState<string | null>(null);
-
-  // Listen for OAuth callback
-  useEffect(() => {
-    const unsubscribe = window.accomplish?.onMcpAuthCallback?.((callbackUrl: string) => {
-      try {
-        const parsed = new URL(callbackUrl);
-        const code = parsed.searchParams.get('code');
-        const state = parsed.searchParams.get('state');
-        if (code && state) {
-          completeOAuth(state, code).catch((err) => {
-            logger.error('Failed to complete OAuth:', err);
-            setOauthError(
-              err instanceof Error ? err.message : t('connectors.oauthCompletionFailed'),
-            );
-          });
-        }
-      } catch (err) {
-        logger.error('Failed to parse OAuth callback URL:', err);
-        setOauthError(t('connectors.invalidOauthCallback'));
-      }
-    });
-
-    return () => unsubscribe?.();
-  }, [completeOAuth, t]);
-
-  const deriveNameFromUrl = useCallback(
-    (serverUrl: string): string => {
-      try {
-        const parsed = new URL(serverUrl);
-        // Use hostname without TLD, capitalize first letter
-        const parts = parsed.hostname.split('.');
-        const name = parts.length > 1 ? parts[parts.length - 2] : parts[0];
-        return name.charAt(0).toUpperCase() + name.slice(1);
-      } catch {
-        return t('connectors.defaultName');
-      }
-    },
-    [t],
-  );
-
-  const handleAdd = useCallback(async () => {
-    const trimmedUrl = url.trim();
-    if (!trimmedUrl) return;
-
-    // Basic URL validation
-    try {
-      const parsed = new URL(trimmedUrl);
-      if (!parsed.protocol.startsWith('http')) {
-        setAddError(t('connectors.urlMustBeHttp'));
-        return;
-      }
-    } catch {
-      setAddError(t('connectors.invalidUrl'));
-      return;
-    }
-
-    setAdding(true);
-    setAddError(null);
-    setOauthError(null);
-    try {
-      const name = deriveNameFromUrl(trimmedUrl);
-      await addConnector(name, trimmedUrl);
-      setUrl('');
-    } catch (err) {
-      logger.error('Failed to add connector:', err);
-      setAddError(err instanceof Error ? err.message : t('connectors.addFailed'));
-    } finally {
-      setAdding(false);
-    }
-  }, [url, addConnector, deriveNameFromUrl, t]);
-
-  const handleConnect = useCallback(
-    async (connectorId: string) => {
-      setOauthError(null);
-      try {
-        await startOAuth(connectorId);
-      } catch (err) {
-        logger.error('Failed to start OAuth:', err);
-        setOauthError(err instanceof Error ? err.message : t('connectors.oauthStartFailed'));
-      }
-    },
-    [startOAuth, t],
-  );
-
-  const handleSlackAuthenticate = useCallback(async () => {
-    setSlackActionLoading(true);
-    setAddError(null);
-    setOauthError(null);
-
-    try {
-      await authenticateSlack();
-    } catch (err) {
-      logger.error('Failed to authenticate Slack MCP:', err);
-      const raw = err instanceof Error ? err.message : t('connectors.slack.authFailed');
-      const cleaned = raw.replace(/^Error invoking remote method '[^']+': (\w+Error: )?/, '');
-      setOauthError(cleaned);
-    } finally {
-      setSlackActionLoading(false);
-    }
-  }, [authenticateSlack, t]);
-
-  const handleSlackDisconnect = useCallback(async () => {
-    setSlackActionLoading(true);
-    setAddError(null);
-    setOauthError(null);
-
-    try {
-      await disconnectSlack();
-    } catch (err) {
-      logger.error('Failed to disconnect Slack MCP:', err);
-      setOauthError(err instanceof Error ? err.message : t('connectors.slack.disconnectFailed'));
-    } finally {
-      setSlackActionLoading(false);
-    }
-  }, [disconnectSlack, t]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && !adding) {
-        handleAdd();
-      }
-    },
-    [handleAdd, adding],
-  );
-
-  const slackStatusKey: keyof typeof slackStatusClass = slackAuth.connected
-    ? 'connected'
-    : slackAuth.pendingAuthorization
-      ? 'pending'
-      : 'disconnected';
+    url,
+    adding,
+    slackActionLoading,
+    addError,
+    oauthError,
+    handleAdd,
+    handleConnect,
+    handleSlackAuthenticate,
+    handleSlackDisconnect,
+    handleKeyDown,
+    handleUrlChange,
+  } = useConnectorsPanel();
 
   if (loading) {
     return (
@@ -183,111 +38,23 @@ export function ConnectorsPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Description */}
       <p className="text-sm text-muted-foreground">{t('connectors.description')}</p>
 
-      <div className="rounded-xl border border-border bg-card p-5" data-testid="slack-auth-card">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-medium text-foreground">{t('connectors.slack.title')}</h3>
-              <span
-                className={`flex items-center gap-1 text-[11px] ${slackStatusClass[slackStatusKey]}`}
-              >
-                <span
-                  className={`inline-block h-1.5 w-1.5 rounded-full ${slackStatusDotClass[slackStatusKey]}`}
-                />
-                {t(`connectors.slack.status.${slackStatusKey}`)}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground">{t('connectors.slack.description')}</p>
-            <p className="text-xs text-muted-foreground">
-              {slackAuth.connected
-                ? t('connectors.slack.connectedHint')
-                : slackAuth.pendingAuthorization
-                  ? t('connectors.slack.pendingHint')
-                  : t('connectors.slack.authHint')}
-            </p>
-          </div>
+      <SlackConnectorSection
+        slackAuth={slackAuth}
+        slackActionLoading={slackActionLoading}
+        onAuthenticate={handleSlackAuthenticate}
+        onDisconnect={handleSlackDisconnect}
+      />
 
-          <div className="flex shrink-0 items-center">
-            {slackAuth.connected ? (
-              <button
-                type="button"
-                onClick={handleSlackDisconnect}
-                disabled={slackActionLoading}
-                className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:opacity-50"
-              >
-                {slackActionLoading
-                  ? t('connectors.slack.disconnecting')
-                  : t('connectors.slack.disconnect')}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSlackAuthenticate}
-                disabled={slackActionLoading}
-                data-testid="slack-auth-button"
-                className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-              >
-                {slackActionLoading ? (
-                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                ) : null}
-                {slackActionLoading
-                  ? t('connectors.slack.authenticating')
-                  : slackAuth.pendingAuthorization
-                    ? t('connectors.slack.restartAuth')
-                    : t('connectors.slack.authenticate')}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+      <ConnectorAddForm
+        url={url}
+        adding={adding}
+        onUrlChange={handleUrlChange}
+        onAdd={handleAdd}
+        onKeyDown={handleKeyDown}
+      />
 
-      <div className="space-y-3">
-        <div className="space-y-1">
-          <h3 className="text-sm font-medium text-foreground">{t('connectors.customTitle')}</h3>
-          <p className="text-xs text-muted-foreground">{t('connectors.customDescription')}</p>
-        </div>
-
-        {/* Add form */}
-        <div className="flex gap-2">
-          <Input
-            type="url"
-            placeholder={t('connectors.placeholder')}
-            value={url}
-            onChange={(e) => {
-              setUrl(e.target.value);
-              setAddError(null);
-            }}
-            onKeyDown={handleKeyDown}
-            className="flex-1"
-            disabled={adding}
-          />
-          <button
-            onClick={handleAdd}
-            disabled={adding || !url.trim()}
-            className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-          >
-            {adding ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            ) : (
-              <svg
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            )}
-            {t('connectors.add')}
-          </button>
-        </div>
-      </div>
-
-      {/* Errors */}
       <AnimatePresence>
         {(addError || oauthError) && (
           <motion.div
@@ -303,45 +70,13 @@ export function ConnectorsPanel() {
         )}
       </AnimatePresence>
 
-      {/* Connector list */}
-      {connectors.length > 0 ? (
-        <div className="grid gap-3">
-          <AnimatePresence mode="popLayout">
-            {connectors.map((connector) => (
-              <motion.div
-                key={connector.id}
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{
-                  layout: { duration: 0.2 },
-                  opacity: { duration: 0.15 },
-                  scale: { duration: 0.15 },
-                }}
-              >
-                <ConnectorCard
-                  connector={connector}
-                  onConnect={handleConnect}
-                  onDisconnect={disconnect}
-                  onToggleEnabled={toggleEnabled}
-                  onDelete={deleteConnector}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      ) : (
-        <motion.div
-          className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground"
-          variants={settingsVariants.fadeSlide}
-          initial="initial"
-          animate="animate"
-          transition={settingsTransitions.enter}
-        >
-          {t('connectors.empty')}
-        </motion.div>
-      )}
+      <ConnectorList
+        connectors={connectors}
+        onConnect={handleConnect}
+        onDisconnect={disconnect}
+        onToggleEnabled={toggleEnabled}
+        onDelete={deleteConnector}
+      />
     </div>
   );
 }

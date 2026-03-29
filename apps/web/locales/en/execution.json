@@ -5,7 +5,9 @@
     "completed": "Completed",
     "failed": "Failed",
     "cancelled": "Cancelled",
-    "stopped": "Stopped"
+    "stopped": "Stopped",
+    "pending": "Pending",
+    "waiting_permission": "Waiting for permission"
   },
   "waiting": {
     "title": "Waiting for another task",
@@ -30,7 +32,8 @@
     "interruptedPlaceholder": "Give new instructions...",
     "noSessionPlaceholder": "Send a new instruction to retry...",
     "completedPlaceholder": "Give new instructions...",
-    "defaultPlaceholder": "Ask for something..."
+    "defaultPlaceholder": "Ask for something...",
+    "dropFilesToAttach": "Drop files to attach"
   },
   "questionPrompt": {
     "oauthConnecting": "Connecting {{provider}}...",

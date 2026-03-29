@@ -1,21 +1,10 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { Skill } from '@accomplish_ai/agent-core/common';
 import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { SkillCard } from './SkillCard';
-import { createLogger } from '@/lib/logger';
-
-const logger = createLogger('SkillsPanel');
-
-type FilterType = 'all' | 'active' | 'inactive' | 'official';
+import { useSkillsPanel } from './useSkillsPanel';
+import { SkillsFilterBar } from './SkillsFilterBar';
 
 interface SkillsPanelProps {
   refreshTrigger?: number;
@@ -23,167 +12,24 @@ interface SkillsPanelProps {
 
 export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
   const { t } = useTranslation('settings');
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState<FilterType>('all');
-  const [isAtBottom, setIsAtBottom] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Get visible skills (non-hidden)
-  const visibleSkills = useMemo(() => skills.filter((s) => !s.isHidden), [skills]);
-
-  // Calculate counts for each filter
-  const filterCounts = useMemo(
-    () => ({
-      all: visibleSkills.length,
-      active: visibleSkills.filter((s) => s.isEnabled).length,
-      inactive: visibleSkills.filter((s) => !s.isEnabled).length,
-      official: visibleSkills.filter((s) => s.source === 'official').length,
-    }),
-    [visibleSkills],
-  );
-
-  // Filter and search skills (hide hidden skills)
-  const filteredSkills = useMemo(() => {
-    let result = visibleSkills;
-
-    // Apply filter
-    if (filter === 'active') {
-      result = result.filter((s) => s.isEnabled);
-    } else if (filter === 'inactive') {
-      result = result.filter((s) => !s.isEnabled);
-    } else if (filter === 'official') {
-      result = result.filter((s) => s.source === 'official');
-    }
-
-    // Apply search
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (s) =>
-          s.name.toLowerCase().includes(query) ||
-          s.description.toLowerCase().includes(query) ||
-          s.command.toLowerCase().includes(query),
-      );
-    }
-
-    return result;
-  }, [visibleSkills, filter, searchQuery]);
-
-  // Check if scrolled to bottom
-  const checkScrollPosition = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const threshold = 5; // Small threshold for rounding errors
-    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
-    setIsAtBottom(atBottom);
-  }, []);
-
-  // Check scroll position on mount and when filtered skills change
-  useEffect(() => {
-    checkScrollPosition();
-  }, [filteredSkills, checkScrollPosition]);
-
-  // Load skills on mount and when refreshTrigger changes
-  useEffect(() => {
-    if (!window.accomplish) {
-      logger.error('Accomplish API not available');
-      setLoading(false);
-      return;
-    }
-    window.accomplish
-      .getSkills()
-      .then(setSkills)
-      .catch((err: unknown) => logger.error('Failed to load skills:', err))
-      .finally(() => setLoading(false));
-  }, [refreshTrigger]);
-
-  // Handlers
-  const handleToggle = useCallback(
-    async (id: string) => {
-      const skill = skills.find((s) => s.id === id);
-      if (!skill || !window.accomplish) return;
-
-      try {
-        await window.accomplish.setSkillEnabled(id, !skill.isEnabled);
-        setSkills((prev) => prev.map((s) => (s.id === id ? { ...s, isEnabled: !s.isEnabled } : s)));
-      } catch (err) {
-        logger.error('Failed to toggle skill:', err);
-      }
-    },
-    [skills],
-  );
-
-  const handleDelete = useCallback(
-    async (id: string) => {
-      const skill = skills.find((s) => s.id === id);
-      if (!skill || !window.accomplish) return;
-
-      if (skill.source === 'official') {
-        logger.warn('Cannot delete official skills');
-        return;
-      }
-
-      try {
-        await window.accomplish.deleteSkill(id);
-        setSkills((prev) => prev.filter((s) => s.id !== id));
-      } catch (err) {
-        logger.error('Failed to delete skill:', err);
-      }
-    },
-    [skills],
-  );
-
-  const handleEdit = useCallback(async (filePath: string) => {
-    if (!window.accomplish) return;
-    try {
-      await window.accomplish.openSkillInEditor(filePath);
-    } catch (err) {
-      logger.error('Failed to open skill in editor:', err);
-    }
-  }, []);
-
-  const handleShowInFolder = useCallback(async (filePath: string) => {
-    if (!window.accomplish) return;
-    try {
-      await window.accomplish.showSkillInFolder(filePath);
-    } catch (err) {
-      logger.error('Failed to show skill in folder:', err);
-    }
-  }, []);
-
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  }, []);
-
-  const [isResyncing, setIsResyncing] = useState(false);
-
-  const handleResync = useCallback(async () => {
-    if (!window.accomplish || isResyncing) return;
-    setIsResyncing(true);
-    try {
-      // Run resync and minimum delay in parallel so animation is visible
-      const [updatedSkills] = await Promise.all([
-        window.accomplish.resyncSkills(),
-        new Promise((resolve) => setTimeout(resolve, 600)),
-      ]);
-      setSkills(updatedSkills);
-    } catch (err) {
-      logger.error('Failed to resync skills:', err);
-    } finally {
-      setIsResyncing(false);
-    }
-  }, [isResyncing]);
-
-  const filterLabel =
-    filter === 'all'
-      ? t('skills.filterAll')
-      : filter === 'active'
-        ? t('skills.filterActive')
-        : filter === 'inactive'
-          ? t('skills.filterInactive')
-          : t('skills.byAccomplish');
+  const {
+    loading,
+    searchQuery,
+    filter,
+    isAtBottom,
+    isResyncing,
+    scrollRef,
+    filterCounts,
+    filteredSkills,
+    setFilter,
+    handleToggle,
+    handleDelete,
+    handleEdit,
+    handleShowInFolder,
+    handleSearchChange,
+    handleResync,
+    checkScrollPosition,
+  } = useSkillsPanel(refreshTrigger);
 
   if (loading) {
     return (
@@ -197,58 +43,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
     <div className="flex flex-col">
       {/* Toolbar: Filter + Search */}
       <div className="mb-4 flex gap-3">
-        {/* Filter Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex w-[150px] items-center justify-between gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-muted">
-              <div className="flex items-center gap-1.5">
-                <svg
-                  className="h-3.5 w-3.5 text-muted-foreground"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
-                </svg>
-                {filterLabel}
-              </div>
-              <svg
-                className="h-3 w-3 text-muted-foreground"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[180px]">
-            <DropdownMenuItem onClick={() => setFilter('all')} className="flex justify-between">
-              {t('skills.filterAll')}{' '}
-              <span className="text-muted-foreground">{filterCounts.all}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter('active')} className="flex justify-between">
-              {t('skills.filterActive')}{' '}
-              <span className="text-muted-foreground">{filterCounts.active}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setFilter('inactive')}
-              className="flex justify-between"
-            >
-              {t('skills.filterInactive')}{' '}
-              <span className="text-muted-foreground">{filterCounts.inactive}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setFilter('official')}
-              className="flex justify-between"
-            >
-              {t('skills.byAccomplish')}{' '}
-              <span className="text-muted-foreground">{filterCounts.official}</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <SkillsFilterBar filter={filter} filterCounts={filterCounts} onFilterChange={setFilter} />
 
         {/* Search Input */}
         <div className="relative flex-1">

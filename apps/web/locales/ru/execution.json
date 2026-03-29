@@ -5,7 +5,9 @@
     "completed": "Завершено",
     "failed": "Ошибка",
     "cancelled": "Отменено",
-    "stopped": "Остановлено"
+    "stopped": "Остановлено",
+    "pending": "Ожидание",
+    "waiting_permission": "Ожидание разрешения"
   },
   "waiting": {
     "title": "Ожидание другой задачи",
@@ -30,7 +32,8 @@
     "interruptedPlaceholder": "Дайте новые инструкции...",
     "noSessionPlaceholder": "Отправьте новую инструкцию для повтора...",
     "completedPlaceholder": "Дайте новые инструкции...",
-    "defaultPlaceholder": "Попросите что-нибудь..."
+    "defaultPlaceholder": "Попросите что-нибудь...",
+    "dropFilesToAttach": "Перетащите файлы для прикрепления"
   },
   "taskStatus": "Задача {{status}}",
   "processing": "Обработка",

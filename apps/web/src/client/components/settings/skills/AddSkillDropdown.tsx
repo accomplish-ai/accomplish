@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   DropdownMenu,
@@ -17,9 +16,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CreateSkillModal } from '@/components/skills/CreateSkillModal';
-import { createLogger } from '@/lib/logger';
-
-const logger = createLogger('AddSkillDropdown');
+import { UploadErrorDialog } from './UploadErrorDialog';
+import { useAddSkill } from './useAddSkill';
 
 interface AddSkillDropdownProps {
   onSkillAdded?: () => void;
@@ -28,77 +26,23 @@ interface AddSkillDropdownProps {
 
 export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProps) {
   const { t } = useTranslation('settings');
-  const [isGitHubDialogOpen, setIsGitHubDialogOpen] = useState(false);
-  const [isUploadErrorDialogOpen, setIsUploadErrorDialogOpen] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [gitHubUrl, setGitHubUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-
-  const handleUploadSkill = async () => {
-    if (!window.accomplish) return;
-
-    try {
-      setIsLoading(true);
-      setUploadError(null);
-      const folderPath = await window.accomplish.pickSkillFolder();
-      if (!folderPath) {
-        setIsLoading(false);
-        return; // User cancelled
-      }
-      await window.accomplish.addSkillFromFolder(folderPath);
-      onSkillAdded?.();
-    } catch (err) {
-      logger.error('Failed to upload skill:', err);
-      let errorMessage = err instanceof Error ? err.message : 'Failed to upload skill';
-      // Clean up the error message - extract the actual error after "Error: "
-      const errorMatch = errorMessage.match(/Error:\s*(.+)$/);
-      if (errorMatch) {
-        errorMessage = errorMatch[1];
-      }
-      setUploadError(errorMessage);
-      setIsUploadErrorDialogOpen(true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleImportFromGitHub = async () => {
-    if (!gitHubUrl.trim() || !window.accomplish) return;
-
-    try {
-      setIsLoading(true);
-      setError(null);
-      await window.accomplish.addSkillFromGitHub(gitHubUrl);
-      setGitHubUrl('');
-      setIsGitHubDialogOpen(false);
-      onSkillAdded?.();
-    } catch (err) {
-      logger.error('Failed to import from GitHub:', err);
-      setError(err instanceof Error ? err.message : 'Failed to import skill');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleBuildWithAI = () => {
-    setIsCreateModalOpen(true);
-  };
-
-  const handleOpenGitHubDialog = () => {
-    setGitHubUrl('');
-    setError(null);
-    setIsGitHubDialogOpen(true);
-  };
-
-  const handleCloseGitHubDialog = () => {
-    if (!isLoading) {
-      setIsGitHubDialogOpen(false);
-      setGitHubUrl('');
-      setError(null);
-    }
-  };
+  const {
+    isGitHubDialogOpen,
+    isUploadErrorDialogOpen,
+    isCreateModalOpen,
+    gitHubUrl,
+    isLoading,
+    error,
+    uploadError,
+    setIsCreateModalOpen,
+    setIsUploadErrorDialogOpen,
+    setGitHubUrl,
+    handleUploadSkill,
+    handleImportFromGitHub,
+    handleBuildWithAI,
+    handleOpenGitHubDialog,
+    handleCloseGitHubDialog,
+  } = useAddSkill();
 
   return (
     <>
@@ -155,7 +99,7 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
           </DropdownMenuItem>
 
           <DropdownMenuItem
-            onClick={handleUploadSkill}
+            onClick={() => handleUploadSkill(onSkillAdded)}
             disabled={isLoading}
             className="flex-col items-start gap-0.5 py-2.5"
           >
@@ -215,7 +159,7 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
               onChange={(e) => setGitHubUrl(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !isLoading && gitHubUrl.trim()) {
-                  handleImportFromGitHub();
+                  handleImportFromGitHub(onSkillAdded);
                 }
               }}
               disabled={isLoading}
@@ -226,81 +170,21 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
             <Button variant="outline" onClick={handleCloseGitHubDialog} disabled={isLoading}>
               {t('skills.cancel')}
             </Button>
-            <Button onClick={handleImportFromGitHub} disabled={isLoading || !gitHubUrl.trim()}>
+            <Button
+              onClick={() => handleImportFromGitHub(onSkillAdded)}
+              disabled={isLoading || !gitHubUrl.trim()}
+            >
               {isLoading ? t('skills.importing') : t('skills.import')}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Upload Error Dialog */}
-      <Dialog open={isUploadErrorDialogOpen} onOpenChange={setIsUploadErrorDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <div className="flex items-start gap-4">
-            <div className="bg-destructive/10 rounded-full p-3 flex-shrink-0">
-              <svg
-                className="w-5 h-5 text-destructive"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <DialogHeader className="space-y-1">
-                <DialogTitle>{t('skills.uploadFailedTitle')}</DialogTitle>
-                <DialogDescription>{t('skills.uploadFailedDescription')}</DialogDescription>
-              </DialogHeader>
-            </div>
-          </div>
-
-          <div className="mt-4 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-            <div className="flex items-start gap-2">
-              <svg
-                className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <p className="text-sm text-destructive">{uploadError}</p>
-            </div>
-          </div>
-
-          <p className="mt-4 text-sm text-muted-foreground">
-            {t('skills.uploadErrorHelp')}{' '}
-            <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
-              {t('skills.uploadErrorField')}
-            </code>{' '}
-            {t('skills.uploadErrorFieldSuffix')}
-          </p>
-
-          <pre className="mt-2 p-3 bg-muted rounded-md text-xs overflow-x-auto text-muted-foreground">
-            {`---
-name: my-skill
-description: What this skill does
----
-
-# My Skill
-
-Instructions here...`}
-          </pre>
-
-          <DialogFooter className="mt-4">
-            <Button onClick={() => setIsUploadErrorDialogOpen(false)}>{t('skills.ok')}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UploadErrorDialog
+        open={isUploadErrorDialogOpen}
+        uploadError={uploadError}
+        onClose={() => setIsUploadErrorDialogOpen(false)}
+      />
     </>
   );
 }

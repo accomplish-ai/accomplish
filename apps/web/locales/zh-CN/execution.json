@@ -5,7 +5,9 @@
     "completed": "已完成",
     "failed": "失败",
     "cancelled": "已取消",
-    "stopped": "已停止"
+    "stopped": "已停止",
+    "pending": "待处理",
+    "waiting_permission": "等待权限"
   },
   "waiting": {
     "title": "等待其他任务完成",
@@ -27,7 +29,8 @@
     "interruptedPlaceholder": "输入新指令...",
     "noSessionPlaceholder": "发送新指令重试...",
     "completedPlaceholder": "输入新指令...",
-    "defaultPlaceholder": "输入内容..."
+    "defaultPlaceholder": "输入内容...",
+    "dropFilesToAttach": "拖放文件以附加"
   },
   "questionPrompt": {
     "oauthConnecting": "正在连接 {{provider}}...",

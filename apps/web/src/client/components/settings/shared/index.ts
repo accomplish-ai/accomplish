@@ -1,4 +1,4 @@
-// apps/desktop/src/renderer/components/settings/shared/index.ts
+// apps/web/src/client/components/settings/shared/index.ts
 
 export { ConnectionStatus } from './ConnectionStatus';
 export { ApiKeyInput } from './ApiKeyInput';
@@ -8,3 +8,4 @@ export { ConnectButton } from './ConnectButton';
 export { ConnectedControls } from './ConnectedControls';
 export { ProviderFormHeader } from './ProviderFormHeader';
 export { FormError } from './FormError';
+export { ToolSupportBadge } from './ToolSupportBadge';

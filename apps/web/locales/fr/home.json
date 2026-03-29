@@ -66,6 +66,7 @@
   "favorites": {
     "title": "Favoris",
     "empty": "Marquez les tâches terminées ou interrompues comme favorites pour les voir ici.",
+    "remove": "Retirer des favoris",
     "showAll": "Afficher les {{count}} favoris",
     "showAll_one": "Afficher {{count}} favori",
     "showAll_few": "Afficher les {{count}} favoris",

@@ -1,44 +1,18 @@
-import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
 import { springs } from '../../lib/animations';
 import type { TaskMessage } from '@accomplish_ai/agent-core/common';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Wrench, Terminal, Check, Copy, Play } from '@phosphor-icons/react';
+import { Wrench, Terminal } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { Components } from 'react-markdown';
 import { StreamingText } from '../ui/streaming-text';
-import { CodeBlock } from '@/components/ui/CodeBlock';
 import { BrowserScriptCard } from '../BrowserScriptCard';
 import { getToolDisplayInfo } from '../../constants/tool-mappings';
 import { SpinningIcon } from './SpinningIcon';
-
-// Hoisted to module scope — stable reference avoids ReactMarkdown reconciliation on every render.
-// Custom renderer: fenced code blocks get syntax highlighting + copy button;
-// inline backtick code keeps simple prose styling.
-const markdownComponents: Components = {
-  code({ className, children, node, ...props }) {
-    const code = String(children).replace(/\n$/, '');
-    // Use node.properties.className array to correctly parse languages like c++, c#, etc.
-    const classes: string[] =
-      (node?.properties?.className as string[] | undefined) ??
-      (className ? className.split(' ') : []);
-    const langClass = classes.find((c) => c.startsWith('language-'));
-    const language = langClass ? langClass.slice('language-'.length) : undefined;
-    // Guard against single-line fenced blocks without a language identifier:
-    // they also have no className but should NOT be treated as inline code.
-    const hasLanguageClass = classes.some((c) => c.startsWith('language-'));
-    const inline = typeof className === 'undefined' && !hasLanguageClass && !code.includes('\n');
-
-    return (
-      <CodeBlock language={language} inline={inline} {...props}>
-        {code}
-      </CodeBlock>
-    );
-  },
-};
+import { markdownComponents, proseClasses } from './message-markdown-config';
+import { MessageTaskAction } from './MessageTaskAction';
+import { MessageCopyButton } from './MessageCopyButton';
 
 export interface MessageBubbleProps {
   message: TaskMessage;
@@ -53,8 +27,6 @@ export interface MessageBubbleProps {
   taskActionError?: string | null;
   isLoading?: boolean;
 }
-
-const COPIED_STATE_DURATION_MS = 1000;
 
 export const MessageBubble = memo(
   function MessageBubble({
@@ -71,8 +43,6 @@ export const MessageBubble = memo(
     isLoading = false,
   }: MessageBubbleProps) {
     const [streamComplete, setStreamComplete] = useState(!shouldStream);
-    const [copied, setCopied] = useState(false);
-    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isUser = message.type === 'user';
     const isTool = message.type === 'tool';
     const isSystem = message.type === 'system';
@@ -89,31 +59,6 @@ export const MessageBubble = memo(
       }
     }, [shouldStream]);
 
-    useEffect(() => {
-      return () => {
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-        }
-      };
-    }, []);
-
-    const handleCopy = useCallback(async () => {
-      try {
-        await navigator.clipboard.writeText(message.content);
-        setCopied(true);
-
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-        }
-
-        timeoutRef.current = setTimeout(() => {
-          setCopied(false);
-        }, COPIED_STATE_DURATION_MS);
-      } catch {
-        // clipboard write may fail in non-secure contexts
-      }
-    }, [message.content]);
-
     if (isTool && message.toolName === 'todowrite') {
       return null;
     }
@@ -123,24 +68,6 @@ export const MessageBubble = memo(
     }
 
     const showCopyButton = !isTool && !!message.content?.trim();
-
-    const proseClasses = cn(
-      'text-sm prose prose-sm max-w-none',
-      'prose-headings:text-foreground',
-      'prose-p:text-foreground prose-p:my-2',
-      'prose-strong:text-foreground prose-strong:font-semibold',
-      'prose-em:text-foreground',
-      // prose-code is overridden by CodeBlock for fenced blocks; inline code keeps default
-      'prose-code:text-foreground prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs',
-      'prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0',
-      'prose-ul:text-foreground prose-ol:text-foreground',
-      'prose-li:text-foreground prose-li:my-1',
-      'prose-a:text-primary prose-a:underline',
-      'prose-blockquote:text-muted-foreground prose-blockquote:border-l-4 prose-blockquote:border-border prose-blockquote:pl-4',
-      'prose-hr:border-border',
-      'prose-table:w-full prose-thead:border-b prose-thead:border-border prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-foreground prose-th:font-semibold prose-td:px-3 prose-td:py-2 prose-td:text-foreground prose-tr:border-b prose-tr:border-border',
-      'break-words',
-    );
 
     return (
       <motion.div
@@ -236,55 +163,18 @@ export const MessageBubble = memo(
                   {new Date(message.timestamp).toLocaleTimeString()}
                 </p>
                 {isAssistant && showTaskActionButton && onTaskAction && (
-                  <Button
-                    size="sm"
-                    onClick={onTaskAction}
-                    disabled={isLoading || isTaskActionRunning}
-                    className="mt-3 gap-1.5"
-                  >
-                    <Play className="h-3 w-3" />
-                    {isTaskActionRunning
-                      ? (taskActionPendingLabel ?? taskActionLabel ?? 'Continue')
-                      : (taskActionLabel ?? 'Continue')}
-                  </Button>
-                )}
-                {isAssistant && taskActionError && (
-                  <p className="mt-3 text-sm text-destructive">{taskActionError}</p>
+                  <MessageTaskAction
+                    onTaskAction={onTaskAction}
+                    isLoading={isLoading}
+                    isTaskActionRunning={isTaskActionRunning}
+                    taskActionLabel={taskActionLabel}
+                    taskActionPendingLabel={taskActionPendingLabel}
+                    taskActionError={taskActionError}
+                  />
                 )}
               </>
             )}
-            {showCopyButton && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={handleCopy}
-                    data-testid="message-copy-button"
-                    className={cn(
-                      'absolute bottom-2 right-2',
-                      'opacity-0 group-hover:opacity-100 transition-all duration-200',
-                      'p-1 rounded',
-                      isUser ? 'hover:bg-primary-foreground/20' : 'hover:bg-accent',
-                      isUser
-                        ? !copied
-                          ? 'text-primary-foreground/70 hover:text-primary-foreground'
-                          : '!bg-green-500/20 !text-green-300'
-                        : !copied
-                          ? 'text-muted-foreground hover:text-foreground'
-                          : '!bg-green-500/10 !text-green-600',
-                    )}
-                    aria-label={'Copy to clipboard'}
-                  >
-                    <Check className={cn('absolute h-4 w-4', !copied && 'hidden')} />
-                    <Copy className={cn('absolute h-4 w-4', copied && 'hidden')} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <span>Copy to clipboard</span>
-                </TooltipContent>
-              </Tooltip>
-            )}
+            {showCopyButton && <MessageCopyButton content={message.content} isUser={isUser} />}
           </div>
         )}
       </motion.div>

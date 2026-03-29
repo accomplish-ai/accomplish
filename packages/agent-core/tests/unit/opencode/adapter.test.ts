@@ -11,6 +11,7 @@ import {
   NON_TASK_CONTINUATION_TOOLS,
   isNonTaskContinuationToolName,
 } from '../../../src/opencode/tool-classification.js';
+import { buildPtySpawnArgs } from '../../../src/internal/classes/adapter/adapter-utils.js';
 import { serializeError } from '../../../src/utils/error.js';
 
 /**
@@ -201,11 +202,7 @@ describe('Shell escaping utilities', () => {
     });
 
     function spawnArgs(exe: string, args: string[]) {
-      return (
-        win32Adapter as unknown as {
-          buildPtySpawnArgs: (c: string, a: string[]) => { file: string; args: string[] };
-        }
-      ).buildPtySpawnArgs(exe, args);
+      return buildPtySpawnArgs(exe, args, 'win32', false);
     }
 
     it('uses the exe path itself as the spawn file (no cmd.exe wrapper)', () => {

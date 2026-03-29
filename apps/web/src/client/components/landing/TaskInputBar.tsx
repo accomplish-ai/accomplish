@@ -1,54 +1,25 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getAccomplish } from '@/lib/accomplish';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('TaskInputBar');
-import {
-  ArrowUp,
-  WarningCircle,
-  X,
-  FileText,
-  Image,
-  Code,
-  File,
-  FilePdf,
-} from '@phosphor-icons/react';
-import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
-import type { FileAttachmentInfo } from '@accomplish_ai/agent-core/common';
+import { WarningCircle } from '@phosphor-icons/react';
+import type { FileAttachmentInfo } from '@accomplish_ai/agent-core';
+import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core';
 import { useSpeechInput } from '@/hooks/useSpeechInput';
 import { useTypingPlaceholder } from '@/hooks/useTypingPlaceholder';
 import { useSlashCommand } from '@/hooks/useSlashCommand';
-import { SpeechInputButton } from '@/components/ui/SpeechInputButton';
-import { ModelIndicator } from '@/components/ui/ModelIndicator';
-import { SlashCommandPopover } from '@/components/landing/SlashCommandPopover';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useTaskInputDragDrop } from '@/hooks/useTaskInputDragDrop';
+import { useTaskInputBehavior } from '@/hooks/useTaskInputBehavior';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { MAX_FILES, MAX_FILE_SIZE, formatFileSize, processFileAttachments } from '@/lib/fileUtils';
+import { TaskInputAttachmentList } from './TaskInputAttachmentList';
+import { TaskInputTextarea } from './TaskInputTextarea';
+import { TaskInputToolbar } from './TaskInputToolbar';
 
-function FileTypeIcon({
-  type,
-  className,
-}: {
-  type: FileAttachmentInfo['type'];
-  className?: string;
-}) {
-  switch (type) {
-    case 'image':
-      return <Image className={className} />;
-    case 'text':
-      return <FileText className={className} />;
-    case 'code':
-      return <Code className={className} />;
-    case 'pdf':
-      return <FilePdf className={className} />;
-    default:
-      return <File className={className} />;
-  }
-}
+export { FileTypeIcon } from './FileTypeIcon';
 
 interface TaskInputBarProps {
   value: string;
@@ -67,6 +38,7 @@ interface TaskInputBarProps {
   toolbarLeft?: ReactNode;
   attachments?: FileAttachmentInfo[];
   onAttachmentsChange?: (attachments: FileAttachmentInfo[]) => void;
+  attachmentError?: string | null;
 }
 
 export function TaskInputBar({
@@ -86,94 +58,43 @@ export function TaskInputBar({
   toolbarLeft,
   attachments = [],
   onAttachmentsChange,
+  attachmentError: externalAttachmentError = null,
 }: TaskInputBarProps) {
   const { t } = useTranslation('common');
   const isInputDisabled = disabled || isLoading;
   const isOverLimit = value.length > PROMPT_DEFAULT_MAX_LENGTH;
   const canSubmit = (!!value.trim() || attachments.length > 0) && !disabled && !isOverLimit;
   const isSubmitDisabled = !isLoading && (!canSubmit || isInputDisabled);
-  const submitLabel = isLoading ? t('buttons.stop') : t('buttons.submit');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const latestValueRef = useRef(value);
+  const pendingAutoSubmitRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    latestValueRef.current = value;
+  }, [value]);
+
   const animatedPlaceholder = useTypingPlaceholder({
     enabled: typingPlaceholder && !value,
     text: placeholder,
   });
   const effectivePlaceholder = typingPlaceholder && !value ? animatedPlaceholder : placeholder;
-  const pendingAutoSubmitRef = useRef<string | null>(null);
-  const accomplish = getAccomplish();
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [attachmentError, setAttachmentError] = useState<string | null>(null);
-  const dragCounterRef = useRef(0);
 
-  const addFiles = useCallback(
-    (fileList: FileList | File[]) => {
-      if (!onAttachmentsChange) {
-        return;
-      }
-
-      setAttachmentError(null);
-      const accepted = processFileAttachments(fileList, attachments.length, {
-        onOversize: (name, limit) =>
-          setAttachmentError(t('plusMenu.fileTooLarge', { name, limit })),
-        onOverLimit: (_count, max) => setAttachmentError(t('plusMenu.tooManyFiles', { max })),
-      });
-      if (accepted.length > 0) {
-        onAttachmentsChange([...attachments, ...accepted]);
-      }
-    },
-    [attachments, onAttachmentsChange, t],
-  );
-
-  const removeAttachment = useCallback(
-    (id: string) => {
-      if (onAttachmentsChange) {
-        onAttachmentsChange(attachments.filter((a) => a.id !== id));
-      }
-    },
-    [attachments, onAttachmentsChange],
-  );
-
-  const handleDragEnter = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dragCounterRef.current++;
-      if (e.dataTransfer.types.includes('Files') && !isInputDisabled) {
-        setIsDragOver(true);
-      }
-    },
-    [isInputDisabled],
-  );
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
-    if (dragCounterRef.current === 0) {
-      setIsDragOver(false);
-    }
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dragCounterRef.current = 0;
-      setIsDragOver(false);
-
-      if (isInputDisabled || !e.dataTransfer.files.length) {
-        return;
-      }
-
-      addFiles(e.dataTransfer.files);
-    },
-    [isInputDisabled, addFiles],
-  );
+  const {
+    isDragOver,
+    attachmentError: dragDropAttachmentError,
+    removeAttachment,
+    handleDragEnter,
+    handleDragLeave,
+    handleDragOver,
+    handleDrop,
+    MAX_FILES,
+    MAX_FILE_SIZE,
+  } = useTaskInputDragDrop({
+    attachments,
+    onAttachmentsChange,
+    isInputDisabled,
+  });
+  const attachmentError = externalAttachmentError ?? dragDropAttachmentError;
 
   const slashCommand = useSlashCommand({
     value,
@@ -181,62 +102,42 @@ export function TaskInputBar({
     onChange,
   });
 
-  const speechInput = useSpeechInput({
-    onTranscriptionComplete: (text) => {
-      const newValue = value.trim() ? `${value} ${text}` : text;
+  const handleTranscriptionComplete = useCallback(
+    (text: string) => {
+      const currentValue = latestValueRef.current;
+      const newValue = currentValue.trim() ? `${currentValue} ${text}` : text;
       onChange(newValue);
-
       if (autoSubmitOnTranscription && newValue.trim()) {
         pendingAutoSubmitRef.current = newValue;
       }
-
       setTimeout(() => {
         textareaRef.current?.focus();
       }, 0);
     },
+    [onChange, autoSubmitOnTranscription],
+  );
+
+  const speechInput = useSpeechInput({
+    onTranscriptionComplete: handleTranscriptionComplete,
     onError: (error) => {
       logger.error('Speech error:', error.message);
     },
   });
 
-  useEffect(() => {
-    if (autoFocus && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, [autoFocus]);
-
-  useEffect(() => {
-    if (!autoSubmitOnTranscription || isInputDisabled || isOverLimit) {
-      return;
-    }
-    if (pendingAutoSubmitRef.current && value === pendingAutoSubmitRef.current) {
-      pendingAutoSubmitRef.current = null;
-      onSubmit();
-    }
-  }, [autoSubmitOnTranscription, isInputDisabled, isOverLimit, onSubmit, value]);
-
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
-    }
-  }, [value]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.nativeEvent.isComposing || e.keyCode === 229) {
-      return;
-    }
-    if (slashCommand.handleKeyDown(e)) {
-      return;
-    }
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (canSubmit && !speechInput.isRecording && !isLoading) {
-        onSubmit();
-      }
-    }
-  };
+  const behavior = useTaskInputBehavior({
+    textareaRef: textareaRef as React.RefObject<HTMLTextAreaElement | null>,
+    value,
+    isInputDisabled,
+    isOverLimit,
+    autoFocus,
+    autoSubmitOnTranscription,
+    canSubmit,
+    isLoading,
+    isRecording: speechInput.isRecording,
+    slashCommand,
+    onSubmit,
+    pendingAutoSubmitRef,
+  });
 
   return (
     <div className="w-full space-y-2">
@@ -284,145 +185,40 @@ export function TaskInputBar({
         )}
 
         {!isDragOver && (
-          <div className="px-4 pt-3 pb-1 relative">
-            <textarea
-              data-testid="task-input-textarea"
-              ref={textareaRef}
-              value={value}
-              onChange={(e) => {
-                onChange(e.target.value);
-                slashCommand.handleChange(e.target.value, e.target.selectionStart);
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder={effectivePlaceholder}
-              disabled={isInputDisabled || speechInput.isRecording}
-              rows={3}
-              aria-expanded={slashCommand.state.isOpen}
-              aria-controls={slashCommand.state.isOpen ? 'slash-command-listbox' : undefined}
-              aria-activedescendant={
-                slashCommand.state.isOpen
-                  ? `slash-suggestion-${slashCommand.state.selectedIndex}`
-                  : undefined
-              }
-              className="w-full min-h-[60px] max-h-[200px] resize-none overflow-y-auto bg-transparent text-[16px] leading-relaxed tracking-[-0.015em] text-foreground placeholder:text-muted-foreground/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <SlashCommandPopover
-              isOpen={slashCommand.state.isOpen}
-              skills={slashCommand.state.filteredSkills}
-              selectedIndex={slashCommand.state.selectedIndex}
-              query={slashCommand.state.query}
-              textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement | null>}
-              triggerStart={slashCommand.state.triggerStart}
-              onSelect={slashCommand.selectSkill}
-              onDismiss={slashCommand.dismiss}
-            />
-          </div>
+          <TaskInputTextarea
+            textareaRef={textareaRef}
+            value={value}
+            onChange={onChange}
+            onKeyDown={behavior.handleKeyDown}
+            placeholder={effectivePlaceholder}
+            disabled={isInputDisabled}
+            isRecording={speechInput.isRecording}
+            slashCommand={slashCommand}
+          />
         )}
 
-        {attachmentError && (
-          <div className="px-4 py-1.5 text-xs text-destructive flex items-center gap-1.5">
-            <WarningCircle className="h-3 w-3 shrink-0" />
-            {attachmentError}
-          </div>
-        )}
+        <TaskInputAttachmentList
+          attachments={isDragOver ? [] : attachments}
+          attachmentError={attachmentError}
+          onRemove={removeAttachment}
+        />
 
-        {attachments.length > 0 && !isDragOver && (
-          <div className="px-4 pb-2 flex flex-wrap gap-1.5">
-            {attachments.map((file) => (
-              <div
-                key={file.id}
-                className="flex items-center gap-1.5 rounded-md bg-muted/50 border border-border/50 px-2 py-1 text-xs text-muted-foreground group"
-              >
-                <FileTypeIcon type={file.type} className="h-3 w-3 shrink-0" />
-                <span className="truncate max-w-[120px]" title={file.name}>
-                  {file.name}
-                </span>
-                <span className="text-muted-foreground/50">{formatFileSize(file.size)}</span>
-                <button
-                  type="button"
-                  onClick={() => removeAttachment(file.id)}
-                  className="ml-0.5 rounded-sm opacity-50 hover:opacity-100 transition-opacity"
-                  aria-label={`Remove ${file.name}`}
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="flex h-[36px] items-center justify-between pl-3 pr-2 mb-2">
-          <div className="flex items-center">{toolbarLeft}</div>
-
-          <div className="flex items-center gap-3">
-            {onOpenModelSettings && (
-              <ModelIndicator
-                isRunning={false}
-                onOpenSettings={onOpenModelSettings}
-                hideWhenNoModel={hideModelWhenNoModel}
-              />
-            )}
-
-            <SpeechInputButton
-              isRecording={speechInput.isRecording}
-              isTranscribing={speechInput.isTranscribing}
-              recordingDuration={speechInput.recordingDuration}
-              error={speechInput.error}
-              isConfigured={speechInput.isConfigured}
-              disabled={isInputDisabled}
-              onStartRecording={() => speechInput.startRecording()}
-              onStopRecording={() => speechInput.stopRecording()}
-              onCancel={() => speechInput.cancelRecording()}
-              onRetry={() => speechInput.retry()}
-              onOpenSettings={onOpenSpeechSettings}
-              size="md"
-            />
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  data-testid="task-input-submit"
-                  type="button"
-                  aria-label={submitLabel}
-                  title={submitLabel}
-                  onClick={() => {
-                    accomplish.logEvent({
-                      level: 'info',
-                      message: 'Task input submit clicked',
-                      context: { prompt: value },
-                    });
-                    onSubmit();
-                  }}
-                  disabled={
-                    isSubmitDisabled || speechInput.isRecording || slashCommand.state.isOpen
-                  }
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 ease-accomplish ${
-                    isLoading
-                      ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                      : isSubmitDisabled || speechInput.isRecording
-                        ? 'bg-muted text-muted-foreground/60'
-                        : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                  }`}
-                >
-                  {isLoading ? (
-                    <span className="block h-[10px] w-[10px] rounded-[1.5px] bg-destructive-foreground" />
-                  ) : (
-                    <ArrowUp className="h-4 w-4" weight="bold" />
-                  )}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span>
-                  {isOverLimit
-                    ? t('buttons.messageTooLong')
-                    : !value.trim() && attachments.length === 0
-                      ? t('buttons.enterMessage')
-                      : submitLabel}
-                </span>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
+        <TaskInputToolbar
+          toolbarLeft={toolbarLeft}
+          onOpenModelSettings={onOpenModelSettings}
+          hideModelWhenNoModel={hideModelWhenNoModel}
+          speechInput={speechInput}
+          onOpenSpeechSettings={onOpenSpeechSettings}
+          isSubmitDisabled={isSubmitDisabled}
+          isLoading={isLoading}
+          isInputDisabled={isInputDisabled}
+          slashCommandOpen={slashCommand.state.isOpen}
+          onSubmit={onSubmit}
+          isRecording={speechInput.isRecording}
+          value={value}
+          isOverLimit={isOverLimit}
+          attachmentsCount={attachments.length}
+        />
       </div>
     </div>
   );

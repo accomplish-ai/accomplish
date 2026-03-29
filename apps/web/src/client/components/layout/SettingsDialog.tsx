@@ -1,12 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
-import { getAccomplish } from '@/lib/accomplish';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { ProviderId, ConnectedProvider } from '@accomplish_ai/agent-core/common';
-import { hasAnyReadyProvider, isProviderReady } from '@accomplish_ai/agent-core/common';
-import { useProviderSettings } from '@/components/settings/hooks/useProviderSettings';
+import type { ProviderId } from '@accomplish_ai/agent-core/common';
 import { ProviderGrid } from '@/components/settings/ProviderGrid';
 import { ProviderSettingsPanel } from '@/components/settings/ProviderSettingsPanel';
 import { SpeechSettingsForm } from '@/components/settings/SpeechSettingsForm';
@@ -19,56 +15,17 @@ import { ConnectorsPanel } from '@/components/settings/connectors';
 import { IntegrationsPanel } from '@/components/settings/integrations';
 import { DaemonPanel } from '@/components/settings/DaemonPanel';
 import { CloudBrowsersPanel } from '@/components/settings/CloudBrowsersPanel';
-import {
-  Key,
-  Lightning,
-  Microphone,
-  Info,
-  Plugs,
-  Robot,
-  FolderSimple,
-  Globe,
-  ChatCircle,
-  GearSix,
-} from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import logoImage from '/assets/logo-1.png';
-
-const TABS = [
-  { id: 'providers' as const, labelKey: 'tabs.providers', icon: Key },
-  { id: 'skills' as const, labelKey: 'tabs.skills', icon: Lightning },
-  { id: 'connectors' as const, labelKey: 'tabs.connectors', icon: Plugs },
-  { id: 'daemon' as const, labelKey: 'tabs.daemon', icon: Robot },
-  { id: 'browsers' as const, labelKey: 'tabs.browsers', icon: Globe },
-  { id: 'workspaces' as const, labelKey: 'tabs.workspaces', icon: FolderSimple },
-  { id: 'integrations' as const, labelKey: 'tabs.integrations', icon: ChatCircle },
-  { id: 'voice' as const, labelKey: 'tabs.voiceInput', icon: Microphone },
-  { id: 'general' as const, labelKey: 'tabs.general', icon: GearSix },
-  { id: 'about' as const, labelKey: 'tabs.about', icon: Info },
-];
-
-// First 4 providers shown in collapsed view (matches PROVIDER_ORDER in ProviderGrid)
-const FIRST_FOUR_PROVIDERS: ProviderId[] = ['openai', 'anthropic', 'google', 'bedrock'];
+import { SETTINGS_TABS, type SettingsTabId } from './settings-tabs';
+import { useSettingsDialog } from './useSettingsDialog';
 
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onApiKeySaved?: () => void;
   initialProvider?: ProviderId;
-  /**
-   * Initial tab to show when dialog opens.
-   */
-  initialTab?:
-    | 'providers'
-    | 'voice'
-    | 'skills'
-    | 'connectors'
-    | 'daemon'
-    | 'browsers'
-    | 'workspaces'
-    | 'integrations'
-    | 'general'
-    | 'about';
+  initialTab?: SettingsTabId;
 }
 
 export function SettingsDialog({
@@ -79,244 +36,11 @@ export function SettingsDialog({
   initialTab = 'providers',
 }: SettingsDialogProps) {
   const { t } = useTranslation('settings');
-  const [selectedProvider, setSelectedProvider] = useState<ProviderId | null>(null);
-  const [gridExpanded, setGridExpanded] = useState(false);
-  const [closeWarning, setCloseWarning] = useState(false);
-  const [showModelError, setShowModelError] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    | 'providers'
-    | 'voice'
-    | 'skills'
-    | 'connectors'
-    | 'daemon'
-    | 'browsers'
-    | 'workspaces'
-    | 'integrations'
-    | 'general'
-    | 'about'
-  >(initialTab);
-  const [appVersion, setAppVersion] = useState<string>('');
-  const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
+  const s = useSettingsDialog({ open, onOpenChange, onApiKeySaved, initialProvider, initialTab });
 
-  const {
-    settings,
-    loading,
-    setActiveProvider,
-    connectProvider,
-    disconnectProvider,
-    updateModel,
-    refetch,
-  } = useProviderSettings();
-
-  // Debug mode state - stored in appSettings, not providerSettings
-  const [debugMode, setDebugModeState] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
-  const accomplish = getAccomplish();
-
-  // Refetch settings and debug mode when dialog opens
-  useEffect(() => {
-    if (!open) return;
-    refetch();
-    // Load debug mode from appSettings (correct store)
-    accomplish.getDebugMode().then(setDebugModeState);
-    accomplish.getNotificationsEnabled().then(setNotificationsEnabledState);
-    // Load app version
-    accomplish.getVersion().then(setAppVersion);
-  }, [open, refetch, accomplish]);
-
-  // Reset/initialize state when dialog opens or closes
-  useEffect(() => {
-    if (!open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset on close
-      setSelectedProvider(null);
-      setGridExpanded(false);
-      setCloseWarning(false);
-      setShowModelError(false);
-    } else {
-      setActiveTab(initialTab);
-    }
-  }, [open, initialTab]);
-
-  // Auto-select active provider (or initialProvider) and expand grid if needed when dialog opens
-  useEffect(() => {
-    if (!open || loading) return;
-
-    const providerToSelect = initialProvider || settings?.activeProviderId;
-    if (!providerToSelect) return;
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: auto-select on open
-    setSelectedProvider(providerToSelect);
-
-    if (!FIRST_FOUR_PROVIDERS.includes(providerToSelect)) {
-      setGridExpanded(true);
-    }
-  }, [open, loading, initialProvider, settings?.activeProviderId]);
-
-  // Handle close attempt
-  const handleOpenChange = useCallback(
-    (newOpen: boolean) => {
-      if (!newOpen && settings) {
-        // Check if user is trying to close
-        if (!hasAnyReadyProvider(settings)) {
-          // No ready provider - show warning
-          setCloseWarning(true);
-          return;
-        }
-      }
-      setCloseWarning(false);
-      onOpenChange(newOpen);
-    },
-    [settings, onOpenChange],
-  );
-
-  // Handle provider selection
-  const handleSelectProvider = useCallback(
-    async (providerId: ProviderId) => {
-      setSelectedProvider(providerId);
-      setCloseWarning(false);
-      setShowModelError(false);
-
-      // Auto-set as active if the selected provider is ready
-      const provider = settings?.connectedProviders?.[providerId];
-      if (provider && isProviderReady(provider)) {
-        await setActiveProvider(providerId);
-      }
-    },
-    [settings?.connectedProviders, setActiveProvider],
-  );
-
-  // Handle provider connection
-  const handleConnect = useCallback(
-    async (provider: ConnectedProvider) => {
-      await connectProvider(provider.providerId, provider);
-
-      // Auto-set as active if the new provider is ready (connected + has model selected)
-      // This ensures newly connected ready providers become active, regardless of
-      // whether another provider was already active
-      if (isProviderReady(provider)) {
-        await setActiveProvider(provider.providerId);
-        onApiKeySaved?.();
-      }
-    },
-    [connectProvider, setActiveProvider, onApiKeySaved],
-  );
-
-  // Handle provider update (e.g. model list refresh) without triggering connect side effects
-  const handleUpdateProvider = useCallback(
-    async (provider: ConnectedProvider) => {
-      await connectProvider(provider.providerId, provider);
-    },
-    [connectProvider],
-  );
-
-  // Handle provider disconnection
-  const handleDisconnect = useCallback(async () => {
-    if (!selectedProvider) return;
-    const wasActiveProvider = settings?.activeProviderId === selectedProvider;
-    await disconnectProvider(selectedProvider);
-    setSelectedProvider(null);
-
-    // If we just removed the active provider, auto-select another ready provider
-    if (wasActiveProvider && settings?.connectedProviders) {
-      const readyProviderId = Object.keys(settings.connectedProviders).find(
-        (id) =>
-          id !== selectedProvider && isProviderReady(settings.connectedProviders[id as ProviderId]),
-      ) as ProviderId | undefined;
-      if (readyProviderId) {
-        await setActiveProvider(readyProviderId);
-      }
-    }
-  }, [selectedProvider, disconnectProvider, settings, setActiveProvider]);
-
-  // Handle model change
-  const handleModelChange = useCallback(
-    async (modelId: string) => {
-      if (!selectedProvider) return;
-      await updateModel(selectedProvider, modelId);
-
-      // Auto-set as active if this provider is now ready
-      const provider = settings?.connectedProviders[selectedProvider];
-      if (provider && isProviderReady({ ...provider, selectedModelId: modelId })) {
-        if (!settings?.activeProviderId || settings.activeProviderId !== selectedProvider) {
-          await setActiveProvider(selectedProvider);
-        }
-      }
-
-      setShowModelError(false);
-      onApiKeySaved?.();
-    },
-    [selectedProvider, updateModel, settings, setActiveProvider, onApiKeySaved],
-  );
-
-  // Handle debug mode toggle - writes to appSettings (correct store)
-  const handleDebugToggle = useCallback(async () => {
-    const newValue = !debugMode;
-    await accomplish.setDebugMode(newValue);
-    setDebugModeState(newValue);
-  }, [debugMode, accomplish]);
-
-  // Handle notifications toggle
-  const handleNotificationsToggle = useCallback(async () => {
-    const newValue = !notificationsEnabled;
-    await accomplish.setNotificationsEnabled(newValue);
-    setNotificationsEnabledState(newValue);
-  }, [notificationsEnabled, accomplish]);
-
-  // Handle done button (close with validation)
-  const handleDone = useCallback(() => {
-    if (!settings) return;
-
-    // Check if selected provider needs a model
-    if (selectedProvider) {
-      const provider = settings.connectedProviders[selectedProvider];
-      if (provider?.connectionStatus === 'connected' && !provider.selectedModelId) {
-        setShowModelError(true);
-        return;
-      }
-    }
-
-    // Check if any provider is ready
-    if (!hasAnyReadyProvider(settings)) {
-      setActiveTab('providers'); // Switch to providers tab to show warning
-      setCloseWarning(true);
-      return;
-    }
-
-    // Validate active provider is still connected and ready
-    // This handles the case where the active provider was removed
-    if (settings.activeProviderId) {
-      const activeProvider = settings.connectedProviders[settings.activeProviderId];
-      if (!isProviderReady(activeProvider)) {
-        // Active provider is no longer ready - find a ready provider to set as active
-        const readyProviderId = Object.keys(settings.connectedProviders).find((id) =>
-          isProviderReady(settings.connectedProviders[id as ProviderId]),
-        ) as ProviderId | undefined;
-        if (readyProviderId) {
-          setActiveProvider(readyProviderId);
-        }
-      }
-    } else {
-      // No active provider set - auto-select first ready provider
-      const readyProviderId = Object.keys(settings.connectedProviders).find((id) =>
-        isProviderReady(settings.connectedProviders[id as ProviderId]),
-      ) as ProviderId | undefined;
-      if (readyProviderId) {
-        setActiveProvider(readyProviderId);
-      }
-    }
-
-    onOpenChange(false);
-  }, [settings, selectedProvider, onOpenChange, setActiveProvider]);
-
-  // Force close (dismiss warning)
-  const handleForceClose = useCallback(() => {
-    setCloseWarning(false);
-    onOpenChange(false);
-  }, [onOpenChange]);
-
-  if (loading || !settings) {
+  if (s.loading || !s.settings) {
     return (
-      <Dialog open={open} onOpenChange={handleOpenChange}>
+      <Dialog open={open} onOpenChange={s.handleOpenChange}>
         <DialogContent
           className="max-w-4xl w-full h-[80vh] flex flex-col overflow-hidden p-0"
           data-testid="settings-dialog"
@@ -334,7 +58,7 @@ export function SettingsDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={s.handleOpenChange}>
       <DialogContent
         className="max-w-4xl w-full h-[65vh] flex overflow-hidden p-0"
         data-testid="settings-dialog"
@@ -344,7 +68,6 @@ export function SettingsDialog({
           <DialogTitle>{t('title')}</DialogTitle>
         </DialogHeader>
 
-        {/* Left sidebar navigation */}
         <nav className="w-48 shrink-0 border-r border-border bg-muted/30 p-3 flex flex-col gap-1">
           <div className="px-3 py-2 mb-1">
             <img
@@ -354,13 +77,13 @@ export function SettingsDialog({
               style={{ height: '20px', paddingLeft: '6px' }}
             />
           </div>
-          {TABS.map((tab) => (
+          {SETTINGS_TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => s.setActiveTab(tab.id)}
               className={cn(
                 'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left',
-                activeTab === tab.id
+                s.activeTab === tab.id
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground hover:bg-background/50',
               )}
@@ -371,22 +94,18 @@ export function SettingsDialog({
           ))}
         </nav>
 
-        {/* Right content area */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Content header with title + optional actions */}
           <div className="flex items-center justify-between px-6 pt-5 pb-3">
             <h3 className="text-sm font-semibold text-foreground">
-              {TABS.find((tab) => tab.id === activeTab)?.labelKey &&
-                t(TABS.find((tab) => tab.id === activeTab)!.labelKey)}
+              {SETTINGS_TABS.find((tab) => tab.id === s.activeTab)?.labelKey &&
+                t(SETTINGS_TABS.find((tab) => tab.id === s.activeTab)!.labelKey)}
             </h3>
           </div>
 
-          {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto px-6 pb-6">
             <div className="space-y-6">
-              {/* Close Warning */}
               <AnimatePresence>
-                {closeWarning && (
+                {s.closeWarning && (
                   <motion.div
                     className="rounded-lg border border-warning bg-warning/10 p-4 mb-6"
                     variants={settingsVariants.fadeSlide}
@@ -418,7 +137,7 @@ export function SettingsDialog({
                         </p>
                         <div className="mt-3 flex gap-2">
                           <button
-                            onClick={handleForceClose}
+                            onClick={s.handleForceClose}
                             className="rounded-md px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
                           >
                             {t('warnings.closeAnyway')}
@@ -430,21 +149,19 @@ export function SettingsDialog({
                 )}
               </AnimatePresence>
 
-              {/* Providers Tab */}
-              {activeTab === 'providers' && (
+              {s.activeTab === 'providers' && (
                 <div className="space-y-6">
                   <section>
                     <ProviderGrid
-                      settings={settings}
-                      selectedProvider={selectedProvider}
-                      onSelectProvider={handleSelectProvider}
-                      expanded={gridExpanded}
-                      onToggleExpanded={() => setGridExpanded(!gridExpanded)}
+                      settings={s.settings}
+                      selectedProvider={s.selectedProvider}
+                      onSelectProvider={s.handleSelectProvider}
+                      expanded={s.gridExpanded}
+                      onToggleExpanded={() => s.setGridExpanded(!s.gridExpanded)}
                     />
                   </section>
-
                   <AnimatePresence>
-                    {selectedProvider && (
+                    {s.selectedProvider && (
                       <motion.section
                         variants={settingsVariants.slideDown}
                         initial="initial"
@@ -453,98 +170,78 @@ export function SettingsDialog({
                         transition={settingsTransitions.enter}
                       >
                         <ProviderSettingsPanel
-                          key={selectedProvider}
-                          providerId={selectedProvider}
-                          connectedProvider={settings?.connectedProviders?.[selectedProvider]}
-                          onConnect={handleConnect}
-                          onUpdateProvider={handleUpdateProvider}
-                          onDisconnect={handleDisconnect}
-                          onModelChange={handleModelChange}
-                          showModelError={showModelError}
+                          key={s.selectedProvider}
+                          providerId={s.selectedProvider}
+                          connectedProvider={s.settings?.connectedProviders?.[s.selectedProvider]}
+                          onConnect={s.handleConnect}
+                          onUpdateProvider={s.handleUpdateProvider}
+                          onDisconnect={s.handleDisconnect}
+                          onModelChange={s.handleModelChange}
+                          showModelError={s.showModelError}
                         />
                       </motion.section>
                     )}
                   </AnimatePresence>
-
-                  {/* Sandbox Toggle - always visible in providers tab */}
-                  <SandboxSection visible={!!selectedProvider} />
+                  <SandboxSection visible={!!s.selectedProvider} />
                 </div>
               )}
 
-              {/* Skills Tab */}
-              {activeTab === 'skills' && (
+              {s.activeTab === 'skills' && (
                 <div className="space-y-4">
-                  <SkillsPanel refreshTrigger={skillsRefreshTrigger} />
+                  <SkillsPanel refreshTrigger={s.skillsRefreshTrigger} />
                 </div>
               )}
-
-              {/* Connectors Tab */}
-              {activeTab === 'connectors' && (
+              {s.activeTab === 'connectors' && (
                 <div className="space-y-6">
                   <ConnectorsPanel />
                 </div>
               )}
-
-              {/* Daemon Tab */}
-              {activeTab === 'daemon' && (
+              {s.activeTab === 'daemon' && (
                 <div className="space-y-6">
                   <DaemonPanel />
                 </div>
               )}
-
-              {/* Cloud Browsers Tab */}
-              {activeTab === 'browsers' && (
+              {s.activeTab === 'browsers' && (
                 <div className="space-y-6">
                   <CloudBrowsersPanel />
                 </div>
               )}
-
-              {/* Integrations Tab (ENG-684) */}
-              {activeTab === 'integrations' && (
+              {s.activeTab === 'integrations' && (
                 <div className="space-y-6">
                   <IntegrationsPanel />
                 </div>
               )}
-
-              {/* Workspaces Tab */}
-              {activeTab === 'workspaces' && (
+              {s.activeTab === 'workspaces' && (
                 <div className="space-y-6">
                   <WorkspacesPanel />
                 </div>
               )}
-
-              {/* Voice Input Tab */}
-              {activeTab === 'voice' && (
+              {s.activeTab === 'voice' && (
                 <div className="space-y-6">
                   <SpeechSettingsForm />
                 </div>
               )}
-
-              {/* General Tab */}
-              {activeTab === 'general' && (
+              {s.activeTab === 'general' && (
                 <GeneralTab
-                  notificationsEnabled={notificationsEnabled}
-                  onNotificationsToggle={handleNotificationsToggle}
-                  debugMode={debugMode}
-                  onDebugToggle={handleDebugToggle}
+                  notificationsEnabled={s.notificationsEnabled}
+                  onNotificationsToggle={s.handleNotificationsToggle}
+                  debugMode={s.debugMode}
+                  onDebugToggle={s.handleDebugToggle}
                 />
               )}
+              {s.activeTab === 'about' && <AboutTab appVersion={s.appVersion} />}
 
-              {/* About Tab */}
-              {activeTab === 'about' && <AboutTab appVersion={appVersion} />}
-
-              {/* Footer: Add (skills only) + Done */}
               <div className="mt-4 flex items-center justify-between">
                 <div>
-                  {activeTab === 'skills' && (
+                  {s.activeTab === 'skills' && (
                     <AddSkillDropdown
-                      onSkillAdded={() => setSkillsRefreshTrigger((prev) => prev + 1)}
+                      onSkillAdded={() => s.setSkillsRefreshTrigger((prev) => prev + 1)}
                       onClose={() => onOpenChange(false)}
                     />
                   )}
                 </div>
                 <button
-                  onClick={handleDone}
+                  onClick={s.handleDone}
                   className="flex items-center gap-2 rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                   data-testid="settings-done-button"
                 >

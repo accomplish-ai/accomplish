@@ -1,28 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
-import { getAccomplish } from '@/lib/accomplish';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import type {
   ConnectedProvider,
   OllamaCredentials,
   ToolSupportStatus,
-} from '@accomplish_ai/agent-core/common';
+} from '@accomplish_ai/agent-core';
 import {
   ConnectButton,
   ConnectedControls,
   ProviderFormHeader,
   FormError,
   ModelSelector,
+  ToolSupportBadge,
 } from '../shared';
+import { useOllamaProviderConnect } from './useOllamaProviderConnect';
+import type { OllamaModel } from './ollama-types';
 
 import ollamaLogo from '/assets/ai-logos/ollama.svg';
-
-interface OllamaModel {
-  id: string;
-  name: string;
-  toolSupport?: ToolSupportStatus;
-}
 
 interface OllamaProviderFormProps {
   connectedProvider?: ConnectedProvider;
@@ -31,60 +26,6 @@ interface OllamaProviderFormProps {
   onDisconnect: () => void;
   onModelChange: (modelId: string) => void;
   showModelError: boolean;
-}
-
-function ToolSupportBadge({
-  status,
-  t,
-}: {
-  status: ToolSupportStatus;
-  t: (key: string) => string;
-}) {
-  const config = {
-    supported: {
-      label: t('toolBadge.supported'),
-      className: 'bg-green-500/20 text-green-400 border-green-500/30',
-      icon: (
-        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-      ),
-    },
-    unsupported: {
-      label: t('toolBadge.unsupported'),
-      className: 'bg-red-500/20 text-red-400 border-red-500/30',
-      icon: (
-        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
-      ),
-    },
-    unknown: {
-      label: t('toolBadge.unknown'),
-      className: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      icon: (
-        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
-        </svg>
-      ),
-    },
-  };
-
-  const { label, className, icon } = config[status];
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${className}`}
-    >
-      {icon}
-      {label}
-    </span>
-  );
 }
 
 function OllamaModelSelector({
@@ -106,13 +47,16 @@ function OllamaModelSelector({
     return aOrder - bOrder;
   });
 
+  const toolIconMap: Record<ToolSupportStatus | 'unknown', string> = {
+    supported: '✓',
+    unsupported: '✗',
+    unknown: '?',
+  };
+
   const selectorModels = sortedModels.map((model) => {
     const toolSupport = model.toolSupport || 'unknown';
-    const toolIcon = toolSupport === 'supported' ? '✓' : toolSupport === 'unsupported' ? '✗' : '?';
-    return {
-      id: model.id,
-      name: `${model.name} ${toolIcon}`,
-    };
+    const toolIcon = toolIconMap[toolSupport];
+    return { id: model.id, name: `${model.name} ${toolIcon}` };
   });
 
   const selectedModel = models.find((m) => m.id === value);
@@ -122,7 +66,6 @@ function OllamaModelSelector({
   return (
     <div>
       <ModelSelector models={selectorModels} value={value} onChange={onChange} error={error} />
-
       {hasUnsupportedSelected && (
         <div className="mt-2 flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
           <svg
@@ -144,7 +87,6 @@ function OllamaModelSelector({
           </div>
         </div>
       )}
-
       {hasUnknownSelected && (
         <div className="mt-2 flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-400">
           <svg
@@ -179,131 +121,18 @@ export function OllamaProviderForm({
   showModelError,
 }: OllamaProviderFormProps) {
   const { t } = useTranslation('settings');
-  const [serverUrl, setServerUrl] = useState('http://localhost:11434');
-  const [connecting, setConnecting] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
-
-  const latestProviderRef = useRef(connectedProvider);
-  const refreshRequestIdRef = useRef(0);
-  useEffect(() => {
-    latestProviderRef.current = connectedProvider;
-  }, [connectedProvider]);
+  const {
+    serverUrl,
+    setServerUrl,
+    connecting,
+    refreshing,
+    error,
+    models,
+    handleConnect,
+    handleRefresh,
+  } = useOllamaProviderConnect({ connectedProvider, onConnect, onUpdateProvider });
 
   const isConnected = connectedProvider?.connectionStatus === 'connected';
-
-  const handleConnect = async () => {
-    setConnecting(true);
-    setError(null);
-
-    try {
-      const accomplish = getAccomplish();
-      const result = await accomplish.testOllamaConnection(serverUrl);
-
-      if (!result.success) {
-        setError(result.error || t('status.connectionFailed'));
-        setConnecting(false);
-        return;
-      }
-
-      const models: OllamaModel[] = (result.models || []).map((m) => ({
-        id: `ollama/${m.id}`,
-        name: m.displayName,
-        toolSupport: m.toolSupport || 'unknown',
-      }));
-      setAvailableModels(models);
-
-      const provider: ConnectedProvider = {
-        providerId: 'ollama',
-        connectionStatus: 'connected',
-        selectedModelId: null,
-        credentials: {
-          type: 'ollama',
-          serverUrl,
-        } as OllamaCredentials,
-        lastConnectedAt: new Date().toISOString(),
-        availableModels: models.map((m) => ({
-          id: m.id,
-          name: m.name,
-          toolSupport: m.toolSupport,
-        })),
-      };
-
-      onConnect(provider);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('status.connectionFailed'));
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    const baseProvider = latestProviderRef.current;
-    if (!baseProvider) {
-      return;
-    }
-    const requestId = ++refreshRequestIdRef.current;
-    setRefreshing(true);
-    setError(null);
-
-    try {
-      const accomplish = getAccomplish();
-      const currentUrl =
-        (baseProvider.credentials as OllamaCredentials)?.serverUrl || 'http://localhost:11434';
-      const result = await accomplish.testOllamaConnection(currentUrl);
-
-      if (!result.success) {
-        setError(result.error || t('status.connectionFailed'));
-        return;
-      }
-
-      if (requestId !== refreshRequestIdRef.current) {
-        return;
-      }
-      const latestProvider = latestProviderRef.current;
-      if (!latestProvider || latestProvider.connectionStatus !== 'connected') {
-        return;
-      }
-
-      const freshModels: OllamaModel[] = (result.models || []).map((m) => ({
-        id: `ollama/${m.id}`,
-        name: m.displayName,
-        toolSupport: m.toolSupport || 'unknown',
-      }));
-      setAvailableModels(freshModels);
-
-      const freshModelIds = new Set(freshModels.map((m) => m.id));
-      const keepSelectedModel =
-        latestProvider.selectedModelId && freshModelIds.has(latestProvider.selectedModelId)
-          ? latestProvider.selectedModelId
-          : null;
-
-      const updatedProvider: ConnectedProvider = {
-        ...latestProvider,
-        selectedModelId: keepSelectedModel,
-        availableModels: freshModels.map((m) => ({
-          id: m.id,
-          name: m.name,
-          toolSupport: m.toolSupport,
-        })),
-      };
-
-      (onUpdateProvider || onConnect)(updatedProvider);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('status.connectionFailed'));
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  const models: OllamaModel[] = (connectedProvider?.availableModels || availableModels).map(
-    (m) => ({
-      id: m.id,
-      name: m.name,
-      toolSupport: (m as { toolSupport?: ToolSupportStatus }).toolSupport || 'unknown',
-    }),
-  );
 
   return (
     <div
@@ -311,7 +140,6 @@ export function OllamaProviderForm({
       data-testid="provider-settings-panel"
     >
       <ProviderFormHeader logoSrc={ollamaLogo} providerName={t('providers.ollama')} invertInDark />
-
       <div className="space-y-3">
         <AnimatePresence mode="wait">
           {!isConnected ? (
@@ -337,7 +165,6 @@ export function OllamaProviderForm({
                   className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                 />
               </div>
-
               <FormError error={error} />
               <ConnectButton onClick={handleConnect} connecting={connecting} />
             </motion.div>
@@ -365,9 +192,7 @@ export function OllamaProviderForm({
                   className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
                 />
               </div>
-
               <ConnectedControls onDisconnect={onDisconnect} />
-
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
                   <OllamaModelSelector
@@ -401,9 +226,7 @@ export function OllamaProviderForm({
                   </svg>
                 </button>
               </div>
-
               <FormError error={error} />
-
               <div className="flex items-center gap-3 pt-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <ToolSupportBadge status="supported" t={t} />

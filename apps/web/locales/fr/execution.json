@@ -5,7 +5,9 @@
     "completed": "Terminé",
     "failed": "Échoué",
     "cancelled": "Annulé",
-    "stopped": "Arrêté"
+    "stopped": "Arrêté",
+    "pending": "En attente",
+    "waiting_permission": "En attente de permission"
   },
   "waiting": {
     "title": "En attente d'une autre tâche",
@@ -30,7 +32,8 @@
     "interruptedPlaceholder": "Donnez de nouvelles instructions...",
     "noSessionPlaceholder": "Envoyez une nouvelle instruction pour réessayer...",
     "completedPlaceholder": "Donnez de nouvelles instructions...",
-    "defaultPlaceholder": "Demandez quelque chose..."
+    "defaultPlaceholder": "Demandez quelque chose...",
+    "dropFilesToAttach": "Déposer des fichiers à joindre"
   },
   "taskStatus": "Tâche {{status}}",
   "processing": "Traitement",
