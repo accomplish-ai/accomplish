@@ -5,7 +5,7 @@ import type {
   ConnectedProvider,
   OllamaCredentials,
   ToolSupportStatus,
-} from '@accomplish_ai/agent-core/common';
+} from '@accomplish_ai/agent-core';
 import {
   ConnectButton,
   ConnectedControls,
@@ -47,9 +47,15 @@ function OllamaModelSelector({
     return aOrder - bOrder;
   });
 
+  const toolIconMap: Record<ToolSupportStatus | 'unknown', string> = {
+    supported: '✓',
+    unsupported: '✗',
+    unknown: '?',
+  };
+
   const selectorModels = sortedModels.map((model) => {
     const toolSupport = model.toolSupport || 'unknown';
-    const toolIcon = toolSupport === 'supported' ? '✓' : toolSupport === 'unsupported' ? '✗' : '?';
+    const toolIcon = toolIconMap[toolSupport];
     return { id: model.id, name: `${model.name} ${toolIcon}` };
   });
 
