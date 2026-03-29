@@ -32,7 +32,8 @@
     "interruptedPlaceholder": "Give new instructions...",
     "noSessionPlaceholder": "Send a new instruction to retry...",
     "completedPlaceholder": "Give new instructions...",
-    "defaultPlaceholder": "Ask for something..."
+    "defaultPlaceholder": "Ask for something...",
+    "dropFilesToAttach": "Drop files to attach"
   },
   "questionPrompt": {
     "oauthConnecting": "Connecting {{provider}}...",

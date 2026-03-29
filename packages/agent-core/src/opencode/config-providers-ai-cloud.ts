@@ -54,7 +54,8 @@ export function buildGoogleConfig(ctx: ProviderBuildContext): ProviderBuildResul
       const mId = model.id.replace(/^google\//, '');
       googleModels[mId] = { name: model.name, tools: true };
     }
-  } else {
+  }
+  if (!googleModels[modelId]) {
     googleModels[modelId] = { name: modelId, tools: true };
   }
   log.info(`[OpenCode Config Builder] Google AI configured, selected model: ${modelId}`);

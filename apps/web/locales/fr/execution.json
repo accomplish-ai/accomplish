@@ -32,7 +32,8 @@
     "interruptedPlaceholder": "Donnez de nouvelles instructions...",
     "noSessionPlaceholder": "Envoyez une nouvelle instruction pour réessayer...",
     "completedPlaceholder": "Donnez de nouvelles instructions...",
-    "defaultPlaceholder": "Demandez quelque chose..."
+    "defaultPlaceholder": "Demandez quelque chose...",
+    "dropFilesToAttach": "Déposer des fichiers à joindre"
   },
   "taskStatus": "Tâche {{status}}",
   "processing": "Traitement",

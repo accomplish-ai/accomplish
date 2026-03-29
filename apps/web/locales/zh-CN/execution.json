@@ -29,7 +29,8 @@
     "interruptedPlaceholder": "输入新指令...",
     "noSessionPlaceholder": "发送新指令重试...",
     "completedPlaceholder": "输入新指令...",
-    "defaultPlaceholder": "输入内容..."
+    "defaultPlaceholder": "输入内容...",
+    "dropFilesToAttach": "拖放文件以附加"
   },
   "questionPrompt": {
     "oauthConnecting": "正在连接 {{provider}}...",

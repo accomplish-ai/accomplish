@@ -27,10 +27,14 @@ export function ExecutionCompleteFooter({
   }, [loadFavorites]);
 
   const handleToggleFavorite = useCallback(async () => {
-    if (isFavorited) {
-      await removeFavorite(taskId);
-    } else {
-      await addFavorite(taskId);
+    try {
+      if (isFavorited) {
+        await removeFavorite(taskId);
+      } else {
+        await addFavorite(taskId);
+      }
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
     }
   }, [taskId, isFavorited, addFavorite, removeFavorite]);
 
