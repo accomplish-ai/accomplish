@@ -26,7 +26,7 @@ export function emitStatusUpdate(
   status: PreviewStatus,
   message?: string,
 ): void {
-  sendToRenderer('browser:status', { taskId, pageName, status, message, timestamp: Date.now() });
+  sendToRenderer('browser:status', { taskId, pageName, status, message });
 }
 
 export function emitFrameCapture(
@@ -47,7 +47,7 @@ export function emitFrameCapture(
 }
 
 export function emitNavigationEvent(taskId: string, pageName: string, url: string): void {
-  sendToRenderer('browser:navigate', { taskId, pageName, url, timestamp: Date.now() });
+  sendToRenderer('browser:navigate', { taskId, pageName, url });
 }
 
 export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {

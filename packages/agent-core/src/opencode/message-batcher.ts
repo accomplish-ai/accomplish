@@ -49,15 +49,7 @@ export function createMessageBatcher(
         return;
       }
 
-      try {
-        forwardToRenderer('task:update:batch', {
-          taskId,
-          messages: batcher.pendingMessages,
-        });
-      } catch (err) {
-        logger.error(`Error forwarding messages for task ${taskId}:`, err);
-      }
-
+      const originalMessages = [...batcher.pendingMessages];
       const failures: TaskMessage[] = [];
       for (const msg of batcher.pendingMessages) {
         try {
@@ -70,7 +62,26 @@ export function createMessageBatcher(
 
       batcher.pendingMessages = failures;
 
-      if (batcher.pendingMessages.length === 0 && batcher.timeout) {
+      const successfulMessages = originalMessages.filter((msg) => !failures.includes(msg));
+      if (successfulMessages.length > 0) {
+        try {
+          forwardToRenderer('task:update:batch', {
+            taskId,
+            messages: successfulMessages,
+          });
+        } catch (err) {
+          logger.error(`Error forwarding messages for task ${taskId}:`, err);
+        }
+      }
+
+      if (batcher.pendingMessages.length > 0) {
+        if (batcher.timeout) {
+          clearTimeout(batcher.timeout);
+        }
+        batcher.timeout = setTimeout(() => {
+          batcher.flush();
+        }, MESSAGE_BATCH_DELAY_MS);
+      } else if (batcher.timeout) {
         clearTimeout(batcher.timeout);
         batcher.timeout = null;
       }

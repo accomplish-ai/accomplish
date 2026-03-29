@@ -4,7 +4,7 @@ export function normalizeBaseUrl(url: string): string {
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
       throw new Error(`Invalid protocol: ${parsed.protocol}. Only http and https are supported.`);
     }
-    return parsed.origin + parsed.pathname.replace(/\/$/, '');
+    return parsed.origin + parsed.pathname.replace(/\/+$/, '');
   } catch (error) {
     if (error instanceof TypeError) {
       throw new Error(`Invalid URL format: ${url}`);

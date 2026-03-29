@@ -11,6 +11,9 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
   const text = body.toString('utf8');
   try {
     const parsed = JSON.parse(text) as Record<string, unknown>;
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return body;
+    }
     let modified = false;
 
     if (DEBUG) {
