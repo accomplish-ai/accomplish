@@ -56,6 +56,7 @@ export function useOAuthSignIn({
     setSigningIn(true);
     setError(null);
     let pollStarted = false;
+    let shouldBail = false;
 
     const providerConfig = DEFAULT_PROVIDERS.find((p) => p.id === providerId);
 
@@ -63,7 +64,10 @@ export function useOAuthSignIn({
       const accomplish = getAccomplish();
       const result = await accomplish.loginOpenAiWithChatGpt();
 
-      if (abortController.signal.aborted || attemptId !== signInAttemptRef.current) return;
+      if (abortController.signal.aborted || attemptId !== signInAttemptRef.current) {
+        shouldBail = true;
+        return;
+      }
 
       if (!result.ok) {
         setError(t('status.signInFailed'));
@@ -133,13 +137,14 @@ export function useOAuthSignIn({
         setSigningIn(false);
       });
     } catch (err) {
-      if (abortController.signal.aborted || attemptId !== signInAttemptRef.current) return;
-      setError(err instanceof Error ? err.message : t('status.signInFailed'));
-    } finally {
-      if (!pollStarted && (abortController.signal.aborted || attemptId !== signInAttemptRef.current)) {
+      if (abortController.signal.aborted || attemptId !== signInAttemptRef.current) {
+        shouldBail = true;
         return;
       }
-      if (!pollStarted) {
+      setError(err instanceof Error ? err.message : t('status.signInFailed'));
+    } finally {
+      // Cleanup: only set signingIn to false if we didn't start polling and we're not bailing due to abort/stale attempt
+      if (!pollStarted && !shouldBail) {
         setSigningIn(false);
       }
     }

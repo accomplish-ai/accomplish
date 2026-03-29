@@ -29,12 +29,13 @@ export function createTaskLifecycleActions(set: SetFn, get: GetFn) {
             tasks: state.tasks.map((t) =>
               t.id === currentTask.id ? { ...t, status: 'cancelled' as TaskStatus } : t,
             ),
+            isLoading: false,
           }));
         } catch (err) {
           if (!hasTaskStateToken(get(), taskStateToken)) {
             return;
           }
-          set({ error: err instanceof Error ? err.message : 'Failed to cancel task' });
+          set({ isLoading: false, error: err instanceof Error ? err.message : 'Failed to cancel task' });
           void accomplish.logEvent({
             level: 'error',
             message: 'UI cancel task failed',
