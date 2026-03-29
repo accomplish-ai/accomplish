@@ -88,7 +88,7 @@ export function queueMessage(
   }
 
   batcher.timeout = setTimeout(() => {
-    batcher.flush();
+    flushAndCleanupBatcher(taskId);
   }, MESSAGE_BATCH_DELAY_MS);
 }
 

@@ -16,8 +16,9 @@ import {
   emitNavigationEvent,
   resolveTargetId,
   resolveBrowserWsEndpoint,
+  autoStartScreencast as autoStartScreencastUtil,
 } from './browser-preview-utils';
-import { DEV_BROWSER_PORT } from '@accomplish_ai/agent-core';
+
 import { getLogCollector } from '@main/logging';
 
 const DEFAULT_PAGE_NAME = 'main';
@@ -182,21 +183,5 @@ export function isScreencastActive(): boolean {
  * Contributed by dhruvawani17 (PR #489) for ENG-695.
  */
 export async function autoStartScreencast(taskId: string): Promise<void> {
-  try {
-    const res = await fetch(`http://${DEV_BROWSER_HOST}:${DEV_BROWSER_PORT}/pages`).catch(
-      () => null,
-    );
-    if (!res || !res.ok) return;
-
-    const data = (await res.json()) as { pages: string[] };
-    const taskPrefix = `${taskId}-`;
-    const taskPages = data.pages.filter((p: string) => p.startsWith(taskPrefix));
-
-    if (taskPages.length > 0) {
-      const pageName = taskPages[0].substring(taskPrefix.length);
-      await startBrowserPreviewStream(taskId, pageName);
-    }
-  } catch {
-    // Server not ready yet — will be triggered later via IPC
-  }
+  return autoStartScreencastUtil(taskId, startBrowserPreviewStream);
 }

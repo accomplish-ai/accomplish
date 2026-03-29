@@ -4,6 +4,8 @@ import * as path from 'path';
 import type { Skill, SkillSource, SkillFrontmatter } from '../../common/types/skills.js';
 import { createConsoleLogger } from '../../utils/logging.js';
 
+const log = createConsoleLogger({ prefix: 'SkillsManager' });
+
 export function parseFrontmatter(content: string): SkillFrontmatter {
   try {
     const { data } = matter(content);
@@ -42,7 +44,6 @@ export function isPathWithinDirectory(filePath: string, directory: string): bool
 }
 
 export function scanDirectory(dirPath: string, defaultSource: SkillSource): Skill[] {
-  const log = createConsoleLogger({ prefix: 'SkillsManager' });
   const skills: Skill[] = [];
 
   if (!fs.existsSync(dirPath)) {

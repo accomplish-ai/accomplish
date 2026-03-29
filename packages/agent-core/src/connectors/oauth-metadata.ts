@@ -14,9 +14,14 @@ export interface OAuthProtectedResourceMetadata {
 export function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), OAUTH_FETCH_TIMEOUT_MS);
-  return fetch(url, { ...options, signal: controller.signal }).finally(() =>
-    clearTimeout(timeoutId),
-  );
+  return fetch(url, { ...options, signal: controller.signal })
+    .catch((err: unknown) => {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error(`Request to ${url} timed out after ${OAUTH_FETCH_TIMEOUT_MS}ms`);
+      }
+      throw err;
+    })
+    .finally(() => clearTimeout(timeoutId));
 }
 
 /**

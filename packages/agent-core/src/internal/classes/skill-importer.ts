@@ -135,7 +135,29 @@ export function resolveGithubRawUrl(rawUrl: string): string {
   }
 
   if (parsedUrl.hostname === 'raw.githubusercontent.com') {
+    // Validate path: /owner/repo/branch/...
+    const rawParts = parsedUrl.pathname.split('/').filter(Boolean);
+    if (rawParts.length < 3) {
+      throw new Error(
+        'URL must include at least owner, repo, and branch (e.g. raw.githubusercontent.com/owner/repo/branch/...)',
+      );
+    }
     return rawUrl;
+  }
+
+  // Validate path has at least owner/repo/branch segments
+  const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+  // github.com paths: /owner/repo or /owner/repo/tree/branch/... etc.
+  // We need at least owner/repo/branch — so after stripping tree|blob prefix we need 3 segments
+  const pathWithoutTreeBlob = parsedUrl.pathname
+    .replace('/tree/', '/')
+    .replace('/blob/', '/')
+    .split('/')
+    .filter(Boolean);
+  if (pathParts.length < 2 || pathWithoutTreeBlob.length < 3) {
+    throw new Error(
+      'URL must include at least owner, repo, and branch reference (e.g. github.com/owner/repo/tree/branch)',
+    );
   }
 
   let fetchUrl = rawUrl;

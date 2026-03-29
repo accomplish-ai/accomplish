@@ -14,11 +14,11 @@ export function normalizeBaseUrl(url: string): string {
 }
 
 export function isValidRequestPath(pathname: string): boolean {
-  if (pathname === '/health') return true;
-  if (pathname === '/chat/completions' || pathname.startsWith('/chat/')) return true;
-  if (pathname === '/completions' || pathname.startsWith('/completions/')) return true;
-  if (pathname === '/embeddings' || pathname.startsWith('/embeddings/')) return true;
-  if (pathname === '/models' || pathname.startsWith('/models/')) return true;
+  if (pathname === '/health') { return true; }
+  if (pathname === '/chat/completions' || pathname.startsWith('/chat/')) { return true; }
+  if (pathname === '/completions' || pathname.startsWith('/completions/')) { return true; }
+  if (pathname === '/embeddings' || pathname.startsWith('/embeddings/')) { return true; }
+  if (pathname === '/models' || pathname.startsWith('/models/')) { return true; }
   return false;
 }
 

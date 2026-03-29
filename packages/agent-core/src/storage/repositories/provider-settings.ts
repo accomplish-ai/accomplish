@@ -40,13 +40,7 @@ export function setSelectedModel(model: SelectedModel): void {
 }
 
 export function getOllamaConfig(): OllamaConfig | null {
-  const row = getProviderRow();
-  if (!row.ollama_config) return null;
-  try {
-    return JSON.parse(row.ollama_config) as OllamaConfig;
-  } catch {
-    return null;
-  }
+  return safeParseJsonWithFallback<OllamaConfig>(getProviderRow().ollama_config);
 }
 
 export function setOllamaConfig(config: OllamaConfig | null): void {
@@ -57,13 +51,7 @@ export function setOllamaConfig(config: OllamaConfig | null): void {
 }
 
 export function getLiteLLMConfig(): LiteLLMConfig | null {
-  const row = getProviderRow();
-  if (!row.litellm_config) return null;
-  try {
-    return JSON.parse(row.litellm_config) as LiteLLMConfig;
-  } catch {
-    return null;
-  }
+  return safeParseJsonWithFallback<LiteLLMConfig>(getProviderRow().litellm_config);
 }
 
 export function setLiteLLMConfig(config: LiteLLMConfig | null): void {
@@ -74,13 +62,7 @@ export function setLiteLLMConfig(config: LiteLLMConfig | null): void {
 }
 
 export function getAzureFoundryConfig(): AzureFoundryConfig | null {
-  const row = getProviderRow();
-  if (!row.azure_foundry_config) return null;
-  try {
-    return JSON.parse(row.azure_foundry_config) as AzureFoundryConfig;
-  } catch {
-    return null;
-  }
+  return safeParseJsonWithFallback<AzureFoundryConfig>(getProviderRow().azure_foundry_config);
 }
 
 export function setAzureFoundryConfig(config: AzureFoundryConfig | null): void {
@@ -91,13 +73,7 @@ export function setAzureFoundryConfig(config: AzureFoundryConfig | null): void {
 }
 
 export function getLMStudioConfig(): LMStudioConfig | null {
-  const row = getProviderRow();
-  if (!row.lmstudio_config) return null;
-  try {
-    return JSON.parse(row.lmstudio_config) as LMStudioConfig;
-  } catch {
-    return null;
-  }
+  return safeParseJsonWithFallback<LMStudioConfig>(getProviderRow().lmstudio_config);
 }
 
 export function setLMStudioConfig(config: LMStudioConfig | null): void {
@@ -108,13 +84,7 @@ export function setLMStudioConfig(config: LMStudioConfig | null): void {
 }
 
 export function getHuggingFaceLocalConfig(): HuggingFaceLocalConfig | null {
-  const row = getProviderRow();
-  if (!row.huggingface_local_config) return null;
-  try {
-    return JSON.parse(row.huggingface_local_config) as HuggingFaceLocalConfig;
-  } catch {
-    return null;
-  }
+  return safeParseJsonWithFallback<HuggingFaceLocalConfig>(getProviderRow().huggingface_local_config);
 }
 
 export function setHuggingFaceLocalConfig(config: HuggingFaceLocalConfig | null): void {
@@ -125,13 +95,7 @@ export function setHuggingFaceLocalConfig(config: HuggingFaceLocalConfig | null)
 }
 
 export function getNimConfig(): NimConfig | null {
-  const row = getProviderRow();
-  if (!row.nim_config) return null;
-  try {
-    return JSON.parse(row.nim_config) as NimConfig;
-  } catch {
-    return null;
-  }
+  return safeParseJsonWithFallback<NimConfig>(getProviderRow().nim_config);
 }
 
 export function setNimConfig(config: NimConfig | null): void {

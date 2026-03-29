@@ -109,7 +109,7 @@ export function getErrorMessage(error: OpenCodeLogError): string {
     case 'ModelNotFoundError':
       return `Model not available: ${error.modelID || 'unknown'}. Please select a different model.`;
     case 'ValidationError':
-      return `Invalid request: ${error.message}`;
+      return `Invalid request: ${error.message ?? 'Unknown validation error'}`;
     case 'AI_APICallError':
       if (error.statusCode === 429) {
         return `Rate limit exceeded: ${error.message || 'Please wait before trying again.'}`;

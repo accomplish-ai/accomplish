@@ -72,7 +72,7 @@ export function sanitizeToolOutput(text: string, isError: boolean): string {
   if (isError) {
     const timeoutMatch = result.match(/timed? ?out after (\d+)ms/i);
     if (timeoutMatch) {
-      const seconds = Math.round(parseInt(timeoutMatch[1]) / 1000);
+      const seconds = Math.round(parseInt(timeoutMatch[1], 10) / 1000);
       return `Timed out after ${seconds}s`;
     }
 

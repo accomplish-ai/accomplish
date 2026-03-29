@@ -80,3 +80,34 @@ export async function resolveBrowserWsEndpoint(): Promise<string> {
   }
   return info.webSocketDebuggerUrl;
 }
+
+/**
+ * Auto-start a preview when the dev-browser server is already running with an active session.
+ * Called opportunistically from the task lifecycle.
+ * Contributed by dhruvawani17 (PR #489) for ENG-695.
+ *
+ * @param taskId - The task ID to start the preview for
+ * @param startBrowserPreviewStream - Callback to start the preview stream
+ */
+export async function autoStartScreencast(
+  taskId: string,
+  startBrowserPreviewStream: (taskId: string, pageName: string) => Promise<void>,
+): Promise<void> {
+  try {
+    const res = await fetch(`http://${DEV_BROWSER_HOST}:${DEV_BROWSER_PORT}/pages`).catch(
+      () => null,
+    );
+    if (!res || !res.ok) { return; }
+
+    const data = (await res.json()) as { pages: string[] };
+    const taskPrefix = `${taskId}-`;
+    const taskPages = data.pages.filter((p: string) => p.startsWith(taskPrefix));
+
+    if (taskPages.length > 0) {
+      const pageName = taskPages[0].substring(taskPrefix.length);
+      await startBrowserPreviewStream(taskId, pageName);
+    }
+  } catch {
+    // Server not ready yet — will be triggered later via IPC
+  }
+}

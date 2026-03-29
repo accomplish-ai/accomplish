@@ -78,6 +78,8 @@ export async function stopMoonshotProxy(): Promise<void> {
 
     server!.close((err) => {
       clearTimeout(timeout);
+      server = null;
+      targetBaseUrl = null;
       if (err && (err as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') {
         log.error(`[Moonshot Proxy] Error during shutdown: ${err}`);
         reject(err);
@@ -86,9 +88,6 @@ export async function stopMoonshotProxy(): Promise<void> {
         resolve();
       }
     });
-
-    server = null;
-    targetBaseUrl = null;
   });
 }
 

@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { createConsoleLogger } from '../../utils/logging.js';
 
 const log = createConsoleLogger({ prefix: 'MoonshotProxy' });
@@ -7,9 +8,9 @@ const DEBUG = process.env.DEBUG_MOONSHOT_PROXY === '1';
 export const reasoningContentCache = new Map<string, string>();
 
 export function hashMessageContent(msg: Record<string, unknown>): string {
-  const content = String(msg.content || '');
-  const toolCalls = JSON.stringify(msg.tool_calls || []);
-  return `${content.slice(0, 100)}::${toolCalls.slice(0, 200)}`;
+  const hash = createHash('sha256');
+  hash.update(String(msg.content) + JSON.stringify(msg.tool_calls || []));
+  return hash.digest('hex');
 }
 
 export function extractAndCacheReasoningContent(responseText: string): void {
@@ -19,14 +20,14 @@ export function extractAndCacheReasoningContent(responseText: string): void {
 
   const lines = responseText.split('\n');
   for (const line of lines) {
-    if (!line.startsWith('data: ')) continue;
+    if (!line.startsWith('data: ')) { continue; }
     const jsonStr = line.slice(6).trim();
-    if (jsonStr === '[DONE]') continue;
+    if (jsonStr === '[DONE]') { continue; }
 
     try {
       const data = JSON.parse(jsonStr) as Record<string, unknown>;
       const choices = data.choices as Array<Record<string, unknown>> | undefined;
-      if (!choices?.[0]) continue;
+      if (!choices?.[0]) { continue; }
 
       const choice = choices[0];
       const delta = choice.delta as Record<string, unknown> | undefined;

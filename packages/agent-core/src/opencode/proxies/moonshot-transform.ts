@@ -44,20 +44,11 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
     }
 
     const processMessagesArray = (messages: unknown): void => {
-      if (!Array.isArray(messages)) return;
+      if (!Array.isArray(messages)) { return; }
       for (const message of messages) {
-        if (!message || typeof message !== 'object') continue;
+        if (!message || typeof message !== 'object') { continue; }
         const msg = message as Record<string, unknown>;
         const role = msg.role;
-        const _hasToolCalls = Boolean(msg.tool_calls);
-        const _hasToolCallContent =
-          Array.isArray(msg.content) &&
-          msg.content.some(
-            (item) =>
-              item &&
-              typeof item === 'object' &&
-              (item as Record<string, unknown>).type === 'tool_call',
-          );
         if (typeof role === 'string' && role === 'assistant' && !('reasoning_content' in msg)) {
           const hash = hashMessageContent(msg);
           const cachedReasoning = reasoningContentCache.get(hash);
@@ -80,9 +71,9 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
     };
 
     const visitForMessages = (value: unknown): void => {
-      if (!value || typeof value !== 'object') return;
+      if (!value || typeof value !== 'object') { return; }
       if (Array.isArray(value)) {
-        for (const item of value) visitForMessages(item);
+        for (const item of value) { visitForMessages(item); }
         return;
       }
       const record = value as Record<string, unknown>;
