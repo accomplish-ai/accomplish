@@ -49,12 +49,13 @@ export function createMessageBatcher(
         for (const msg of batcher.pendingMessages) {
           addTaskMessage(taskId, msg);
         }
+
+        batcher.pendingMessages = [];
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error(`[MessageBatcher] Error flushing messages for task ${taskId}:`, err);
+        // pendingMessages intentionally NOT cleared on error — kept for retry
       }
-
-      batcher.pendingMessages = [];
       if (batcher.timeout) {
         clearTimeout(batcher.timeout);
         batcher.timeout = null;
