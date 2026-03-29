@@ -7,7 +7,7 @@ import { createLogger } from '@/lib/logger';
 const logger = createLogger('TaskInputBar');
 import { WarningCircle } from '@phosphor-icons/react';
 import type { FileAttachmentInfo } from '@accomplish_ai/agent-core';
-import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core';
+import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
 import { useSpeechInput } from '@/hooks/useSpeechInput';
 import { useTypingPlaceholder } from '@/hooks/useTypingPlaceholder';
 import { useSlashCommand } from '@/hooks/useSlashCommand';
