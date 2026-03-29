@@ -1,9 +1,10 @@
+import type { TaskStatus } from '@accomplish_ai/agent-core';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { XCircle, ArrowLeft, CheckCircle, Clock, Square, Hourglass } from '@phosphor-icons/react';
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: { status: TaskStatus }) {
   const { t } = useTranslation('execution');
 
   switch (status) {
@@ -73,7 +74,7 @@ function StatusBadge({ status }: { status: string }) {
   }
 }
 
-export function ExecutionHeader({ prompt, status }: { prompt: string; status: string }) {
+export function ExecutionHeader({ prompt, status }: { prompt: string; status: TaskStatus }) {
   const navigate = useNavigate();
 
   return (
