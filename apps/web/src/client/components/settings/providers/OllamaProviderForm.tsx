@@ -124,7 +124,7 @@ export function OllamaProviderForm({
     models,
     handleConnect,
     handleRefresh,
-  } = useOllamaProviderConnect({ connectedProvider, onConnect, onUpdateProvider, onDisconnect });
+  } = useOllamaProviderConnect({ connectedProvider, onConnect, onUpdateProvider });
 
   const isConnected = connectedProvider?.connectionStatus === 'connected';
 

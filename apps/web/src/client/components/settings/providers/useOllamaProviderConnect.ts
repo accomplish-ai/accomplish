@@ -17,7 +17,6 @@ interface UseOllamaProviderConnectOptions {
   connectedProvider?: ConnectedProvider;
   onConnect: (provider: ConnectedProvider) => void;
   onUpdateProvider?: (provider: ConnectedProvider) => void;
-  onDisconnect: () => void;
 }
 
 export interface UseOllamaProviderConnectReturn {
