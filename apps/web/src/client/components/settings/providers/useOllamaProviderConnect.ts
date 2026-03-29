@@ -119,14 +119,15 @@ export function useOllamaProviderConnect({
         (baseProvider.credentials as OllamaCredentials)?.serverUrl || 'http://localhost:11434';
       const result = await accomplish.testOllamaConnection(currentUrl);
 
+      if (requestId !== refreshRequestIdRef.current) {
+        return;
+      }
+
       if (!result.success) {
         setError(result.error || t('status.connectionFailed'));
         return;
       }
 
-      if (requestId !== refreshRequestIdRef.current) {
-        return;
-      }
       const latestProvider = latestProviderRef.current;
       if (!latestProvider || latestProvider.connectionStatus !== 'connected') {
         return;
@@ -157,9 +158,14 @@ export function useOllamaProviderConnect({
 
       (onUpdateProvider || onConnect)(updatedProvider);
     } catch (err) {
+      if (requestId !== refreshRequestIdRef.current) {
+        return;
+      }
       setError(err instanceof Error ? err.message : t('status.connectionFailed'));
     } finally {
-      setRefreshing(false);
+      if (requestId === refreshRequestIdRef.current) {
+        setRefreshing(false);
+      }
     }
   };
 
