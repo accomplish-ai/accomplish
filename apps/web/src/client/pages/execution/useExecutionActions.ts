@@ -80,7 +80,13 @@ export function useExecutionActions(s: CoreState) {
       await s.sendFollowUp(message, []);
       return true;
     },
-    [accomplish, s.setPendingFollowUp, s.setSettingsInitialTab, s.setShowSettingsDialog, s.sendFollowUp],
+    [
+      accomplish,
+      s.setPendingFollowUp,
+      s.setSettingsInitialTab,
+      s.setShowSettingsDialog,
+      s.sendFollowUp,
+    ],
   );
 
   const handleFollowUp = useCallback(async () => {

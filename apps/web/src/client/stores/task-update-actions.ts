@@ -1,8 +1,4 @@
-import type {
-  TaskStatus,
-  TaskUpdateEvent,
-  TaskMessage,
-} from '@accomplish_ai/agent-core';
+import type { TaskStatus, TaskUpdateEvent, TaskMessage } from '@accomplish_ai/agent-core';
 import { getAccomplish } from '../lib/accomplish';
 import type { TaskState } from './taskStore';
 
@@ -87,10 +83,9 @@ export function createTaskUpdateActions(set: SetFn, _get: GetFn) {
         }
         // Only clear isLoading when the event is for the currently active task
         // Also clear isLoading when the task transitions out of 'queued'
-        const wasQueued = state.currentTask?.id === event.taskId && state.currentTask?.status === 'queued';
-        const shouldClearLoading =
-          isCurrentTask &&
-          (newStatus !== null || wasQueued);
+        const wasQueued =
+          state.currentTask?.id === event.taskId && state.currentTask?.status === 'queued';
+        const shouldClearLoading = isCurrentTask && (newStatus !== null || wasQueued);
         return {
           currentTask: updatedCurrentTask,
           tasks: updatedTasks,

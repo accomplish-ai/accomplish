@@ -38,11 +38,17 @@ export function createTaskLifecycleActions(set: SetFn, get: GetFn) {
           if (!hasTaskStateToken(get(), taskStateToken)) {
             return;
           }
-          set({ isLoading: false, error: err instanceof Error ? err.message : 'Failed to cancel task' });
+          set({
+            isLoading: false,
+            error: err instanceof Error ? err.message : 'Failed to cancel task',
+          });
           void accomplish.logEvent({
             level: 'error',
             message: 'UI cancel task failed',
-            context: { taskId: currentTask.id, error: err instanceof Error ? err.message : String(err) },
+            context: {
+              taskId: currentTask.id,
+              error: err instanceof Error ? err.message : String(err),
+            },
           });
         }
       }
@@ -68,7 +74,10 @@ export function createTaskLifecycleActions(set: SetFn, get: GetFn) {
           void accomplish.logEvent({
             level: 'error',
             message: 'UI interrupt task failed',
-            context: { taskId: currentTask.id, error: err instanceof Error ? err.message : String(err) },
+            context: {
+              taskId: currentTask.id,
+              error: err instanceof Error ? err.message : String(err),
+            },
           });
         }
       }

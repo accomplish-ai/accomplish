@@ -122,7 +122,8 @@ export function useOAuthSignIn({
         }
         if (!abortController.signal.aborted && attemptId === signInAttemptRef.current) {
           setError(
-            t('status.signInTimedOut') ?? 'Timed out waiting for ChatGPT sign-in. Please try again.',
+            t('status.signInTimedOut') ??
+              'Timed out waiting for ChatGPT sign-in. Please try again.',
           );
           setSigningIn(false);
         }

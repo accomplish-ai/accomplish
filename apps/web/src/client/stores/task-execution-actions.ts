@@ -62,10 +62,7 @@ export function createTaskExecutionActions(set: SetFn, get: GetFn) {
       }
     },
 
-    sendFollowUp: async (
-      message: string,
-      attachments?: FileAttachmentInfo[],
-    ): Promise<boolean> => {
+    sendFollowUp: async (message: string, attachments?: FileAttachmentInfo[]): Promise<boolean> => {
       const accomplish = getAccomplish();
       const { currentTask, startTask } = get();
       const taskStateToken = get()._taskStateToken;

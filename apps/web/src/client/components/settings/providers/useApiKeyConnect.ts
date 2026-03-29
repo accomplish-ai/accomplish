@@ -156,8 +156,7 @@ export function useApiKeyConnect({
         selectedModelId: resolvedModelId,
         credentials: {
           type: 'api_key',
-          keyPrefix:
-            trimmedKey.length > 20 ? trimmedKey.substring(0, 20) + '...' : trimmedKey,
+          keyPrefix: trimmedKey.length > 20 ? trimmedKey.substring(0, 20) + '...' : trimmedKey,
         } as ApiKeyCredentials,
         lastConnectedAt: new Date().toISOString(),
         ...(models ? { availableModels: models } : {}),
