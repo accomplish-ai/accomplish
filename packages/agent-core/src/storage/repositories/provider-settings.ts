@@ -23,11 +23,15 @@ interface AppSettingsProviderRow {
 
 function getProviderRow(): AppSettingsProviderRow {
   const db = getDatabase();
-  return db
+  const row = db
     .prepare(
       'SELECT selected_model, ollama_config, litellm_config, azure_foundry_config, lmstudio_config, huggingface_local_config, openai_base_url, nim_config FROM app_settings WHERE id = 1',
     )
-    .get() as AppSettingsProviderRow;
+    .get() as AppSettingsProviderRow | undefined;
+  if (!row) {
+    throw new Error('app_settings row not found — database may not be initialized');
+  }
+  return row;
 }
 
 function updateJsonColumn<T>(column: string, value: T | null): void {
