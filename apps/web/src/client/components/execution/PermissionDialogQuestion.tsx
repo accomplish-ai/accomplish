@@ -1,4 +1,5 @@
-import type { PermissionRequest } from '@accomplish_ai/agent-core/common';
+import { useEffect } from 'react';
+import type { PermissionRequest } from '@accomplish_ai/agent-core';
 import { cn } from '@/lib/utils';
 
 interface PermissionDialogQuestionProps {
@@ -18,6 +19,11 @@ export function PermissionDialogQuestion({
   setCustomResponse,
   onSubmit,
 }: PermissionDialogQuestionProps) {
+  useEffect(() => {
+    setSelectedOptions([]);
+    setCustomResponse('');
+  }, [permissionRequest, setCustomResponse, setSelectedOptions]);
+
   return (
     <>
       <p className="text-sm text-foreground mb-4">{permissionRequest.question}</p>
