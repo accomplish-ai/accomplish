@@ -54,7 +54,9 @@ export function createProxyRequestHandler(
     let aborted = false;
 
     req.on('data', (chunk) => {
-      if (aborted) { return; }
+      if (aborted) {
+        return;
+      }
       totalSize += chunk.length;
       if (totalSize > MAX_REQUEST_SIZE) {
         aborted = true;
@@ -68,7 +70,9 @@ export function createProxyRequestHandler(
     });
 
     req.on('end', () => {
-      if (aborted) { return; }
+      if (aborted) {
+        return;
+      }
       const rawBody = Buffer.concat(chunks);
       const contentType = req.headers['content-type'];
       const contentEncoding = req.headers['content-encoding'];

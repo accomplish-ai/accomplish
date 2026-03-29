@@ -68,20 +68,23 @@ export function useTaskInputBehavior({
     }
   }, [value, textareaRef]);
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.nativeEvent.isComposing || e.keyCode === 229) {
-      return;
-    }
-    if (slashCommand.handleKeyDown(e)) {
-      return;
-    }
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (canSubmit && !isRecording && !isLoading) {
-        onSubmit();
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.nativeEvent.isComposing || e.keyCode === 229) {
+        return;
       }
-    }
-  }, [slashCommand, canSubmit, isRecording, isLoading, onSubmit]);
+      if (slashCommand.handleKeyDown(e)) {
+        return;
+      }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (canSubmit && !isRecording && !isLoading) {
+          onSubmit();
+        }
+      }
+    },
+    [slashCommand, canSubmit, isRecording, isLoading, onSubmit],
+  );
 
   return { pendingAutoSubmitRef, handleKeyDown };
 }

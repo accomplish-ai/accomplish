@@ -20,14 +20,20 @@ export function extractAndCacheReasoningContent(responseText: string): void {
 
   const lines = responseText.split('\n');
   for (const line of lines) {
-    if (!line.startsWith('data: ')) { continue; }
+    if (!line.startsWith('data: ')) {
+      continue;
+    }
     const jsonStr = line.slice(6).trim();
-    if (jsonStr === '[DONE]') { continue; }
+    if (jsonStr === '[DONE]') {
+      continue;
+    }
 
     try {
       const data = JSON.parse(jsonStr) as Record<string, unknown>;
       const choices = data.choices as Array<Record<string, unknown>> | undefined;
-      if (!choices?.[0]) { continue; }
+      if (!choices?.[0]) {
+        continue;
+      }
 
       const choice = choices[0];
       const delta = choice.delta as Record<string, unknown> | undefined;
