@@ -79,7 +79,7 @@ export function createMessageBatcher(
           clearTimeout(batcher.timeout);
         }
         batcher.timeout = setTimeout(() => {
-          batcher.flush();
+          flushAndCleanupBatcher(taskId);
         }, MESSAGE_BATCH_DELAY_MS);
       } else if (batcher.timeout) {
         clearTimeout(batcher.timeout);

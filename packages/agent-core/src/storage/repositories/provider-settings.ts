@@ -35,9 +35,12 @@ function getProviderRow(): AppSettingsProviderRow {
 }
 
 function updateJsonColumn<T>(column: string, value: T | null): void {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(column)) {
+    throw new Error(`Invalid column name: ${column}`);
+  }
   const db = getDatabase();
   db.prepare(`UPDATE app_settings SET ${column} = ? WHERE id = 1`).run(
-    value ? JSON.stringify(value) : null,
+    value === null ? null : JSON.stringify(value),
   );
 }
 

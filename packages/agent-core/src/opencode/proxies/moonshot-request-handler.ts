@@ -104,7 +104,7 @@ export function createProxyRequestHandler(
         const responseChunks: Buffer[] = [];
         proxyRes.on('data', (chunk: Buffer) => {
           responseChunks.push(chunk);
-          if (!res.headersSent) {
+          if (!res.writableEnded && !res.destroyed) {
             res.write(chunk);
           }
         });
@@ -149,8 +149,10 @@ export function createProxyRequestHandler(
       log.error(`[Moonshot Proxy] Incoming request error: ${error}`);
       if (!res.headersSent) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid request', details: error.message }));
+      } else {
+        res.destroy();
       }
-      res.end(JSON.stringify({ error: 'Invalid request', details: error.message }));
     });
   };
 }
