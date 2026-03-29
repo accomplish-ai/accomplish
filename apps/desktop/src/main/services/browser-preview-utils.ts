@@ -36,7 +36,14 @@ export function emitFrameCapture(
   width?: number,
   height?: number,
 ): void {
-  sendToRenderer('browser:frame', { taskId, pageName, frame: data, width, height, timestamp: Date.now() });
+  sendToRenderer('browser:frame', {
+    taskId,
+    pageName,
+    frame: data,
+    width,
+    height,
+    timestamp: Date.now(),
+  });
 }
 
 export function emitNavigationEvent(taskId: string, pageName: string, url: string): void {
@@ -48,7 +55,9 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> 
   const timer = setTimeout(() => controller.abort(), COMMAND_TIMEOUT_MS);
   try {
     const res = await fetch(url, { ...init, signal: controller.signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}`);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} from ${url}`);
+    }
     return (await res.json()) as T;
   } finally {
     clearTimeout(timer);
@@ -94,12 +103,13 @@ export async function autoStartScreencast(
   startBrowserPreviewStream: (taskId: string, pageName: string) => Promise<void>,
 ): Promise<void> {
   try {
-    const res = await fetch(`http://${DEV_BROWSER_HOST}:${DEV_BROWSER_PORT}/pages`).catch(
-      () => null,
-    );
-    if (!res || !res.ok) { return; }
+    const data = await fetchJson<{ pages: string[] }>(
+      `http://${DEV_BROWSER_HOST}:${DEV_BROWSER_PORT}/pages`,
+    ).catch(() => null);
 
-    const data = (await res.json()) as { pages: string[] };
+    if (!data?.pages) {
+      return;
+    }
     const taskPrefix = `${taskId}-`;
     const taskPages = data.pages.filter((p: string) => p.startsWith(taskPrefix));
 

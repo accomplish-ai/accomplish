@@ -30,6 +30,13 @@ function getProviderRow(): AppSettingsProviderRow {
     .get() as AppSettingsProviderRow;
 }
 
+function updateJsonColumn<T>(column: string, value: T | null): void {
+  const db = getDatabase();
+  db.prepare(`UPDATE app_settings SET ${column} = ? WHERE id = 1`).run(
+    value ? JSON.stringify(value) : null,
+  );
+}
+
 export function getSelectedModel(): SelectedModel | null {
   return safeParseJsonWithFallback<SelectedModel>(getProviderRow().selected_model);
 }
@@ -44,10 +51,7 @@ export function getOllamaConfig(): OllamaConfig | null {
 }
 
 export function setOllamaConfig(config: OllamaConfig | null): void {
-  const db = getDatabase();
-  db.prepare('UPDATE app_settings SET ollama_config = ? WHERE id = 1').run(
-    config ? JSON.stringify(config) : null,
-  );
+  updateJsonColumn('ollama_config', config);
 }
 
 export function getLiteLLMConfig(): LiteLLMConfig | null {
@@ -55,10 +59,7 @@ export function getLiteLLMConfig(): LiteLLMConfig | null {
 }
 
 export function setLiteLLMConfig(config: LiteLLMConfig | null): void {
-  const db = getDatabase();
-  db.prepare('UPDATE app_settings SET litellm_config = ? WHERE id = 1').run(
-    config ? JSON.stringify(config) : null,
-  );
+  updateJsonColumn('litellm_config', config);
 }
 
 export function getAzureFoundryConfig(): AzureFoundryConfig | null {
@@ -66,10 +67,7 @@ export function getAzureFoundryConfig(): AzureFoundryConfig | null {
 }
 
 export function setAzureFoundryConfig(config: AzureFoundryConfig | null): void {
-  const db = getDatabase();
-  db.prepare('UPDATE app_settings SET azure_foundry_config = ? WHERE id = 1').run(
-    config ? JSON.stringify(config) : null,
-  );
+  updateJsonColumn('azure_foundry_config', config);
 }
 
 export function getLMStudioConfig(): LMStudioConfig | null {
@@ -77,21 +75,17 @@ export function getLMStudioConfig(): LMStudioConfig | null {
 }
 
 export function setLMStudioConfig(config: LMStudioConfig | null): void {
-  const db = getDatabase();
-  db.prepare('UPDATE app_settings SET lmstudio_config = ? WHERE id = 1').run(
-    config ? JSON.stringify(config) : null,
-  );
+  updateJsonColumn('lmstudio_config', config);
 }
 
 export function getHuggingFaceLocalConfig(): HuggingFaceLocalConfig | null {
-  return safeParseJsonWithFallback<HuggingFaceLocalConfig>(getProviderRow().huggingface_local_config);
+  return safeParseJsonWithFallback<HuggingFaceLocalConfig>(
+    getProviderRow().huggingface_local_config,
+  );
 }
 
 export function setHuggingFaceLocalConfig(config: HuggingFaceLocalConfig | null): void {
-  const db = getDatabase();
-  db.prepare('UPDATE app_settings SET huggingface_local_config = ? WHERE id = 1').run(
-    config ? JSON.stringify(config) : null,
-  );
+  updateJsonColumn('huggingface_local_config', config);
 }
 
 export function getNimConfig(): NimConfig | null {
@@ -99,10 +93,7 @@ export function getNimConfig(): NimConfig | null {
 }
 
 export function setNimConfig(config: NimConfig | null): void {
-  const db = getDatabase();
-  db.prepare('UPDATE app_settings SET nim_config = ? WHERE id = 1').run(
-    config ? JSON.stringify(config) : null,
-  );
+  updateJsonColumn('nim_config', config);
 }
 
 export function getOpenAiBaseUrl(): string {
