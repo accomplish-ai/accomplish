@@ -50,7 +50,10 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
         const msg = message as Record<string, unknown>;
         const role = msg.role;
         if (typeof role === 'string' && role === 'assistant' && !('reasoning_content' in msg)) {
-          const hash = hashMessageContent(msg);
+          const hash = hashMessageContent({
+            content: typeof msg.content === 'string' ? msg.content : '',
+            tool_calls: Array.isArray(msg.tool_calls) ? msg.tool_calls : [],
+          });
           const cachedReasoning = reasoningContentCache.get(hash);
           if (cachedReasoning) {
             msg.reasoning_content = cachedReasoning;
@@ -100,6 +103,10 @@ export function transformMoonshotRequestBody(body: Buffer): Buffer {
     }
 
     const result = Buffer.from(JSON.stringify(parsed), 'utf8');
+    if (result.length > MAX_REQUEST_SIZE) {
+      log.warn(`[Moonshot Proxy] Skipping transformed body — exceeds ${MAX_REQUEST_SIZE} bytes`);
+      return body;
+    }
     if (DEBUG && modified) {
       log.info(`[Moonshot Proxy] Body transformed: ${body.length} -> ${result.length} bytes`);
     }

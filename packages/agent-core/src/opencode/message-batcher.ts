@@ -38,15 +38,20 @@ export function createMessageBatcher(
     timeout: null,
     taskId,
     flush: () => {
-      if (batcher.pendingMessages.length === 0) return;
+      if (batcher.pendingMessages.length === 0) { return; }
 
-      forwardToRenderer('task:update:batch', {
-        taskId,
-        messages: batcher.pendingMessages,
-      });
+      try {
+        forwardToRenderer('task:update:batch', {
+          taskId,
+          messages: batcher.pendingMessages,
+        });
 
-      for (const msg of batcher.pendingMessages) {
-        addTaskMessage(taskId, msg);
+        for (const msg of batcher.pendingMessages) {
+          addTaskMessage(taskId, msg);
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(`[MessageBatcher] Error flushing messages for task ${taskId}:`, err);
       }
 
       batcher.pendingMessages = [];

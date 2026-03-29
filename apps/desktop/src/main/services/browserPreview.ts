@@ -10,7 +10,6 @@
 
 import { CdpClient } from './cdp-client';
 import {
-  DEV_BROWSER_HOST,
   emitStatusUpdate,
   emitFrameCapture,
   emitNavigationEvent,

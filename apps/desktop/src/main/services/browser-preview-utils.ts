@@ -36,7 +36,7 @@ export function emitFrameCapture(
   width?: number,
   height?: number,
 ): void {
-  sendToRenderer('browser:frame', { taskId, pageName, data, width, height, timestamp: Date.now() });
+  sendToRenderer('browser:frame', { taskId, pageName, frame: data, width, height, timestamp: Date.now() });
 }
 
 export function emitNavigationEvent(taskId: string, pageName: string, url: string): void {
