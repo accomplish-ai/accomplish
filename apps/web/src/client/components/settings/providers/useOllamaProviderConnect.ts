@@ -6,12 +6,9 @@ import type {
   OllamaCredentials,
   ToolSupportStatus,
 } from '@accomplish_ai/agent-core';
+import type { OllamaModel } from './ollama-types';
 
-export interface OllamaModel {
-  id: string;
-  name: string;
-  toolSupport?: ToolSupportStatus;
-}
+export type { OllamaModel } from './ollama-types';
 
 interface UseOllamaProviderConnectOptions {
   connectedProvider?: ConnectedProvider;

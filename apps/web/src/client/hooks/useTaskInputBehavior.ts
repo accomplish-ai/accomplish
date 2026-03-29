@@ -1,6 +1,7 @@
 import {
   useRef,
   useEffect,
+  useCallback,
   type RefObject,
   type MutableRefObject,
   type KeyboardEvent,
@@ -67,7 +68,7 @@ export function useTaskInputBehavior({
     }
   }, [value, textareaRef]);
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.nativeEvent.isComposing || e.keyCode === 229) {
       return;
     }
@@ -80,7 +81,7 @@ export function useTaskInputBehavior({
         onSubmit();
       }
     }
-  };
+  }, [slashCommand, canSubmit, isRecording, isLoading, onSubmit]);
 
   return { pendingAutoSubmitRef, handleKeyDown };
 }

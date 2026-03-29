@@ -58,21 +58,23 @@ export function useHomePageSettings({
   }, []);
 
   const handleApiKeySaved = useCallback(async () => {
-    setShowSettingsDialog(false);
     if (!resumeAfterSettingsSave) {
+      setShowSettingsDialog(false);
       return;
     }
-    setResumeAfterSettingsSave(false);
     try {
       const settings = await accomplish.getProviderSettings();
       if (!hasAnyReadyProvider(settings)) {
+        setSettingsInitialTab('providers');
+        setShowSettingsDialog(true);
         return;
       }
+      setShowSettingsDialog(false);
+      await onResume();
+      setResumeAfterSettingsSave(false);
     } catch (err) {
-      logger.error('Failed to check provider settings after save:', err);
-      return;
+      logger.error('Failed to resume task after settings save:', err);
     }
-    await onResume();
   }, [resumeAfterSettingsSave, accomplish, onResume]);
 
   return {

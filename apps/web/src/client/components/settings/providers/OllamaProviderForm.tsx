@@ -15,7 +15,7 @@ import {
   ToolSupportBadge,
 } from '../shared';
 import { useOllamaProviderConnect } from './useOllamaProviderConnect';
-import type { OllamaModel } from './useOllamaProviderConnect';
+import type { OllamaModel } from './ollama-types';
 
 import ollamaLogo from '/assets/ai-logos/ollama.svg';
 

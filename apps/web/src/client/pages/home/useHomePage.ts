@@ -26,8 +26,11 @@ export function useHomePage() {
   const favoritesList = Array.isArray(favorites) ? favorites : [];
   const loadFavorites = useTaskStore((state) => state.loadFavorites);
   const removeFavorite = useTaskStore((state) => state.removeFavorite);
-  const { startTask, interruptTask, isLoading, addTaskUpdate, setPermissionRequest } =
-    useTaskStore();
+  const startTask = useTaskStore((state) => state.startTask);
+  const interruptTask = useTaskStore((state) => state.interruptTask);
+  const isLoading = useTaskStore((state) => state.isLoading);
+  const addTaskUpdate = useTaskStore((state) => state.addTaskUpdate);
+  const setPermissionRequest = useTaskStore((state) => state.setPermissionRequest);
 
   const accomplish = useMemo(() => getAccomplish(), []);
 
