@@ -7,10 +7,9 @@ import { createLogger } from '@/lib/logger';
 import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
 import { USE_CASE_KEYS, FAVORITES_PREVIEW_COUNT } from './homeConstants';
 import { usePromptAttachments } from './usePromptAttachments';
+import { useHomePageSettings } from './useHomePageSettings';
 
 export { FAVORITES_PREVIEW_COUNT } from './homeConstants';
-
-type SettingsTab = 'providers' | 'voice' | 'skills' | 'connectors';
 
 const logger = createLogger('Home');
 
@@ -18,9 +17,6 @@ export function useHomePage() {
   const [prompt, setPrompt] = useState('');
   const [showAllFavorites, setShowAllFavorites] = useState(false);
   const [workingDirectory, setWorkingDirectory] = useState<string | undefined>(undefined);
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsTab>('providers');
-  const [resumeAfterSettingsSave, setResumeAfterSettingsSave] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -65,6 +61,7 @@ export function useHomePage() {
       unsubscribePermission();
     };
   }, [addTaskUpdate, setPermissionRequest, accomplish]);
+
   const {
     attachments,
     attachmentError,
@@ -105,7 +102,20 @@ export function useHomePage() {
     buildPromptWithAttachments,
   ]);
 
-  const handleSubmit = async () => {
+  const {
+    showSettingsDialog,
+    settingsInitialTab,
+    setResumeAfterSettingsSave,
+    setSettingsInitialTab,
+    setShowSettingsDialog,
+    handleSettingsDialogChange,
+    handleOpenSpeechSettings,
+    handleOpenModelSettings,
+    handleOpenSettings,
+    handleApiKeySaved,
+  } = useHomePageSettings({ onResume: executeTask });
+
+  const handleSubmit = useCallback(async () => {
     if (isLoading) {
       void interruptTask();
       return;
@@ -128,39 +138,17 @@ export function useHomePage() {
     } catch (err) {
       logger.error('Failed to submit task:', err);
     }
-  };
-
-  const handleSettingsDialogChange = (open: boolean) => {
-    setShowSettingsDialog(open);
-    if (!open) {
-      setResumeAfterSettingsSave(false);
-      setSettingsInitialTab('providers');
-    }
-  };
-
-  const handleOpenSpeechSettings = useCallback(() => {
-    setSettingsInitialTab('voice');
-    setShowSettingsDialog(true);
-  }, []);
-
-  const handleOpenModelSettings = useCallback(() => {
-    setSettingsInitialTab('providers');
-    setShowSettingsDialog(true);
-  }, []);
-
-  const handleOpenSettings = useCallback((tab: SettingsTab) => {
-    setSettingsInitialTab(tab);
-    setShowSettingsDialog(true);
-  }, []);
-
-  const handleApiKeySaved = async () => {
-    setShowSettingsDialog(false);
-    if (!resumeAfterSettingsSave) {
-      return;
-    }
-    setResumeAfterSettingsSave(false);
-    await handleSubmit();
-  };
+  }, [
+    isLoading,
+    prompt,
+    attachments,
+    accomplish,
+    executeTask,
+    interruptTask,
+    setResumeAfterSettingsSave,
+    setSettingsInitialTab,
+    setShowSettingsDialog,
+  ]);
 
   const displayedFavorites = showAllFavorites
     ? favoritesList

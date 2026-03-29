@@ -48,46 +48,49 @@ export async function validateBedrockCredentials(
   let client: BedrockClient;
   let cleanupEnv: (() => void) | null = null;
 
-  if (parsed.authType === 'apiKey') {
-    const originalToken = process.env.AWS_BEARER_TOKEN_BEDROCK;
-    process.env.AWS_BEARER_TOKEN_BEDROCK = parsed.apiKey;
-    cleanupEnv = () => {
-      if (originalToken !== undefined) {
-        process.env.AWS_BEARER_TOKEN_BEDROCK = originalToken;
-      } else {
-        delete process.env.AWS_BEARER_TOKEN_BEDROCK;
+  try {
+    if (parsed.authType === 'apiKey') {
+      const originalToken = process.env.AWS_BEARER_TOKEN_BEDROCK;
+      process.env.AWS_BEARER_TOKEN_BEDROCK = parsed.apiKey;
+      cleanupEnv = () => {
+        if (originalToken !== undefined) {
+          process.env.AWS_BEARER_TOKEN_BEDROCK = originalToken;
+        } else {
+          delete process.env.AWS_BEARER_TOKEN_BEDROCK;
+        }
+      };
+      client = new BedrockClient({
+        region: parsed.region || 'us-east-1',
+      });
+    } else if (parsed.authType === 'accessKeys') {
+      if (!parsed.accessKeyId || !parsed.secretAccessKey) {
+        return { valid: false, error: 'Access Key ID and Secret Access Key are required' };
       }
-    };
-    client = new BedrockClient({
-      region: parsed.region || 'us-east-1',
-    });
-  } else if (parsed.authType === 'accessKeys') {
-    if (!parsed.accessKeyId || !parsed.secretAccessKey) {
-      return { valid: false, error: 'Access Key ID and Secret Access Key are required' };
-    }
-    const awsCredentials: { accessKeyId: string; secretAccessKey: string; sessionToken?: string } =
-      {
+      const awsCredentials: {
+        accessKeyId: string;
+        secretAccessKey: string;
+        sessionToken?: string;
+      } = {
         accessKeyId: parsed.accessKeyId,
         secretAccessKey: parsed.secretAccessKey,
       };
-    if (parsed.sessionToken) {
-      awsCredentials.sessionToken = parsed.sessionToken;
+      if (parsed.sessionToken) {
+        awsCredentials.sessionToken = parsed.sessionToken;
+      }
+      client = new BedrockClient({
+        region: parsed.region || 'us-east-1',
+        credentials: awsCredentials,
+      });
+    } else if (parsed.authType === 'profile') {
+      const fromIni = await resolveFromIni();
+      client = new BedrockClient({
+        region: parsed.region || 'us-east-1',
+        credentials: fromIni({ profile: parsed.profileName || 'default' }),
+      });
+    } else {
+      return { valid: false, error: 'Invalid authentication type' };
     }
-    client = new BedrockClient({
-      region: parsed.region || 'us-east-1',
-      credentials: awsCredentials,
-    });
-  } else if (parsed.authType === 'profile') {
-    const fromIni = await resolveFromIni();
-    client = new BedrockClient({
-      region: parsed.region || 'us-east-1',
-      credentials: fromIni({ profile: parsed.profileName || 'default' }),
-    });
-  } else {
-    return { valid: false, error: 'Invalid authentication type' };
-  }
 
-  try {
     const command = new ListFoundationModelsCommand({});
     await client.send(command);
 

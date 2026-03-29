@@ -1,4 +1,10 @@
-import { useRef, useEffect, type RefObject, type KeyboardEvent } from 'react';
+import {
+  useRef,
+  useEffect,
+  type RefObject,
+  type MutableRefObject,
+  type KeyboardEvent,
+} from 'react';
 
 interface SlashCommandHandle {
   handleKeyDown: (e: KeyboardEvent) => boolean;
@@ -16,6 +22,8 @@ interface UseTaskInputBehaviorOptions {
   isRecording: boolean;
   slashCommand: SlashCommandHandle;
   onSubmit: () => void;
+  /** Optional external ref for pending auto-submit value (avoids circular dependency). */
+  pendingAutoSubmitRef?: MutableRefObject<string | null>;
 }
 
 export function useTaskInputBehavior({
@@ -30,8 +38,10 @@ export function useTaskInputBehavior({
   isRecording,
   slashCommand,
   onSubmit,
+  pendingAutoSubmitRef: externalPendingAutoSubmitRef,
 }: UseTaskInputBehaviorOptions) {
-  const pendingAutoSubmitRef = useRef<string | null>(null);
+  const internalPendingAutoSubmitRef = useRef<string | null>(null);
+  const pendingAutoSubmitRef = externalPendingAutoSubmitRef ?? internalPendingAutoSubmitRef;
 
   useEffect(() => {
     if (autoFocus && textareaRef.current) {

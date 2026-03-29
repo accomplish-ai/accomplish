@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createLogger } from '@/lib/logger';
 
@@ -67,6 +67,7 @@ export function TaskInputBar({
   const isSubmitDisabled = !isLoading && (!canSubmit || isInputDisabled);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const latestValueRef = useRef(value);
+  const pendingAutoSubmitRef = useRef<string | null>(null);
 
   useEffect(() => {
     latestValueRef.current = value;
@@ -101,18 +102,23 @@ export function TaskInputBar({
     onChange,
   });
 
-  const speechInput = useSpeechInput({
-    onTranscriptionComplete: (text) => {
+  const handleTranscriptionComplete = useCallback(
+    (text: string) => {
       const currentValue = latestValueRef.current;
       const newValue = currentValue.trim() ? `${currentValue} ${text}` : text;
       onChange(newValue);
       if (autoSubmitOnTranscription && newValue.trim()) {
-        behavior.pendingAutoSubmitRef.current = newValue;
+        pendingAutoSubmitRef.current = newValue;
       }
       setTimeout(() => {
         textareaRef.current?.focus();
       }, 0);
     },
+    [onChange, autoSubmitOnTranscription],
+  );
+
+  const speechInput = useSpeechInput({
+    onTranscriptionComplete: handleTranscriptionComplete,
     onError: (error) => {
       logger.error('Speech error:', error.message);
     },
@@ -130,6 +136,7 @@ export function TaskInputBar({
     isRecording: speechInput.isRecording,
     slashCommand,
     onSubmit,
+    pendingAutoSubmitRef,
   });
 
   return (
