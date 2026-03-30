@@ -82,28 +82,49 @@ export async function discoverOAuthProtectedResourceMetadata(
   const metadataUrlMatch = authenticateHeader?.match(/\bresource_metadata\s*=\s*"([^"]+)"/i);
   const metadataUrl = metadataUrlMatch?.[1];
 
-  let metadataResponse: Response | undefined;
   let lastError: Error | undefined;
+  let parsedData: Record<string, unknown> | undefined;
 
-  if (metadataUrl) {
+  /**
+   * Fetch a metadata URL, validate content-type, parse JSON, and check the
+   * required `resource` field.  Returns the parsed object on success, or sets
+   * `lastError` and returns `undefined` so the caller can fall through to the
+   * next candidate URL.
+   */
+  const tryFetchMetadata = async (url: string, label: string) => {
     try {
-      metadataResponse = await fetchWithTimeout(metadataUrl, {
+      const res = await fetchWithTimeout(url, {
         method: 'GET',
         headers: { Accept: 'application/json' },
       });
-      if (!metadataResponse.ok) {
-        lastError = new Error(
-          `HTTP ${metadataResponse.status} ${metadataResponse.statusText} from header url`,
-        );
-        metadataResponse = undefined;
+      if (!res.ok) {
+        lastError = new Error(`HTTP ${res.status} ${res.statusText} from ${label}`);
+        return undefined;
       }
+      const ct = res.headers.get('content-type') ?? '';
+      if (!ct.toLowerCase().includes('application/json')) {
+        lastError = new Error(
+          `Non-JSON response from ${label} (Content-Type: ${ct || 'none'})`,
+        );
+        return undefined;
+      }
+      const body = (await res.json()) as Record<string, unknown>;
+      if (!body.resource) {
+        lastError = new Error(`Missing required 'resource' field in response from ${label}`);
+        return undefined;
+      }
+      return body;
     } catch (err: unknown) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      metadataResponse = undefined;
+      return undefined;
     }
+  };
+
+  if (metadataUrl) {
+    parsedData = await tryFetchMetadata(metadataUrl, 'header url');
   }
 
-  if (!metadataResponse || !metadataResponse.ok) {
+  if (!parsedData) {
     // Preserve any subpath on serverUrl (e.g. /mcp) so subpath-mounted servers
     // resolve to the correct well-known document rather than origin root.
     const resourceUrl = new URL(serverUrl);
@@ -112,39 +133,17 @@ export async function discoverOAuthProtectedResourceMetadata(
       `/.well-known/oauth-protected-resource${resourcePath}`,
       resourceUrl.origin,
     ).toString();
-    try {
-      metadataResponse = await fetchWithTimeout(wellKnownUrl, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-      if (!metadataResponse.ok) {
-        lastError = new Error(
-          `HTTP ${metadataResponse.status} ${metadataResponse.statusText} from well-known url`,
-        );
-      }
-    } catch (err: unknown) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-    }
+    parsedData = await tryFetchMetadata(wellKnownUrl, 'well-known url');
   }
 
-  if (!metadataResponse || !metadataResponse.ok) {
+  if (!parsedData) {
     throw new Error(
       `Failed to discover protected resource metadata for ${serverUrl}: ${lastError?.message || 'Unknown error'}`,
     );
   }
 
-  const contentType = metadataResponse.headers.get('content-type') ?? '';
-  if (!contentType.toLowerCase().includes('application/json')) {
-    throw new Error(
-      `Protected resource metadata endpoint returned non-JSON response (Content-Type: ${contentType || 'none'})`,
-    );
-  }
-
-  const data = (await metadataResponse.json()) as Record<string, unknown>;
-  const resource = data.resource as string | undefined;
-  if (!resource) {
-    throw new Error('Invalid protected resource metadata: missing resource');
-  }
+  const data = parsedData;
+  const resource = data.resource as string;
 
   return {
     resource,
