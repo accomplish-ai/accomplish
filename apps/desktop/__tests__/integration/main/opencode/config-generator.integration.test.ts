@@ -246,6 +246,29 @@ Use AskUserQuestion tool for user interaction.`,
     })),
     clearAppSettings: vi.fn(),
 
+    // resolveTaskConfig — the "one brain" config resolver used by config-generator
+    resolveTaskConfig: vi.fn((opts: Record<string, unknown>) =>
+      Promise.resolve({
+        configOptions: {
+          platform: opts.platform || process.platform,
+          mcpToolsPath: opts.mcpToolsPath,
+          userDataPath: opts.userDataPath,
+          isPackaged: opts.isPackaged ?? false,
+          bundledNodeBinPath: opts.bundledNodeBinPath,
+          skills: opts.skills ?? [],
+          providerConfigs: {},
+          enabledProviders: ['anthropic', 'openai', 'google'],
+          permissionApiPort: opts.permissionApiPort ?? 9226,
+          questionApiPort: opts.questionApiPort ?? 9227,
+          authToken: opts.authToken,
+          connectors: undefined,
+          browser: undefined,
+          knowledgeNotes: undefined,
+        },
+      }),
+    ),
+    getOpenCodeAuthPath: vi.fn(() => '/mock/auth.json'),
+
     // Constants needed by config-generator
     PERMISSION_API_PORT: 9226,
     QUESTION_API_PORT: 9227,
@@ -279,6 +302,11 @@ vi.mock('@main/store/secureStorage', () => ({
   getBedrockCredentials: vi.fn(() => null),
   hasAnyApiKey: vi.fn(() => Promise.resolve(false)),
   clearSecureStorage: vi.fn(),
+}));
+
+// Mock workspace manager
+vi.mock('@main/store/workspaceManager', () => ({
+  getActiveWorkspace: vi.fn(() => null),
 }));
 
 // Mock skills module (uses SQLite which requires native module)

@@ -142,13 +142,18 @@ export async function startApp(
   // Daemon bootstrap is non-blocking — the GUI must always open even if
   // the daemon fails to start. The status dot and toast will show the user
   // that the daemon is disconnected, and task launch will be disabled.
-  try {
-    await bootstrapDaemon();
-    logMain('INFO', '[Main] Daemon connected');
-  } catch (err) {
-    logMain('WARN', '[Main] Daemon bootstrap failed — GUI will open without daemon', {
-      error: String(err),
-    });
+  // Skip daemon entirely in E2E mock mode — tests use mock task events.
+  if (process.env.E2E_MOCK_TASK_EVENTS !== '1') {
+    try {
+      await bootstrapDaemon();
+      logMain('INFO', '[Main] Daemon connected');
+    } catch (err) {
+      logMain('WARN', '[Main] Daemon bootstrap failed — GUI will open without daemon', {
+        error: String(err),
+      });
+    }
+  } else {
+    logMain('INFO', '[Main] E2E mock mode — skipping daemon bootstrap');
   }
 
   registerIPCHandlers();
