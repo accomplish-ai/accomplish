@@ -11,14 +11,6 @@ import { useTranslation } from 'react-i18next';
 import { Warning } from '@phosphor-icons/react';
 import { useAccomplish } from '@/lib/accomplish';
 import { useDaemonStore } from '@/stores/daemonStore';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
 function formatUptime(ms: number): string {
@@ -96,9 +88,6 @@ export function DaemonSection() {
   const [uptime, setUptime] = useState(0);
   const [lastPing, setLastPing] = useState<Date | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
-  const [closeBehavior, setCloseBehavior] = useState<string>('keep-daemon');
-  const [showWarning, setShowWarning] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Poll daemon for uptime/lastPing — status comes from store.
@@ -140,14 +129,6 @@ export function DaemonSection() {
       }
     };
   }, [pollStatus]);
-
-  // Load settings
-  useEffect(() => {
-    accomplish
-      .getCloseBehavior()
-      .then(setCloseBehavior)
-      .catch(() => {});
-  }, [accomplish]);
 
   // Control actions — update global store for all state changes.
   // After successful start/restart, explicitly set 'connected' before
@@ -192,27 +173,6 @@ export function DaemonSection() {
     } finally {
       setActionInProgress(null);
     }
-  };
-
-  // Close behavior change with double confirmation
-  const handleCloseBehaviorChange = () => {
-    if (closeBehavior === 'keep-daemon') {
-      setShowWarning(true);
-    } else {
-      void accomplish.setCloseBehavior('keep-daemon');
-      setCloseBehavior('keep-daemon');
-    }
-  };
-
-  const handleWarningConfirm = () => {
-    setShowWarning(false);
-    setShowConfirm(true);
-  };
-
-  const handleFinalConfirm = () => {
-    setShowConfirm(false);
-    void accomplish.setCloseBehavior('stop-daemon');
-    setCloseBehavior('stop-daemon');
   };
 
   const dotClass = getStatusDotClass(displayStatus);
@@ -296,79 +256,6 @@ export function DaemonSection() {
           <p className="text-sm text-destructive">{t('daemon.status.failedMessage')}</p>
         </div>
       )}
-
-      {/* Close Button Behavior */}
-      <div className="rounded-lg border border-border bg-card p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="font-medium text-foreground text-sm">
-              {t('daemon.closeBehavior.label')}
-            </div>
-            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-              {closeBehavior === 'keep-daemon'
-                ? t('daemon.closeBehavior.keepDescription')
-                : t('daemon.closeBehavior.stopDescription')}
-            </p>
-          </div>
-          <div className="ml-4">
-            <button
-              role="switch"
-              aria-checked={closeBehavior === 'keep-daemon'}
-              onClick={handleCloseBehaviorChange}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-accomplish ${
-                closeBehavior === 'keep-daemon' ? 'bg-primary' : 'bg-muted'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-accomplish ${
-                  closeBehavior === 'keep-daemon' ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-        </div>
-        {closeBehavior === 'stop-daemon' && (
-          <div className="mt-3 rounded-md bg-destructive/10 border border-destructive/20 p-3">
-            <p className="text-xs text-destructive">{t('daemon.closeBehavior.warning')}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Warning Dialog (Step 1) */}
-      <Dialog open={showWarning} onOpenChange={setShowWarning}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('daemon.warningDialog.title')}</DialogTitle>
-            <DialogDescription>{t('daemon.warningDialog.description')}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowWarning(false)}>
-              {t('daemon.warningDialog.cancel')}
-            </Button>
-            <Button variant="destructive" onClick={handleWarningConfirm}>
-              {t('daemon.warningDialog.continue')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirmation Dialog (Step 2) */}
-      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('daemon.confirmDialog.title')}</DialogTitle>
-            <DialogDescription>{t('daemon.confirmDialog.description')}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirm(false)}>
-              {t('daemon.confirmDialog.cancel')}
-            </Button>
-            <Button variant="destructive" onClick={handleFinalConfirm}>
-              {t('daemon.confirmDialog.confirm')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
