@@ -134,6 +134,7 @@ async function main(): Promise<void> {
     thoughtStreamService,
     healthService,
     storageService,
+    schedulerService,
   };
   registerRpcMethods(routeServices);
   registerTaskEventForwarding(routeServices);

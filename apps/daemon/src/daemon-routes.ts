@@ -19,6 +19,7 @@ import type { PermissionService } from './permission-service.js';
 import type { ThoughtStreamService } from './thought-stream-service.js';
 import type { HealthService } from './health.js';
 import type { StorageService } from './storage-service.js';
+import type { SchedulerService } from './scheduler-service.js';
 
 const taskIdSchema = z.object({ taskId: z.string().min(1) });
 // taskConfigSchema already includes modelId — no extension needed
@@ -56,13 +57,14 @@ export interface RouteServices {
   thoughtStreamService: ThoughtStreamService;
   healthService: HealthService;
   storageService: StorageService;
+  schedulerService: SchedulerService;
 }
 
 /**
  * Register all RPC methods on the server.
  */
 export function registerRpcMethods(services: RouteServices): void {
-  const { rpc, taskService, permissionService, healthService } = services;
+  const { rpc, taskService, permissionService, healthService, schedulerService } = services;
   const storage = services.storageService.getStorage();
 
   rpc.registerMethod(
@@ -170,5 +172,66 @@ export function registerRpcMethods(services: RouteServices): void {
   rpc.registerMethod(
     'health.check',
     safeHandler(() => Promise.resolve(healthService.getStatus())),
+  );
+
+  // Alias: desktop IPC uses 'task.cancel', daemon-routes registers 'task.stop'
+  rpc.registerMethod(
+    'task.cancel',
+    safeHandler((params) => {
+      const validated = validate(taskIdSchema, params);
+      return taskService.stopTask(validated);
+    }),
+  );
+
+  rpc.registerMethod(
+    'task.getActiveCount',
+    safeHandler(() => Promise.resolve(taskService.getActiveTaskCount())),
+  );
+
+  // ── Scheduler ────────────────────────────────────────────────────────────
+  rpc.registerMethod(
+    'task.schedule',
+    safeHandler((params) => {
+      const validated = validate(
+        z.object({
+          cron: z.string().min(1),
+          prompt: z.string().min(1),
+          workspaceId: z.string().optional(),
+        }),
+        params,
+      );
+      return Promise.resolve(
+        schedulerService.createSchedule(validated.cron, validated.prompt, validated.workspaceId),
+      );
+    }),
+  );
+  rpc.registerMethod(
+    'task.listScheduled',
+    safeHandler((params) => {
+      const workspaceId =
+        params && typeof params === 'object' && 'workspaceId' in params
+          ? (params as { workspaceId?: string }).workspaceId
+          : undefined;
+      return Promise.resolve(schedulerService.listSchedules(workspaceId));
+    }),
+  );
+  rpc.registerMethod(
+    'task.cancelScheduled',
+    safeHandler((params) => {
+      const validated = validate(z.object({ scheduleId: z.string().min(1) }), params);
+      schedulerService.deleteSchedule(validated.scheduleId);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'task.setScheduleEnabled',
+    safeHandler((params) => {
+      const validated = validate(
+        z.object({ scheduleId: z.string().min(1), enabled: z.boolean() }),
+        params,
+      );
+      schedulerService.setEnabled(validated.scheduleId, validated.enabled);
+      return Promise.resolve();
+    }),
   );
 }
