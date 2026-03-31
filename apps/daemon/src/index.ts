@@ -117,6 +117,7 @@ async function main(): Promise<void> {
   permissionService.init(
     () => taskService.getActiveTaskId(),
     (request) => rpc.notify('permission.request', request),
+    () => rpc.hasConnectedClients(),
   );
 
   // 8. Set up thought stream event forwarding

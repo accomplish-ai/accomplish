@@ -20,6 +20,7 @@ export class PermissionService {
   private questionServer: http.Server | null = null;
   private getActiveTaskId: (() => string | null) | null = null;
   private onPermissionRequest: ((request: unknown) => void) | null = null;
+  private hasConnectedClients: (() => boolean) | null = null;
   private authToken: string;
   private permissionPort: number | null = null;
   private questionPort: number | null = null;
@@ -33,9 +34,11 @@ export class PermissionService {
   init(
     taskIdGetter: () => string | null,
     permissionRequestHandler: (request: unknown) => void,
+    connectedClientsChecker?: () => boolean,
   ): void {
     this.getActiveTaskId = taskIdGetter;
     this.onPermissionRequest = permissionRequestHandler;
+    this.hasConnectedClients = connectedClientsChecker ?? null;
   }
 
   getPorts(): { permissionPort: number | null; questionPort: number | null } {
@@ -83,6 +86,13 @@ export class PermissionService {
           if (!taskId) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'No active task' }));
+            return;
+          }
+
+          // Auto-deny when no UI client is connected — no one can approve
+          if (this.hasConnectedClients && !this.hasConnectedClients()) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ allowed: false }));
             return;
           }
 
@@ -145,6 +155,13 @@ export class PermissionService {
           if (!taskId) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'No active task' }));
+            return;
+          }
+
+          // Auto-deny when no UI client is connected — no one can answer
+          if (this.hasConnectedClients && !this.hasConnectedClients()) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ denied: true }));
             return;
           }
 
