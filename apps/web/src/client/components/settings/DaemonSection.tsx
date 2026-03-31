@@ -97,7 +97,6 @@ export function DaemonSection() {
   const [lastPing, setLastPing] = useState<Date | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [closeBehavior, setCloseBehavior] = useState<string>('keep-daemon');
-  const [socketPath, setSocketPath] = useState<string | null>(null);
   const [showWarning, setShowWarning] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -147,10 +146,6 @@ export function DaemonSection() {
     accomplish
       .getCloseBehavior()
       .then(setCloseBehavior)
-      .catch(() => {});
-    accomplish
-      .getDaemonSocketPath()
-      .then(setSocketPath)
       .catch(() => {});
   }, [accomplish]);
 
@@ -336,41 +331,6 @@ export function DaemonSection() {
           <div className="mt-3 rounded-md bg-destructive/10 border border-destructive/20 p-3">
             <p className="text-xs text-destructive">{t('daemon.closeBehavior.warning')}</p>
           </div>
-        )}
-      </div>
-
-      {/* Socket Path */}
-      <div className="rounded-lg border border-border bg-card p-5">
-        <div className="font-medium text-foreground text-sm">{t('daemon.socket.title')}</div>
-        <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-          {t('daemon.socket.description')}
-        </p>
-
-        {socketPath ? (
-          <div className="mt-3">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
-              {t('daemon.socket.pathLabel')}
-            </label>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 min-w-0 rounded-md bg-muted px-3 py-2 text-xs font-mono text-foreground break-all overflow-hidden text-ellipsis">
-                {socketPath}
-              </code>
-              <button
-                type="button"
-                onClick={() => {
-                  void navigator.clipboard.writeText(socketPath).catch(() => {});
-                }}
-                className="flex-shrink-0 rounded-md border border-border bg-background px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                title={t('daemon.socket.copy')}
-              >
-                {t('daemon.socket.copy')}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <p className="mt-3 text-xs text-muted-foreground italic">
-            {t('daemon.socket.pathUnavailable')}
-          </p>
         )}
       </div>
 
