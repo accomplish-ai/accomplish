@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { ChevronDown, Check, Settings2, Loader2 } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import {
   DropdownMenu,
@@ -18,7 +19,15 @@ interface WorkspaceSelectorProps {
 
 export default function WorkspaceSelector({ onManageWorkspaces }: WorkspaceSelectorProps) {
   const { workspaces, activeWorkspaceId, isSwitching, loadWorkspaces, switchWorkspace } =
-    useWorkspaceStore();
+    useWorkspaceStore(
+      useShallow((s) => ({
+        workspaces: s.workspaces,
+        activeWorkspaceId: s.activeWorkspaceId,
+        isSwitching: s.isSwitching,
+        loadWorkspaces: s.loadWorkspaces,
+        switchWorkspace: s.switchWorkspace,
+      })),
+    );
 
   useEffect(() => {
     loadWorkspaces();

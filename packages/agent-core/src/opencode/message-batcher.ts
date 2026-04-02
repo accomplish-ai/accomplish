@@ -55,7 +55,10 @@ export function createMessageBatcher(
         try {
           addTaskMessage(taskId, msg);
         } catch (err) {
-          logger.error(`Error persisting message for task ${taskId}:`, err);
+          logger.error(`Error persisting message for task ${taskId}`, {
+            taskId,
+            error: String(err),
+          });
           failures.push(msg);
         }
       }
@@ -70,7 +73,10 @@ export function createMessageBatcher(
             messages: successfulMessages,
           });
         } catch (err) {
-          logger.error(`Error forwarding messages for task ${taskId}:`, err);
+          logger.error(`Error forwarding messages for task ${taskId}`, {
+            taskId,
+            error: String(err),
+          });
         }
       }
 

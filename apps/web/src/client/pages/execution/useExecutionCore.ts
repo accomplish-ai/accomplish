@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
 import { createLogger } from '../../lib/logger';
+import { useShallow } from 'zustand/react/shallow';
 import { useTaskStore } from '../../stores/taskStore';
 import { getAccomplish } from '../../lib/accomplish';
 import { useSpeechInput } from '../../hooks/useSpeechInput';
@@ -74,7 +75,30 @@ export function useExecutionCore() {
     clearStartupStage,
     todos,
     todosTaskId,
-  } = useTaskStore();
+  } = useTaskStore(
+    useShallow((s) => ({
+      currentTask: s.currentTask,
+      loadTaskById: s.loadTaskById,
+      isLoading: s.isLoading,
+      error: s.error,
+      addTaskUpdate: s.addTaskUpdate,
+      addTaskUpdateBatch: s.addTaskUpdateBatch,
+      updateTaskStatus: s.updateTaskStatus,
+      setPermissionRequest: s.setPermissionRequest,
+      permissionRequests: s.permissionRequests,
+      respondToPermission: s.respondToPermission,
+      sendFollowUp: s.sendFollowUp,
+      interruptTask: s.interruptTask,
+      setupProgress: s.setupProgress,
+      setupProgressTaskId: s.setupProgressTaskId,
+      setupDownloadStep: s.setupDownloadStep,
+      startupStage: s.startupStage,
+      startupStageTaskId: s.startupStageTaskId,
+      clearStartupStage: s.clearStartupStage,
+      todos: s.todos,
+      todosTaskId: s.todosTaskId,
+    })),
+  );
 
   const attachmentState = useExecutionAttachments(accomplish);
 

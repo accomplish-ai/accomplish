@@ -14,4 +14,10 @@ export interface LogEntry {
   level: LogLevel;
   source: LogSource;
   message: string;
+  /** Task ID for correlating logs to a specific task */
+  taskId?: string;
+  /** Trace ID for correlating logs across IPC/RPC boundaries */
+  traceId?: string;
+  /** Structured context data (durations, tool names, token counts, etc.) */
+  context?: Record<string, unknown>;
 }

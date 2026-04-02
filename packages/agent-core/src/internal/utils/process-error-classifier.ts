@@ -5,7 +5,27 @@
  * Returns a human-readable error message that can be shown directly in the UI
  * instead of the generic "Task failed" text.
  */
-export function classifyProcessError(exitCode: number | undefined, outputBuffer: string): string {
+
+import type { ErrorCategory } from '../../common/types/task.js';
+
+/** Structured error classification with recovery action metadata. */
+export interface ClassifiedError {
+  message: string;
+  category: ErrorCategory;
+  retryable: boolean;
+  /** Label for the primary action button (e.g., "Retry", "Open Settings"). */
+  actionLabel?: string;
+  /** Type of recovery action for the UI to dispatch. */
+  actionType?: 'retry' | 'settings' | 'new_task';
+}
+
+/**
+ * Classify a process error into a structured result with category and recovery action.
+ */
+export function classifyProcessErrorStructured(
+  exitCode: number | undefined,
+  outputBuffer: string,
+): ClassifiedError {
   const output = outputBuffer.toLowerCase();
 
   // Quota / billing errors
@@ -16,7 +36,13 @@ export function classifyProcessError(exitCode: number | undefined, outputBuffer:
     output.includes('insufficient credits') ||
     output.includes('resource_exhausted')
   ) {
-    return 'API quota exceeded. Check your billing and usage limits, then try again.';
+    return {
+      message: 'API quota exceeded. Check your billing and usage limits, then try again.',
+      category: 'quota',
+      retryable: false,
+      actionLabel: 'Open Settings',
+      actionType: 'settings',
+    };
   }
 
   // Rate limit errors
@@ -26,7 +52,13 @@ export function classifyProcessError(exitCode: number | undefined, outputBuffer:
     output.includes('too many requests') ||
     /\b(?:http|status|statuscode)\s*429\b/i.test(outputBuffer)
   ) {
-    return 'Rate limit reached. Please wait a moment before retrying.';
+    return {
+      message: 'Rate limit reached. Please wait a moment before retrying.',
+      category: 'rate_limit',
+      retryable: true,
+      actionLabel: 'Retry',
+      actionType: 'retry',
+    };
   }
 
   // Authentication / API key errors
@@ -38,7 +70,13 @@ export function classifyProcessError(exitCode: number | undefined, outputBuffer:
     output.includes('unauthorized') ||
     output.includes('authentication failed')
   ) {
-    return 'Invalid or missing API key. Check your credentials in Settings.';
+    return {
+      message: 'Invalid or missing API key. Check your credentials in Settings.',
+      category: 'auth',
+      retryable: false,
+      actionLabel: 'Open Settings',
+      actionType: 'settings',
+    };
   }
 
   // Model not found errors
@@ -49,7 +87,13 @@ export function classifyProcessError(exitCode: number | undefined, outputBuffer:
     output.includes('model not found') ||
     output.includes('no such model')
   ) {
-    return 'Model not found or not available. Try selecting a different model in Settings.';
+    return {
+      message: 'Model not found or not available. Try selecting a different model in Settings.',
+      category: 'model_not_found',
+      retryable: false,
+      actionLabel: 'Open Settings',
+      actionType: 'settings',
+    };
   }
 
   // Context length errors
@@ -59,7 +103,13 @@ export function classifyProcessError(exitCode: number | undefined, outputBuffer:
     output.includes('context window') ||
     output.includes('too many tokens')
   ) {
-    return 'The conversation is too long for this model. Start a new task to continue.';
+    return {
+      message: 'The conversation is too long for this model. Start a new task to continue.',
+      category: 'context_length',
+      retryable: false,
+      actionLabel: 'Start New Task',
+      actionType: 'new_task',
+    };
   }
 
   // Network errors
@@ -69,11 +119,32 @@ export function classifyProcessError(exitCode: number | undefined, outputBuffer:
     output.includes('network error') ||
     output.includes('connection refused')
   ) {
-    return 'Network error. Check your internet connection and try again.';
+    return {
+      message: 'Network error. Check your internet connection and try again.',
+      category: 'network',
+      retryable: true,
+      actionLabel: 'Retry',
+      actionType: 'retry',
+    };
   }
 
-  if (typeof exitCode === 'number') {
-    return `Task failed (exit code ${exitCode}). Check the debug panel for details.`;
-  }
-  return 'Task failed. Check the debug panel for details.';
+  const fallbackMessage =
+    typeof exitCode === 'number'
+      ? `Task failed (exit code ${exitCode}). Check the debug panel for details.`
+      : 'Task failed. Check the debug panel for details.';
+
+  return {
+    message: fallbackMessage,
+    category: 'unknown',
+    retryable: true,
+    actionLabel: 'Retry',
+    actionType: 'retry',
+  };
+}
+
+/**
+ * Backwards-compatible wrapper that returns just the message string.
+ */
+export function classifyProcessError(exitCode: number | undefined, outputBuffer: string): string {
+  return classifyProcessErrorStructured(exitCode, outputBuffer).message;
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { useShallow } from 'zustand/react/shallow';
 import { useTaskStore } from '@/stores/taskStore';
 import { getAccomplish } from '@/lib/accomplish';
 import { staggerContainer } from '@/lib/animations';
@@ -29,7 +30,15 @@ export default function Sidebar() {
     | 'general'
     | 'about'
   >('providers');
-  const { tasks, loadTasks, updateTaskStatus, addTaskUpdate, openLauncher } = useTaskStore();
+  const { tasks, loadTasks, updateTaskStatus, addTaskUpdate, openLauncher } = useTaskStore(
+    useShallow((s) => ({
+      tasks: s.tasks,
+      loadTasks: s.loadTasks,
+      updateTaskStatus: s.updateTaskStatus,
+      addTaskUpdate: s.addTaskUpdate,
+      openLauncher: s.openLauncher,
+    })),
+  );
   const accomplish = getAccomplish();
   const { t } = useTranslation('sidebar');
 

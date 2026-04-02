@@ -14,6 +14,7 @@
 
 import { createServer, type Server, type Socket } from 'node:net';
 import { randomUUID } from 'node:crypto';
+import { createLogger } from './logger.js';
 import { getSocketPath } from './socket-path.js';
 import { handleRpcLine, type AnyMethodHandler } from './rpc-message-handler.js';
 
@@ -121,7 +122,10 @@ export class DaemonRpcServer {
         });
 
         socket.on('error', (err) => {
-          console.error(`[DaemonRpcServer] Socket error for client ${clientId}:`, err.message);
+          createLogger('rpc-server').error(`Socket error for client ${clientId}`, {
+            clientId,
+            error: err.message,
+          });
           this.clients.delete(clientId);
         });
       });

@@ -14,6 +14,7 @@ import { TaskLauncher } from './components/TaskLauncher';
 import { AuthErrorToast } from './components/AuthErrorToast';
 import { DaemonConnectionToast } from './components/DaemonConnectionToast';
 import SettingsDialog from './components/layout/SettingsDialog';
+import { useShallow } from 'zustand/react/shallow';
 import { useTaskStore } from './stores/taskStore';
 import { SpinnerGap, Warning } from '@phosphor-icons/react';
 
@@ -63,7 +64,13 @@ export function App() {
   );
 
   // Get store state and actions
-  const { openLauncher, authError, clearAuthError } = useTaskStore();
+  const { openLauncher, authError, clearAuthError } = useTaskStore(
+    useShallow((s) => ({
+      openLauncher: s.openLauncher,
+      authError: s.authError,
+      clearAuthError: s.clearAuthError,
+    })),
+  );
 
   // Handle re-login from auth error toast
   const handleAuthReLogin = useCallback(() => {

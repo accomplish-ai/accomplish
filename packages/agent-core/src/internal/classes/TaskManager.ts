@@ -141,7 +141,10 @@ export class TaskManager {
     };
 
     this.taskQueue.push(queuedTask);
-    log.info(`[TaskManager] Task ${taskId} queued. Queue length: ${this.taskQueue.length}`);
+    log.info(`[TaskManager] Task ${taskId} queued. Queue length: ${this.taskQueue.length}`, {
+      taskId,
+      queueLength: this.taskQueue.length,
+    });
 
     return {
       id: taskId,
@@ -300,7 +303,10 @@ export class TaskManager {
     };
     this.activeTasks.set(taskId, managedTask);
 
-    log.info(`[TaskManager] Executing task ${taskId}. Active tasks: ${this.activeTasks.size}`);
+    log.info(`[TaskManager] Executing task ${taskId}. Active tasks: ${this.activeTasks.size}`, {
+      taskId,
+      activeTasks: this.activeTasks.size,
+    });
 
     const task: Task = {
       id: taskId,
@@ -335,7 +341,10 @@ export class TaskManager {
           workingDirectory: config.workingDirectory || this.options.defaultWorkingDirectory,
         });
       } catch (error) {
-        log.error(`[TaskManager] Task startup failed for ${taskId}: ${error}`);
+        log.error(`[TaskManager] Task startup failed for ${taskId}: ${error}`, {
+          taskId,
+          error: String(error),
+        });
         callbacks.onError(error instanceof Error ? error : new Error(String(error)));
         this.cleanupTask(taskId);
         this.processQueue();

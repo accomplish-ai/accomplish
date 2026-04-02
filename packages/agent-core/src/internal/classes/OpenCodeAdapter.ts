@@ -6,7 +6,7 @@ import path from 'path';
 
 import { StreamParser } from './StreamParser.js';
 import { OpenCodeLogWatcher, createLogWatcher, OpenCodeLogError } from './OpenCodeLogWatcher.js';
-import { classifyProcessError } from '../utils/process-error-classifier.js';
+import { classifyProcessErrorStructured } from '../utils/process-error-classifier.js';
 import {
   CompletionEnforcer,
   CompletionEnforcerCallbacks,
@@ -671,11 +671,13 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         if (message.part.reason === 'error') {
           if (!this.hasCompleted) {
             this.hasCompleted = true;
-            const errorMessage = classifyProcessError(undefined, this.outputBuffer);
+            const classified = classifyProcessErrorStructured(undefined, this.outputBuffer);
             this.emit('complete', {
               status: 'error',
               sessionId: this.currentSessionId || undefined,
-              error: errorMessage,
+              error: classified.message,
+              errorCategory: classified.category,
+              errorRetryable: classified.retryable,
             });
           }
           break;
@@ -870,8 +872,15 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
     if (!this.hasCompleted && !isNormalExit(code, this.options.platform)) {
       // Treat null (abnormal PTY termination) and non-zero non-normal codes as errors
-      const errorMessage = classifyProcessError(code ?? undefined, this.outputBuffer);
-      this.emit('error', new Error(errorMessage));
+      this.hasCompleted = true;
+      const classified = classifyProcessErrorStructured(code ?? undefined, this.outputBuffer);
+      this.emit('complete', {
+        status: 'error',
+        sessionId: this.currentSessionId || undefined,
+        error: classified.message,
+        errorCategory: classified.category,
+        errorRetryable: classified.retryable,
+      });
     }
 
     this.currentTaskId = null;

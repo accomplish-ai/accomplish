@@ -1,6 +1,7 @@
 import { Warning, X } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { useShallow } from 'zustand/react/shallow';
 import { useDaemonStore } from '@/stores/daemonStore';
 import { Button } from './ui/button';
 
@@ -10,7 +11,13 @@ interface DaemonConnectionToastProps {
 
 export function DaemonConnectionToast({ onOpenSettings }: DaemonConnectionToastProps) {
   const { t } = useTranslation('errors');
-  const { status, toastDismissed, dismissToast } = useDaemonStore();
+  const { status, toastDismissed, dismissToast } = useDaemonStore(
+    useShallow((s) => ({
+      status: s.status,
+      toastDismissed: s.toastDismissed,
+      dismissToast: s.dismissToast,
+    })),
+  );
 
   const isVisible =
     (status === 'disconnected' || status === 'reconnecting' || status === 'reconnect-failed') &&

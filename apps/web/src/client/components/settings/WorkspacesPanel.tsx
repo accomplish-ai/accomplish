@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -10,7 +11,15 @@ import { CreateWorkspaceForm, WORKSPACE_COLORS } from './WorkspacePanelForm';
 
 export function WorkspacesPanel() {
   const { workspaces, loadWorkspaces, createWorkspace, updateWorkspace, deleteWorkspace } =
-    useWorkspaceStore();
+    useWorkspaceStore(
+      useShallow((s) => ({
+        workspaces: s.workspaces,
+        loadWorkspaces: s.loadWorkspaces,
+        createWorkspace: s.createWorkspace,
+        updateWorkspace: s.updateWorkspace,
+        deleteWorkspace: s.deleteWorkspace,
+      })),
+    );
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

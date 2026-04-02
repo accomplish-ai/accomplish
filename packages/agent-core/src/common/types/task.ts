@@ -82,11 +82,25 @@ export interface TaskPauseAction {
   successText?: string;
 }
 
+/** Error categories returned by the process error classifier. */
+export type ErrorCategory =
+  | 'quota'
+  | 'rate_limit'
+  | 'auth'
+  | 'model_not_found'
+  | 'context_length'
+  | 'network'
+  | 'unknown';
+
 export interface TaskResult {
   status: 'success' | 'error' | 'interrupted';
   sessionId?: string;
   durationMs?: number;
   error?: string;
+  /** Classified error category for UI-driven recovery actions. */
+  errorCategory?: ErrorCategory;
+  /** Whether this error is likely retryable (rate limit, network, etc.). */
+  errorRetryable?: boolean;
   pauseReason?: 'auth';
   pauseAction?: TaskPauseAction;
 }

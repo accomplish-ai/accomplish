@@ -201,6 +201,8 @@ export default function ExecutionPage() {
             <ExecutionCompleteFooter
               taskId={s.currentTask.id}
               onStartNewTask={() => s.navigate('/')}
+              onOpenSettings={() => s.handleOpenModelSettings()}
+              onRetry={() => s.handleRepeatTask()}
             />
           )}
 
