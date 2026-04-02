@@ -67,6 +67,9 @@ docs/plans/
 .specify/
 specs/
 
+# Node compile cache
+node-compile-cache/
+
 # Misc
 *.pem
 .turbo/
