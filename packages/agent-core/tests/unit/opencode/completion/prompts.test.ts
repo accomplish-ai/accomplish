@@ -9,8 +9,8 @@ describe('Completion Prompts', () => {
     it('should return a reminder prompt', () => {
       const prompt = getContinuationPrompt();
 
-      expect(prompt).toContain('REMINDER: You must call complete_task when finished');
-      expect(prompt).toContain('Have I actually finished everything the user asked?');
+      expect(prompt).toContain('You stopped without calling complete_task');
+      expect(prompt).toContain('have you finished everything the user asked');
     });
 
     it('should include all status options', () => {
@@ -18,14 +18,12 @@ describe('Completion Prompts', () => {
 
       expect(prompt).toContain('status: "success"');
       expect(prompt).toContain('status: "blocked"');
-      expect(prompt).toContain('status: "partial"');
     });
 
     it('should encourage continuing work', () => {
       const prompt = getContinuationPrompt();
 
-      expect(prompt).toContain('CONTINUE WORKING');
-      expect(prompt).toContain("Keep working if there's more to do");
+      expect(prompt).toContain('keep working on the remaining items');
     });
   });
 
@@ -63,18 +61,11 @@ describe('Completion Prompts', () => {
       expect(prompt).toContain('## What You Completed');
     });
 
-    it('should include continuation plan instructions', () => {
+    it('should include continuation instructions', () => {
       const prompt = getPartialContinuationPrompt('Remaining', 'Original', 'Completed');
 
-      expect(prompt).toContain('## REQUIRED: Create a Continuation Plan');
+      expect(prompt).toContain('## Continue Working');
       expect(prompt).toContain('Create a TODO list');
-    });
-
-    it('should warn against using partial status again', () => {
-      const prompt = getPartialContinuationPrompt('Remaining', 'Original', 'Completed');
-
-      expect(prompt).toContain('Do NOT call complete_task with "partial" again');
-      expect(prompt).toContain('"partial" is NOT an acceptable final status');
     });
 
     it('should instruct to use blocked for technical blockers', () => {
@@ -82,6 +73,12 @@ describe('Completion Prompts', () => {
 
       expect(prompt).toContain('login wall, CAPTCHA, rate limit, site error');
       expect(prompt).toContain('"blocked" status');
+    });
+
+    it('should encourage completing the task', () => {
+      const prompt = getPartialContinuationPrompt('Remaining', 'Original', 'Completed');
+
+      expect(prompt).toContain('Keep working until the task is complete');
     });
   });
 
@@ -94,7 +91,7 @@ describe('Completion Prompts', () => {
         '- Task 1\n- Task 2',
       );
 
-      expect(prompt).toContain('complete_task call was rejected');
+      expect(prompt).toContain('still incomplete');
       expect(prompt).toContain('- Task 1');
       expect(prompt).toContain('- Task 2');
       expect(prompt).toContain('todowrite');
@@ -105,17 +102,17 @@ describe('Completion Prompts', () => {
     it('should not include generic continuation plan when incompleteTodos provided', () => {
       const prompt = getPartialContinuationPrompt('Remaining', 'Original', 'Completed', '- Task 1');
 
-      expect(prompt).not.toContain('## REQUIRED: Create a Continuation Plan');
+      expect(prompt).not.toContain('## Continue Working');
       expect(prompt).not.toContain('## Original Request');
       expect(prompt).not.toContain('## What You Completed');
-      expect(prompt).not.toContain('## What You Said Remains');
+      expect(prompt).not.toContain('## What Remains');
     });
 
     it('should not include incomplete todos section when not provided', () => {
       const prompt = getPartialContinuationPrompt('Remaining', 'Original', 'Completed');
 
-      expect(prompt).not.toContain('rejected');
-      expect(prompt).toContain('## REQUIRED: Create a Continuation Plan');
+      expect(prompt).not.toContain('still incomplete');
+      expect(prompt).toContain('## Continue Working');
     });
   });
 });

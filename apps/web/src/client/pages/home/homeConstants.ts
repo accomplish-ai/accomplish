@@ -5,8 +5,8 @@ export const USE_CASE_KEYS = [
   { key: 'notionApiAudit', icons: ['notion.so'] },
   { key: 'stagingVsProdVisual', icons: ['google.com'] },
   { key: 'prodBrokenLinks', icons: ['google.com'] },
-  { key: 'portfolioMonitoring', icons: ['finance.yahoo.com'] },
-  { key: 'jobApplicationAutomation', icons: ['linkedin.com'] },
+  { key: 'meetingPrep', icons: ['calendar.google.com'] },
+  { key: 'draftReport', icons: ['docs.google.com'] },
   { key: 'eventCalendarBuilder', icons: ['eventbrite.com', 'calendar.google.com'] },
 ] as const;
 

@@ -57,15 +57,15 @@
       "description": "检查网站中的失效链接。",
       "prompt": "打开 [URL]，点击每个链接，并报告任何 404 错误。"
     },
-    "portfolioMonitoring": {
-      "title": "投资组合监控",
-      "description": "监控股价，在下跌和上涨时发出警报。",
-      "prompt": "监控我在 [券商网站] 上的股票投资组合，在价格下跌和上涨时发出警报。"
+    "meetingPrep": {
+      "title": "Meeting Prep",
+      "description": "Summarize key context and draft talking points for upcoming meetings.",
+      "prompt": "Check my Google Calendar for tomorrow's meetings, research the attendees, and draft talking points for each meeting."
     },
-    "jobApplicationAutomation": {
-      "title": "求职申请自动化",
-      "description": "筛选职位并使用保存的资料提交申请。",
-      "prompt": "从 LinkedIn 查找 [关键词] 的职位列表，按薪资排序，并使用我的资料申请前 5 个。"
+    "draftReport": {
+      "title": "Draft a Report",
+      "description": "Create a structured report from notes or data you provide.",
+      "prompt": "Take these meeting notes [paste notes] and draft a clean summary report with action items, deadlines, and owners."
     },
     "eventCalendarBuilder": {
       "title": "活动日程构建",

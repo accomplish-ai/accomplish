@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { useShallow } from 'zustand/react/shallow';
 import Header from '../components/layout/Header';
 import TaskHistory from '../components/history/TaskHistory';
 import { useTaskStore } from '../stores/taskStore';
@@ -6,7 +7,9 @@ import { useTaskStore } from '../stores/taskStore';
 export default function HistoryPage() {
   const { t } = useTranslation('history');
   const { t: tCommon } = useTranslation('common');
-  const { tasks, clearHistory } = useTaskStore();
+  const { tasks, clearHistory } = useTaskStore(
+    useShallow((s) => ({ tasks: s.tasks, clearHistory: s.clearHistory })),
+  );
 
   const handleClearAll = async () => {
     if (confirm(t('confirmClear'))) {

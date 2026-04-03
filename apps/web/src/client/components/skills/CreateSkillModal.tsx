@@ -28,7 +28,7 @@ export function CreateSkillModal({ open, onOpenChange, onSettingsClose }: Create
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasProvider, setHasProvider] = useState<boolean | null>(null);
 
-  const { startTask } = useTaskStore();
+  const startTask = useTaskStore((state) => state.startTask);
   const navigate = useNavigate();
   const { t } = useTranslation('settings');
 

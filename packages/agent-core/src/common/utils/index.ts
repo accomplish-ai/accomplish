@@ -5,6 +5,7 @@ export {
   createQuestionRequestId,
   isFilePermissionRequest,
   isQuestionRequest,
+  createTraceId,
 } from './id.js';
 
 export { LOG_SOURCE_PATTERNS, detectLogSource } from './log-source-detector.js';

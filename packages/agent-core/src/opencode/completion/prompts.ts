@@ -1,15 +1,11 @@
 export function getContinuationPrompt(): string {
-  return `REMINDER: You must call complete_task when finished.
+  return `You stopped without calling complete_task.
 
-Before proceeding, ask yourself: "Have I actually finished everything the user asked?"
+Check: have you finished everything the user asked?
 
-- If NO, you haven't finished yet → CONTINUE WORKING on the task
-- If YES, all parts are done → Call complete_task with status: "success"
-- If you hit a blocker → Call complete_task with status: "blocked"
-- If some parts done, some not → Call complete_task with status: "partial"
-
-Do NOT call complete_task until you have actually completed the user's request.
-Keep working if there's more to do.`;
+- If yes → call complete_task with status: "success"
+- If you hit a technical blocker → call complete_task with status: "blocked"
+- Otherwise, keep working on the remaining items.`;
 }
 
 export function getPartialContinuationPrompt(
@@ -19,16 +15,15 @@ export function getPartialContinuationPrompt(
   incompleteTodos?: string,
 ): string {
   if (incompleteTodos) {
-    return `Your complete_task call was rejected because these todo items are still marked incomplete:
+    return `Some todo items are still incomplete:
 
 ${incompleteTodos}
 
-Call todowrite to mark each item as "completed" or "cancelled", then call complete_task with status="success".
-
-If any items are not done yet, complete them first.`;
+Mark each item as "completed" or "cancelled" using todowrite, then call complete_task.
+If any items still need work, complete them first.`;
   }
 
-  return `You called complete_task with status="partial" but the task is not done yet.
+  return `You indicated the task is only partially complete.
 
 ## Original Request
 "${originalRequest}"
@@ -36,31 +31,16 @@ If any items are not done yet, complete them first.`;
 ## What You Completed
 ${completedSummary}
 
-## What You Said Remains
+## What Remains
 ${remainingWork}
 
-## REQUIRED: Create a Continuation Plan
+## Continue Working
 
-Before continuing, you MUST:
+Review the original request, then:
+1. Create a TODO list of remaining steps
+2. Work through each item
+3. Call complete_task with status "success" when done
 
-1. **Review the original request** - Re-read every requirement carefully
-2. **Create a TODO list** showing what's done and what remains:
-
-**Continuation Plan:**
-✓ [Items you already completed]
-□ [Next step] → verify: [how to confirm it's done]
-□ [Following step] → verify: [how to confirm it's done]
-...
-
-3. **Execute the plan** - Work through each remaining step
-4. **Call complete_task(success)** - Only when ALL original requirements are met
-
-## IMPORTANT RULES
-
-- Do NOT call complete_task with "partial" again unless you hit an actual TECHNICAL blocker
-- If you hit a real blocker (login wall, CAPTCHA, rate limit, site error), use "blocked" status
-- "partial" is NOT an acceptable final status - keep working until the task is complete
-- Do NOT ask the user "would you like me to continue?" - just continue working
-
-Now create your continuation plan and resume working on the remaining items.`;
+If you hit a technical blocker (login wall, CAPTCHA, rate limit, site error), call complete_task with "blocked" status instead.
+Keep working until the task is complete.`;
 }

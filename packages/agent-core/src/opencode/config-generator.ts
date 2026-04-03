@@ -8,6 +8,7 @@ import {
   ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE,
 } from './system-prompt.js';
 import { buildMcpServers } from './generator-mcp.js';
+import { getSubagentDefinitions } from './agent-configs.js';
 export type { BrowserConfig, McpServerConfig } from './generator-mcp.js';
 
 const log = createConsoleLogger({ prefix: 'OpenCodeConfig' });
@@ -126,12 +127,10 @@ export function generateConfig(options: ConfigGeneratorOptions): GeneratedConfig
     const skillsSection = `
 
 <available-skills>
-##############################################################################
-# SKILLS - Include relevant ones in your start_task call
-##############################################################################
+# Skills — include relevant ones in your start_task call
 
 Review these skills and include any relevant ones in your start_task call's \`skills\` array.
-After calling start_task, you MUST read the SKILL.md file for each skill you listed.
+After calling start_task, read the SKILL.md file for each skill you listed.
 
 **Available Skills:**
 
@@ -143,8 +142,6 @@ ${skills
   .join('\n\n')}
 
 Use empty array [] if no skills apply to your task.
-
-##############################################################################
 </available-skills>
 `;
     systemPrompt += skillsSection;
@@ -154,17 +151,13 @@ Use empty array [] if no skills apply to your task.
     const knowledgeSection = `
 
 <workspace-knowledge>
-##############################################################################
-# WORKSPACE KNOWLEDGE - Persistent context for this workspace
-##############################################################################
+# Workspace knowledge — persistent context for this workspace
 
 The user has saved the following knowledge notes for this workspace.
 Use this information as context for all tasks. Do not ask the user to
 re-explain anything covered here.
 
 ${options.knowledgeNotes}
-
-##############################################################################
 </workspace-knowledge>
 `;
     systemPrompt += knowledgeSection;
@@ -196,7 +189,7 @@ ${options.knowledgeNotes}
   // Fill browser-specific template sections based on mode
   const hasBrowser = browserConfig.mode !== 'none';
   systemPrompt = systemPrompt
-    .replace('{{AGENT_ROLE}}', hasBrowser ? 'browser automation' : 'task automation')
+    .replace('{{AGENT_ROLE}}', 'knowledge work')
     .replace(
       '{{BROWSER_CAPABILITY}}',
       hasBrowser
@@ -206,7 +199,7 @@ ${options.knowledgeNotes}
     .replace(
       '{{BROWSER_BEHAVIOR}}',
       hasBrowser
-        ? `- **NEVER use shell commands (open, xdg-open, start, subprocess, webbrowser) to open browsers or URLs** - these open the user's default browser, not the automation-controlled Chrome. ALL browser operations MUST use browser_* MCP tools.
+        ? `- **Do not use shell commands (open, xdg-open, start, subprocess, webbrowser) to open browsers or URLs** — these open the user's default browser, not the automation-controlled Chrome. All browser operations should use browser_* MCP tools.
 - For multi-step browser workflows, prefer \`browser_script\` over individual tools - it's faster and auto-returns page state.
 - **For collecting data from multiple pages** (e.g. comparing listings, gathering info from search results), use \`browser_batch_actions\` to extract data from multiple URLs in ONE call instead of visiting each page individually with click/snapshot loops. First collect the URLs from the search results page, then pass them all to \`browser_batch_actions\` with a JS extraction script.
 
@@ -272,10 +265,16 @@ Example too terse (avoid):
     plugin: ['@tarquinen/opencode-dcp@^2.0.0'],
     agent: {
       [ACCOMPLISH_AGENT_NAME]: {
-        description: 'Browser automation assistant using dev-browser',
+        description: 'Knowledge work assistant',
         prompt: systemPrompt,
         mode: 'primary',
       },
+      ...Object.fromEntries(
+        getSubagentDefinitions().map((sub) => [
+          sub.name,
+          { description: sub.description, prompt: sub.prompt, mode: sub.mode },
+        ]),
+      ),
     },
     mcp: mcpServers,
     experimental: {

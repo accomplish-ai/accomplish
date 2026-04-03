@@ -12,6 +12,14 @@ import type { TodoItem } from '../../common/types/todo.js';
 export type StepFinishAction = 'continue' | 'pending' | 'complete';
 
 /**
+ * Returns true if any todo item is actively in progress (not just pending/planned).
+ * Pending-only todos should not block task success.
+ */
+export function hasActivelyInProgressTodos(todos: TodoItem[]): boolean {
+  return todos.some((t) => t.status === 'in_progress');
+}
+
+/**
  * Returns true if any todo item is incomplete (pending or in_progress).
  */
 export function hasIncompleteTodos(todos: TodoItem[]): boolean {

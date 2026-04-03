@@ -270,7 +270,7 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
 
       // Check for the skills section header and content
-      expect(result.systemPrompt).toContain('# SKILLS - Include relevant');
+      expect(result.systemPrompt).toContain('# Skills');
       expect(result.systemPrompt).toContain('**Available Skills:**');
       expect(result.systemPrompt).toContain('Test Skill');
       expect(result.systemPrompt).toContain('/test');
@@ -287,10 +287,7 @@ describe('ConfigGenerator', () => {
 
       const result = generateConfig(options);
 
-      // The base template references <available-skills> in instructions,
-      // but the actual skills section starts with "# SKILLS - Include relevant"
-      // and ends with the closing tag. Check for the section header instead.
-      expect(result.systemPrompt).not.toContain('# SKILLS - Include relevant');
+      expect(result.systemPrompt).not.toContain('# Skills');
       expect(result.systemPrompt).not.toContain('**Available Skills:**');
     });
 
@@ -391,6 +388,23 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
 
       expect(result.config.agent?.[ACCOMPLISH_AGENT_NAME]?.mode).toBe('primary');
+    });
+
+    it('should include subagent definitions in config', () => {
+      const options: ConfigGeneratorOptions = {
+        ...baseOptions,
+        mcpToolsPath,
+        userDataPath,
+      };
+
+      const result = generateConfig(options);
+
+      expect(result.config.agent?.researcher).toBeDefined();
+      expect(result.config.agent?.researcher?.mode).toBe('subagent');
+      expect(result.config.agent?.browser).toBeDefined();
+      expect(result.config.agent?.browser?.mode).toBe('subagent');
+      expect(result.config.agent?.quick).toBeDefined();
+      expect(result.config.agent?.quick?.mode).toBe('subagent');
     });
 
     it('should include schema in config', () => {
@@ -508,6 +522,20 @@ describe('ConfigGenerator', () => {
       expect(modelFlagIndex).toBeGreaterThanOrEqual(0);
       expect(args[modelFlagIndex + 1]).toBe('zai-coding-plan/glm-5');
     });
+
+    it('should default to accomplish agent when no agentName specified', () => {
+      const args = buildCliArgs({ prompt: 'test' });
+      const agentIdx = args.indexOf('--agent');
+      expect(agentIdx).toBeGreaterThanOrEqual(0);
+      expect(args[agentIdx + 1]).toBe('accomplish');
+    });
+
+    it('should use custom agent name when specified', () => {
+      const args = buildCliArgs({ prompt: 'test', agentName: 'researcher' });
+      const agentIdx = args.indexOf('--agent');
+      expect(agentIdx).toBeGreaterThanOrEqual(0);
+      expect(args[agentIdx + 1]).toBe('researcher');
+    });
   });
 
   describe('getOpenCodeConfigPath', () => {
@@ -596,6 +624,7 @@ describe('ConfigGenerator', () => {
       expect(result.systemPrompt).toContain('File Management');
       expect(result.systemPrompt).toContain('Slack');
       expect(result.systemPrompt).toContain('built-in Slack connector');
+      expect(result.systemPrompt).toContain('Subagents');
     });
 
     it('should instruct agent NOT to call complete_task for conversational responses', () => {
@@ -609,7 +638,7 @@ describe('ConfigGenerator', () => {
 
       const result = generateConfig(options);
 
-      expect(result.systemPrompt).toContain('do NOT call complete_task');
+      expect(result.systemPrompt).toContain('do not call complete_task');
       expect(result.systemPrompt).toContain('needs_planning');
     });
 
@@ -625,7 +654,7 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
 
       expect(result.systemPrompt).toContain('AskUserQuestion');
-      expect(result.systemPrompt).toContain('user CANNOT see your text output');
+      expect(result.systemPrompt).toContain('user cannot see your text output');
     });
 
     it('should include Slack usage and authentication guidance', () => {
@@ -640,7 +669,7 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
 
       expect(result.systemPrompt).toContain('For Slack-related requests, use the Slack MCP tools');
-      expect(result.systemPrompt).toContain('the built-in Slack connector is the default path');
+      expect(result.systemPrompt).toContain('The built-in Slack connector is the default path');
       expect(result.systemPrompt).toContain('Never invent Slack tool names');
       expect(result.systemPrompt).toContain(
         'Never answer a Slack access request with generic advice',
@@ -733,8 +762,8 @@ describe('ConfigGenerator', () => {
     it('should strip all browser references from prompt when mode is none', () => {
       const result = generateConfig(makeOptions({ browser: { mode: 'none' } }));
 
-      expect(result.systemPrompt).toContain('task automation assistant');
-      expect(result.systemPrompt).not.toContain('browser automation assistant');
+      expect(result.systemPrompt).toContain('knowledge work assistant');
+      expect(result.systemPrompt).not.toContain('browser automation');
       expect(result.systemPrompt).not.toContain('browser_sequence');
       expect(result.systemPrompt).not.toContain('browser_batch_actions');
       expect(result.systemPrompt).not.toContain('browser_script');
@@ -746,8 +775,7 @@ describe('ConfigGenerator', () => {
     it('should keep browser identity in prompt for builtin mode', () => {
       const result = generateConfig(makeOptions({ browser: { mode: 'builtin' } }));
 
-      expect(result.systemPrompt).toContain('browser automation assistant');
-      expect(result.systemPrompt).not.toContain('task automation assistant');
+      expect(result.systemPrompt).toContain('knowledge work assistant');
     });
 
     it('should keep browser identity in prompt for remote mode', () => {
@@ -757,7 +785,7 @@ describe('ConfigGenerator', () => {
       };
       const result = generateConfig(makeOptions({ browser }));
 
-      expect(result.systemPrompt).toContain('browser automation assistant');
+      expect(result.systemPrompt).toContain('knowledge work assistant');
     });
   });
 
@@ -777,7 +805,7 @@ describe('ConfigGenerator', () => {
 
     it('should contain needs_planning: true for multi-step tasks', () => {
       expect(prompt).toContain('needs_planning: true');
-      expect(prompt).toContain('will require tools beyond start_task and complete_task');
+      expect(prompt).toContain('requires tools beyond start_task and complete_task');
       expect(prompt).toContain('file operations');
       expect(prompt).toContain('browser actions');
       expect(prompt).toContain('bash commands');
@@ -790,13 +818,11 @@ describe('ConfigGenerator', () => {
     });
 
     it('should contain explicit instruction not to call complete_task for conversational responses', () => {
-      expect(prompt).toContain('Do NOT call complete_task for conversational responses');
+      expect(prompt).toContain('Do not call complete_task for conversational responses');
     });
 
     it('should require complete_task when needs_planning was true', () => {
-      expect(prompt).toContain(
-        'You MUST call the `complete_task` tool when `needs_planning` was true',
-      );
+      expect(prompt).toContain('Call the complete_task tool when needs_planning was true');
     });
 
     it('should instruct providing goal/steps/verification when needs_planning is true', () => {
@@ -822,8 +848,9 @@ describe('ConfigGenerator', () => {
     });
 
     it('should still contain start_task as mandatory first tool for non-conversational tasks', () => {
-      expect(prompt).toContain('For non-conversational tasks, you MUST call start_task');
-      expect(prompt).toContain('TASK WORKFLOW (NON-CONVERSATIONAL TASKS)');
+      expect(prompt).toContain(
+        'For non-conversational tasks, call start_task before any other tool',
+      );
     });
 
     it('should still contain todowrite instructions under needs_planning=true path', () => {
@@ -835,8 +862,8 @@ describe('ConfigGenerator', () => {
     });
 
     it('should contain todo update instructions under needs_planning=true path', () => {
-      expect(prompt).toContain('UPDATE TODOS AS YOU PROGRESS');
-      expect(prompt).toContain('COMPLETE ALL TODOS BEFORE FINISHING');
+      expect(prompt).toContain('Update todos as you progress');
+      expect(prompt).toContain('Complete all todos before finishing');
     });
   });
 
@@ -862,7 +889,7 @@ describe('ConfigGenerator', () => {
     });
 
     it('should still contain verification behavior', () => {
-      expect(prompt).toContain("You verified EVERY part of the user's request is done");
+      expect(prompt).toContain("You verified every part of the user's request is done");
       expect(prompt).toContain('original_request_summary');
     });
 

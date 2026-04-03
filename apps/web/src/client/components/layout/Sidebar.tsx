@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { useShallow } from 'zustand/react/shallow';
 import { useTaskStore } from '@/stores/taskStore';
 import { getAccomplish } from '@/lib/accomplish';
 import { staggerContainer } from '@/lib/animations';
+import { groupTasksByDate } from './sidebar-utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ConversationListItem from './ConversationListItem';
@@ -29,7 +31,15 @@ export default function Sidebar() {
     | 'general'
     | 'about'
   >('providers');
-  const { tasks, loadTasks, updateTaskStatus, addTaskUpdate, openLauncher } = useTaskStore();
+  const { tasks, loadTasks, updateTaskStatus, addTaskUpdate, openLauncher } = useTaskStore(
+    useShallow((s) => ({
+      tasks: s.tasks,
+      loadTasks: s.loadTasks,
+      updateTaskStatus: s.updateTaskStatus,
+      addTaskUpdate: s.addTaskUpdate,
+      openLauncher: s.openLauncher,
+    })),
+  );
   const accomplish = getAccomplish();
   const { t } = useTranslation('sidebar');
 
@@ -117,8 +127,15 @@ export default function Sidebar() {
                   animate="animate"
                   className="space-y-1"
                 >
-                  {tasks.map((task) => (
-                    <ConversationListItem key={task.id} task={task} />
+                  {groupTasksByDate(tasks).map((group) => (
+                    <div key={group.label}>
+                      <div className="px-3 py-1.5 text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wider">
+                        {group.label}
+                      </div>
+                      {group.tasks.map((task) => (
+                        <ConversationListItem key={task.id} task={task} />
+                      ))}
+                    </div>
                   ))}
                 </motion.div>
               )}

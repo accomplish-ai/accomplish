@@ -28,11 +28,11 @@ import {
 } from '@phosphor-icons/react';
 
 export const THINKING_PHRASES = [
-  'Doing...',
-  'Executing...',
-  'Running...',
+  'Working on it...',
+  'Processing...',
+  'On it...',
   'Handling it...',
-  'Accomplishing...',
+  'Getting it done...',
 ];
 
 export const TOOL_PROGRESS_MAP: Record<string, { label: string; icon: typeof FileText }> = {

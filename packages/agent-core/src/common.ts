@@ -18,6 +18,7 @@ export type {
   TaskResult,
   TaskProgress,
   TaskUpdateEvent,
+  ErrorCategory,
 } from './common/types/task.js';
 export { STARTUP_STAGES } from './common/types/task.js';
 
@@ -222,6 +223,7 @@ export {
   createQuestionRequestId,
   isFilePermissionRequest,
   isQuestionRequest,
+  createTraceId,
 } from './common/utils/id.js';
 
 export { isWaitingForUser } from './common/utils/waiting-detection.js';

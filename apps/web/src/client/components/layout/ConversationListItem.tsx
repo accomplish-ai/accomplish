@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { useShallow } from 'zustand/react/shallow';
 import type { Task } from '@accomplish_ai/agent-core/common';
 import { cn } from '@/lib/utils';
 import { X, Star, SpinnerGap } from '@phosphor-icons/react';
@@ -19,7 +20,13 @@ export function ConversationListItem({ task }: ConversationListItemProps) {
   const isActive = location.pathname === `/execution/${task.id}`;
   const deleteTask = useTaskStore((state) => state.deleteTask);
   const domains = useMemo(() => extractDomains(task), [task]);
-  const { favorites, addFavorite, removeFavorite } = useTaskStore();
+  const { favorites, addFavorite, removeFavorite } = useTaskStore(
+    useShallow((s) => ({
+      favorites: s.favorites,
+      addFavorite: s.addFavorite,
+      removeFavorite: s.removeFavorite,
+    })),
+  );
   const favoritesList = Array.isArray(favorites) ? favorites : [];
   const isFavorited = favoritesList.some((f) => f.taskId === task.id);
   const canFavorite = FAVORITABLE_STATUSES.includes(task.status);

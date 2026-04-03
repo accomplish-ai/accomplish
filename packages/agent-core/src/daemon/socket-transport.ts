@@ -154,6 +154,7 @@ function createTransportFromSocket(
       closed = true;
       messageHandlers.length = 0;
       disconnectHandlers.length = 0;
+      socket.removeAllListeners();
       if (!socket.destroyed) {
         socket.destroy();
       }

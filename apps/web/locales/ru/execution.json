@@ -16,11 +16,16 @@
   },
   "thinking": "Думаю...",
   "thinkingPhrases": {
-    "doing": "Делаю...",
-    "executing": "Выполняю...",
-    "running": "Запускаю...",
+    "working": "Работаю...",
+    "processing": "Обрабатываю...",
+    "onIt": "Уже делаю...",
     "handling": "Обрабатываю...",
-    "accomplishing": "Выполняю задачу..."
+    "gettingItDone": "Выполняю задачу..."
+  },
+  "phase": {
+    "planning": "Планирование...",
+    "working": "Работаю...",
+    "finishing": "Завершение..."
   },
   "loadingAgent": "Загрузка агента...",
   "waitingForResponse": "Ожидание ответа...",

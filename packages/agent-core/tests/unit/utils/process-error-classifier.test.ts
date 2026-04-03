@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { classifyProcessError } from '../../../src/internal/utils/process-error-classifier.js';
+import {
+  classifyProcessError,
+  classifyProcessErrorStructured,
+} from '../../../src/internal/utils/process-error-classifier.js';
 
 describe('classifyProcessError', () => {
   describe('quota / billing patterns', () => {
@@ -162,5 +165,65 @@ describe('classifyProcessError', () => {
       const result = classifyProcessError(undefined, 'some unknown error');
       expect(result).toBe('Task failed. Check the debug panel for details.');
     });
+  });
+});
+
+describe('classifyProcessErrorStructured', () => {
+  it('returns category and retryable for quota errors', () => {
+    const result = classifyProcessErrorStructured(1, 'insufficient_quota reached');
+    expect(result.category).toBe('quota');
+    expect(result.retryable).toBe(false);
+    expect(result.actionType).toBe('settings');
+    expect(result.actionLabel).toBe('Open Settings');
+  });
+
+  it('returns category and retryable for rate limit errors', () => {
+    const result = classifyProcessErrorStructured(1, 'rate limit exceeded');
+    expect(result.category).toBe('rate_limit');
+    expect(result.retryable).toBe(true);
+    expect(result.actionType).toBe('retry');
+    expect(result.actionLabel).toBe('Retry');
+  });
+
+  it('returns category for auth errors', () => {
+    const result = classifyProcessErrorStructured(1, 'invalid_api_key provided');
+    expect(result.category).toBe('auth');
+    expect(result.retryable).toBe(false);
+    expect(result.actionType).toBe('settings');
+  });
+
+  it('returns category for network errors', () => {
+    const result = classifyProcessErrorStructured(1, 'ECONNREFUSED 127.0.0.1');
+    expect(result.category).toBe('network');
+    expect(result.retryable).toBe(true);
+    expect(result.actionType).toBe('retry');
+  });
+
+  it('returns category for context length errors', () => {
+    const result = classifyProcessErrorStructured(1, 'context_length_exceeded');
+    expect(result.category).toBe('context_length');
+    expect(result.retryable).toBe(false);
+    expect(result.actionType).toBe('new_task');
+    expect(result.actionLabel).toBe('Start New Task');
+  });
+
+  it('returns category for model not found errors', () => {
+    const result = classifyProcessErrorStructured(1, 'model_not_found for gpt-5');
+    expect(result.category).toBe('model_not_found');
+    expect(result.retryable).toBe(false);
+    expect(result.actionType).toBe('settings');
+  });
+
+  it('returns unknown category with retry for unrecognized errors', () => {
+    const result = classifyProcessErrorStructured(1, 'some unknown error');
+    expect(result.category).toBe('unknown');
+    expect(result.retryable).toBe(true);
+    expect(result.actionType).toBe('retry');
+  });
+
+  it('message matches backwards-compatible classifyProcessError', () => {
+    const structured = classifyProcessErrorStructured(1, 'rate limit exceeded');
+    const legacy = classifyProcessError(1, 'rate limit exceeded');
+    expect(structured.message).toBe(legacy);
   });
 });

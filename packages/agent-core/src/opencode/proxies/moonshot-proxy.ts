@@ -3,6 +3,7 @@ import { createConsoleLogger } from '../../utils/logging.js';
 import { normalizeBaseUrl } from './moonshot-validation.js';
 import { MOONSHOT_PROXY_PORT } from './moonshot-transform.js';
 import { createProxyRequestHandler } from './moonshot-request-handler.js';
+import { reasoningContentCache } from './moonshot-cache.js';
 
 export { transformMoonshotRequestBody } from './moonshot-transform.js';
 
@@ -67,6 +68,8 @@ export async function stopMoonshotProxy(): Promise<void> {
   if (!server) {
     return;
   }
+
+  reasoningContentCache.clear();
 
   await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {

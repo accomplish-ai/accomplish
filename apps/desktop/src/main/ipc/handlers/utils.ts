@@ -6,6 +6,12 @@ import { getLogCollector } from '../../logging';
 export const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
 export const MAX_ATTACHMENT_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
+let traceCounter = 0;
+
+function createIpcTraceId(): string {
+  return `ipc_${(++traceCounter).toString(36)}_${Date.now().toString(36)}`;
+}
+
 export function assertTrustedWindow(window: BrowserWindow | null): BrowserWindow {
   if (!window || window.isDestroyed()) {
     throw new Error('Untrusted window');
@@ -32,13 +38,31 @@ export function handle<Args extends unknown[], ReturnType = unknown>(
   handler: (event: IpcMainInvokeEvent, ...args: Args) => ReturnType,
 ): void {
   ipcMain.handle(channel, async (event, ...args) => {
+    const traceId = createIpcTraceId();
+    const start = Date.now();
     try {
-      return await handler(event, ...(args as Args));
+      const result = await handler(event, ...(args as Args));
+      try {
+        const l = getLogCollector();
+        if (l?.logIpc) {
+          l.logIpc('DEBUG', `${channel} completed`, {
+            traceId,
+            durationMs: Date.now() - start,
+          });
+        }
+      } catch (_e) {
+        /* best-effort logging */
+      }
+      return result;
     } catch (error) {
       try {
         const l = getLogCollector();
         if (l?.log) {
-          l.log('ERROR', 'ipc', `IPC handler ${channel} failed`, { error: String(error) });
+          l.log('ERROR', 'ipc', `${channel} failed`, {
+            traceId,
+            error: String(error),
+            durationMs: Date.now() - start,
+          });
         }
       } catch (_e) {
         /* best-effort logging */

@@ -10,7 +10,7 @@ import { AddScheduleDialog } from './AddScheduleDialog';
 export function SchedulerPanel() {
   const { t } = useTranslation('settings');
   const accomplish = useAccomplish();
-  const { activeWorkspaceId } = useWorkspaceStore();
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
 
   const [schedules, setSchedules] = useState<ScheduledTask[]>([]);
   const [loading, setLoading] = useState(true);

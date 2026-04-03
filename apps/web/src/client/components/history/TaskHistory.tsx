@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { useShallow } from 'zustand/react/shallow';
 import { StarButton } from '../ui/StarButton';
 import { FAVORITABLE_STATUSES } from '../../lib/task-utils';
 import { useTaskStore } from '../../stores/taskStore';
@@ -21,7 +22,18 @@ export default function TaskHistory({ limit, showTitle = true }: TaskHistoryProp
     removeFavorite,
     deleteTask,
     clearHistory,
-  } = useTaskStore();
+  } = useTaskStore(
+    useShallow((s) => ({
+      tasks: s.tasks,
+      favorites: s.favorites,
+      loadTasks: s.loadTasks,
+      loadFavorites: s.loadFavorites,
+      addFavorite: s.addFavorite,
+      removeFavorite: s.removeFavorite,
+      deleteTask: s.deleteTask,
+      clearHistory: s.clearHistory,
+    })),
+  );
   const favoritesList = Array.isArray(favorites) ? favorites : [];
   const { t } = useTranslation('history');
   const { t: tCommon } = useTranslation('common');

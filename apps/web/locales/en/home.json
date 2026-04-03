@@ -1,6 +1,6 @@
 {
-  "title": "What will you accomplish today?",
-  "inputPlaceholder": "Describe a task and let AI handle the rest",
+  "title": "What can I help with?",
+  "inputPlaceholder": "Describe what you need done...",
   "favorites": {
     "title": "Favorites",
     "empty": "Star completed or interrupted tasks to see them here.",
@@ -57,15 +57,15 @@
       "description": "Check my website for broken links.",
       "prompt": "Open [URL], click through every link, and report any 404 errors."
     },
-    "portfolioMonitoring": {
-      "title": "Portfolio Monitoring",
-      "description": "Watch stock prices, and alert on drops and spikes.",
-      "prompt": "Monitor my stock portfolio on [broker site], alert on price drops and spikes."
+    "meetingPrep": {
+      "title": "Meeting Prep",
+      "description": "Summarize key context and draft talking points for upcoming meetings.",
+      "prompt": "Check my Google Calendar for tomorrow's meetings, research the attendees, and draft talking points for each meeting."
     },
-    "jobApplicationAutomation": {
-      "title": "Job Application Automation",
-      "description": "Filter jobs and submit applications with saved profiles.",
-      "prompt": "Find job listings from LinkedIn for [query], sort by salary, and apply to the top 5 using my profile."
+    "draftReport": {
+      "title": "Draft a Report",
+      "description": "Create a structured report from notes or data you provide.",
+      "prompt": "Take these meeting notes [paste notes] and draft a clean summary report with action items, deadlines, and owners."
     },
     "eventCalendarBuilder": {
       "title": "Event Calendar Builder",

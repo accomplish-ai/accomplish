@@ -3,6 +3,7 @@ import { getContinuationPrompt, getPartialContinuationPrompt } from './prompts.j
 import type { TodoItem } from '../../common/types/todo.js';
 import { createConsoleLogger } from '../../utils/logging.js';
 import {
+  hasActivelyInProgressTodos,
   hasIncompleteTodos,
   getIncompleteTodosSummary,
   isConversationalTurn,
@@ -71,7 +72,7 @@ export class CompletionEnforcer {
       remaining_work: raw?.remaining_work,
     };
 
-    if (completeTaskArgs.status === 'success' && hasIncompleteTodos(this.currentTodos)) {
+    if (completeTaskArgs.status === 'success' && hasActivelyInProgressTodos(this.currentTodos)) {
       const incompleteSummary = getIncompleteTodosSummary(this.currentTodos);
       this.callbacks.onDebug(
         'incomplete_todos',

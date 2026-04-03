@@ -95,9 +95,9 @@ describe('CompletionEnforcer', () => {
       expect(result).toBe(false);
     });
 
-    it('should downgrade success to partial if there are incomplete todos', () => {
+    it('should downgrade success to partial if there are in_progress todos', () => {
       const todos: TodoItem[] = [
-        { id: '1', content: 'Task 1', status: 'pending', priority: 'high' },
+        { id: '1', content: 'Task 1', status: 'in_progress', priority: 'high' },
       ];
       enforcer.updateTodos(todos);
 
@@ -114,6 +114,21 @@ describe('CompletionEnforcer', () => {
       );
 
       expect(enforcer.getState()).toBe(CompletionFlowState.PARTIAL_CONTINUATION_PENDING);
+    });
+
+    it('should NOT downgrade success when only pending todos remain', () => {
+      const todos: TodoItem[] = [
+        { id: '1', content: 'Task 1', status: 'pending', priority: 'high' },
+      ];
+      enforcer.updateTodos(todos);
+
+      enforcer.handleCompleteTaskDetection({
+        status: 'success',
+        summary: 'Done',
+        original_request_summary: 'Test',
+      });
+
+      expect(enforcer.getState()).toBe(CompletionFlowState.DONE);
     });
 
     it('should not downgrade if all todos are completed', () => {
@@ -249,7 +264,7 @@ describe('CompletionEnforcer', () => {
       await enforcer.handleProcessExit(0);
 
       expect(onStartContinuationMock).toHaveBeenCalledWith(
-        expect.stringContaining('You called complete_task with status="partial"'),
+        expect.stringContaining('task is only partially complete'),
       );
       expect(onDebugMock).toHaveBeenCalledWith(
         'partial_continuation',
@@ -265,13 +280,13 @@ describe('CompletionEnforcer', () => {
       await enforcer.handleProcessExit(0);
 
       expect(onStartContinuationMock).toHaveBeenCalledWith(
-        expect.stringContaining('REMINDER: You must call complete_task when finished'),
+        expect.stringContaining('You stopped without calling complete_task'),
       );
     });
 
     it('should use focused todowrite prompt when downgrade was triggered by todos', async () => {
       const todos: TodoItem[] = [
-        { id: '1', content: 'Write tests', status: 'pending', priority: 'high' },
+        { id: '1', content: 'Write tests', status: 'in_progress', priority: 'high' },
       ];
       enforcer.updateTodos(todos);
 
@@ -284,10 +299,10 @@ describe('CompletionEnforcer', () => {
       await enforcer.handleProcessExit(0);
 
       const prompt = onStartContinuationMock.mock.calls[0][0] as string;
-      expect(prompt).toContain('complete_task call was rejected');
+      expect(prompt).toContain('still incomplete');
       expect(prompt).toContain('Write tests');
       expect(prompt).toContain('todowrite');
-      expect(prompt).not.toContain('## REQUIRED: Create a Continuation Plan');
+      expect(prompt).not.toContain('## Continue Working');
     });
 
     it('should use generic partial prompt when agent genuinely says partial', async () => {
@@ -301,9 +316,9 @@ describe('CompletionEnforcer', () => {
       await enforcer.handleProcessExit(0);
 
       const prompt = onStartContinuationMock.mock.calls[0][0] as string;
-      expect(prompt).toContain('You called complete_task with status="partial"');
-      expect(prompt).toContain('## REQUIRED: Create a Continuation Plan');
-      expect(prompt).not.toContain('rejected');
+      expect(prompt).toContain('task is only partially complete');
+      expect(prompt).toContain('## Continue Working');
+      expect(prompt).not.toContain('still incomplete');
     });
 
     it('should keep continuing after a text-only continuation turn when tools were used earlier', async () => {
@@ -579,7 +594,9 @@ describe('CompletionEnforcer', () => {
     });
 
     it('should return false after reset', async () => {
-      const todos: TodoItem[] = [{ id: '1', content: 'Task', status: 'pending', priority: 'high' }];
+      const todos: TodoItem[] = [
+        { id: '1', content: 'Task', status: 'in_progress', priority: 'high' },
+      ];
       enforcer.updateTodos(todos);
       enforcer.handleCompleteTaskDetection({
         status: 'success',

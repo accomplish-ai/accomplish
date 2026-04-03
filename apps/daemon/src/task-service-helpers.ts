@@ -52,6 +52,6 @@ export function runTaskSummaryGeneration(
       emitSummary(summary);
     })
     .catch((err: unknown) => {
-      logger.warn('[TaskService] Failed to generate task summary', { err, taskId });
+      logger.warn('Failed to generate task summary', { taskId, error: String(err) });
     });
 }

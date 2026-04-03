@@ -5,6 +5,10 @@
 
 import type { JsonRpcMessage, JsonRpcRequest, JsonRpcResponse } from '../common/types/daemon.js';
 import { JSON_RPC_ERRORS } from '../common/types/daemon.js';
+import { createTraceId } from '../common/utils/id.js';
+import { createLogger } from './logger.js';
+
+const logger = createLogger('rpc');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyMethodHandler = (params: any) => Promise<unknown> | unknown;
@@ -41,6 +45,16 @@ export function sendError(
 }
 
 /**
+ * Extract taskId from RPC params if present.
+ */
+function extractTaskId(params: unknown): string | undefined {
+  if (params && typeof params === 'object' && 'taskId' in params) {
+    return (params as { taskId: string }).taskId;
+  }
+  return undefined;
+}
+
+/**
  * Parse and dispatch a single JSON-RPC line from a client.
  */
 export async function handleRpcLine(
@@ -52,7 +66,7 @@ export async function handleRpcLine(
   try {
     message = JSON.parse(line) as JsonRpcMessage;
   } catch {
-    console.warn('[DaemonRpcServer] Failed to parse message from client', client.id);
+    logger.warn('Failed to parse message from client', { clientId: client.id });
     return;
   }
 
@@ -63,8 +77,12 @@ export async function handleRpcLine(
 
   const request = message as JsonRpcRequest;
   const handler = handlers.get(request.method);
+  const traceId = createTraceId();
+  const taskId = extractTaskId(request.params);
+  const start = Date.now();
 
   if (!handler) {
+    logger.warn(`Method not found: ${request.method}`, { traceId, taskId });
     sendError(client, request.id as string | number, {
       code: JSON_RPC_ERRORS.METHOD_NOT_FOUND,
       message: `Method not found: ${request.method}`,
@@ -72,12 +90,24 @@ export async function handleRpcLine(
     return;
   }
 
+  logger.debug(`RPC request: ${request.method}`, { traceId, taskId });
+
   try {
     const result = await handler(request.params);
+    logger.debug(`RPC response: ${request.method}`, {
+      traceId,
+      taskId,
+      durationMs: Date.now() - start,
+    });
     sendResult(client, request.id as string | number, result);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error(`[DaemonRpcServer] Handler error for ${request.method}:`, errorMessage);
+    logger.error(`RPC handler error: ${request.method}`, {
+      traceId,
+      taskId,
+      error: errorMessage,
+      durationMs: Date.now() - start,
+    });
     sendError(client, request.id as string | number, {
       code: JSON_RPC_ERRORS.INTERNAL_ERROR,
       message: errorMessage,

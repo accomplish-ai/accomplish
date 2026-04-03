@@ -23,3 +23,8 @@ export function isFilePermissionRequest(requestId: string): boolean {
 export function isQuestionRequest(requestId: string): boolean {
   return requestId.startsWith(QUESTION_REQUEST_PREFIX);
 }
+
+/** Generate a short trace ID for cross-boundary request correlation. */
+export function createTraceId(): string {
+  return `tr_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}

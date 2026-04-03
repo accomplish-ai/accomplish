@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { useShallow } from 'zustand/react/shallow';
 import { useTaskStore } from '@/stores/taskStore';
 import { getAccomplish } from '@/lib/accomplish';
 import { TaskLauncherContent } from './TaskLauncherContent';
@@ -12,7 +13,15 @@ export function TaskLauncher() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const { isLauncherOpen, launcherInitialPrompt, closeLauncher, tasks, startTask } = useTaskStore();
+  const { isLauncherOpen, launcherInitialPrompt, closeLauncher, tasks, startTask } = useTaskStore(
+    useShallow((s) => ({
+      isLauncherOpen: s.isLauncherOpen,
+      launcherInitialPrompt: s.launcherInitialPrompt,
+      closeLauncher: s.closeLauncher,
+      tasks: s.tasks,
+      startTask: s.startTask,
+    })),
+  );
   const accomplish = getAccomplish();
   const [openedAt, setOpenedAt] = useState(Date.now);
 

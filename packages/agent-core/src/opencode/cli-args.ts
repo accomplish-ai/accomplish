@@ -12,6 +12,8 @@ export interface BuildCliArgsOptions {
     provider: ProviderId;
     model: string;
   } | null;
+  /** Agent name to use. Defaults to the primary 'accomplish' agent. */
+  agentName?: string;
 }
 
 /**
@@ -61,7 +63,7 @@ export function buildCliArgs(options: BuildCliArgsOptions): string[] {
     args.push('--session', sessionId);
   }
 
-  args.push('--agent', ACCOMPLISH_AGENT_NAME);
+  args.push('--agent', options.agentName ?? ACCOMPLISH_AGENT_NAME);
   args.push(prompt);
 
   return args;
