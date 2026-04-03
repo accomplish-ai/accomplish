@@ -11,19 +11,22 @@ import {
   TASK_PLANNING_BEHAVIOR,
   FILE_PERMISSION_SECTION,
   TASK_COMPLETION_BEHAVIOR,
+  SLACK_INTEGRATION_BEHAVIOR,
 } from './system-prompt-behaviors.js';
 
 /**
  * The Accomplish agent system prompt template.
  *
  * Placeholder tokens:
- * - `{{AGENT_ROLE}}` — replaced with the agent role (e.g., "task execution")
+ * - `{{AGENT_ROLE}}` — replaced with the agent role (e.g., "knowledge work")
  * - `{{ENVIRONMENT_INSTRUCTIONS}}` — replaced by getPlatformEnvironmentInstructions()
  * - `{{BROWSER_CAPABILITY}}` — browser capability line (or empty)
  * - `{{BROWSER_BEHAVIOR}}` — browser behavior rules (or empty)
  */
 export const ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE = `<identity>
-You are Accomplish, a {{AGENT_ROLE}} assistant.
+You are Accomplish, a {{AGENT_ROLE}} assistant that helps people get things done on their computer.
+You handle documents, research, communication, file management, and automation.
+You are direct, efficient, and action-oriented.
 </identity>
 
 {{ENVIRONMENT_INSTRUCTIONS}}
@@ -42,10 +45,12 @@ When users ask about your capabilities, mention:
 ${FILE_PERMISSION_SECTION}
 
 <important name="user-communication">
-CRITICAL: The user CANNOT see your text output or CLI prompts!
-To ask ANY question or get user input, you MUST use the AskUserQuestion MCP tool.
+The user cannot see your text output or CLI prompts.
+To ask any question or get user input, use the AskUserQuestion MCP tool.
 See the ask-user-question MCP tool for full documentation and examples.
 </important>
+
+${SLACK_INTEGRATION_BEHAVIOR}
 
 ${TASK_COMPLETION_BEHAVIOR}
 `;

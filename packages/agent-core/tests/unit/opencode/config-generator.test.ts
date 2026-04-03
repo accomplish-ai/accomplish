@@ -609,7 +609,7 @@ describe('ConfigGenerator', () => {
 
       const result = generateConfig(options);
 
-      expect(result.systemPrompt).toContain('do NOT call complete_task');
+      expect(result.systemPrompt).toContain('do not call complete_task');
       expect(result.systemPrompt).toContain('needs_planning');
     });
 
@@ -625,7 +625,7 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
 
       expect(result.systemPrompt).toContain('AskUserQuestion');
-      expect(result.systemPrompt).toContain('user CANNOT see your text output');
+      expect(result.systemPrompt).toContain('user cannot see your text output');
     });
 
     it('should include Slack usage and authentication guidance', () => {
@@ -640,7 +640,7 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
 
       expect(result.systemPrompt).toContain('For Slack-related requests, use the Slack MCP tools');
-      expect(result.systemPrompt).toContain('the built-in Slack connector is the default path');
+      expect(result.systemPrompt).toContain('The built-in Slack connector is the default path');
       expect(result.systemPrompt).toContain('Never invent Slack tool names');
       expect(result.systemPrompt).toContain(
         'Never answer a Slack access request with generic advice',
@@ -733,8 +733,8 @@ describe('ConfigGenerator', () => {
     it('should strip all browser references from prompt when mode is none', () => {
       const result = generateConfig(makeOptions({ browser: { mode: 'none' } }));
 
-      expect(result.systemPrompt).toContain('task automation assistant');
-      expect(result.systemPrompt).not.toContain('browser automation assistant');
+      expect(result.systemPrompt).toContain('knowledge work assistant');
+      expect(result.systemPrompt).not.toContain('browser automation');
       expect(result.systemPrompt).not.toContain('browser_sequence');
       expect(result.systemPrompt).not.toContain('browser_batch_actions');
       expect(result.systemPrompt).not.toContain('browser_script');
@@ -746,8 +746,7 @@ describe('ConfigGenerator', () => {
     it('should keep browser identity in prompt for builtin mode', () => {
       const result = generateConfig(makeOptions({ browser: { mode: 'builtin' } }));
 
-      expect(result.systemPrompt).toContain('browser automation assistant');
-      expect(result.systemPrompt).not.toContain('task automation assistant');
+      expect(result.systemPrompt).toContain('knowledge work assistant');
     });
 
     it('should keep browser identity in prompt for remote mode', () => {
@@ -757,7 +756,7 @@ describe('ConfigGenerator', () => {
       };
       const result = generateConfig(makeOptions({ browser }));
 
-      expect(result.systemPrompt).toContain('browser automation assistant');
+      expect(result.systemPrompt).toContain('knowledge work assistant');
     });
   });
 
@@ -777,7 +776,7 @@ describe('ConfigGenerator', () => {
 
     it('should contain needs_planning: true for multi-step tasks', () => {
       expect(prompt).toContain('needs_planning: true');
-      expect(prompt).toContain('will require tools beyond start_task and complete_task');
+      expect(prompt).toContain('requires tools beyond start_task and complete_task');
       expect(prompt).toContain('file operations');
       expect(prompt).toContain('browser actions');
       expect(prompt).toContain('bash commands');
@@ -790,13 +789,11 @@ describe('ConfigGenerator', () => {
     });
 
     it('should contain explicit instruction not to call complete_task for conversational responses', () => {
-      expect(prompt).toContain('Do NOT call complete_task for conversational responses');
+      expect(prompt).toContain('Do not call complete_task for conversational responses');
     });
 
     it('should require complete_task when needs_planning was true', () => {
-      expect(prompt).toContain(
-        'You MUST call the `complete_task` tool when `needs_planning` was true',
-      );
+      expect(prompt).toContain('Call the complete_task tool when needs_planning was true');
     });
 
     it('should instruct providing goal/steps/verification when needs_planning is true', () => {
@@ -822,8 +819,9 @@ describe('ConfigGenerator', () => {
     });
 
     it('should still contain start_task as mandatory first tool for non-conversational tasks', () => {
-      expect(prompt).toContain('For non-conversational tasks, you MUST call start_task');
-      expect(prompt).toContain('TASK WORKFLOW (NON-CONVERSATIONAL TASKS)');
+      expect(prompt).toContain(
+        'For non-conversational tasks, call start_task before any other tool',
+      );
     });
 
     it('should still contain todowrite instructions under needs_planning=true path', () => {
@@ -835,8 +833,8 @@ describe('ConfigGenerator', () => {
     });
 
     it('should contain todo update instructions under needs_planning=true path', () => {
-      expect(prompt).toContain('UPDATE TODOS AS YOU PROGRESS');
-      expect(prompt).toContain('COMPLETE ALL TODOS BEFORE FINISHING');
+      expect(prompt).toContain('Update todos as you progress');
+      expect(prompt).toContain('Complete all todos before finishing');
     });
   });
 
@@ -862,7 +860,7 @@ describe('ConfigGenerator', () => {
     });
 
     it('should still contain verification behavior', () => {
-      expect(prompt).toContain("You verified EVERY part of the user's request is done");
+      expect(prompt).toContain("You verified every part of the user's request is done");
       expect(prompt).toContain('original_request_summary');
     });
 

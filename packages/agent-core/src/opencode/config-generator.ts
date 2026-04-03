@@ -196,7 +196,7 @@ ${options.knowledgeNotes}
   // Fill browser-specific template sections based on mode
   const hasBrowser = browserConfig.mode !== 'none';
   systemPrompt = systemPrompt
-    .replace('{{AGENT_ROLE}}', hasBrowser ? 'browser automation' : 'task automation')
+    .replace('{{AGENT_ROLE}}', 'knowledge work')
     .replace(
       '{{BROWSER_CAPABILITY}}',
       hasBrowser
@@ -272,7 +272,7 @@ Example too terse (avoid):
     plugin: ['@tarquinen/opencode-dcp@^2.0.0'],
     agent: {
       [ACCOMPLISH_AGENT_NAME]: {
-        description: 'Browser automation assistant using dev-browser',
+        description: 'Knowledge work assistant',
         prompt: systemPrompt,
         mode: 'primary',
       },
