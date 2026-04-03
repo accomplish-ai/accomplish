@@ -18,6 +18,9 @@ import { createLogger } from './logger.js';
 import { getSocketPath } from './socket-path.js';
 import { handleRpcLine, type AnyMethodHandler } from './rpc-message-handler.js';
 
+/** Maximum buffer size per client — matches socket-transport.ts client limit. */
+const MAX_BUFFER_BYTES = 1 * 1024 * 1024; // 1 MB
+
 export interface DaemonRpcServerOptions {
   /** Override the default Unix socket / named pipe path. */
   socketPath?: string;
@@ -106,6 +109,14 @@ export class DaemonRpcServer {
 
         socket.on('data', (chunk: string) => {
           client.buffer += chunk;
+          if (Buffer.byteLength(client.buffer, 'utf8') > MAX_BUFFER_BYTES) {
+            createLogger('rpc-server').error(
+              `Client ${clientId} exceeded buffer limit, disconnecting`,
+            );
+            client.buffer = '';
+            socket.destroy();
+            return;
+          }
           const lines = client.buffer.split('\n');
           client.buffer = lines.pop() ?? '';
           for (const line of lines) {

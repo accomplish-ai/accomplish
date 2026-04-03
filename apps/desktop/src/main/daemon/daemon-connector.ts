@@ -120,13 +120,19 @@ export function spawnDaemon(dataDir: string): void {
     env: daemonEnv,
   };
 
+  let logFd: number | undefined;
   if (!app.isPackaged) {
     const logPath = getDaemonLogPath(dataDir);
-    const logFd = fs.openSync(logPath, 'a');
+    logFd = fs.openSync(logPath, 'a');
     spawnOptions.stdio = ['ignore', logFd, logFd];
   }
 
   const child = spawn(nodeBin, [entryPath, '--data-dir', dataDir], spawnOptions);
+
+  // Close the log fd in the parent process — the child inherited it via spawn.
+  if (logFd !== undefined) {
+    fs.closeSync(logFd);
+  }
 
   child.unref();
   log('INFO', `[DaemonConnector] Daemon spawned (detached, pid=${child.pid})`);
