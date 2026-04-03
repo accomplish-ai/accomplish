@@ -51,9 +51,9 @@ export interface SandboxConfig {
   networkPolicy?: SandboxNetworkPolicy;
 }
 
-/** Default (disabled) sandbox configuration */
+/** Default sandbox configuration — native mode for OS-level FS/network restriction */
 export const DEFAULT_SANDBOX_CONFIG: SandboxConfig = {
-  mode: 'disabled',
+  mode: 'native',
   allowedPaths: [],
   networkRestricted: false,
   allowedHosts: [],

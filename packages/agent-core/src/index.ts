@@ -40,6 +40,7 @@ export type {
   // Storage API
   StorageAPI,
   StorageOptions,
+  KeyProtector,
   StoredTask,
   StoredFavorite,
   AppSettings,

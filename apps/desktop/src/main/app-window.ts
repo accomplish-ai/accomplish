@@ -99,7 +99,49 @@ export function createMainWindow(opts: {
   // dev mode needs 'unsafe-inline' for @vitejs/plugin-react HMR preamble (never distributed)
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     const scriptSrc = app.isPackaged ? "'self'" : "'self' 'unsafe-inline'";
-    const csp = `default-src 'self' https:; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: ws: wss:; font-src 'self' https: data:; worker-src 'self' blob:`;
+
+    // Restrict connect-src to known AI provider domains instead of blanket https:.
+    // Localhost entries cover Ollama, LM Studio, LiteLLM, and Vite dev server.
+    const allowedConnectDomains = [
+      'https://*.anthropic.com',
+      'https://*.openai.com',
+      'https://*.googleapis.com',
+      'https://*.x.ai',
+      'https://*.deepseek.com',
+      'https://*.moonshot.ai',
+      'https://*.openrouter.ai',
+      'https://*.minimax.io',
+      'https://*.nebius.ai',
+      'https://*.together.xyz',
+      'https://*.fireworks.ai',
+      'https://*.groq.com',
+      'https://*.venice.ai',
+      'https://*.bigmodel.cn',
+      'https://*.z.ai',
+      'https://*.nvidia.com',
+      'https://*.github.com',
+      'https://*.slack.com',
+      'https://*.posthog.com',
+      'https://*.sentry.io',
+      'https://*.accomplish.ai',
+      'http://localhost:*',
+      'https://localhost:*',
+      'http://127.0.0.1:*',
+      'https://127.0.0.1:*',
+      'ws://localhost:*',
+      'wss://localhost:*',
+    ].join(' ');
+
+    const csp = [
+      "default-src 'self'",
+      `script-src ${scriptSrc}`,
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https:",
+      `connect-src 'self' ${allowedConnectDomains}`,
+      "font-src 'self' https: data:",
+      "worker-src 'self' blob:",
+    ].join('; ');
+
     callback({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [csp] } });
   });
 

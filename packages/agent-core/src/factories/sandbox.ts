@@ -2,6 +2,10 @@
  * Factory function for creating sandbox providers.
  *
  * Returns the appropriate provider based on the configured sandbox mode.
+ * When native sandbox is requested, the provider's wrapSpawnArgs will
+ * gracefully degrade if the underlying tool (sandbox-exec, firejail) is
+ * unavailable — it still injects env-var flags so MCP tools can enforce
+ * restrictions even without OS-level wrapping.
  */
 
 import type { SandboxConfig, SandboxPaths, SandboxProvider } from '../common/types/sandbox.js';

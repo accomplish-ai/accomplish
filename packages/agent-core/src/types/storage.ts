@@ -21,6 +21,13 @@ import type { MessagingConfig } from '../common/types/messaging.js';
 import type { BlocklistEntry } from '../common/types/desktop.js';
 import type { ScheduledTask } from '../common/types/daemon.js';
 
+/** OS-level key protector interface (e.g. Electron safeStorage) */
+export interface KeyProtector {
+  encrypt: (plaintext: string) => string;
+  decrypt: (encrypted: string) => string;
+  isAvailable: () => boolean;
+}
+
 /** Options for creating a Storage instance */
 export interface StorageOptions {
   /** Path to the SQLite database file */
@@ -33,6 +40,8 @@ export interface StorageOptions {
   secureStorageAppId?: string;
   /** File name for the encrypted secure storage file */
   secureStorageFileName?: string;
+  /** Optional OS-level key protector for encrypting the PBKDF2 salt at rest */
+  keyProtector?: KeyProtector;
 }
 
 /** A persisted task record from the database */

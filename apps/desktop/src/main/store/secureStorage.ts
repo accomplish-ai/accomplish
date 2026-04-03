@@ -1,4 +1,4 @@
-import { app } from 'electron';
+import { app, safeStorage } from 'electron';
 import { createStorage, type StorageAPI } from '@accomplish_ai/agent-core';
 import type { ApiKeyProvider } from '@accomplish_ai/agent-core';
 
@@ -6,11 +6,28 @@ export type { ApiKeyProvider };
 
 let _storage: StorageAPI | null = null;
 
+/**
+ * Build an OS-keychain-backed key protector using Electron's safeStorage API.
+ * Returns undefined when safeStorage is not available (e.g. missing keychain on Linux).
+ */
+function buildKeyProtector() {
+  if (!safeStorage.isEncryptionAvailable()) {
+    return undefined;
+  }
+  return {
+    encrypt: (plaintext: string): string => safeStorage.encryptString(plaintext).toString('base64'),
+    decrypt: (encrypted: string): string =>
+      safeStorage.decryptString(Buffer.from(encrypted, 'base64')),
+    isAvailable: (): boolean => safeStorage.isEncryptionAvailable(),
+  };
+}
+
 function getStorage(): StorageAPI {
   if (!_storage) {
     _storage = createStorage({
       userDataPath: app.getPath('userData'),
       secureStorageFileName: app.isPackaged ? 'secure-storage.json' : 'secure-storage-dev.json',
+      keyProtector: buildKeyProtector(),
     });
   }
   return _storage;

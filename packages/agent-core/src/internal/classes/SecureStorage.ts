@@ -11,19 +11,38 @@ import {
 } from './secure-storage-crypto.js';
 
 /**
- * AES-256-GCM encryption using machine-derived keys. Less secure than OS Keychain
- * (key derivation is reversible) but avoids permission prompts on macOS.
- * Suitable for API keys that can be rotated if compromised.
+ * AES-256-GCM encryption using machine-derived keys. When a keyProtector is
+ * provided (e.g. Electron safeStorage backed by the OS keychain), the PBKDF2
+ * salt is encrypted at rest so that file-level access alone is not enough to
+ * recover stored secrets. Without a keyProtector the key derivation is
+ * reversible — suitable only for rotatable API keys.
  */
+export interface KeyProtector {
+  /** Encrypt a plaintext string (e.g. the base64-encoded salt) */
+  encrypt: (plaintext: string) => string;
+  /** Decrypt a string previously encrypted by this protector */
+  decrypt: (encrypted: string) => string;
+  /** Whether the underlying backend (e.g. OS keychain) is currently available */
+  isAvailable: () => boolean;
+}
+
 export interface SecureStorageOptions {
   storagePath: string;
   appId: string;
   fileName?: string;
+  /**
+   * Optional OS-level key protector (e.g. Electron safeStorage).
+   * When provided, the PBKDF2 salt is encrypted before writing to disk,
+   * preventing offline key recovery from file access alone.
+   */
+  keyProtector?: KeyProtector;
 }
 
 interface SecureStorageSchema {
   values: Record<string, string>;
   salt?: string;
+  /** Salt encrypted via keyProtector (OS keychain). Takes precedence over `salt`. */
+  protectedSalt?: string;
 }
 
 export type { ApiKeyProvider };
@@ -33,10 +52,12 @@ export class SecureStorage {
   private filePath: string;
   private derivedKey: Buffer | null = null;
   private data: SecureStorageSchema | null = null;
+  private keyProtector?: KeyProtector;
 
   constructor(options: SecureStorageOptions) {
     this.appId = options.appId;
     this.filePath = path.join(options.storagePath, options.fileName || 'secure-storage.json');
+    this.keyProtector = options.keyProtector;
   }
 
   private loadData(): SecureStorageSchema {
@@ -65,10 +86,27 @@ export class SecureStorage {
 
   private getSalt(): Buffer {
     const data = this.loadData();
+    const protectorAvailable = this.keyProtector?.isAvailable() ?? false;
+
+    // Prefer protectedSalt when a keyProtector is available
+    if (data.protectedSalt && protectorAvailable && this.keyProtector) {
+      try {
+        const decryptedBase64 = this.keyProtector.decrypt(data.protectedSalt);
+        return Buffer.from(decryptedBase64, 'base64');
+      } catch {
+        // If decryption fails (e.g. keychain reset), fall through to unprotected salt
+      }
+    }
 
     if (!data.salt) {
       const salt = generateSalt();
       data.salt = salt.toString('base64');
+      this.saveData();
+    }
+
+    // Upgrade: protect the existing unprotected salt with keyProtector
+    if (!data.protectedSalt && protectorAvailable && this.keyProtector) {
+      data.protectedSalt = this.keyProtector.encrypt(data.salt);
       this.saveData();
     }
 
@@ -91,6 +129,14 @@ export class SecureStorage {
 
   private decryptValue(encryptedData: string): string | null {
     return decryptValue(encryptedData, this.getDerivedKey());
+  }
+
+  /**
+   * Return the derived encryption key for use by other storage layers
+   * (e.g. encrypting credentials in SQLite). Callers must not leak this key.
+   */
+  getEncryptionKey(): Buffer {
+    return this.getDerivedKey();
   }
 
   storeApiKey(provider: string, apiKey: string): void {
@@ -163,6 +209,9 @@ export class SecureStorage {
 
   clearSecureStorage(): void {
     this.data = { values: {} };
+    if (this.derivedKey) {
+      this.derivedKey.fill(0);
+    }
     this.derivedKey = null;
     this.saveData();
   }

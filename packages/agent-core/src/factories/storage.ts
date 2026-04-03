@@ -74,6 +74,7 @@ import {
   getActiveProviderModel,
   hasReadyProvider,
   getConnectedProviderIds,
+  setCredentialEncryptionKey,
 } from '../storage/repositories/providerSettings.js';
 import {
   getAllConnectors,
@@ -115,6 +116,7 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     userDataPath,
     secureStorageAppId = 'ai.accomplish.desktop',
     secureStorageFileName,
+    keyProtector,
   } = options;
 
   const storagePath = userDataPath || process.cwd();
@@ -122,7 +124,12 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     storagePath,
     appId: secureStorageAppId,
     ...(secureStorageFileName && { fileName: secureStorageFileName }),
+    ...(keyProtector && { keyProtector }),
   });
+
+  // Share the derived key with the provider repository so it can
+  // encrypt/decrypt credentials_data in SQLite.
+  setCredentialEncryptionKey(secureStorage.getEncryptionKey());
 
   let initialized = false;
 

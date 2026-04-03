@@ -18,6 +18,7 @@ export type {
 export type {
   StorageAPI,
   StorageOptions,
+  KeyProtector,
   StoredTask,
   StoredFavorite,
   AppSettings,

@@ -6,6 +6,40 @@ import type {
 } from '../../common/types/providerSettings.js';
 import { getDatabase } from '../database.js';
 import { safeParseJsonWithFallback } from '../../utils/json.js';
+import { encryptValue, decryptValue } from '../../internal/classes/secure-storage-crypto.js';
+
+/** Module-level encryption key for credential column encryption. */
+let _credentialKey: Buffer | null = null;
+
+/**
+ * Set the encryption key used to encrypt/decrypt credentials_data in SQLite.
+ * Must be called during storage initialization before any provider operations.
+ */
+export function setCredentialEncryptionKey(key: Buffer): void {
+  _credentialKey = key;
+}
+
+/** Encrypt a JSON string for storage. Falls back to plaintext if no key is set. */
+function encryptCredentials(json: string): string {
+  if (!_credentialKey) {
+    return json;
+  }
+  return encryptValue(json, _credentialKey);
+}
+
+/** Decrypt a stored credentials value. Handles both encrypted and legacy plaintext. */
+function decryptCredentials(stored: string): string {
+  if (!_credentialKey) {
+    return stored;
+  }
+  // Encrypted values have the format iv:tag:ciphertext (3 colon-separated base64 parts)
+  const decrypted = decryptValue(stored, _credentialKey);
+  if (decrypted !== null) {
+    return decrypted;
+  }
+  // Fall back to plaintext for pre-migration data
+  return stored;
+}
 
 interface ProviderMetaRow {
   id: number;
@@ -30,7 +64,8 @@ function getMetaRow(): ProviderMetaRow {
 }
 
 function rowToProvider(row: ProviderRow): ConnectedProvider {
-  const credentials = safeParseJsonWithFallback<ProviderCredentials>(row.credentials_data, {
+  const rawData = row.credentials_data ? decryptCredentials(row.credentials_data) : null;
+  const credentials = safeParseJsonWithFallback<ProviderCredentials>(rawData, {
     type: 'api_key',
     keyPrefix: '',
   })!;
@@ -95,7 +130,7 @@ export function setConnectedProvider(providerId: ProviderId, provider: Connected
     provider.connectionStatus,
     provider.selectedModelId,
     provider.credentials.type,
-    JSON.stringify(provider.credentials),
+    encryptCredentials(JSON.stringify(provider.credentials)),
     provider.lastConnectedAt,
     provider.availableModels ? JSON.stringify(provider.availableModels) : null,
     provider.customBaseUrl ?? null,
