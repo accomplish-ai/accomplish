@@ -97,12 +97,17 @@ export function createMainWindow(opts: {
   }
 
   // dev mode needs 'unsafe-inline' for @vitejs/plugin-react HMR preamble (never distributed)
-  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    const scriptSrc = app.isPackaged ? "'self'" : "'self' 'unsafe-inline'";
+  const scriptSrc = app.isPackaged ? "'self'" : "'self' 'unsafe-inline'";
 
-    // Restrict connect-src to known AI provider domains instead of blanket https:.
-    // Localhost entries cover Ollama, LM Studio, LiteLLM, and Vite dev server.
-    const allowedConnectDomains = [
+  // Restrict connect-src to known AI provider domains instead of blanket https:.
+  // Localhost entries cover Ollama, LM Studio, LiteLLM, and Vite dev server.
+  const csp = [
+    "default-src 'self'",
+    `script-src ${scriptSrc}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    [
+      "connect-src 'self'",
       'https://*.anthropic.com',
       'https://*.openai.com',
       'https://*.googleapis.com',
@@ -130,18 +135,12 @@ export function createMainWindow(opts: {
       'https://127.0.0.1:*',
       'ws://localhost:*',
       'wss://localhost:*',
-    ].join(' ');
+    ].join(' '),
+    "font-src 'self' https: data:",
+    "worker-src 'self' blob:",
+  ].join('; ');
 
-    const csp = [
-      "default-src 'self'",
-      `script-src ${scriptSrc}`,
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https:",
-      `connect-src 'self' ${allowedConnectDomains}`,
-      "font-src 'self' https: data:",
-      "worker-src 'self' blob:",
-    ].join('; ');
-
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [csp] } });
   });
 

@@ -75,6 +75,7 @@ import {
   hasReadyProvider,
   getConnectedProviderIds,
   setCredentialEncryptionKey,
+  clearCredentialEncryptionKey,
 } from '../storage/repositories/providerSettings.js';
 import {
   getAllConnectors,
@@ -127,9 +128,8 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     ...(keyProtector && { keyProtector }),
   });
 
-  // Share the derived key with the provider repository so it can
-  // encrypt/decrypt credentials_data in SQLite.
-  setCredentialEncryptionKey(secureStorage.getEncryptionKey());
+  // Lazy key supplier — defers PBKDF2 (100k iterations) until first provider operation.
+  setCredentialEncryptionKey(() => secureStorage.getEncryptionKey());
 
   let initialized = false;
 
@@ -267,6 +267,7 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     },
     close() {
       closeDatabase();
+      clearCredentialEncryptionKey();
       initialized = false;
     },
     isDatabaseInitialized: () => isDatabaseInitialized(),

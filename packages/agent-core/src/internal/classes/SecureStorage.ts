@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { ApiKeyProvider } from '../../common/types/provider.js';
+import type { KeyProtector } from '../../types/storage.js';
 import {
   deriveMachineKey,
   generateSalt,
@@ -17,15 +18,6 @@ import {
  * recover stored secrets. Without a keyProtector the key derivation is
  * reversible — suitable only for rotatable API keys.
  */
-export interface KeyProtector {
-  /** Encrypt a plaintext string (e.g. the base64-encoded salt) */
-  encrypt: (plaintext: string) => string;
-  /** Decrypt a string previously encrypted by this protector */
-  decrypt: (encrypted: string) => string;
-  /** Whether the underlying backend (e.g. OS keychain) is currently available */
-  isAvailable: () => boolean;
-}
-
 export interface SecureStorageOptions {
   storagePath: string;
   appId: string;
@@ -86,27 +78,26 @@ export class SecureStorage {
 
   private getSalt(): Buffer {
     const data = this.loadData();
-    const protectorAvailable = this.keyProtector?.isAvailable() ?? false;
+    const protector =
+      this.keyProtector && this.keyProtector.isAvailable() ? this.keyProtector : null;
 
     // Prefer protectedSalt when a keyProtector is available
-    if (data.protectedSalt && protectorAvailable && this.keyProtector) {
+    if (data.protectedSalt && protector) {
       try {
-        const decryptedBase64 = this.keyProtector.decrypt(data.protectedSalt);
-        return Buffer.from(decryptedBase64, 'base64');
+        return Buffer.from(protector.decrypt(data.protectedSalt), 'base64');
       } catch {
         // If decryption fails (e.g. keychain reset), fall through to unprotected salt
       }
     }
 
     if (!data.salt) {
-      const salt = generateSalt();
-      data.salt = salt.toString('base64');
+      data.salt = generateSalt().toString('base64');
       this.saveData();
     }
 
     // Upgrade: protect the existing unprotected salt with keyProtector
-    if (!data.protectedSalt && protectorAvailable && this.keyProtector) {
-      data.protectedSalt = this.keyProtector.encrypt(data.salt);
+    if (!data.protectedSalt && protector) {
+      data.protectedSalt = protector.encrypt(data.salt);
       this.saveData();
     }
 

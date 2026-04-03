@@ -8,32 +8,58 @@ import { getDatabase } from '../database.js';
 import { safeParseJsonWithFallback } from '../../utils/json.js';
 import { encryptValue, decryptValue } from '../../internal/classes/secure-storage-crypto.js';
 
-/** Module-level encryption key for credential column encryption. */
+/**
+ * Lazy getter for the credential encryption key. Defers PBKDF2 derivation
+ * (100k iterations) until the first provider read/write, avoiding startup cost
+ * when no provider operations are performed.
+ */
+let _credentialKeyGetter: (() => Buffer) | null = null;
 let _credentialKey: Buffer | null = null;
 
 /**
- * Set the encryption key used to encrypt/decrypt credentials_data in SQLite.
- * Must be called during storage initialization before any provider operations.
+ * Register a lazy key supplier for credential encryption in SQLite.
+ * The supplier is invoked once on first use; the result is cached.
  */
-export function setCredentialEncryptionKey(key: Buffer): void {
-  _credentialKey = key;
+export function setCredentialEncryptionKey(keyGetter: () => Buffer): void {
+  _credentialKeyGetter = keyGetter;
+  _credentialKey = null; // reset cache so next access uses the new getter
 }
 
-/** Encrypt a JSON string for storage. Falls back to plaintext if no key is set. */
+/** Clear the cached credential encryption key (zeroes the buffer). */
+export function clearCredentialEncryptionKey(): void {
+  if (_credentialKey) {
+    _credentialKey.fill(0);
+    _credentialKey = null;
+  }
+  _credentialKeyGetter = null;
+}
+
+function getCredentialKey(): Buffer | null {
+  if (_credentialKey) {
+    return _credentialKey;
+  }
+  if (_credentialKeyGetter) {
+    _credentialKey = _credentialKeyGetter();
+  }
+  return _credentialKey;
+}
+
+/** Encrypt a JSON string for storage. Falls back to plaintext if no key is available. */
 function encryptCredentials(json: string): string {
-  if (!_credentialKey) {
+  const key = getCredentialKey();
+  if (!key) {
     return json;
   }
-  return encryptValue(json, _credentialKey);
+  return encryptValue(json, key);
 }
 
 /** Decrypt a stored credentials value. Handles both encrypted and legacy plaintext. */
 function decryptCredentials(stored: string): string {
-  if (!_credentialKey) {
+  const key = getCredentialKey();
+  if (!key) {
     return stored;
   }
-  // Encrypted values have the format iv:tag:ciphertext (3 colon-separated base64 parts)
-  const decrypted = decryptValue(stored, _credentialKey);
+  const decrypted = decryptValue(stored, key);
   if (decrypted !== null) {
     return decrypted;
   }
