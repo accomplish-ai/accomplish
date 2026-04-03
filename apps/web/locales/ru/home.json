@@ -47,15 +47,15 @@
       "description": "Проверьте сайт на наличие битых ссылок.",
       "prompt": "Открой [URL], пройди по всем ссылкам и сообщи о любых ошибках 404."
     },
-    "portfolioMonitoring": {
-      "title": "Мониторинг портфеля",
-      "description": "Отслеживайте цены акций с уведомлениями о падениях и росте.",
-      "prompt": "Отслеживай мой портфель акций на [сайт брокера], уведомляй о падениях и скачках цен."
+    "meetingPrep": {
+      "title": "Meeting Prep",
+      "description": "Summarize key context and draft talking points for upcoming meetings.",
+      "prompt": "Check my Google Calendar for tomorrow's meetings, research the attendees, and draft talking points for each meeting."
     },
-    "jobApplicationAutomation": {
-      "title": "Автоматизация откликов",
-      "description": "Отфильтруйте вакансии и отправьте отклики.",
-      "prompt": "Найди вакансии на LinkedIn по запросу [запрос], отсортируй по зарплате и откликнись на 5 лучших, используя мой профиль."
+    "draftReport": {
+      "title": "Draft a Report",
+      "description": "Create a structured report from notes or data you provide.",
+      "prompt": "Take these meeting notes [paste notes] and draft a clean summary report with action items, deadlines, and owners."
     },
     "eventCalendarBuilder": {
       "title": "Календарь мероприятий",

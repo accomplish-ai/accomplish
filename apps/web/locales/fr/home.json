@@ -47,15 +47,15 @@
       "description": "Vérifiez les liens cassés sur mon site web.",
       "prompt": "Ouvrez [URL], cliquez sur chaque lien et signalez les erreurs 404."
     },
-    "portfolioMonitoring": {
-      "title": "Suivi de portefeuille",
-      "description": "Surveillez les cours des actions et alertez en cas de baisses et de hausses.",
-      "prompt": "Surveillez mon portefeuille d'actions sur [site de courtage], alertez en cas de baisses et de hausses de prix."
+    "meetingPrep": {
+      "title": "Meeting Prep",
+      "description": "Summarize key context and draft talking points for upcoming meetings.",
+      "prompt": "Check my Google Calendar for tomorrow's meetings, research the attendees, and draft talking points for each meeting."
     },
-    "jobApplicationAutomation": {
-      "title": "Automatisation des candidatures",
-      "description": "Filtrez les offres d'emploi et soumettez des candidatures avec les profils enregistrés.",
-      "prompt": "Trouvez les offres d'emploi sur LinkedIn pour [requête], triez par salaire et postulez aux 5 meilleures avec mon profil."
+    "draftReport": {
+      "title": "Draft a Report",
+      "description": "Create a structured report from notes or data you provide.",
+      "prompt": "Take these meeting notes [paste notes] and draft a clean summary report with action items, deadlines, and owners."
     },
     "eventCalendarBuilder": {
       "title": "Création de calendrier d'événements",

@@ -16,11 +16,16 @@
   },
   "thinking": "Thinking...",
   "thinkingPhrases": {
-    "doing": "Doing...",
-    "executing": "Executing...",
-    "running": "Running...",
+    "working": "Working on it...",
+    "processing": "Processing...",
+    "onIt": "On it...",
     "handling": "Handling it...",
-    "accomplishing": "Accomplishing..."
+    "gettingItDone": "Getting it done..."
+  },
+  "phase": {
+    "planning": "Planning...",
+    "working": "Working...",
+    "finishing": "Finishing..."
   },
   "loadingAgent": "Loading agent...",
   "waitingForResponse": "Waiting for response...",
@@ -71,7 +76,7 @@
   },
   "browserInstall": {
     "title": "Chrome not installed",
-    "description": "Installing browser for automation...",
+    "description": "Setting up browser tools...",
     "downloading": "Downloading...",
     "oneTimeSetup": "One-time setup (~250 MB total)"
   },

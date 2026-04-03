@@ -52,7 +52,11 @@ export default function ExecutionPage() {
         initialTab={s.settingsInitialTab}
       />
       <div className="h-full flex flex-col bg-background relative">
-        <ExecutionHeader prompt={s.currentTask.prompt} status={s.currentTask.status} />
+        <ExecutionHeader
+          prompt={s.currentTask.prompt}
+          status={s.currentTask.status}
+          currentTool={s.currentTool ?? undefined}
+        />
 
         <BrowserInstallModal
           setupProgress={s.setupProgress}

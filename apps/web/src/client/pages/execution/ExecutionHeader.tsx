@@ -4,7 +4,20 @@ import { useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { XCircle, ArrowLeft, CheckCircle, Clock, Square, Hourglass } from '@phosphor-icons/react';
 
-function StatusBadge({ status }: { status: TaskStatus }) {
+function getPhaseLabel(currentTool: string | undefined, t: (key: string) => string): string {
+  if (!currentTool) {
+    return t('phase.working');
+  }
+  if (currentTool.includes('start_task')) {
+    return t('phase.planning');
+  }
+  if (currentTool.includes('complete_task')) {
+    return t('phase.finishing');
+  }
+  return t('phase.working');
+}
+
+function StatusBadge({ status, currentTool }: { status: TaskStatus; currentTool?: string }) {
   const { t } = useTranslation('execution');
 
   switch (status) {
@@ -19,7 +32,7 @@ function StatusBadge({ status }: { status: TaskStatus }) {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 dark:bg-primary/5 shrink-0">
           <span className="animate-shimmer bg-gradient-to-r from-primary via-primary/50 to-primary dark:from-primary/70 dark:via-primary/30 dark:to-primary/70 bg-[length:200%_100%] bg-clip-text text-transparent">
-            {t('status.running')}
+            {getPhaseLabel(currentTool, t)}
           </span>
         </span>
       );
@@ -74,7 +87,15 @@ function StatusBadge({ status }: { status: TaskStatus }) {
   }
 }
 
-export function ExecutionHeader({ prompt, status }: { prompt: string; status: TaskStatus }) {
+export function ExecutionHeader({
+  prompt,
+  status,
+  currentTool,
+}: {
+  prompt: string;
+  status: TaskStatus;
+  currentTool?: string;
+}) {
   const navigate = useNavigate();
 
   return (
@@ -93,7 +114,7 @@ export function ExecutionHeader({ prompt, status }: { prompt: string; status: Ta
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <h1 className="text-base font-medium text-foreground truncate min-w-0">{prompt}</h1>
             <span data-testid="execution-status-badge">
-              <StatusBadge status={status} />
+              <StatusBadge status={status} currentTool={currentTool} />
             </span>
           </div>
         </div>

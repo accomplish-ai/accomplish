@@ -16,11 +16,16 @@
   },
   "thinking": "Réflexion...",
   "thinkingPhrases": {
-    "doing": "En cours...",
-    "executing": "Exécution...",
-    "running": "En cours...",
+    "working": "En cours...",
+    "processing": "Traitement...",
+    "onIt": "C'est parti...",
     "handling": "Traitement...",
-    "accomplishing": "Accomplissement..."
+    "gettingItDone": "Accomplissement..."
+  },
+  "phase": {
+    "planning": "Planification...",
+    "working": "En cours...",
+    "finishing": "Finalisation..."
   },
   "loadingAgent": "Chargement de l'agent...",
   "waitingForResponse": "En attente de la réponse...",
