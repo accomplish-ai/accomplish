@@ -270,7 +270,7 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
 
       // Check for the skills section header and content
-      expect(result.systemPrompt).toContain('# SKILLS - Include relevant');
+      expect(result.systemPrompt).toContain('# Skills');
       expect(result.systemPrompt).toContain('**Available Skills:**');
       expect(result.systemPrompt).toContain('Test Skill');
       expect(result.systemPrompt).toContain('/test');
@@ -287,10 +287,7 @@ describe('ConfigGenerator', () => {
 
       const result = generateConfig(options);
 
-      // The base template references <available-skills> in instructions,
-      // but the actual skills section starts with "# SKILLS - Include relevant"
-      // and ends with the closing tag. Check for the section header instead.
-      expect(result.systemPrompt).not.toContain('# SKILLS - Include relevant');
+      expect(result.systemPrompt).not.toContain('# Skills');
       expect(result.systemPrompt).not.toContain('**Available Skills:**');
     });
 
