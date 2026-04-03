@@ -390,6 +390,23 @@ describe('ConfigGenerator', () => {
       expect(result.config.agent?.[ACCOMPLISH_AGENT_NAME]?.mode).toBe('primary');
     });
 
+    it('should include subagent definitions in config', () => {
+      const options: ConfigGeneratorOptions = {
+        ...baseOptions,
+        mcpToolsPath,
+        userDataPath,
+      };
+
+      const result = generateConfig(options);
+
+      expect(result.config.agent?.researcher).toBeDefined();
+      expect(result.config.agent?.researcher?.mode).toBe('subagent');
+      expect(result.config.agent?.browser).toBeDefined();
+      expect(result.config.agent?.browser?.mode).toBe('subagent');
+      expect(result.config.agent?.quick).toBeDefined();
+      expect(result.config.agent?.quick?.mode).toBe('subagent');
+    });
+
     it('should include schema in config', () => {
       const options: ConfigGeneratorOptions = {
         ...baseOptions,
@@ -505,6 +522,20 @@ describe('ConfigGenerator', () => {
       expect(modelFlagIndex).toBeGreaterThanOrEqual(0);
       expect(args[modelFlagIndex + 1]).toBe('zai-coding-plan/glm-5');
     });
+
+    it('should default to accomplish agent when no agentName specified', () => {
+      const args = buildCliArgs({ prompt: 'test' });
+      const agentIdx = args.indexOf('--agent');
+      expect(agentIdx).toBeGreaterThanOrEqual(0);
+      expect(args[agentIdx + 1]).toBe('accomplish');
+    });
+
+    it('should use custom agent name when specified', () => {
+      const args = buildCliArgs({ prompt: 'test', agentName: 'researcher' });
+      const agentIdx = args.indexOf('--agent');
+      expect(agentIdx).toBeGreaterThanOrEqual(0);
+      expect(args[agentIdx + 1]).toBe('researcher');
+    });
   });
 
   describe('getOpenCodeConfigPath', () => {
@@ -593,6 +624,7 @@ describe('ConfigGenerator', () => {
       expect(result.systemPrompt).toContain('File Management');
       expect(result.systemPrompt).toContain('Slack');
       expect(result.systemPrompt).toContain('built-in Slack connector');
+      expect(result.systemPrompt).toContain('Subagents');
     });
 
     it('should instruct agent NOT to call complete_task for conversational responses', () => {

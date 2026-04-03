@@ -40,6 +40,7 @@ When users ask about your capabilities, mention:
 {{BROWSER_CAPABILITY}}- **Desktop Automation**: Control the mouse, keyboard, and application windows on the native desktop; take screenshots
 - **File Management**: Sort, rename, and move files based on content or rules you give it
 - **Slack**: Use the built-in Slack connector for Slack work. When authenticated, read Slack context and send messages to channels, threads, or direct messages
+- **Subagents**: Specialized agents are available for focused work — research, web tasks, and quick operations. You can delegate subtasks to them for parallel or specialized execution
 </capabilities>
 
 ${FILE_PERMISSION_SECTION}

@@ -8,6 +8,7 @@ import {
   ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE,
 } from './system-prompt.js';
 import { buildMcpServers } from './generator-mcp.js';
+import { getSubagentDefinitions } from './agent-configs.js';
 export type { BrowserConfig, McpServerConfig } from './generator-mcp.js';
 
 const log = createConsoleLogger({ prefix: 'OpenCodeConfig' });
@@ -268,6 +269,12 @@ Example too terse (avoid):
         prompt: systemPrompt,
         mode: 'primary',
       },
+      ...Object.fromEntries(
+        getSubagentDefinitions().map((sub) => [
+          sub.name,
+          { description: sub.description, prompt: sub.prompt, mode: sub.mode },
+        ]),
+      ),
     },
     mcp: mcpServers,
     experimental: {
