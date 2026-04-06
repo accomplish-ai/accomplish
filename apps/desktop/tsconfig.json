@@ -11,7 +11,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "ignoreDeprecations": "5.0",
+    // TODO(ts7): baseUrl is deprecated in TS6 and will be removed in TS7.
+    // It is currently required as an anchor for `paths` aliases; migrate to rootDirs or bundler-native
+    // aliases when TS7 removes support. Track: https://github.com/microsoft/TypeScript/issues/57485
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@main/*": ["src/main/*"],
