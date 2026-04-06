@@ -4,7 +4,7 @@ import type { RouteServices } from './daemon-routes.js';
  * Forward task service events as RPC notifications.
  */
 export function registerTaskEventForwarding(services: RouteServices): void {
-  const { rpc, taskService, thoughtStreamService, healthService } = services;
+  const { rpc, taskService, thoughtStreamService, healthService, whatsappService } = services;
 
   taskService.on('progress', (data) => {
     rpc.notify('task.progress', data);
@@ -34,5 +34,13 @@ export function registerTaskEventForwarding(services: RouteServices): void {
   });
   taskService.on('summary', (data: { taskId: string; summary: string }) => {
     rpc.notify('task.summary', data);
+  });
+
+  // WhatsApp notification forwarding
+  whatsappService.on('qr', (qr: string) => {
+    rpc.notify('whatsapp.qr', { qr });
+  });
+  whatsappService.on('status', (status: string) => {
+    rpc.notify('whatsapp.status', { status });
   });
 }

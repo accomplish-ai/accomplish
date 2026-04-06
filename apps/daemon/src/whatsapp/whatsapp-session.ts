@@ -5,6 +5,7 @@
 import type { MessagingConnectionStatus } from '@accomplish_ai/agent-core/common';
 import { cleanupAuthState } from './authCleanup.js';
 import { scheduleReconnect, type ReconnectState } from './reconnection.js';
+import { log } from '../logger.js';
 
 export interface WhatsAppServiceEvents {
   qr: (qrString: string) => void;
@@ -76,7 +77,7 @@ export function handleConnectionUpdate(
         ctx.reconnect_connect();
       }
     } else if (code === DisconnectReason.connectionReplaced) {
-      console.warn('[WhatsApp] Connection replaced');
+      log.warn('[WhatsApp] Connection replaced');
       ctx.setStatus('disconnected');
     } else if (!ctx.disposed) {
       scheduleReconnect(

@@ -4,6 +4,8 @@
  * Extracted from WhatsAppService for modularity.
  */
 
+import { log } from '../logger.js';
+
 export const MAX_RECONNECT_ATTEMPTS = 5;
 export const INITIAL_RECONNECT_DELAY_MS = 2000;
 
@@ -41,7 +43,7 @@ export function scheduleReconnect(
   }
 
   if (state.attempts >= MAX_RECONNECT_ATTEMPTS) {
-    console.warn('[WhatsApp] Max reconnect attempts reached');
+    log.warn('[WhatsApp] Max reconnect attempts reached');
     onMaxReached();
     return;
   }
@@ -50,13 +52,13 @@ export function scheduleReconnect(
   state.scheduled = true;
 
   const delay = INITIAL_RECONNECT_DELAY_MS * Math.pow(2, state.attempts - 1);
-  console.warn(
+  log.warn(
     `[WhatsApp] Reconnecting in ${delay}ms (attempt ${state.attempts}/${MAX_RECONNECT_ATTEMPTS})`,
   );
 
   clearReconnectTimer(state);
   state.timer = setTimeout(() => {
     state.scheduled = false;
-    onConnect().catch((err) => console.error('[WhatsApp] Reconnect failed:', err));
+    onConnect().catch((err) => log.error('[WhatsApp] Reconnect failed:', err));
   }, delay);
 }

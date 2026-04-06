@@ -121,6 +121,8 @@ interface AccomplishAPI {
     status: MessagingConnectionStatus;
     phoneNumber?: string;
     lastConnectedAt?: number;
+    qrCode?: string;
+    qrIssuedAt?: number;
   } | null>;
   connectWhatsApp(): Promise<void>;
   disconnectWhatsApp(): Promise<void>;
@@ -565,6 +567,10 @@ interface AccomplishAPI {
   // Close behavior
   getCloseBehavior(): Promise<string>;
   setCloseBehavior(behavior: string): Promise<void>;
+
+  // App close dialog
+  onCloseRequested?(callback: () => void): () => void;
+  respondToClose?(decision: 'keep-daemon' | 'stop-daemon' | 'cancel'): void;
 
   // Daemon connection events
   onDaemonDisconnected(callback: () => void): () => void;

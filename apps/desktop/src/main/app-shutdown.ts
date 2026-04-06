@@ -5,7 +5,6 @@
 
 import { app } from 'electron';
 import { cleanupVertexServiceAccountKey } from './opencode';
-import { disposeWhatsAppService } from './services/whatsapp';
 import { stopAllBrowserPreviewStreams } from './services/browserPreview';
 import { oauthBrowserFlow } from './opencode/auth-browser';
 import { slackMcpOAuthFlow } from './opencode/slack-auth';
@@ -35,12 +34,6 @@ export async function shutdownApp(logger: AppLogger): Promise<void> {
     await raceTimeout(stopAllBrowserPreviewStreams(), 5000, 'Stopping browser preview streams');
   } catch (error: unknown) {
     logger?.logEnv('ERROR', `[Main] Failed to stop browser preview streams: ${String(error)}`);
-  }
-
-  try {
-    disposeWhatsAppService();
-  } catch (error: unknown) {
-    logger?.logEnv('ERROR', `[Main] Error during disposeWhatsAppService: ${String(error)}`);
   }
 
   try {

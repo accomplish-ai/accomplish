@@ -18,8 +18,10 @@
   },
   "dependencies": {
     "@accomplish_ai/agent-core": "workspace:*",
+    "@whiskeysockets/baileys": "7.0.0-rc.9",
     "better-sqlite3": "^12.6.2",
     "node-pty": "^1.1.0",
+    "pino": "^9.6.0",
     "ws": "^8.18.1",
     "zod": "^3.24.1"
   },

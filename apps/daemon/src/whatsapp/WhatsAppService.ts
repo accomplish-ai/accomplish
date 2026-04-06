@@ -1,19 +1,17 @@
 /**
- * WhatsAppService — Baileys-based WhatsApp channel adapter
+ * WhatsAppService — Baileys-based WhatsApp channel adapter (daemon version)
  *
- * Contributed by aryan877 (PR #595 feat/whatsapp-integration).
  * Handles connection lifecycle, QR-code authentication, and message reception.
+ * Runs in the daemon process (no electron imports).
  *
  * Implementation split across:
  *   normalizeMessage.ts   — inbound message parsing
  *   reconnection.ts       — exponential-backoff reconnect logic
  *   authCleanup.ts        — auth-state filesystem helpers
- *   connectionHandler.ts  — connection.update event handler
  *   whatsapp-session.ts   — onConnectionUpdate handler logic
  */
 import { EventEmitter } from 'events';
 import path from 'path';
-import { app } from 'electron';
 import type {
   MessagingConnectionStatus,
   MessagingProviderId,
@@ -23,6 +21,7 @@ import { normalizeMessage } from './normalizeMessage.js';
 import { cleanupAuthState } from './authCleanup.js';
 import { createReconnectState, clearReconnectTimer, type ReconnectState } from './reconnection.js';
 import { handleConnectionUpdate, type WhatsAppServiceEvents } from './whatsapp-session.js';
+import { log } from '../logger.js';
 export type { WhatsAppServiceEvents };
 
 export class WhatsAppService extends EventEmitter implements ChannelAdapter {
@@ -35,10 +34,13 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
   private disposed = false;
   private manualDisconnect = false;
   private qrCode: string | null = null;
+  private qrIssuedAt: number | null = null;
+  /** Track message IDs sent by this daemon to filter out echo upserts. */
+  private sentMessageIds = new Set<string>();
 
-  constructor() {
+  constructor(dataDir: string) {
     super();
-    this.authStatePath = path.join(app.getPath('userData'), 'whatsapp-auth');
+    this.authStatePath = path.join(dataDir, 'whatsapp-auth');
   }
 
   getStatus(): MessagingConnectionStatus {
@@ -82,7 +84,7 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
       try {
         version = (await fetchLatestBaileysVersion()).version;
       } catch (err) {
-        console.warn('[WhatsApp] Failed to fetch latest version, using default:', err);
+        log.warn('[WhatsApp] Failed to fetch latest version, using default:', err);
       }
 
       const { state, saveCreds } = await useMultiFileAuthState(this.authStatePath);
@@ -121,21 +123,30 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
               setStatus: (s) => this.setStatus(s),
               setQrCode: (qr) => {
                 this.qrCode = qr;
+                this.qrIssuedAt = Date.now();
               },
               emitQr: (qr) => this.emit('qr', qr),
               emitPhoneNumber: (p) => this.emit('phoneNumber', p),
               emitOwnerLid: (lid) => this.emit('ownerLid', lid),
               reconnect_connect: () => {
-                this.connect().catch((e) => console.error('[WhatsApp] Reconnect failed:', e));
+                this.connect().catch((e) => log.error('[WhatsApp] Reconnect failed:', e));
               },
             },
           ),
       );
       this.socket.ev.on('messages.upsert', (upsert: { type: string; messages: unknown[] }) => {
-        if (upsert.type !== 'notify') {
-          return;
-        }
+        // Process both 'notify' (real-time) and 'append' (offline sync) messages.
+        // The TaskBridge guards (self-chat-only, rate limiting, watermark) prevent
+        // old history messages from being processed as new tasks.
         for (const raw of upsert.messages as Array<Record<string, unknown>>) {
+          // Skip echoes of messages this daemon sent (prevents feedback loops
+          // where outbound replies trigger new inbound message processing).
+          const key = raw.key as Record<string, unknown> | undefined;
+          const msgId = key?.id as string | undefined;
+          if (msgId && this.sentMessageIds.has(msgId)) {
+            this.sentMessageIds.delete(msgId);
+            continue;
+          }
           const msg = normalizeMessage(raw);
           if (msg) {
             this.emit('message', msg);
@@ -152,11 +163,26 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
     if (!this.socket) {
       throw new Error('WhatsApp is not connected');
     }
-    await this.socket.sendMessage(recipientId, { text });
+    const result = await this.socket.sendMessage(recipientId, { text });
+    // Track the sent message ID so the upsert handler can skip the echo
+    if (result?.key?.id) {
+      this.sentMessageIds.add(result.key.id as string);
+      // Prevent unbounded growth — keep only the last 100
+      if (this.sentMessageIds.size > 100) {
+        const first = this.sentMessageIds.values().next().value;
+        if (first) {
+          this.sentMessageIds.delete(first);
+        }
+      }
+    }
   }
 
   getQrCode(): string | null {
     return this.qrCode;
+  }
+
+  getQrIssuedAt(): number | null {
+    return this.qrIssuedAt;
   }
 
   async disconnect(): Promise<void> {
@@ -173,12 +199,15 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
       this.socket = null;
     }
     this.qrCode = null;
+    this.qrIssuedAt = null;
     cleanupAuthState(this.authStatePath);
     this.setStatus('disconnected');
   }
 
   dispose(): void {
     this.disposed = true;
+    this.qrCode = null;
+    this.qrIssuedAt = null;
     clearReconnectTimer(this.reconnect);
     this.disposeSocket();
     this.removeAllListeners();

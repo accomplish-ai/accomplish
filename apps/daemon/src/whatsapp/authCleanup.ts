@@ -4,6 +4,7 @@
  * Extracted from WhatsAppService for modularity.
  */
 import fs from 'fs';
+import { log } from '../logger.js';
 
 /**
  * Delete the Baileys multi-file auth state directory at `authStatePath`.
@@ -15,6 +16,6 @@ export function cleanupAuthState(authStatePath: string): void {
       fs.rmSync(authStatePath, { recursive: true, force: true });
     }
   } catch (err) {
-    console.error('[WhatsApp] Failed to cleanup auth state:', err);
+    log.error('[WhatsApp] Failed to cleanup auth state:', err);
   }
 }

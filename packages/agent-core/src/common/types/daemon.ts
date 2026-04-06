@@ -189,6 +189,19 @@ export interface HealthCheckResult {
   memoryUsage: number;
 }
 
+/** WhatsApp config returned by whatsapp.getConfig — includes QR recovery data. */
+export interface WhatsAppDaemonConfig {
+  providerId: 'whatsapp';
+  enabled: boolean;
+  status: import('./messaging.js').MessagingConnectionStatus;
+  phoneNumber?: string;
+  lastConnectedAt?: number;
+  /** Current QR code string when status is 'qr_ready' */
+  qrCode?: string;
+  /** Timestamp when the QR was first emitted — UI computes remaining time */
+  qrIssuedAt?: number;
+}
+
 // =============================================================================
 // Method Map: maps RPC method names to { params, result } types
 // =============================================================================
@@ -229,6 +242,12 @@ export interface DaemonMethodMap {
     result: void;
   };
 
+  // WhatsApp
+  'whatsapp.connect': { params: undefined; result: void };
+  'whatsapp.disconnect': { params: undefined; result: void };
+  'whatsapp.getConfig': { params: undefined; result: WhatsAppDaemonConfig | null };
+  'whatsapp.setEnabled': { params: { enabled: boolean }; result: void };
+
   // Health & lifecycle
   'daemon.ping': { params: undefined; result: { status: 'ok'; uptime: number } };
   'daemon.shutdown': { params: undefined; result: void };
@@ -256,6 +275,9 @@ export interface DaemonNotificationMap {
   // Extended notifications used by the standalone daemon process
   'task.thought': ThoughtEvent;
   'task.checkpoint': CheckpointEvent;
+  // WhatsApp notifications
+  'whatsapp.qr': { qr: string };
+  'whatsapp.status': { status: import('./messaging.js').MessagingConnectionStatus };
 }
 
 /** All valid daemon notification names. */

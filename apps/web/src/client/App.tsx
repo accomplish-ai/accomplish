@@ -13,6 +13,7 @@ import Sidebar from './components/layout/Sidebar';
 import { TaskLauncher } from './components/TaskLauncher';
 import { AuthErrorToast } from './components/AuthErrorToast';
 import { DaemonConnectionToast } from './components/DaemonConnectionToast';
+import { CloseConfirmDialog } from './components/CloseConfirmDialog';
 import SettingsDialog from './components/layout/SettingsDialog';
 import { useTaskStore } from './stores/taskStore';
 import { SpinnerGap, Warning } from '@phosphor-icons/react';
@@ -173,6 +174,9 @@ export function App() {
           setAuthSettingsOpen(true);
         }}
       />
+
+      {/* Close Confirmation Dialog - themed replacement for native OS dialog */}
+      <CloseConfirmDialog />
 
       {/* Settings Dialog for re-authentication */}
       <SettingsDialog

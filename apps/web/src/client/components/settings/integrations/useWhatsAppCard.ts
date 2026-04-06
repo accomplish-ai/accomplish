@@ -78,11 +78,18 @@ export function useWhatsAppCard(): WhatsAppCardState & WhatsAppCardActions {
     try {
       const result = await accomplish.getWhatsAppConfig();
       if (result?.enabled) {
+        const status = normalizeStatus(result.status);
         setConfig({
-          status: normalizeStatus(result.status),
+          status,
           phoneNumber: result.phoneNumber,
           lastConnectedAt: result.lastConnectedAt,
         });
+        // QR recovery: if daemon is already in qr_ready with a QR code, show it
+        if (status === 'qr_ready' && result.qrCode && result.qrIssuedAt) {
+          setQrCode(result.qrCode);
+          setQrExpiresAt(result.qrIssuedAt + 60_000);
+          setConnecting(false);
+        }
       } else {
         setConfig(null);
       }

@@ -93,24 +93,55 @@ export function registerSettingsHandlers(): void {
     try {
       try {
         const client = getDaemonClient();
-        await client.call('daemon.shutdown');
+        // Tell daemon to shut down — don't await, it exits asynchronously
+        client.call('daemon.shutdown').catch(() => {});
+      } catch {
+        // Daemon may already be down
+      }
+      shutdownDaemon();
 
-        // Wait for daemon to finish draining before starting a new one.
-        // Same pattern as daemon:stop — prevents bootstrap from reconnecting
-        // to the old draining daemon instead of spawning a fresh one.
-        const drainDeadline = Date.now() + 35_000;
-        while (Date.now() < drainDeadline) {
-          await new Promise((r) => setTimeout(r, 500));
+      // Wait for the old daemon to fully exit by checking the PID file.
+      // The daemon deletes its PID lock on exit. Once the PID file is gone
+      // (or its PID is no longer alive), it's safe to spawn a new one.
+      try {
+        const { getPidFilePath } = await import('@accomplish_ai/agent-core');
+        const { getDataDir } = await import('../../daemon/daemon-connector');
+        const fs = await import('fs');
+        const pidPath = getPidFilePath(getDataDir());
+
+        const deadline = Date.now() + 10_000;
+        while (Date.now() < deadline) {
+          if (!fs.existsSync(pidPath)) {
+            break; // PID file gone — daemon exited
+          }
+          // PID file exists — check if the process is still alive
           try {
-            await client.ping();
+            const content = fs.readFileSync(pidPath, 'utf8');
+            const pid = JSON.parse(content).pid;
+            process.kill(pid, 0); // signal 0 = check if alive
+            // Still alive — wait and retry
+            await new Promise((r) => setTimeout(r, 100));
           } catch {
-            break; // Daemon exited
+            break; // Process dead or PID file unreadable — safe to proceed
           }
         }
       } catch {
-        // Daemon may already be down — that's fine
+        // Best effort — fall through to bootstrap which handles retries
       }
-      shutdownDaemon();
+
+      // Remove stale socket file so bootstrapDaemon spawns fresh
+      try {
+        const { getSocketPath } = await import('@accomplish_ai/agent-core');
+        const { getDataDir } = await import('../../daemon/daemon-connector');
+        const fs = await import('fs');
+        const socketPath = getSocketPath(getDataDir());
+        if (fs.existsSync(socketPath)) {
+          fs.unlinkSync(socketPath);
+        }
+      } catch {
+        // Best effort
+      }
+
       await bootstrapDaemon();
       return { success: true };
     } finally {
@@ -126,25 +157,38 @@ export function registerSettingsHandlers(): void {
     suppressReconnect();
     try {
       const client = getDaemonClient();
-      await client.call('daemon.shutdown');
-
-      // Wait for daemon to finish draining before clearing the local client.
-      // During drain, the daemon is still reachable and workspace guards can
-      // query task.getActiveCount. We clear client only after daemon exits.
-      const drainDeadline = Date.now() + 35_000; // 30s drain + 5s buffer
-      while (Date.now() < drainDeadline) {
-        await new Promise((r) => setTimeout(r, 500));
-        try {
-          await client.ping();
-        } catch {
-          // Daemon exited — drain complete
-          break;
-        }
-      }
+      client.call('daemon.shutdown').catch(() => {});
     } catch {
       // Daemon may already be down
     }
     shutdownDaemon();
+
+    // Wait for the daemon to fully exit before reporting success.
+    // Same PID polling approach as restart.
+    try {
+      const { getPidFilePath } = await import('@accomplish_ai/agent-core');
+      const { getDataDir } = await import('../../daemon/daemon-connector');
+      const fs = await import('fs');
+      const pidPath = getPidFilePath(getDataDir());
+
+      const deadline = Date.now() + 10_000;
+      while (Date.now() < deadline) {
+        if (!fs.existsSync(pidPath)) {
+          break;
+        }
+        try {
+          const content = fs.readFileSync(pidPath, 'utf8');
+          const pid = JSON.parse(content).pid;
+          process.kill(pid, 0);
+          await new Promise((r) => setTimeout(r, 100));
+        } catch {
+          break; // Process dead
+        }
+      }
+    } catch {
+      // Best effort
+    }
+
     return { success: true };
   });
 

@@ -20,6 +20,7 @@ import type { ThoughtStreamService } from './thought-stream-service.js';
 import type { HealthService } from './health.js';
 import type { StorageService } from './storage-service.js';
 import type { SchedulerService } from './scheduler-service.js';
+import type { WhatsAppDaemonService } from './whatsapp-service.js';
 
 const taskIdSchema = z.object({ taskId: z.string().min(1) });
 // taskConfigSchema already includes modelId — no extension needed
@@ -58,13 +59,15 @@ export interface RouteServices {
   healthService: HealthService;
   storageService: StorageService;
   schedulerService: SchedulerService;
+  whatsappService: WhatsAppDaemonService;
 }
 
 /**
  * Register all RPC methods on the server.
  */
 export function registerRpcMethods(services: RouteServices): void {
-  const { rpc, taskService, permissionService, healthService, schedulerService } = services;
+  const { rpc, taskService, permissionService, healthService, schedulerService, whatsappService } =
+    services;
   const storage = services.storageService.getStorage();
 
   rpc.registerMethod(
@@ -231,6 +234,28 @@ export function registerRpcMethods(services: RouteServices): void {
         params,
       );
       schedulerService.setEnabled(validated.scheduleId, validated.enabled);
+      return Promise.resolve();
+    }),
+  );
+
+  // ── WhatsApp ─────────────────────────────────────────────────────────────
+  rpc.registerMethod(
+    'whatsapp.connect',
+    safeHandler(() => whatsappService.connect()),
+  );
+  rpc.registerMethod(
+    'whatsapp.disconnect',
+    safeHandler(() => whatsappService.disconnect()),
+  );
+  rpc.registerMethod(
+    'whatsapp.getConfig',
+    safeHandler(() => Promise.resolve(whatsappService.getConfig())),
+  );
+  rpc.registerMethod(
+    'whatsapp.setEnabled',
+    safeHandler((params) => {
+      const validated = validate(z.object({ enabled: z.boolean() }), params);
+      whatsappService.setEnabled(validated.enabled);
       return Promise.resolve();
     }),
   );

@@ -557,6 +557,7 @@ export type {
   TypedJsonRpcResponse,
   TypedJsonRpcNotification,
   HealthCheckResult,
+  WhatsAppDaemonConfig,
   ScheduledTask,
   TaskScheduleParams,
   TaskCancelScheduledParams,

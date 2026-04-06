@@ -73,6 +73,7 @@ export class TaskService extends EventEmitter {
     sessionId?: string;
     workingDirectory?: string;
     workspaceId?: string;
+    systemPromptAppend?: string;
   }): Promise<Task> {
     const taskId = params.taskId || createTaskId();
     const config: TaskConfig = {
@@ -81,6 +82,7 @@ export class TaskService extends EventEmitter {
       modelId: params.modelId,
       sessionId: params.sessionId,
       workingDirectory: params.workingDirectory,
+      systemPromptAppend: params.systemPromptAppend,
     };
     const validatedConfig = validateTaskConfig(config);
     const activeModel = this.storage.getActiveProviderModel();
