@@ -50,7 +50,7 @@
     "@aws-sdk/client-bedrock": "^3.971.0",
     "@aws-sdk/credential-providers": "^3.971.0",
     "@azure/identity": "^4.13.0",
-    "@huggingface/transformers": "^3.8.1",
+    "@huggingface/transformers": "^4.0.1",
     "better-sqlite3": "catalog:",
     "dotenv": "^17.2.3",
     "electron-store": "^8.2.0",
@@ -61,7 +61,7 @@
     "pino": "^10.3.1",
     "proxy-from-env": "^2.1.0",
     "react": "^19.0.0",
-    "undici": "^7.0.0",
+    "undici": "^7.24.7",
     "react-dom": "^19.0.0",
     "zod": "catalog:"
   },

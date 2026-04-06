@@ -65,7 +65,7 @@
     "gray-matter": "^4.0.3",
     "node-pty": "catalog:",
     "proxy-from-env": "^2.1.0",
-    "undici": "^7.0.0",
+    "undici": "^7.24.7",
     "zod": "catalog:"
   },
   "devDependencies": {
