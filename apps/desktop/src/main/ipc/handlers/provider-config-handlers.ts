@@ -7,6 +7,7 @@ import { registerLiteLLMHandlers } from './provider-config-handlers/litellm-hand
 import { registerLMStudioHandlers } from './provider-config-handlers/lmstudio-handlers';
 import { registerProviderSettingsHandlers } from './provider-config-handlers/provider-settings-handlers';
 import { registerNimHandlers } from './provider-config-handlers/nim-handlers';
+import { registerAccomplishAiHandlers } from './provider-config-handlers/accomplish-ai-handlers';
 
 export function registerProviderConfigHandlers(): void {
   registerOllamaHandlers(handle);
@@ -14,5 +15,6 @@ export function registerProviderConfigHandlers(): void {
   registerLiteLLMHandlers(handle);
   registerLMStudioHandlers(handle);
   registerNimHandlers(handle);
+  registerAccomplishAiHandlers(handle);
   registerProviderSettingsHandlers(handle);
 }

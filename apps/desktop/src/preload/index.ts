@@ -841,6 +841,23 @@ const accomplishAPI = {
     ipcRenderer.invoke('scheduler:set-enabled', scheduleId, enabled),
   isAutoStartEnabled: (): Promise<boolean> => ipcRenderer.invoke('daemon:is-auto-start-enabled'),
 
+  // ── Accomplish AI Free Tier ──────────────────────────────────────────────
+  accomplishAiConnect: (): Promise<unknown> => ipcRenderer.invoke('accomplish-ai:connect'),
+  accomplishAiEnsureReady: (): Promise<unknown> => ipcRenderer.invoke('accomplish-ai:ensure-ready'),
+  accomplishAiDisconnect: (): Promise<void> => ipcRenderer.invoke('accomplish-ai:disconnect'),
+  accomplishAiGetUsage: (): Promise<unknown> => ipcRenderer.invoke('accomplish-ai:get-usage'),
+  accomplishAiGetStatus: (): Promise<{ connected: boolean }> =>
+    ipcRenderer.invoke('accomplish-ai:get-status'),
+  onAccomplishAiUsageUpdate: (callback: (usage: unknown) => void) => {
+    const listener = (_: unknown, usage: unknown) => callback(usage);
+    ipcRenderer.on('accomplish-ai:usage-updated', listener);
+    return () => ipcRenderer.removeListener('accomplish-ai:usage-updated', listener);
+  },
+
+  // ── Build Capabilities ───────────────────────────────────────────────────
+  getBuildCapabilities: (): Promise<{ hasFreeMode: boolean; hasAnalytics: boolean }> =>
+    ipcRenderer.invoke('app:get-build-capabilities'),
+
   // ── App Close Dialog ────────────────────────────────────────────────────
   onCloseRequested: (callback: () => void): (() => void) => {
     const listener = () => callback();

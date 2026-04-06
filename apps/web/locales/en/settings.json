@@ -59,7 +59,18 @@
     "nebius": "Nebius AI",
     "together": "Together AI",
     "fireworks": "Fireworks AI",
-    "groq": "Groq"
+    "groq": "Groq",
+    "accomplish-ai": "Accomplish AI",
+    "accomplishAi": {
+      "description": "Use the built-in model powered by Accomplish - no API key required.\nIncludes 200 free credits per month to get you started.",
+      "disconnect": "Disconnect",
+      "exhaustedMessage": "Credits exhausted. They will reset on {{date}}.",
+      "exhaustedMessageSoon": "Credits exhausted. They will reset soon."
+    },
+    "venice": "Venice AI",
+    "nim": "NVIDIA NIM",
+    "custom": "Custom Endpoint",
+    "copilot": "GitHub Copilot"
   },
   "providerLabels": {
     "anthropic": "Claude models",
@@ -81,7 +92,12 @@
     "nebius": "Llama & DeepSeek models",
     "together": "Llama & Mixtral models",
     "fireworks": "Fast inference models",
-    "groq": "Ultra-fast Llama models"
+    "groq": "Ultra-fast Llama models",
+    "accomplish-ai": "Free Tier",
+    "venice": "Service",
+    "nim": "NVIDIA-hosted models",
+    "custom": "Custom",
+    "copilot": "Copilot models"
   },
   "status": {
     "connected": "Connected",
@@ -535,7 +551,7 @@
     "description": "Automate recurring tasks with cron expressions. Schedules persist across daemon restarts.",
     "empty": "No scheduled tasks. Create one to automate recurring work.",
     "addButton": "Add Schedule",
-    "autoStartWarning": "Enable 'Start at Login' in Settings \u2192 General to ensure schedules fire after system restart.",
+    "autoStartWarning": "Enable 'Start at Login' in Settings → General to ensure schedules fire after system restart.",
     "card": {
       "lastRun": "Last run",
       "nextRun": "Next run",

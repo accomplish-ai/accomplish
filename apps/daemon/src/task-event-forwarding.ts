@@ -12,7 +12,7 @@ export function registerTaskEventForwarding(services: RouteServices): void {
   taskService.on('message', (data) => {
     rpc.notify('task.message', data);
   });
-  taskService.on('complete', (data: { taskId: string }) => {
+  taskService.on('complete', (data: { taskId: string; result: unknown }) => {
     thoughtStreamService.unregisterTask(data.taskId);
     rpc.notify('task.complete', data);
   });

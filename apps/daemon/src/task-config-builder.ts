@@ -22,6 +22,7 @@ import {
   type EnvironmentConfig,
   type CliResolverConfig,
   type ProviderId,
+  type AccomplishRuntime,
 } from '@accomplish_ai/agent-core';
 
 export interface TaskConfigBuilderOptions {
@@ -30,6 +31,7 @@ export interface TaskConfigBuilderOptions {
   isPackaged: boolean;
   resourcesPath: string;
   appPath: string;
+  accomplishRuntime?: AccomplishRuntime;
 }
 
 export function getCliCommand(opts: TaskConfigBuilderOptions): { command: string; args: string[] } {
@@ -131,6 +133,12 @@ export async function onBeforeStart(
 
   const { providerConfigs, enabledProviders, modelOverride } = await buildProviderConfigs({
     getApiKey: (provider) => storage.getApiKey(provider),
+    accomplishRuntime: opts.accomplishRuntime,
+    accomplishStorageDeps: {
+      readKey: (key) => storage.get(key),
+      writeKey: (key, value) => storage.set(key, value),
+      readGaClientId: () => null, // GA client ID not available in daemon — fingerprint fallback used
+    },
   });
 
   const getPort = (envVar: string) => {

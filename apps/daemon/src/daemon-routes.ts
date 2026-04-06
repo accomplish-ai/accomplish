@@ -12,6 +12,7 @@ import {
   validate,
   logger,
 } from '@accomplish_ai/agent-core';
+import type { AccomplishRuntime, StorageDeps } from '@accomplish_ai/agent-core';
 import { z } from 'zod';
 import { homedir } from 'node:os';
 import type { TaskService } from './task-service.js';
@@ -59,6 +60,7 @@ export interface RouteServices {
   healthService: HealthService;
   storageService: StorageService;
   schedulerService: SchedulerService;
+  accomplishRuntime: AccomplishRuntime;
   whatsappService: WhatsAppDaemonService;
 }
 
@@ -66,8 +68,15 @@ export interface RouteServices {
  * Register all RPC methods on the server.
  */
 export function registerRpcMethods(services: RouteServices): void {
-  const { rpc, taskService, permissionService, healthService, schedulerService, whatsappService } =
-    services;
+  const {
+    rpc,
+    taskService,
+    permissionService,
+    healthService,
+    schedulerService,
+    accomplishRuntime,
+    whatsappService,
+  } = services;
   const storage = services.storageService.getStorage();
 
   rpc.registerMethod(
@@ -237,6 +246,42 @@ export function registerRpcMethods(services: RouteServices): void {
       return Promise.resolve();
     }),
   );
+
+  // ── Accomplish AI Free Tier ─────────────────────────────────────────────
+  // StorageDeps constructed from daemon's own secure storage — no callbacks over RPC.
+  const accomplishStorageDeps: StorageDeps = {
+    readKey: (key) => storage.get(key),
+    writeKey: (key, value) => storage.set(key, value),
+    readGaClientId: () => null, // GA client ID not available in daemon
+  };
+
+  rpc.registerMethod(
+    'accomplish-ai.connect',
+    safeHandler(async () => {
+      const result = await accomplishRuntime.connect(accomplishStorageDeps);
+      return { deviceFingerprint: result.deviceFingerprint, usage: result.usage };
+    }),
+  );
+
+  rpc.registerMethod(
+    'accomplish-ai.get-usage',
+    safeHandler(async () => {
+      return accomplishRuntime.getUsage();
+    }),
+  );
+
+  rpc.registerMethod(
+    'accomplish-ai.disconnect',
+    safeHandler(async () => {
+      accomplishRuntime.disconnect();
+      return Promise.resolve();
+    }),
+  );
+
+  // Bridge proxy usage updates to daemon notifications → forwarded to renderer via IPC
+  accomplishRuntime.onUsageUpdate((usage) => {
+    rpc.notify('accomplish-ai.usage-update', usage);
+  });
 
   // ── WhatsApp ─────────────────────────────────────────────────────────────
   rpc.registerMethod(

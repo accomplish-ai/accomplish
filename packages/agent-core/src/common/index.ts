@@ -2,6 +2,9 @@
 
 // === TYPES ===
 
+// Gateway types
+export type { CreditUsage } from './types/gateway.js';
+
 // Task types
 export type {
   TaskStatus,
@@ -75,6 +78,7 @@ export type {
   AzureFoundryCredentials,
   OAuthCredentials,
   CopilotOAuthCredentials,
+  AccomplishAiCredentials,
   CustomCredentials,
   NimCredentials,
   ProviderCredentials,

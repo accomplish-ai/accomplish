@@ -25,6 +25,8 @@ import {
   buildOpenAICompatibleConfigs,
   buildCopilotConfig,
 } from './config-providers-compat.js';
+import { buildAccomplishAiConfig } from './config-providers-accomplish.js';
+import type { StorageDeps, AccomplishRuntime } from './accomplish-runtime.js';
 
 /**
  * Paths required for config generation (Electron-specific resolution stays in desktop)
@@ -61,6 +63,15 @@ export interface BuildProviderConfigsOptions {
    * Optional provider settings override (defaults to calling getProviderSettings())
    */
   providerSettings?: ProviderSettings;
+  /**
+   * Accomplish AI runtime adapter (noop in OSS, real impl in commercial).
+   */
+  accomplishRuntime?: AccomplishRuntime;
+  /**
+   * Accomplish AI identity storage deps (injected from daemon secure storage).
+   * Required for the Accomplish AI free-tier proxy to load/create Ed25519 keypairs.
+   */
+  accomplishStorageDeps?: StorageDeps;
 }
 
 /**
@@ -70,11 +81,18 @@ export interface BuildProviderConfigsOptions {
 export async function buildProviderConfigs(
   options: BuildProviderConfigsOptions,
 ): Promise<ProviderConfigResult> {
-  const { getApiKey, azureFoundryToken } = options;
+  const { getApiKey, azureFoundryToken, accomplishRuntime, accomplishStorageDeps } = options;
   const providerSettings = options.providerSettings ?? getProviderSettings();
   const connectedIds = getConnectedProviderIds();
   const activeModel = getActiveProviderModel();
-  const ctx = { providerSettings, getApiKey, azureFoundryToken, activeModel };
+  const ctx = {
+    providerSettings,
+    getApiKey,
+    azureFoundryToken,
+    activeModel,
+    accomplishRuntime,
+    accomplishStorageDeps,
+  };
 
   const baseProviders = [
     'anthropic',
@@ -92,7 +110,12 @@ export async function buildProviderConfigs(
   ];
   let enabledProviders = baseProviders;
   if (connectedIds.length > 0) {
-    const mappedProviders = connectedIds.map((id) => PROVIDER_ID_TO_OPENCODE[id]);
+    // Filter out accomplish-ai from upfront mapping — it's added via enableToAdd
+    // only when the builder successfully starts the proxy. Without this, a failed
+    // proxy start would leave accomplish-ai in enabledProviders with no config definition.
+    const mappedProviders = connectedIds
+      .filter((id) => id !== 'accomplish-ai')
+      .map((id) => PROVIDER_ID_TO_OPENCODE[id]);
     enabledProviders = [...new Set([...baseProviders, ...mappedProviders])];
   } else {
     const ollamaConfig = getOllamaConfig();
@@ -118,6 +141,7 @@ export async function buildProviderConfigs(
     buildCustomConfig(ctx),
     buildOpenAICompatibleConfigs(ctx),
     buildCopilotConfig(ctx),
+    buildAccomplishAiConfig(ctx),
   ]);
 
   const providerConfigs: ProviderConfig[] = [];

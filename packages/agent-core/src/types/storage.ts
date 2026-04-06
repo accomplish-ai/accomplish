@@ -1,5 +1,6 @@
 import type { Task, TaskStatus, TaskMessage } from '../common/types/task.js';
 import type { TodoItem } from '../common/types/todo.js';
+import type { CreditUsage } from '../common/types/gateway.js';
 import type {
   SelectedModel,
   OllamaConfig,
@@ -215,10 +216,18 @@ export interface ProviderSettingsAPI {
   hasReadyProvider(): boolean;
   /** Get IDs of all connected providers */
   getConnectedProviderIds(): ProviderId[];
+  /** Get cached Accomplish AI credit usage (last known from gateway) */
+  getAccomplishAiCredits(): CreditUsage | null;
+  /** Cache Accomplish AI credit usage */
+  saveAccomplishAiCredits(usage: CreditUsage): void;
 }
 
 /** API for encrypted credential storage (AES-256-GCM) */
 export interface SecureStorageAPI {
+  /** Store an arbitrary encrypted value by key */
+  set(key: string, value: string): void;
+  /** Retrieve an arbitrary encrypted value by key */
+  get(key: string): string | null;
   /** Store an API key for a provider */
   storeApiKey(provider: string, apiKey: string): void;
   /** Retrieve an API key for a provider */

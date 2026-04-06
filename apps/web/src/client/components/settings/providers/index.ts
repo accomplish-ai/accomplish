@@ -12,3 +12,4 @@ export { HuggingFaceProviderForm } from './HuggingFaceProviderForm';
 export { CustomProviderForm } from './CustomProviderForm';
 export { NimProviderForm } from './NimProviderForm';
 export { CopilotProviderForm } from './CopilotProviderForm';
+export { AccomplishAiProviderForm } from './AccomplishAiProviderForm';

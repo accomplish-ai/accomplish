@@ -15,10 +15,25 @@ import { BrowserInstallModal } from './execution/BrowserInstallModal';
 import { ConversationView } from './execution/ConversationView';
 import { FollowUpInput } from './execution/FollowUpInput';
 import { useExecutionPage } from './execution/useExecutionPage';
+import { CreditExhaustedChatBanner } from '../components/execution/CreditExhaustedChatBanner';
+import { useCreditsState } from '../hooks/useCreditsState';
+
+/** Detects Accomplish AI free-tier credit exhaustion errors specifically. */
+function isAccomplishCreditExhaustedError(message?: string): boolean {
+  if (!message) return false;
+  const lower = message.toLowerCase();
+  // Only match Accomplish-specific error codes, not generic provider billing errors
+  return (
+    lower.includes('credits_exhausted') ||
+    lower.includes('monthly_credit_limit_reached') ||
+    (lower.includes('accomplish') && lower.includes('free credits'))
+  );
+}
 
 export default function ExecutionPage() {
   const s = useExecutionPage();
   const { t } = useTranslation('execution');
+  const creditsState = useCreditsState();
   const { t: tCommon } = useTranslation('common');
 
   if (s.error) {
@@ -191,6 +206,20 @@ export default function ExecutionPage() {
             }}
             onOpenModelSettings={s.handleOpenModelSettings}
             onOpenSpeechSettings={s.handleOpenSpeechSettings}
+          />
+        )}
+
+        {/* Credit exhaustion banner — shown when task fails due to quota or live credits exhausted */}
+        {(creditsState.isCreditsBlocked ||
+          (s.currentTask?.status === 'failed' &&
+            isAccomplishCreditExhaustedError(s.currentTask?.result?.error))) && (
+          <CreditExhaustedChatBanner
+            variant="exhausted"
+            resetDate={creditsState.usage?.resetsAt ?? ''}
+            onConnectProvider={() => {
+              s.setSettingsInitialTab('providers');
+              s.setShowSettingsDialog(true);
+            }}
           />
         )}
 

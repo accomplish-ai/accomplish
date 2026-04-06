@@ -43,6 +43,7 @@ export class TaskService extends EventEmitter {
       isPackaged: options.isPackaged ?? false,
       resourcesPath: options.resourcesPath ?? '',
       appPath: options.appPath ?? '',
+      accomplishRuntime: options.accomplishRuntime,
     };
 
     this.taskManager = createTaskManager({

@@ -8,7 +8,9 @@ import {
   getPidFilePath,
   acquirePidLock,
   installCrashHandlers,
+  noopRuntime,
   type PidLockHandle,
+  type AccomplishRuntime,
   PERMISSION_API_PORT,
   QUESTION_API_PORT,
   THOUGHT_STREAM_PORT,
@@ -39,6 +41,25 @@ async function main(): Promise<void> {
   }
 
   installCrashHandlers();
+
+  // ── Load Accomplish AI runtime (noop in OSS, real impl in commercial) ───
+  let accomplishRuntime: AccomplishRuntime = noopRuntime;
+  try {
+    const mod = await import('@accomplish/llm-gateway-client');
+    accomplishRuntime = mod.createRuntime();
+  } catch (err: unknown) {
+    const isTargetPackageMissing =
+      err &&
+      typeof err === 'object' &&
+      'code' in err &&
+      (err as { code: string }).code === 'ERR_MODULE_NOT_FOUND' &&
+      String(err).includes("Cannot find package '@accomplish/llm-gateway-client'");
+    if (isTargetPackageMissing) {
+      console.log('[Daemon] @accomplish/llm-gateway-client not installed — OSS mode');
+    } else {
+      throw err;
+    }
+  }
 
   // Resolve dataDir early — all identity files (socket, PID, DB) derive from it.
   // --data-dir is required by default. Only explicitly opted-in dev mode skips it,
@@ -99,6 +120,7 @@ async function main(): Promise<void> {
     isPackaged,
     resourcesPath,
     appPath,
+    accomplishRuntime,
   });
   const healthService = new HealthService();
   const permissionService = new PermissionService(authToken);
@@ -143,6 +165,7 @@ async function main(): Promise<void> {
     healthService,
     storageService,
     schedulerService,
+    accomplishRuntime,
     whatsappService,
   };
   registerRpcMethods(routeServices);
