@@ -57,7 +57,11 @@ export default defineConfig({
         __dirname,
         '../../packages/agent-core/src/common',
       ),
-      '@accomplish_ai/agent-core': path.resolve(__dirname, '../../packages/agent-core/src'),
+      // IMPORTANT: In the web (browser) build, resolve the root entrypoint to
+      // the browser-safe common.ts surface. The full index.ts pulls in Node-only
+      // modules (node-pty, events) via OpenCodeAdapter that crash in the browser.
+      // Web code should only use types from agent-core — all re-exported from common.ts.
+      '@accomplish_ai/agent-core': path.resolve(__dirname, '../../packages/agent-core/src/common'),
       '@locales': path.resolve(__dirname, 'locales'),
     },
   },
