@@ -19,6 +19,7 @@ import {
 import {
   listCachedModels as hfListCachedModels,
   downloadModel,
+  getCachePath,
 } from '../../providers/huggingface-local/model-manager';
 
 export function registerHuggingFaceHandlers(): void {
@@ -48,13 +49,17 @@ export function registerHuggingFaceHandlers(): void {
     if (typeof modelId !== 'string' || !modelId.trim()) {
       return { success: false, error: 'Invalid model ID' };
     }
-    return downloadModel(modelId.trim(), (progress: unknown) => {
-      try {
-        event.sender.send('huggingface-local:download-progress', progress);
-      } catch {
-        // Window may have been closed
-      }
-    });
+    return downloadModel(
+      modelId.trim(),
+      (progress: unknown) => {
+        try {
+          event.sender.send('huggingface-local:download-progress', progress);
+        } catch {
+          // Window may have been closed
+        }
+      },
+      getCachePath(),
+    );
   });
 
   handle('huggingface-local:list-models', async () => {

@@ -61,10 +61,15 @@ export async function loadModel(modelId: string): Promise<void> {
       const config = getStorage().getHuggingFaceLocalConfig();
       const quantization = config?.quantization ?? null;
       const devicePreference = config?.devicePreference ?? null;
-      // Configure device via env when explicitly set (not 'auto') — let Transformers.js auto-detect otherwise
+      // Patch env.backends.onnx.device without clobbering other backend settings
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const envAny = env as any;
+      envAny.backends ??= {};
+      envAny.backends.onnx ??= {};
       if (devicePreference && devicePreference !== 'auto') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (env as any).backends = { onnx: { device: devicePreference } };
+        envAny.backends.onnx.device = devicePreference;
+      } else {
+        delete envAny.backends.onnx.device;
       }
 
       // Use saved quantization, fall back to q4 then fp32

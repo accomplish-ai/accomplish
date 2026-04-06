@@ -44,9 +44,9 @@ export async function downloadModel(
     // Dynamically import Transformers.js (it's ESM-only)
     const { env, AutoTokenizer, AutoModelForCausalLM } = await import('@huggingface/transformers');
 
-    // Configure cache directory
+    // Configure cache directory for downloads (env.cacheDir controls where Transformers.js writes)
     if (cacheDir) {
-      env.localModelPath = cacheDir;
+      env.cacheDir = cacheDir;
     }
     env.allowRemoteModels = true;
 
