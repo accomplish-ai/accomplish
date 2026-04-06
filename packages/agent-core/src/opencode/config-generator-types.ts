@@ -40,6 +40,12 @@ export interface ConfigGeneratorOptions {
   }>;
   /** Formatted workspace knowledge notes to inject into the system prompt */
   knowledgeNotes?: string;
+  /**
+   * Custom config file name (default: 'opencode.json').
+   * Use a per-task name (e.g. 'opencode-tsk_abc123.json') to prevent
+   * concurrent tasks from overwriting each other's config.
+   */
+  configFileName?: string;
 }
 
 export interface ProviderConfig {
