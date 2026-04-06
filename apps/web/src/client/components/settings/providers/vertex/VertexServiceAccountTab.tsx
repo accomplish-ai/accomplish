@@ -92,6 +92,7 @@ export function VertexServiceAccountTab({
       const file = e.target.files?.[0];
       if (file) {
         handleFileRead(file);
+        e.currentTarget.value = '';
       }
     },
     [handleFileRead],

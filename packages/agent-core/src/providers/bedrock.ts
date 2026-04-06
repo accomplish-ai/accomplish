@@ -2,29 +2,10 @@ import { BedrockClient, ListFoundationModelsCommand } from '@aws-sdk/client-bedr
 import type { BedrockCredentials } from '../common/types/auth.js';
 import { safeParseJson } from '../utils/json.js';
 import type { ValidationResult } from './validation.js';
+import { resolveFromIni } from './bedrock-credential-resolver.js';
 
 export type { BedrockModel, FetchBedrockModelsResult } from './bedrock-models.js';
 export { fetchBedrockModels } from './bedrock-models.js';
-
-type BedrockClientCredentials = NonNullable<
-  ConstructorParameters<typeof BedrockClient>[0]
->['credentials'];
-
-async function resolveFromIni(): Promise<(args: { profile?: string }) => BedrockClientCredentials> {
-  const credentialProvidersModule = (await import('@aws-sdk/credential-providers')) as {
-    fromIni?: (args: { profile?: string }) => BedrockClientCredentials;
-    default?: {
-      fromIni?: (args: { profile?: string }) => BedrockClientCredentials;
-    };
-  };
-
-  const fromIni = credentialProvidersModule.fromIni ?? credentialProvidersModule.default?.fromIni;
-  if (!fromIni) {
-    throw new Error('AWS credential providers package does not expose fromIni');
-  }
-
-  return fromIni;
-}
 
 /**
  * Validates AWS Bedrock credentials by making a test API call.

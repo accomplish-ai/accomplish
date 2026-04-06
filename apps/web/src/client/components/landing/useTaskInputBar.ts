@@ -43,7 +43,7 @@ export function useTaskInputBar({
   const isInputDisabled = disabled || isLoading;
   const isOverLimit = value.length > PROMPT_DEFAULT_MAX_LENGTH;
   const canSubmit = (!!value.trim() || attachments.length > 0) && !disabled && !isOverLimit;
-  const isSubmitDisabled = !isLoading && (!canSubmit || isInputDisabled);
+  const isSubmitDisabled = !canSubmit || isInputDisabled;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const latestValueRef = useRef(value);
   const pendingAutoSubmitRef = useRef<string | null>(null);

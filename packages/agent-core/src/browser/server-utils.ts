@@ -140,16 +140,17 @@ export async function installPlaywrightChromium(
 }
 
 export async function isDevBrowserServerReady(port: number): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 1000);
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1000);
     const res = await fetch(`http://localhost:${port}`, {
       signal: controller.signal,
     });
-    clearTimeout(timeout);
     return res.ok;
   } catch {
     return false;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

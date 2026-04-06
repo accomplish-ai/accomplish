@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 /** Manages scroll state and handlers for the execution page message list. */
 export function useExecutionScroll() {
@@ -12,6 +12,7 @@ export function useExecutionScroll() {
       clearTimeout(scrollTimerRef.current);
     }
     scrollTimerRef.current = setTimeout(() => {
+      scrollTimerRef.current = null;
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   }, []);
@@ -22,7 +23,20 @@ export function useExecutionScroll() {
       return;
     }
     const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 150;
+    if (!atBottom && scrollTimerRef.current) {
+      clearTimeout(scrollTimerRef.current);
+      scrollTimerRef.current = null;
+    }
     setIsAtBottom(atBottom);
+  }, []);
+
+  useEffect(() => {
+    const timer = scrollTimerRef;
+    return () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+      }
+    };
   }, []);
 
   return {

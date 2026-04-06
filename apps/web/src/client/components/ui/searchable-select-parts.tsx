@@ -31,6 +31,7 @@ export function SelectTrigger({
   error,
   testId,
   onClick,
+  listboxId,
 }: {
   displayValue: string;
   placeholder: string;
@@ -38,12 +39,16 @@ export function SelectTrigger({
   error?: boolean;
   testId?: string;
   onClick: () => void;
+  listboxId: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       data-testid={testId}
+      aria-haspopup="listbox"
+      aria-expanded={isOpen}
+      aria-controls={listboxId}
       className={`w-full rounded-md border bg-background px-3 py-2.5 text-sm text-left flex items-center justify-between ${
         error ? 'border-destructive' : 'border-input'
       }`}
@@ -73,6 +78,8 @@ export function SelectOption({
       onClick={onSelect}
       data-testid={testId ? `${testId}-option-${item.id}` : undefined}
       data-model-id={item.id}
+      role="option"
+      aria-selected={isSelected}
       className={`w-full px-3 py-2 text-sm text-left hover:bg-muted ${
         isSelected ? 'bg-muted font-medium' : ''
       }`}
@@ -93,6 +100,7 @@ export function SelectDropdown({
   onSelect,
   inputRef,
   testId,
+  listboxId,
 }: {
   items: SelectItem[];
   value: string | null;
@@ -104,9 +112,12 @@ export function SelectDropdown({
   onSelect: (id: string) => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
   testId?: string;
+  listboxId: string;
 }) {
   return (
     <motion.div
+      id={listboxId}
+      role="listbox"
       className="absolute z-50 w-full mt-1 rounded-md border border-input bg-background shadow-lg"
       variants={settingsVariants.scaleDropdown}
       initial="initial"

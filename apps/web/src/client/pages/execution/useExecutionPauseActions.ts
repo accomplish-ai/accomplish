@@ -24,9 +24,9 @@ export function useExecutionPauseActions(
           return false;
         }
       }
-      await s.sendFollowUp(message, []);
-      return true;
+      return await s.sendFollowUp(message, []);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- s is a stable hook result; individual actions are listed
     [
       accomplish,
       s.setPendingFollowUp,

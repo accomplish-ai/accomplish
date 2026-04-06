@@ -116,9 +116,7 @@ export function SpeechInputButton({
             {isTranscribing ? (
               <SpinnerGap className="h-4 w-4 animate-spin" />
             ) : isRecording ? (
-              <div className="relative h-4 w-4">
-                <Microphone className="h-4 w-4" />
-              </div>
+              <MicrophoneIcon isRecording className="h-4 w-4" />
             ) : error ? (
               <WarningCircle className="h-4 w-4" />
             ) : (
@@ -133,7 +131,7 @@ export function SpeechInputButton({
 
       {/* Recording timer */}
       {isRecording && (
-        <div className="text-xs font-mono text-red-600 dark:text-red-400 shrink-0 min-w-[40px]">
+        <div className="text-xs font-mono text-destructive shrink-0 min-w-[40px]">
           {formatDuration(recordingDuration)}
         </div>
       )}
@@ -163,9 +161,9 @@ export function MicrophoneIcon({
 }) {
   return (
     <div className={cn('relative inline-flex items-center justify-center', className)}>
-      <Microphone className={cn('h-4 w-4', isRecording && 'text-red-500 animate-pulse')} />
+      <Microphone className={cn('h-4 w-4', isRecording && 'text-destructive animate-pulse')} />
       {isRecording && (
-        <div className="absolute inset-0 rounded-full border-2 border-red-500 animate-ping opacity-75" />
+        <div className="absolute inset-0 rounded-full border-2 border-destructive animate-ping opacity-75" />
       )}
     </div>
   );

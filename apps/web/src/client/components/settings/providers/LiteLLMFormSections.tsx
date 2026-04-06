@@ -65,6 +65,7 @@ export function LiteLLMDisconnectedForm({
             onClick={() => onApiKeyChange('')}
             className="rounded-md border border-border p-2.5 text-muted-foreground hover:text-foreground transition-colors"
             type="button"
+            aria-label="Clear API key"
             disabled={!apiKey}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -98,6 +99,7 @@ export function LiteLLMConnectedSection({
   showModelError,
 }: LiteLLMConnectedSectionProps) {
   const { t } = useTranslation('settings');
+  const creds = connectedProvider.credentials as LiteLLMCredentials;
   const models = connectedProvider.availableModels || [];
   return (
     <motion.div
@@ -116,25 +118,19 @@ export function LiteLLMConnectedSection({
           </label>
           <input
             type="text"
-            value={
-              (connectedProvider.credentials as LiteLLMCredentials)?.serverUrl ||
-              'http://localhost:4000'
-            }
+            value={creds?.serverUrl || 'http://localhost:4000'}
             disabled
             className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
           />
         </div>
-        {(connectedProvider.credentials as LiteLLMCredentials)?.hasApiKey && (
+        {creds?.hasApiKey && (
           <div>
             <label className="mb-2 block text-sm font-medium text-foreground">
               {t('apiKey.title')}
             </label>
             <input
               type="text"
-              value={
-                (connectedProvider.credentials as LiteLLMCredentials)?.keyPrefix ||
-                t('apiKey.saved')
-              }
+              value={creds?.keyPrefix || t('apiKey.saved')}
               disabled
               className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
             />

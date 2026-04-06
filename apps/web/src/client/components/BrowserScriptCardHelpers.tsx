@@ -15,7 +15,6 @@ import {
   CaretRight,
 } from '@phosphor-icons/react';
 
-// Browser action type from the MCP tool
 export interface BrowserAction {
   action: string;
   url?: string;
@@ -26,7 +25,6 @@ export interface BrowserAction {
   code?: string;
 }
 
-// Action type to icon mapping
 export const ACTION_ICONS: Record<string, typeof Globe> = {
   goto: Globe,
   findAndFill: CursorText,
@@ -42,7 +40,6 @@ export const ACTION_ICONS: Record<string, typeof Globe> = {
   evaluate: Code,
 };
 
-// Format action to human-readable label
 export function formatActionLabel(
   action: BrowserAction,
   t: (key: string, options?: { [key: string]: string | number }) => string,
@@ -106,7 +103,6 @@ export function formatActionLabel(
   return label;
 }
 
-// Single action chip component
 export function ActionChip({
   action,
   t,
@@ -125,7 +121,6 @@ export function ActionChip({
   );
 }
 
-// Arrow separator
 export function Arrow() {
   return <CaretRight className="h-3 w-3 text-muted-foreground/50 shrink-0" />;
 }
@@ -147,6 +142,9 @@ export function getActionKey(action: BrowserAction, index: number): string {
   }
   if (action.key) {
     parts.push(action.key);
+  }
+  if (action.code) {
+    parts.push(action.code);
   }
   return `${parts.join('-')}-${index}`;
 }
@@ -172,7 +170,8 @@ export function arePropsEqual(
       prev.selector !== next.selector ||
       prev.ref !== next.ref ||
       prev.text !== next.text ||
-      prev.key !== next.key
+      prev.key !== next.key ||
+      prev.code !== next.code
     ) {
       return false;
     }

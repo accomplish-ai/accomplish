@@ -107,7 +107,8 @@ export function useExecutionCore() {
     if (scroll.isAtBottom) {
       scroll.scrollToBottom();
     }
-  }, [currentTask?.messages?.length, scroll.scrollToBottom, scroll.isAtBottom]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- scroll object reference changes on every render; individual properties are stable
+  }, [currentTask?.id, currentTask?.messages?.length, scroll.scrollToBottom, scroll.isAtBottom]);
 
   const permissionRequest = (id ? permissionRequests[id] : undefined) ?? null;
   const isComplete = ['completed', 'failed', 'cancelled', 'interrupted'].includes(

@@ -29,7 +29,8 @@ export function ClassicApiKeyInput({
         onClick={onClear}
         className="rounded-md border border-border p-2.5 text-muted-foreground hover:text-foreground transition-colors"
         type="button"
-        disabled={!apiKey}
+        aria-label="Clear API key"
+        disabled={!apiKey || connecting}
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path

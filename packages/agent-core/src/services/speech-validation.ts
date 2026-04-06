@@ -6,7 +6,7 @@
 
 import { fetchWithTimeout } from '../utils/fetch.js';
 
-const ELEVENLABS_API_TIMEOUT_MS = 30000;
+export const ELEVENLABS_API_TIMEOUT_MS = 30000;
 
 /**
  * Validate an ElevenLabs API key by making a test request.

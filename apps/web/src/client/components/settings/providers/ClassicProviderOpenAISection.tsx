@@ -1,6 +1,7 @@
 /**
- * OpenAI-specific disconnected form section for ClassicProviderForm.
- * Handles OAuth sign-in and API key entry for OpenAI provider.
+ * OpenAI-specific disconnected section — separated from the generic ClassicProviderForm
+ * because OpenAI supports both OAuth and API-key flows, requiring provider-specific
+ * sign-in UI and session handling that would leak into the shared form otherwise.
  */
 
 import { useTranslation } from 'react-i18next';

@@ -43,6 +43,8 @@ export function SearchableSelect({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const listboxId = testId ? `${testId}-listbox` : 'searchable-select-listbox';
+
   const showSearch = items.length > 10;
 
   const filteredItems = search
@@ -94,6 +96,7 @@ export function SearchableSelect({
           error={error}
           testId={testId}
           onClick={() => setIsOpen(!isOpen)}
+          listboxId={listboxId}
         />
         <AnimatePresence>
           {isOpen && (
@@ -108,6 +111,7 @@ export function SearchableSelect({
               onSelect={handleSelect}
               inputRef={inputRef}
               testId={testId}
+              listboxId={listboxId}
             />
           )}
         </AnimatePresence>

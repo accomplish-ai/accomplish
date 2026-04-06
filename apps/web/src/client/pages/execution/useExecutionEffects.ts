@@ -17,11 +17,20 @@ export function useExecutionEffects(s: CoreState, accomplish: CoreState['accompl
       s.currentTask?.result?.pauseReason === 'auth' &&
       action?.type === 'oauth-connect'
     ) {
-      void accomplish.getSlackMcpOauthStatus().then((status) => {
-        if (status.pendingAuthorization) {
-          void accomplish.logoutSlackMcp();
-        }
-      });
+      let stale = false;
+      accomplish
+        .getSlackMcpOauthStatus()
+        .then((status) => {
+          if (!stale && status.pendingAuthorization) {
+            void accomplish.logoutSlackMcp();
+          }
+        })
+        .catch(() => {
+          // ignore errors from oauth status check
+        });
+      return () => {
+        stale = true;
+      };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- s.setTaskActionError/setIsTaskActionRunning are stable store actions
   }, [

@@ -1,7 +1,3 @@
-/**
- * Drag-and-drop / file-browse zone for Google service account JSON keys.
- */
-
 import { useTranslation } from 'react-i18next';
 
 interface VertexJsonDropzoneProps {
@@ -33,19 +29,22 @@ export function VertexJsonDropzone({
 }: VertexJsonDropzoneProps) {
   const { t } = useTranslation('settings');
 
+  let variantClass: string;
+  if (isDragOver) {
+    variantClass = 'border-provider-accent bg-provider-accent/5';
+  } else if (serviceAccountJson) {
+    variantClass = 'border-provider-accent/50 bg-provider-accent/5';
+  } else {
+    variantClass = 'border-muted-foreground/30 hover:border-muted-foreground/50';
+  }
+
   return (
     <>
       <div
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
-        className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${
-          isDragOver
-            ? 'border-provider-accent bg-provider-accent/5'
-            : serviceAccountJson
-              ? 'border-provider-accent/50 bg-provider-accent/5'
-              : 'border-muted-foreground/30 hover:border-muted-foreground/50'
-        }`}
+        className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${variantClass}`}
       >
         {serviceAccountJson && fileName ? (
           <div className="space-y-1">

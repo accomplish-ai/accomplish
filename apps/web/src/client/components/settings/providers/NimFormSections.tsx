@@ -5,7 +5,7 @@ import { ModelSelector, ConnectedControls, FormError } from '../shared';
 import { ConnectButton } from '../shared';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 
-const NIM_DEFAULT_BASE_URL = 'https://integrate.api.nvidia.com/v1';
+export const NIM_DEFAULT_BASE_URL = 'https://integrate.api.nvidia.com/v1';
 
 export interface DisconnectedNimFormProps {
   serverUrl: string;

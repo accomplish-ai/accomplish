@@ -12,11 +12,14 @@
 import { fetchWithTimeout } from '../utils/fetch.js';
 import type { SecureStorage } from '../storage/secure-storage.js';
 import { createConsoleLogger } from '../utils/logging.js';
-import { validateElevenLabsApiKey, parseElevenLabsErrorMessage } from './speech-validation.js';
+import {
+  validateElevenLabsApiKey,
+  parseElevenLabsErrorMessage,
+  ELEVENLABS_API_TIMEOUT_MS,
+} from './speech-validation.js';
 
 const log = createConsoleLogger({ prefix: 'Speech' });
 
-const ELEVENLABS_API_TIMEOUT_MS = 30000;
 const DEFAULT_ELEVENLABS_STT_MODEL_ID = 'scribe_v2';
 
 export interface TranscriptionResult {

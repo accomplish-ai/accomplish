@@ -7,9 +7,10 @@
 /**
  * Parse a cron expression into its 5 fields.
  * Supports: minute hour day-of-month month day-of-week
- * Supports: * (any), numbers, ranges (1-5), commas (1,3,5)
+ * Supports: * (any), numbers, ranges (1-5), commas (1,3,5), steps (*\/N, start-end/step)
  */
-export function parseCronField(field: string, min: number, max: number): number[] {
+export function parseCronField(field: string, min: number, max: number): number[] | null {
+  // Wildcard: match all values
   if (field === '*') {
     const result: number[] = [];
     for (let i = min; i <= max; i++) {
@@ -22,17 +23,54 @@ export function parseCronField(field: string, min: number, max: number): number[
   const parts = field.split(',');
 
   for (const part of parts) {
-    if (part.includes('-')) {
-      const [start, end] = part.split('-').map(Number);
-      for (let i = start; i <= end; i++) {
+    // */N — every Nth value
+    const stepWildcard = /^\*\/(\d+)$/.exec(part);
+    if (stepWildcard) {
+      const step = parseInt(stepWildcard[1], 10);
+      if (step <= 0) {
+        return null;
+      }
+      for (let i = min; i <= max; i += step) {
         values.push(i);
       }
-    } else {
-      values.push(Number(part));
+      continue;
     }
+
+    // start-end or start-end/step
+    const rangeStep = /^(\d+)-(\d+)(?:\/(\d+))?$/.exec(part);
+    if (rangeStep) {
+      const start = parseInt(rangeStep[1], 10);
+      const end = parseInt(rangeStep[2], 10);
+      const step = rangeStep[3] !== undefined ? parseInt(rangeStep[3], 10) : 1;
+      if (start > end || step <= 0) {
+        return null;
+      }
+      for (let i = start; i <= end; i += step) {
+        if (i >= min && i <= max) {
+          values.push(i);
+        }
+      }
+      continue;
+    }
+
+    // Single number
+    if (/^\d+$/.test(part)) {
+      const val = parseInt(part, 10);
+      if (val >= min && val <= max) {
+        values.push(val);
+      }
+      continue;
+    }
+
+    // Unrecognised pattern
+    return null;
   }
 
-  return values.filter((v) => v >= min && v <= max);
+  if (values.length === 0) {
+    return null;
+  }
+
+  return Array.from(new Set(values)).sort((a, b) => a - b);
 }
 
 export function matchesCron(cron: string, date: Date): boolean {
@@ -48,6 +86,10 @@ export function matchesCron(cron: string, date: Date): boolean {
   const doms = parseCronField(domField, 1, 31);
   const months = parseCronField(monthField, 1, 12);
   const dows = parseCronField(dowField, 0, 6);
+
+  if (!minutes || !hours || !doms || !months || !dows) {
+    return false;
+  }
 
   // Standard cron OR semantics: when both dom and dow are restricted (non-wildcard),
   // a match occurs if dom OR dow matches. When either is wildcard, AND semantics apply.

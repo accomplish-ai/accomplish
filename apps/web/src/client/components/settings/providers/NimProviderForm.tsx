@@ -4,11 +4,9 @@ import { AnimatePresence } from 'framer-motion';
 import type { ConnectedProvider, NimCredentials } from '@accomplish_ai/agent-core/common';
 import { ProviderFormHeader } from '../shared';
 import { getAccomplish } from '@/lib/accomplish';
-import { DisconnectedNimForm, ConnectedNimDetails } from './NimFormSections';
+import { DisconnectedNimForm, ConnectedNimDetails, NIM_DEFAULT_BASE_URL } from './NimFormSections';
 
 import nimLogo from '/assets/ai-logos/nim.svg';
-
-const NIM_DEFAULT_BASE_URL = 'https://integrate.api.nvidia.com/v1';
 
 interface NimProviderFormProps {
   connectedProvider?: ConnectedProvider;

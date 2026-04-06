@@ -57,6 +57,15 @@ export function useExecutionDebugState({
     return () => clearInterval(interval);
   }, [startupStageTaskId, startupStage, id, currentTool]);
 
+  useEffect(() => {
+    return () => {
+      if (bugSavedTimerRef.current) {
+        clearTimeout(bugSavedTimerRef.current);
+        bugSavedTimerRef.current = null;
+      }
+    };
+  }, []);
+
   return {
     debugLogs,
     setDebugLogs,
