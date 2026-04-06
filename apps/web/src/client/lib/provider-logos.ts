@@ -23,6 +23,7 @@ import veniceLogo from '/assets/ai-logos/venice.svg';
 import customLogo from '/assets/ai-logos/custom.svg';
 import nimLogo from '/assets/ai-logos/nim.svg';
 import copilotLogo from '/assets/ai-logos/copilot.svg';
+import accomplishLogo from '/assets/ai-logos/accomplish.svg';
 
 export const PROVIDER_LOGOS: Record<ProviderId, string> = {
   anthropic: anthropicLogo,
@@ -49,6 +50,7 @@ export const PROVIDER_LOGOS: Record<ProviderId, string> = {
   nim: nimLogo,
   custom: customLogo,
   copilot: copilotLogo,
+  'accomplish-ai': accomplishLogo,
 };
 
 export const DARK_INVERT_PROVIDERS = new Set<ProviderId>([

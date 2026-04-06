@@ -149,6 +149,15 @@ export { sanitizeAssistantTextForDisplay } from './opencode/message-processor.js
 // Proxy lifecycle is now internal to TaskManager.dispose()
 
 export { getAzureEntraToken } from './opencode/proxies/index.js';
+
+// Accomplish AI runtime adapter
+export { noopRuntime } from './opencode/accomplish-runtime.js';
+export type {
+  AccomplishRuntime,
+  AccomplishConnectResult,
+  StorageDeps,
+} from './opencode/accomplish-runtime.js';
+
 // -----------------------------------------------------------------------------
 // Storage Module (from ./storage/)
 // -----------------------------------------------------------------------------
@@ -373,6 +382,7 @@ export type {
   AzureFoundryCredentials,
   OAuthCredentials,
   CopilotOAuthCredentials,
+  AccomplishAiCredentials,
   CustomCredentials,
   NimCredentials,
   ProviderCredentials,
@@ -380,6 +390,7 @@ export type {
   ConnectedProvider,
   ProviderSettings,
 } from './common/types/providerSettings.js';
+export type { CreditUsage } from './common/types/gateway.js';
 export {
   PROVIDER_META,
   DEFAULT_MODELS,

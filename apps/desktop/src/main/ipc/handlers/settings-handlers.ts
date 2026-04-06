@@ -259,4 +259,13 @@ export function registerSettingsHandlers(): void {
   registerOpenCodeHandlers(handle);
   // WhatsApp integration (ENG-684)
   registerWhatsAppHandlers(handle);
+
+  // Build capabilities — tells renderer which features are available
+  handle('app:get-build-capabilities', async () => {
+    const { isFreeMode, isAnalyticsEnabled } = await import('../../config/build-config');
+    return {
+      hasFreeMode: isFreeMode(),
+      hasAnalytics: isAnalyticsEnabled(),
+    };
+  });
 }

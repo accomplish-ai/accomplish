@@ -14,6 +14,7 @@ import {
   CustomProviderForm,
   NimProviderForm,
   CopilotProviderForm,
+  AccomplishAiProviderForm,
 } from './providers';
 import { ZaiProviderForm } from './providers/ZaiProviderForm';
 
@@ -58,6 +59,20 @@ export function ProviderFormSelector({
       <NimProviderForm
         connectedProvider={connectedProvider}
         onConnect={onConnect}
+        onDisconnect={onDisconnect}
+        onModelChange={onModelChange}
+        showModelError={showModelError}
+      />
+    );
+  }
+
+  // Handle Accomplish AI separately (device fingerprint flow, no API key)
+  if (providerId === 'accomplish-ai') {
+    return (
+      <AccomplishAiProviderForm
+        connectedProvider={connectedProvider}
+        onConnect={onConnect}
+        onUpdateProvider={onUpdateProvider}
         onDisconnect={onDisconnect}
         onModelChange={onModelChange}
         showModelError={showModelError}

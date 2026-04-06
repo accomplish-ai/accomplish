@@ -74,6 +74,8 @@ import {
   getActiveProviderModel,
   hasReadyProvider,
   getConnectedProviderIds,
+  getAccomplishAiCredits,
+  saveAccomplishAiCredits,
 } from '../storage/repositories/providerSettings.js';
 import {
   getAllConnectors,
@@ -196,6 +198,8 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     getActiveProviderModel: () => getActiveProviderModel(),
     hasReadyProvider: () => hasReadyProvider(),
     getConnectedProviderIds: () => getConnectedProviderIds(),
+    getAccomplishAiCredits: () => getAccomplishAiCredits(),
+    saveAccomplishAiCredits: (usage) => saveAccomplishAiCredits(usage),
 
     // Connectors
     getAllConnectors: () => getAllConnectors(),
@@ -239,6 +243,8 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
       updateScheduledTaskLastRun(id, timestamp, nextRunAt),
 
     // Secure Storage
+    set: (key, value) => secureStorage.set(key, value),
+    get: (key) => secureStorage.get(key),
     storeApiKey: (provider, apiKey) => secureStorage.storeApiKey(provider, apiKey),
     getApiKey: (provider) => secureStorage.getApiKey(provider),
     deleteApiKey: (provider) => secureStorage.deleteApiKey(provider),

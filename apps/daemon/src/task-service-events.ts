@@ -2,7 +2,7 @@
  * Event type declarations for TaskService.
  * Extracted from task-service.ts to keep files under 200 lines.
  */
-import type { TaskMessage, TaskStatus } from '@accomplish_ai/agent-core';
+import type { TaskMessage, TaskStatus, AccomplishRuntime } from '@accomplish_ai/agent-core';
 
 export interface TaskServiceEvents {
   progress: [data: { taskId: string; stage: string; message?: string }];
@@ -20,4 +20,5 @@ export interface TaskServiceOptions {
   isPackaged?: boolean;
   resourcesPath?: string;
   appPath?: string;
+  accomplishRuntime?: AccomplishRuntime;
 }

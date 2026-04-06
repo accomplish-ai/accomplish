@@ -31,7 +31,8 @@ export type ProviderType =
   | 'groq'
   | 'venice'
   | 'nim'
-  | 'copilot';
+  | 'copilot'
+  | 'accomplish-ai';
 
 export type ApiKeyProvider =
   | 'anthropic'
@@ -487,6 +488,23 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     requiresApiKey: false,
     defaultModelId: 'copilot/gpt-4o',
     models: [],
+  },
+  {
+    id: 'accomplish-ai',
+    name: 'Accomplish AI',
+    requiresApiKey: false,
+    defaultModelId: 'accomplish-ai/accomplish-free',
+    models: [
+      {
+        id: 'accomplish-free',
+        displayName: 'Accomplish',
+        provider: 'accomplish-ai',
+        fullId: 'accomplish-ai/accomplish-free',
+        contextWindow: 128_000,
+        maxOutputTokens: 32_000,
+        supportsVision: true,
+      },
+    ],
   },
 ];
 

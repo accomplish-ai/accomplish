@@ -22,9 +22,18 @@ export type ProviderId =
   | 'venice'
   | 'nim'
   | 'custom'
-  | 'copilot';
+  | 'copilot'
+  | 'accomplish-ai';
 
-export type ProviderCategory = 'classic' | 'aws' | 'gcp' | 'azure' | 'local' | 'proxy' | 'hybrid';
+export type ProviderCategory =
+  | 'classic'
+  | 'aws'
+  | 'gcp'
+  | 'azure'
+  | 'local'
+  | 'proxy'
+  | 'hybrid'
+  | 'accomplish';
 
 export interface ProviderMeta {
   id: ProviderId;
@@ -209,6 +218,13 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     logoKey: 'github-copilot',
     helpUrl: 'https://github.com/settings/copilot',
   },
+  'accomplish-ai': {
+    id: 'accomplish-ai',
+    name: 'Accomplish AI',
+    category: 'accomplish',
+    label: 'Free Tier',
+    logoKey: 'accomplish',
+  },
 };
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -301,6 +317,11 @@ export interface CopilotOAuthCredentials {
   type: 'copilot-oauth';
 }
 
+export interface AccomplishAiCredentials {
+  type: 'accomplish-ai';
+  deviceFingerprint: string;
+}
+
 export type ProviderCredentials =
   | ApiKeyCredentials
   | BedrockProviderCredentials
@@ -314,6 +335,7 @@ export type ProviderCredentials =
   | OAuthCredentials
   | HuggingFaceLocalCredentials
   | CopilotOAuthCredentials
+  | AccomplishAiCredentials
   | CustomCredentials
   | NimCredentials;
 
@@ -375,6 +397,7 @@ export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
   venice: 'venice/llama-3.3-70b',
   nim: 'nim/meta/llama-3.1-70b-instruct',
   copilot: 'copilot/gpt-4o',
+  'accomplish-ai': 'accomplish-ai/accomplish-free',
 };
 
 export function getDefaultModelForProvider(providerId: ProviderId): string | null {
@@ -411,4 +434,5 @@ export const PROVIDER_ID_TO_OPENCODE: Record<ProviderId, string> = {
   nim: 'nim',
   custom: 'custom',
   copilot: 'github-copilot',
+  'accomplish-ai': 'accomplish-ai',
 };
