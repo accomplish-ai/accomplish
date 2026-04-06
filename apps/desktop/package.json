@@ -78,7 +78,7 @@
     "electron-builder": "^25.1.8",
     "esbuild": "^0.28.0",
     "typescript": "^6.0.2",
-    "vite": "^8.0.0",
+    "vite": "^8.0.3",
     "vite-plugin-electron": "^0.29.1",
     "vitest": "^4.1.0"
   },
