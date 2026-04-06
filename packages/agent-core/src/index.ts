@@ -118,6 +118,12 @@ export type { EnvironmentConfig } from './opencode/environment.js';
 
 export { buildProviderConfigs, syncApiKeysToOpenCodeAuth } from './opencode/config-builder.js';
 
+export { resolveTaskConfig } from './opencode/resolve-task-config.js';
+export type {
+  ResolveTaskConfigOptions,
+  ResolvedTaskConfig,
+} from './opencode/resolve-task-config.js';
+
 export {
   getOpenCodeAuthPath,
   getOpenCodeAuthJsonPath,
@@ -180,6 +186,8 @@ export {
   deleteKnowledgeNote,
   getKnowledgeNotesForPrompt,
 } from './storage/repositories/knowledgeNotes.js';
+
+export { getEnabledSkills } from './storage/repositories/skills.js';
 
 // -----------------------------------------------------------------------------
 // Providers Module (from ./providers/)
@@ -516,15 +524,6 @@ export {
 
 export { DaemonServer, DaemonClient, createInProcessTransportPair } from './daemon/index.js';
 export { createChildProcessTransport, createParentProcessTransport } from './daemon/index.js';
-export {
-  addScheduledTask,
-  listScheduledTasks,
-  cancelScheduledTask,
-  onScheduledTaskFire,
-  disposeScheduler,
-  parseCronField,
-  matchesCron,
-} from './daemon/index.js';
 export type { DaemonServerOptions, DaemonClientOptions } from './daemon/index.js';
 
 // Socket-based RPC server for the standalone daemon process
@@ -533,6 +532,9 @@ export type { DaemonRpcServerOptions } from './daemon/index.js';
 
 // Socket path, PID lock, and crash handler utilities for the daemon process
 export { getSocketPath, getPidFilePath, getDaemonDir } from './daemon/index.js';
+
+export { createSocketTransport } from './daemon/index.js';
+export type { SocketTransportOptions } from './daemon/index.js';
 export { acquirePidLock, PidLockError } from './daemon/index.js';
 export type { PidLockHandle, PidLockPayload } from './daemon/index.js';
 export { installCrashHandlers, logger } from './daemon/index.js';
@@ -554,10 +556,10 @@ export type {
   TypedJsonRpcRequest,
   TypedJsonRpcResponse,
   TypedJsonRpcNotification,
+  HealthCheckResult,
   ScheduledTask,
   TaskScheduleParams,
   TaskCancelScheduledParams,
-  HealthCheckResult,
 } from './common/types/daemon.js';
 
 // Browser live-view types (ENG-695)

@@ -453,8 +453,8 @@ Imported content.
       expect(skill?.name).toBe('Imported Skill');
       expect(skill?.source).toBe('custom');
 
-      // Verify it was copied to user skills directory
-      const copiedPath = path.join(userSkillsPath, 'Imported-Skill', 'SKILL.md');
+      // Verify it was copied to user skills directory (normalizeSkillSlug lowercases)
+      const copiedPath = path.join(userSkillsPath, 'imported-skill', 'SKILL.md');
       expect(fs.existsSync(copiedPath)).toBe(true);
     });
 
@@ -505,7 +505,7 @@ Uses template_layouts.md and data.json for reference.
       expect(skill?.name).toBe('Folder Skill');
       expect(skill?.source).toBe('custom');
 
-      const destDir = path.join(userSkillsPath, 'Folder-Skill');
+      const destDir = path.join(userSkillsPath, 'folder-skill');
       expect(fs.existsSync(path.join(destDir, 'SKILL.md'))).toBe(true);
       expect(fs.existsSync(path.join(destDir, 'template_layouts.md'))).toBe(true);
       expect(fs.existsSync(path.join(destDir, 'data.json'))).toBe(true);

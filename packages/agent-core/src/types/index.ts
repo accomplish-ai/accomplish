@@ -27,6 +27,7 @@ export type {
   ProviderSettingsAPI,
   SecureStorageAPI,
   DatabaseLifecycleAPI,
+  SchedulerStorageAPI,
 } from './storage.js';
 
 // Permission Handler API

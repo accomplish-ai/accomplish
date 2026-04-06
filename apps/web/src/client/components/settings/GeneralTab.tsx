@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { NotificationsSection } from '@/components/settings/NotificationsSection';
 import { DebugSection } from '@/components/settings/DebugSection';
+import { DaemonSection } from '@/components/settings/DaemonSection';
 
 interface GeneralTabProps {
   notificationsEnabled: boolean;
@@ -21,6 +22,10 @@ export function GeneralTab({
     <div className="space-y-6">
       <section>
         <NotificationsSection enabled={notificationsEnabled} onToggle={onNotificationsToggle} />
+      </section>
+
+      <section>
+        <DaemonSection />
       </section>
 
       <section>

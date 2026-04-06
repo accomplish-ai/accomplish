@@ -3,26 +3,35 @@ import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { createStorage, type StorageAPI } from '@accomplish_ai/agent-core';
 
-const DEFAULT_DATA_DIR = join(homedir(), '.accomplish');
+const DEV_DEFAULT_DATA_DIR = join(homedir(), '.accomplish');
 
 export class StorageService {
   private storage: StorageAPI | null = null;
 
+  /**
+   * Initialize storage.
+   *
+   * @param dataDir — Data directory. Required in production (passed via --data-dir).
+   *                   In dev mode (no --data-dir), falls back to `~/.accomplish`.
+   */
   initialize(dataDir?: string): StorageAPI {
-    const dir = dataDir || DEFAULT_DATA_DIR;
+    const dir = dataDir || DEV_DEFAULT_DATA_DIR;
     mkdirSync(dir, { recursive: true, mode: 0o700 });
 
-    // Use the same database name as the desktop app.
-    // When --data-dir points to Electron's userData, this shares the same DB.
-    // In standalone mode (no --data-dir), uses accomplish-dev.db in ~/.accomplish.
-    const dbName = dataDir ? 'accomplish.db' : 'accomplish-dev.db';
+    // Match the desktop app's database naming:
+    // - Packaged (ACCOMPLISH_IS_PACKAGED=1): accomplish.db + secure-storage.json
+    // - Dev mode: accomplish-dev.db + secure-storage-dev.json
+    // This ensures both the daemon and Electron read/write the same database.
+    const isPackaged = process.env.ACCOMPLISH_IS_PACKAGED === '1';
+    const dbName = isPackaged ? 'accomplish.db' : 'accomplish-dev.db';
+    const secureFileName = isPackaged ? 'secure-storage.json' : 'secure-storage-dev.json';
     const databasePath = join(dir, dbName);
 
     this.storage = createStorage({
       databasePath,
       runMigrations: true,
       userDataPath: dir,
-      secureStorageFileName: dataDir ? 'secure-storage.json' : 'secure-storage-dev.json',
+      secureStorageFileName: secureFileName,
     });
 
     this.storage.initialize();

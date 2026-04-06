@@ -64,7 +64,7 @@ export class ThoughtStreamService {
     this.handler.unregisterTask(taskId);
   }
 
-  async start(): Promise<http.Server> {
+  async start(fixedPort?: number): Promise<http.Server> {
     const routes: Route[] = [
       {
         method: 'POST',
@@ -113,6 +113,7 @@ export class ThoughtStreamService {
       rateLimiter: this.rateLimiter,
       routes,
       serviceName: 'ThoughtStreamService',
+      port: fixedPort,
     });
 
     this.server = server;

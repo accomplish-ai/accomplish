@@ -17,7 +17,6 @@ import type {
   WorkspaceCreateInput,
   WorkspaceUpdateInput,
 } from '@accomplish_ai/agent-core';
-import { getTaskManager } from '../opencode';
 import { getLogCollector } from '../logging';
 
 function log(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
@@ -86,14 +85,6 @@ export function switchWorkspace(workspaceId: string): boolean {
     return false;
   }
 
-  // Guard: don't switch workspace while a task is running
-  const taskManager = getTaskManager();
-  const activeTaskId = taskManager.getActiveTaskId();
-  if (activeTaskId) {
-    log('WARN', `[WorkspaceManager] Cannot switch workspace while task ${activeTaskId} is running`);
-    return false;
-  }
-
   const workspace = getWorkspace(workspaceId);
   if (!workspace) {
     throw new Error(`Workspace not found: ${workspaceId}`);
@@ -122,17 +113,6 @@ export function deleteWorkspace(id: string): boolean {
 
   // If deleting the active workspace, switch to default first
   if (_activeWorkspaceId === id) {
-    // Guard: don't delete active workspace while a task is running
-    const taskManager = getTaskManager();
-    const activeTaskId = taskManager.getActiveTaskId();
-    if (activeTaskId) {
-      log(
-        'WARN',
-        `[WorkspaceManager] Cannot delete active workspace while task ${activeTaskId} is running`,
-      );
-      return false;
-    }
-
     const allWorkspaces = listWorkspaces();
     const defaultWs = allWorkspaces.find((w) => w.isDefault);
     const fallbackId = defaultWs

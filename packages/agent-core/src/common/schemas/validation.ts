@@ -1,5 +1,14 @@
 import { z } from 'zod';
 
+export const fileAttachmentSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  path: z.string(),
+  type: z.enum(['image', 'text', 'code', 'pdf', 'other']),
+  size: z.number(),
+  content: z.string().optional(),
+});
+
 export const taskConfigSchema = z.object({
   prompt: z.string().min(1, 'Prompt is required'),
   taskId: z.string().optional(),
@@ -9,6 +18,8 @@ export const taskConfigSchema = z.object({
   outputSchema: z.record(z.any()).optional(),
   sessionId: z.string().optional(),
   chrome: z.boolean().optional(),
+  workspaceId: z.string().optional(),
+  attachments: z.array(fileAttachmentSchema).optional(),
   modelId: z.string().optional(),
   provider: z.string().optional(),
 });
@@ -27,6 +38,8 @@ export const resumeSessionSchema = z.object({
   prompt: z.string().min(1, 'Prompt is required'),
   existingTaskId: z.string().optional(),
   chrome: z.boolean().optional(),
+  workspaceId: z.string().optional(),
+  attachments: z.array(fileAttachmentSchema).optional(),
 });
 
 export function validate<TSchema extends z.ZodTypeAny>(

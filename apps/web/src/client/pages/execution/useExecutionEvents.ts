@@ -116,12 +116,36 @@ export function useExecutionEvents(opts: UseExecutionEventsOptions) {
       }
     });
 
+    // On daemon disconnect: don't mark task as failed immediately — the daemon
+    // may reconnect and the task may still be running. The global toast and
+    // status dot already show "Reconnecting..." to the user.
+    // On reconnect: re-fetch task to get authoritative state from daemon DB.
+    // On reconnect-failed: only then mark running task as failed.
+    const unsubscribeDaemonReconnected = accomplish.onDaemonReconnected(() => {
+      if (id) {
+        loadTaskById(id);
+      }
+    });
+
+    const unsubscribeDaemonReconnectFailed = accomplish.onDaemonReconnectFailed?.(() => {
+      if (id) {
+        import('../../stores/taskStore').then(({ useTaskStore }) => {
+          const state = useTaskStore.getState();
+          if (state.currentTask?.id === id && state.currentTask.status === 'running') {
+            updateTaskStatus(id, 'failed');
+          }
+        });
+      }
+    });
+
     return () => {
       unsubscribeTask();
       unsubscribeTaskBatch?.();
       unsubscribePermission();
       unsubscribeStatusChange?.();
       unsubscribeDebugLog();
+      unsubscribeDaemonReconnected();
+      unsubscribeDaemonReconnectFailed?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, loadTaskById, addTaskUpdate, addTaskUpdateBatch, updateTaskStatus, setPermissionRequest]);

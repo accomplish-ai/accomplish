@@ -33,6 +33,14 @@ export function validateTaskConfig(config: TaskConfig): TaskConfig {
   if (config.outputSchema && typeof config.outputSchema === 'object') {
     validated.outputSchema = config.outputSchema;
   }
+  if (config.modelId) {
+    validated.modelId = sanitizeString(config.modelId, 'modelId', 128);
+  }
+  // Pass through file attachments — they are validated at the IPC/RPC boundary,
+  // not here. Stripping them silently breaks the daemon task path.
+  if (Array.isArray(config.files) && config.files.length > 0) {
+    validated.files = config.files;
+  }
 
   return validated;
 }

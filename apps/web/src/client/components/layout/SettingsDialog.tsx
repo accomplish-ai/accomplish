@@ -13,7 +13,8 @@ import { GeneralTab } from '@/components/settings/GeneralTab';
 import { SandboxSection } from '@/components/settings/SandboxSection';
 import { ConnectorsPanel } from '@/components/settings/connectors';
 import { IntegrationsPanel } from '@/components/settings/integrations';
-import { DaemonPanel } from '@/components/settings/DaemonPanel';
+import { SchedulerPanel } from '@/components/settings/scheduler';
+
 import { CloudBrowsersPanel } from '@/components/settings/CloudBrowsersPanel';
 import { cn } from '@/lib/utils';
 import logoImage from '/assets/logo-1.png';
@@ -196,11 +197,6 @@ export function SettingsDialog({
                   <ConnectorsPanel />
                 </div>
               )}
-              {s.activeTab === 'daemon' && (
-                <div className="space-y-6">
-                  <DaemonPanel />
-                </div>
-              )}
               {s.activeTab === 'browsers' && (
                 <div className="space-y-6">
                   <CloudBrowsersPanel />
@@ -209,6 +205,11 @@ export function SettingsDialog({
               {s.activeTab === 'integrations' && (
                 <div className="space-y-6">
                   <IntegrationsPanel />
+                </div>
+              )}
+              {s.activeTab === 'scheduler' && (
+                <div className="space-y-6">
+                  <SchedulerPanel />
                 </div>
               )}
               {s.activeTab === 'workspaces' && (

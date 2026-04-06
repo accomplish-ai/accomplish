@@ -28,7 +28,6 @@ export default defineConfig({
       exclude: [
         'src/**/*.d.ts',
         'src/**/index.ts',
-        'src/main/permission-api.ts',
         'src/main/store/freshInstallCleanup.ts',
         'src/main/test-utils/**',
       ],

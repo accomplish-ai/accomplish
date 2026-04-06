@@ -72,6 +72,7 @@ export class TaskService extends EventEmitter {
     modelId?: string;
     sessionId?: string;
     workingDirectory?: string;
+    workspaceId?: string;
   }): Promise<Task> {
     const taskId = params.taskId || createTaskId();
     const config: TaskConfig = {

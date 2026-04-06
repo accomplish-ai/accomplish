@@ -39,6 +39,7 @@ import type {
 import type {
   CloudBrowserConfig,
   MessagingConnectionStatus,
+  ScheduledTask,
 } from '@accomplish_ai/agent-core/common';
 
 // Define the API interface
@@ -552,10 +553,23 @@ interface AccomplishAPI {
   openSkillInEditor(filePath: string): Promise<void>;
   showSkillInFolder(filePath: string): Promise<void>;
 
-  // Daemon / Background Mode
-  getRunInBackground(): Promise<boolean>;
-  setRunInBackground(enabled: boolean): Promise<void>;
+  // Daemon
   getDaemonSocketPath(): Promise<string>;
+
+  // Daemon control
+  daemonPing(): Promise<{ status: string; uptime: number }>;
+  daemonRestart(): Promise<{ success: boolean }>;
+  daemonStop(): Promise<{ success: boolean }>;
+  daemonStart(): Promise<{ success: boolean }>;
+
+  // Close behavior
+  getCloseBehavior(): Promise<string>;
+  setCloseBehavior(behavior: string): Promise<void>;
+
+  // Daemon connection events
+  onDaemonDisconnected(callback: () => void): () => void;
+  onDaemonReconnected(callback: () => void): () => void;
+  onDaemonReconnectFailed(callback: () => void): () => void;
 
   // Sandbox configuration
   getSandboxConfig(): Promise<{
@@ -574,6 +588,13 @@ interface AccomplishAPI {
     dockerImage?: string;
     networkPolicy?: { allowOutbound: boolean; allowedHosts?: string[] };
   }): Promise<void>;
+
+  // Scheduler
+  listSchedules(workspaceId?: string): Promise<ScheduledTask[]>;
+  createSchedule(cron: string, prompt: string, workspaceId?: string): Promise<ScheduledTask>;
+  deleteSchedule(scheduleId: string): Promise<void>;
+  setScheduleEnabled(scheduleId: string, enabled: boolean): Promise<void>;
+  isAutoStartEnabled(): Promise<boolean>;
 
   // MCP Connectors
   getConnectors(): Promise<McpConnector[]>;

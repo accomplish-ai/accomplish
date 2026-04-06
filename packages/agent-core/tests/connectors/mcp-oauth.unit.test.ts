@@ -63,7 +63,9 @@ describe('discoverOAuthProtectedResourceMetadata', () => {
 
     await expect(
       discoverOAuthProtectedResourceMetadata('https://mcp.slack.com/mcp'),
-    ).rejects.toThrow('Failed to discover protected resource metadata for https://mcp.slack.com/mcp');
+    ).rejects.toThrow(
+      'Failed to discover protected resource metadata for https://mcp.slack.com/mcp',
+    );
   });
 });
 

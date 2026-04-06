@@ -222,14 +222,14 @@
     "providers": "服务商",
     "connectors": "连接器",
     "skills": "技能",
-    "daemon": "后台守护进程",
     "browsers": "云浏览器",
     "voiceInput": "语音输入",
     "workspaces": "工作区",
     "appearance": "外观",
     "general": "通用",
     "about": "关于",
-    "integrations": "集成"
+    "integrations": "集成",
+    "scheduler": "Scheduler"
   },
   "integrations": {
     "title": "消息平台集成",
@@ -259,6 +259,54 @@
     "toggle": {
       "label": "桌面通知",
       "description": "当应用在后台运行时，任务完成后显示系统通知。"
+    }
+  },
+  "daemon": {
+    "title": "Background Daemon",
+    "status": {
+      "running": "Running",
+      "stopped": "Stopped",
+      "reconnecting": "Reconnecting...",
+      "unknown": "Unknown",
+      "uptime": "Uptime: {{uptime}}",
+      "lastPing": "Last ping: {{seconds}}s ago",
+      "starting": "Starting...",
+      "stopping": "Stopping...",
+      "failed": "Failed",
+      "failedMessage": "The daemon could not start or reconnect. Try restarting manually."
+    },
+    "controls": {
+      "restart": "Restart",
+      "restarting": "Restarting...",
+      "stop": "Stop",
+      "stopping": "Stopping...",
+      "start": "Start Daemon",
+      "starting": "Starting..."
+    },
+    "closeBehavior": {
+      "label": "Window Close Behavior",
+      "keepDescription": "Closing the window hides it to the system tray. The daemon keeps running and tasks continue in the background.",
+      "stopDescription": "Closing the window stops the daemon and quits the app. Running tasks will be terminated.",
+      "warning": "Background features (external integrations) will not work when the window is closed."
+    },
+    "warningDialog": {
+      "title": "Disable Background Mode?",
+      "description": "This will terminate any running tasks when you close the window. Background features like external integrations will stop working.",
+      "cancel": "Cancel",
+      "continue": "Continue"
+    },
+    "confirmDialog": {
+      "title": "Are you sure?",
+      "description": "Tasks in progress will be lost when you close the window. This is not recommended for most users.",
+      "cancel": "Cancel",
+      "confirm": "Confirm"
+    },
+    "socket": {
+      "title": "Daemon Socket",
+      "description": "External clients (CLI tools, integrations) can send tasks via the local daemon socket using JSON-RPC 2.0.",
+      "pathLabel": "Socket Path",
+      "pathUnavailable": "Socket path unavailable.",
+      "copy": "Copy"
     }
   },
   "appearance": {
@@ -481,6 +529,30 @@
     "selectModelPlaceholder": "选择模型...",
     "infoBannerTitle": "使用 Transformers.js 进行本地推理",
     "infoBannerDescription": "模型使用 ONNX Runtime 在本地运行。建议使用较小的量化模型（Q4）以获得更快的推理速度。"
+  },
+  "scheduler": {
+    "title": "Scheduled Tasks",
+    "description": "Automate recurring tasks with cron expressions. Schedules persist across daemon restarts.",
+    "empty": "No scheduled tasks. Create one to automate recurring work.",
+    "addButton": "Add Schedule",
+    "autoStartWarning": "Enable 'Start at Login' in Settings \u2192 General to ensure schedules fire after system restart.",
+    "card": {
+      "lastRun": "Last run",
+      "nextRun": "Next run",
+      "never": "Never",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this scheduled task?"
+    },
+    "addDialog": {
+      "title": "New Scheduled Task",
+      "cronLabel": "Cron Expression",
+      "cronPlaceholder": "0 9 * * 1-5",
+      "cronHelp": "5-field format: minute hour day-of-month month day-of-week. Examples: '0 9 * * *' (daily at 9am), '0 9 * * 1-5' (weekdays at 9am), '*/30 * * * *' (every 30 min)",
+      "promptLabel": "Task Prompt",
+      "promptPlaceholder": "Check email and summarize important items",
+      "create": "Create Schedule",
+      "cancel": "Cancel"
+    }
   },
   "knowledgeNotes": {
     "title": "知识笔记",

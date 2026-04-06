@@ -60,6 +60,19 @@ export class DaemonRpcServer {
   }
 
   /**
+   * Whether any clients are currently connected.
+   * Used to fast-fail permission requests when no UI can respond.
+   */
+  hasConnectedClients(): boolean {
+    for (const client of this.clients.values()) {
+      if (!client.socket.destroyed) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Push a notification to all connected clients.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

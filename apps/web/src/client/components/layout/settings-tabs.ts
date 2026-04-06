@@ -4,11 +4,11 @@ import {
   Microphone,
   Info,
   Plugs,
-  Robot,
   FolderSimple,
   Globe,
   ChatCircle,
   GearSix,
+  Timer,
 } from '@phosphor-icons/react';
 
 export type SettingsTabId =
@@ -16,10 +16,10 @@ export type SettingsTabId =
   | 'voice'
   | 'skills'
   | 'connectors'
-  | 'daemon'
   | 'browsers'
   | 'workspaces'
   | 'integrations'
+  | 'scheduler'
   | 'general'
   | 'about';
 
@@ -27,10 +27,10 @@ export const SETTINGS_TABS = [
   { id: 'providers' as const, labelKey: 'tabs.providers', icon: Key },
   { id: 'skills' as const, labelKey: 'tabs.skills', icon: Lightning },
   { id: 'connectors' as const, labelKey: 'tabs.connectors', icon: Plugs },
-  { id: 'daemon' as const, labelKey: 'tabs.daemon', icon: Robot },
   { id: 'browsers' as const, labelKey: 'tabs.browsers', icon: Globe },
   { id: 'workspaces' as const, labelKey: 'tabs.workspaces', icon: FolderSimple },
   { id: 'integrations' as const, labelKey: 'tabs.integrations', icon: ChatCircle },
+  { id: 'scheduler' as const, labelKey: 'tabs.scheduler', icon: Timer },
   { id: 'voice' as const, labelKey: 'tabs.voiceInput', icon: Microphone },
   { id: 'general' as const, labelKey: 'tabs.general', icon: GearSix },
   { id: 'about' as const, labelKey: 'tabs.about', icon: Info },

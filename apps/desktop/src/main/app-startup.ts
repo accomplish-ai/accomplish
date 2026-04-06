@@ -9,8 +9,8 @@ import { app, BrowserWindow, dialog, nativeImage, nativeTheme } from 'electron';
 import path from 'path';
 import { FutureSchemaError } from '@accomplish_ai/agent-core';
 import type { ProviderId } from '@accomplish_ai/agent-core';
-import { initThoughtStreamApi, startThoughtStreamServer } from './thought-stream-api';
-import { getTaskManager } from './opencode';
+// thought-stream-api removed — daemon owns thought/checkpoint streaming.
+// Events forwarded via daemon notification subscription (task.thought, task.checkpoint).
 import { migrateLegacyData } from './store/legacyMigration';
 import { initializeStorage, getStorage } from './store/storage';
 import { getApiKey } from './store/secureStorage';
@@ -19,7 +19,11 @@ import { getLogCollector } from './logging';
 import { skillsManager } from './skills';
 import { startHuggingFaceServer } from './providers/huggingface-local';
 import { createTray } from './tray';
-import { bootstrapDaemon } from './daemon-bootstrap';
+import {
+  bootstrapDaemon,
+  registerNotificationForwarding,
+  getDaemonClient,
+} from './daemon-bootstrap';
 import { registerIPCHandlers } from './ipc/handlers';
 import { drainProtocolUrlQueue } from './protocol-handlers';
 
@@ -135,10 +139,22 @@ export async function startApp(
     // First launch or corrupt DB — nativeTheme stays 'system'
   }
 
-  const taskManager = getTaskManager();
-  const storage = getStorage();
-  await bootstrapDaemon({ taskManager, storage });
-  logMain('INFO', '[Main] Daemon bootstrapped');
+  // Daemon bootstrap is non-blocking — the GUI must always open even if
+  // the daemon fails to start. The status dot and toast will show the user
+  // that the daemon is disconnected, and task launch will be disabled.
+  // Skip daemon entirely in E2E mock mode — tests use mock task events.
+  if (process.env.E2E_MOCK_TASK_EVENTS !== '1') {
+    try {
+      await bootstrapDaemon();
+      logMain('INFO', '[Main] Daemon connected');
+    } catch (err) {
+      logMain('WARN', '[Main] Daemon bootstrap failed — GUI will open without daemon', {
+        error: String(err),
+      });
+    }
+  } else {
+    logMain('INFO', '[Main] E2E mock mode — skipping daemon bootstrap');
+  }
 
   registerIPCHandlers();
   logMain('INFO', '[Main] IPC handlers registered');
@@ -147,15 +163,57 @@ export async function startApp(
 
   const mainWindow = getMainWindow();
   if (mainWindow) {
-    initThoughtStreamApi(mainWindow);
-    startThoughtStreamServer();
+    // Forward daemon notifications to the renderer via IPC.
+    // Uses a dynamic getter so recreated windows (macOS activate) receive events.
+    registerNotificationForwarding(() => getMainWindow());
+    logMain('INFO', '[Main] Daemon notification forwarding registered');
 
     mainWindow.on('close', (event) => {
-      if (!isQuittingRef.value) {
-        event.preventDefault();
-        mainWindow?.hide();
-        logMain('INFO', '[Main] Window hidden to tray');
+      if (isQuittingRef.value) {
+        return; // Already quitting — let it close
       }
+
+      // Always prevent default and show a confirmation dialog
+      event.preventDefault();
+
+      void dialog
+        .showMessageBox(mainWindow, {
+          type: 'question',
+          title: 'Close Accomplish',
+          message: 'The background daemon will keep running.',
+          detail:
+            'Tasks and scheduled jobs will continue in the background. ' +
+            'You can reopen the app from the system tray.',
+          buttons: ['Close', 'Close & Stop Daemon', 'Cancel'],
+          defaultId: 0, // "Close" is the default
+          cancelId: 2, // "Cancel" maps to Escape key
+          noLink: true,
+        })
+        .then(({ response }) => {
+          if (response === 0) {
+            // Close app, daemon keeps running
+            logMain('INFO', '[Main] Closing app (daemon keeps running)');
+            isQuittingRef.value = true;
+            app.quit();
+          } else if (response === 1) {
+            // Close app AND stop daemon
+            logMain('INFO', '[Main] Closing app and stopping daemon');
+            try {
+              const client = getDaemonClient();
+              void client
+                .call('daemon.shutdown')
+                .catch(() => {})
+                .finally(() => {
+                  isQuittingRef.value = true;
+                  app.quit();
+                });
+            } catch {
+              isQuittingRef.value = true;
+              app.quit();
+            }
+          }
+          // response === 2 (Cancel) — do nothing, window stays open
+        });
     });
 
     createTray(mainWindow);

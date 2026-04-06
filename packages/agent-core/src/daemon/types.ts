@@ -54,6 +54,11 @@ export interface TaskStartParams {
   modelId?: string;
   sessionId?: string;
   workingDirectory?: string;
+  workspaceId?: string;
+  attachments?: import('../common/types/task.js').FileAttachmentInfo[];
+  allowedTools?: string[];
+  systemPromptAppend?: string;
+  outputSchema?: object;
 }
 
 export interface TaskStopParams {
@@ -80,20 +85,9 @@ export interface TaskStatusParams {
   taskId: string;
 }
 
-export interface PermissionRespondParams {
-  requestId: string;
-  taskId: string;
-  decision: 'allow' | 'deny';
-  message?: string;
-  selectedOptions?: string[];
-  customText?: string;
-}
-
-export interface SessionResumeParams {
-  sessionId: string;
-  prompt: string;
-  existingTaskId?: string;
-}
+// PermissionRespondParams and SessionResumeParams are defined in
+// common/types/daemon.ts (the canonical RPC contract). Removed local
+// duplicates to avoid drift.
 
 export interface HealthCheckResult {
   version: string;

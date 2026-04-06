@@ -12,6 +12,7 @@ import { OAuthProviderId } from '@accomplish_ai/agent-core/common';
 import Sidebar from './components/layout/Sidebar';
 import { TaskLauncher } from './components/TaskLauncher';
 import { AuthErrorToast } from './components/AuthErrorToast';
+import { DaemonConnectionToast } from './components/DaemonConnectionToast';
 import SettingsDialog from './components/layout/SettingsDialog';
 import { useTaskStore } from './stores/taskStore';
 import { SpinnerGap, Warning } from '@phosphor-icons/react';
@@ -55,7 +56,7 @@ export function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authSettingsOpen, setAuthSettingsOpen] = useState(false);
   const [authSettingsTab, setAuthSettingsTab] = useState<
-    'providers' | 'voice' | 'skills' | 'connectors' | 'about'
+    'providers' | 'voice' | 'skills' | 'connectors' | 'scheduler' | 'general' | 'about'
   >('providers');
   const [authSettingsProvider, setAuthSettingsProvider] = useState<ProviderId | undefined>(
     undefined,
@@ -164,6 +165,14 @@ export function App() {
 
       {/* Auth Error Toast - shown when OAuth session expires */}
       <AuthErrorToast error={authError} onReLogin={handleAuthReLogin} onDismiss={clearAuthError} />
+
+      {/* Daemon Connection Toast - shown when daemon disconnects */}
+      <DaemonConnectionToast
+        onOpenSettings={() => {
+          setAuthSettingsTab('general');
+          setAuthSettingsOpen(true);
+        }}
+      />
 
       {/* Settings Dialog for re-authentication */}
       <SettingsDialog

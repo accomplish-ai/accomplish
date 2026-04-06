@@ -12,6 +12,16 @@ const CHECKPOINT_URL = `http://127.0.0.1:${THOUGHT_STREAM_PORT}/checkpoint`;
 const THOUGHT_STREAM_TASK_ID =
   process.env.THOUGHT_STREAM_TASK_ID || process.env.ACCOMPLISH_TASK_ID || '';
 
+const AUTH_TOKEN = process.env.ACCOMPLISH_DAEMON_AUTH_TOKEN;
+
+function getHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (AUTH_TOKEN) {
+    headers['Authorization'] = `Bearer ${AUTH_TOKEN}`;
+  }
+  return headers;
+}
+
 interface ReportCheckpointInput {
   status: 'progress' | 'complete' | 'stuck';
   summary: string;
@@ -88,7 +98,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
     try {
       const response = await fetch(CHECKPOINT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({
           taskId: THOUGHT_STREAM_TASK_ID,
           status,

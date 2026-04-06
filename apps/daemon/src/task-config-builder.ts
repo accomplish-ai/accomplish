@@ -97,9 +97,7 @@ export async function buildCliArgs(config: TaskConfig, storage: StorageAPI): Pro
     // modelId provided without a provider — use storage model for the provider,
     // but override the model name so the caller's explicit modelId is honoured.
     const baseModel = storage.getActiveProviderModel() || storage.getSelectedModel();
-    selectedModel = baseModel
-      ? { provider: baseModel.provider, model: config.modelId }
-      : undefined;
+    selectedModel = baseModel ? { provider: baseModel.provider, model: config.modelId } : undefined;
   } else {
     const activeModel = storage.getActiveProviderModel();
     selectedModel = activeModel || storage.getSelectedModel();

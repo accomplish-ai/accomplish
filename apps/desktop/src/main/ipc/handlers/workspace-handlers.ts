@@ -14,6 +14,23 @@ import {
   deleteKnowledgeNote,
 } from '@accomplish_ai/agent-core';
 import { handle } from './utils';
+import { getDaemonClient } from '../../daemon-bootstrap';
+import { isDaemonStopped } from '../../daemon/daemon-connector';
+
+async function hasDaemonActiveTasks(): Promise<boolean> {
+  try {
+    // Always try the daemon first — it knows the real task count,
+    // even during the 30s drain window after daemon.shutdown
+    const client = getDaemonClient();
+    const count = await client.call('task.getActiveCount');
+    return count > 0;
+  } catch {
+    // Daemon unreachable. Two cases:
+    // 1. Explicitly stopped → no tasks running (allow workspace changes)
+    // 2. Crash/disconnect → tasks might still be running (block)
+    return !isDaemonStopped();
+  }
+}
 
 export function registerWorkspaceHandlers(): void {
   handle('workspace:list', async () => {
@@ -27,6 +44,11 @@ export function registerWorkspaceHandlers(): void {
   handle('workspace:switch', async (event: IpcMainInvokeEvent, workspaceId: string) => {
     const window = BrowserWindow.fromWebContents(event.sender);
 
+    // Check daemon for active tasks (replaces stale desktop TaskManager check)
+    if (await hasDaemonActiveTasks()) {
+      return { success: false, reason: 'Cannot switch workspace while tasks are running' };
+    }
+
     let switched: boolean;
     try {
       switched = workspaceManager.switchWorkspace(workspaceId);
@@ -36,7 +58,7 @@ export function registerWorkspaceHandlers(): void {
     }
 
     if (!switched) {
-      return { success: false, reason: 'Switch did not complete (task running or same workspace)' };
+      return { success: false, reason: 'Switch did not complete (same workspace)' };
     }
 
     if (window && !window.isDestroyed()) {
@@ -59,6 +81,12 @@ export function registerWorkspaceHandlers(): void {
 
   handle('workspace:delete', async (event: IpcMainInvokeEvent, id: string) => {
     const window = BrowserWindow.fromWebContents(event.sender);
+
+    // Check daemon for active tasks before deleting active workspace
+    if (workspaceManager.getActiveWorkspace() === id && (await hasDaemonActiveTasks())) {
+      return false;
+    }
+
     const deleted = workspaceManager.deleteWorkspace(id);
 
     if (deleted && window && !window.isDestroyed()) {

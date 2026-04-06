@@ -592,11 +592,36 @@ const accomplishAPI = {
   showSkillInFolder: (filePath: string): Promise<void> =>
     ipcRenderer.invoke('skills:show-in-folder', filePath),
 
-  // Daemon / Background Mode
-  getRunInBackground: (): Promise<boolean> => ipcRenderer.invoke('daemon:get-run-in-background'),
-  setRunInBackground: (enabled: boolean): Promise<void> =>
-    ipcRenderer.invoke('daemon:set-run-in-background', enabled),
+  // Daemon
   getDaemonSocketPath: (): Promise<string> => ipcRenderer.invoke('daemon:get-socket-path'),
+
+  // Daemon control
+  daemonPing: (): Promise<{ status: string; uptime: number }> => ipcRenderer.invoke('daemon:ping'),
+  daemonRestart: (): Promise<{ success: boolean }> => ipcRenderer.invoke('daemon:restart'),
+  daemonStop: (): Promise<{ success: boolean }> => ipcRenderer.invoke('daemon:stop'),
+  daemonStart: (): Promise<{ success: boolean }> => ipcRenderer.invoke('daemon:start'),
+
+  // Close behavior
+  getCloseBehavior: (): Promise<string> => ipcRenderer.invoke('daemon:get-close-behavior'),
+  setCloseBehavior: (behavior: string): Promise<void> =>
+    ipcRenderer.invoke('daemon:set-close-behavior', behavior),
+
+  // Daemon connection events
+  onDaemonDisconnected: (callback: () => void): (() => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('daemon:disconnected', listener);
+    return () => ipcRenderer.removeListener('daemon:disconnected', listener);
+  },
+  onDaemonReconnected: (callback: () => void): (() => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('daemon:reconnected', listener);
+    return () => ipcRenderer.removeListener('daemon:reconnected', listener);
+  },
+  onDaemonReconnectFailed: (callback: () => void): (() => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('daemon:reconnect-failed', listener);
+    return () => ipcRenderer.removeListener('daemon:reconnect-failed', listener);
+  },
 
   // Favorites
   addFavorite: (taskId: string): Promise<void> => ipcRenderer.invoke('favorites:add', taskId),
@@ -802,6 +827,17 @@ const accomplishAPI = {
     ipcRenderer.on('integrations:whatsapp:status', listener);
     return () => ipcRenderer.removeListener('integrations:whatsapp:status', listener);
   },
+
+  // ── Scheduler ─────────────────────────────────────────────────────────────
+  listSchedules: (workspaceId?: string): Promise<unknown[]> =>
+    ipcRenderer.invoke('scheduler:list', workspaceId),
+  createSchedule: (cron: string, prompt: string, workspaceId?: string): Promise<unknown> =>
+    ipcRenderer.invoke('scheduler:create', cron, prompt, workspaceId),
+  deleteSchedule: (scheduleId: string): Promise<void> =>
+    ipcRenderer.invoke('scheduler:delete', scheduleId),
+  setScheduleEnabled: (scheduleId: string, enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('scheduler:set-enabled', scheduleId, enabled),
+  isAutoStartEnabled: (): Promise<boolean> => ipcRenderer.invoke('daemon:is-auto-start-enabled'),
 };
 
 // Expose the API to the renderer

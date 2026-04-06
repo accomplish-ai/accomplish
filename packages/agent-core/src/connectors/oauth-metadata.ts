@@ -103,9 +103,7 @@ export async function discoverOAuthProtectedResourceMetadata(
       }
       const ct = res.headers.get('content-type') ?? '';
       if (!ct.toLowerCase().includes('application/json')) {
-        lastError = new Error(
-          `Non-JSON response from ${label} (Content-Type: ${ct || 'none'})`,
-        );
+        lastError = new Error(`Non-JSON response from ${label} (Content-Type: ${ct || 'none'})`);
         return undefined;
       }
       const body = (await res.json()) as Record<string, unknown>;
