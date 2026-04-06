@@ -37,16 +37,18 @@ export function useExecutionPauseActions(
   );
 
   const handleContinue = async () => {
-    await resumePausedTask('continue', s.isAuthPause);
+    return await resumePausedTask('continue', s.isAuthPause);
   };
 
+  const { pauseAction, setTaskActionError, setIsTaskActionRunning } = s;
+
   const handlePauseAction = useCallback(async () => {
-    if (!s.pauseAction || s.pauseAction.type !== 'oauth-connect') {
+    if (!pauseAction || pauseAction.type !== 'oauth-connect') {
       return;
     }
-    const providerName = getOAuthProviderDisplayName(s.pauseAction.providerId);
-    s.setTaskActionError(null);
-    s.setIsTaskActionRunning(true);
+    const providerName = getOAuthProviderDisplayName(pauseAction.providerId);
+    setTaskActionError(null);
+    setIsTaskActionRunning(true);
     try {
       const status = await accomplish.getSlackMcpOauthStatus();
       if (status.pendingAuthorization) {
@@ -59,17 +61,17 @@ export function useExecutionPauseActions(
       if (!refreshed.connected) {
         throw new Error(t('questionPrompt.oauthStillDisconnected', { provider: providerName }));
       }
-      await resumePausedTask(s.pauseAction.successText ?? `${providerName} is connected.`, true);
+      await resumePausedTask(pauseAction.successText ?? `${providerName} is connected.`, true);
     } catch (error) {
-      s.setTaskActionError(
+      setTaskActionError(
         error instanceof Error
           ? error.message
           : t('questionPrompt.oauthFailed', { provider: providerName }),
       );
     } finally {
-      s.setIsTaskActionRunning(false);
+      setIsTaskActionRunning(false);
     }
-  }, [accomplish, s, t, resumePausedTask]);
+  }, [accomplish, t, resumePausedTask, pauseAction, setTaskActionError, setIsTaskActionRunning]);
 
   const handleTaskAction = s.isConnectorAuthPause ? handlePauseAction : handleContinue;
 

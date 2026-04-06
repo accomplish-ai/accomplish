@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import type { ConnectedProvider, NimCredentials } from '@accomplish_ai/agent-core/common';
-import { ModelSelector, ConnectedControls, FormError } from '../shared';
-import { ConnectButton } from '../shared';
+import { ModelSelector, ConnectedControls, FormError, ConnectButton } from '../shared';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 
 export const NIM_DEFAULT_BASE_URL = 'https://integrate.api.nvidia.com/v1';

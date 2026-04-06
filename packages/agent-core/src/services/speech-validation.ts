@@ -41,9 +41,16 @@ export async function validateElevenLabsApiKey(
       };
     }
 
-    const errorData = await response.json().catch(() => ({}));
+    const rawText = await response.text().catch(() => '');
+    let errorData: Record<string, unknown> = {};
+    try {
+      errorData = JSON.parse(rawText);
+    } catch {
+      // Not JSON, use raw text below
+    }
     const errorMessage =
       (errorData as { error?: { message?: string } })?.error?.message ||
+      rawText ||
       `API returned status ${response.status}`;
     return { valid: false, error: `API error: ${errorMessage}` };
   } catch (error) {

@@ -98,11 +98,12 @@ export class SpeechService {
       formData.append('file', blob, 'audio.webm');
       formData.append('model_id', modelId);
 
+      const normalizedApiKey = apiKey.trim();
       const response = await fetchWithTimeout(
         'https://api.elevenlabs.io/v1/speech-to-text',
         {
           method: 'POST',
-          headers: { 'xi-api-key': apiKey },
+          headers: { 'xi-api-key': normalizedApiKey },
           body: formData,
         },
         ELEVENLABS_API_TIMEOUT_MS,

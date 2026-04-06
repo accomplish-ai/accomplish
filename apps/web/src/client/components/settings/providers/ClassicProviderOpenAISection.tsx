@@ -54,7 +54,7 @@ export function ClassicProviderOpenAISection({
       </div>
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-foreground">{t('apiKey.title')}</label>
+          <span className="text-sm font-medium text-foreground">{t('apiKey.title')}</span>
           {helpUrl && (
             <a
               href={helpUrl}

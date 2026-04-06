@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useId } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
   SelectTrigger,
@@ -42,8 +42,9 @@ export function SearchableSelect({
   const [search, setSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const instanceId = useId();
 
-  const listboxId = testId ? `${testId}-listbox` : 'searchable-select-listbox';
+  const listboxId = testId ? `${testId}-listbox` : `${instanceId}-listbox`;
 
   const showSearch = items.length > 10;
 

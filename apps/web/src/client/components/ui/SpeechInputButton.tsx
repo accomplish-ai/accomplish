@@ -14,8 +14,27 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { SpeechInputButtonProps } from './speech-input-button-types';
 import { formatDuration } from './speech-input-button-types';
+import { MicrophoneIcon } from './speechInputHelpers';
 
 export type { SpeechInputButtonProps } from './speech-input-button-types';
+export { MicrophoneIcon } from './speechInputHelpers';
+
+function getStatusIcon(
+  isTranscribing: boolean,
+  isRecording: boolean,
+  error?: Error | null,
+): React.ReactNode {
+  if (isTranscribing) {
+    return <SpinnerGap className="h-4 w-4 animate-spin" />;
+  }
+  if (isRecording) {
+    return <MicrophoneIcon isRecording className="h-4 w-4" />;
+  }
+  if (error) {
+    return <WarningCircle className="h-4 w-4" />;
+  }
+  return <Microphone className="h-4 w-4" />;
+}
 
 export function SpeechInputButton({
   isRecording,
@@ -113,15 +132,7 @@ export function SpeechInputButton({
             title={tooltipLabel}
             data-testid="speech-input-button"
           >
-            {isTranscribing ? (
-              <SpinnerGap className="h-4 w-4 animate-spin" />
-            ) : isRecording ? (
-              <MicrophoneIcon isRecording className="h-4 w-4" />
-            ) : error ? (
-              <WarningCircle className="h-4 w-4" />
-            ) : (
-              <Microphone className="h-4 w-4" />
-            )}
+            {getStatusIcon(isTranscribing, isRecording, error)}
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-sm">
@@ -144,26 +155,6 @@ export function SpeechInputButton({
       {/* Error retry helper text */}
       {error && !isRecording && !isTranscribing && (
         <div className="text-xs text-orange-600 dark:text-orange-400 shrink-0">Retry</div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Standalone microphone icon button (for use in other places)
- */
-export function MicrophoneIcon({
-  isRecording,
-  className,
-}: {
-  isRecording?: boolean;
-  className?: string;
-}) {
-  return (
-    <div className={cn('relative inline-flex items-center justify-center', className)}>
-      <Microphone className={cn('h-4 w-4', isRecording && 'text-destructive animate-pulse')} />
-      {isRecording && (
-        <div className="absolute inset-0 rounded-full border-2 border-destructive animate-ping opacity-75" />
       )}
     </div>
   );

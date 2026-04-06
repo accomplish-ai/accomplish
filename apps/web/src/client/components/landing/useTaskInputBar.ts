@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { createLogger } from '@/lib/logger';
 import type { FileAttachmentInfo } from '@accomplish_ai/agent-core';
-import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
+import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core';
 import { useSpeechInput } from '@/hooks/useSpeechInput';
 import { useTypingPlaceholder } from '@/hooks/useTypingPlaceholder';
 import { useSlashCommand } from '@/hooks/useSlashCommand';
@@ -67,7 +67,7 @@ export function useTaskInputBar({
 
   const slashCommand = useSlashCommand({
     value,
-    textareaRef: textareaRef as React.RefObject<HTMLTextAreaElement | null>,
+    textareaRef,
     onChange,
   });
 
@@ -94,7 +94,7 @@ export function useTaskInputBar({
   });
 
   const behavior = useTaskInputBehavior({
-    textareaRef: textareaRef as React.RefObject<HTMLTextAreaElement | null>,
+    textareaRef,
     value,
     isInputDisabled,
     isOverLimit,
