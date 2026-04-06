@@ -8,7 +8,7 @@ export function useExecutionPauseActions(s: CoreState) {
   const { accomplish, t } = s;
 
   const resumePausedTask = useCallback(
-    async (message: string, _bypassAuthPauseQueue: boolean): Promise<boolean> => {
+    async (message: string): Promise<boolean> => {
       const isE2EMode = await accomplish.isE2EMode();
       if (!isE2EMode) {
         const settings = await accomplish.getProviderSettings();
@@ -32,8 +32,8 @@ export function useExecutionPauseActions(s: CoreState) {
   );
 
   const handleContinue = useCallback(async () => {
-    return await resumePausedTask('continue', s.isAuthPause);
-  }, [resumePausedTask, s.isAuthPause]);
+    return await resumePausedTask('continue');
+  }, [resumePausedTask]);
 
   const { pauseAction, setTaskActionError, setIsTaskActionRunning } = s;
 
@@ -45,6 +45,7 @@ export function useExecutionPauseActions(s: CoreState) {
     setTaskActionError(null);
     setIsTaskActionRunning(true);
     try {
+      // Slack MCP is currently the only supported oauth-connect provider.
       const status = await accomplish.getSlackMcpOauthStatus();
       if (status.pendingAuthorization) {
         await accomplish.logoutSlackMcp();
@@ -56,10 +57,7 @@ export function useExecutionPauseActions(s: CoreState) {
       if (!refreshed.connected) {
         throw new Error(t('questionPrompt.oauthStillDisconnected', { provider: providerName }));
       }
-      return await resumePausedTask(
-        pauseAction.successText ?? `${providerName} is connected.`,
-        true,
-      );
+      return await resumePausedTask(pauseAction.successText ?? `${providerName} is connected.`);
     } catch (error) {
       setTaskActionError(
         error instanceof Error
