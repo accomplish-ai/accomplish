@@ -1,8 +1,14 @@
-import * as crypto from 'crypto';
-import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { ApiKeyProvider } from '../../common/types/provider.js';
+import {
+  deriveMachineKey,
+  generateSalt,
+  encryptValue,
+  decryptValue,
+  ALL_API_KEY_PROVIDERS,
+  atomicWriteFile,
+} from './secure-storage-crypto.js';
 
 /**
  * AES-256-GCM encryption using machine-derived keys. Less secure than OS Keychain
@@ -23,16 +29,14 @@ interface SecureStorageSchema {
 export type { ApiKeyProvider };
 
 export class SecureStorage {
-  private storagePath: string;
   private appId: string;
   private filePath: string;
   private derivedKey: Buffer | null = null;
   private data: SecureStorageSchema | null = null;
 
   constructor(options: SecureStorageOptions) {
-    this.storagePath = options.storagePath;
     this.appId = options.appId;
-    this.filePath = path.join(this.storagePath, options.fileName || 'secure-storage.json');
+    this.filePath = path.join(options.storagePath, options.fileName || 'secure-storage.json');
   }
 
   private loadData(): SecureStorageSchema {
@@ -56,36 +60,14 @@ export class SecureStorage {
 
   private saveData(): void {
     if (!this.data) return;
-
-    const dir = path.dirname(this.filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    // Atomic write: write to temp file, then rename
-    // This prevents data loss if the process crashes mid-write
-    const tempPath = `${this.filePath}.${process.pid}.tmp`;
-    const content = JSON.stringify(this.data, null, 2);
-
-    try {
-      fs.writeFileSync(tempPath, content, { mode: 0o600 });
-      fs.renameSync(tempPath, this.filePath);
-    } catch (error) {
-      // Clean up temp file if rename fails
-      try {
-        fs.unlinkSync(tempPath);
-      } catch {
-        // Ignore cleanup errors
-      }
-      throw error;
-    }
+    atomicWriteFile(this.filePath, JSON.stringify(this.data, null, 2));
   }
 
   private getSalt(): Buffer {
     const data = this.loadData();
 
     if (!data.salt) {
-      const salt = crypto.randomBytes(32);
+      const salt = generateSalt();
       data.salt = salt.toString('base64');
       this.saveData();
     }
@@ -98,51 +80,17 @@ export class SecureStorage {
       return this.derivedKey;
     }
 
-    const machineData = [os.platform(), os.homedir(), os.userInfo().username, this.appId].join(':');
-
     const salt = this.getSalt();
-
-    this.derivedKey = crypto.pbkdf2Sync(machineData, salt, 100000, 32, 'sha256');
-
+    this.derivedKey = deriveMachineKey(this.appId, salt);
     return this.derivedKey;
   }
 
   private encryptValue(value: string): string {
-    const key = this.getDerivedKey();
-    const iv = crypto.randomBytes(12);
-
-    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-
-    let encrypted = cipher.update(value, 'utf8', 'base64');
-    encrypted += cipher.final('base64');
-
-    const authTag = cipher.getAuthTag();
-
-    return `${iv.toString('base64')}:${authTag.toString('base64')}:${encrypted}`;
+    return encryptValue(value, this.getDerivedKey());
   }
 
   private decryptValue(encryptedData: string): string | null {
-    try {
-      const parts = encryptedData.split(':');
-      if (parts.length !== 3) {
-        return null;
-      }
-
-      const [ivBase64, authTagBase64, ciphertext] = parts;
-      const key = this.getDerivedKey();
-      const iv = Buffer.from(ivBase64, 'base64');
-      const authTag = Buffer.from(authTagBase64, 'base64');
-
-      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-      decipher.setAuthTag(authTag);
-
-      let decrypted = decipher.update(ciphertext, 'base64', 'utf8');
-      decrypted += decipher.final('utf8');
-
-      return decrypted;
-    } catch {
-      return null;
-    }
+    return decryptValue(encryptedData, this.getDerivedKey());
   }
 
   storeApiKey(provider: string, apiKey: string): void {
@@ -173,29 +121,10 @@ export class SecureStorage {
   }
 
   async getAllApiKeys(): Promise<Record<ApiKeyProvider, string | null>> {
-    const providers: ApiKeyProvider[] = [
-      'anthropic',
-      'openai',
-      'openrouter',
-      'google',
-      'xai',
-      'deepseek',
-      'moonshot',
-      'zai',
-      'azure-foundry',
-      'custom',
-      'bedrock',
-      'litellm',
-      'minimax',
-      'lmstudio',
-      'elevenlabs',
-    ];
-
     const result: Record<string, string | null> = {};
-    for (const provider of providers) {
+    for (const provider of ALL_API_KEY_PROVIDERS) {
       result[provider] = this.getApiKey(provider);
     }
-
     return result as Record<ApiKeyProvider, string | null>;
   }
 
@@ -205,7 +134,9 @@ export class SecureStorage {
 
   getBedrockCredentials(): Record<string, string> | null {
     const stored = this.getApiKey('bedrock');
-    if (!stored) return null;
+    if (!stored) {
+      return null;
+    }
     try {
       return JSON.parse(stored);
     } catch {
@@ -221,17 +152,12 @@ export class SecureStorage {
   listStoredCredentials(): Array<{ account: string; password: string }> {
     const data = this.loadData();
     const credentials: Array<{ account: string; password: string }> = [];
-
     for (const key of Object.keys(data.values)) {
       const decrypted = this.decryptValue(data.values[key]);
       if (decrypted) {
-        credentials.push({
-          account: key,
-          password: decrypted,
-        });
+        credentials.push({ account: key, password: decrypted });
       }
     }
-
     return credentials;
   }
 

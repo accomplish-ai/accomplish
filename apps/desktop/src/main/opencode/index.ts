@@ -32,28 +32,7 @@ export {
 
 export { loginOpenAiWithChatGpt } from './auth-browser';
 
-import { createTaskManager, type TaskManagerAPI } from '@accomplish_ai/agent-core';
-import {
-  createElectronTaskManagerOptions,
-  isCliAvailable,
-  getBundledOpenCodeVersion,
-} from './electron-options';
-
-let taskManagerInstance: TaskManagerAPI | null = null;
-
-export function getTaskManager(): TaskManagerAPI {
-  if (!taskManagerInstance) {
-    taskManagerInstance = createTaskManager(createElectronTaskManagerOptions());
-  }
-  return taskManagerInstance;
-}
-
-export function disposeTaskManager(): void {
-  if (taskManagerInstance) {
-    taskManagerInstance.dispose();
-    taskManagerInstance = null;
-  }
-}
+import { isCliAvailable, getBundledOpenCodeVersion } from './electron-options';
 
 export async function isOpenCodeCliInstalled(): Promise<boolean> {
   return isCliAvailable();

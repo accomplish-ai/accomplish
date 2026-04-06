@@ -5,56 +5,27 @@ import { fileURLToPath } from 'node:url';
 import {
   DaemonRpcServer,
   getSocketPath,
+  getPidFilePath,
   acquirePidLock,
   installCrashHandlers,
   type PidLockHandle,
-  taskConfigSchema,
-  permissionResponseSchema,
-  resumeSessionSchema,
-  validate,
+  PERMISSION_API_PORT,
+  QUESTION_API_PORT,
+  THOUGHT_STREAM_PORT,
 } from '@accomplish_ai/agent-core';
-import { z } from 'zod';
 import { StorageService } from './storage-service.js';
 import { TaskService } from './task-service.js';
 import { PermissionService } from './permission-service.js';
 import { ThoughtStreamService } from './thought-stream-service.js';
+import { SchedulerService } from './scheduler-service.js';
 import { HealthService, VERSION } from './health.js';
 import { parseArgs } from './cli.js';
+import { registerRpcMethods, safeHandler } from './daemon-routes.js';
+import { registerTaskEventForwarding } from './task-event-forwarding.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const DRAIN_TIMEOUT_MS = 30_000;
-
-function sanitizeErrorMessage(err: unknown): string {
-  if (err instanceof z.ZodError) {
-    return `Invalid parameters: ${err.issues.map((i) => i.message).join('; ')}`;
-  }
-  const msg = err instanceof Error ? err.message : 'Internal error';
-  if (process.env.NODE_ENV === 'development') {
-    return msg;
-  }
-  const home = homedir();
-  return msg.replace(
-    new RegExp(home.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/[^\\s:]*', 'g'),
-    '~/...',
-  );
-}
-
-function safeHandler(
-  fn: (params: unknown) => Promise<unknown>,
-): (params: unknown) => Promise<unknown> {
-  return async (params) => {
-    try {
-      return await fn(params);
-    } catch (err) {
-      throw new Error(sanitizeErrorMessage(err));
-    }
-  };
-}
-
-const taskIdSchema = z.object({ taskId: z.string().min(1) });
-const taskStartSchema = taskConfigSchema.extend({ modelId: z.string().optional() });
-
 let pidLock: PidLockHandle | null = null;
 
 async function main(): Promise<void> {
@@ -67,10 +38,32 @@ async function main(): Promise<void> {
 
   installCrashHandlers();
 
-  console.log('[Daemon] Starting...');
+  // Resolve dataDir early — all identity files (socket, PID, DB) derive from it.
+  // --data-dir is required by default. Only explicitly opted-in dev mode skips it,
+  // so a misconfigured launcher can never silently use the wrong profile.
+  const dataDir = args.dataDir;
+  const isDevMode = process.env.ACCOMPLISH_DAEMON_DEV === '1';
+  if (!dataDir && !isDevMode) {
+    console.error(
+      '[Daemon] Error: --data-dir is required.\n' +
+        'The daemon must know which data directory to use so it shares the same\n' +
+        'database, socket, and PID file as the desktop app.\n\n' +
+        'Usage: node daemon/index.js --data-dir /path/to/userData\n\n' +
+        'For local development without --data-dir, set ACCOMPLISH_DAEMON_DEV=1\n' +
+        'to fall back to ~/.accomplish.',
+    );
+    process.exit(1);
+  }
 
-  // 1. Acquire PID lock (atomic, with stale detection)
-  pidLock = acquirePidLock();
+  if (!dataDir && isDevMode) {
+    console.warn('[Daemon] Warning: running in dev mode without --data-dir, using ~/.accomplish');
+  }
+
+  console.log(`[Daemon] Starting... (dataDir=${dataDir ?? '~/.accomplish (dev fallback)'})`);
+
+  // 1. Acquire PID lock scoped to dataDir (atomic, with stale detection)
+  const pidPath = getPidFilePath(dataDir);
+  pidLock = acquirePidLock(pidPath);
   console.log(`[Daemon] PID lock acquired: ${pidLock.pidPath} (pid=${process.pid})`);
 
   // 2. Generate per-session auth token for HTTP APIs
@@ -78,11 +71,10 @@ async function main(): Promise<void> {
 
   // 3. Initialize storage (use shared data dir if provided, enabling shared DB with desktop)
   const storageService = new StorageService();
-  const storage = storageService.initialize(args.dataDir);
+  const storage = storageService.initialize(dataDir);
 
   // 4. Crash recovery: mark stale running tasks as failed
-  const allTasks = storage.getTasks();
-  for (const task of allTasks) {
+  for (const task of storage.getTasks()) {
     if (task.status === 'running') {
       console.warn(`[Daemon] Crash recovery: marking stale task ${task.id} as failed`);
       storage.updateTaskStatus(task.id, 'failed', new Date().toISOString());
@@ -90,33 +82,42 @@ async function main(): Promise<void> {
   }
 
   // 5. Create services
-  const userDataPath = args.dataDir || path.join(homedir(), '.accomplish');
-  const mcpToolsPath =
-    process.env.MCP_TOOLS_PATH ||
-    path.resolve(__dirname, '..', '..', '..', 'packages', 'agent-core', 'mcp-tools');
-  const isPackaged = process.env.ACCOMPLISH_IS_PACKAGED === '1';
+  // Packaged-mode context: CLI args take precedence over env vars (for Windows login-item).
+  const userDataPath = dataDir || path.join(homedir(), '.accomplish');
+  const isPackaged = args.isPackaged || process.env.ACCOMPLISH_IS_PACKAGED === '1';
+  const resourcesPath = args.resourcesPath || process.env.ACCOMPLISH_RESOURCES_PATH || '';
+  const appPath = args.appPath || process.env.ACCOMPLISH_APP_PATH || '';
+  const mcpToolsPath = isPackaged
+    ? path.join(resourcesPath, 'mcp-tools')
+    : process.env.MCP_TOOLS_PATH ||
+      path.resolve(__dirname, '..', '..', '..', 'packages', 'agent-core', 'mcp-tools');
   const taskService = new TaskService(storage, {
     userDataPath,
     mcpToolsPath,
     isPackaged,
-    resourcesPath: process.env.ACCOMPLISH_RESOURCES_PATH,
-    appPath: process.env.ACCOMPLISH_APP_PATH,
+    resourcesPath,
+    appPath,
   });
   const healthService = new HealthService();
   const permissionService = new PermissionService(authToken);
   const thoughtStreamService = new ThoughtStreamService(authToken);
+  const schedulerService = new SchedulerService(storage, (prompt, workspaceId) => {
+    void taskService.startTask({ prompt, workspaceId });
+  });
 
-  // 6. Create RPC server (moved before init calls to avoid TDZ)
+  // 6. Create RPC server — socket path derived from dataDir for profile isolation
+  const socketPath = args.socketPath || getSocketPath(dataDir);
   const rpc = new DaemonRpcServer({
-    socketPath: args.socketPath,
+    socketPath,
     onConnection: (clientId) => console.log(`[Daemon] Client connected: ${clientId}`),
     onDisconnection: (clientId) => console.log(`[Daemon] Client disconnected: ${clientId}`),
   });
 
-  // 7. Initialize permission service (rpc is now declared)
+  // 7. Initialize permission service
   permissionService.init(
     () => taskService.getActiveTaskId(),
     (request) => rpc.notify('permission.request', request),
+    () => rpc.hasConnectedClients(),
   );
 
   // 8. Set up thought stream event forwarding
@@ -125,158 +126,27 @@ async function main(): Promise<void> {
     (event) => rpc.notify('task.checkpoint', event),
   );
 
-  // 9. Register RPC methods with Zod validation and error sanitization
-  rpc.registerMethod(
-    'task.start',
-    safeHandler((params) => {
-      const validated = validate(taskStartSchema, params);
-      return taskService.startTask(validated);
-    }),
-  );
-  rpc.registerMethod(
-    'task.stop',
-    safeHandler((params) => {
-      const validated = validate(taskIdSchema, params);
-      return taskService.stopTask(validated);
-    }),
-  );
-  rpc.registerMethod(
-    'task.list',
-    safeHandler(() => Promise.resolve(taskService.listTasks())),
-  );
-  rpc.registerMethod(
-    'task.status',
-    safeHandler((params) => {
-      const validated = validate(taskIdSchema, params);
-      return Promise.resolve(taskService.getTaskStatus(validated));
-    }),
-  );
-  rpc.registerMethod(
-    'task.interrupt',
-    safeHandler((params) => {
-      const validated = validate(taskIdSchema, params);
-      return taskService.interruptTask(validated);
-    }),
-  );
-  rpc.registerMethod(
-    'task.get',
-    safeHandler((params) => {
-      const validated = validate(taskIdSchema, params);
-      return Promise.resolve(storage.getTask(validated.taskId) || null);
-    }),
-  );
-  rpc.registerMethod(
-    'task.delete',
-    safeHandler((params) => {
-      const validated = validate(taskIdSchema, params);
-      storage.deleteTask(validated.taskId);
-      return Promise.resolve();
-    }),
-  );
-  rpc.registerMethod(
-    'task.clearHistory',
-    safeHandler(() => {
-      storage.clearHistory();
-      return Promise.resolve();
-    }),
-  );
-  rpc.registerMethod(
-    'task.getTodos',
-    safeHandler((params) => {
-      const validated = validate(taskIdSchema, params);
-      return Promise.resolve(storage.getTodosForTask(validated.taskId));
-    }),
-  );
-  rpc.registerMethod(
-    'permission.respond',
-    safeHandler((params) => {
-      const validated = validate(permissionResponseSchema, params);
-      const { requestId, taskId, decision, selectedOptions, customText } = validated;
+  // 9 & 10. Register RPC methods and task event forwarding
+  const routeServices = {
+    rpc,
+    taskService,
+    permissionService,
+    thoughtStreamService,
+    healthService,
+    storageService,
+    schedulerService,
+  };
+  registerRpcMethods(routeServices);
+  registerTaskEventForwarding(routeServices);
 
-      if (requestId && permissionService.isFilePermissionRequest(requestId)) {
-        const allowed = decision === 'allow';
-        const resolved = permissionService.resolvePermission(requestId, allowed);
-        if (resolved) {
-          return Promise.resolve();
-        }
-      }
-
-      if (requestId && permissionService.isQuestionRequest(requestId)) {
-        const denied = decision === 'deny';
-        const resolved = permissionService.resolveQuestion(requestId, {
-          selectedOptions,
-          customText,
-          denied,
-        });
-        if (resolved) {
-          return Promise.resolve();
-        }
-      }
-
-      if (requestId) {
-        console.warn(`[Daemon] Permission response for unmatched requestId: ${requestId}`);
-        return Promise.reject(new Error(`No pending permission request with id: ${requestId}`));
-      }
-
-      if (!taskService.hasActiveTask(taskId)) {
-        return Promise.resolve();
-      }
-
-      if (decision === 'allow') {
-        const message = selectedOptions?.join(', ') || 'yes';
-        return taskService.sendResponse(taskId, message);
-      }
-      return taskService.sendResponse(taskId, 'no');
-    }),
-  );
-  rpc.registerMethod(
-    'session.resume',
-    safeHandler((params) => {
-      const validated = validate(resumeSessionSchema, params);
-      return taskService.resumeSession(validated);
-    }),
-  );
-  rpc.registerMethod(
-    'health.check',
-    safeHandler(() => Promise.resolve(healthService.getStatus())),
-  );
-
-  // 10. Forward task events as RPC notifications
-  taskService.on('progress', (data) => {
-    rpc.notify('task.progress', data);
-  });
-  taskService.on('message', (data) => {
-    rpc.notify('task.message', data);
-  });
-  taskService.on('complete', (data: { taskId: string }) => {
-    thoughtStreamService.unregisterTask(data.taskId);
-    rpc.notify('task.complete', data);
-  });
-  taskService.on('error', (data: { taskId: string }) => {
-    thoughtStreamService.unregisterTask(data.taskId);
-    rpc.notify('task.error', data);
-  });
-  taskService.on('permission', (data) => {
-    rpc.notify('permission.request', data);
-  });
-  taskService.on('statusChange', (data: { taskId: string; status: string }) => {
-    if (data.status === 'running') {
-      thoughtStreamService.registerTask(data.taskId);
-    } else if (data.status === 'cancelled') {
-      thoughtStreamService.unregisterTask(data.taskId);
-    }
-    healthService.setActiveTaskCount(taskService.getActiveTaskCount());
-    rpc.notify('task.statusChange', data);
-  });
-  taskService.on('summary', (data: { taskId: string; summary: string }) => {
-    rpc.notify('task.summary', data);
-  });
-
-  // 11. Start all servers
+  // 11. Start all servers on well-known ports so MCP tools can connect reliably.
+  // The constants (PERMISSION_API_PORT=9226, QUESTION_API_PORT=9227,
+  // THOUGHT_STREAM_PORT=9228) must match what config-generator writes
+  // into the MCP tool environment.
   await rpc.start();
-  await permissionService.startPermissionApiServer();
-  await permissionService.startQuestionApiServer();
-  await thoughtStreamService.start();
+  await permissionService.startPermissionApiServer(PERMISSION_API_PORT);
+  await permissionService.startQuestionApiServer(QUESTION_API_PORT);
+  await thoughtStreamService.start(THOUGHT_STREAM_PORT);
 
   // Pass auth token and actual ports to child processes via environment
   const permPorts = permissionService.getPorts();
@@ -290,9 +160,14 @@ async function main(): Promise<void> {
   }
   if (thoughtPort) {
     process.env.ACCOMPLISH_THOUGHT_STREAM_PORT = String(thoughtPort);
+    // MCP tools (report-thought, report-checkpoint) read THOUGHT_STREAM_PORT
+    process.env.THOUGHT_STREAM_PORT = String(thoughtPort);
   }
 
-  const socketPath = args.socketPath || getSocketPath();
+  // Start scheduler after RPC server is ready
+  schedulerService.start();
+  console.log('[Daemon] Scheduler started');
+
   console.log(`[Daemon] Listening on ${socketPath}`);
 
   // 12. Graceful shutdown with drain phase
@@ -304,13 +179,15 @@ async function main(): Promise<void> {
     shuttingDown = true;
     console.log('[Daemon] Shutting down...');
 
-    // Drain phase: wait for active tasks to finish
+    // Stop scheduler FIRST — prevent new tasks from being launched during drain
+    schedulerService.stop();
+    console.log('[Daemon] Scheduler stopped');
+
     const activeCount = taskService.getActiveTaskCount();
     if (activeCount > 0) {
       console.log(`[Daemon] Draining ${activeCount} active task(s)...`);
       await new Promise<void>((resolve) => {
         let remaining = taskService.getActiveTaskCount();
-
         if (remaining === 0) {
           resolve();
           return;
@@ -332,7 +209,6 @@ async function main(): Promise<void> {
             resolve();
           }
         };
-
         taskService.on('complete', onComplete);
         taskService.on('error', onComplete);
       });
@@ -341,11 +217,9 @@ async function main(): Promise<void> {
     thoughtStreamService.close();
     permissionService.close();
     taskService.dispose();
-
     await rpc.stop();
     storageService.close();
     pidLock?.release();
-
     console.log('[Daemon] Shutdown complete');
     process.exit(0);
   };
@@ -355,6 +229,17 @@ async function main(): Promise<void> {
     pidLock?.release();
     process.exit(1);
   };
+
+  // Register daemon.shutdown RPC method (must be after shutdown() is defined)
+  rpc.registerMethod(
+    'daemon.shutdown',
+    safeHandler(async () => {
+      console.log('[Daemon] Shutdown requested via RPC');
+      // Defer actual shutdown to after the RPC response is sent
+      setTimeout(() => void shutdown(), 100);
+      return Promise.resolve();
+    }),
+  );
 
   process.on('SIGINT', () => {
     setTimeout(forceShutdown, DRAIN_TIMEOUT_MS + 10_000).unref();

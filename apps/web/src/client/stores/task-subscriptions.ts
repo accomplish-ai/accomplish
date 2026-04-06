@@ -69,11 +69,18 @@ export function registerTaskSubscriptions(getStore: () => import('./taskStore').
         state.setSetupProgress(null, null);
       }
       state.clearStartupStage(updateEvent.taskId);
+
+      // Refresh sidebar task list when ANY task completes — catches scheduled
+      // tasks and other daemon-initiated tasks the UI didn't start.
+      void state.loadTasks();
     }
   });
 
   window.accomplish.onTaskSummary?.((data: { taskId: string; summary: string }) => {
-    getStore().setTaskSummary(data.taskId, data.summary);
+    const state = getStore();
+    state.setTaskSummary(data.taskId, data.summary);
+    // Refresh sidebar to show new task with its summary title
+    void state.loadTasks();
   });
 
   window.accomplish.onTodoUpdate?.((data: { taskId: string; todos: TodoItem[] }) => {
@@ -85,6 +92,14 @@ export function registerTaskSubscriptions(getStore: () => import('./taskStore').
 
   window.accomplish.onAuthError?.((data: { providerId: string; message: string }) => {
     getStore().setAuthError(data);
+  });
+
+  window.accomplish.onDaemonReconnected(() => {
+    const state = getStore();
+    void state.loadTasks();
+    if (state.currentTask?.id) {
+      void state.loadTaskById(state.currentTask.id);
+    }
   });
 
   window.accomplish.onWorkspaceChanged?.(async () => {

@@ -94,7 +94,6 @@ export function getMessagesForTask(taskId: string): TaskMessage[] {
         toolInput = row.tool_input;
       }
     }
-
     messages.push({
       id: row.id,
       type: row.type as TaskMessage['type'],

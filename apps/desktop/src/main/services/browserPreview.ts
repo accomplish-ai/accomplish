@@ -17,7 +17,6 @@ import {
   resolveBrowserWsEndpoint,
   autoStartScreencast as autoStartScreencastUtil,
 } from './browser-preview-utils';
-
 import { getLogCollector } from '@main/logging';
 
 const DEFAULT_PAGE_NAME = 'main';

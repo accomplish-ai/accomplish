@@ -8,7 +8,7 @@
  */
 
 import type {
-  TaskConfig,
+  FileAttachmentInfo,
   Task,
   TaskMessage,
   TaskProgress,
@@ -76,13 +76,26 @@ export const JSON_RPC_ERRORS = {
 
 /** Parameters for task.start */
 export interface TaskStartParams {
-  taskId: string;
-  config: TaskConfig;
+  prompt: string;
+  taskId?: string;
+  modelId?: string;
+  sessionId?: string;
+  workingDirectory?: string;
+  workspaceId?: string;
+  attachments?: FileAttachmentInfo[];
+  allowedTools?: string[];
+  systemPromptAppend?: string;
+  outputSchema?: object;
 }
 
 /** Parameters for task.cancel / task.interrupt */
 export interface TaskIdParams {
   taskId: string;
+}
+
+/** Parameters for task.list (optional workspace filter) */
+export interface TaskListParams {
+  workspaceId?: string;
 }
 
 /** Parameters for task.sendResponse */
@@ -92,15 +105,16 @@ export interface TaskSendResponseParams {
 }
 
 /** Parameters for permission.respond */
-export interface PermissionRespondParams {
-  response: PermissionResponse;
-}
+/** Flat permission response — matches permissionResponseSchema validation. */
+export type PermissionRespondParams = PermissionResponse;
 
 /** Parameters for session.resume */
 export interface SessionResumeParams {
   sessionId: string;
   prompt: string;
   existingTaskId?: string;
+  workspaceId?: string;
+  attachments?: import('./task.js').FileAttachmentInfo[];
 }
 
 /** Parameters for storage.saveTask */
@@ -132,17 +146,20 @@ export interface StorageDeleteTaskParams {
   taskId: string;
 }
 
-/** A scheduled task definition. */
 export interface ScheduledTask {
   id: string;
   /** Cron expression (e.g. '0 9 * * 1-5' = weekdays at 9am) */
   cron: string;
   /** Task prompt to execute */
   prompt: string;
+  /** Optional workspace scope */
+  workspaceId?: string;
   /** Whether this schedule is active */
   enabled: boolean;
   /** ISO timestamp of creation */
   createdAt: string;
+  /** ISO timestamp of last update */
+  updatedAt: string;
   /** ISO timestamp of last execution, if any */
   lastRunAt?: string;
   /** ISO timestamp of next planned execution */
@@ -153,6 +170,7 @@ export interface ScheduledTask {
 export interface TaskScheduleParams {
   cron: string;
   prompt: string;
+  workspaceId?: string;
 }
 
 /** Parameters for task.cancelScheduled */
@@ -180,40 +198,12 @@ export interface DaemonMethodMap {
   'task.start': { params: TaskStartParams; result: Task };
   'task.cancel': { params: TaskIdParams; result: void };
   'task.interrupt': { params: TaskIdParams; result: void };
-  'task.sendResponse': { params: TaskSendResponseParams; result: void };
-  'task.list': { params: undefined; result: Task[] };
+  'task.list': { params: TaskListParams | undefined; result: Task[] };
   'task.get': { params: TaskIdParams; result: Task | null };
   'task.delete': { params: StorageDeleteTaskParams; result: void };
   'task.clearHistory': { params: undefined; result: void };
   'task.getTodos': { params: TaskIdParams; result: TodoItem[] };
-  'task.getActiveIds': { params: undefined; result: string[] };
   'task.getActiveCount': { params: undefined; result: number };
-  'task.hasActive': { params: TaskIdParams; result: boolean };
-  'task.isQueued': { params: TaskIdParams; result: boolean };
-  'task.cancelQueued': { params: TaskIdParams; result: boolean };
-
-  // Session
-  'session.resume': { params: SessionResumeParams; result: Task };
-
-  // Permission
-  'permission.respond': { params: PermissionRespondParams; result: void };
-
-  // Storage — task persistence
-  'storage.saveTask': { params: StorageSaveTaskParams; result: void };
-  'storage.updateTaskStatus': { params: StorageUpdateTaskStatusParams; result: void };
-  'storage.updateTaskSummary': { params: StorageUpdateTaskSummaryParams; result: void };
-  'storage.addTaskMessage': { params: StorageAddTaskMessageParams; result: void };
-
-  // Scheduling
-  'task.schedule': { params: TaskScheduleParams; result: ScheduledTask };
-  'task.listScheduled': { params: undefined; result: ScheduledTask[] };
-  'task.cancelScheduled': { params: TaskCancelScheduledParams; result: void };
-
-  // Health
-  'daemon.ping': { params: undefined; result: { status: 'ok'; uptime: number } };
-
-  // Extended task methods used by the standalone daemon process
-  'task.stop': { params: TaskIdParams; result: void };
   'task.status': {
     params: TaskIdParams;
     result: {
@@ -223,6 +213,25 @@ export interface DaemonMethodMap {
       createdAt: string;
     } | null;
   };
+
+  // Session
+  'session.resume': { params: SessionResumeParams; result: Task };
+
+  // Permission
+  'permission.respond': { params: PermissionRespondParams; result: void };
+
+  // Scheduling
+  'task.schedule': { params: TaskScheduleParams; result: ScheduledTask };
+  'task.listScheduled': { params: { workspaceId?: string } | undefined; result: ScheduledTask[] };
+  'task.cancelScheduled': { params: TaskCancelScheduledParams; result: void };
+  'task.setScheduleEnabled': {
+    params: { scheduleId: string; enabled: boolean };
+    result: void;
+  };
+
+  // Health & lifecycle
+  'daemon.ping': { params: undefined; result: { status: 'ok'; uptime: number } };
+  'daemon.shutdown': { params: undefined; result: void };
   'health.check': { params: undefined; result: HealthCheckResult };
 }
 

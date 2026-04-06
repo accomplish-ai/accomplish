@@ -3,16 +3,12 @@ import path from 'path';
 import {
   generateConfig,
   ACCOMPLISH_AGENT_NAME,
-  buildProviderConfigs,
+  resolveTaskConfig,
   syncApiKeysToOpenCodeAuth as coreSyncApiKeysToOpenCodeAuth,
   getOpenCodeAuthPath,
-  isTokenExpired,
-  refreshAccessToken,
   PERMISSION_API_PORT,
   QUESTION_API_PORT,
 } from '@accomplish_ai/agent-core';
-import type { BrowserConfig } from '@accomplish_ai/agent-core';
-import { getKnowledgeNotesForPrompt } from '@accomplish_ai/agent-core';
 import { getApiKey, getAllApiKeys } from '../store/secureStorage';
 import { getStorage } from '../store/storage';
 import { getBundledNodePaths } from '../utils/bundled-node';
@@ -60,6 +56,10 @@ export function getOpenCodeConfigDir(): string {
 /**
  * Generates the OpenCode configuration file.
  *
+ * Uses the shared resolveTaskConfig() helper (the "one brain") for config
+ * assembly. This ensures desktop and daemon use identical resolution logic
+ * for skills, connectors, cloud browser, and workspace knowledge notes.
+ *
  * @param azureFoundryToken - Optional Azure Foundry token for Entra ID auth
  * @returns Path to the generated config file
  */
@@ -77,128 +77,30 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     );
   }
 
-  // Use the extracted buildProviderConfigs from core package
-  const { providerConfigs, enabledProviders, modelOverride } = await buildProviderConfigs({
-    getApiKey,
-    azureFoundryToken,
-  });
-
-  // Inject store:false for OpenAI to prevent 403 errors
-  // with project-scoped keys (sk-proj-...) that lack /v1/chat/completions storage permission
-  const openAiApiKey = getApiKey('openai');
-  if (openAiApiKey) {
-    const existingOpenAi = providerConfigs.find((p) => p.id === 'openai');
-    if (existingOpenAi) {
-      existingOpenAi.options.store = false;
-    } else {
-      providerConfigs.push({
-        id: 'openai',
-        options: { store: false },
-      });
-    }
-  }
-
+  // Resolve enabled skills via SkillsManager (desktop-specific wrapper)
   const enabledSkills = await skillsManager.getEnabled();
 
-  // Fetch enabled connectors with valid tokens
-  const storage = getStorage();
-  const enabledConnectors = storage.getEnabledConnectors();
-  const connectors: Array<{ id: string; name: string; url: string; accessToken: string }> = [];
-
-  for (const connector of enabledConnectors) {
-    if (connector.status !== 'connected') continue;
-
-    let tokens = storage.getConnectorTokens(connector.id);
-    if (!tokens?.accessToken) {
-      logOC('WARN', `[Connectors] Missing access token for ${connector.name}`);
-      storage.setConnectorStatus(connector.id, 'error');
-      continue;
-    }
-
-    // Refresh token if expired
-    if (isTokenExpired(tokens)) {
-      if (tokens.refreshToken && connector.oauthMetadata && connector.clientRegistration) {
-        try {
-          tokens = await refreshAccessToken({
-            tokenEndpoint: connector.oauthMetadata.tokenEndpoint,
-            refreshToken: tokens.refreshToken,
-            clientId: connector.clientRegistration.clientId,
-            clientSecret: connector.clientRegistration.clientSecret,
-          });
-          storage.storeConnectorTokens(connector.id, tokens);
-        } catch (err) {
-          logOC('WARN', `[Connectors] Token refresh failed for ${connector.name}`, {
-            err: String(err),
-          });
-          storage.setConnectorStatus(connector.id, 'error');
-          continue;
-        }
-      } else {
-        logOC(
-          'WARN',
-          `[Connectors] Access token expired for ${connector.name} and cannot be refreshed`,
-        );
-        storage.setConnectorStatus(connector.id, 'error');
-        continue;
-      }
-    }
-
-    connectors.push({
-      id: connector.id,
-      name: connector.name,
-      url: connector.url,
-      accessToken: tokens.accessToken,
-    });
-  }
-
-  // Build browser config from cloud browser settings
-  const cloudBrowserConfig = storage.getCloudBrowserConfig();
-  let browserConfig: BrowserConfig | undefined;
-  if (cloudBrowserConfig?.activeProvider) {
-    const providerCfg = cloudBrowserConfig.providers[cloudBrowserConfig.activeProvider];
-    if (providerCfg?.endpoint) {
-      browserConfig = {
-        mode: 'remote',
-        cdpEndpoint: providerCfg.endpoint,
-        cdpHeaders: providerCfg.apiKey ? { 'X-CDP-Secret': providerCfg.apiKey } : undefined,
-      };
-    }
-  }
-
-  // Retrieve knowledge notes for the active workspace
-  let knowledgeNotes: string | undefined;
+  // Resolve active workspace ID (desktop-specific workspace manager)
   const activeWorkspaceId = workspaceManager.getActiveWorkspace();
-  if (activeWorkspaceId) {
-    try {
-      const formatted = getKnowledgeNotesForPrompt(activeWorkspaceId);
-      if (formatted) {
-        knowledgeNotes = formatted;
-      }
-    } catch (error) {
-      logOC('WARN', '[OpenCode Config] Failed to load workspace knowledge notes', {
-        activeWorkspaceId,
-        err: String(error),
-      });
-    }
-  }
 
-  const result = generateConfig({
+  // Use shared "one brain" config resolution for everything else
+  const { configOptions } = await resolveTaskConfig({
+    storage: getStorage(),
     platform: process.platform,
     mcpToolsPath,
     userDataPath,
     isPackaged: app.isPackaged,
     bundledNodeBinPath,
-    skills: enabledSkills,
-    providerConfigs,
+    getApiKey,
+    azureFoundryToken,
     permissionApiPort: PERMISSION_API_PORT,
     questionApiPort: QUESTION_API_PORT,
-    enabledProviders,
-    model: modelOverride?.model,
-    smallModel: modelOverride?.smallModel,
-    connectors: connectors.length > 0 ? connectors : undefined,
-    browser: browserConfig,
-    knowledgeNotes,
+    skills: enabledSkills,
+    workspaceId: activeWorkspaceId ?? undefined,
+    log: logOC,
   });
+
+  const result = generateConfig(configOptions);
 
   process.env.OPENCODE_CONFIG = result.configPath;
   process.env.OPENCODE_CONFIG_DIR = path.dirname(result.configPath);

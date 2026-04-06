@@ -121,6 +121,54 @@ vi.mock('@main/opencode', () => ({
   getOpenCodeCliVersion: vi.fn(() => Promise.resolve('1.0.0')),
 }));
 
+// Mock daemon-bootstrap — task handlers now proxy through DaemonClient
+const mockDaemonClient = {
+  call: vi.fn(async (method: string, params?: unknown) => {
+    if (method === 'task.start') {
+      const p = params as { prompt: string; taskId?: string };
+      return {
+        id: p?.taskId || 'tsk_daemon_test',
+        prompt: p?.prompt || 'test',
+        status: 'running',
+        messages: [],
+        createdAt: new Date().toISOString(),
+      };
+    }
+    if (method === 'session.resume') {
+      const p = params as { prompt: string; existingTaskId?: string };
+      return {
+        id: p?.existingTaskId || 'tsk_daemon_resume',
+        prompt: p?.prompt || 'test',
+        status: 'running',
+        messages: [],
+        createdAt: new Date().toISOString(),
+      };
+    }
+    if (method === 'task.get') {
+      const p = params as { taskId: string };
+      return mockTasks.find((t) => t.id === p.taskId) || null;
+    }
+    if (method === 'task.list') {
+      return mockTasks;
+    }
+    if (method === 'task.getTodos') {
+      return [];
+    }
+    return undefined;
+  }),
+  ping: vi.fn(async () => ({ status: 'ok' as const, uptime: 1000 })),
+  close: vi.fn(),
+  onNotification: vi.fn(),
+};
+
+vi.mock('@main/daemon-bootstrap', () => ({
+  getDaemonClient: vi.fn(() => mockDaemonClient),
+  getDaemonMode: vi.fn(() => 'socket'),
+  shutdownDaemon: vi.fn(),
+  bootstrapDaemon: vi.fn(),
+  registerNotificationForwarding: vi.fn(),
+}));
+
 const authBrowserMocks = vi.hoisted(() => ({
   loginOpenAiWithChatGpt: vi.fn(() => Promise.resolve({ openedUrl: undefined })),
 }));
@@ -835,25 +883,17 @@ describe('IPC Handlers Integration', () => {
       registerIPCHandlers();
     });
 
-    it('task:start should create and start a new task', async () => {
+    it('task:start should proxy to daemon and return task', async () => {
       // Arrange
       const config = { prompt: 'Test task prompt' };
-      mockTaskManager.startTask.mockResolvedValue({
-        id: 'task_123',
-        prompt: 'Test task prompt',
-        status: 'running',
-        messages: [],
-        createdAt: new Date().toISOString(),
-      });
 
       // Act
       const result = await invokeHandler('task:start', config);
 
-      // Assert
-      expect(mockTaskManager.startTask).toHaveBeenCalledWith(
-        expect.stringMatching(/^task_/),
+      // Assert — task:start now proxies through DaemonClient
+      expect(mockDaemonClient.call).toHaveBeenCalledWith(
+        'task.start',
         expect.objectContaining({ prompt: 'Test task prompt' }),
-        expect.any(Object),
       );
       expect(result).toEqual(
         expect.objectContaining({
@@ -863,69 +903,66 @@ describe('IPC Handlers Integration', () => {
       );
     });
 
-    it('task:start should validate task config', async () => {
-      // Arrange - empty prompt
+    it('task:start should proxy to daemon', async () => {
+      // Arrange
+      const config = { prompt: 'Test prompt' };
 
-      // Act & Assert
-      await expect(invokeHandler('task:start', { prompt: '' })).rejects.toThrow();
-      await expect(invokeHandler('task:start', { prompt: '   ' })).rejects.toThrow();
+      // Act
+      const result = await invokeHandler('task:start', config);
+
+      // Assert — proxied to daemon RPC
+      expect(mockDaemonClient.call).toHaveBeenCalledWith(
+        'task.start',
+        expect.objectContaining({ prompt: 'Test prompt' }),
+      );
+      expect(result).toEqual(expect.objectContaining({ prompt: 'Test prompt', status: 'running' }));
     });
 
-    it('task:cancel should cancel a running task', async () => {
+    it('task:cancel should proxy to daemon', async () => {
       // Arrange
       const taskId = 'task_to_cancel';
-      mockTaskManager.hasActiveTask.mockReturnValue(true);
 
       // Act
       await invokeHandler('task:cancel', taskId);
 
-      // Assert
-      expect(mockTaskManager.cancelTask).toHaveBeenCalledWith(taskId);
+      // Assert — proxied to daemon RPC
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('task.cancel', { taskId });
     });
 
-    it('task:cancel should cancel a queued task', async () => {
+    it('task:cancel should proxy queued task to daemon', async () => {
       // Arrange
       const taskId = 'task_queued';
-      mockTaskManager.isTaskQueued.mockReturnValue(true);
 
       // Act
       await invokeHandler('task:cancel', taskId);
 
-      // Assert
-      expect(mockTaskManager.cancelQueuedTask).toHaveBeenCalledWith(taskId);
+      // Assert — all cancel logic is in the daemon now
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('task.cancel', { taskId });
     });
 
-    it('task:cancel should do nothing for non-existent task', async () => {
-      // Arrange
-      const taskId = 'task_nonexistent';
-      mockTaskManager.isTaskQueued.mockReturnValue(false);
-      mockTaskManager.hasActiveTask.mockReturnValue(false);
-
+    it('task:cancel should do nothing for undefined taskId', async () => {
       // Act
-      await invokeHandler('task:cancel', taskId);
+      await invokeHandler('task:cancel', undefined);
 
-      // Assert
-      expect(mockTaskManager.cancelTask).not.toHaveBeenCalled();
-      expect(mockTaskManager.cancelQueuedTask).not.toHaveBeenCalled();
+      // Assert — no RPC call for undefined taskId
+      expect(mockDaemonClient.call).not.toHaveBeenCalledWith('task.cancel', expect.anything());
     });
 
-    it('task:interrupt should interrupt a running task', async () => {
+    it('task:interrupt should proxy to daemon', async () => {
       // Arrange
       const taskId = 'task_to_interrupt';
-      mockTaskManager.hasActiveTask.mockReturnValue(true);
 
       // Act
       await invokeHandler('task:interrupt', taskId);
 
       // Assert
-      expect(mockTaskManager.interruptTask).toHaveBeenCalledWith(taskId);
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('task.interrupt', { taskId });
     });
 
-    it('task:get should return task from history', async () => {
+    it('task:get should proxy to daemon and return task', async () => {
       // Arrange
-      const taskId = 'task_existing';
       mockTasks.push({
-        id: taskId,
+        id: 'task_existing',
         prompt: 'Existing task',
         status: 'completed',
         messages: [],
@@ -933,29 +970,30 @@ describe('IPC Handlers Integration', () => {
       });
 
       // Act
-      const result = await invokeHandler('task:get', taskId);
+      const result = await invokeHandler('task:get', 'task_existing');
 
       // Assert
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('task.get', { taskId: 'task_existing' });
       expect(result).toEqual(
         expect.objectContaining({
-          id: taskId,
+          id: 'task_existing',
           prompt: 'Existing task',
-          status: 'completed',
         }),
       );
     });
 
     it('task:get should return null for non-existent task', async () => {
-      // Arrange - no tasks
-
       // Act
       const result = await invokeHandler('task:get', 'task_nonexistent');
 
       // Assert
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('task.get', {
+        taskId: 'task_nonexistent',
+      });
       expect(result).toBeNull();
     });
 
-    it('task:list should return all tasks from history', async () => {
+    it('task:list should proxy to daemon', async () => {
       // Arrange
       mockTasks.push(
         {
@@ -978,53 +1016,26 @@ describe('IPC Handlers Integration', () => {
       const result = await invokeHandler('task:list');
 
       // Assert
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('task.list', expect.any(Object));
       expect(result).toHaveLength(2);
     });
 
-    it('task:delete should remove task from history', async () => {
-      // Arrange
-      const taskId = 'task_to_delete';
-      mockTasks.push({
-        id: taskId,
-        prompt: 'Task to delete',
-        status: 'completed',
-        messages: [],
-        createdAt: new Date().toISOString(),
-      });
-
+    it('task:delete should proxy to daemon', async () => {
       // Act
-      await invokeHandler('task:delete', taskId);
+      await invokeHandler('task:delete', 'task_to_delete');
 
-      // Assert
-      const { deleteTask } = await import('@accomplish_ai/agent-core');
-      expect(deleteTask).toHaveBeenCalledWith(taskId);
+      // Assert — proxied to daemon RPC
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('task.delete', {
+        taskId: 'task_to_delete',
+      });
     });
 
-    it('task:clear-history should clear all tasks', async () => {
-      // Arrange
-      mockTasks.push(
-        {
-          id: 'task_1',
-          prompt: 'Task 1',
-          status: 'completed',
-          messages: [],
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'task_2',
-          prompt: 'Task 2',
-          status: 'completed',
-          messages: [],
-          createdAt: new Date().toISOString(),
-        },
-      );
-
+    it('task:clear-history should proxy to daemon', async () => {
       // Act
       await invokeHandler('task:clear-history');
 
-      // Assert
-      const { clearHistory } = await import('@accomplish_ai/agent-core');
-      expect(clearHistory).toHaveBeenCalled();
+      // Assert — proxied to daemon RPC
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('task.clearHistory');
     });
   });
 
@@ -1091,89 +1102,49 @@ describe('IPC Handlers Integration', () => {
       registerIPCHandlers();
     });
 
-    it('permission:respond should send response for active task', async () => {
+    it('permission:respond should proxy to daemon', async () => {
       // Arrange
-      const taskId = 'task_active';
-      mockTaskManager.hasActiveTask.mockReturnValue(true);
+      const response = {
+        requestId: 'req_123',
+        taskId: 'task_active',
+        decision: 'allow',
+      };
 
       // Act
-      await invokeHandler('permission:respond', {
-        requestId: 'req_123',
-        taskId,
-        decision: 'allow',
-      });
+      await invokeHandler('permission:respond', response);
 
-      // Assert
-      expect(mockTaskManager.sendResponse).toHaveBeenCalledWith(taskId, 'yes');
+      // Assert — proxied to daemon RPC
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('permission.respond', response);
     });
 
-    it('permission:respond should send custom message when provided', async () => {
+    it('permission:respond should proxy deny to daemon', async () => {
       // Arrange
-      const taskId = 'task_active';
-      mockTaskManager.hasActiveTask.mockReturnValue(true);
-
-      // Act
-      await invokeHandler('permission:respond', {
+      const response = {
         requestId: 'req_123',
-        taskId,
-        decision: 'allow',
-        message: 'proceed with caution',
-      });
-
-      // Assert
-      expect(mockTaskManager.sendResponse).toHaveBeenCalledWith(taskId, 'proceed with caution');
-    });
-
-    it('permission:respond should send "no" for denied decisions', async () => {
-      // Arrange
-      const taskId = 'task_active';
-      mockTaskManager.hasActiveTask.mockReturnValue(true);
-
-      // Act
-      await invokeHandler('permission:respond', {
-        requestId: 'req_123',
-        taskId,
+        taskId: 'task_active',
         decision: 'deny',
-      });
-
-      // Assert
-      expect(mockTaskManager.sendResponse).toHaveBeenCalledWith(taskId, 'no');
-    });
-
-    it('permission:respond should resolve file permission requests', async () => {
-      // Arrange
-      const requestId = 'filereq_123_abc';
-      const taskId = 'task_active';
-
-      // Simulate pending file permission
-      mockPendingPermissions.set(requestId, { resolve: vi.fn() });
+      };
 
       // Act
-      await invokeHandler('permission:respond', {
-        requestId,
-        taskId,
-        decision: 'allow',
-      });
+      await invokeHandler('permission:respond', response);
 
       // Assert
-      const { resolvePermission } = await import('@main/permission-api');
-      expect(resolvePermission).toHaveBeenCalledWith(requestId, true);
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('permission.respond', response);
     });
 
-    it('permission:respond should skip response for inactive task', async () => {
+    it('permission:respond should proxy file permission to daemon', async () => {
       // Arrange
-      const taskId = 'task_inactive';
-      mockTaskManager.hasActiveTask.mockReturnValue(false);
+      const response = {
+        requestId: 'filereq_123_abc',
+        taskId: 'task_active',
+        decision: 'allow',
+      };
 
       // Act
-      await invokeHandler('permission:respond', {
-        requestId: 'req_123',
-        taskId,
-        decision: 'allow',
-      });
+      await invokeHandler('permission:respond', response);
 
-      // Assert
-      expect(mockTaskManager.sendResponse).not.toHaveBeenCalled();
+      // Assert — daemon handles file permission resolution
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('permission.respond', response);
     });
   });
 
@@ -1367,29 +1338,21 @@ describe('IPC Handlers Integration', () => {
       registerIPCHandlers();
     });
 
-    it('session:resume should start a new task with session ID', async () => {
+    it('session:resume should proxy to daemon with session ID', async () => {
       // Arrange
       const sessionId = 'session_123';
       const prompt = 'Continue with the task';
-      mockTaskManager.startTask.mockResolvedValue({
-        id: 'task_resumed',
-        prompt,
-        status: 'running',
-        messages: [],
-        createdAt: new Date().toISOString(),
-      });
 
       // Act
       const result = await invokeHandler('session:resume', sessionId, prompt);
 
-      // Assert
-      expect(mockTaskManager.startTask).toHaveBeenCalledWith(
-        expect.stringMatching(/^task_/),
+      // Assert — proxied to daemon RPC
+      expect(mockDaemonClient.call).toHaveBeenCalledWith(
+        'session.resume',
         expect.objectContaining({
-          prompt,
           sessionId,
+          prompt,
         }),
-        expect.any(Object),
       );
       expect(result).toEqual(
         expect.objectContaining({
@@ -1399,31 +1362,23 @@ describe('IPC Handlers Integration', () => {
       );
     });
 
-    it('session:resume should use existing task ID when provided', async () => {
+    it('session:resume should pass existing task ID to daemon', async () => {
       // Arrange
       const sessionId = 'session_123';
       const prompt = 'Continue';
       const existingTaskId = 'task_existing';
-      mockTaskManager.startTask.mockResolvedValue({
-        id: existingTaskId,
-        prompt,
-        status: 'running',
-        messages: [],
-        createdAt: new Date().toISOString(),
-      });
 
       // Act
       await invokeHandler('session:resume', sessionId, prompt, existingTaskId);
 
-      // Assert
-      expect(mockTaskManager.startTask).toHaveBeenCalledWith(
-        existingTaskId,
+      // Assert — existingTaskId passed to daemon RPC
+      expect(mockDaemonClient.call).toHaveBeenCalledWith(
+        'session.resume',
         expect.objectContaining({
-          prompt,
           sessionId,
-          taskId: existingTaskId,
+          prompt,
+          existingTaskId,
         }),
-        expect.any(Object),
       );
     });
 
@@ -1471,157 +1426,108 @@ describe('IPC Handlers Integration', () => {
       vi.useRealTimers();
     });
 
-    it('task:start should initialize permission API on first call', async () => {
+    it('task:start should proxy to daemon and return task', async () => {
       // Arrange
       const config = { prompt: 'Test task prompt' };
-      mockTaskManager.startTask.mockResolvedValue({
-        id: 'task_123',
-        prompt: 'Test task prompt',
-        status: 'running',
-        messages: [],
-        createdAt: new Date().toISOString(),
-      });
 
       // Act
-      await invokeHandler('task:start', config);
+      const result = await invokeHandler('task:start', config);
 
-      // Assert
-      const { initPermissionApi, startPermissionApiServer } = await import('@main/permission-api');
-      expect(initPermissionApi).toHaveBeenCalled();
-      expect(startPermissionApiServer).toHaveBeenCalled();
+      // Assert — proxied to daemon RPC
+      expect(mockDaemonClient.call).toHaveBeenCalledWith(
+        'task.start',
+        expect.objectContaining({ prompt: 'Test task prompt' }),
+      );
+      expect(result).toEqual(
+        expect.objectContaining({ prompt: 'Test task prompt', status: 'running' }),
+      );
     });
 
-    it('task:start should update window reference on every call but start servers only once', async () => {
-      // Arrange
-      const config = { prompt: 'Test task' };
-      mockTaskManager.startTask.mockResolvedValue({
-        id: 'task_1',
-        prompt: 'Test task',
-        status: 'running',
-        messages: [],
-        createdAt: new Date().toISOString(),
-      });
-
-      // Act - start two tasks
-      await invokeHandler('task:start', config);
+    it('task:start should call daemon for each invocation', async () => {
+      // Arrange & Act - start two tasks
+      await invokeHandler('task:start', { prompt: 'First task' });
       await invokeHandler('task:start', { prompt: 'Second task' });
 
-      // Assert - initPermissionApi called on every task:start to keep window ref fresh
-      // (fixes stale window after macOS reactivation / window recreation)
-      const { initPermissionApi, startPermissionApiServer } = await import('@main/permission-api');
-      expect(initPermissionApi).toHaveBeenCalledTimes(2);
-      // Servers should only start once
-      expect(startPermissionApiServer).toHaveBeenCalledTimes(1);
+      // Assert — daemon called twice
+      expect(mockDaemonClient.call).toHaveBeenCalledTimes(2);
+      expect(mockDaemonClient.call).toHaveBeenNthCalledWith(
+        1,
+        'task.start',
+        expect.objectContaining({ prompt: 'First task' }),
+      );
+      expect(mockDaemonClient.call).toHaveBeenNthCalledWith(
+        2,
+        'task.start',
+        expect.objectContaining({ prompt: 'Second task' }),
+      );
     });
 
-    it('task:start should create initial user message', async () => {
+    it('task:start should return daemon response directly', async () => {
       // Arrange
       const config = { prompt: 'My test prompt' };
-      mockTaskManager.startTask.mockResolvedValue({
-        id: 'task_msg',
-        prompt: 'My test prompt',
-        status: 'running',
-        messages: [],
-        createdAt: new Date().toISOString(),
-      });
 
       // Act
       const result = (await invokeHandler('task:start', config)) as {
         id: string;
-        messages: Array<{ type: string; content: string }>;
+        prompt: string;
+        status: string;
       };
 
-      // Assert
-      expect(result.messages).toHaveLength(1);
-      expect(result.messages[0].type).toBe('user');
-      expect(result.messages[0].content).toBe('My test prompt');
+      // Assert — result comes from daemon mock
+      expect(result.prompt).toBe('My test prompt');
+      expect(result.status).toBe('running');
     });
 
-    it('task:start should save task to history', async () => {
+    it('task:start should proxy to daemon without calling storage directly', async () => {
       // Arrange
       const config = { prompt: 'Save me' };
-      mockTaskManager.startTask.mockResolvedValue({
-        id: 'task_save',
-        prompt: 'Save me',
-        status: 'running',
-        messages: [],
-        createdAt: new Date().toISOString(),
-      });
 
       // Act
       await invokeHandler('task:start', config);
 
-      // Assert
+      // Assert — storage is NOT called directly; daemon handles persistence
       const { saveTask } = await import('@accomplish_ai/agent-core');
-      expect(saveTask).toHaveBeenCalled();
+      expect(saveTask).not.toHaveBeenCalled();
+      expect(mockDaemonClient.call).toHaveBeenCalledWith(
+        'task.start',
+        expect.objectContaining({ prompt: 'Save me' }),
+      );
     });
 
-    it('task:start should validate all optional config fields', async () => {
+    it('task:start should pass prompt and workingDirectory to daemon', async () => {
       // Arrange
       const config = {
         prompt: 'Full config test',
-        taskId: 'custom_task_id',
-        sessionId: 'custom_session',
         workingDirectory: '/some/path',
-        allowedTools: ['tool1', 'tool2', 123, null], // Should filter non-strings
-        systemPromptAppend: 'Additional instructions',
-        outputSchema: { type: 'object' },
       };
-      mockTaskManager.startTask.mockResolvedValue({
-        id: 'task_full',
-        prompt: 'Full config test',
-        status: 'running',
-        messages: [],
-        createdAt: new Date().toISOString(),
-      });
 
       // Act
-      const _result = await invokeHandler('task:start', config);
+      await invokeHandler('task:start', config);
 
-      // Assert
-      expect(mockTaskManager.startTask).toHaveBeenCalledWith(
-        expect.any(String),
+      // Assert — config fields are forwarded to daemon
+      expect(mockDaemonClient.call).toHaveBeenCalledWith(
+        'task.start',
         expect.objectContaining({
           prompt: 'Full config test',
-          taskId: 'custom_task_id',
-          sessionId: 'custom_session',
           workingDirectory: '/some/path',
-          allowedTools: ['tool1', 'tool2'], // Non-strings filtered
-          systemPromptAppend: 'Additional instructions',
-          outputSchema: { type: 'object' },
         }),
-        expect.any(Object),
       );
     });
 
-    it('task:start should truncate allowedTools array to 20 items', async () => {
+    it('task:start should generate a taskId and pass it to daemon', async () => {
       // Arrange
-      const manyTools = Array.from({ length: 30 }, (_, i) => `tool${i}`);
-      const config = {
-        prompt: 'Many tools test',
-        allowedTools: manyTools,
-      };
-      mockTaskManager.startTask.mockResolvedValue({
-        id: 'task_tools',
-        prompt: 'Many tools test',
-        status: 'running',
-        messages: [],
-        createdAt: new Date().toISOString(),
-      });
+      const config = { prompt: 'Tools test' };
 
       // Act
       await invokeHandler('task:start', config);
 
-      // Assert
-      expect(mockTaskManager.startTask).toHaveBeenCalledWith(
-        expect.any(String),
+      // Assert — a taskId is generated and sent to daemon
+      expect(mockDaemonClient.call).toHaveBeenCalledWith(
+        'task.start',
         expect.objectContaining({
-          allowedTools: expect.any(Array),
+          taskId: expect.stringMatching(/^task_/),
         }),
-        expect.any(Object),
       );
-      const callArgs = mockTaskManager.startTask.mock.calls[0][1];
-      expect(callArgs.allowedTools.length).toBe(20);
     });
 
     it('task:cancel should do nothing when taskId is undefined', async () => {
@@ -1658,76 +1564,63 @@ describe('IPC Handlers Integration', () => {
       registerIPCHandlers();
     });
 
-    it('session:resume should add user message to existing task', async () => {
+    it('session:resume should proxy to daemon with existing task ID', async () => {
       // Arrange
       const sessionId = 'session_existing';
       const prompt = 'Follow-up message';
       const existingTaskId = 'task_existing';
 
-      mockTaskManager.startTask.mockResolvedValue({
-        id: existingTaskId,
-        prompt,
-        status: 'running',
-        messages: [],
-        createdAt: new Date().toISOString(),
-      });
-
       // Act
       await invokeHandler('session:resume', sessionId, prompt, existingTaskId);
 
-      // Assert
-      const { addTaskMessage } = await import('@accomplish_ai/agent-core');
-      expect(addTaskMessage).toHaveBeenCalledWith(
-        existingTaskId,
+      // Assert — proxied to daemon RPC with all params
+      expect(mockDaemonClient.call).toHaveBeenCalledWith(
+        'session.resume',
         expect.objectContaining({
-          type: 'user',
-          content: prompt,
+          sessionId: 'session_existing',
+          prompt: 'Follow-up message',
+          existingTaskId: 'task_existing',
         }),
       );
     });
 
-    it('session:resume should update task status in history', async () => {
+    it('session:resume should return task from daemon', async () => {
       // Arrange
       const sessionId = 'session_status';
       const prompt = 'Status update test';
       const existingTaskId = 'task_status';
 
-      mockTaskManager.startTask.mockResolvedValue({
-        id: existingTaskId,
-        prompt,
-        status: 'running',
-        messages: [],
-        createdAt: new Date().toISOString(),
-      });
-
       // Act
-      await invokeHandler('session:resume', sessionId, prompt, existingTaskId);
+      const result = (await invokeHandler('session:resume', sessionId, prompt, existingTaskId)) as {
+        id: string;
+        status: string;
+      };
 
-      // Assert
+      // Assert — daemon returns the task; storage is NOT called directly
+      expect(result).toEqual(expect.objectContaining({ id: existingTaskId, status: 'running' }));
       const { updateTaskStatus } = await import('@accomplish_ai/agent-core');
-      expect(updateTaskStatus).toHaveBeenCalledWith(existingTaskId, 'running', expect.any(String));
+      expect(updateTaskStatus).not.toHaveBeenCalled();
     });
 
-    it('session:resume should not add message when no existing task ID', async () => {
+    it('session:resume should proxy to daemon without existing task ID', async () => {
       // Arrange
       const sessionId = 'session_new';
       const prompt = 'New session';
 
-      mockTaskManager.startTask.mockResolvedValue({
-        id: 'task_new',
-        prompt,
-        status: 'running',
-        messages: [],
-        createdAt: new Date().toISOString(),
-      });
-
       // Act
       await invokeHandler('session:resume', sessionId, prompt);
 
-      // Assert
+      // Assert — proxied without existingTaskId
+      expect(mockDaemonClient.call).toHaveBeenCalledWith(
+        'session.resume',
+        expect.objectContaining({
+          sessionId: 'session_new',
+          prompt: 'New session',
+        }),
+      );
+      // Storage not called directly
       const { addTaskMessage } = await import('@accomplish_ai/agent-core');
-      // Should not be called for new tasks
-      expect(addTaskMessage).not.toHaveBeenCalledWith(undefined, expect.anything());
+      expect(addTaskMessage).not.toHaveBeenCalled();
     });
   });
 
@@ -1736,45 +1629,35 @@ describe('IPC Handlers Integration', () => {
       registerIPCHandlers();
     });
 
-    it('permission:respond should use selectedOptions when provided', async () => {
+    it('permission:respond should proxy to daemon with selectedOptions', async () => {
       // Arrange
-      const taskId = 'task_options';
-      mockTaskManager.hasActiveTask.mockReturnValue(true);
-
-      // Act
-      await invokeHandler('permission:respond', {
+      const response = {
         requestId: 'req_456',
-        taskId,
+        taskId: 'task_options',
         decision: 'allow',
         selectedOptions: ['option1', 'option2', 'option3'],
-      });
-
-      // Assert
-      expect(mockTaskManager.sendResponse).toHaveBeenCalledWith(
-        taskId,
-        'option1, option2, option3',
-      );
-    });
-
-    it('permission:respond should log when file permission not found', async () => {
-      // Arrange
-      const taskId = 'task_notfound';
-      mockTaskManager.hasActiveTask.mockReturnValue(false);
-      mockLogFn.mockClear();
+      };
 
       // Act
-      await invokeHandler('permission:respond', {
-        requestId: 'filereq_notfound',
-        taskId,
-        decision: 'allow',
-      });
+      await invokeHandler('permission:respond', response);
 
-      // Assert
-      expect(mockLogFn).toHaveBeenCalledWith(
-        'WARN',
-        'ipc',
-        expect.stringContaining('File permission request'),
-      );
+      // Assert — proxied to daemon RPC
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('permission.respond', response);
+    });
+
+    it('permission:respond should proxy to daemon for file permission requests', async () => {
+      // Arrange
+      const response = {
+        requestId: 'filereq_notfound',
+        taskId: 'task_notfound',
+        decision: 'allow',
+      };
+
+      // Act
+      await invokeHandler('permission:respond', response);
+
+      // Assert — proxied to daemon; no local logging
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('permission.respond', response);
     });
   });
 

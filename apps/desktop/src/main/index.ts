@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import { app, BrowserWindow, shell, nativeImage, nativeTheme, Menu } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -22,6 +22,7 @@ import {
   registerAppIpcHandlers,
   handleSecondInstanceProtocolUrl,
 } from './protocol-handlers';
+import { createMainWindow } from './app-window';
 
 function logMain(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
   try {
@@ -83,91 +84,8 @@ const isQuittingRef = {
     isQuitting = v;
   },
 };
-
-function getPreloadPath(): string {
-  return path.join(__dirname, '../preload/index.cjs');
-}
-
 function createWindow() {
-  logMain('INFO', '[Main] Creating main application window');
-  const iconFile = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
-  const iconPath = app.isPackaged
-    ? path.join(process.resourcesPath, iconFile)
-    : path.join(process.env.APP_ROOT!, 'resources', iconFile);
-  const icon = nativeImage.createFromPath(iconPath);
-  if (process.platform === 'darwin' && app.dock && !icon.isEmpty()) {
-    app.dock.setIcon(icon);
-  }
-
-  const preloadPath = getPreloadPath();
-  logMain('INFO', `[Main] Using preload script: ${preloadPath}`);
-
-  mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 900,
-    minHeight: 600,
-    title: 'Accomplish',
-    icon: icon.isEmpty() ? undefined : icon,
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#171717' : '#f9f9f9',
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    trafficLightPosition: { x: 16, y: 16 },
-    webPreferences: {
-      preload: preloadPath,
-      nodeIntegration: false,
-      contextIsolation: true,
-      spellcheck: true,
-    },
-  });
-
-  mainWindow.webContents.on('context-menu', (_event, params) => {
-    if (!params.misspelledWord) {
-      return;
-    }
-    const items: Electron.MenuItemConstructorOptions[] = [
-      ...params.dictionarySuggestions.map((s) => ({
-        label: s,
-        click: () => mainWindow?.webContents.replaceMisspelling(s),
-      })),
-      ...(params.dictionarySuggestions.length > 0 ? [{ type: 'separator' as const }] : []),
-      {
-        label: 'Add to Dictionary',
-        click: () =>
-          mainWindow?.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord),
-      },
-    ];
-    Menu.buildFromTemplate(items).popup();
-  });
-
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https:') || url.startsWith('http:')) {
-      shell.openExternal(url);
-    }
-    return { action: 'deny' };
-  });
-
-  mainWindow.maximize();
-
-  const isE2EMode = (global as Record<string, unknown>).E2E_SKIP_AUTH === true;
-  if (!app.isPackaged && !isE2EMode && process.env.NODE_ENV !== 'test') {
-    mainWindow.webContents.openDevTools({ mode: 'right' });
-  }
-
-  // dev mode needs 'unsafe-inline' for @vitejs/plugin-react HMR preamble (never distributed)
-  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    const scriptSrc = app.isPackaged ? "'self'" : "'self' 'unsafe-inline'";
-    const csp = `default-src 'self' https:; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: ws: wss:; font-src 'self' https: data:; worker-src 'self' blob:`;
-    callback({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [csp] } });
-  });
-
-  if (ROUTER_URL) {
-    logMain('INFO', `[Main] Loading from router URL: ${ROUTER_URL}`);
-    mainWindow.loadURL(ROUTER_URL);
-  } else {
-    const indexPath = path.join(WEB_DIST, 'index.html');
-    logMain('INFO', `[Main] Loading from file: ${indexPath}`);
-    mainWindow.loadFile(indexPath);
-  }
+  mainWindow = createMainWindow({ ROUTER_URL, WEB_DIST });
 }
 
 process.on('uncaughtException', (error) => {
@@ -209,7 +127,7 @@ if (!gotTheLock) {
       }
       mainWindow.focus();
       logMain('INFO', '[Main] Focused existing instance after second-instance event');
-      handleSecondInstanceProtocolUrl(mainWindow, commandLine);
+      handleSecondInstanceProtocolUrl(mainWindow, commandLine, () => mainWindow);
     }
   });
 

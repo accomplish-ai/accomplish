@@ -1,19 +1,12 @@
-// apps/desktop/src/renderer/components/settings/providers/OpenRouterProviderForm.tsx
-
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccomplish } from '@/lib/accomplish';
 import type { ConnectedProvider, OpenRouterCredentials } from '@accomplish_ai/agent-core/common';
 import { PROVIDER_META } from '@accomplish_ai/agent-core/common';
-import {
-  ModelSelector,
-  ConnectButton,
-  ConnectedControls,
-  ProviderFormHeader,
-  FormError,
-} from '../shared';
+import { ConnectButton, ProviderFormHeader, FormError } from '../shared';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
+import { OpenRouterConnectedSection } from './OpenRouterConnectedSection';
 
 // Import OpenRouter logo
 import openrouterLogo from '/assets/ai-logos/openrouter.svg';
@@ -182,52 +175,13 @@ export function OpenRouterProviderForm({
               />
             </motion.div>
           ) : (
-            <motion.div
-              key="connected"
-              variants={settingsVariants.fadeSlide}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={settingsTransitions.enter}
-              className="space-y-3"
-            >
-              {/* Connected: Show masked key + Connected button + Model */}
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">{t('apiKey.title')}</label>
-                {meta.helpUrl && (
-                  <a
-                    href={meta.helpUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-primary underline"
-                  >
-                    {t('help.findApiKey')}
-                  </a>
-                )}
-              </div>
-
-              <input
-                type="text"
-                value={(() => {
-                  const creds = connectedProvider?.credentials as OpenRouterCredentials | undefined;
-                  if (creds?.keyPrefix) return creds.keyPrefix;
-                  return t('apiKey.savedReconnectToSee');
-                })()}
-                disabled
-                data-testid="api-key-display"
-                className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
-              />
-
-              <ConnectedControls onDisconnect={onDisconnect} />
-
-              {/* Model Selector */}
-              <ModelSelector
-                models={models}
-                value={connectedProvider?.selectedModelId || null}
-                onChange={onModelChange}
-                error={showModelError && !connectedProvider?.selectedModelId}
-              />
-            </motion.div>
+            <OpenRouterConnectedSection
+              connectedProvider={connectedProvider}
+              models={models}
+              onDisconnect={onDisconnect}
+              onModelChange={onModelChange}
+              showModelError={showModelError}
+            />
           )}
         </AnimatePresence>
       </div>

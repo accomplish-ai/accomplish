@@ -246,6 +246,74 @@ Use AskUserQuestion tool for user interaction.`,
     })),
     clearAppSettings: vi.fn(),
 
+    // resolveTaskConfig — the "one brain" config resolver used by config-generator.
+    // Simulates connector resolution from storage (same logic as the real implementation).
+    resolveTaskConfig: vi.fn(
+      (opts: {
+        storage?: {
+          getEnabledConnectors: () => typeof mockEnabledConnectors;
+          getConnectorTokens: (id: string) => (typeof mockConnectorTokens)[string] | null;
+          setConnectorStatus: typeof mockSetConnectorStatus;
+        };
+        platform?: string;
+        mcpToolsPath?: string;
+        userDataPath?: string;
+        isPackaged?: boolean;
+        bundledNodeBinPath?: string;
+        skills?: unknown[];
+        permissionApiPort?: number;
+        questionApiPort?: number;
+        authToken?: string;
+      }) => {
+        // Resolve connectors from the storage mock (mirrors real resolveTaskConfig behavior)
+        let connectors:
+          | Array<{
+              id: string;
+              name: string;
+              url: string;
+              accessToken: string;
+            }>
+          | undefined;
+        if (opts.storage) {
+          const enabled = opts.storage.getEnabledConnectors();
+          const resolved: Array<{ id: string; name: string; url: string; accessToken: string }> =
+            [];
+          for (const c of enabled) {
+            if (c.status !== 'connected') {
+              continue;
+            }
+            const tokens = opts.storage.getConnectorTokens(c.id);
+            if (!tokens?.accessToken) {
+              opts.storage.setConnectorStatus(c.id, 'error');
+              continue;
+            }
+            resolved.push({ id: c.id, name: c.name, url: c.url, accessToken: tokens.accessToken });
+          }
+          connectors = resolved.length > 0 ? resolved : undefined;
+        }
+
+        return Promise.resolve({
+          configOptions: {
+            platform: opts.platform || process.platform,
+            mcpToolsPath: opts.mcpToolsPath,
+            userDataPath: opts.userDataPath,
+            isPackaged: opts.isPackaged ?? false,
+            bundledNodeBinPath: opts.bundledNodeBinPath,
+            skills: opts.skills ?? [],
+            providerConfigs: {},
+            enabledProviders: ['anthropic', 'openai', 'google'],
+            permissionApiPort: opts.permissionApiPort ?? 9226,
+            questionApiPort: opts.questionApiPort ?? 9227,
+            authToken: opts.authToken,
+            connectors,
+            browser: undefined,
+            knowledgeNotes: undefined,
+          },
+        });
+      },
+    ),
+    getOpenCodeAuthPath: vi.fn(() => '/mock/auth.json'),
+
     // Constants needed by config-generator
     PERMISSION_API_PORT: 9226,
     QUESTION_API_PORT: 9227,
@@ -279,6 +347,11 @@ vi.mock('@main/store/secureStorage', () => ({
   getBedrockCredentials: vi.fn(() => null),
   hasAnyApiKey: vi.fn(() => Promise.resolve(false)),
   clearSecureStorage: vi.fn(),
+}));
+
+// Mock workspace manager
+vi.mock('@main/store/workspaceManager', () => ({
+  getActiveWorkspace: vi.fn(() => null),
 }));
 
 // Mock skills module (uses SQLite which requires native module)

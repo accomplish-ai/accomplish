@@ -5,7 +5,6 @@ import type { Skill, SkillSource, SkillFrontmatter } from '../../common/types/sk
 import { createConsoleLogger } from '../../utils/logging.js';
 
 const log = createConsoleLogger({ prefix: 'SkillsManager' });
-
 export function parseFrontmatter(content: string): SkillFrontmatter {
   try {
     const { data } = matter(content);
@@ -21,20 +20,26 @@ export function parseFrontmatter(content: string): SkillFrontmatter {
   }
 }
 
+/**
+ * Canonical slug normalizer — single source of truth used by generateId,
+ * sanitizeSkillName, and scanDirectory so IDs are stable across scan / import / resync.
+ */
+export function normalizeSkillSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\.\./g, '') // strip path-traversal sequences
+    .replace(/[/\\]/g, '-') // forward/back-slash → dash
+    .replace(/[^a-z0-9-]/g, '-') // everything else disallowed → dash
+    .replace(/-+/g, '-') // collapse consecutive dashes
+    .replace(/^-|-$/g, ''); // strip leading/trailing dashes
+}
+
 export function generateId(name: string, source: SkillSource): string {
-  const safeName = name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-  return `${source}-${safeName}`;
+  return `${source}-${normalizeSkillSlug(name)}`;
 }
 
 export function sanitizeSkillName(name: string): string {
-  return name
-    .replace(/\.\./g, '')
-    .replace(/[/\\]/g, '-')
-    .replace(/[^a-zA-Z0-9-_\s]/g, '-')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .trim();
+  return normalizeSkillSlug(name);
 }
 
 export function isPathWithinDirectory(filePath: string, directory: string): boolean {
@@ -65,11 +70,7 @@ export function scanDirectory(dirPath: string, defaultSource: SkillSource): Skil
       const name = frontmatter.name || entry.name;
       const source = defaultSource;
       const id = generateId(name, source);
-      const safeName = name
-        .toLowerCase()
-        .replace(/[^a-z0-9-]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
+      const safeName = normalizeSkillSlug(name);
 
       skills.push({
         id,

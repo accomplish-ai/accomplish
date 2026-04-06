@@ -47,8 +47,6 @@ import {
   setOpenAiBaseUrl,
   getTheme,
   setTheme,
-  getRunInBackground,
-  setRunInBackground,
   getCloudBrowserConfig,
   setCloudBrowserConfig,
   getMessagingConfig,
@@ -59,6 +57,8 @@ import {
   setSandboxConfig,
   getNotificationsEnabled,
   setNotificationsEnabled,
+  getCloseBehavior,
+  setCloseBehavior,
 } from '../storage/repositories/appSettings.js';
 import {
   getProviderSettings,
@@ -91,6 +91,16 @@ import {
   addDesktopBlocklistEntry,
   removeDesktopBlocklistEntry,
 } from '../storage/repositories/desktopControl.js';
+import {
+  getAllScheduledTasks,
+  getEnabledScheduledTasks,
+  getScheduledTasksByWorkspace,
+  getScheduledTaskById,
+  createScheduledTask,
+  deleteScheduledTask,
+  setScheduledTaskEnabled,
+  updateScheduledTaskLastRun,
+} from '../storage/repositories/scheduled-tasks.js';
 import { SecureStorage } from '../internal/classes/SecureStorage.js';
 import type { OAuthTokens } from '../common/types/connector.js';
 import type { StorageAPI, StorageOptions } from '../types/storage.js';
@@ -159,8 +169,6 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     setOpenAiBaseUrl: (baseUrl) => setOpenAiBaseUrl(baseUrl),
     getTheme: () => getTheme(),
     setTheme: (theme) => setTheme(theme),
-    getRunInBackground: () => getRunInBackground(),
-    setRunInBackground: (enabled) => setRunInBackground(enabled),
     getCloudBrowserConfig: () => getCloudBrowserConfig(),
     setCloudBrowserConfig: (config) => setCloudBrowserConfig(config),
     getMessagingConfig: () => getMessagingConfig(),
@@ -171,6 +179,8 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     setSandboxConfig: (config) => setSandboxConfig(config),
     getNotificationsEnabled: () => getNotificationsEnabled(),
     setNotificationsEnabled: (enabled) => setNotificationsEnabled(enabled),
+    getCloseBehavior: () => getCloseBehavior(),
+    setCloseBehavior: (behavior) => setCloseBehavior(behavior),
 
     // Provider Settings
     getProviderSettings: () => getProviderSettings(),
@@ -215,6 +225,18 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     setDesktopBlocklist: (entries) => setDesktopBlocklist(entries),
     addDesktopBlocklistEntry: (entry) => addDesktopBlocklistEntry(entry),
     removeDesktopBlocklistEntry: (appName) => removeDesktopBlocklistEntry(appName),
+
+    // Scheduled Tasks
+    getAllScheduledTasks: () => getAllScheduledTasks(),
+    getEnabledScheduledTasks: () => getEnabledScheduledTasks(),
+    getScheduledTasksByWorkspace: (workspaceId) => getScheduledTasksByWorkspace(workspaceId),
+    getScheduledTaskById: (id) => getScheduledTaskById(id),
+    createScheduledTask: (cron, prompt, workspaceId) =>
+      createScheduledTask(cron, prompt, workspaceId),
+    deleteScheduledTask: (id) => deleteScheduledTask(id),
+    setScheduledTaskEnabled: (id, enabled) => setScheduledTaskEnabled(id, enabled),
+    updateScheduledTaskLastRun: (id, timestamp, nextRunAt) =>
+      updateScheduledTaskLastRun(id, timestamp, nextRunAt),
 
     // Secure Storage
     storeApiKey: (provider, apiKey) => secureStorage.storeApiKey(provider, apiKey),

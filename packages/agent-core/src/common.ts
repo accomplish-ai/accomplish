@@ -165,6 +165,9 @@ export type {
   ChannelAdapter,
 } from './common/types/messaging.js';
 
+// Scheduler types
+export type { ScheduledTask } from './common/types/daemon.js';
+
 // Desktop control types
 export type {
   DesktopActionType,

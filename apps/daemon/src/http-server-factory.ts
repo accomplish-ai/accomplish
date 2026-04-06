@@ -19,6 +19,8 @@ export interface HttpServerOptions {
   rateLimiter: RateLimiter;
   routes: Route[];
   serviceName: string;
+  /** Fixed port to listen on. If 0 or omitted, the OS assigns a random port. */
+  port?: number;
 }
 
 function validateAuthToken(
@@ -69,7 +71,7 @@ function parseJsonBody(body: string, res: http.ServerResponse): Record<string, u
 export function createHttpServer(
   options: HttpServerOptions,
 ): Promise<{ server: http.Server; port: number }> {
-  const { authToken, rateLimiter, routes, serviceName } = options;
+  const { authToken, rateLimiter, routes, serviceName, port: requestedPort } = options;
 
   return new Promise((resolve, reject) => {
     const server = http.createServer(async (req, res) => {
@@ -118,7 +120,7 @@ export function createHttpServer(
       }
     });
 
-    server.listen(0, '127.0.0.1', () => {
+    server.listen(requestedPort ?? 0, '127.0.0.1', () => {
       const addr = server.address();
       const port = addr && typeof addr === 'object' ? addr.port : 0;
       console.log(`[${serviceName}] Listening on port ${port}`);
@@ -126,7 +128,18 @@ export function createHttpServer(
     });
 
     server.on('error', (error: NodeJS.ErrnoException) => {
-      reject(new Error(`[${serviceName}] Failed to start: ${error.message}`));
+      if (error.code === 'EADDRINUSE' && requestedPort) {
+        // Port already in use — fall back to OS-assigned port
+        console.warn(`[${serviceName}] Port ${requestedPort} in use, falling back to random port`);
+        server.listen(0, '127.0.0.1', () => {
+          const addr = server.address();
+          const port = addr && typeof addr === 'object' ? addr.port : 0;
+          console.log(`[${serviceName}] Listening on fallback port ${port}`);
+          resolve({ server, port });
+        });
+      } else {
+        reject(new Error(`[${serviceName}] Failed to start: ${error.message}`));
+      }
     });
   });
 }

@@ -14,12 +14,8 @@
 
 import { createServer, type Server, type Socket } from 'node:net';
 import { randomUUID } from 'node:crypto';
-import type { JsonRpcMessage, JsonRpcRequest, JsonRpcResponse } from '../common/types/daemon.js';
-import { JSON_RPC_ERRORS } from '../common/types/daemon.js';
 import { getSocketPath } from './socket-path.js';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyMethodHandler = (params: any) => Promise<unknown> | unknown;
+import { handleRpcLine, type AnyMethodHandler } from './rpc-message-handler.js';
 
 export interface DaemonRpcServerOptions {
   /** Override the default Unix socket / named pipe path. */
@@ -64,6 +60,19 @@ export class DaemonRpcServer {
   }
 
   /**
+   * Whether any clients are currently connected.
+   * Used to fast-fail permission requests when no UI can respond.
+   */
+  hasConnectedClients(): boolean {
+    for (const client of this.clients.values()) {
+      if (!client.socket.destroyed) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Push a notification to all connected clients.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -101,7 +110,7 @@ export class DaemonRpcServer {
           for (const line of lines) {
             const trimmed = line.trim();
             if (trimmed) {
-              void this.handleLine(client, trimmed);
+              void handleRpcLine(client, trimmed, this.handlers);
             }
           }
         });
@@ -142,64 +151,6 @@ export class DaemonRpcServer {
       this.server.close(() => resolve());
       this.server = null;
     });
-  }
-
-  // ── Private ─────────────────────────────────────────────────────────────────
-
-  private async handleLine(client: ConnectedClient, line: string): Promise<void> {
-    let message: JsonRpcMessage;
-    try {
-      message = JSON.parse(line) as JsonRpcMessage;
-    } catch {
-      console.warn('[DaemonRpcServer] Failed to parse message from client', client.id);
-      return;
-    }
-
-    // Only handle requests (messages with id + method)
-    if (!('id' in message) || !('method' in message)) {
-      return;
-    }
-
-    const request = message as JsonRpcRequest;
-    const handler = this.handlers.get(request.method);
-
-    if (!handler) {
-      this.sendError(client, request.id as string | number, {
-        code: JSON_RPC_ERRORS.METHOD_NOT_FOUND,
-        message: `Method not found: ${request.method}`,
-      });
-      return;
-    }
-
-    try {
-      const result = await handler(request.params);
-      this.sendResult(client, request.id as string | number, result);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      console.error(`[DaemonRpcServer] Handler error for ${request.method}:`, errorMessage);
-      this.sendError(client, request.id as string | number, {
-        code: JSON_RPC_ERRORS.INTERNAL_ERROR,
-        message: errorMessage,
-      });
-    }
-  }
-
-  private sendResult(client: ConnectedClient, id: string | number, result: unknown): void {
-    const response: JsonRpcResponse = { jsonrpc: '2.0', id, result };
-    if (!client.socket.destroyed) {
-      client.socket.write(JSON.stringify(response) + '\n');
-    }
-  }
-
-  private sendError(
-    client: ConnectedClient,
-    id: string | number,
-    error: { code: number; message: string },
-  ): void {
-    const response: JsonRpcResponse = { jsonrpc: '2.0', id, error };
-    if (!client.socket.destroyed) {
-      client.socket.write(JSON.stringify(response) + '\n');
-    }
   }
 
   private async removeStaleSocket(): Promise<void> {

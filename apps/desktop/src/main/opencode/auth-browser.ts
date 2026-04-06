@@ -1,27 +1,13 @@
 import * as pty from 'node-pty';
-import { app, shell } from 'electron';
-import { getOpenCodeCliPath } from './electron-options';
-import { generateOpenCodeConfig } from './config-generator';
-import { isOpenCodeCliInstallError, INSTALL_ERROR_MESSAGE } from './cli-error-utils';
+import { waitForPortRelease, stripAnsi } from '@accomplish_ai/agent-core';
 import { getLogCollector } from '../logging';
 import {
-  stripAnsi,
-  quoteForShell,
-  getPlatformShell,
-  getShellArgs,
-  waitForPortRelease,
-} from '@accomplish_ai/agent-core';
-
-interface LoginResult {
-  openedUrl?: string;
-}
-
-interface OpenCodeCommandContext {
-  command: string;
-  baseArgs: string[];
-  env: Record<string, string>;
-  safeCwd: string;
-}
+  type LoginResult,
+  getOpenCodeCommandContext,
+  spawnOAuthPty,
+  tryOpenExternal,
+  buildOAuthExitError,
+} from './auth-browser-pty';
 
 export class OAuthBrowserFlow {
   private activePty: pty.IPty | null = null;
@@ -68,14 +54,8 @@ export class OAuthBrowserFlow {
       }
     }
 
-    const { command, baseArgs, env, safeCwd } = await getOpenCodeCommandContext();
-    const allArgs = [...baseArgs, 'auth', 'login'];
-
-    const quoted = [command, ...allArgs].map((arg) => quoteForShell(arg)).join(' ');
-
-    const fullCommand = quoted;
-    const shellCmd = getPlatformShell(app.isPackaged);
-    const shellArgs = getShellArgs(fullCommand);
+    const ctx = await getOpenCodeCommandContext();
+    const proc = spawnOAuthPty(ctx);
 
     return new Promise((resolve, reject) => {
       let openedUrl: string | undefined;
@@ -83,36 +63,18 @@ export class OAuthBrowserFlow {
       let hasSelectedLoginMethod = false;
       let buffer = '';
 
-      const proc = pty.spawn(shellCmd, shellArgs, {
-        name: 'xterm-256color',
-        cols: 120,
-        rows: 30,
-        cwd: safeCwd,
-        env,
-      });
-
       this.activePty = proc;
 
       const cleanup = () => {
         this.activePty = null;
       };
 
-      const tryOpenExternal = async (url: string) => {
-        if (openedUrl) return;
-        try {
-          const parsed = new URL(url);
-          if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return;
-          openedUrl = url;
-          await shell.openExternal(url);
-        } catch {
-          // intentionally empty
-        }
-      };
-
       proc.onData((data) => {
         const clean = stripAnsi(data);
         buffer += clean;
-        if (buffer.length > 20_000) buffer = buffer.slice(-20_000);
+        if (buffer.length > 20_000) {
+          buffer = buffer.slice(-20_000);
+        }
 
         if (!hasSelectedProvider && buffer.includes('Select provider')) {
           hasSelectedProvider = true;
@@ -126,42 +88,19 @@ export class OAuthBrowserFlow {
         }
 
         const match = clean.match(/Go to:\s*(https?:\/\/\S+)/);
-        if (match?.[1]) {
-          void tryOpenExternal(match[1]);
+        if (match?.[1] && !openedUrl) {
+          openedUrl = match[1];
+          void tryOpenExternal(match[1], undefined);
         }
       });
 
       proc.onExit(({ exitCode, signal }) => {
         cleanup();
-
         if (exitCode === 0) {
           resolve({ openedUrl });
           return;
         }
-
-        // Detect known CLI installation error patterns and surface a friendly message
-        if (isOpenCodeCliInstallError(buffer)) {
-          getLogCollector().logEnv('WARN', '[Auth] CLI install error detected', {
-            // Redact URLs and potential tokens before logging
-            tail: buffer
-              .slice(-200)
-              .replace(/https?:\/\/\S+/gi, '[URL]')
-              .replace(/[A-Za-z0-9_-]{30,}/g, '[REDACTED]'),
-          });
-          reject(new Error(INSTALL_ERROR_MESSAGE));
-          return;
-        }
-
-        const tail = buffer.trim().split('\n').slice(-15).join('\n');
-        const redacted = tail
-          .replace(/https?:\/\/\S+/g, '[url]')
-          .replace(/sk-(?:ant-|or-)?[A-Za-z0-9_-]+/g, 'sk-[redacted]');
-        reject(
-          new Error(
-            `OpenCode auth login failed (exit ${exitCode}, signal ${signal ?? 'none'})` +
-              (redacted ? `\n\nOutput:\n${redacted}` : ''),
-          ),
-        );
+        reject(buildOAuthExitError(buffer, exitCode, signal));
       });
     });
   }
@@ -189,7 +128,6 @@ export class OAuthBrowserFlow {
     }
 
     const ptyProcess = this.activePty;
-
     ptyProcess.write('\x03');
 
     if (process.platform === 'win32') {
@@ -228,7 +166,9 @@ export class OAuthBrowserFlow {
   }
 
   dispose(): void {
-    if (this.isDisposed) return;
+    if (this.isDisposed) {
+      return;
+    }
 
     try {
       const l = getLogCollector();
@@ -287,25 +227,6 @@ export class OAuthBrowserFlow {
 }
 
 export const oauthBrowserFlow = new OAuthBrowserFlow();
-
-async function getOpenCodeCommandContext(): Promise<OpenCodeCommandContext> {
-  await generateOpenCodeConfig();
-
-  const { command, args: baseArgs } = getOpenCodeCliPath();
-  const env: Record<string, string> = {};
-  for (const [key, value] of Object.entries(process.env)) {
-    if (typeof value === 'string') {
-      env[key] = value;
-    }
-  }
-
-  return {
-    command,
-    baseArgs,
-    env,
-    safeCwd: app.getPath('temp'),
-  };
-}
 
 export async function loginOpenAiWithChatGpt(): Promise<LoginResult> {
   return oauthBrowserFlow.start();

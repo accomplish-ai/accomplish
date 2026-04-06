@@ -17,6 +17,7 @@ export default tseslint.config(
       '**/scripts/**/*.cjs',
       '**/public/theme-init.js',
       '**/out/**',
+      '.claude/**',
     ],
   },
   eslint.configs.recommended,

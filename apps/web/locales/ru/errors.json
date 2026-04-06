@@ -113,5 +113,12 @@
     "reLoginTo": "Войти заново в {{provider}}",
     "connectorAttention": "{{provider}} требует внимания",
     "openConnectorSettings": "Открыть Настройки -> Коннекторы -> {{provider}}"
+  },
+  "daemon": {
+    "disconnected": "Daemon Disconnected",
+    "disconnectedMessage": "Connection to the background daemon was lost. Reconnecting...",
+    "reconnectFailed": "Reconnection Failed",
+    "reconnectFailedMessage": "Could not reconnect to the daemon. Tasks may be interrupted.",
+    "openSettings": "Open Settings"
   }
 }

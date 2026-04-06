@@ -7,15 +7,15 @@
 
 import type { ApiKeyProvider } from '../common/types/provider.js';
 import { createConsoleLogger } from '../utils/logging.js';
+import {
+  callAnthropic,
+  callOpenAI,
+  callGoogle,
+  callXAI,
+  truncatePrompt,
+} from './summarizer-providers.js';
 
 const log = createConsoleLogger({ prefix: 'Summarizer' });
-
-const SUMMARY_PROMPT = `Generate a very short title (3-5 words max) that summarizes this task request.
-The title should be in sentence case, no quotes, no punctuation at end.
-Output ONLY the title on a single line, nothing else.
-Examples: Check calendar, Download invoice, Search flights to Paris
-
-Task: `;
 
 /**
  * Type for the getApiKey function that retrieves API keys by provider
@@ -34,10 +34,12 @@ export async function generateTaskSummary(prompt: string, getApiKey: GetApiKeyFn
 
   for (const provider of providers) {
     const apiKey = getApiKey(provider);
-    if (!apiKey) continue;
+    if (!apiKey) {
+      continue;
+    }
 
     try {
-      const summary = await callProvider(provider, apiKey, prompt);
+      const summary = await callProviderByName(provider, apiKey, prompt);
       if (summary) {
         log.info(`[Summarizer] Generated summary using ${provider}: "${summary}"`);
         return summary;
@@ -53,7 +55,7 @@ export async function generateTaskSummary(prompt: string, getApiKey: GetApiKeyFn
   return truncatePrompt(prompt);
 }
 
-async function callProvider(
+async function callProviderByName(
   provider: ApiKeyProvider,
   apiKey: string,
   prompt: string,
@@ -70,162 +72,4 @@ async function callProvider(
     default:
       return null;
   }
-}
-
-async function callAnthropic(apiKey: string, prompt: string): Promise<string> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-3-5-haiku-latest',
-      max_tokens: 50,
-      messages: [
-        {
-          role: 'user',
-          content: SUMMARY_PROMPT + prompt,
-        },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Anthropic API error: ${response.status}`);
-  }
-
-  const data = (await response.json()) as {
-    content: Array<{ type: string; text?: string }>;
-  };
-  const text = data.content?.[0]?.text;
-  return cleanSummary(text || '');
-}
-
-async function callOpenAI(apiKey: string, prompt: string): Promise<string> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      max_tokens: 50,
-      messages: [
-        {
-          role: 'user',
-          content: SUMMARY_PROMPT + prompt,
-        },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.status}`);
-  }
-
-  const data = (await response.json()) as {
-    choices: Array<{ message: { content: string } }>;
-  };
-  const text = data.choices?.[0]?.message?.content;
-  return cleanSummary(text || '');
-}
-
-async function callGoogle(apiKey: string, prompt: string): Promise<string> {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: SUMMARY_PROMPT + prompt }],
-          },
-        ],
-        generationConfig: {
-          maxOutputTokens: 50,
-        },
-      }),
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(`Google API error: ${response.status}`);
-  }
-
-  const data = (await response.json()) as {
-    candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
-  };
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  return cleanSummary(text || '');
-}
-
-async function callXAI(apiKey: string, prompt: string): Promise<string> {
-  const response = await fetch('https://api.x.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'grok-3',
-      max_tokens: 50,
-      messages: [
-        {
-          role: 'user',
-          content: SUMMARY_PROMPT + prompt,
-        },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`xAI API error: ${response.status}`);
-  }
-
-  const data = (await response.json()) as {
-    choices: Array<{ message: { content: string } }>;
-  };
-  const text = data.choices?.[0]?.message?.content;
-  return cleanSummary(text || '');
-}
-
-/**
- * Clean up the generated summary.
- * Extracts only the first non-empty line to handle cases where the LLM
- * returns multiple titles or additional explanation text.
- */
-function cleanSummary(text: string): string {
-  // Take only the first non-empty line — LLMs sometimes return multiple titles
-  const firstLine =
-    text
-      .split('\n')
-      .map((l) => l.trim())
-      .find((l) => l.length > 0) ?? text.trim();
-
-  return (
-    firstLine
-      // Remove surrounding quotes
-      .replace(/^["']|["']$/g, '')
-      // Remove trailing punctuation
-      .replace(/[.!?]+$/, '')
-      // Trim whitespace
-      .trim()
-  );
-}
-
-/**
- * Fallback: truncate prompt to a reasonable length
- */
-function truncatePrompt(prompt: string, maxLength = 30): string {
-  const cleaned = prompt.replace(/\s+/g, ' ').trim();
-  if (cleaned.length <= maxLength) {
-    return cleaned;
-  }
-  return cleaned.slice(0, maxLength - 3) + '...';
 }

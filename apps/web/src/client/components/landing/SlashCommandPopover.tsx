@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Lightning } from '@phosphor-icons/react';
 import type { Skill } from '@accomplish_ai/agent-core';
 import { cn } from '@/lib/utils';
+import { getCaretPosition } from './caretPosition';
 
 /** Props for the {@link SlashCommandPopover} component. */
 interface SlashCommandPopoverProps {
@@ -16,62 +17,6 @@ interface SlashCommandPopoverProps {
   triggerStart: number;
   onSelect: (skill: Skill) => void;
   onDismiss: () => void;
-}
-
-/** Calculate the visual position of a character in a textarea via an off-screen mirror. */
-function getCaretPosition(textarea: HTMLTextAreaElement, charIndex: number) {
-  const mirror = document.createElement('div');
-  const style = window.getComputedStyle(textarea);
-  const properties = [
-    'fontFamily',
-    'fontSize',
-    'fontWeight',
-    'letterSpacing',
-    'lineHeight',
-    'padding',
-    'paddingTop',
-    'paddingLeft',
-    'paddingRight',
-    'paddingBottom',
-    'border',
-    'borderWidth',
-    'boxSizing',
-    'whiteSpace',
-    'wordWrap',
-    'wordBreak',
-    'overflowWrap',
-  ] as const;
-
-  mirror.style.position = 'absolute';
-  mirror.style.visibility = 'hidden';
-  mirror.style.width = `${textarea.clientWidth}px`;
-  mirror.style.overflow = 'hidden';
-
-  for (const prop of properties) {
-    mirror.style.setProperty(
-      prop.replace(/([A-Z])/g, '-$1').toLowerCase(),
-      style.getPropertyValue(prop.replace(/([A-Z])/g, '-$1').toLowerCase()),
-    );
-  }
-
-  const textBefore = textarea.value.substring(0, charIndex);
-  const textNode = document.createTextNode(textBefore);
-  const marker = document.createElement('span');
-  marker.textContent = '\u200b';
-
-  mirror.appendChild(textNode);
-  mirror.appendChild(marker);
-  document.body.appendChild(mirror);
-
-  const markerRect = marker.getBoundingClientRect();
-  const mirrorRect = mirror.getBoundingClientRect();
-
-  const top = markerRect.top - mirrorRect.top - textarea.scrollTop;
-  const left = markerRect.left - mirrorRect.left;
-
-  document.body.removeChild(mirror);
-
-  return { top, left };
 }
 
 /**

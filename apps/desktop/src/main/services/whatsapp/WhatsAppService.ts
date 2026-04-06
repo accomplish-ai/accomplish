@@ -9,6 +9,7 @@
  *   reconnection.ts       — exponential-backoff reconnect logic
  *   authCleanup.ts        — auth-state filesystem helpers
  *   connectionHandler.ts  — connection.update event handler
+ *   whatsapp-session.ts   — onConnectionUpdate handler logic
  */
 import { EventEmitter } from 'events';
 import path from 'path';
@@ -20,28 +21,9 @@ import type {
 } from '@accomplish_ai/agent-core/common';
 import { normalizeMessage } from './normalizeMessage.js';
 import { cleanupAuthState } from './authCleanup.js';
-import {
-  createReconnectState,
-  clearReconnectTimer,
-  scheduleReconnect,
-  type ReconnectState,
-} from './reconnection.js';
-
-export interface WhatsAppServiceEvents {
-  qr: (qrString: string) => void;
-  status: (status: MessagingConnectionStatus) => void;
-  message: (msg: {
-    messageId: string;
-    senderId: string;
-    senderName?: string;
-    text: string;
-    timestamp: number;
-    isGroup: boolean;
-    isFromMe: boolean;
-  }) => void;
-  phoneNumber: (phoneNumber: string) => void;
-  ownerLid: (lid: string) => void;
-}
+import { createReconnectState, clearReconnectTimer, type ReconnectState } from './reconnection.js';
+import { handleConnectionUpdate, type WhatsAppServiceEvents } from './whatsapp-session.js';
+export type { WhatsAppServiceEvents };
 
 export class WhatsAppService extends EventEmitter implements ChannelAdapter {
   readonly channelType: MessagingProviderId = 'whatsapp';
@@ -126,10 +108,27 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
       this.socket.ev.on(
         'connection.update',
         (update: { connection?: string; lastDisconnect?: { error?: unknown }; qr?: string }) =>
-          this.onConnectionUpdate(
+          handleConnectionUpdate(
             update,
             DisconnectReason as unknown as Record<string, number>,
             jidNormalizedUser,
+            {
+              reconnect: this.reconnect,
+              authStatePath: this.authStatePath,
+              disposed: this.disposed,
+              manualDisconnect: this.manualDisconnect,
+              socket: this.socket,
+              setStatus: (s) => this.setStatus(s),
+              setQrCode: (qr) => {
+                this.qrCode = qr;
+              },
+              emitQr: (qr) => this.emit('qr', qr),
+              emitPhoneNumber: (p) => this.emit('phoneNumber', p),
+              emitOwnerLid: (lid) => this.emit('ownerLid', lid),
+              reconnect_connect: () => {
+                this.connect().catch((e) => console.error('[WhatsApp] Reconnect failed:', e));
+              },
+            },
           ),
       );
       this.socket.ev.on('messages.upsert', (upsert: { type: string; messages: unknown[] }) => {
@@ -146,64 +145,6 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
     } catch (err) {
       this.setStatus('disconnected');
       throw err;
-    }
-  }
-
-  private onConnectionUpdate(
-    update: { connection?: string; lastDisconnect?: { error?: unknown }; qr?: string },
-    DisconnectReason: Record<string, number>,
-    jidNormalizedUser: (jid: string) => string,
-  ): void {
-    const { connection, lastDisconnect, qr } = update;
-    if (qr) {
-      this.qrCode = qr;
-      this.setStatus('qr_ready');
-      this.emit('qr', qr);
-    }
-    if (connection === 'close') {
-      this.qrCode = null;
-      if (this.manualDisconnect) {
-        this.setStatus('disconnected');
-        return;
-      }
-      const code = (lastDisconnect?.error as { output?: { statusCode?: number } } | undefined)
-        ?.output?.statusCode;
-      if (code === DisconnectReason.loggedOut || code === DisconnectReason.forbidden) {
-        this.setStatus('logged_out');
-        cleanupAuthState(this.authStatePath);
-      } else if (
-        code === DisconnectReason.restartRequired ||
-        code === DisconnectReason.badSession
-      ) {
-        if (code === DisconnectReason.badSession) {
-          cleanupAuthState(this.authStatePath);
-        }
-        if (!this.disposed) {
-          this.connect().catch((e) => console.error('[WhatsApp] Reconnect failed:', e));
-        }
-      } else if (code === DisconnectReason.connectionReplaced) {
-        console.warn('[WhatsApp] Connection replaced');
-        this.setStatus('disconnected');
-      } else if (!this.disposed) {
-        scheduleReconnect(
-          this.reconnect,
-          () => this.connect(),
-          () => this.setStatus('disconnected'),
-        );
-      }
-    }
-    if (connection === 'open') {
-      this.qrCode = null;
-      this.reconnect.attempts = 0;
-      this.reconnect.scheduled = false;
-      this.setStatus('connected');
-      const user = this.socket?.user;
-      if (user?.id) {
-        this.emit('phoneNumber', user.id.split(':')[0].split('@')[0]);
-      }
-      if (user?.lid) {
-        this.emit('ownerLid', jidNormalizedUser(user.lid));
-      }
     }
   }
 

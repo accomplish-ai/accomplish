@@ -1,8 +1,7 @@
 import type { ProviderType } from '../common/types/provider.js';
-import { ZAI_ENDPOINTS, DEFAULT_PROVIDERS } from '../common/types/provider.js';
 import type { ZaiRegion } from '../common/types/providerSettings.js';
 
-import { fetchWithTimeout } from '../utils/fetch.js';
+import { fetchValidationResponse } from './validation-providers.js';
 
 export interface ValidationResult {
   valid: boolean;
@@ -25,183 +24,11 @@ export async function validateApiKey(
   const timeout = options?.timeout ?? DEFAULT_TIMEOUT_MS;
 
   try {
-    let response: Response;
+    const response = await fetchValidationResponse(provider, apiKey, options ?? {}, timeout);
 
-    switch (provider) {
-      case 'anthropic':
-        response = await fetchWithTimeout(
-          'https://api.anthropic.com/v1/messages',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': apiKey,
-              'anthropic-version': '2023-06-01',
-            },
-            body: JSON.stringify({
-              model: 'claude-3-haiku-20240307',
-              max_tokens: 1,
-              messages: [{ role: 'user', content: 'test' }],
-            }),
-          },
-          timeout,
-        );
-        break;
-
-      case 'openai': {
-        const baseUrl = (options?.baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '');
-        response = await fetchWithTimeout(
-          `${baseUrl}/models`,
-          {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-            },
-          },
-          timeout,
-        );
-        break;
-      }
-
-      case 'google':
-        response = await fetchWithTimeout(
-          `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
-          {
-            method: 'GET',
-          },
-          timeout,
-        );
-        break;
-
-      case 'xai':
-        response = await fetchWithTimeout(
-          'https://api.x.ai/v1/models',
-          {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-            },
-          },
-          timeout,
-        );
-        break;
-
-      case 'deepseek':
-        response = await fetchWithTimeout(
-          'https://api.deepseek.com/models',
-          {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-            },
-          },
-          timeout,
-        );
-        break;
-
-      case 'openrouter':
-        response = await fetchWithTimeout(
-          'https://openrouter.ai/api/v1/auth/key',
-          {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-            },
-          },
-          timeout,
-        );
-        break;
-
-      case 'moonshot':
-        response = await fetchWithTimeout(
-          'https://api.moonshot.ai/v1/chat/completions',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-              model: 'kimi-latest',
-              max_tokens: 1,
-              messages: [{ role: 'user', content: 'test' }],
-            }),
-          },
-          timeout,
-        );
-        break;
-
-      case 'zai': {
-        const zaiRegion = options?.zaiRegion ?? 'international';
-        const zaiEndpoint = ZAI_ENDPOINTS[zaiRegion];
-        response = await fetchWithTimeout(
-          `${zaiEndpoint}/models`,
-          {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-            },
-          },
-          timeout,
-        );
-        break;
-      }
-
-      case 'minimax':
-        response = await fetchWithTimeout(
-          'https://api.minimax.io/anthropic/v1/messages',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${apiKey}`,
-              'anthropic-version': '2023-06-01',
-            },
-            body: JSON.stringify({
-              model: 'MiniMax-M2.5',
-              max_tokens: 1,
-              messages: [{ role: 'user', content: 'test' }],
-            }),
-          },
-          timeout,
-        );
-        break;
-
-      case 'ollama':
-      case 'bedrock':
-      case 'vertex':
-      case 'azure-foundry':
-      case 'litellm':
-      case 'lmstudio':
-      case 'custom':
-        return { valid: true };
-
-      default: {
-        // Data-driven validation: fetch from modelsEndpoint configured in DEFAULT_PROVIDERS.
-        // This enables validation for any OpenAI-compatible provider without adding new cases.
-        const providerConfig = DEFAULT_PROVIDERS.find((p) => p.id === provider);
-        if (providerConfig?.modelsEndpoint) {
-          const { url, authStyle } = providerConfig.modelsEndpoint;
-          const headers: Record<string, string> = {};
-          let fetchUrl = url;
-
-          if (authStyle === 'bearer') {
-            headers['Authorization'] = `Bearer ${apiKey}`;
-          } else if (authStyle === 'query-param') {
-            fetchUrl = `${url}?key=${apiKey}`;
-          } else if (authStyle === 'x-api-key') {
-            headers['x-api-key'] = apiKey;
-          }
-
-          if (providerConfig.modelsEndpoint.extraHeaders) {
-            Object.assign(headers, providerConfig.modelsEndpoint.extraHeaders);
-          }
-
-          response = await fetchWithTimeout(fetchUrl, { method: 'GET', headers }, timeout);
-          break;
-        }
-        return { valid: true };
-      }
+    // null means the provider skips validation (always valid)
+    if (response === null) {
+      return { valid: true };
     }
 
     if (response.ok) {

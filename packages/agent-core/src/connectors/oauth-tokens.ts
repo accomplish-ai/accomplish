@@ -11,6 +11,7 @@ export async function exchangeCodeForTokens(params: {
   clientId: string;
   clientSecret?: string;
   redirectUri: string;
+  resource?: string;
 }): Promise<OAuthTokens> {
   const body = new URLSearchParams({
     grant_type: 'authorization_code',
@@ -22,6 +23,10 @@ export async function exchangeCodeForTokens(params: {
 
   if (params.clientSecret) {
     body.set('client_secret', params.clientSecret);
+  }
+
+  if (params.resource) {
+    body.set('resource', params.resource);
   }
 
   const response = await fetchWithTimeout(params.tokenEndpoint, {
@@ -63,6 +68,7 @@ export async function refreshAccessToken(params: {
   refreshToken: string;
   clientId: string;
   clientSecret?: string;
+  resource?: string;
 }): Promise<OAuthTokens> {
   const body = new URLSearchParams({
     grant_type: 'refresh_token',
@@ -72,6 +78,10 @@ export async function refreshAccessToken(params: {
 
   if (params.clientSecret) {
     body.set('client_secret', params.clientSecret);
+  }
+
+  if (params.resource) {
+    body.set('resource', params.resource);
   }
 
   const response = await fetchWithTimeout(params.tokenEndpoint, {

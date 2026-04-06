@@ -92,8 +92,8 @@ export interface TaskAdapterOptions {
   buildEnvironment: (taskId: string) => Promise<NodeJS.ProcessEnv>;
   /** Function to build CLI arguments for a task */
   buildCliArgs: (config: TaskConfig, taskId: string) => Promise<string[]>;
-  /** Called before the CLI starts */
-  onBeforeStart?: () => Promise<void>;
+  /** Called before the CLI starts. Can return environment variables to be merged. */
+  onBeforeStart?: () => Promise<NodeJS.ProcessEnv | void>;
   /** Function to get display name for a model ID */
   getModelDisplayName?: (modelId: string) => string;
   /**

@@ -93,6 +93,20 @@ export class DaemonClient {
   }
 
   /**
+   * Remove a previously registered notification handler.
+   */
+  offNotification<N extends DaemonNotification>(method: N, handler: NotificationHandler<N>): void {
+    const handlers = this.notificationHandlers.get(method);
+    if (!handlers) {
+      return;
+    }
+    const idx = handlers.indexOf(handler as NotificationHandler<DaemonNotification>);
+    if (idx !== -1) {
+      handlers.splice(idx, 1);
+    }
+  }
+
+  /**
    * Health check — ping the daemon.
    */
   async ping(): Promise<{ status: 'ok'; uptime: number }> {

@@ -91,6 +91,8 @@ export function createProxyRequestHandler(
       }
       const headers = { ...req.headers } as Record<string, string | string[] | undefined>;
       delete headers.host;
+      delete headers['transfer-encoding'];
+      delete headers['Transfer-Encoding'];
       headers['content-length'] = String(body.length);
       const requestOptions: http.RequestOptions = {
         method: req.method,

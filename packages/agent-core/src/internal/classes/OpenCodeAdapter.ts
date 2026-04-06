@@ -72,7 +72,7 @@ export interface AdapterOptions {
   getCliCommand: () => { command: string; args: string[] };
   buildEnvironment: (taskId: string) => Promise<NodeJS.ProcessEnv>;
   buildCliArgs: (config: TaskConfig) => Promise<string[]>;
-  onBeforeStart?: () => Promise<void>;
+  onBeforeStart?: () => Promise<NodeJS.ProcessEnv | void>;
   getModelDisplayName?: (modelId: string) => string;
   /**
    * Lazy sandbox factory, called once per adapter instance.
@@ -143,6 +143,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
   /** Rolling buffer for reassembling split JSON lines from dev-browser-mcp stdout.
    *  Contributed by samarthsinh2660 (PR #414) for ENG-695. */
   private browserFrameBuffer: string = '';
+  private externalEnv: NodeJS.ProcessEnv | undefined;
   private static readonly OUTPUT_BUFFER_MAX = 4096;
 
   private appendToOutputBuffer(data: string): void {
@@ -305,7 +306,9 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     }
 
     if (this.options.onBeforeStart) {
-      await this.options.onBeforeStart();
+      // Always reset externalEnv so stale values from a prior run are never reused
+      // when the current call returns void/undefined.
+      this.externalEnv = (await this.options.onBeforeStart()) ?? {};
     }
 
     const cliArgs = await this.options.buildCliArgs(config);
@@ -365,7 +368,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
           file: spawnFile,
           args: spawnArgs,
           cwd: safeCwd,
-          env: env,
+          env: { ...env, ...this.externalEnv },
         },
         this.sandboxConfig,
       );
@@ -915,7 +918,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         file: spawnFile,
         args: spawnArgs,
         cwd: safeCwd,
-        env: env,
+        env: { ...env, ...this.externalEnv },
       },
       this.sandboxConfig,
     );

@@ -116,6 +116,7 @@ ${options.knowledgeNotes}
     permissionApiPort,
     questionApiPort,
     browserConfig,
+    authToken: options.authToken,
     connectors: options.connectors,
   });
 
@@ -166,7 +167,8 @@ ${options.knowledgeNotes}
   };
 
   const configDir = path.join(userDataPath, 'opencode');
-  const configPath = path.join(configDir, 'opencode.json');
+  const configFileName = options.configFileName ?? 'opencode.json';
+  const configPath = path.join(configDir, configFileName);
 
   if (!fs.existsSync(configDir)) {
     fs.mkdirSync(configDir, { recursive: true });

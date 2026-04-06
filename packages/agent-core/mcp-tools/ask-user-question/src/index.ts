@@ -11,6 +11,16 @@ const QUESTION_API_PORT = process.env.QUESTION_API_PORT || '9227';
 const QUESTION_API_URL = `http://localhost:${QUESTION_API_PORT}/question`;
 const TASK_ID = process.env.ACCOMPLISH_TASK_ID;
 
+const AUTH_TOKEN = process.env.ACCOMPLISH_DAEMON_AUTH_TOKEN;
+
+function getHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (AUTH_TOKEN) {
+    headers['Authorization'] = `Bearer ${AUTH_TOKEN}`;
+  }
+  return headers;
+}
+
 interface QuestionOption {
   label: string;
   description?: string;
@@ -118,7 +128,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   try {
     const response = await fetch(QUESTION_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify({
         question: question.question,
         header: question.header,

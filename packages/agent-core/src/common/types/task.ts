@@ -18,8 +18,10 @@ export interface TaskConfig {
   systemPromptAppend?: string;
   outputSchema?: object;
   sessionId?: string;
-  /** Model ID for display name in progress events */
+  /** Model ID for display name or CLI override */
   modelId?: string;
+  /** Provider ID for CLI override */
+  provider?: string;
   /**
    * User-attached files (drag-and-drop or file picker). Ephemeral — paths reference
    * the host filesystem at submission time and are not persisted with the task.

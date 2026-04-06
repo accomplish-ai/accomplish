@@ -26,7 +26,7 @@ export function emitStatusUpdate(
   status: PreviewStatus,
   message?: string,
 ): void {
-  sendToRenderer('browser:status', { taskId, pageName, status, message });
+  sendToRenderer('browser:status', { taskId, pageName, status, message, timestamp: Date.now() });
 }
 
 export function emitFrameCapture(
@@ -47,7 +47,7 @@ export function emitFrameCapture(
 }
 
 export function emitNavigationEvent(taskId: string, pageName: string, url: string): void {
-  sendToRenderer('browser:navigate', { taskId, pageName, url });
+  sendToRenderer('browser:navigate', { taskId, pageName, url, timestamp: Date.now() });
 }
 
 export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -89,7 +89,6 @@ export async function resolveBrowserWsEndpoint(): Promise<string> {
   }
   return info.webSocketDebuggerUrl;
 }
-
 /**
  * Auto-start a preview when the dev-browser server is already running with an active session.
  * Called opportunistically from the task lifecycle.

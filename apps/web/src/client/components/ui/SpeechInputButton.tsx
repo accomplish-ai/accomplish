@@ -9,7 +9,7 @@
 
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Microphone, SpinnerGap, WarningCircle } from '@phosphor-icons/react';
+import { SpinnerGap, WarningCircle, Microphone } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { SpeechInputButtonProps } from './speech-input-button-types';

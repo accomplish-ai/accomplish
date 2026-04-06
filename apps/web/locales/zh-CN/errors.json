@@ -113,5 +113,12 @@
     "reLoginTo": "重新登录到 {{provider}}",
     "connectorAttention": "{{provider}} 需要处理",
     "openConnectorSettings": "打开 设置 -> 连接器 -> {{provider}}"
+  },
+  "daemon": {
+    "disconnected": "Daemon Disconnected",
+    "disconnectedMessage": "Connection to the background daemon was lost. Reconnecting...",
+    "reconnectFailed": "Reconnection Failed",
+    "reconnectFailedMessage": "Could not reconnect to the daemon. Tasks may be interrupted.",
+    "openSettings": "Open Settings"
   }
 }

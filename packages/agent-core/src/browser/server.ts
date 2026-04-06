@@ -109,11 +109,7 @@ export async function startDevBrowserServer(
 
   log.info('[Browser] ========== END DEV-BROWSER SERVER STARTUP ==========');
 
-  return {
-    ready: serverReady,
-    pid: child.pid,
-    logs: serverLogs,
-  };
+  return { ready: serverReady, pid: child.pid, logs: serverLogs };
 }
 
 export async function ensureDevBrowserServer(

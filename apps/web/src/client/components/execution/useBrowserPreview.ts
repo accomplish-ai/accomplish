@@ -10,12 +10,15 @@
  * IPC subscription logic lives in useBrowserPreviewIpc.ts (extracted to keep
  * this file under 200 lines — CodeRabbit suggestion).
  *
+ * State types and reducer live in browserPreviewState.ts.
+ *
  * Extracted from BrowserPreview as part of ENG-982 refactor.
  */
 
 import { useEffect, useRef, useCallback, useReducer } from 'react';
 import type { ViewStatus } from './StatusBadge';
 import { useBrowserPreviewIpc } from './useBrowserPreviewIpc';
+import { previewReducer, initialPreviewState, isViewStatus } from './browserPreviewState';
 
 interface UseBrowserPreviewOptions {
   taskId: string;
@@ -33,62 +36,6 @@ export interface UseBrowserPreviewResult {
   imgRef: React.RefObject<HTMLImageElement | null>;
 }
 
-type PreviewState = {
-  frameData: string | null;
-  currentUrl: string;
-  status: ViewStatus;
-  error: string | undefined;
-  isCollapsed: boolean;
-};
-
-type PreviewAction =
-  | { type: 'RESET' }
-  | { type: 'IDLE' }
-  | { type: 'SET_COLLAPSED'; value: boolean }
-  | { type: 'SET_STARTING' }
-  | { type: 'SET_FRAME'; frame: string }
-  | { type: 'SET_URL'; url: string }
-  | { type: 'SET_STATUS'; status: ViewStatus; message?: string };
-
-const VIEW_STATUSES = new Set<string>(['idle', 'starting', 'streaming', 'stopping', 'error']);
-
-function isViewStatus(s: string): s is ViewStatus {
-  return VIEW_STATUSES.has(s);
-}
-
-function assertNever(x: never): never {
-  throw new Error(`Unhandled action type: ${JSON.stringify(x)}`);
-}
-
-const initialState: PreviewState = {
-  frameData: null,
-  currentUrl: '',
-  status: 'idle',
-  error: undefined,
-  isCollapsed: false,
-};
-
-function previewReducer(state: PreviewState, action: PreviewAction): PreviewState {
-  switch (action.type) {
-    case 'RESET':
-      return initialState;
-    case 'IDLE':
-      return { ...initialState, isCollapsed: state.isCollapsed };
-    case 'SET_COLLAPSED':
-      return { ...state, isCollapsed: action.value };
-    case 'SET_STARTING':
-      return { ...state, status: 'starting' };
-    case 'SET_FRAME':
-      return { ...state, frameData: action.frame, status: 'streaming' };
-    case 'SET_URL':
-      return { ...state, currentUrl: action.url };
-    case 'SET_STATUS':
-      return { ...state, status: action.status, error: action.message };
-    default:
-      return assertNever(action);
-  }
-}
-
 export function useBrowserPreview({
   taskId,
   pageName,
@@ -100,7 +47,7 @@ export function useBrowserPreview({
   const isCollapsedRef = useRef(false);
   const statusRef = useRef<ViewStatus>('idle');
 
-  const [state, dispatch] = useReducer(previewReducer, initialState);
+  const [state, dispatch] = useReducer(previewReducer, initialPreviewState);
 
   // Reset all preview state when taskId changes to avoid stale guard/frame bleed
   useEffect(() => {

@@ -42,12 +42,14 @@ export {
   setOnboardingComplete,
   getTheme,
   setTheme,
-  getRunInBackground,
-  setRunInBackground,
   getNotificationsEnabled,
   setNotificationsEnabled,
+  getCloseBehavior,
+  setCloseBehavior,
   VALID_THEMES,
 } from './ui-settings.js';
+
+export type { CloseBehavior } from './ui-settings.js';
 
 interface AppSettingsRow {
   id: number;
@@ -61,7 +63,6 @@ interface AppSettingsRow {
   huggingface_local_config: string | null;
   openai_base_url: string | null;
   theme: string;
-  run_in_background: number;
   sandbox_config: string;
   cloud_browser_config: string | null;
   messaging_config: string | null;
@@ -80,7 +81,6 @@ export interface AppSettings {
   huggingfaceLocalConfig: HuggingFaceLocalConfig | null;
   openaiBaseUrl: string;
   theme: ThemePreference;
-  runInBackground: boolean;
 }
 
 const VALID_THEMES_LOCAL: ThemePreference[] = ['system', 'light', 'dark'];
@@ -163,7 +163,6 @@ export function getAppSettings(): AppSettings {
     theme: VALID_THEMES_LOCAL.includes(row.theme as ThemePreference)
       ? (row.theme as ThemePreference)
       : 'system',
-    runInBackground: row.run_in_background === 1,
   };
 }
 
@@ -182,7 +181,6 @@ export function clearAppSettings(): void {
       nim_config = NULL,
       openai_base_url = '',
       theme = 'system',
-      run_in_background = 0,
       sandbox_config = '${JSON.stringify(DEFAULT_SANDBOX_CONFIG)}',
       cloud_browser_config = NULL,
       messaging_config = NULL,

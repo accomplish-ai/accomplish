@@ -7,6 +7,7 @@ const env = { ...process.env };
 try {
   runNodeScript('check-deps.cjs');
   runNodeScript('ensure-agent-core-built.cjs');
+  runNodeScript('ensure-daemon-built.cjs');
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`[predev] ${message}`);

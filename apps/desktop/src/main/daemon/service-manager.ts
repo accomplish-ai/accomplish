@@ -1,10 +1,12 @@
 /**
  * Service Manager
  *
- * Cross-platform daemon auto-start registration:
- *   - macOS: Electron login item (launchd behind the scenes)
- *   - Windows: Electron login item (startup registry key)
- *   - Linux: systemd user service file
+ * Cross-platform daemon auto-start registration.
+ * "Start at Login" now starts the **daemon binary** (not the full Electron app).
+ *
+ *   - macOS: LaunchAgent plist with KeepAlive
+ *   - Windows: Electron login item (starts Electron hidden, which spawns daemon)
+ *   - Linux: systemd user service for the daemon binary
  *
  * This file MUST use `path.join()` for all file paths (Windows CI compatibility).
  */
@@ -15,11 +17,11 @@ import path from 'path';
 import { execSync } from 'child_process';
 import { getLogCollector } from '../logging';
 
-function logD(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
+function logD(level: 'INFO' | 'WARN' | 'ERROR', msg: string): void {
   try {
     const l = getLogCollector();
     if (l?.log) {
-      l.log(level, 'daemon', msg, data);
+      l.log(level, 'daemon', msg);
     }
   } catch (_e) {
     /* best-effort logging */
@@ -31,8 +33,11 @@ export function isAutoStartEnabled(): boolean {
   if (process.platform === 'linux') {
     return isSystemdServiceEnabled();
   }
+  if (process.platform === 'darwin') {
+    return isLaunchAgentInstalled();
+  }
 
-  // macOS + Windows: use Electron's built-in API
+  // Windows: use Electron's built-in login item API (starts Electron hidden → spawns daemon)
   const settings = app.getLoginItemSettings();
   return settings.openAtLogin;
 }
@@ -45,14 +50,40 @@ export function enableAutoStart(): void {
     installSystemdService();
     return;
   }
+  if (process.platform === 'darwin') {
+    installLaunchAgent();
+    return;
+  }
 
-  // macOS + Windows: use Electron's built-in API
-  app.setLoginItemSettings({
-    openAtLogin: true,
-    openAsHidden: true,
-  });
-
-  logD('INFO', '[ServiceManager] Auto-start enabled via Electron login item');
+  // Windows: create a startup shortcut for the daemon binary.
+  // Use Electron login item API with path/args pointing to bundled Node.js + daemon.
+  if (app.isPackaged) {
+    const nodePath = getDaemonNodePath();
+    const entryPath = getDaemonEntryPath();
+    const dataDir = getDataDir();
+    app.setLoginItemSettings({
+      openAtLogin: true,
+      path: nodePath,
+      args: [
+        entryPath,
+        '--data-dir',
+        dataDir,
+        '--packaged',
+        '--resources-path',
+        process.resourcesPath,
+        '--app-path',
+        app.getAppPath(),
+      ],
+    });
+    logD('INFO', '[ServiceManager] Auto-start enabled: daemon binary via login item');
+  } else {
+    // Dev mode: start Electron hidden (which spawns daemon on boot)
+    app.setLoginItemSettings({
+      openAtLogin: true,
+      openAsHidden: true,
+    });
+    logD('INFO', '[ServiceManager] Auto-start enabled: Electron hidden (dev mode)');
+  }
 }
 
 /** Unregister the daemon from auto-starting on login. */
@@ -63,13 +94,141 @@ export function disableAutoStart(): void {
     uninstallSystemdService();
     return;
   }
+  if (process.platform === 'darwin') {
+    uninstallLaunchAgent();
+    return;
+  }
 
-  // macOS + Windows: use Electron's built-in API
-  app.setLoginItemSettings({
-    openAtLogin: false,
-  });
-
+  // Windows: disable login item (works for both packaged daemon path and dev Electron path)
+  app.setLoginItemSettings({ openAtLogin: false });
   logD('INFO', '[ServiceManager] Auto-start disabled');
+}
+
+// =============================================================================
+// Daemon binary paths (shared by macOS + Linux)
+// =============================================================================
+
+function getDaemonNodePath(): string {
+  if (app.isPackaged) {
+    // Bundled Node.js
+    const binDir =
+      process.platform === 'win32'
+        ? path.join(process.resourcesPath, 'nodejs', `${process.platform}-${process.arch}`)
+        : path.join(process.resourcesPath, 'nodejs', `${process.platform}-${process.arch}`, 'bin');
+    return process.platform === 'win32' ? path.join(binDir, 'node.exe') : path.join(binDir, 'node');
+  }
+  return process.execPath; // dev: system node
+}
+
+function getDaemonEntryPath(): string {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'daemon', 'index.js');
+  }
+  return path.join(app.getAppPath(), '..', 'daemon', 'dist', 'index.js');
+}
+
+function getDataDir(): string {
+  return app.getPath('userData');
+}
+
+// =============================================================================
+// macOS: LaunchAgent plist
+// =============================================================================
+
+const LAUNCH_AGENT_LABEL = 'ai.accomplish.daemon';
+
+function getLaunchAgentDir(): string {
+  return path.join(process.env.HOME || '~', 'Library', 'LaunchAgents');
+}
+
+function getLaunchAgentPath(): string {
+  return path.join(getLaunchAgentDir(), `${LAUNCH_AGENT_LABEL}.plist`);
+}
+
+function getLaunchAgentContent(): string {
+  const nodePath = getDaemonNodePath();
+  const entryPath = getDaemonEntryPath();
+  const dataDir = getDataDir();
+
+  const lines = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">',
+    '<plist version="1.0">',
+    '<dict>',
+    `  <key>Label</key><string>${LAUNCH_AGENT_LABEL}</string>`,
+    '  <key>ProgramArguments</key>',
+    '  <array>',
+    `    <string>${nodePath}</string>`,
+    `    <string>${entryPath}</string>`,
+    `    <string>--data-dir</string>`,
+    `    <string>${dataDir}</string>`,
+    '  </array>',
+    '  <key>KeepAlive</key><true/>',
+    '  <key>RunAtLoad</key><true/>',
+  ];
+
+  // Pass packaged-mode context so daemon resolves paths correctly
+  if (app.isPackaged) {
+    lines.push(
+      '  <key>EnvironmentVariables</key>',
+      '  <dict>',
+      '    <key>ACCOMPLISH_IS_PACKAGED</key><string>1</string>',
+      `    <key>ACCOMPLISH_RESOURCES_PATH</key><string>${process.resourcesPath}</string>`,
+      `    <key>ACCOMPLISH_APP_PATH</key><string>${app.getAppPath()}</string>`,
+      '  </dict>',
+    );
+  }
+
+  lines.push(
+    '  <key>StandardOutPath</key>',
+    `  <string>${path.join(dataDir, 'daemon-stdout.log')}</string>`,
+    '  <key>StandardErrorPath</key>',
+    `  <string>${path.join(dataDir, 'daemon-stderr.log')}</string>`,
+    '</dict>',
+    '</plist>',
+    '',
+  );
+
+  return lines.join('\n');
+}
+
+function installLaunchAgent(): void {
+  const agentDir = getLaunchAgentDir();
+  const agentPath = getLaunchAgentPath();
+
+  fs.mkdirSync(agentDir, { recursive: true });
+  fs.writeFileSync(agentPath, getLaunchAgentContent(), { mode: 0o644 });
+  logD('INFO', `[ServiceManager] Wrote LaunchAgent to: ${agentPath}`);
+
+  try {
+    // Unload first if already loaded (idempotent)
+    execSync(`launchctl unload "${agentPath}" 2>/dev/null || true`, { stdio: 'pipe' });
+    execSync(`launchctl load "${agentPath}"`, { stdio: 'pipe' });
+    logD('INFO', '[ServiceManager] LaunchAgent loaded');
+  } catch (err) {
+    logD('ERROR', `[ServiceManager] Failed to load LaunchAgent: ${String(err)}`);
+    throw err;
+  }
+}
+
+function uninstallLaunchAgent(): void {
+  const agentPath = getLaunchAgentPath();
+
+  try {
+    execSync(`launchctl unload "${agentPath}" 2>/dev/null || true`, { stdio: 'pipe' });
+    logD('INFO', '[ServiceManager] LaunchAgent unloaded');
+  } catch {
+    // May not be loaded — that's fine
+  }
+
+  if (fs.existsSync(agentPath)) {
+    fs.unlinkSync(agentPath);
+    logD('INFO', `[ServiceManager] Removed LaunchAgent: ${agentPath}`);
+  }
+}
+
+function isLaunchAgentInstalled(): boolean {
+  return fs.existsSync(getLaunchAgentPath());
 }
 
 // =============================================================================
@@ -87,44 +246,49 @@ function getSystemdServicePath(): string {
   return path.join(getSystemdServiceDir(), SYSTEMD_SERVICE_NAME);
 }
 
-function getServiceContent(): string {
-  const execPath = app.getPath('exe');
+function getSystemdServiceContent(): string {
+  const nodePath = getDaemonNodePath();
+  const entryPath = getDaemonEntryPath();
+  const dataDir = getDataDir();
 
-  return [
+  const lines = [
     '[Unit]',
     'Description=Accomplish AI Daemon',
     'After=default.target',
     '',
     '[Service]',
     'Type=simple',
-    `ExecStart=${execPath} --daemon`,
-    'Restart=on-failure',
-    'RestartSec=5',
-    '',
-    '[Install]',
-    'WantedBy=default.target',
-    '',
-  ].join('\n');
+    `ExecStart=${nodePath} ${entryPath} --data-dir ${dataDir}`,
+  ];
+
+  // Pass packaged-mode context so daemon resolves paths correctly
+  if (app.isPackaged) {
+    lines.push(
+      `Environment=ACCOMPLISH_IS_PACKAGED=1`,
+      `Environment=ACCOMPLISH_RESOURCES_PATH=${process.resourcesPath}`,
+      `Environment=ACCOMPLISH_APP_PATH=${app.getAppPath()}`,
+    );
+  }
+
+  lines.push('Restart=on-failure', 'RestartSec=5', '', '[Install]', 'WantedBy=default.target', '');
+
+  return lines.join('\n');
 }
 
 function installSystemdService(): void {
   const serviceDir = getSystemdServiceDir();
   const servicePath = getSystemdServicePath();
 
-  // Ensure directory exists
   fs.mkdirSync(serviceDir, { recursive: true });
-
-  // Write service file
-  fs.writeFileSync(servicePath, getServiceContent(), { mode: 0o644 });
+  fs.writeFileSync(servicePath, getSystemdServiceContent(), { mode: 0o644 });
   logD('INFO', `[ServiceManager] Wrote systemd service to: ${servicePath}`);
 
-  // Enable and reload
   try {
     execSync('systemctl --user daemon-reload', { stdio: 'pipe' });
     execSync(`systemctl --user enable ${SYSTEMD_SERVICE_NAME}`, { stdio: 'pipe' });
     logD('INFO', '[ServiceManager] systemd user service enabled');
   } catch (err) {
-    logD('ERROR', '[ServiceManager] Failed to enable systemd service', { err: String(err) });
+    logD('ERROR', `[ServiceManager] Failed to enable systemd service: ${String(err)}`);
     throw err;
   }
 }

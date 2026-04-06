@@ -61,61 +61,9 @@ function buildThemeInit(): import('vite').Plugin {
   };
 }
 
-/**
- * Compile daemon/entry.ts → out/main/daemon/entry.cjs as CJS.
- * The daemon is fork()ed by the Electron main process as a plain Node.js child process.
- * It must be CJS and use a .cjs extension because apps/desktop has "type":"module" in package.json.
- */
-function buildDaemonEntry(): import('vite').Plugin {
-  const outfile = path.resolve(__dirname, 'out/main/daemon/entry.cjs');
-  const agentCoreSrc = path.resolve(__dirname, '../../packages/agent-core/src/index.ts');
-
-  async function generate() {
-    await esbuild.build({
-      entryPoints: [path.resolve(__dirname, 'src/main/daemon/entry.ts')],
-      bundle: true,
-      format: 'cjs',
-      outfile,
-      platform: 'node',
-      target: 'node20',
-      sourcemap: true,
-      plugins: [
-        {
-          name: 'externalize-node-modules',
-          setup(build) {
-            // Bundle @accomplish_ai workspace packages; externalize everything else.
-            build.onResolve({ filter: /^[^./]/ }, (args) => {
-              // Absolute paths (e.g. Windows drive-letter paths like "D:\...") must not be
-              // externalized — they are entry points or resolved files, not package imports.
-              if (path.isAbsolute(args.path)) {
-                return null;
-              }
-              if (args.path.startsWith('@accomplish_ai/')) {
-                return null; // let esbuild resolve and bundle
-              }
-              return { path: args.path, external: true };
-            });
-          },
-        },
-      ],
-      alias: {
-        '@accomplish_ai/agent-core': agentCoreSrc,
-      },
-    });
-  }
-
-  return {
-    name: 'build-daemon-entry',
-    async buildStart() {
-      await generate();
-    },
-  };
-}
-
 export default defineConfig(() => ({
   plugins: [
     buildThemeInit(),
-    buildDaemonEntry(),
     electron([
       {
         entry: 'src/main/index.ts',

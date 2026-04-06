@@ -12,34 +12,9 @@ import {
   decrementGenerations,
 } from './server-state';
 import { formatChatPrompt } from './model-loader';
-import { writeJsonError } from './request-helpers';
+import { writeJsonError, validateSamplingParams } from './request-helpers';
 
-/**
- * Validate sampling parameters and write a 400 error if invalid.
- * Returns true if valid, false if an error was written.
- */
-export function validateSamplingParams(
-  chatReq: ChatCompletionRequest,
-  res: http.ServerResponse,
-): boolean {
-  const maxTokens = chatReq.max_tokens ?? 512;
-  const temperature = chatReq.temperature ?? 0.7;
-  const topP = chatReq.top_p ?? 0.9;
-
-  if (!Number.isFinite(maxTokens) || maxTokens < 1 || maxTokens > 32768) {
-    writeJsonError(res, 400, 'max_tokens must be between 1 and 32768');
-    return false;
-  }
-  if (!Number.isFinite(temperature) || temperature < 0 || temperature > 2) {
-    writeJsonError(res, 400, 'temperature must be between 0 and 2');
-    return false;
-  }
-  if (!Number.isFinite(topP) || topP <= 0 || topP > 1) {
-    writeJsonError(res, 400, 'top_p must be between 0 and 1');
-    return false;
-  }
-  return true;
-}
+export { validateSamplingParams };
 
 /**
  * Handle a chat completion request (non-streaming).

@@ -59,6 +59,8 @@ export interface BuildMcpServersOptions {
   permissionApiPort: number;
   questionApiPort: number;
   browserConfig: BrowserConfig;
+  /** Auth token for daemon HTTP APIs. MCP tools send this as Authorization header. */
+  authToken?: string;
   connectors?: Array<{
     id: string;
     name: string;
@@ -72,8 +74,20 @@ export interface BuildMcpServersOptions {
  * Includes built-in tools, browser config, and connected remote MCP connectors.
  */
 export function buildMcpServers(options: BuildMcpServersOptions): Record<string, McpServerConfig> {
-  const { mcpToolsPath, nodeExe, permissionApiPort, questionApiPort, browserConfig, connectors } =
-    options;
+  const {
+    mcpToolsPath,
+    nodeExe,
+    permissionApiPort,
+    questionApiPort,
+    browserConfig,
+    authToken,
+    connectors,
+  } = options;
+
+  // Auth env for daemon HTTP APIs — MCP tools send this as Authorization header
+  const authEnv: Record<string, string> = authToken
+    ? { ACCOMPLISH_DAEMON_AUTH_TOKEN: authToken }
+    : {};
 
   const mcpServers: Record<string, McpServerConfig> = {
     slack: {
@@ -85,20 +99,21 @@ export function buildMcpServers(options: BuildMcpServersOptions): Record<string,
       type: 'local',
       command: resolveMcpCommand(mcpToolsPath, 'file-permission', 'dist/index.mjs', nodeExe),
       enabled: true,
-      environment: { PERMISSION_API_PORT: String(permissionApiPort) },
+      environment: { PERMISSION_API_PORT: String(permissionApiPort), ...authEnv },
       timeout: 30000,
     },
     'ask-user-question': {
       type: 'local',
       command: resolveMcpCommand(mcpToolsPath, 'ask-user-question', 'dist/index.mjs', nodeExe),
       enabled: true,
-      environment: { QUESTION_API_PORT: String(questionApiPort) },
+      environment: { QUESTION_API_PORT: String(questionApiPort), ...authEnv },
       timeout: 600000, // 10 minutes — user needs time to read and respond
     },
     'request-connector-auth': {
       type: 'local',
       command: resolveMcpCommand(mcpToolsPath, 'request-connector-auth', 'dist/index.mjs', nodeExe),
       enabled: true,
+      environment: { ...authEnv },
       timeout: MCP_TOOL_TIMEOUT_MS,
     },
     'complete-task': {
@@ -117,7 +132,7 @@ export function buildMcpServers(options: BuildMcpServersOptions): Record<string,
       type: 'local',
       command: resolveMcpCommand(mcpToolsPath, 'desktop-control', 'dist/index.mjs', nodeExe),
       enabled: true,
-      environment: { PERMISSION_API_PORT: String(permissionApiPort) },
+      environment: { PERMISSION_API_PORT: String(permissionApiPort), ...authEnv },
       timeout: 60000,
     },
   };

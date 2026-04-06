@@ -7,11 +7,12 @@ import {
   parseFrontmatter,
   generateId,
   sanitizeSkillName,
+  normalizeSkillSlug,
   isPathWithinDirectory,
   scanDirectory,
 } from './skill-parser.js';
 
-export { scanDirectory };
+export { scanDirectory, normalizeSkillSlug };
 
 const log = createConsoleLogger({ prefix: 'SkillsManager' });
 
@@ -159,7 +160,6 @@ export function resolveGithubRawUrl(rawUrl: string): string {
       'URL must include at least owner, repo, and branch reference (e.g. github.com/owner/repo/tree/branch)',
     );
   }
-
   let fetchUrl = rawUrl;
   if (rawUrl.includes('/tree/')) {
     fetchUrl = rawUrl.replace('github.com', 'raw.githubusercontent.com').replace('/tree/', '/');

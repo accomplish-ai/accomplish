@@ -3,11 +3,11 @@
  *
  * Extracted from WhatsAppCard for modularity (> 200 line limit).
  * Encapsulates IPC bootstrapping, subscription cleanup, and status transitions.
+ * IPC subscriptions are delegated to useWhatsAppSubscriptions.
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getAccomplish } from '@/lib/accomplish';
-
-const QR_EXPIRY_SECONDS = 60;
+import { useWhatsAppSubscriptions } from './useWhatsAppSubscriptions';
 
 const VALID_STATUSES = new Set([
   'connecting',
@@ -40,7 +40,7 @@ export interface WhatsAppCardActions {
 }
 
 export function useWhatsAppCard(): WhatsAppCardState & WhatsAppCardActions {
-  const accomplish = getAccomplish();
+  const accomplish = useMemo(() => getAccomplish(), []);
 
   const [config, setConfig] = useState<WhatsAppCardState['config']>(null);
   const [loading, setLoading] = useState(true);
@@ -97,56 +97,18 @@ export function useWhatsAppCard(): WhatsAppCardState & WhatsAppCardActions {
     fetchConfig();
   }, [fetchConfig]);
 
-  useEffect(() => {
-    const unsubQR = accomplish.onWhatsAppQR((qr: string) => {
-      setQrCode(qr);
-      setQrExpiresAt(Date.now() + QR_EXPIRY_SECONDS * 1000);
-      setError(null);
-      if (connectTimeoutRef.current) {
-        clearTimeout(connectTimeoutRef.current);
-        connectTimeoutRef.current = null;
-      }
-      setConnecting(false);
-      setConfig((prev) => (prev ? { ...prev, status: 'qr_ready' } : { status: 'qr_ready' }));
-    });
-
-    const unsubStatus = accomplish.onWhatsAppStatus((status: string) => {
-      const nextStatus = normalizeStatus(status);
-      setConfig((prev) => (prev ? { ...prev, status: nextStatus } : { status: nextStatus }));
-
-      if (nextStatus === 'connected') {
-        setQrCode(null);
-        setConnecting(false);
-        setError(null);
-        if (qrTimerRef.current) {
-          clearInterval(qrTimerRef.current);
-          qrTimerRef.current = null;
-        }
-        if (connectTimeoutRef.current) {
-          clearTimeout(connectTimeoutRef.current);
-          connectTimeoutRef.current = null;
-        }
-        fetchConfig();
-      }
-      if (status === 'disconnected' || status === 'logged_out') {
-        setQrCode(null);
-        setConnecting(false);
-        if (qrTimerRef.current) {
-          clearInterval(qrTimerRef.current);
-          qrTimerRef.current = null;
-        }
-        if (connectTimeoutRef.current) {
-          clearTimeout(connectTimeoutRef.current);
-          connectTimeoutRef.current = null;
-        }
-      }
-    });
-
-    return () => {
-      unsubQR();
-      unsubStatus();
-    };
-  }, [accomplish, fetchConfig]);
+  useWhatsAppSubscriptions({
+    accomplish,
+    qrTimerRef,
+    connectTimeoutRef,
+    setQrCode,
+    setQrExpiresAt,
+    setError,
+    setConnecting,
+    setConfig,
+    fetchConfig,
+    normalizeStatus,
+  });
 
   const handleConnect = useCallback(async () => {
     setConnecting(true);

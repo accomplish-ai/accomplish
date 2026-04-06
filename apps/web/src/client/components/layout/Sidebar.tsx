@@ -13,13 +13,21 @@ import ConversationListItem from './ConversationListItem';
 import SettingsDialog from './SettingsDialog';
 import WorkspaceSelector from './WorkspaceSelector';
 import { Gear, ChatText, MagnifyingGlass } from '@phosphor-icons/react';
+import { DaemonStatusDot } from '@/components/DaemonStatusDot';
 import logoImage from '/assets/logo-1.png';
 
 export default function Sidebar() {
   const navigate = useNavigate();
   const [showSettings, setShowSettings] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
-    'providers' | 'voice' | 'skills' | 'connectors' | 'workspaces' | 'about'
+    | 'providers'
+    | 'voice'
+    | 'skills'
+    | 'connectors'
+    | 'workspaces'
+    | 'scheduler'
+    | 'general'
+    | 'about'
   >('providers');
   const { tasks, loadTasks, updateTaskStatus, addTaskUpdate, openLauncher } = useTaskStore();
   const accomplish = getAccomplish();
@@ -130,19 +138,22 @@ export default function Sidebar() {
             />
           </div>
 
-          {/* Settings Button - Bottom Right */}
-          <Button
-            data-testid="sidebar-settings-button"
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setSettingsInitialTab('providers');
-              setShowSettings(true);
-            }}
-            title={t('settings')}
-          >
-            <Gear className="h-4 w-4" />
-          </Button>
+          {/* Settings Button + Daemon Status - Bottom Right */}
+          <div className="flex items-center gap-2">
+            <DaemonStatusDot />
+            <Button
+              data-testid="sidebar-settings-button"
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setSettingsInitialTab('providers');
+                setShowSettings(true);
+              }}
+              title={t('settings')}
+            >
+              <Gear className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 

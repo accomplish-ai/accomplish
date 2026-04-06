@@ -3,22 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Plus, X, Check } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import type { Workspace } from '@accomplish_ai/agent-core/common';
-import { KnowledgeNotesPanel } from './KnowledgeNotesPanel';
-
-const WORKSPACE_COLORS = [
-  '#6366f1', // indigo
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#ef4444', // red
-  '#f97316', // orange
-  '#eab308', // yellow
-  '#22c55e', // green
-  '#06b6d4', // cyan
-  '#3b82f6', // blue
-  '#64748b', // slate
-];
+import { WorkspaceRow } from './WorkspaceRow';
+import { CreateWorkspaceForm, WORKSPACE_COLORS } from './WorkspacePanelForm';
 
 export function WorkspacesPanel() {
   const { workspaces, loadWorkspaces, createWorkspace, updateWorkspace, deleteWorkspace } =
@@ -92,196 +80,50 @@ export function WorkspacesPanel() {
     [deleteWorkspace],
   );
 
-  const renderEditForm = (_workspace: Workspace) => (
-    <div className="space-y-3">
-      <input
-        type="text"
-        value={editName}
-        onChange={(e) => setEditName(e.target.value)}
-        className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
-        placeholder="Workspace name"
-        autoFocus
-      />
-      <input
-        type="text"
-        value={editDescription}
-        onChange={(e) => setEditDescription(e.target.value)}
-        className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
-        placeholder="Description (optional)"
-      />
-      <div className="flex items-center gap-1.5">
-        {WORKSPACE_COLORS.map((color) => (
-          <button
-            key={color}
-            type="button"
-            onClick={() => setEditColor(color)}
-            aria-label={`Select color ${color}`}
-            aria-pressed={editColor === color}
-            className={`h-5 w-5 rounded-full transition-transform ${
-              editColor === color
-                ? 'ring-2 ring-primary ring-offset-2 ring-offset-card scale-110'
-                : 'hover:scale-110'
-            }`}
-            style={{ backgroundColor: color }}
-          />
-        ))}
-      </div>
-      <div className="flex justify-end gap-2">
-        <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
-          Cancel
-        </Button>
-        <Button size="sm" onClick={handleSaveEdit} disabled={!editName.trim()}>
-          <Check className="h-3.5 w-3.5 mr-1" />
-          Save
-        </Button>
-      </div>
-    </div>
-  );
-
-  const renderDeleteConfirm = (workspace: Workspace) => (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Delete &quot;{workspace.name}&quot;? All tasks and history in this workspace will be
-        permanently removed.
-      </p>
-      <div className="flex justify-end gap-2">
-        <Button variant="ghost" size="sm" onClick={() => setDeletingId(null)}>
-          Cancel
-        </Button>
-        <Button variant="destructive" size="sm" onClick={() => handleDelete(workspace.id)}>
-          Delete
-        </Button>
-      </div>
-    </div>
-  );
-
-  const renderDefaultRow = (workspace: Workspace) => (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3 min-w-0">
-        {workspace.color && (
-          <span
-            className="h-3 w-3 rounded-full flex-shrink-0"
-            style={{ backgroundColor: workspace.color }}
-          />
-        )}
-        <div className="min-w-0">
-          <div className="font-medium text-sm truncate">
-            {workspace.name}
-            {workspace.isDefault && (
-              <span className="ml-2 text-xs text-muted-foreground font-normal">(Default)</span>
-            )}
-          </div>
-          {workspace.description && (
-            <div className="text-xs text-muted-foreground truncate mt-0.5">
-              {workspace.description}
-            </div>
-          )}
-        </div>
-      </div>
-      <div className="flex items-center gap-1 flex-shrink-0">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={() => handleStartEdit(workspace)}
-          title="Edit workspace"
-          aria-label={`Edit workspace ${workspace.name}`}
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-        {!workspace.isDefault && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-            onClick={() => setDeletingId(workspace.id)}
-            title="Delete workspace"
-            aria-label={`Delete workspace ${workspace.name}`}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-
   return (
     <div className="space-y-4">
       {/* Workspace List */}
       <div className="space-y-2">
         {workspaces.map((workspace) => (
           <div key={workspace.id} className="rounded-lg border border-border bg-card p-4">
-            {editingId === workspace.id ? (
-              renderEditForm(workspace)
-            ) : deletingId === workspace.id ? (
-              renderDeleteConfirm(workspace)
-            ) : (
-              <>
-                {renderDefaultRow(workspace)}
-                <KnowledgeNotesPanel workspaceId={workspace.id} />
-              </>
-            )}
+            <WorkspaceRow
+              workspace={workspace}
+              isEditing={editingId === workspace.id}
+              isDeleting={deletingId === workspace.id}
+              editName={editName}
+              editDescription={editDescription}
+              editColor={editColor}
+              onEditNameChange={setEditName}
+              onEditDescriptionChange={setEditDescription}
+              onEditColorChange={setEditColor}
+              onStartEdit={handleStartEdit}
+              onSaveEdit={handleSaveEdit}
+              onCancelEdit={() => setEditingId(null)}
+              onStartDelete={setDeletingId}
+              onCancelDelete={() => setDeletingId(null)}
+              onConfirmDelete={handleDelete}
+            />
           </div>
         ))}
       </div>
 
       {/* Create Form */}
       {showCreateForm ? (
-        <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-          <input
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
-            placeholder="Workspace name"
-            autoFocus
-          />
-          <input
-            type="text"
-            value={newDescription}
-            onChange={(e) => setNewDescription(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
-            placeholder="Description (optional)"
-          />
-          <div className="flex items-center gap-1.5">
-            {WORKSPACE_COLORS.map((color) => (
-              <button
-                key={color}
-                type="button"
-                onClick={() => setNewColor(color)}
-                aria-label={`Select color ${color}`}
-                aria-pressed={newColor === color}
-                className={`h-5 w-5 rounded-full transition-transform ${
-                  newColor === color
-                    ? 'ring-2 ring-primary ring-offset-2 ring-offset-card scale-110'
-                    : 'hover:scale-110'
-                }`}
-                style={{ backgroundColor: color }}
-              />
-            ))}
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setShowCreateForm(false);
-                setNewName('');
-                setNewDescription('');
-                setNewColor(WORKSPACE_COLORS[0]);
-              }}
-            >
-              <X className="h-3.5 w-3.5 mr-1" />
-              Cancel
-            </Button>
-            <Button size="sm" onClick={handleCreate} disabled={!newName.trim()}>
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              Create
-            </Button>
-          </div>
-        </div>
+        <CreateWorkspaceForm
+          name={newName}
+          description={newDescription}
+          color={newColor}
+          onNameChange={setNewName}
+          onDescriptionChange={setNewDescription}
+          onColorChange={setNewColor}
+          onSubmit={handleCreate}
+          onCancel={() => {
+            setShowCreateForm(false);
+            setNewName('');
+            setNewDescription('');
+            setNewColor(WORKSPACE_COLORS[0]);
+          }}
+        />
       ) : (
         <Button
           variant="outline"

@@ -113,10 +113,24 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
         const userDataPath = app.getPath('userData');
         vertexServiceAccountKeyPath = path.join(userDataPath, VERTEX_SA_KEY_FILENAME);
         fs.writeFileSync(vertexServiceAccountKeyPath, parsed.serviceAccountJson, { mode: 0o600 });
+        if (process.platform !== 'win32') {
+          fs.chmodSync(vertexServiceAccountKeyPath, 0o600);
+        }
       }
     } catch {
       logOC('WARN', '[OpenCode CLI] Failed to parse Vertex credentials');
     }
+  }
+
+  // Resolve OpenAI base URL (handles HuggingFace Local and configured OpenAI endpoint)
+  let openAiBaseUrlVal: string | undefined = configuredOpenAiBaseUrl || undefined;
+  if (hfProvider) {
+    if (!hfBaseUrl) {
+      throw new Error(
+        'HuggingFace Local server is not running. Please start the server before sending requests.',
+      );
+    }
+    openAiBaseUrlVal = hfBaseUrl;
   }
 
   // Build environment configuration
@@ -127,14 +141,7 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
     vertexServiceAccountKeyPath,
     bundledNodeBinPath: bundledNode?.binDir,
     taskId: taskId || undefined,
-    openAiBaseUrl: hfProvider
-      ? (hfBaseUrl ??
-        (() => {
-          throw new Error(
-            'HuggingFace Local server is not running. Please start the server before sending requests.',
-          );
-        })())
-      : configuredOpenAiBaseUrl || undefined,
+    openAiBaseUrl: openAiBaseUrlVal,
     ollamaHost,
   };
 

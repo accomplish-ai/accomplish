@@ -19,32 +19,20 @@ import * as path from 'path';
 import * as os from 'os';
 import { createConsoleLogger } from '../utils/logging.js';
 
-export const GITHUB_COPILOT_OAUTH_CLIENT_ID = 'Iv1.b507a08c87ecfe98';
-export const GITHUB_COPILOT_DEVICE_CODE_URL = 'https://github.com/login/device/code';
-export const GITHUB_COPILOT_TOKEN_URL = 'https://github.com/login/oauth/access_token';
-export const GITHUB_COPILOT_AUTH_URL = 'https://github.com/login/device';
-export const GITHUB_COPILOT_API_URL = 'https://api.github.com/copilot_internal/v2/token';
+export {
+  GITHUB_COPILOT_OAUTH_CLIENT_ID,
+  GITHUB_COPILOT_DEVICE_CODE_URL,
+  GITHUB_COPILOT_TOKEN_URL,
+  GITHUB_COPILOT_AUTH_URL,
+  GITHUB_COPILOT_API_URL,
+  GITHUB_COPILOT_SCOPE,
+  requestCopilotDeviceCode,
+  pollCopilotDeviceToken,
+} from './copilot-auth.js';
 
-/** Scope required for Copilot access */
-export const GITHUB_COPILOT_SCOPE = 'read:user';
+export type { CopilotDeviceCodeResponse, CopilotTokenResponse } from './copilot-auth.js';
 
 const log = createConsoleLogger({ prefix: 'CopilotProvider' });
-
-export interface CopilotDeviceCodeResponse {
-  device_code: string;
-  user_code: string;
-  verification_uri: string;
-  expires_in: number;
-  interval: number;
-}
-
-export interface CopilotTokenResponse {
-  access_token: string;
-  token_type: string;
-  scope: string;
-  error?: string;
-  error_description?: string;
-}
 
 export interface CopilotOAuthStatus {
   connected: boolean;
@@ -68,7 +56,9 @@ function getOpenCodeAuthJsonPath(): string {
 function readAuthJson(): Record<string, unknown> {
   const authPath = getOpenCodeAuthJsonPath();
   try {
-    if (!fs.existsSync(authPath)) return {};
+    if (!fs.existsSync(authPath)) {
+      return {};
+    }
     const raw = fs.readFileSync(authPath, 'utf8');
     return JSON.parse(raw) as Record<string, unknown>;
   } catch {
@@ -89,10 +79,14 @@ function writeAuthJson(data: Record<string, unknown>): void {
 export function getCopilotOAuthStatus(): CopilotOAuthStatus {
   const auth = readAuthJson();
   const entry = auth['github-copilot'];
-  if (!entry || typeof entry !== 'object') return { connected: false };
+  if (!entry || typeof entry !== 'object') {
+    return { connected: false };
+  }
 
   const e = entry as CopilotAuthEntry;
-  if (e.type !== 'copilot-oauth') return { connected: false };
+  if (e.type !== 'copilot-oauth') {
+    return { connected: false };
+  }
 
   const connected =
     (typeof e.access === 'string' && e.access.trim().length > 0) ||
@@ -133,97 +127,4 @@ export function clearCopilotOAuth(): void {
   delete auth['github-copilot'];
   writeAuthJson(auth);
   log.info('[CopilotProvider] Copilot credentials cleared');
-}
-
-/**
- * Step 1 of device flow: request a device code from GitHub.
- * Returns device_code, user_code, verification_uri, interval, expires_in.
- */
-export async function requestCopilotDeviceCode(): Promise<CopilotDeviceCodeResponse> {
-  const params = new URLSearchParams({
-    client_id: GITHUB_COPILOT_OAUTH_CLIENT_ID,
-    scope: GITHUB_COPILOT_SCOPE,
-  });
-
-  const res = await fetch(GITHUB_COPILOT_DEVICE_CODE_URL, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: params.toString(),
-  });
-
-  if (!res.ok) {
-    throw new Error(`GitHub device code request failed: ${res.status} ${res.statusText}`);
-  }
-
-  const data = (await res.json()) as CopilotDeviceCodeResponse;
-  if (!data.device_code || !data.user_code) {
-    throw new Error('Invalid device code response from GitHub');
-  }
-
-  return data;
-}
-
-/**
- * Step 2: Poll GitHub's token endpoint until the user completes authorization.
- * Returns the access token when authorized.
- * Throws if the device code expires or an unrecoverable error occurs.
- */
-export async function pollCopilotDeviceToken(params: {
-  deviceCode: string;
-  interval: number;
-  expiresIn: number;
-  onPoll?: () => void;
-}): Promise<CopilotTokenResponse> {
-  const { deviceCode, interval, expiresIn, onPoll } = params;
-  const deadline = Date.now() + expiresIn * 1000;
-  const pollIntervalMs = Math.max(interval, 5) * 1000;
-
-  while (Date.now() < deadline) {
-    if (onPoll) onPoll();
-
-    await new Promise<void>((resolve) => setTimeout(resolve, pollIntervalMs));
-
-    const body = new URLSearchParams({
-      client_id: GITHUB_COPILOT_OAUTH_CLIENT_ID,
-      device_code: deviceCode,
-      grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
-    });
-
-    const res = await fetch(GITHUB_COPILOT_TOKEN_URL, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: body.toString(),
-    });
-
-    const data = (await res.json()) as CopilotTokenResponse;
-
-    if (data.access_token) {
-      return data;
-    }
-
-    if (data.error === 'authorization_pending' || data.error === 'slow_down') {
-      // Continue polling
-      continue;
-    }
-
-    if (data.error === 'expired_token') {
-      throw new Error('Device code expired. Please try connecting again.');
-    }
-
-    if (data.error === 'access_denied') {
-      throw new Error('Access was denied. Please authorize the GitHub Copilot connection.');
-    }
-
-    if (data.error) {
-      throw new Error(`GitHub OAuth error: ${data.error} — ${data.error_description ?? ''}`);
-    }
-  }
-
-  throw new Error('Timed out waiting for GitHub authorization. Please try again.');
 }

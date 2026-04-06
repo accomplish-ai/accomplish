@@ -8,35 +8,22 @@
  * - Prompt injection protection (sanitizeString)
  */
 import { sanitizeString } from '@accomplish_ai/agent-core';
+import {
+  type InboundMessage,
+  type MessageTransport,
+  type SenderSession,
+  type RateLimitState,
+  createRateLimitState,
+  isRateLimited,
+  isGlobalRateLimited,
+  recordMessage,
+  getSessionForSender,
+  setSessionForSender,
+} from './task-bridge-rate-limit.js';
 
-export interface InboundMessage {
-  messageId: string;
-  senderId: string;
-  senderName?: string;
-  text: string;
-  timestamp: number;
-  isGroup: boolean;
-  isFromMe: boolean;
-}
-
-/** Minimal contract TaskBridge needs from a WhatsApp transport layer. */
-export interface MessageTransport {
-  on(event: 'message', listener: (msg: InboundMessage) => void): this;
-  off(event: 'message', listener: (msg: InboundMessage) => void): this;
-  sendMessage(recipientId: string, text: string): Promise<void>;
-}
+export type { InboundMessage, MessageTransport };
 
 export const MAX_MESSAGE_LENGTH = 4096;
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_MESSAGES = 10;
-const GLOBAL_RATE_LIMIT_MAX = 30;
-const MAX_TRACKED_SENDERS = 100;
-const SESSION_IDLE_TIMEOUT_MS = 10 * 60_000; // 10 minutes
-
-interface SenderSession {
-  sessionId: string;
-  lastActivity: number;
-}
 
 /**
  * Check whether a JID is in LID (linked-identity) format.
@@ -48,8 +35,7 @@ function isLidUser(jid: string): boolean {
 }
 
 export class TaskBridge {
-  private senderTimestamps = new Map<string, number[]>();
-  private globalTimestamps: number[] = [];
+  private rateLimitState: RateLimitState = createRateLimitState();
   private activeTasks = new Map<string, string>();
   private senderSessions = new Map<string, SenderSession>();
   private transport: MessageTransport;
@@ -85,51 +71,17 @@ export class TaskBridge {
   setOwnerJid(jid: string): void {
     this.ownerJid = jid;
   }
-
   getOwnerJid(): string | null {
     return this.ownerJid;
   }
-
   setOwnerLid(lid: string): void {
     this.ownerLid = lid;
   }
-
   getOwnerLid(): string | null {
     return this.ownerLid;
   }
-
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
-  }
-
-  private isRateLimited(senderId: string): boolean {
-    const now = Date.now();
-    const timestamps = this.senderTimestamps.get(senderId) || [];
-    const recent = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-    this.senderTimestamps.set(senderId, recent);
-    return recent.length >= RATE_LIMIT_MAX_MESSAGES;
-  }
-
-  private isGlobalRateLimited(): boolean {
-    const now = Date.now();
-    this.globalTimestamps = this.globalTimestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-    return this.globalTimestamps.length >= GLOBAL_RATE_LIMIT_MAX;
-  }
-
-  private recordMessage(senderId: string): void {
-    const now = Date.now();
-    const timestamps = this.senderTimestamps.get(senderId) || [];
-    timestamps.push(now);
-    this.senderTimestamps.set(senderId, timestamps);
-    this.globalTimestamps.push(now);
-
-    if (this.senderTimestamps.size > MAX_TRACKED_SENDERS) {
-      for (const [key, ts] of this.senderTimestamps) {
-        if (ts.every((t) => now - t >= RATE_LIMIT_WINDOW_MS)) {
-          this.senderTimestamps.delete(key);
-        }
-      }
-    }
   }
 
   hasActiveTask(senderId: string): boolean {
@@ -145,45 +97,49 @@ export class TaskBridge {
   }
 
   setSessionForSender(senderId: string, sessionId: string): void {
-    this.senderSessions.set(senderId, { sessionId, lastActivity: Date.now() });
+    setSessionForSender(this.senderSessions, senderId, sessionId);
   }
 
   getSessionForSender(senderId: string): string | null {
-    const session = this.senderSessions.get(senderId);
-    if (!session) return null;
-    if (Date.now() - session.lastActivity > SESSION_IDLE_TIMEOUT_MS) {
-      this.senderSessions.delete(senderId);
-      return null;
-    }
-    return session.sessionId;
+    return getSessionForSender(this.senderSessions, senderId);
   }
 
   private async handleMessage(msg: InboundMessage): Promise<void> {
-    if (!this.enabled) return;
-    if (msg.isGroup) return;
+    if (!this.enabled) {
+      return;
+    }
+    if (msg.isGroup) {
+      return;
+    }
 
     // Self-only access control (fail-closed): only accept self-chat messages.
     // WhatsApp uses two identity formats: JID (phone@s.whatsapp.net) and
     // LID (linked-identity@lid). Self-chat messages arrive in LID format,
     // so we compare the sender against whichever format matches.
-    if (!this.ownerJid && !this.ownerLid) return;
+    if (!this.ownerJid && !this.ownerLid) {
+      return;
+    }
 
     const senderMatchesOwner = isLidUser(msg.senderId)
       ? msg.senderId === this.ownerLid
       : msg.senderId === this.ownerJid;
     const isSelfChat = msg.isFromMe && senderMatchesOwner;
-    if (!isSelfChat) return;
+    if (!isSelfChat) {
+      return;
+    }
 
-    if (this.isGlobalRateLimited()) return;
+    if (isGlobalRateLimited(this.rateLimitState)) {
+      return;
+    }
 
-    if (this.isRateLimited(msg.senderId)) {
+    if (isRateLimited(this.rateLimitState, msg.senderId)) {
       await this.transport
         .sendMessage(msg.senderId, 'You are sending messages too quickly. Please wait a moment.')
         .catch(() => {});
       return;
     }
 
-    this.recordMessage(msg.senderId);
+    recordMessage(this.rateLimitState, msg.senderId);
 
     if (msg.text.length > MAX_MESSAGE_LENGTH) {
       await this.transport
@@ -243,8 +199,8 @@ export class TaskBridge {
 
   dispose(): void {
     this.transport.off('message', this.messageHandler);
-    this.senderTimestamps.clear();
-    this.globalTimestamps = [];
+    this.rateLimitState.senderTimestamps.clear();
+    this.rateLimitState.globalTimestamps = [];
     this.activeTasks.clear();
     this.senderSessions.clear();
   }

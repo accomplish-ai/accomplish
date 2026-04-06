@@ -4,7 +4,7 @@
  */
 
 import { app } from 'electron';
-import { disposeTaskManager, cleanupVertexServiceAccountKey } from './opencode';
+import { cleanupVertexServiceAccountKey } from './opencode';
 import { disposeWhatsAppService } from './services/whatsapp';
 import { stopAllBrowserPreviewStreams } from './services/browserPreview';
 import { oauthBrowserFlow } from './opencode/auth-browser';
@@ -35,12 +35,6 @@ export async function shutdownApp(logger: AppLogger): Promise<void> {
     await raceTimeout(stopAllBrowserPreviewStreams(), 5000, 'Stopping browser preview streams');
   } catch (error: unknown) {
     logger?.logEnv('ERROR', `[Main] Failed to stop browser preview streams: ${String(error)}`);
-  }
-
-  try {
-    disposeTaskManager();
-  } catch (error: unknown) {
-    logger?.logEnv('ERROR', `[Main] Error during disposeTaskManager: ${String(error)}`);
   }
 
   try {
