@@ -153,7 +153,7 @@ export function LiteLLMConnectedSection({
       <ConnectedControls onDisconnect={onDisconnect} />
       <ModelSelector
         models={models}
-        value={connectedProvider.selectedModelId || null}
+        value={connectedProvider.selectedModelId}
         onChange={onModelChange}
         error={showModelError && !connectedProvider.selectedModelId}
       />

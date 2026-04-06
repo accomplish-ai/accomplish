@@ -4,9 +4,6 @@ import type { useExecutionCore } from './useExecutionCore';
 
 type CoreState = ReturnType<typeof useExecutionCore>;
 
-/**
- * Handles pause/resume/auth actions for the execution page.
- */
 export function useExecutionPauseActions(s: CoreState) {
   const { accomplish, t } = s;
 
@@ -59,13 +56,17 @@ export function useExecutionPauseActions(s: CoreState) {
       if (!refreshed.connected) {
         throw new Error(t('questionPrompt.oauthStillDisconnected', { provider: providerName }));
       }
-      await resumePausedTask(pauseAction.successText ?? `${providerName} is connected.`, true);
+      return await resumePausedTask(
+        pauseAction.successText ?? `${providerName} is connected.`,
+        true,
+      );
     } catch (error) {
       setTaskActionError(
         error instanceof Error
           ? error.message
           : t('questionPrompt.oauthFailed', { provider: providerName }),
       );
+      return false;
     } finally {
       setIsTaskActionRunning(false);
     }
