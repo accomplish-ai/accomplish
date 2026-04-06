@@ -35,10 +35,14 @@ export function LiteLLMDisconnectedForm({
       className="space-y-3"
     >
       <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">
+        <label
+          htmlFor="litellm-server-url"
+          className="mb-2 block text-sm font-medium text-foreground"
+        >
           {t('litellm.serverUrl')}
         </label>
         <input
+          id="litellm-server-url"
           type="text"
           value={serverUrl}
           onChange={(e) => onServerUrlChange(e.target.value)}
@@ -48,12 +52,13 @@ export function LiteLLMDisconnectedForm({
         />
       </div>
       <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">
+        <label htmlFor="litellm-api-key" className="mb-2 block text-sm font-medium text-foreground">
           {t('apiKey.title')}{' '}
           <span className="text-muted-foreground">({t('common.optional')})</span>
         </label>
         <div className="flex gap-2">
           <input
+            id="litellm-api-key"
             type="password"
             value={apiKey}
             onChange={(e) => onApiKeyChange(e.target.value)}
@@ -113,10 +118,14 @@ export function LiteLLMConnectedSection({
     >
       <div className="space-y-3">
         <div>
-          <label className="mb-2 block text-sm font-medium text-foreground">
+          <label
+            htmlFor="litellm-server-url-connected"
+            className="mb-2 block text-sm font-medium text-foreground"
+          >
             {t('litellm.serverUrl')}
           </label>
           <input
+            id="litellm-server-url-connected"
             type="text"
             value={creds?.serverUrl || 'http://localhost:4000'}
             disabled
@@ -125,10 +134,14 @@ export function LiteLLMConnectedSection({
         </div>
         {creds?.hasApiKey && (
           <div>
-            <label className="mb-2 block text-sm font-medium text-foreground">
+            <label
+              htmlFor="litellm-api-key-connected"
+              className="mb-2 block text-sm font-medium text-foreground"
+            >
               {t('apiKey.title')}
             </label>
             <input
+              id="litellm-api-key-connected"
               type="text"
               value={creds?.keyPrefix || t('apiKey.saved')}
               disabled

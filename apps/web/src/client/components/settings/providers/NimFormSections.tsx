@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import type { ConnectedProvider, NimCredentials } from '@accomplish_ai/agent-core/common';
+import type { ConnectedProvider, NimCredentials } from '@accomplish_ai/agent-core';
 import { ModelSelector, ConnectedControls, FormError, ConnectButton } from '../shared';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 
@@ -111,7 +111,7 @@ export function ConnectedNimDetails({
           <input
             id="nim-server-url-connected"
             type="text"
-            value={credentials?.serverUrl || NIM_DEFAULT_BASE_URL}
+            value={credentials?.serverUrl ?? NIM_DEFAULT_BASE_URL}
             disabled
             className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
           />
@@ -126,7 +126,7 @@ export function ConnectedNimDetails({
           <input
             id="nim-api-key-connected"
             type="text"
-            value={credentials?.keyPrefix || t('apiKey.saved')}
+            value={credentials?.keyPrefix ?? t('apiKey.saved')}
             disabled
             className="w-full rounded-md border border-input bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground"
           />

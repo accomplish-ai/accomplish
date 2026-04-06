@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { hasAnyReadyProvider, getOAuthProviderDisplayName } from '@accomplish_ai/agent-core/common';
 import type { useExecutionCore } from './useExecutionCore';
 
@@ -7,11 +7,9 @@ type CoreState = ReturnType<typeof useExecutionCore>;
 /**
  * Handles pause/resume/auth actions for the execution page.
  */
-export function useExecutionPauseActions(
-  s: CoreState,
-  accomplish: CoreState['accomplish'],
-  t: CoreState['t'],
-) {
+export function useExecutionPauseActions(s: CoreState) {
+  const { accomplish, t } = s;
+
   const resumePausedTask = useCallback(
     async (message: string, _bypassAuthPauseQueue: boolean): Promise<boolean> => {
       const isE2EMode = await accomplish.isE2EMode();
@@ -36,9 +34,9 @@ export function useExecutionPauseActions(
     ],
   );
 
-  const handleContinue = async () => {
+  const handleContinue = useCallback(async () => {
     return await resumePausedTask('continue', s.isAuthPause);
-  };
+  }, [resumePausedTask, s.isAuthPause]);
 
   const { pauseAction, setTaskActionError, setIsTaskActionRunning } = s;
 
@@ -73,7 +71,10 @@ export function useExecutionPauseActions(
     }
   }, [accomplish, t, resumePausedTask, pauseAction, setTaskActionError, setIsTaskActionRunning]);
 
-  const handleTaskAction = s.isConnectorAuthPause ? handlePauseAction : handleContinue;
+  const handleTaskAction = useMemo(
+    () => (s.isConnectorAuthPause ? handlePauseAction : handleContinue),
+    [s.isConnectorAuthPause, handlePauseAction, handleContinue],
+  );
 
   return { handleContinue, handlePauseAction, handleTaskAction, resumePausedTask };
 }

@@ -11,15 +11,11 @@ type CoreState = ReturnType<typeof useExecutionCore>;
 
 /** Action callbacks for the execution page. Derived from core state. */
 export function useExecutionActions(s: CoreState) {
-  const { id, navigate, accomplish, t } = s;
+  const { id, navigate, accomplish } = s;
 
   useExecutionEffects(s, accomplish);
 
-  const { handleContinue, handlePauseAction, handleTaskAction } = useExecutionPauseActions(
-    s,
-    accomplish,
-    t,
-  );
+  const { handleContinue, handlePauseAction, handleTaskAction } = useExecutionPauseActions(s);
 
   const handleFollowUp = useCallback(async () => {
     if (!s.followUp.trim() && s.attachments.length === 0) {
