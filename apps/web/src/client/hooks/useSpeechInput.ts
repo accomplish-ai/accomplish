@@ -73,7 +73,12 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
 
   useEffect(() => {
     let mounted = true;
-    const handleConfigUpdated = () => {
+    const handleConfigUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ isConfigured?: boolean }>).detail;
+      if (detail?.isConfigured !== undefined && mounted) {
+        setState((prev) => ({ ...prev, isConfigured: detail.isConfigured as boolean }));
+      }
+      // Revalidate in the background to confirm the server-side state
       getAccomplish()
         .speechIsConfigured()
         .then((configured) => {
