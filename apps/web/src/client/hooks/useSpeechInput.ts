@@ -30,6 +30,7 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
   const isPushToTalkRef = useRef(false);
   const isStartingRef = useRef(false);
   const pendingStopRef = useRef(false);
+  const configCheckIdRef = useRef(0);
 
   const [state, setState] = useState<UseSpeechInputState>({
     isRecording: false,
@@ -56,10 +57,12 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
 
   useEffect(() => {
     let mounted = true;
+    configCheckIdRef.current++;
+    const capturedId = configCheckIdRef.current;
     getAccomplish()
       .speechIsConfigured()
       .then((configured) => {
-        if (mounted) {
+        if (mounted && capturedId === configCheckIdRef.current) {
           setState((prev) => ({ ...prev, isConfigured: configured }));
         }
       })
@@ -79,10 +82,12 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
         setState((prev) => ({ ...prev, isConfigured: detail.isConfigured as boolean }));
       }
       // Revalidate in the background to confirm the server-side state
+      configCheckIdRef.current++;
+      const capturedId = configCheckIdRef.current;
       getAccomplish()
         .speechIsConfigured()
         .then((configured) => {
-          if (mounted) {
+          if (mounted && capturedId === configCheckIdRef.current) {
             setState((prev) => ({ ...prev, isConfigured: configured }));
           }
         })
@@ -282,11 +287,25 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
       }
     };
 
+    const handleBlur = () => {
+      if (isPushToTalkRef.current) {
+        isPushToTalkRef.current = false;
+        if (isStartingRef.current) {
+          // startCapture not yet active — mark stop as pending
+          pendingStopRef.current = true;
+        } else {
+          stopRecording();
+        }
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
     };
   }, [
     state.isRecording,
