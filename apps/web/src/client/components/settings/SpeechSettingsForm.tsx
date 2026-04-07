@@ -4,6 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Microphone, CheckCircle, WarningCircle, SpinnerGap } from '@phosphor-icons/react';
 import { getAccomplish } from '../../lib/accomplish';
 
+const modifierKey =
+  typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent) ? 'Option' : 'Alt';
+
 interface SpeechSettingsFormProps {
   onSave?: () => void;
   onChange?: (config: { apiKey: string; enabled: boolean }) => void;
@@ -142,7 +145,7 @@ export function SpeechSettingsForm({ onSave, onChange }: SpeechSettingsFormProps
             <strong>{t('speech.clickMicButton')}</strong>
           </li>
           <li>
-            <strong>{t('speech.holdAltKey')}</strong>
+            <strong>{t('speech.holdAltKey', { modifierKey })}</strong>
           </li>
         </ul>
       </div>

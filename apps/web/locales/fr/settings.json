@@ -526,12 +526,12 @@
     "secureStorage": "Votre clé API est stockée en toute sécurité dans le trousseau de votre système.",
     "howToUse": "Comment utiliser :",
     "clickMicButton": "Cliquez sur le bouton microphone",
-    "holdAltKey": "Maintenez la touche Alt",
+    "holdAltKey": "Maintenez la touche {{modifierKey}}",
     "tooltipSetup": "Cliquez pour configurer la saisie vocale",
     "tooltipRecording": "Enregistrement ({{duration}}) - Cliquez pour arrêter",
     "tooltipTranscribing": "Transcription...",
     "tooltipError": "Erreur lors de la transcription - Cliquez pour réessayer",
-    "tooltipDefault": "Cliquez pour enregistrer ou maintenez Alt pour enregistrer la saisie vocale",
+    "tooltipDefault": "Cliquez pour enregistrer ou maintenez {{modifierKey}} pour enregistrer la saisie vocale",
     "processing": "Traitement..."
   },
   "baseUrl": {

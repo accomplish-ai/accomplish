@@ -27,6 +27,7 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
 
   const accomplish = getAccomplish();
   const lastAudioDataRef = useRef<ArrayBuffer | null>(null);
+  const isPushToTalkRef = useRef(false);
 
   const [state, setState] = useState<UseSpeechInputState>({
     isRecording: false,
@@ -223,14 +224,46 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && state.isRecording) {
         event.preventDefault();
+        isPushToTalkRef.current = false;
         cancelRecording();
+        return;
+      }
+      // Alt (Windows/Linux) / Option (Mac) push-to-talk
+      if (
+        event.key === 'Alt' &&
+        !event.repeat &&
+        !isPushToTalkRef.current &&
+        !state.isRecording &&
+        !state.isTranscribing &&
+        state.isConfigured
+      ) {
+        event.preventDefault();
+        isPushToTalkRef.current = true;
+        startRecording();
       }
     };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.key === 'Alt' && isPushToTalkRef.current) {
+        isPushToTalkRef.current = false;
+        stopRecording();
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [state.isRecording, cancelRecording]);
+  }, [
+    state.isRecording,
+    state.isTranscribing,
+    state.isConfigured,
+    cancelRecording,
+    startRecording,
+    stopRecording,
+  ]);
 
   return { ...state, startRecording, stopRecording, cancelRecording, retry, clearError };
 }

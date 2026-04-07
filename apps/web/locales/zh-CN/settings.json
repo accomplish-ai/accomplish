@@ -526,12 +526,12 @@
     "secureStorage": "您的 API 密钥已安全存储在系统钥匙串中。",
     "howToUse": "使用方法：",
     "clickMicButton": "点击麦克风按钮",
-    "holdAltKey": "按住 Alt 键",
+    "holdAltKey": "按住 {{modifierKey}} 键",
     "tooltipSetup": "点击设置语音输入",
     "tooltipRecording": "正在录音 ({{duration}}) - 点击停止",
     "tooltipTranscribing": "正在转录...",
     "tooltipError": "转录过程中出错 - 点击重试",
-    "tooltipDefault": "点击录音或按住 Alt 键进行语音输入",
+    "tooltipDefault": "点击录音或按住 {{modifierKey}} 键进行语音输入",
     "processing": "处理中..."
   },
   "baseUrl": {

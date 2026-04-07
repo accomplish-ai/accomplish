@@ -510,12 +510,12 @@
     "secureStorage": "Your API key is stored securely in your system keychain.",
     "howToUse": "How to use:",
     "clickMicButton": "Click the microphone button",
-    "holdAltKey": "Hold Alt key",
+    "holdAltKey": "Hold {{modifierKey}} key",
     "tooltipSetup": "Click to set up voice input",
     "tooltipRecording": "Recording ({{duration}}) - Click to stop",
     "tooltipTranscribing": "Transcribing...",
     "tooltipError": "Error during transcription - Click to retry",
-    "tooltipDefault": "Click to record or hold Alt to record voice input",
+    "tooltipDefault": "Click to record or hold {{modifierKey}} to record voice input",
     "processing": "Processing..."
   },
   "integrations": {

@@ -526,12 +526,12 @@
     "secureStorage": "Ваш API-ключ хранится в системной связке ключей.",
     "howToUse": "Как использовать:",
     "clickMicButton": "Нажмите кнопку микрофона",
-    "holdAltKey": "Удерживайте клавишу Alt",
+    "holdAltKey": "Удерживайте клавишу {{modifierKey}}",
     "tooltipSetup": "Нажмите для настройки голосового ввода",
     "tooltipRecording": "Запись ({{duration}}) — нажмите для остановки",
     "tooltipTranscribing": "Распознавание...",
     "tooltipError": "Ошибка распознавания — нажмите для повтора",
-    "tooltipDefault": "Нажмите для записи или удерживайте Alt для голосового ввода",
+    "tooltipDefault": "Нажмите для записи или удерживайте {{modifierKey}} для голосового ввода",
     "processing": "Обработка..."
   },
   "baseUrl": {

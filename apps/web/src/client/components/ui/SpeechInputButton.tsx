@@ -8,6 +8,9 @@
  */
 
 import React, { useMemo } from 'react';
+
+const modifierKey =
+  typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent) ? 'Option' : 'Alt';
 import { useTranslation } from 'react-i18next';
 import { SpinnerGap, WarningCircle, Microphone } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
@@ -96,7 +99,7 @@ export function SpeechInputButton({
     if (error) {
       return t('speech.tooltipError');
     }
-    return t('speech.tooltipDefault');
+    return t('speech.tooltipDefault', { modifierKey });
   }, [tooltipText, isConfigured, isRecording, isTranscribing, error, recordingDuration, t]);
 
   const handleClick = React.useCallback(
