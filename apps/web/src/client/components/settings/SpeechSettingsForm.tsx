@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Microphone, CheckCircle, WarningCircle, SpinnerGap } from '@phosphor-icons/react';
 import { getAccomplish } from '../../lib/accomplish';
+import { getModifierKeyLabel } from '../../lib/platform';
 
-const modifierKey =
-  typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent) ? 'Option' : 'Alt';
+const modifierKey = getModifierKeyLabel();
 
 interface SpeechSettingsFormProps {
   onSave?: () => void;

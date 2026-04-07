@@ -28,6 +28,8 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
   const accomplish = getAccomplish();
   const lastAudioDataRef = useRef<ArrayBuffer | null>(null);
   const isPushToTalkRef = useRef(false);
+  const isStartingRef = useRef(false);
+  const pendingStopRef = useRef(false);
 
   const [state, setState] = useState<UseSpeechInputState>({
     isRecording: false,
@@ -70,16 +72,22 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
   }, []);
 
   useEffect(() => {
+    let mounted = true;
     const handleConfigUpdated = () => {
       getAccomplish()
         .speechIsConfigured()
         .then((configured) => {
-          setState((prev) => ({ ...prev, isConfigured: configured }));
+          if (mounted) {
+            setState((prev) => ({ ...prev, isConfigured: configured }));
+          }
         })
         .catch(() => {});
     };
     window.addEventListener('speech-config-updated', handleConfigUpdated);
-    return () => window.removeEventListener('speech-config-updated', handleConfigUpdated);
+    return () => {
+      mounted = false;
+      window.removeEventListener('speech-config-updated', handleConfigUpdated);
+    };
   }, []);
 
   const recorder = useSpeechRecorder({
@@ -239,14 +247,33 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
       ) {
         event.preventDefault();
         isPushToTalkRef.current = true;
-        startRecording();
+        isStartingRef.current = true;
+        pendingStopRef.current = false;
+        startRecording()
+          .then(() => {
+            isStartingRef.current = false;
+            if (pendingStopRef.current) {
+              pendingStopRef.current = false;
+              stopRecording();
+            }
+          })
+          .catch(() => {
+            isStartingRef.current = false;
+            isPushToTalkRef.current = false;
+            pendingStopRef.current = false;
+          });
       }
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
       if (event.key === 'Alt' && isPushToTalkRef.current) {
         isPushToTalkRef.current = false;
-        stopRecording();
+        if (isStartingRef.current) {
+          // startCapture not yet active — mark stop as pending
+          pendingStopRef.current = true;
+        } else {
+          stopRecording();
+        }
       }
     };
 

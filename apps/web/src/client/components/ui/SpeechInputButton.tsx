@@ -8,16 +8,16 @@
  */
 
 import React, { useMemo } from 'react';
-
-const modifierKey =
-  typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent) ? 'Option' : 'Alt';
 import { useTranslation } from 'react-i18next';
 import { SpinnerGap, WarningCircle, Microphone } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { getModifierKeyLabel } from '@/lib/platform';
 import type { SpeechInputButtonProps } from './speech-input-button-types';
 import { formatDuration } from './speech-input-button-types';
 import { MicrophoneIcon } from './speechInputHelpers';
+
+const modifierKey = getModifierKeyLabel();
 
 export type { SpeechInputButtonProps } from './speech-input-button-types';
 export { MicrophoneIcon } from './speechInputHelpers';
