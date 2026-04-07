@@ -70,16 +70,21 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
   }, []);
 
   useEffect(() => {
+    let active = true;
     const handleConfigUpdated = () => {
       getAccomplish()
         .speechIsConfigured()
         .then((configured) => {
+          if (!active) return;
           setState((prev) => ({ ...prev, isConfigured: configured }));
         })
         .catch(() => {});
     };
     window.addEventListener('speech-config-updated', handleConfigUpdated);
-    return () => window.removeEventListener('speech-config-updated', handleConfigUpdated);
+    return () => {
+      active = false;
+      window.removeEventListener('speech-config-updated', handleConfigUpdated);
+    };
   }, []);
 
   const recorder = useSpeechRecorder({
