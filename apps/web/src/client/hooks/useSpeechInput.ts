@@ -68,6 +68,19 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     };
   }, []);
 
+  useEffect(() => {
+    const handleConfigUpdated = () => {
+      getAccomplish()
+        .speechIsConfigured()
+        .then((configured) => {
+          setState((prev) => ({ ...prev, isConfigured: configured }));
+        })
+        .catch(() => {});
+    };
+    window.addEventListener('speech-config-updated', handleConfigUpdated);
+    return () => window.removeEventListener('speech-config-updated', handleConfigUpdated);
+  }, []);
+
   const recorder = useSpeechRecorder({
     maxDuration,
     onError: (code, message, originalError) => {

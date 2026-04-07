@@ -228,7 +228,6 @@ vi.mock('@main/logging', () => ({
 vi.mock('@main/services/speechToText', () => ({
   validateElevenLabsApiKey: vi.fn(() => Promise.resolve({ valid: true })),
   transcribeAudio: vi.fn(() => Promise.resolve({ success: true, result: { text: '' } })),
-  isElevenLabsConfigured: vi.fn(() => false),
 }));
 
 vi.mock('@main/config', () => ({
