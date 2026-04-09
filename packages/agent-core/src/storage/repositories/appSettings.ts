@@ -1,4 +1,4 @@
-import type { ThemePreference } from '../../types/storage.js';
+import type { ThemePreference, LanguagePreference } from '../../types/storage.js';
 import type { SandboxConfig } from '../../common/types/sandbox.js';
 import type { CloudBrowserConfig } from '../../common/types/cloud-browser.js';
 import type { MessagingConfig } from '../../common/types/messaging.js';
@@ -51,6 +51,7 @@ export {
   VALID_THEMES,
   VALID_LANGUAGES,
 } from './ui-settings.js';
+import { getLanguage as _getLanguage } from './ui-settings.js';
 
 export type { CloseBehavior } from './ui-settings.js';
 
@@ -84,6 +85,7 @@ export interface AppSettings {
   huggingfaceLocalConfig: HuggingFaceLocalConfig | null;
   openaiBaseUrl: string;
   theme: ThemePreference;
+  language: LanguagePreference;
 }
 
 const VALID_THEMES_LOCAL: ThemePreference[] = ['system', 'light', 'dark'];
@@ -151,6 +153,8 @@ export function setMessagingConfig(config: MessagingConfig | null): void {
 
 export function getAppSettings(): AppSettings {
   const row = getRow();
+  // Import getLanguage from ui-settings.js
+  // (already imported above as getLanguage)
   return {
     debugMode: row.debug_mode === 1,
     onboardingComplete: row.onboarding_complete === 1,
@@ -166,6 +170,7 @@ export function getAppSettings(): AppSettings {
     theme: VALID_THEMES_LOCAL.includes(row.theme as ThemePreference)
       ? (row.theme as ThemePreference)
       : 'system',
+    language: _getLanguage(),
   };
 }
 
