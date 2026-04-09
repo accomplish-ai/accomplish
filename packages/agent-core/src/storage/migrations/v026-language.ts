@@ -12,9 +12,11 @@ import type { Migration } from './index.js';
 export const migration: Migration = {
   version: 26,
   up: (db: Database) => {
-    // Idempotent: will not error if the column already exists (requires SQLite 3.35+)
-    db.exec(
-      `ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'auto'`,
-    );
+    // Guard check: only add if the column doesn't already exist (ADD COLUMN IF NOT EXISTS
+    // requires SQLite 3.35+ which is not guaranteed in the bundled version).
+    const columns = db.pragma('table_info(app_settings)') as Array<{ name: string }>;
+    if (!columns.some((col) => col.name === 'language')) {
+      db.exec(`ALTER TABLE app_settings ADD COLUMN language TEXT NOT NULL DEFAULT 'auto'`);
+    }
   },
 };
