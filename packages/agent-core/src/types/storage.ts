@@ -60,6 +60,11 @@ export type ThemePreference = 'system' | 'light' | 'dark';
 export type LanguagePreference = 'auto' | 'en' | 'zh-CN' | 'ru' | 'fr';
 
 /** Application settings snapshot */
+/**
+ * Application settings snapshot
+ *
+ * Now includes `language: LanguagePreference` for UI language preference.
+ */
 export interface AppSettings {
   debugMode: boolean;
   onboardingComplete: boolean;
@@ -71,6 +76,7 @@ export interface AppSettings {
   huggingfaceLocalConfig: HuggingFaceLocalConfig | null;
   openaiBaseUrl: string;
   theme: ThemePreference;
+  language: LanguagePreference;
 }
 
 // ---------------------------------------------------------------------------

@@ -12,6 +12,9 @@ import type { Migration } from './index.js';
 export const migration: Migration = {
   version: 26,
   up: (db: Database) => {
-    db.exec(`ALTER TABLE app_settings ADD COLUMN language TEXT NOT NULL DEFAULT 'auto'`);
+    // Idempotent: will not error if the column already exists (requires SQLite 3.35+)
+    db.exec(
+      `ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'auto'`,
+    );
   },
 };

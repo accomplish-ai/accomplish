@@ -26,30 +26,36 @@ import { BASE_PROVIDERS, getBrowserBehaviorInstructions } from './config-generat
 
 const log = createConsoleLogger({ prefix: 'OpenCodeConfig' });
 
+// LANGUAGE_DISPLAY_NAMES uses keys matching LanguagePreference (BCP-47/ISO 639-1, e.g., 'zh-CN', 'ru', 'fr').
+// This list is intentionally minimal and only includes supported UI languages.
 const LANGUAGE_DISPLAY_NAMES: Record<string, string> = {
   'zh-CN': '中文',
-  ru: 'Russian',
-  fr: 'French',
+  ru: 'русский',
+  fr: 'français',
 };
 
 /**
  * Generates a language instruction directive for the system prompt.
  *
- * Returns an empty string for `'auto'`, `'en'`, or unknown languages
+ * Returns an empty string for 'auto', 'en', or unknown languages
  * (English is the model default, so no directive is needed).
- * For non-English languages, returns a pound-delimited directive in Chinese
- * characters that instructs the model to communicate in that language,
- * e.g. `#始终用中文交流#` for `zh-CN`.
+ * For 'zh-CN', returns a Chinese directive. For other supported languages,
+ * returns an English directive using the native display name.
  */
 function getLanguageInstruction(language: string | undefined): string {
   if (!language || language === 'auto' || language === 'en') {
     return '';
   }
+  // Normalize to match keys (case-sensitive, as in LanguagePreference)
   const displayName = LANGUAGE_DISPLAY_NAMES[language];
   if (!displayName) {
     return '';
   }
-  return `#始终用${displayName}交流#`;
+  if (language === 'zh-CN') {
+    return `#始终用${displayName}交流#`;
+  }
+  // For other supported languages, use an English template with native name
+  return `Always respond in ${displayName}`;
 }
 
 export const ACCOMPLISH_AGENT_NAME = 'accomplish';
@@ -74,7 +80,7 @@ export function generateConfig(options: ConfigGeneratorOptions): GeneratedConfig
   let systemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE.replace(
     /\{\{ENVIRONMENT_INSTRUCTIONS\}\}/g,
     environmentInstructions,
-  ).replace('{{LANGUAGE_INSTRUCTION}}', getLanguageInstruction(options.language));
+  ).replace(/\{\{LANGUAGE_INSTRUCTION\}\}/g, getLanguageInstruction(options.language));
 
   if (skills.length > 0) {
     const skillsSection = `

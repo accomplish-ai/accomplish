@@ -129,9 +129,13 @@ export async function resolveTaskConfig(
 
   // 6. Resolve UI language preference for agent communication
   /** UI language preference read from app_settings; undefined if the column is absent (pre-migration DB). */
+
   let language: string | undefined;
   try {
     language = storage.getLanguage();
+    if (typeof language === 'string' && language.trim().length === 0) {
+      language = undefined;
+    }
   } catch (_err) {
     // Non-critical: language column may be absent in older DBs before migration
   }
