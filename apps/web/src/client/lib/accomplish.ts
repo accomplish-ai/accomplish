@@ -113,7 +113,12 @@ interface AccomplishAPI {
   onThemeChange?(callback: (data: { theme: string; resolved: string }) => void): () => void;
   getLanguage(): Promise<string>;
   setLanguage(language: string): Promise<void>;
-  getAppSettings(): Promise<{ debugMode: boolean; onboardingComplete: boolean; theme: string }>;
+  getAppSettings(): Promise<{
+    debugMode: boolean;
+    onboardingComplete: boolean;
+    theme: string;
+    language: string;
+  }>;
   getCloudBrowserConfig(): Promise<CloudBrowserConfig | null>;
   setCloudBrowserConfig(config: CloudBrowserConfig | null): Promise<void>;
 
