@@ -153,6 +153,10 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
         const store = makeInMemoryStore({}) as any;
         this.store = store;
         store.bind(socket.ev);
+      } else {
+        log.warn(
+          '[WhatsApp] makeInMemoryStore not available in this Baileys build — getChats/getMessages will return empty results',
+        );
       }
 
       this.socket.ev.on('creds.update', saveCreds);

@@ -317,7 +317,7 @@ Use AskUserQuestion tool for user interaction.`,
     // Constants needed by config-generator
     PERMISSION_API_PORT: 9226,
     QUESTION_API_PORT: 9227,
-    WHATSAPP_API_PORT: 9229,
+    WHATSAPP_API_PORT: 9230,
   };
 });
 

@@ -110,6 +110,9 @@ export function IntegrationsPanel() {
                   animate="animate"
                   exit="exit"
                   transition={settingsTransitions.enter}
+                  role="alert"
+                  aria-live="assertive"
+                  aria-atomic="true"
                 >
                   {addError || oauthError}
                 </motion.div>

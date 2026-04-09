@@ -7,7 +7,13 @@ import {
   type CallToolResult,
 } from '@modelcontextprotocol/sdk/types.js';
 
-const WHATSAPP_API_PORT = process.env.ACCOMPLISH_WHATSAPP_API_PORT || '9229';
+const WHATSAPP_API_PORT = process.env.ACCOMPLISH_WHATSAPP_API_PORT;
+if (!WHATSAPP_API_PORT) {
+  process.stderr.write(
+    'ACCOMPLISH_WHATSAPP_API_PORT is not set — WhatsApp MCP tool cannot start\n',
+  );
+  process.exit(1);
+}
 const WHATSAPP_API_BASE = `http://localhost:${WHATSAPP_API_PORT}`;
 const AUTH_TOKEN = process.env.ACCOMPLISH_DAEMON_AUTH_TOKEN;
 

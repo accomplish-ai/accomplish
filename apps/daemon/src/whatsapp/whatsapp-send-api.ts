@@ -2,7 +2,7 @@
  * WhatsApp Send HTTP API — exposes whatsapp.sendMessage to local MCP tools.
  *
  * Follows the same pattern as PermissionService's HTTP servers:
- * - Listens on a well-known port (WHATSAPP_SEND_API_PORT = 9229)
+ * - Listens on a well-known port (WHATSAPP_API_PORT = 9230)
  * - Requires Bearer token auth on every request
  * - Returns structured JSON so the MCP tool can relay human-readable errors
  */
@@ -15,6 +15,17 @@ import type { ChatSummary, MessageSummary } from './WhatsAppService.js';
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 60;
+
+/**
+ * Baileys error message substrings that indicate the WebSocket dropped mid-send.
+ * Used by FR-020: detect connection loss, proactively mark disconnected.
+ */
+const WHATSAPP_CONNECTION_LOSS_PATTERNS = [
+  'Connection Closed',
+  'Connection Lost',
+  'Socket closed',
+  'stream errored',
+] as const;
 
 /**
  * Normalize a recipient to WhatsApp JID format.
@@ -139,7 +150,7 @@ export class WhatsAppSendApi {
               res.end(
                 JSON.stringify({
                   success: false,
-                  error: 'send_failed',
+                  error: 'invalid_message',
                   message: 'A non-empty message body is required.',
                 }),
               );
@@ -173,11 +184,9 @@ export class WhatsAppSendApi {
               // If the socket dropped mid-send, proactively update the connection
               // status so the UI reflects the true state before Baileys emits its
               // own connection.update event.
-              const isConnectionLoss =
-                errMsg.includes('Connection Closed') ||
-                errMsg.includes('Connection Lost') ||
-                errMsg.includes('Socket closed') ||
-                errMsg.includes('stream errored');
+              const isConnectionLoss = WHATSAPP_CONNECTION_LOSS_PATTERNS.some((p) =>
+                errMsg.includes(p),
+              );
               if (isConnectionLoss) {
                 this.whatsappService.markDisconnected();
               }
