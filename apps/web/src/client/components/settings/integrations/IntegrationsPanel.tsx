@@ -2,10 +2,10 @@ import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { WhatsAppCard } from './WhatsAppCard';
-import { SlackConnectorSection } from '../connectors/SlackConnectorSection';
-import { ConnectorAddForm } from '../connectors/ConnectorAddForm';
-import { ConnectorList } from '../connectors/ConnectorList';
-import { useConnectorsPanel } from '../connectors/useConnectorsPanel';
+import { SlackConnectorSection } from '@/components/settings/connectors/SlackConnectorSection';
+import { ConnectorAddForm } from '@/components/settings/connectors/ConnectorAddForm';
+import { ConnectorList } from '@/components/settings/connectors/ConnectorList';
+import { useConnectorsPanel } from '@/components/settings/connectors/useConnectorsPanel';
 
 export function IntegrationsPanel() {
   const { t } = useTranslation('settings');

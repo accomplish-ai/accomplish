@@ -5,44 +5,17 @@
  * - Listens on a well-known port (WHATSAPP_API_PORT = 9230)
  * - Requires Bearer token auth on every request
  * - Returns structured JSON so the MCP tool can relay human-readable errors
+ *
+ * Route logic lives in whatsapp-routes.ts; this file owns only lifecycle.
  */
 import http from 'node:http';
 import { createHttpServer } from '../http-server-factory.js';
 import { RateLimiter } from '../rate-limiter.js';
-import { log } from '../logger.js';
 import type { WhatsAppDaemonService } from '../whatsapp-service.js';
-import type { ChatSummary, MessageSummary } from './WhatsAppService.js';
+import { buildChatsRoute, buildMessagesRoute, buildSendRoute } from './whatsapp-routes.js';
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 60;
-
-/**
- * Baileys error message substrings that indicate the WebSocket dropped mid-send.
- * Used by FR-020: detect connection loss, proactively mark disconnected.
- */
-const WHATSAPP_CONNECTION_LOSS_PATTERNS = [
-  'Connection Closed',
-  'Connection Lost',
-  'Socket closed',
-  'stream errored',
-] as const;
-
-/**
- * Normalize a recipient to WhatsApp JID format.
- * If the string already contains '@', it is returned as-is.
- * Otherwise digits are extracted and '@s.whatsapp.net' is appended.
- * Throws if no digits are found (would produce a malformed JID).
- */
-function normalizeRecipient(recipient: string): string {
-  if (recipient.includes('@')) {
-    return recipient;
-  }
-  const digits = recipient.replace(/[^\d]/g, '');
-  if (!digits) {
-    throw new Error('invalid_recipient');
-  }
-  return `${digits}@s.whatsapp.net`;
-}
 
 export class WhatsAppSendApi {
   private whatsappService: WhatsAppDaemonService;
@@ -63,164 +36,9 @@ export class WhatsAppSendApi {
       serviceName: 'WhatsAppSendApi',
       port: fixedPort,
       routes: [
-        {
-          method: 'POST',
-          path: '/chats',
-          handler: async (data, _req, res) => {
-            const rawLimit = (data as { limit?: unknown }).limit;
-            const limit =
-              typeof rawLimit === 'number' && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
-
-            const config = this.whatsappService.getConfig();
-            if (!config || config.status !== 'connected') {
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(
-                JSON.stringify({
-                  success: false,
-                  error: 'not_connected',
-                  message: 'WhatsApp is not connected. Please connect in Settings → Integrations.',
-                }),
-              );
-              return;
-            }
-
-            const chats: ChatSummary[] = this.whatsappService.readChats(limit);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true, chats }));
-          },
-        },
-        {
-          method: 'POST',
-          path: '/messages',
-          handler: async (data, _req, res) => {
-            const { jid, limit: rawLimit } = data as { jid?: unknown; limit?: unknown };
-
-            if (typeof jid !== 'string' || !jid.trim()) {
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(
-                JSON.stringify({
-                  success: false,
-                  error: 'invalid_jid',
-                  message: 'A non-empty jid is required.',
-                }),
-              );
-              return;
-            }
-
-            const limit =
-              typeof rawLimit === 'number' && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
-
-            const config = this.whatsappService.getConfig();
-            if (!config || config.status !== 'connected') {
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(
-                JSON.stringify({
-                  success: false,
-                  error: 'not_connected',
-                  message: 'WhatsApp is not connected. Please connect in Settings → Integrations.',
-                }),
-              );
-              return;
-            }
-
-            const messages: MessageSummary[] = this.whatsappService.readMessages(jid.trim(), limit);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true, messages }));
-          },
-        },
-        {
-          method: 'POST',
-          path: '/send',
-          handler: async (data, _req, res) => {
-            const { recipient, message } = data as {
-              recipient?: unknown;
-              message?: unknown;
-            };
-
-            if (typeof recipient !== 'string' || !recipient.trim()) {
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(
-                JSON.stringify({
-                  success: false,
-                  error: 'invalid_recipient',
-                  message: 'A non-empty recipient is required.',
-                }),
-              );
-              return;
-            }
-
-            if (typeof message !== 'string' || !message.trim()) {
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(
-                JSON.stringify({
-                  success: false,
-                  error: 'invalid_message',
-                  message: 'A non-empty message body is required.',
-                }),
-              );
-              return;
-            }
-
-            const config = this.whatsappService.getConfig();
-            if (!config || config.status !== 'connected') {
-              const isConnecting = config?.status === 'connecting' || config?.status === 'qr_ready';
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(
-                JSON.stringify({
-                  success: false,
-                  error: 'not_connected',
-                  message: isConnecting
-                    ? 'WhatsApp is connecting, please try again in a moment.'
-                    : 'WhatsApp is not connected. Please connect in Settings → Integrations.',
-                }),
-              );
-              return;
-            }
-
-            try {
-              const jid = normalizeRecipient(recipient.trim());
-              await this.whatsappService.sendMessage(jid, message.trim());
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ success: true }));
-            } catch (err) {
-              const errMsg = err instanceof Error ? err.message : String(err);
-              if (errMsg === 'invalid_recipient') {
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(
-                  JSON.stringify({
-                    success: false,
-                    error: 'invalid_recipient',
-                    message: 'Recipient contains no digits and is not a valid JID.',
-                  }),
-                );
-                return;
-              }
-              // Detect Baileys connection-loss signals (FR-020).
-              // If the socket dropped mid-send, proactively update the connection
-              // status so the UI reflects the true state before Baileys emits its
-              // own connection.update event.
-              const isConnectionLoss = WHATSAPP_CONNECTION_LOSS_PATTERNS.some((p) =>
-                errMsg.includes(p),
-              );
-              if (isConnectionLoss) {
-                this.whatsappService.markDisconnected();
-              }
-              // Do NOT log errMsg — it may be a Baileys error that reflects
-              // content from the message payload (NFR-002).
-              log.error('[WhatsAppSendApi] Send failed');
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(
-                JSON.stringify({
-                  success: false,
-                  error: 'send_failed',
-                  message: isConnectionLoss
-                    ? 'WhatsApp disconnected during send. Please reconnect in Settings → Integrations.'
-                    : `Failed to send WhatsApp message: ${errMsg}`,
-                }),
-              );
-            }
-          },
-        },
+        buildChatsRoute(this.whatsappService),
+        buildMessagesRoute(this.whatsappService),
+        buildSendRoute(this.whatsappService),
       ],
     });
 
