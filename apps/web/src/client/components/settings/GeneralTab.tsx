@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { NotificationsSection } from '@/components/settings/NotificationsSection';
 import { DebugSection } from '@/components/settings/DebugSection';
 import { DaemonSection } from '@/components/settings/DaemonSection';
+import { ThemeSelector } from '@/components/settings/ThemeSelector';
+import { LanguageSelector } from '@/components/settings/LanguageSelector';
 
 interface GeneralTabProps {
   notificationsEnabled: boolean;
@@ -20,6 +22,9 @@ export function GeneralTab({
 
   return (
     <div className="space-y-6">
+      <ThemeSelector />
+      <LanguageSelector />
+
       <section>
         <NotificationsSection enabled={notificationsEnabled} onToggle={onNotificationsToggle} />
       </section>

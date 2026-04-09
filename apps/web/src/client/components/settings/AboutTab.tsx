@@ -1,6 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { LanguageSelector } from './LanguageSelector';
-import { ThemeSelector } from './ThemeSelector';
 
 interface AboutTabProps {
   appVersion: string;
@@ -10,8 +8,6 @@ export function AboutTab({ appVersion }: AboutTabProps) {
   const { t } = useTranslation('settings');
   return (
     <div className="space-y-6">
-      <ThemeSelector />
-      <LanguageSelector />
       <div className="rounded-lg border border-border bg-card p-6">
         <div className="space-y-4">
           <div>
