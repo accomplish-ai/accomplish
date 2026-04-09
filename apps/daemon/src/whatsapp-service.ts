@@ -19,6 +19,7 @@ import {
   wireTaskBridge,
   wireStatusListeners,
 } from './whatsapp/index.js';
+import type { ChatSummary, MessageSummary } from './whatsapp/WhatsAppService.js';
 import type { TaskService } from './task-service.js';
 import type { PermissionService } from './permission-service.js';
 import { log } from './logger.js';
@@ -171,6 +172,48 @@ export class WhatsAppDaemonService extends EventEmitter {
     }
 
     return result;
+  }
+
+  /**
+   * Send a WhatsApp message to a recipient via the active session.
+   * Throws if WhatsApp is not connected.
+   */
+  async sendMessage(recipientId: string, text: string): Promise<void> {
+    if (!this.service) {
+      throw new Error('WhatsApp is not connected');
+    }
+    await this.service.sendMessage(recipientId, text);
+  }
+
+  /**
+   * Return recent WhatsApp conversations from the in-memory store.
+   * Returns an empty array if WhatsApp is not connected or the store is not yet populated.
+   */
+  readChats(limit: number): ChatSummary[] {
+    if (!this.service) {
+      return [];
+    }
+    return this.service.getChats(limit);
+  }
+
+  /**
+   * Return recent messages from a specific WhatsApp conversation.
+   * Returns an empty array if WhatsApp is not connected or the chat is not in the store.
+   */
+  readMessages(jid: string, limit: number): MessageSummary[] {
+    if (!this.service) {
+      return [];
+    }
+    return this.service.getMessages(jid, limit);
+  }
+
+  /**
+   * Proactively mark the WhatsApp connection as disconnected.
+   * Called by the HTTP send handler when a Baileys connection-loss error is
+   * detected mid-send (FR-020), so the UI reflects the true state immediately.
+   */
+  markDisconnected(): void {
+    this.service?.markDisconnected();
   }
 
   /**

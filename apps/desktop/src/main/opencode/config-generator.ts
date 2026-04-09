@@ -8,6 +8,7 @@ import {
   getOpenCodeAuthPath,
   PERMISSION_API_PORT,
   QUESTION_API_PORT,
+  WHATSAPP_API_PORT,
 } from '@accomplish_ai/agent-core';
 import { getApiKey, getAllApiKeys } from '../store/secureStorage';
 import { getStorage } from '../store/storage';
@@ -95,6 +96,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     azureFoundryToken,
     permissionApiPort: PERMISSION_API_PORT,
     questionApiPort: QUESTION_API_PORT,
+    whatsappApiPort: Number(process.env.ACCOMPLISH_WHATSAPP_API_PORT) || WHATSAPP_API_PORT,
     skills: enabledSkills,
     workspaceId: activeWorkspaceId ?? undefined,
     log: logOC,

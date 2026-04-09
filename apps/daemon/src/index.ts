@@ -14,6 +14,7 @@ import {
   PERMISSION_API_PORT,
   QUESTION_API_PORT,
   THOUGHT_STREAM_PORT,
+  WHATSAPP_API_PORT,
 } from '@accomplish_ai/agent-core';
 import { StorageService } from './storage-service.js';
 import { TaskService } from './task-service.js';
@@ -25,6 +26,7 @@ import { parseArgs } from './cli.js';
 import { registerRpcMethods, safeHandler } from './daemon-routes.js';
 import { registerTaskEventForwarding } from './task-event-forwarding.js';
 import { WhatsAppDaemonService } from './whatsapp-service.js';
+import { WhatsAppSendApi } from './whatsapp/whatsapp-send-api.js';
 import { log } from './logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -134,6 +136,7 @@ async function main(): Promise<void> {
     taskService,
     permissionService,
   );
+  const whatsappSendApi = new WhatsAppSendApi(whatsappService, authToken);
 
   // 6. Create RPC server — socket path derived from dataDir for profile isolation
   const socketPath = args.socketPath || getSocketPath(dataDir);
@@ -179,6 +182,7 @@ async function main(): Promise<void> {
   await permissionService.startPermissionApiServer(PERMISSION_API_PORT);
   await permissionService.startQuestionApiServer(QUESTION_API_PORT);
   await thoughtStreamService.start(THOUGHT_STREAM_PORT);
+  await whatsappSendApi.start(WHATSAPP_API_PORT);
 
   // Pass auth token and actual ports to child processes via environment
   const permPorts = permissionService.getPorts();
@@ -194,6 +198,10 @@ async function main(): Promise<void> {
     process.env.ACCOMPLISH_THOUGHT_STREAM_PORT = String(thoughtPort);
     // MCP tools (report-thought, report-checkpoint) read THOUGHT_STREAM_PORT
     process.env.THOUGHT_STREAM_PORT = String(thoughtPort);
+  }
+  const whatsappPort = whatsappSendApi.getPort();
+  if (whatsappPort) {
+    process.env.ACCOMPLISH_WHATSAPP_API_PORT = String(whatsappPort);
   }
 
   // Start scheduler after RPC server is ready
@@ -249,6 +257,7 @@ async function main(): Promise<void> {
       });
     }
 
+    whatsappSendApi.stop();
     whatsappService.dispose();
     thoughtStreamService.close();
     permissionService.close();

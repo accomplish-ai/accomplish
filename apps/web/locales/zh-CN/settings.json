@@ -251,6 +251,7 @@
     "title": "消息平台集成",
     "description": "连接消息平台以远程触发 Accomplish 任务。启用后，您可以从手机或任何设备上启动和监控任务。",
     "enabled": "已启用",
+    "messaging": "消息",
     "comingSoon": "即将推出",
     "enable": "启用 {{name}}",
     "enableDescription": "允许接收和发送消息",
@@ -339,6 +340,7 @@
     "themeDark": "深色"
   },
   "connectors": {
+    "title": "连接器",
     "description": "连接内置或自定义 MCP 服务器，让 Accomplish 可以使用外部工具。",
     "loading": "加载连接器...",
     "placeholder": "https://mcp-server.example.com",

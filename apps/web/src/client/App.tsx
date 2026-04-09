@@ -57,7 +57,7 @@ export function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authSettingsOpen, setAuthSettingsOpen] = useState(false);
   const [authSettingsTab, setAuthSettingsTab] = useState<
-    'providers' | 'voice' | 'skills' | 'connectors' | 'scheduler' | 'general' | 'about'
+    'providers' | 'voice' | 'skills' | 'integrations' | 'scheduler' | 'general' | 'about'
   >('providers');
   const [authSettingsProvider, setAuthSettingsProvider] = useState<ProviderId | undefined>(
     undefined,
@@ -71,7 +71,7 @@ export function App() {
     if (authError) {
       if (authError.providerId === OAuthProviderId.Slack) {
         setAuthSettingsProvider(undefined);
-        setAuthSettingsTab('connectors');
+        setAuthSettingsTab('integrations');
       } else {
         setAuthSettingsProvider(authError.providerId as ProviderId);
         setAuthSettingsTab('providers');

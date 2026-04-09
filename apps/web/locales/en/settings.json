@@ -343,6 +343,7 @@
     "themeDark": "Dark"
   },
   "connectors": {
+    "title": "Connectors",
     "description": "Connect built-in and custom MCP servers so Accomplish can use external tools.",
     "loading": "Loading connectors...",
     "placeholder": "https://mcp-server.example.com",
@@ -522,6 +523,7 @@
     "title": "Messaging Integrations",
     "description": "Connect messaging platforms to trigger Accomplish tasks remotely. When enabled, you can start and monitor tasks from your phone or any device.",
     "enabled": "Enabled",
+    "messaging": "Messaging",
     "comingSoon": "Coming Soon",
     "enable": "Enable {{name}}",
     "enableDescription": "Allow receiving and responding to messages",

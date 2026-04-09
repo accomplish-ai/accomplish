@@ -11,7 +11,7 @@ const logger = createLogger('PlusMenu');
 
 interface PlusMenuProps {
   onSkillSelect: (command: string) => void;
-  onOpenSettings: (tab: 'skills' | 'connectors') => void;
+  onOpenSettings: (tab: 'skills' | 'integrations') => void;
   onAttachFiles?: () => void;
   onSelectFolder?: (folderPath: string) => void;
   disabled?: boolean;
@@ -93,7 +93,7 @@ export function PlusMenu({
 
   const handleManageConnectors = () => {
     setOpen(false);
-    onOpenSettings('connectors');
+    onOpenSettings('integrations');
   };
 
   const handleSelectFolder = useCallback(async () => {

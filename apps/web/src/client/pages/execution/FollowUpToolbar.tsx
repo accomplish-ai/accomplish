@@ -16,7 +16,7 @@ interface FollowUpToolbarProps {
   followUpInputRef: React.RefObject<HTMLTextAreaElement | null>;
   handleFollowUp: () => void;
   handlePickFiles: () => void;
-  onOpenSettings: (tab: 'providers' | 'voice' | 'skills' | 'connectors') => void;
+  onOpenSettings: (tab: 'providers' | 'voice' | 'skills' | 'integrations') => void;
   onOpenModelSettings: () => void;
   onOpenSpeechSettings: () => void;
 }

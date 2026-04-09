@@ -5,7 +5,7 @@ import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('HomePageSettings');
 
-type SettingsTab = 'providers' | 'voice' | 'skills' | 'connectors';
+type SettingsTab = 'providers' | 'voice' | 'skills' | 'integrations';
 
 interface UseHomePageSettingsParams {
   onResume: () => Promise<void>;

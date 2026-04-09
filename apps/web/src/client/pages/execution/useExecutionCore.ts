@@ -28,7 +28,7 @@ export function useExecutionCore() {
   const [repeatingTask, setRepeatingTask] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
-    'providers' | 'voice' | 'skills' | 'connectors'
+    'providers' | 'voice' | 'skills' | 'integrations'
   >('providers');
   const [taskActionError, setTaskActionError] = useState<string | null>(null);
   const [isTaskActionRunning, setIsTaskActionRunning] = useState(false);

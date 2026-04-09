@@ -24,10 +24,35 @@ import { handleConnectionUpdate, type WhatsAppServiceEvents } from './whatsapp-s
 import { log } from '../logger.js';
 export type { WhatsAppServiceEvents };
 
+export interface ChatSummary {
+  jid: string;
+  name?: string;
+  lastMessageAt?: number;
+}
+
+export interface MessageSummary {
+  senderJid: string;
+  fromMe: boolean;
+  text: string;
+  timestamp: number;
+}
+
+function toTimestamp(val: unknown): number | undefined {
+  if (typeof val === 'number') {
+    return val;
+  }
+  if (val != null && typeof (val as { toNumber: () => number }).toNumber === 'function') {
+    return (val as { toNumber: () => number }).toNumber();
+  }
+  return undefined;
+}
+
 export class WhatsAppService extends EventEmitter implements ChannelAdapter {
   readonly channelType: MessagingProviderId = 'whatsapp';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private socket: any | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private store: any | null = null;
   private status: MessagingConnectionStatus = 'disconnected';
   private reconnect: ReconnectState = createReconnectState();
   private authStatePath: string;
@@ -45,6 +70,16 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
 
   getStatus(): MessagingConnectionStatus {
     return this.status;
+  }
+
+  /**
+   * Proactively mark the connection as disconnected.
+   * Called by the HTTP send handler when a Baileys connection-loss error is
+   * detected mid-send, so the UI reflects the true state before Baileys emits
+   * its own connection.update event.
+   */
+  markDisconnected(): void {
+    this.setStatus('disconnected');
   }
 
   private setStatus(s: MessagingConnectionStatus): void {
@@ -78,6 +113,11 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
         fetchLatestBaileysVersion,
         jidNormalizedUser,
       } = baileys;
+      // makeInMemoryStore is not in the Baileys type declarations but is exported at runtime
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const makeInMemoryStore = (baileys as any).makeInMemoryStore as
+        | ((opts: Record<string, unknown>) => unknown)
+        | undefined;
       const pino = (await import('pino')).default;
 
       let version: [number, number, number] | undefined;
@@ -106,6 +146,15 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
         return;
       }
       this.socket = socket;
+
+      // Attach in-memory store so getChats/getMessages have data to return.
+      if (makeInMemoryStore) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const store = makeInMemoryStore({}) as any;
+        this.store = store;
+        store.bind(socket.ev);
+      }
+
       this.socket.ev.on('creds.update', saveCreds);
       this.socket.ev.on(
         'connection.update',
@@ -200,6 +249,7 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
     }
     this.qrCode = null;
     this.qrIssuedAt = null;
+    this.store = null;
     cleanupAuthState(this.authStatePath);
     this.setStatus('disconnected');
   }
@@ -208,9 +258,46 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
     this.disposed = true;
     this.qrCode = null;
     this.qrIssuedAt = null;
+    this.store = null;
     clearReconnectTimer(this.reconnect);
     this.disposeSocket();
     this.removeAllListeners();
+  }
+
+  getChats(limit: number): ChatSummary[] {
+    if (!this.store) {
+      return [];
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const chats: any[] = this.store.chats.all() ?? [];
+    return chats.slice(0, limit).map((c) => ({
+      jid: c.id as string,
+      name: c.name as string | undefined,
+      lastMessageAt: toTimestamp(c.conversationTimestamp),
+    }));
+  }
+
+  getMessages(jid: string, limit: number): MessageSummary[] {
+    if (!this.store) {
+      return [];
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const msgs: any[] = this.store.messages[jid]?.all() ?? [];
+    return msgs.slice(-limit).flatMap((m) => {
+      const text: string | undefined =
+        m.message?.conversation ?? m.message?.extendedTextMessage?.text;
+      if (!text) {
+        return [];
+      }
+      return [
+        {
+          senderJid: m.key?.fromMe ? 'me' : (m.key?.remoteJid ?? jid),
+          fromMe: Boolean(m.key?.fromMe),
+          text,
+          timestamp: toTimestamp(m.messageTimestamp) ?? 0,
+        },
+      ];
+    });
   }
 
   private disposeSocket(): void {

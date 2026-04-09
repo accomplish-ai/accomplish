@@ -164,3 +164,15 @@ Do not push if any step fails.
 
 Tailwind CSS + shadcn/ui, CSS variables for theming (no hardcoded colors), DM Sans font,
 Framer Motion for animations via `apps/web/src/client/lib/animations.ts`.
+
+## Active Technologies
+
+- TypeScript 5.7 (strict mode) + Baileys v7 (WhatsApp socket + in-memory store), @modelcontextprotocol/sdk (MCP server/client), React 18 + Zustand (UI), shadcn/ui + Tailwind CSS (settings UI) (004-whatsapp-read)
+- No new database tables or migrations. Baileys in-memory store is runtime-only (lost on daemon restart). Existing SQLite `app_settings` unchanged. (004-whatsapp-read)
+
+- TypeScript 5.x (strict), ESM in agent-core/daemon + React 18 + Zustand (web UI), Baileys (WhatsApp daemon), @modelcontextprotocol/sdk (MCP tools), shadcn/ui + Tailwind CSS (003-unify-whatsapp-integration)
+- No new storage — uses existing SQLite `app_settings` and WhatsApp session files (003-unify-whatsapp-integration)
+
+## Recent Changes
+
+- 003-unify-whatsapp-integration: Added TypeScript 5.x (strict), ESM in agent-core/daemon + React 18 + Zustand (web UI), Baileys (WhatsApp daemon), @modelcontextprotocol/sdk (MCP tools), shadcn/ui + Tailwind CSS

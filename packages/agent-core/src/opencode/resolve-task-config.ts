@@ -37,6 +37,8 @@ export interface ResolveTaskConfigOptions {
   /** Permission and question API ports */
   permissionApiPort?: number;
   questionApiPort?: number;
+  /** Port for the WhatsApp HTTP API. Omit to disable the MCP tool. */
+  whatsappApiPort?: number;
 
   /** Optional auth token for daemon API endpoints */
   authToken?: string;
@@ -86,6 +88,7 @@ export async function resolveTaskConfig(
     azureFoundryToken,
     permissionApiPort,
     questionApiPort,
+    whatsappApiPort,
     authToken,
     skills,
     workspaceId,
@@ -136,6 +139,7 @@ export async function resolveTaskConfig(
       enabledProviders,
       permissionApiPort,
       questionApiPort,
+      whatsappApiPort,
       authToken,
       model: modelOverride?.model,
       smallModel: modelOverride?.smallModel,
