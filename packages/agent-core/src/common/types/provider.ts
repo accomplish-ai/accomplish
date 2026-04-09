@@ -506,6 +506,17 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
       },
     ],
   },
+  {
+    id: 'custom',
+    name: 'Custom Endpoint',
+    requiresApiKey: true,
+    models: [],
+    modelsEndpoint: {
+      url: '',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+    },
+  },
 ];
 
 export const NIM_DEFAULT_BASE_URL = 'https://integrate.api.nvidia.com/v1';
