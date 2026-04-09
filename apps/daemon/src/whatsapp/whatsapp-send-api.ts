@@ -31,12 +31,16 @@ const WHATSAPP_CONNECTION_LOSS_PATTERNS = [
  * Normalize a recipient to WhatsApp JID format.
  * If the string already contains '@', it is returned as-is.
  * Otherwise digits are extracted and '@s.whatsapp.net' is appended.
+ * Throws if no digits are found (would produce a malformed JID).
  */
 function normalizeRecipient(recipient: string): string {
   if (recipient.includes('@')) {
     return recipient;
   }
   const digits = recipient.replace(/[^\d]/g, '');
+  if (!digits) {
+    throw new Error('invalid_recipient');
+  }
   return `${digits}@s.whatsapp.net`;
 }
 
@@ -180,6 +184,17 @@ export class WhatsAppSendApi {
               res.end(JSON.stringify({ success: true }));
             } catch (err) {
               const errMsg = err instanceof Error ? err.message : String(err);
+              if (errMsg === 'invalid_recipient') {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(
+                  JSON.stringify({
+                    success: false,
+                    error: 'invalid_recipient',
+                    message: 'Recipient contains no digits and is not a valid JID.',
+                  }),
+                );
+                return;
+              }
               // Detect Baileys connection-loss signals (FR-020).
               // If the socket dropped mid-send, proactively update the connection
               // status so the UI reflects the true state before Baileys emits its

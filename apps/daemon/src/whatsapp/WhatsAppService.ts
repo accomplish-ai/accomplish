@@ -295,7 +295,7 @@ export class WhatsAppService extends EventEmitter implements ChannelAdapter {
       }
       return [
         {
-          senderJid: m.key?.fromMe ? 'me' : (m.key?.remoteJid ?? jid),
+          senderJid: m.key?.fromMe ? 'me' : (m.key?.participant ?? m.key?.remoteJid ?? jid),
           fromMe: Boolean(m.key?.fromMe),
           text,
           timestamp: toTimestamp(m.messageTimestamp) ?? 0,

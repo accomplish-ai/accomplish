@@ -1,10 +1,3 @@
-/**
- * IntegrationsPanel — unified settings panel for all integrations.
- *
- * Messaging section: WhatsApp + Slack (messaging platforms) + coming-soon stubs.
- * Connectors section: custom MCP servers only.
- * Previously split across the "Integrations" and "Connectors" tabs.
- */
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
@@ -38,16 +31,13 @@ export function IntegrationsPanel() {
 
   return (
     <div className="space-y-6" data-testid="integrations-panel">
-      {/* ── Messaging section ─────────────────────────────────────────── */}
       <div>
         <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {t('integrations.messaging')}
         </h4>
 
-        {/* WhatsApp — fully implemented */}
         <WhatsAppCard />
 
-        {/* Slack — fully implemented */}
         <SlackConnectorSection
           slackAuth={slackAuth}
           slackActionLoading={slackActionLoading}
@@ -55,7 +45,6 @@ export function IntegrationsPanel() {
           onDisconnect={handleSlackDisconnect}
         />
 
-        {/* Telegram, Teams — coming soon */}
         {(['Telegram', 'Microsoft Teams'] as const).map((name) => (
           <div
             key={name}
@@ -79,7 +68,6 @@ export function IntegrationsPanel() {
         ))}
       </div>
 
-      {/* ── Connectors section ────────────────────────────────────────── */}
       <div>
         <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {t('connectors.title')}
@@ -102,7 +90,7 @@ export function IntegrationsPanel() {
             />
 
             <AnimatePresence>
-              {(addError || oauthError) && (
+              {(oauthError || addError) && (
                 <motion.div
                   className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
                   variants={settingsVariants.fadeSlide}
@@ -114,7 +102,7 @@ export function IntegrationsPanel() {
                   aria-live="assertive"
                   aria-atomic="true"
                 >
-                  {addError || oauthError}
+                  {oauthError || addError}
                 </motion.div>
               )}
             </AnimatePresence>
