@@ -92,7 +92,7 @@ describe('Bundled Node.js Utilities', () => {
     Object.defineProperty(process, 'arch', { value: 'x64' });
     const resourcesPath = 'C:\\Program Files\\Accomplish\\resources';
     processWithResources.resourcesPath = resourcesPath;
-    const nodePath = path.join(resourcesPath, 'nodejs', 'x64', 'node.exe');
+    const nodePath = path.join(resourcesPath, 'nodejs', 'win32-x64', 'node.exe');
 
     mockFs.existsSync.mockImplementation((input: string) => input === nodePath);
 

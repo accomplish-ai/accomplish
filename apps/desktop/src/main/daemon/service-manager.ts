@@ -110,12 +110,34 @@ export function disableAutoStart(): void {
 
 function getDaemonNodePath(): string {
   if (app.isPackaged) {
-    // Bundled Node.js
-    const binDir =
-      process.platform === 'win32'
-        ? path.join(process.resourcesPath, 'nodejs', `${process.platform}-${process.arch}`)
-        : path.join(process.resourcesPath, 'nodejs', `${process.platform}-${process.arch}`, 'bin');
-    return process.platform === 'win32' ? path.join(binDir, 'node.exe') : path.join(binDir, 'node');
+    // Download script outputs: resources/nodejs/{platform}-{arch}/node-v{VERSION}-{platform}-{arch}/
+    // After electron-builder copies extraResources into {resourcesPath}/nodejs/:
+    //   {resourcesPath}/nodejs/{platform}-{arch}/node-v{VERSION}-{platform}-{arch}/bin/node (macOS/Linux)
+    //   {resourcesPath}/nodejs/{platform}-{arch}/node-v{VERSION}-{platform}-{arch}/node.exe (Windows)
+    const platformArch = `${process.platform}-${process.arch}`;
+    const nodejsBase = path.join(process.resourcesPath, 'nodejs', platformArch);
+    const nodeBinary = process.platform === 'win32' ? 'node.exe' : path.join('bin', 'node');
+
+    const directPath = path.join(nodejsBase, nodeBinary);
+    if (fs.existsSync(directPath)) {
+      return directPath;
+    }
+
+    // Search versioned subdirectory (e.g. node-v20.18.1-win-x64)
+    try {
+      const children = fs.readdirSync(nodejsBase, { withFileTypes: true });
+      for (const child of children) {
+        if (!child.isDirectory()) {
+          continue;
+        }
+        const nested = path.join(nodejsBase, child.name, nodeBinary);
+        if (fs.existsSync(nested)) {
+          return nested;
+        }
+      }
+    } catch {
+      // intentionally empty — fall through to execPath
+    }
   }
   return process.execPath; // dev: system node
 }
