@@ -160,6 +160,7 @@ export async function onBeforeStart(
 
   const permissionApiPort = getPort('ACCOMPLISH_PERMISSION_API_PORT');
   const questionApiPort = getPort('ACCOMPLISH_QUESTION_API_PORT');
+  const whatsappApiPort = getPort('ACCOMPLISH_WHATSAPP_API_PORT');
 
   const result = generateConfig({
     platform: process.platform,
@@ -171,6 +172,7 @@ export async function onBeforeStart(
     enabledProviders,
     permissionApiPort,
     questionApiPort,
+    whatsappApiPort,
     authToken: process.env.ACCOMPLISH_DAEMON_AUTH_TOKEN,
     model: modelOverride?.model,
     smallModel: modelOverride?.smallModel,
