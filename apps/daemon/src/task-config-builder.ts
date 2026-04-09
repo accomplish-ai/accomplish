@@ -75,7 +75,7 @@ export async function buildEnvironment(
   // (e.g. /usr/bin:/bin:/usr/sbin:/sbin with no user-installed Node.js).
   const bundledNodeBin = getBundledNodeBinPath(opts);
   if (bundledNodeBin) {
-    env.PATH = `${bundledNodeBin}:${env.PATH || ''}`;
+    env.PATH = `${bundledNodeBin}${path.delimiter}${env.PATH || ''}`;
   }
   const apiKeys = await storage.getAllApiKeys();
   const bedrockCredentials = storage.getBedrockCredentials() as BedrockCredentials | null;
