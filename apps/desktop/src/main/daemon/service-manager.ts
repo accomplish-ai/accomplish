@@ -189,17 +189,23 @@ function getLaunchAgentContent(): string {
     '  <key>RunAtLoad</key><true/>',
   ];
 
-  // Pass packaged-mode context so daemon resolves paths correctly
+  // Pass path context so the daemon can resolve the opencode CLI and resources.
+  // Required in both packaged and dev mode: the login-item daemon starts without
+  // Electron's environment, so ACCOMPLISH_APP_PATH would otherwise be missing.
+  const envDict = ['  <key>EnvironmentVariables</key>', '  <dict>'];
   if (app.isPackaged) {
-    lines.push(
-      '  <key>EnvironmentVariables</key>',
-      '  <dict>',
-      '    <key>ACCOMPLISH_IS_PACKAGED</key><string>1</string>',
-      `    <key>ACCOMPLISH_RESOURCES_PATH</key><string>${process.resourcesPath}</string>`,
-      `    <key>ACCOMPLISH_APP_PATH</key><string>${app.getAppPath()}</string>`,
-      '  </dict>',
-    );
+    envDict.push('    <key>ACCOMPLISH_IS_PACKAGED</key><string>1</string>');
+  } else {
+    // In dev mode, the Electron binary acts as the Node.js runtime for the daemon.
+    // ELECTRON_RUN_AS_NODE=1 tells Electron to behave as plain Node.js.
+    envDict.push('    <key>ELECTRON_RUN_AS_NODE</key><string>1</string>');
   }
+  envDict.push(
+    `    <key>ACCOMPLISH_RESOURCES_PATH</key><string>${app.isPackaged ? process.resourcesPath : `${app.getAppPath()}/resources`}</string>`,
+    `    <key>ACCOMPLISH_APP_PATH</key><string>${app.getAppPath()}</string>`,
+    '  </dict>',
+  );
+  lines.push(...envDict);
 
   lines.push(
     '  <key>StandardOutPath</key>',

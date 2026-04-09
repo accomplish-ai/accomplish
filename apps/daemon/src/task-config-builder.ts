@@ -66,9 +66,17 @@ export function getBundledNodeBinPath(opts: TaskConfigBuilderOptions): string | 
 export async function buildEnvironment(
   taskId: string,
   storage: StorageAPI,
-  _opts: TaskConfigBuilderOptions,
+  opts: TaskConfigBuilderOptions,
 ): Promise<NodeJS.ProcessEnv> {
   const env: NodeJS.ProcessEnv = { ...process.env };
+
+  // Prepend the bundled Node.js bin dir to PATH so the opencode wrapper script
+  // can find `node` even when the daemon runs as a login item with minimal PATH
+  // (e.g. /usr/bin:/bin:/usr/sbin:/sbin with no user-installed Node.js).
+  const bundledNodeBin = getBundledNodeBinPath(opts);
+  if (bundledNodeBin) {
+    env.PATH = `${bundledNodeBin}:${env.PATH || ''}`;
+  }
   const apiKeys = await storage.getAllApiKeys();
   const bedrockCredentials = storage.getBedrockCredentials() as BedrockCredentials | null;
   const activeModel = storage.getActiveProviderModel();
