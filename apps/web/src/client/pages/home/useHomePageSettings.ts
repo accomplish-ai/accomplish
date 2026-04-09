@@ -2,10 +2,11 @@ import { useState, useCallback } from 'react';
 import { getAccomplish } from '@/lib/accomplish';
 import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
 import { createLogger } from '@/lib/logger';
+import type { SettingsTabId } from '@/components/layout/settings-tabs';
 
 const logger = createLogger('HomePageSettings');
 
-type SettingsTab = 'providers' | 'voice' | 'skills' | 'connectors';
+type SettingsTab = Extract<SettingsTabId, 'providers' | 'voice' | 'skills' | 'integrations'>;
 
 interface UseHomePageSettingsParams {
   onResume: () => Promise<void>;

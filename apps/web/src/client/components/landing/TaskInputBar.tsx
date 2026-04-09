@@ -1,23 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useCallback, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { createLogger } from '@/lib/logger';
-
-const logger = createLogger('TaskInputBar');
 import { WarningCircle } from '@phosphor-icons/react';
 import type { FileAttachmentInfo } from '@accomplish_ai/agent-core';
-import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
-import { useSpeechInput } from '@/hooks/useSpeechInput';
-import { useTypingPlaceholder } from '@/hooks/useTypingPlaceholder';
-import { useSlashCommand } from '@/hooks/useSlashCommand';
-import { useTaskInputDragDrop } from '@/hooks/useTaskInputDragDrop';
-import { useTaskInputBehavior } from '@/hooks/useTaskInputBehavior';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { TaskInputAttachmentList } from './TaskInputAttachmentList';
 import { TaskInputTextarea } from './TaskInputTextarea';
 import { TaskInputToolbar } from './TaskInputToolbar';
+import { useTaskInputBar } from './useTaskInputBar';
 
 export { FileTypeIcon } from './FileTypeIcon';
 
@@ -61,27 +53,18 @@ export function TaskInputBar({
   attachmentError: externalAttachmentError = null,
 }: TaskInputBarProps) {
   const { t } = useTranslation('common');
-  const isInputDisabled = disabled || isLoading;
-  const isOverLimit = value.length > PROMPT_DEFAULT_MAX_LENGTH;
-  const canSubmit = (!!value.trim() || attachments.length > 0) && !disabled && !isOverLimit;
-  const isSubmitDisabled = !isLoading && (!canSubmit || isInputDisabled);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const latestValueRef = useRef(value);
-  const pendingAutoSubmitRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    latestValueRef.current = value;
-  }, [value]);
-
-  const animatedPlaceholder = useTypingPlaceholder({
-    enabled: typingPlaceholder && !value,
-    text: placeholder,
-  });
-  const effectivePlaceholder = typingPlaceholder && !value ? animatedPlaceholder : placeholder;
 
   const {
+    textareaRef,
+    effectivePlaceholder,
+    isInputDisabled,
+    isOverLimit,
+    isSubmitDisabled,
+    attachmentError,
+    slashCommand,
+    speechInput,
+    behavior,
     isDragOver,
-    attachmentError: dragDropAttachmentError,
     removeAttachment,
     handleDragEnter,
     handleDragLeave,
@@ -89,54 +72,19 @@ export function TaskInputBar({
     handleDrop,
     MAX_FILES,
     MAX_FILE_SIZE,
-  } = useTaskInputDragDrop({
-    attachments,
-    onAttachmentsChange,
-    isInputDisabled,
-  });
-  const attachmentError = externalAttachmentError ?? dragDropAttachmentError;
-
-  const slashCommand = useSlashCommand({
+  } = useTaskInputBar({
     value,
-    textareaRef: textareaRef as React.RefObject<HTMLTextAreaElement | null>,
     onChange,
-  });
-
-  const handleTranscriptionComplete = useCallback(
-    (text: string) => {
-      const currentValue = latestValueRef.current;
-      const newValue = currentValue.trim() ? `${currentValue} ${text}` : text;
-      onChange(newValue);
-      if (autoSubmitOnTranscription && newValue.trim()) {
-        pendingAutoSubmitRef.current = newValue;
-      }
-      setTimeout(() => {
-        textareaRef.current?.focus();
-      }, 0);
-    },
-    [onChange, autoSubmitOnTranscription],
-  );
-
-  const speechInput = useSpeechInput({
-    onTranscriptionComplete: handleTranscriptionComplete,
-    onError: (error) => {
-      logger.error('Speech error:', error.message);
-    },
-  });
-
-  const behavior = useTaskInputBehavior({
-    textareaRef: textareaRef as React.RefObject<HTMLTextAreaElement | null>,
-    value,
-    isInputDisabled,
-    isOverLimit,
+    onSubmit,
+    placeholder,
+    typingPlaceholder,
+    isLoading,
+    disabled,
     autoFocus,
     autoSubmitOnTranscription,
-    canSubmit,
-    isLoading,
-    isRecording: speechInput.isRecording,
-    slashCommand,
-    onSubmit,
-    pendingAutoSubmitRef,
+    attachments,
+    onAttachmentsChange,
+    externalAttachmentError,
   });
 
   return (

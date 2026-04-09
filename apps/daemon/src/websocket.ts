@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'http';
+import { log } from './logger.js';
 
 export type DaemonEvent =
   | { type: 'task:update'; taskId: string; data: unknown }
@@ -26,7 +27,7 @@ export function setupWebSocket(server: Server): WebSocketServer {
   wss = new WebSocketServer({ server, path: '/ws' });
 
   wss.on('connection', (ws) => {
-    console.log('[WebSocket] Client connected. Total:', wss!.clients.size);
+    log.info('[WebSocket] Client connected. Total:', wss!.clients.size);
 
     ws.on('message', (raw) => {
       let msg: ClientMessage;
@@ -37,29 +38,29 @@ export function setupWebSocket(server: Server): WebSocketServer {
           parsed === null ||
           typeof (parsed as Record<string, unknown>).type !== 'string'
         ) {
-          console.warn('[WebSocket] Received message with invalid shape, ignoring');
+          log.warn('[WebSocket] Received message with invalid shape, ignoring');
           return;
         }
         msg = parsed as ClientMessage;
       } catch (err) {
-        console.warn('[WebSocket] Failed to parse incoming message:', err);
+        log.warn('[WebSocket] Failed to parse incoming message:', err);
         return;
       }
       messageHandlers.forEach((handler) => {
         try {
           handler(msg);
         } catch (err) {
-          console.error('[WebSocket] Handler error:', err);
+          log.error('[WebSocket] Handler error:', err);
         }
       });
     });
 
     ws.on('close', () => {
-      console.log('[WebSocket] Client disconnected. Total:', wss!.clients.size);
+      log.info('[WebSocket] Client disconnected. Total:', wss!.clients.size);
     });
   });
 
-  console.log('[WebSocket] Server ready on /ws');
+  log.info('[WebSocket] Server ready on /ws');
   return wss;
 }
 

@@ -51,22 +51,26 @@ export async function loadModel(modelId: string): Promise<void> {
         await import('@huggingface/transformers');
 
       const cacheDir = path.join(app.getPath('userData'), 'hf-models');
-      env.cacheDir = cacheDir;
-      env.allowLocalModels = true;
+      env.localModelPath = cacheDir;
+      env.allowRemoteModels = false;
 
       // Stage new model and tokenizer
-      const tokenizer = await AutoTokenizer.from_pretrained(modelId, {
-        cache_dir: cacheDir,
-        local_files_only: true,
-      });
+      const tokenizer = await AutoTokenizer.from_pretrained(modelId);
 
       // Get config to determine quantization + device preference
       const config = getStorage().getHuggingFaceLocalConfig();
       const quantization = config?.quantization ?? null;
       const devicePreference = config?.devicePreference ?? null;
-      // Pass device only when explicitly set (not 'auto') — let Transformers.js auto-detect otherwise
-      const deviceOption =
-        devicePreference && devicePreference !== 'auto' ? { device: devicePreference } : {};
+      // Patch env.backends.onnx.device without clobbering other backend settings
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const envAny = env as any;
+      envAny.backends ??= {};
+      envAny.backends.onnx ??= {};
+      if (devicePreference && devicePreference !== 'auto') {
+        envAny.backends.onnx.device = devicePreference;
+      } else {
+        delete envAny.backends.onnx.device;
+      }
 
       // Use saved quantization, fall back to q4 then fp32
       const dtypesToTry: string[] = quantization ? [quantization] : ['q4'];
@@ -75,11 +79,8 @@ export async function loadModel(modelId: string): Promise<void> {
       for (const dtype of dtypesToTry) {
         try {
           model = await AutoModelForCausalLM.from_pretrained(modelId, {
-            cache_dir: cacheDir,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             dtype: dtype as any,
-            local_files_only: true,
-            ...deviceOption,
           });
           break;
         } catch (err) {
@@ -90,10 +91,7 @@ export async function loadModel(modelId: string): Promise<void> {
             );
             // Last fallback: try fp32 (only if we haven't already tried fp32)
             model = await AutoModelForCausalLM.from_pretrained(modelId, {
-              cache_dir: cacheDir,
               dtype: 'fp32',
-              local_files_only: true,
-              ...deviceOption,
             });
           } else {
             throw err;

@@ -44,29 +44,27 @@ export async function downloadModel(
     // Dynamically import Transformers.js (it's ESM-only)
     const { env, AutoTokenizer, AutoModelForCausalLM } = await import('@huggingface/transformers');
 
-    // Configure cache directory
+    // Configure cache directory for downloads (env.cacheDir controls where Transformers.js writes)
     if (cacheDir) {
       env.cacheDir = cacheDir;
     }
-    env.allowLocalModels = true;
+    env.allowRemoteModels = true;
 
     // Download tokenizer + model via Transformers.js auto-download
     onProgress?.({ modelId, status: 'downloading', progress: 10 });
 
-    await AutoTokenizer.from_pretrained(modelId, { cache_dir: cacheDir || undefined });
+    await AutoTokenizer.from_pretrained(modelId);
 
     onProgress?.({ modelId, status: 'downloading', progress: 30 });
 
     try {
       await AutoModelForCausalLM.from_pretrained(modelId, {
-        cache_dir: cacheDir || undefined,
         dtype: 'q4', // Try quantized first
       });
     } catch (err) {
       console.warn(`[HF Manager] Failed to download q4 model, trying fp32: ${err}`);
       onProgress?.({ modelId, status: 'downloading', progress: 50 });
       await AutoModelForCausalLM.from_pretrained(modelId, {
-        cache_dir: cacheDir || undefined,
         dtype: 'fp32', // Fallback to fp32
       });
     }

@@ -164,3 +164,11 @@ Do not push if any step fails.
 
 Tailwind CSS + shadcn/ui, CSS variables for theming (no hardcoded colors), DM Sans font,
 Framer Motion for animations via `apps/web/src/client/lib/animations.ts`.
+
+## Active Technologies
+
+TypeScript 5.7 (strict mode), ESM in agent-core/daemon, React 18 + Zustand (web UI), Baileys v7 (WhatsApp socket + in-memory store), @modelcontextprotocol/sdk (MCP server/client), shadcn/ui + Tailwind CSS (settings UI). No new database tables or migrations — Baileys in-memory store is runtime-only (lost on daemon restart); existing SQLite `app_settings` and WhatsApp session files are unchanged.
+
+## Recent Changes
+
+- 004-whatsapp-read / 003-unify-whatsapp-integration: Added WhatsApp send/read MCP tools, unified Integrations settings tab, Baileys in-memory store for chat/message reading

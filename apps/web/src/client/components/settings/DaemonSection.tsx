@@ -198,7 +198,7 @@ export function DaemonSection() {
                   {t('daemon.status.uptime', { uptime: formatUptime(uptime) })}
                   {lastPing && (
                     <span className="ml-2">
-                      \u00b7{' '}
+                      {' '}
                       {t('daemon.status.lastPing', {
                         seconds: Math.round((Date.now() - lastPing.getTime()) / 1000),
                       })}

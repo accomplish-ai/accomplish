@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { TaskInputBar } from '@/components/landing/TaskInputBar';
-import { useDaemonStore } from '@/stores/daemonStore';
 import { SettingsDialog } from '@/components/layout/SettingsDialog';
 import { springs } from '@/lib/animations';
 import { PlusMenu } from '@/components/landing/PlusMenu';
@@ -11,8 +10,6 @@ import { ExamplesSection } from './home/ExamplesSection';
 
 export function HomePage() {
   const { t } = useTranslation('home');
-  const daemonStatus = useDaemonStore((s) => s.status);
-  const isDaemonReady = daemonStatus === 'connected';
   const {
     prompt,
     setPrompt,
@@ -76,8 +73,7 @@ export function HomePage() {
                 onChange={setPrompt}
                 onSubmit={handleSubmit}
                 isLoading={isLoading}
-                disabled={!isDaemonReady}
-                placeholder={isDaemonReady ? t('inputPlaceholder') : 'Daemon not connected...'}
+                placeholder={t('inputPlaceholder')}
                 typingPlaceholder={true}
                 large={true}
                 autoFocus={true}

@@ -5,7 +5,7 @@
  * top-level bootstrap (single-instance lock, env, window factory).
  */
 
-import { app, BrowserWindow, dialog, nativeImage, nativeTheme } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme } from 'electron';
 import path from 'path';
 import { FutureSchemaError } from '@accomplish_ai/agent-core';
 import type { ProviderId } from '@accomplish_ai/agent-core';
@@ -26,6 +26,9 @@ import {
 } from './daemon-bootstrap';
 import { registerIPCHandlers } from './ipc/handlers';
 import { drainProtocolUrlQueue } from './protocol-handlers';
+import { getBuildConfig, isAnalyticsEnabled } from './config/build-config';
+import { initAnalytics, initDeviceFingerprint } from './analytics/analytics-service';
+import { initMixpanel } from './analytics/mixpanel-service';
 
 function logMain(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
   try {
@@ -123,6 +126,38 @@ export async function startApp(
     logMain('ERROR', '[Main] Provider validation failed', { err: String(err) });
   }
 
+  // Clean up stale accomplish-ai provider if free mode is no longer available.
+  // Handles the case where a user switches from Free to OSS build.
+  try {
+    const { isFreeMode } = await import('./config/build-config');
+    if (!isFreeMode()) {
+      const s = getStorage();
+      const provider = s.getConnectedProvider('accomplish-ai');
+      if (provider) {
+        s.removeConnectedProvider('accomplish-ai');
+        if (s.getActiveProviderId() === 'accomplish-ai') {
+          s.setActiveProvider(null);
+        }
+        logMain('INFO', '[Main] Removed stale accomplish-ai provider (free mode not available)');
+      }
+    }
+  } catch {
+    // best-effort cleanup
+  }
+
+  // Initialize analytics — no-op when build.env is absent (OSS builds)
+  try {
+    if (isAnalyticsEnabled()) {
+      initAnalytics();
+      initDeviceFingerprint();
+    }
+    if (getBuildConfig().mixpanelToken) {
+      initMixpanel();
+    }
+  } catch (err) {
+    logMain('WARN', '[Main] Analytics initialization failed', { err: String(err) });
+  }
+
   await skillsManager.initialize();
 
   if (process.platform === 'darwin' && app.dock) {
@@ -173,47 +208,48 @@ export async function startApp(
         return; // Already quitting — let it close
       }
 
-      // Always prevent default and show a confirmation dialog
+      // Skip close dialog in E2E mode — tests need clean app.close()
+      if (process.env.E2E_MOCK_TASK_EVENTS === '1') {
+        return;
+      }
+
+      // Show a themed close dialog in the renderer instead of a native OS dialog.
+      // The renderer sends back the user's decision via IPC.
       event.preventDefault();
 
-      void dialog
-        .showMessageBox(mainWindow, {
-          type: 'question',
-          title: 'Close Accomplish',
-          message: 'The background daemon will keep running.',
-          detail:
-            'Tasks and scheduled jobs will continue in the background. ' +
-            'You can reopen the app from the system tray.',
-          buttons: ['Close', 'Close & Stop Daemon', 'Cancel'],
-          defaultId: 0, // "Close" is the default
-          cancelId: 2, // "Cancel" maps to Escape key
-          noLink: true,
-        })
-        .then(({ response }) => {
-          if (response === 0) {
-            // Close app, daemon keeps running
-            logMain('INFO', '[Main] Closing app (daemon keeps running)');
-            isQuittingRef.value = true;
-            app.quit();
-          } else if (response === 1) {
-            // Close app AND stop daemon
-            logMain('INFO', '[Main] Closing app and stopping daemon');
-            try {
-              const client = getDaemonClient();
-              void client
-                .call('daemon.shutdown')
-                .catch(() => {})
-                .finally(() => {
-                  isQuittingRef.value = true;
-                  app.quit();
-                });
-            } catch {
-              isQuittingRef.value = true;
-              app.quit();
-            }
+      mainWindow.webContents.send('app:close-requested');
+
+      // One-time listener for the response
+      const handler = async (_evt: Electron.IpcMainEvent, decision: string) => {
+        ipcMain.removeListener('app:close-response', handler);
+
+        if (decision === 'keep-daemon') {
+          logMain('INFO', '[Main] Closing app (daemon keeps running)');
+          isQuittingRef.value = true;
+          app.quit();
+        } else if (decision === 'stop-daemon') {
+          logMain('INFO', '[Main] Closing app and stopping daemon');
+          // Suppress auto-reconnect so the disconnect doesn't trigger the toast
+          try {
+            const { suppressReconnect } = await import('./daemon/daemon-connector');
+            suppressReconnect();
+          } catch {
+            /* connector may not be loaded */
           }
-          // response === 2 (Cancel) — do nothing, window stays open
-        });
+          // Fire-and-forget: tell daemon to shut down, then quit immediately.
+          // The daemon handles its own drain phase independently.
+          try {
+            const client = getDaemonClient();
+            client.call('daemon.shutdown').catch(() => {});
+          } catch {
+            // Daemon may already be down
+          }
+          isQuittingRef.value = true;
+          app.quit();
+        }
+        // decision === 'cancel' — do nothing, window stays open
+      };
+      ipcMain.on('app:close-response', handler);
     });
 
     createTray(mainWindow);

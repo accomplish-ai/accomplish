@@ -8,7 +8,10 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 const QUESTION_API_PORT = process.env.QUESTION_API_PORT || '9227';
-const QUESTION_API_URL = `http://localhost:${QUESTION_API_PORT}/question`;
+// Use 127.0.0.1 explicitly — on some Linux systems `localhost` resolves to
+// ::1 (IPv6) first, but the daemon HTTP server binds only to 127.0.0.1 (IPv4),
+// which would cause ECONNREFUSED ("fetch failed") on those hosts.
+const QUESTION_API_URL = `http://127.0.0.1:${QUESTION_API_PORT}/question`;
 const TASK_ID = process.env.ACCOMPLISH_TASK_ID;
 
 const AUTH_TOKEN = process.env.ACCOMPLISH_DAEMON_AUTH_TOKEN;

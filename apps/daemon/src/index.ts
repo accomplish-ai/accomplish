@@ -8,10 +8,13 @@ import {
   getPidFilePath,
   acquirePidLock,
   installCrashHandlers,
+  noopRuntime,
   type PidLockHandle,
+  type AccomplishRuntime,
   PERMISSION_API_PORT,
   QUESTION_API_PORT,
   THOUGHT_STREAM_PORT,
+  WHATSAPP_API_PORT,
 } from '@accomplish_ai/agent-core';
 import { StorageService } from './storage-service.js';
 import { TaskService } from './task-service.js';
@@ -22,6 +25,9 @@ import { HealthService, VERSION } from './health.js';
 import { parseArgs } from './cli.js';
 import { registerRpcMethods, safeHandler } from './daemon-routes.js';
 import { registerTaskEventForwarding } from './task-event-forwarding.js';
+import { WhatsAppDaemonService } from './whatsapp-service.js';
+import { WhatsAppSendApi } from './whatsapp/whatsapp-send-api.js';
+import { log } from './logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -38,13 +44,32 @@ async function main(): Promise<void> {
 
   installCrashHandlers();
 
+  // ── Load Accomplish AI runtime (noop in OSS, real impl in commercial) ───
+  let accomplishRuntime: AccomplishRuntime = noopRuntime;
+  try {
+    const mod = await import('@accomplish/llm-gateway-client');
+    accomplishRuntime = mod.createRuntime();
+  } catch (err: unknown) {
+    const isTargetPackageMissing =
+      err &&
+      typeof err === 'object' &&
+      'code' in err &&
+      (err as { code: string }).code === 'ERR_MODULE_NOT_FOUND' &&
+      String(err).includes("Cannot find package '@accomplish/llm-gateway-client'");
+    if (isTargetPackageMissing) {
+      console.log('[Daemon] @accomplish/llm-gateway-client not installed — OSS mode');
+    } else {
+      throw err;
+    }
+  }
+
   // Resolve dataDir early — all identity files (socket, PID, DB) derive from it.
   // --data-dir is required by default. Only explicitly opted-in dev mode skips it,
   // so a misconfigured launcher can never silently use the wrong profile.
   const dataDir = args.dataDir;
   const isDevMode = process.env.ACCOMPLISH_DAEMON_DEV === '1';
   if (!dataDir && !isDevMode) {
-    console.error(
+    log.error(
       '[Daemon] Error: --data-dir is required.\n' +
         'The daemon must know which data directory to use so it shares the same\n' +
         'database, socket, and PID file as the desktop app.\n\n' +
@@ -56,15 +81,15 @@ async function main(): Promise<void> {
   }
 
   if (!dataDir && isDevMode) {
-    console.warn('[Daemon] Warning: running in dev mode without --data-dir, using ~/.accomplish');
+    log.warn('[Daemon] Warning: running in dev mode without --data-dir, using ~/.accomplish');
   }
 
-  console.log(`[Daemon] Starting... (dataDir=${dataDir ?? '~/.accomplish (dev fallback)'})`);
+  log.info(`[Daemon] Starting... (dataDir=${dataDir ?? '~/.accomplish (dev fallback)'})`);
 
   // 1. Acquire PID lock scoped to dataDir (atomic, with stale detection)
   const pidPath = getPidFilePath(dataDir);
   pidLock = acquirePidLock(pidPath);
-  console.log(`[Daemon] PID lock acquired: ${pidLock.pidPath} (pid=${process.pid})`);
+  log.info(`[Daemon] PID lock acquired: ${pidLock.pidPath} (pid=${process.pid})`);
 
   // 2. Generate per-session auth token for HTTP APIs
   const authToken = crypto.randomUUID();
@@ -76,7 +101,7 @@ async function main(): Promise<void> {
   // 4. Crash recovery: mark stale running tasks as failed
   for (const task of storage.getTasks()) {
     if (task.status === 'running') {
-      console.warn(`[Daemon] Crash recovery: marking stale task ${task.id} as failed`);
+      log.warn(`[Daemon] Crash recovery: marking stale task ${task.id} as failed`);
       storage.updateTaskStatus(task.id, 'failed', new Date().toISOString());
     }
   }
@@ -97,6 +122,7 @@ async function main(): Promise<void> {
     isPackaged,
     resourcesPath,
     appPath,
+    accomplishRuntime,
   });
   const healthService = new HealthService();
   const permissionService = new PermissionService(authToken);
@@ -104,13 +130,20 @@ async function main(): Promise<void> {
   const schedulerService = new SchedulerService(storage, (prompt, workspaceId) => {
     void taskService.startTask({ prompt, workspaceId });
   });
+  const whatsappService = new WhatsAppDaemonService(
+    storage,
+    userDataPath,
+    taskService,
+    permissionService,
+  );
+  const whatsappSendApi = new WhatsAppSendApi(whatsappService, authToken);
 
   // 6. Create RPC server — socket path derived from dataDir for profile isolation
   const socketPath = args.socketPath || getSocketPath(dataDir);
   const rpc = new DaemonRpcServer({
     socketPath,
-    onConnection: (clientId) => console.log(`[Daemon] Client connected: ${clientId}`),
-    onDisconnection: (clientId) => console.log(`[Daemon] Client disconnected: ${clientId}`),
+    onConnection: (clientId) => log.info(`[Daemon] Client connected: ${clientId}`),
+    onDisconnection: (clientId) => log.info(`[Daemon] Client disconnected: ${clientId}`),
   });
 
   // 7. Initialize permission service
@@ -135,6 +168,8 @@ async function main(): Promise<void> {
     healthService,
     storageService,
     schedulerService,
+    accomplishRuntime,
+    whatsappService,
   };
   registerRpcMethods(routeServices);
   registerTaskEventForwarding(routeServices);
@@ -147,6 +182,7 @@ async function main(): Promise<void> {
   await permissionService.startPermissionApiServer(PERMISSION_API_PORT);
   await permissionService.startQuestionApiServer(QUESTION_API_PORT);
   await thoughtStreamService.start(THOUGHT_STREAM_PORT);
+  await whatsappSendApi.start(WHATSAPP_API_PORT);
 
   // Pass auth token and actual ports to child processes via environment
   const permPorts = permissionService.getPorts();
@@ -163,12 +199,19 @@ async function main(): Promise<void> {
     // MCP tools (report-thought, report-checkpoint) read THOUGHT_STREAM_PORT
     process.env.THOUGHT_STREAM_PORT = String(thoughtPort);
   }
+  const whatsappPort = whatsappSendApi.getPort();
+  if (whatsappPort) {
+    process.env.ACCOMPLISH_WHATSAPP_API_PORT = String(whatsappPort);
+  }
 
   // Start scheduler after RPC server is ready
   schedulerService.start();
-  console.log('[Daemon] Scheduler started');
+  log.info('[Daemon] Scheduler started');
 
-  console.log(`[Daemon] Listening on ${socketPath}`);
+  // Auto-connect WhatsApp if previously enabled
+  whatsappService.autoConnectIfEnabled();
+
+  log.info(`[Daemon] Listening on ${socketPath}`);
 
   // 12. Graceful shutdown with drain phase
   let shuttingDown = false;
@@ -177,15 +220,15 @@ async function main(): Promise<void> {
       return;
     }
     shuttingDown = true;
-    console.log('[Daemon] Shutting down...');
+    log.info('[Daemon] Shutting down...');
 
     // Stop scheduler FIRST — prevent new tasks from being launched during drain
     schedulerService.stop();
-    console.log('[Daemon] Scheduler stopped');
+    log.info('[Daemon] Scheduler stopped');
 
     const activeCount = taskService.getActiveTaskCount();
     if (activeCount > 0) {
-      console.log(`[Daemon] Draining ${activeCount} active task(s)...`);
+      log.info(`[Daemon] Draining ${activeCount} active task(s)...`);
       await new Promise<void>((resolve) => {
         let remaining = taskService.getActiveTaskCount();
         if (remaining === 0) {
@@ -194,7 +237,7 @@ async function main(): Promise<void> {
         }
 
         const drainTimeout = setTimeout(() => {
-          console.warn('[Daemon] Drain timeout reached, force-killing active tasks');
+          log.warn('[Daemon] Drain timeout reached, force-killing active tasks');
           taskService.dispose();
           resolve();
         }, DRAIN_TIMEOUT_MS);
@@ -214,18 +257,20 @@ async function main(): Promise<void> {
       });
     }
 
+    whatsappSendApi.stop();
+    whatsappService.dispose();
     thoughtStreamService.close();
     permissionService.close();
     taskService.dispose();
     await rpc.stop();
     storageService.close();
     pidLock?.release();
-    console.log('[Daemon] Shutdown complete');
+    log.info('[Daemon] Shutdown complete');
     process.exit(0);
   };
 
   const forceShutdown = () => {
-    console.error('[Daemon] Forced shutdown after timeout');
+    log.error('[Daemon] Forced shutdown after timeout');
     pidLock?.release();
     process.exit(1);
   };
@@ -234,7 +279,7 @@ async function main(): Promise<void> {
   rpc.registerMethod(
     'daemon.shutdown',
     safeHandler(async () => {
-      console.log('[Daemon] Shutdown requested via RPC');
+      log.info('[Daemon] Shutdown requested via RPC');
       // Defer actual shutdown to after the RPC response is sent
       setTimeout(() => void shutdown(), 100);
       return Promise.resolve();
@@ -252,7 +297,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error('[Daemon] Fatal error:', err);
+  log.error('[Daemon] Fatal error:', err);
   pidLock?.release();
   process.exit(1);
 });

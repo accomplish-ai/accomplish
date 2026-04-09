@@ -183,4 +183,18 @@ function registerNotificationHandlers(
   client.onNotification('task.checkpoint', (data) => {
     forward('task:checkpoint', data);
   });
+
+  // Accomplish AI credit usage updates (proxy → daemon → Electron → renderer)
+  client.onNotification('accomplish-ai.usage-update', (data) => {
+    forward('accomplish-ai:usage-updated', data);
+  });
+
+  // WhatsApp events
+  client.onNotification('whatsapp.qr', (data) => {
+    forward('integrations:whatsapp:qr', (data as { qr: string }).qr);
+  });
+
+  client.onNotification('whatsapp.status', (data) => {
+    forward('integrations:whatsapp:status', (data as { status: string }).status);
+  });
 }

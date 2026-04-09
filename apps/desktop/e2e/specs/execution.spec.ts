@@ -490,18 +490,20 @@ test.describe('Execution Page', () => {
       el.scrollTop = 0;
     });
 
-    // Wait for scroll state to update
-    await window.waitForTimeout(TEST_TIMEOUTS.STATE_UPDATE);
+    // Wait for scroll state to propagate
+    await window.waitForTimeout(TEST_TIMEOUTS.STATE_UPDATE * 4);
 
-    // Check if the container is scrollable (has content taller than viewport)
-    const isScrollable = await scrollContainer.evaluate((el) => {
-      return el.scrollHeight > el.clientHeight;
+    // Check if the content is tall enough to trigger the scroll-to-bottom button.
+    // The app uses a 150px threshold: isAtBottom = scrollTop + clientHeight >= scrollHeight - 150
+    // So the button only appears when scrollHeight - clientHeight > 150
+    const hasEnoughScroll = await scrollContainer.evaluate((el) => {
+      return el.scrollHeight - el.clientHeight > 150;
     });
 
-    if (isScrollable) {
+    if (hasEnoughScroll) {
       // Scroll-to-bottom button should be visible when scrolled up
       await expect(executionPage.scrollToBottomButton).toBeVisible({
-        timeout: TEST_TIMEOUTS.NAVIGATION,
+        timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
       });
 
       // Capture screenshot
@@ -570,21 +572,22 @@ test.describe('Execution Page', () => {
     const scrollContainer = executionPage.messagesScrollContainer;
     await scrollContainer.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.NAVIGATION });
 
-    // Check if the container is scrollable
-    const isScrollable = await scrollContainer.evaluate((el) => {
-      return el.scrollHeight > el.clientHeight;
+    // Check if content is tall enough to trigger the scroll-to-bottom button
+    // (app uses 150px threshold for isAtBottom detection)
+    const hasEnoughScroll = await scrollContainer.evaluate((el) => {
+      return el.scrollHeight - el.clientHeight > 150;
     });
 
-    if (isScrollable) {
+    if (hasEnoughScroll) {
       // Scroll to top
       await scrollContainer.evaluate((el) => {
         el.scrollTop = 0;
       });
-      await window.waitForTimeout(TEST_TIMEOUTS.STATE_UPDATE);
+      await window.waitForTimeout(TEST_TIMEOUTS.STATE_UPDATE * 4);
 
       // Verify button is visible
       await expect(executionPage.scrollToBottomButton).toBeVisible({
-        timeout: TEST_TIMEOUTS.NAVIGATION,
+        timeout: TEST_TIMEOUTS.PERMISSION_MODAL,
       });
 
       // Click the scroll-to-bottom button
@@ -756,11 +759,10 @@ test.describe('Execution Page', () => {
     expect(clipboardText).toBeTruthy();
     expect(clipboardText.length).toBeGreaterThan(0);
 
-    // Verify visual feedback - button should have green background
-    // User messages use !text-green-300, assistant messages use !text-green-600
-    // Both use bg-green-500 variants, so check for that common pattern
+    // Verify visual feedback - button should show copied state
+    // The copy button uses bg-accent for the copied state
     const buttonClasses = await firstCopyButton.getAttribute('class');
-    expect(buttonClasses).toContain('bg-green-500');
+    expect(buttonClasses).toContain('bg-accent');
   });
 
   test('should display code blocks with syntax highlighting and copy buttons', async ({

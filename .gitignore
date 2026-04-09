@@ -12,6 +12,7 @@ out/
 .env
 .env.local
 .env*.local
+build.env
 
 # Vercel
 .vercel/

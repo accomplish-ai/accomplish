@@ -1,49 +1,36 @@
 /**
  * Speech-to-Text service wrapper for Electron desktop app.
  *
- * This module provides a thin wrapper around the core SpeechService,
- * initializing it with the desktop app's storage.
+ * Delegates to the agent-core SpeechService but reads the ElevenLabs API key
+ * through the shared secureStorage singleton so keys saved via settings are
+ * visible here without a separate storage instance.
  *
  * Audio recording happens in the renderer process (uses browser APIs),
  * then audio data is sent to main process via IPC for transcription.
  */
 
-import { app } from 'electron';
+import { getApiKey } from '../store/secureStorage';
 import {
   createSpeechService,
-  createStorage,
   type SpeechServiceAPI,
+  type SecureStorageAPI,
   type TranscriptionResult,
   type TranscriptionError,
 } from '@accomplish_ai/agent-core';
 
-// Re-export types from core
-export type { TranscriptionResult, TranscriptionError };
+export type { TranscriptionResult, TranscriptionError } from '@accomplish_ai/agent-core';
 
 let _speechService: SpeechServiceAPI | null = null;
 
 function getSpeechService(): SpeechServiceAPI {
   if (!_speechService) {
-    const storage = createStorage({
-      userDataPath: app.getPath('userData'),
-    });
+    // Minimal adapter — SpeechService only calls getApiKey() on this object.
+    const storage = {
+      getApiKey: (provider: string) => getApiKey(provider),
+    } as unknown as SecureStorageAPI;
     _speechService = createSpeechService({ storage });
   }
   return _speechService;
-}
-
-/**
- * Get the configured ElevenLabs API key
- */
-export function getElevenLabsApiKey(): string | null {
-  return getSpeechService().getElevenLabsApiKey();
-}
-
-/**
- * Check if ElevenLabs is configured
- */
-export function isElevenLabsConfigured(): boolean {
-  return getSpeechService().isElevenLabsConfigured();
 }
 
 /**

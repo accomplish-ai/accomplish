@@ -37,7 +37,7 @@
     "prepare": "husky"
   },
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=20.19.0",
     "pnpm": ">=9.0.0"
   },
   "packageManager": "pnpm@9.15.0",
@@ -67,7 +67,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
-    "typescript-eslint": "^8.55.0",
+    "typescript-eslint": "^8.58.0",
     "wait-on": "^9.0.4"
   }
 }

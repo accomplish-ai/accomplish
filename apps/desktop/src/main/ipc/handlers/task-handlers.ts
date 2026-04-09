@@ -208,6 +208,10 @@ export function registerTaskHandlers(): void {
   handle(
     'permission:respond',
     async (_event: IpcMainInvokeEvent, response: Record<string, unknown>) => {
+      // In E2E mock mode, daemon isn't running — silently succeed
+      if (isMockTaskEventsEnabled()) {
+        return;
+      }
       const client = getDaemonClient();
       // Type is now flat PermissionResponse (requestId, taskId, decision, ...)
       await client.call(

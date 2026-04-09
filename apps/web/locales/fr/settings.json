@@ -59,7 +59,18 @@
     "together": "Together AI",
     "fireworks": "Fireworks AI",
     "groq": "Groq",
-    "huggingface-local": "HuggingFace Local"
+    "huggingface-local": "HuggingFace Local",
+    "accomplish-ai": "Accomplish AI",
+    "accomplishAi": {
+      "description": "Utilisez le modèle intégré propulsé par Accomplish - aucune clé API requise.\nInclut 200 crédits gratuits par mois pour commencer.",
+      "disconnect": "Déconnecter",
+      "exhaustedMessage": "Crédits épuisés. Ils seront réinitialisés le {{date}}.",
+      "exhaustedMessageSoon": "Crédits épuisés. Ils seront réinitialisés bientôt."
+    },
+    "venice": "Venice AI",
+    "nim": "NVIDIA NIM",
+    "custom": "Point d'accès personnalisé",
+    "copilot": "GitHub Copilot"
   },
   "providerLabels": {
     "anthropic": "Modèles Claude",
@@ -81,7 +92,12 @@
     "together": "Modèles Llama et Mixtral",
     "fireworks": "Modèles d'inférence rapide",
     "groq": "Modèles Llama ultra-rapides",
-    "huggingface-local": "Inférence locale"
+    "huggingface-local": "Inférence locale",
+    "accomplish-ai": "Offre gratuite",
+    "venice": "Service",
+    "nim": "Modèles hébergés NVIDIA",
+    "custom": "Personnalisé",
+    "copilot": "Modèles Copilot"
   },
   "status": {
     "connected": "Connecté",
@@ -317,6 +333,7 @@
     "title": "Intégrations de messagerie",
     "description": "Connectez des plateformes de messagerie pour déclencher des tâches Accomplish à distance. Une fois activé, vous pouvez démarrer et surveiller des tâches depuis votre téléphone ou n'importe quel appareil.",
     "enabled": "Activé",
+    "messaging": "Messagerie",
     "comingSoon": "Bientôt disponible",
     "enable": "Activer {{name}}",
     "enableDescription": "Autoriser la réception et l'envoi de messages",
@@ -351,6 +368,7 @@
     "themeDark": "Sombre"
   },
   "connectors": {
+    "title": "Connecteurs",
     "description": "Connectez des serveurs MCP distants via OAuth. Seuls les serveurs prenant en charge le flux d'autorisation OAuth 2.0 sont actuellement pris en charge.",
     "loading": "Chargement des connecteurs...",
     "placeholder": "https://serveur-mcp.exemple.com",
@@ -510,12 +528,12 @@
     "secureStorage": "Votre clé API est stockée en toute sécurité dans le trousseau de votre système.",
     "howToUse": "Comment utiliser :",
     "clickMicButton": "Cliquez sur le bouton microphone",
-    "holdAltKey": "Maintenez la touche Alt",
+    "holdAltKey": "Maintenez la touche {{modifierKey}}",
     "tooltipSetup": "Cliquez pour configurer la saisie vocale",
     "tooltipRecording": "Enregistrement ({{duration}}) - Cliquez pour arrêter",
     "tooltipTranscribing": "Transcription...",
     "tooltipError": "Erreur lors de la transcription - Cliquez pour réessayer",
-    "tooltipDefault": "Cliquez pour enregistrer ou maintenez Alt pour enregistrer la saisie vocale",
+    "tooltipDefault": "Cliquez pour enregistrer ou maintenez {{modifierKey}} pour enregistrer la saisie vocale",
     "processing": "Traitement..."
   },
   "baseUrl": {
@@ -535,7 +553,7 @@
     "description": "Automate recurring tasks with cron expressions. Schedules persist across daemon restarts.",
     "empty": "No scheduled tasks. Create one to automate recurring work.",
     "addButton": "Add Schedule",
-    "autoStartWarning": "Enable 'Start at Login' in Settings \u2192 General to ensure schedules fire after system restart.",
+    "autoStartWarning": "Enable 'Start at Login' in Settings → General to ensure schedules fire after system restart.",
     "card": {
       "lastRun": "Last run",
       "nextRun": "Next run",

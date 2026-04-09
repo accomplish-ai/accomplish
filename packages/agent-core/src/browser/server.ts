@@ -9,15 +9,16 @@ import {
   installPlaywrightChromium,
   isDevBrowserServerReady,
   waitForDevBrowserServer,
-  type BrowserServerConfig,
-} from './browser-node-env.js';
+} from './server-utils.js';
 
-export type { BrowserServerConfig } from './browser-node-env.js';
+export type { BrowserServerConfig } from './server-utils.js';
 export {
   installPlaywrightChromium,
   isDevBrowserServerReady,
   waitForDevBrowserServer,
-} from './browser-node-env.js';
+} from './server-utils.js';
+
+import type { BrowserServerConfig } from './server-utils.js';
 
 const log = createConsoleLogger({ prefix: 'Browser' });
 

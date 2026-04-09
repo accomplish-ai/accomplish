@@ -123,6 +123,8 @@ interface AccomplishAPI {
     status: MessagingConnectionStatus;
     phoneNumber?: string;
     lastConnectedAt?: number;
+    qrCode?: string;
+    qrIssuedAt?: number;
   } | null>;
   connectWhatsApp(): Promise<void>;
   disconnectWhatsApp(): Promise<void>;
@@ -568,6 +570,10 @@ interface AccomplishAPI {
   getCloseBehavior(): Promise<string>;
   setCloseBehavior(behavior: string): Promise<void>;
 
+  // App close dialog
+  onCloseRequested?(callback: () => void): () => void;
+  respondToClose?(decision: 'keep-daemon' | 'stop-daemon' | 'cancel'): void;
+
   // Daemon connection events
   onDaemonDisconnected(callback: () => void): () => void;
   onDaemonReconnected(callback: () => void): () => void;
@@ -607,6 +613,35 @@ interface AccomplishAPI {
   completeConnectorOAuth(state: string, code: string): Promise<McpConnector>;
   disconnectConnector(connectorId: string): Promise<void>;
   onMcpAuthCallback?(callback: (url: string) => void): () => void;
+
+  // Accomplish AI Free Tier
+  accomplishAiConnect(): Promise<{
+    deviceFingerprint: string;
+    spentCredits: number;
+    remainingCredits: number;
+    totalCredits: number;
+    resetsAt: string;
+  }>;
+  accomplishAiEnsureReady(): Promise<{ deviceFingerprint: string }>;
+  accomplishAiDisconnect(): Promise<void>;
+  accomplishAiGetUsage(): Promise<{
+    spentCredits: number;
+    remainingCredits: number;
+    totalCredits: number;
+    resetsAt: string;
+  }>;
+  accomplishAiGetStatus(): Promise<{ connected: boolean }>;
+  onAccomplishAiUsageUpdate(
+    callback: (usage: {
+      spentCredits: number;
+      remainingCredits: number;
+      totalCredits: number;
+      resetsAt: string;
+    }) => void,
+  ): () => void;
+
+  // Build capabilities
+  getBuildCapabilities(): Promise<{ hasFreeMode: boolean; hasAnalytics: boolean }>;
 }
 
 interface AccomplishShell {

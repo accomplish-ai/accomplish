@@ -7,6 +7,7 @@
  */
 
 import type { StorageAPI, ScheduledTask } from '@accomplish_ai/agent-core';
+import { log } from './logger.js';
 
 // =============================================================================
 // Cron Parsing & Matching
@@ -255,15 +256,15 @@ export class SchedulerService {
     for (const task of due) {
       const next = computeNextRunAt(task.cron, now);
       if (!next) {
-        console.warn(`[Scheduler] Could not compute next run for schedule ${task.id} — skipping`);
+        log.warn(`[Scheduler] Could not compute next run for schedule ${task.id} — skipping`);
         continue;
       }
       this.storage.updateScheduledTaskLastRun(task.id, nowIso, next);
-      console.log(`[Scheduler] Firing schedule ${task.id}: "${task.prompt.slice(0, 80)}"`);
+      log.info(`[Scheduler] Firing schedule ${task.id}: "${task.prompt.slice(0, 80)}"`);
       try {
         this.onTaskFire(task.prompt, task.workspaceId);
       } catch (err) {
-        console.error(`[Scheduler] Error firing task ${task.id}:`, err);
+        log.error(`[Scheduler] Error firing task ${task.id}:`, err);
       }
     }
   }
@@ -282,17 +283,17 @@ export class SchedulerService {
     for (const task of overdue) {
       const next = computeNextRunAt(task.cron, now);
       if (!next) {
-        console.warn(
+        log.warn(
           `[Scheduler] Could not compute next run for overdue schedule ${task.id} — skipping`,
         );
         continue;
       }
       this.storage.updateScheduledTaskLastRun(task.id, nowIso, next);
-      console.log(`[Scheduler] Catch-up firing schedule ${task.id}: "${task.prompt.slice(0, 80)}"`);
+      log.info(`[Scheduler] Catch-up firing schedule ${task.id}: "${task.prompt.slice(0, 80)}"`);
       try {
         this.onTaskFire(task.prompt, task.workspaceId);
       } catch (err) {
-        console.error(`[Scheduler] Error during catch-up for task ${task.id}:`, err);
+        log.error(`[Scheduler] Error during catch-up for task ${task.id}:`, err);
       }
     }
   }

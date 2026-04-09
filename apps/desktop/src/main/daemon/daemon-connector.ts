@@ -16,6 +16,7 @@ import { app, BrowserWindow } from 'electron';
 import { DaemonClient, createSocketTransport, getSocketPath } from '@accomplish_ai/agent-core';
 import { getNodePath } from '../utils/bundled-node';
 import { getLogCollector } from '../logging';
+import { getBuildConfig } from '../config/build-config';
 
 /** How long to wait for the daemon to become ready after spawning. */
 const SPAWN_READY_TIMEOUT_MS = 10_000;
@@ -101,6 +102,13 @@ export function spawnDaemon(dataDir: string): void {
     // In dev mode, tell Electron to act as plain Node.js
     ELECTRON_RUN_AS_NODE: app.isPackaged ? undefined : '1',
   };
+
+  // Inject gateway URL so the daemon can start the Accomplish AI proxy.
+  // Only set when build.env is present (Free builds); absent in OSS builds.
+  const bc = getBuildConfig();
+  if (bc.accomplishGatewayUrl) {
+    daemonEnv.ACCOMPLISH_GATEWAY_URL = bc.accomplishGatewayUrl;
+  }
   if (app.isPackaged) {
     daemonEnv.ACCOMPLISH_IS_PACKAGED = '1';
     daemonEnv.ACCOMPLISH_RESOURCES_PATH = process.resourcesPath;

@@ -59,7 +59,18 @@
     "together": "Together AI",
     "fireworks": "Fireworks AI",
     "groq": "Groq",
-    "huggingface-local": "HuggingFace Local"
+    "huggingface-local": "HuggingFace Local",
+    "accomplish-ai": "Accomplish AI",
+    "accomplishAi": {
+      "description": "Используйте встроенную модель на базе Accomplish — API-ключ не требуется.\nВключает 200 бесплатных кредитов в месяц.",
+      "disconnect": "Отключить",
+      "exhaustedMessage": "Кредиты исчерпаны. Они будут сброшены {{date}}.",
+      "exhaustedMessageSoon": "Кредиты исчерпаны. Они будут сброшены в ближайшее время."
+    },
+    "venice": "Venice AI",
+    "nim": "NVIDIA NIM",
+    "custom": "Пользовательская точка доступа",
+    "copilot": "GitHub Copilot"
   },
   "providerLabels": {
     "anthropic": "Модели Claude",
@@ -81,7 +92,12 @@
     "together": "Модели Llama и Mixtral",
     "fireworks": "Модели быстрого вывода",
     "groq": "Сверхбыстрые модели Llama",
-    "huggingface-local": "Локальный вывод"
+    "huggingface-local": "Локальный вывод",
+    "accomplish-ai": "Бесплатный план",
+    "venice": "Сервис",
+    "nim": "Модели NVIDIA",
+    "custom": "Пользовательский",
+    "copilot": "Модели Copilot"
   },
   "status": {
     "connected": "Подключено",
@@ -317,6 +333,7 @@
     "title": "Интеграции мессенджеров",
     "description": "Подключайте мессенджеры для удалённого запуска задач Accomplish. После подключения вы сможете запускать и отслеживать задачи с телефона или любого устройства.",
     "enabled": "Включено",
+    "messaging": "Мессенджеры",
     "comingSoon": "Скоро",
     "enable": "Включить {{name}}",
     "enableDescription": "Разрешить получение и отправку сообщений",
@@ -351,6 +368,7 @@
     "themeDark": "Тёмная"
   },
   "connectors": {
+    "title": "Коннекторы",
     "description": "Подключайте удалённые MCP-серверы через OAuth. Сейчас поддерживаются только серверы с OAuth 2.0.",
     "loading": "Загрузка коннекторов...",
     "placeholder": "https://mcp-server.example.com",
@@ -510,12 +528,12 @@
     "secureStorage": "Ваш API-ключ хранится в системной связке ключей.",
     "howToUse": "Как использовать:",
     "clickMicButton": "Нажмите кнопку микрофона",
-    "holdAltKey": "Удерживайте клавишу Alt",
+    "holdAltKey": "Удерживайте клавишу {{modifierKey}}",
     "tooltipSetup": "Нажмите для настройки голосового ввода",
     "tooltipRecording": "Запись ({{duration}}) — нажмите для остановки",
     "tooltipTranscribing": "Распознавание...",
     "tooltipError": "Ошибка распознавания — нажмите для повтора",
-    "tooltipDefault": "Нажмите для записи или удерживайте Alt для голосового ввода",
+    "tooltipDefault": "Нажмите для записи или удерживайте {{modifierKey}} для голосового ввода",
     "processing": "Обработка..."
   },
   "baseUrl": {
@@ -535,7 +553,7 @@
     "description": "Automate recurring tasks with cron expressions. Schedules persist across daemon restarts.",
     "empty": "No scheduled tasks. Create one to automate recurring work.",
     "addButton": "Add Schedule",
-    "autoStartWarning": "Enable 'Start at Login' in Settings \u2192 General to ensure schedules fire after system restart.",
+    "autoStartWarning": "Enable 'Start at Login' in Settings → General to ensure schedules fire after system restart.",
     "card": {
       "lastRun": "Last run",
       "nextRun": "Next run",

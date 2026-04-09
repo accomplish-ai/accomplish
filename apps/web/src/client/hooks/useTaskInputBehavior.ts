@@ -1,18 +1,11 @@
-import {
-  useRef,
-  useEffect,
-  useCallback,
-  type RefObject,
-  type MutableRefObject,
-  type KeyboardEvent,
-} from 'react';
+import { useRef, useEffect, useCallback, type MutableRefObject, type KeyboardEvent } from 'react';
 
 interface SlashCommandHandle {
   handleKeyDown: (e: KeyboardEvent) => boolean;
 }
 
 interface UseTaskInputBehaviorOptions {
-  textareaRef: RefObject<HTMLTextAreaElement | null>;
+  textareaRef: MutableRefObject<HTMLTextAreaElement | null>;
   value: string;
   isInputDisabled: boolean;
   isOverLimit: boolean;

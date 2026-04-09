@@ -12,6 +12,8 @@ import { PROVIDER_LOGOS, DARK_INVERT_PROVIDERS } from '@/lib/provider-logos';
 import { ProviderModelSelect } from './ProviderModelSelect';
 import { ProviderAdvancedSettings } from './ProviderAdvancedSettings';
 import { useClassicProviderConnect } from './useClassicProviderConnect';
+import { ClassicProviderOpenAISection } from './ClassicProviderOpenAISection';
+import { ClassicApiKeyInput } from './ClassicApiKeyInput';
 
 interface ClassicProviderFormProps {
   providerId: ProviderId;
@@ -55,32 +57,12 @@ export function ClassicProviderForm({
   const logoSrc = PROVIDER_LOGOS[providerId];
 
   const apiKeyInput = (
-    <div className="flex gap-2">
-      <input
-        type="password"
-        value={conn.apiKey}
-        onChange={(e) => conn.setApiKey(e.target.value)}
-        placeholder={t('apiKey.enterKey')}
-        disabled={conn.connecting}
-        data-testid="api-key-input"
-        className="flex-1 rounded-md border border-input bg-background px-3 py-2.5 text-sm disabled:opacity-50"
-      />
-      <button
-        onClick={() => conn.setApiKey('')}
-        className="rounded-md border border-border p-2.5 text-muted-foreground hover:text-foreground transition-colors"
-        type="button"
-        disabled={!conn.apiKey}
-      >
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-          />
-        </svg>
-      </button>
-    </div>
+    <ClassicApiKeyInput
+      apiKey={conn.apiKey}
+      onChange={conn.setApiKey}
+      onClear={() => conn.setApiKey('')}
+      connecting={conn.connecting}
+    />
   );
 
   return (
@@ -95,51 +77,18 @@ export function ClassicProviderForm({
       />
 
       {isOpenAI && !conn.isConnected && (
-        <div className="space-y-4">
-          <button
-            type="button"
-            onClick={conn.handleChatGptSignIn}
-            disabled={conn.signingIn}
-            data-testid="openai-oauth-signin"
-            className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
-          >
-            <img src={PROVIDER_LOGOS['openai']} alt="" className="h-5 w-5 dark:invert" />
-            {conn.signingIn ? t('openai.signingIn') : t('openai.loginWithOpenAI')}
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-sm text-muted-foreground">{t('common.or')}</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground">{t('apiKey.title')}</label>
-              {meta.helpUrl && (
-                <a
-                  href={meta.helpUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-muted-foreground hover:text-primary underline"
-                >
-                  {t('help.findApiKey')}
-                </a>
-              )}
-            </div>
-            {apiKeyInput}
-          </div>
-          <ProviderAdvancedSettings
-            fieldId={`${providerId}-openai-base-url`}
-            value={conn.openAiBaseUrl}
-            onChange={conn.setOpenAiBaseUrl}
-            placeholder="https://api.openai.com/v1"
-          />
-          <FormError error={conn.error} />
-          <ConnectButton
-            onClick={conn.handleConnect}
-            connecting={conn.connecting}
-            disabled={!conn.apiKey.trim()}
-          />
-        </div>
+        <ClassicProviderOpenAISection
+          apiKey={conn.apiKey}
+          apiKeyInput={apiKeyInput}
+          openAiBaseUrl={conn.openAiBaseUrl}
+          onOpenAiBaseUrlChange={conn.setOpenAiBaseUrl}
+          error={conn.error}
+          connecting={conn.connecting}
+          signingIn={conn.signingIn}
+          helpUrl={meta.helpUrl}
+          onChatGptSignIn={conn.handleChatGptSignIn}
+          onConnect={conn.handleConnect}
+        />
       )}
 
       {!isOpenAI && (

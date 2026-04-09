@@ -12,39 +12,31 @@ import { useTranslation } from 'react-i18next';
 import { SpinnerGap, WarningCircle, Microphone } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { formatDuration } from './speechInputHelpers';
+import { getModifierKeyLabel } from '@/lib/platform';
+import type { SpeechInputButtonProps } from './speech-input-button-types';
+import { formatDuration } from './speech-input-button-types';
+import { MicrophoneIcon } from './speechInputHelpers';
 
+const modifierKey = getModifierKeyLabel();
+
+export type { SpeechInputButtonProps } from './speech-input-button-types';
 export { MicrophoneIcon } from './speechInputHelpers';
 
-interface SpeechInputButtonProps {
-  /** Whether currently recording */
-  isRecording: boolean;
-  /** Whether currently transcribing */
-  isTranscribing: boolean;
-  /** Current recording duration in milliseconds */
-  recordingDuration?: number;
-  /** Error state */
-  error?: Error | null;
-  /** Whether speech input is configured */
-  isConfigured?: boolean;
-  /** Whether disabled (e.g., during task execution) */
-  disabled?: boolean;
-  /** Called when user clicks to start recording */
-  onStartRecording?: () => void;
-  /** Called when user clicks to stop recording */
-  onStopRecording?: () => void;
-  /** Called when user clicks to cancel recording */
-  onCancel?: () => void;
-  /** Called when user clicks to retry */
-  onRetry?: () => void;
-  /** Called when user clicks the button while not configured (to open settings dialog) */
-  onOpenSettings?: () => void;
-  /** Size variant */
-  size?: 'sm' | 'md' | 'lg';
-  /** Custom CSS classes */
-  className?: string;
-  /** Custom tooltip text */
-  tooltipText?: string;
+function getStatusIcon(
+  isTranscribing: boolean,
+  isRecording: boolean,
+  error?: Error | null,
+): React.ReactNode {
+  if (isTranscribing) {
+    return <SpinnerGap className="h-4 w-4 animate-spin" />;
+  }
+  if (isRecording) {
+    return <MicrophoneIcon isRecording className="h-4 w-4" />;
+  }
+  if (error) {
+    return <WarningCircle className="h-4 w-4" />;
+  }
+  return <Microphone className="h-4 w-4" />;
 }
 
 export function SpeechInputButton({
@@ -92,13 +84,22 @@ export function SpeechInputButton({
   }, [isRecording, isTranscribing, error, isConfigured]);
 
   const tooltipLabel = useMemo(() => {
-    if (tooltipText) return tooltipText;
-    if (!isConfigured) return t('speech.tooltipSetup');
-    if (isRecording)
+    if (tooltipText) {
+      return tooltipText;
+    }
+    if (!isConfigured) {
+      return t('speech.tooltipSetup');
+    }
+    if (isRecording) {
       return t('speech.tooltipRecording', { duration: formatDuration(recordingDuration) });
-    if (isTranscribing) return t('speech.tooltipTranscribing');
-    if (error) return t('speech.tooltipError');
-    return t('speech.tooltipDefault');
+    }
+    if (isTranscribing) {
+      return t('speech.tooltipTranscribing');
+    }
+    if (error) {
+      return t('speech.tooltipError');
+    }
+    return t('speech.tooltipDefault', { modifierKey });
   }, [tooltipText, isConfigured, isRecording, isTranscribing, error, recordingDuration, t]);
 
   const handleClick = React.useCallback(
@@ -134,17 +135,7 @@ export function SpeechInputButton({
             title={tooltipLabel}
             data-testid="speech-input-button"
           >
-            {isTranscribing ? (
-              <SpinnerGap className="h-4 w-4 animate-spin" />
-            ) : isRecording ? (
-              <div className="relative h-4 w-4">
-                <Microphone className="h-4 w-4" />
-              </div>
-            ) : error ? (
-              <WarningCircle className="h-4 w-4" />
-            ) : (
-              <Microphone className="h-4 w-4" />
-            )}
+            {getStatusIcon(isTranscribing, isRecording, error)}
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-sm">
@@ -154,7 +145,7 @@ export function SpeechInputButton({
 
       {/* Recording timer */}
       {isRecording && (
-        <div className="text-xs font-mono text-red-600 dark:text-red-400 shrink-0 min-w-[40px]">
+        <div className="text-xs font-mono text-destructive shrink-0 min-w-[40px]">
           {formatDuration(recordingDuration)}
         </div>
       )}

@@ -11,7 +11,6 @@ import { WorkspacesPanel } from '@/components/settings/WorkspacesPanel';
 import { AboutTab } from '@/components/settings/AboutTab';
 import { GeneralTab } from '@/components/settings/GeneralTab';
 import { SandboxSection } from '@/components/settings/SandboxSection';
-import { ConnectorsPanel } from '@/components/settings/connectors';
 import { IntegrationsPanel } from '@/components/settings/integrations';
 import { SchedulerPanel } from '@/components/settings/scheduler';
 
@@ -190,11 +189,6 @@ export function SettingsDialog({
               {s.activeTab === 'skills' && (
                 <div className="space-y-4">
                   <SkillsPanel refreshTrigger={s.skillsRefreshTrigger} />
-                </div>
-              )}
-              {s.activeTab === 'connectors' && (
-                <div className="space-y-6">
-                  <ConnectorsPanel />
                 </div>
               )}
               {s.activeTab === 'browsers' && (

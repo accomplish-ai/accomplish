@@ -32,6 +32,10 @@ export interface MessagingIntegrationConfig {
   phoneNumber?: string;
   /** Unix timestamp of last successful connection */
   lastConnectedAt?: number;
+  /** Unix ms timestamp of last processed inbound message — watermark for offline sync */
+  lastProcessedAt?: number;
+  /** Message ID of last processed inbound message — dedup at watermark boundary */
+  lastProcessedMessageId?: string;
 }
 
 /** Top-level messaging configuration stored in app_settings */

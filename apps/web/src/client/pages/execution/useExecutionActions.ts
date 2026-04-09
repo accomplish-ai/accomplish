@@ -1,7 +1,9 @@
 import { useEffect, useCallback } from 'react';
-import { hasAnyReadyProvider, getOAuthProviderDisplayName } from '@accomplish_ai/agent-core/common';
+import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
 import { createLogger } from '../../lib/logger';
 import type { useExecutionCore } from './useExecutionCore';
+import { useExecutionEffects } from './useExecutionEffects';
+import { useExecutionPauseActions } from './useExecutionPauseActions';
 
 const logger = createLogger('ExecutionActions');
 
@@ -9,85 +11,11 @@ type CoreState = ReturnType<typeof useExecutionCore>;
 
 /** Action callbacks for the execution page. Derived from core state. */
 export function useExecutionActions(s: CoreState) {
-  const { id, navigate, accomplish, t } = s;
+  const { id, navigate, accomplish } = s;
 
-  useEffect(() => {
-    s.setTaskActionError(null);
-    s.setIsTaskActionRunning(false);
-    const action = s.currentTask?.result?.pauseAction;
-    if (
-      s.currentTask?.status === 'completed' &&
-      s.currentTask?.result?.pauseReason === 'auth' &&
-      action?.type === 'oauth-connect'
-    ) {
-      void accomplish.getSlackMcpOauthStatus().then((status) => {
-        if (status.pendingAuthorization) {
-          void accomplish.logoutSlackMcp();
-        }
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- s.setTaskActionError/setIsTaskActionRunning are stable store actions
-  }, [
-    accomplish,
-    s.currentTask?.id,
-    s.currentTask?.status,
-    s.currentTask?.result?.pauseReason,
-    s.currentTask?.result?.pauseAction,
-    s.currentTask?.result?.pauseAction?.type,
-    s.currentTask?.result?.pauseAction?.providerId,
-  ]);
+  useExecutionEffects(s, accomplish);
 
-  useEffect(() => {
-    if (s.canFollowUp) {
-      s.followUpInputRef.current?.focus();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- followUpInputRef is a stable ref
-  }, [s.canFollowUp]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.repeat) {
-        return;
-      }
-      if (
-        e.key === 'Escape' &&
-        s.currentTask?.status === 'running' &&
-        !s.isComplete &&
-        !s.permissionRequest &&
-        !s.showSettingsDialog
-      ) {
-        e.preventDefault();
-        s.interruptTask();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- s is a stable hook result reference
-  }, [s.currentTask, s.isComplete, s.permissionRequest, s.showSettingsDialog, s.interruptTask]);
-
-  const resumePausedTask = useCallback(
-    async (message: string, _bypassAuthPauseQueue: boolean): Promise<boolean> => {
-      const isE2EMode = await accomplish.isE2EMode();
-      if (!isE2EMode) {
-        const settings = await accomplish.getProviderSettings();
-        if (!hasAnyReadyProvider(settings)) {
-          s.setPendingFollowUp(message);
-          s.setSettingsInitialTab('providers');
-          s.setShowSettingsDialog(true);
-          return false;
-        }
-      }
-      await s.sendFollowUp(message, []);
-      return true;
-    },
-    [
-      accomplish,
-      s.setPendingFollowUp,
-      s.setSettingsInitialTab,
-      s.setShowSettingsDialog,
-      s.sendFollowUp,
-    ],
-  );
+  const { handleContinue, handlePauseAction, handleTaskAction } = useExecutionPauseActions(s);
 
   const handleFollowUp = useCallback(async () => {
     if (!s.followUp.trim() && s.attachments.length === 0) {
@@ -147,43 +75,6 @@ export function useExecutionActions(s: CoreState) {
       }
     }
   };
-
-  const handleContinue = async () => {
-    await resumePausedTask('continue', s.isAuthPause);
-  };
-
-  const handlePauseAction = useCallback(async () => {
-    if (!s.pauseAction || s.pauseAction.type !== 'oauth-connect') {
-      return;
-    }
-    const providerName = getOAuthProviderDisplayName(s.pauseAction.providerId);
-    s.setTaskActionError(null);
-    s.setIsTaskActionRunning(true);
-    try {
-      const status = await accomplish.getSlackMcpOauthStatus();
-      if (status.pendingAuthorization) {
-        await accomplish.logoutSlackMcp();
-      }
-      if (!status.connected) {
-        await accomplish.loginSlackMcp();
-      }
-      const refreshed = await accomplish.getSlackMcpOauthStatus();
-      if (!refreshed.connected) {
-        throw new Error(t('questionPrompt.oauthStillDisconnected', { provider: providerName }));
-      }
-      await resumePausedTask(s.pauseAction.successText ?? `${providerName} is connected.`, true);
-    } catch (error) {
-      s.setTaskActionError(
-        error instanceof Error
-          ? error.message
-          : t('questionPrompt.oauthFailed', { provider: providerName }),
-      );
-    } finally {
-      s.setIsTaskActionRunning(false);
-    }
-  }, [accomplish, s, t, resumePausedTask]);
-
-  const handleTaskAction = s.isConnectorAuthPause ? handlePauseAction : handleContinue;
 
   const handlePermissionResponse = async (
     allowed: boolean,

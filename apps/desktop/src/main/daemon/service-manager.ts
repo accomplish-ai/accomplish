@@ -110,12 +110,34 @@ export function disableAutoStart(): void {
 
 function getDaemonNodePath(): string {
   if (app.isPackaged) {
-    // Bundled Node.js
-    const binDir =
-      process.platform === 'win32'
-        ? path.join(process.resourcesPath, 'nodejs', `${process.platform}-${process.arch}`)
-        : path.join(process.resourcesPath, 'nodejs', `${process.platform}-${process.arch}`, 'bin');
-    return process.platform === 'win32' ? path.join(binDir, 'node.exe') : path.join(binDir, 'node');
+    // Download script outputs: resources/nodejs/{platform}-{arch}/node-v{VERSION}-{platform}-{arch}/
+    // After electron-builder copies extraResources into {resourcesPath}/nodejs/:
+    //   {resourcesPath}/nodejs/{platform}-{arch}/node-v{VERSION}-{platform}-{arch}/bin/node (macOS/Linux)
+    //   {resourcesPath}/nodejs/{platform}-{arch}/node-v{VERSION}-{platform}-{arch}/node.exe (Windows)
+    const platformArch = `${process.platform}-${process.arch}`;
+    const nodejsBase = path.join(process.resourcesPath, 'nodejs', platformArch);
+    const nodeBinary = process.platform === 'win32' ? 'node.exe' : path.join('bin', 'node');
+
+    const directPath = path.join(nodejsBase, nodeBinary);
+    if (fs.existsSync(directPath)) {
+      return directPath;
+    }
+
+    // Search versioned subdirectory (e.g. node-v20.18.1-win-x64)
+    try {
+      const children = fs.readdirSync(nodejsBase, { withFileTypes: true });
+      for (const child of children) {
+        if (!child.isDirectory()) {
+          continue;
+        }
+        const nested = path.join(nodejsBase, child.name, nodeBinary);
+        if (fs.existsSync(nested)) {
+          return nested;
+        }
+      }
+    } catch {
+      // intentionally empty — fall through to execPath
+    }
   }
   return process.execPath; // dev: system node
 }
@@ -167,17 +189,23 @@ function getLaunchAgentContent(): string {
     '  <key>RunAtLoad</key><true/>',
   ];
 
-  // Pass packaged-mode context so daemon resolves paths correctly
+  // Pass path context so the daemon can resolve the opencode CLI and resources.
+  // Required in both packaged and dev mode: the login-item daemon starts without
+  // Electron's environment, so ACCOMPLISH_APP_PATH would otherwise be missing.
+  const envDict = ['  <key>EnvironmentVariables</key>', '  <dict>'];
   if (app.isPackaged) {
-    lines.push(
-      '  <key>EnvironmentVariables</key>',
-      '  <dict>',
-      '    <key>ACCOMPLISH_IS_PACKAGED</key><string>1</string>',
-      `    <key>ACCOMPLISH_RESOURCES_PATH</key><string>${process.resourcesPath}</string>`,
-      `    <key>ACCOMPLISH_APP_PATH</key><string>${app.getAppPath()}</string>`,
-      '  </dict>',
-    );
+    envDict.push('    <key>ACCOMPLISH_IS_PACKAGED</key><string>1</string>');
+  } else {
+    // In dev mode, the Electron binary acts as the Node.js runtime for the daemon.
+    // ELECTRON_RUN_AS_NODE=1 tells Electron to behave as plain Node.js.
+    envDict.push('    <key>ELECTRON_RUN_AS_NODE</key><string>1</string>');
   }
+  envDict.push(
+    `    <key>ACCOMPLISH_RESOURCES_PATH</key><string>${app.isPackaged ? process.resourcesPath : `${app.getAppPath()}/resources`}</string>`,
+    `    <key>ACCOMPLISH_APP_PATH</key><string>${app.getAppPath()}</string>`,
+    '  </dict>',
+  );
+  lines.push(...envDict);
 
   lines.push(
     '  <key>StandardOutPath</key>',

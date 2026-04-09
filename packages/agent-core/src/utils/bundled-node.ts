@@ -67,7 +67,34 @@ export function getBundledNodePaths(config: PlatformConfig): BundledNodePathsExt
     if (!config.resourcesPath) {
       return null;
     }
-    nodeDir = path.join(config.resourcesPath, 'nodejs', config.arch);
+    // Download script outputs: resources/nodejs/{platform}-{arch}/node-v{VERSION}-{platform}-{arch}/
+    // After electron-builder copies extraResources, the structure under {resourcesPath}/nodejs/ is:
+    //   {platform}-{arch}/node-v{VERSION}-{platform}-{arch}/bin/node  (macOS/Linux)
+    //   {platform}-{arch}/node-v{VERSION}-{platform}-{arch}/node.exe  (Windows)
+    const platformArch = `${config.platform}-${config.arch}`;
+    const nodejsBase = path.join(config.resourcesPath, 'nodejs', platformArch);
+    const nodeBinary = isWindows ? 'node.exe' : path.join('bin', 'node');
+
+    if (fs.existsSync(path.join(nodejsBase, nodeBinary))) {
+      nodeDir = nodejsBase;
+    } else {
+      // Search for versioned subdirectory (e.g. node-v20.18.1-win-x64)
+      try {
+        const children = fs.readdirSync(nodejsBase, { withFileTypes: true });
+        for (const child of children) {
+          if (!child.isDirectory()) {
+            continue;
+          }
+          const nested = path.join(nodejsBase, child.name);
+          if (fs.existsSync(path.join(nested, nodeBinary))) {
+            nodeDir = nested;
+            break;
+          }
+        }
+      } catch {
+        // intentionally empty
+      }
+    }
   } else {
     nodeDir = resolveDevNodeDir(config);
   }

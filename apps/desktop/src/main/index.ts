@@ -69,6 +69,15 @@ config({ path: envPath });
 process.env.APP_ROOT = path.join(__dirname, '../..');
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron');
 
+// Load build.env (CI-injected for Free builds; absent in OSS builds — graceful no-op)
+// Must come after APP_ROOT is set — build-config.ts resolves dev path from it.
+import { loadBuildConfig } from './config/build-config';
+loadBuildConfig();
+
+// Initialize Sentry early (before app ready) — no-op if SENTRY_DSN absent
+import { initSentry } from './sentry';
+initSentry();
+
 const ROUTER_URL = process.env.ACCOMPLISH_ROUTER_URL;
 const WEB_DIST = app.isPackaged // In production, web's build output is an extraResource.
   ? path.join(process.resourcesPath, 'web-ui')

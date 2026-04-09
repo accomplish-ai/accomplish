@@ -15,6 +15,9 @@
     "noEmit": true,
 
     // Path aliases
+    // TODO(ts7): baseUrl is deprecated in TS6; required as anchor for `paths` aliases.
+    // Migrate to bundler-native aliases or rootDirs when TS7 removes support.
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

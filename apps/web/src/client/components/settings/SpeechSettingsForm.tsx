@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Microphone, CheckCircle, WarningCircle, SpinnerGap } from '@phosphor-icons/react';
 import { getAccomplish } from '../../lib/accomplish';
+import { getModifierKeyLabel } from '../../lib/platform';
+
+const modifierKey = getModifierKeyLabel();
 
 interface SpeechSettingsFormProps {
   onSave?: () => void;
@@ -38,6 +41,9 @@ export function SpeechSettingsForm({ onSave, onChange }: SpeechSettingsFormProps
       setSaveResult({ success: true, message: t('speech.apiKeySaved') });
       setIsConfigured(true);
       setApiKey('');
+      window.dispatchEvent(
+        new CustomEvent('speech-config-updated', { detail: { isConfigured: true } }),
+      );
       onChange?.({ apiKey, enabled: true });
       onSave?.();
     } catch (error) {
@@ -141,7 +147,7 @@ export function SpeechSettingsForm({ onSave, onChange }: SpeechSettingsFormProps
             <strong>{t('speech.clickMicButton')}</strong>
           </li>
           <li>
-            <strong>{t('speech.holdAltKey')}</strong>
+            <strong>{t('speech.holdAltKey', { modifierKey })}</strong>
           </li>
         </ul>
       </div>

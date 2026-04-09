@@ -83,7 +83,11 @@ export type {
   ConnectedProvider,
   ProviderSettings,
   HuggingFaceLocalCredentials,
+  AccomplishAiCredentials,
 } from './common/types/providerSettings.js';
+
+// Gateway types
+export type { CreditUsage } from './common/types/gateway.js';
 export {
   PROVIDER_META,
   DEFAULT_MODELS,

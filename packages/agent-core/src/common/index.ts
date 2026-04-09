@@ -2,6 +2,9 @@
 
 // === TYPES ===
 
+// Gateway types
+export type { CreditUsage } from './types/gateway.js';
+
 // Task types
 export type {
   TaskStatus,
@@ -75,6 +78,7 @@ export type {
   AzureFoundryCredentials,
   OAuthCredentials,
   CopilotOAuthCredentials,
+  AccomplishAiCredentials,
   CustomCredentials,
   NimCredentials,
   ProviderCredentials,
@@ -143,6 +147,7 @@ export {
   THOUGHT_STREAM_PORT,
   PERMISSION_API_PORT,
   QUESTION_API_PORT,
+  WHATSAPP_API_PORT,
   PERMISSION_REQUEST_TIMEOUT_MS,
   CONNECTOR_AUTH_REQUIRED_MARKER,
   LOG_MAX_FILE_SIZE_BYTES,

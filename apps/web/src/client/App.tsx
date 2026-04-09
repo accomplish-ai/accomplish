@@ -13,6 +13,7 @@ import Sidebar from './components/layout/Sidebar';
 import { TaskLauncher } from './components/TaskLauncher';
 import { AuthErrorToast } from './components/AuthErrorToast';
 import { DaemonConnectionToast } from './components/DaemonConnectionToast';
+import { CloseConfirmDialog } from './components/CloseConfirmDialog';
 import SettingsDialog from './components/layout/SettingsDialog';
 import { useTaskStore } from './stores/taskStore';
 import { SpinnerGap, Warning } from '@phosphor-icons/react';
@@ -56,7 +57,7 @@ export function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authSettingsOpen, setAuthSettingsOpen] = useState(false);
   const [authSettingsTab, setAuthSettingsTab] = useState<
-    'providers' | 'voice' | 'skills' | 'connectors' | 'scheduler' | 'general' | 'about'
+    'providers' | 'voice' | 'skills' | 'integrations' | 'scheduler' | 'general' | 'about'
   >('providers');
   const [authSettingsProvider, setAuthSettingsProvider] = useState<ProviderId | undefined>(
     undefined,
@@ -70,7 +71,7 @@ export function App() {
     if (authError) {
       if (authError.providerId === OAuthProviderId.Slack) {
         setAuthSettingsProvider(undefined);
-        setAuthSettingsTab('connectors');
+        setAuthSettingsTab('integrations');
       } else {
         setAuthSettingsProvider(authError.providerId as ProviderId);
         setAuthSettingsTab('providers');
@@ -173,6 +174,9 @@ export function App() {
           setAuthSettingsOpen(true);
         }}
       />
+
+      {/* Close Confirmation Dialog - themed replacement for native OS dialog */}
+      <CloseConfirmDialog />
 
       {/* Settings Dialog for re-authentication */}
       <SettingsDialog

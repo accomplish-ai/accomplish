@@ -58,6 +58,8 @@ export interface BuildMcpServersOptions {
   nodeExe: string;
   permissionApiPort: number;
   questionApiPort: number;
+  /** Port for the WhatsApp HTTP API (daemon). Omit to disable the tool. */
+  whatsappApiPort?: number;
   browserConfig: BrowserConfig;
   /** Auth token for daemon HTTP APIs. MCP tools send this as Authorization header. */
   authToken?: string;
@@ -79,6 +81,7 @@ export function buildMcpServers(options: BuildMcpServersOptions): Record<string,
     nodeExe,
     permissionApiPort,
     questionApiPort,
+    whatsappApiPort,
     browserConfig,
     authToken,
     connectors,
@@ -136,6 +139,19 @@ export function buildMcpServers(options: BuildMcpServersOptions): Record<string,
       timeout: 60000,
     },
   };
+
+  if (whatsappApiPort) {
+    mcpServers['whatsapp'] = {
+      type: 'local',
+      command: resolveMcpCommand(mcpToolsPath, 'whatsapp', 'dist/index.mjs', nodeExe),
+      enabled: true,
+      environment: {
+        ACCOMPLISH_WHATSAPP_API_PORT: String(whatsappApiPort),
+        ...authEnv,
+      },
+      timeout: 30000,
+    };
+  }
 
   if (browserConfig.mode !== 'none') {
     const browserEnv: Record<string, string> = {};

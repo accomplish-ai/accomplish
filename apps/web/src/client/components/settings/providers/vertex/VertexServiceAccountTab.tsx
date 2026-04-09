@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { VERTEX_LOCATIONS } from './locations';
-import { VertexJsonUploadZone } from './VertexJsonUploadZone';
+import { VertexJsonDropzone } from './VertexJsonDropzone';
 
 interface VertexServiceAccountTabProps {
   serviceAccountJson: string;
@@ -48,8 +48,9 @@ export function VertexServiceAccountTab({
         }
         onJsonChange(json);
         setClientEmail(parsed.client_email);
-        if (name) setFileName(name);
-        // Auto-fill project ID from the key
+        if (name) {
+          setFileName(name);
+        }
         if (parsed.project_id && !projectId) {
           onProjectIdChange(parsed.project_id);
         }
@@ -86,21 +87,19 @@ export function VertexServiceAccountTab({
     [handleFileRead, t],
   );
 
-  const handleBrowse = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
   const handleFileInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (file) handleFileRead(file);
+      if (file) {
+        handleFileRead(file);
+        e.currentTarget.value = '';
+      }
     },
     [handleFileRead],
   );
 
   return (
     <div className="space-y-3">
-      {/* JSON input toggle */}
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium text-foreground">
           {t('vertex.serviceAccountKey')}
@@ -124,38 +123,30 @@ export function VertexServiceAccountTab({
           className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm font-mono resize-none"
         />
       ) : (
-        <>
-          <VertexJsonUploadZone
-            serviceAccountJson={serviceAccountJson}
-            fileName={fileName}
-            clientEmail={clientEmail}
-            isDragOver={isDragOver}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragOver(true);
-            }}
-            onDragLeave={() => setIsDragOver(false)}
-            onDrop={handleDrop}
-            onBrowse={handleBrowse}
-            onRemove={() => {
-              onJsonChange('');
-              setFileName(null);
-              setClientEmail(null);
-            }}
-          />
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json"
-            onChange={handleFileInput}
-            className="hidden"
-          />
-        </>
+        <VertexJsonDropzone
+          isDragOver={isDragOver}
+          serviceAccountJson={serviceAccountJson}
+          fileName={fileName}
+          clientEmail={clientEmail}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragOver(true);
+          }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={handleDrop}
+          onBrowse={() => fileInputRef.current?.click()}
+          onClear={() => {
+            onJsonChange('');
+            setFileName(null);
+            setClientEmail(null);
+          }}
+          fileInputRef={fileInputRef}
+          onFileInput={handleFileInput}
+        />
       )}
 
       {jsonError && <p className="text-xs text-destructive">{jsonError}</p>}
 
-      {/* Project ID */}
       <div>
         <label className="mb-2 block text-sm font-medium text-foreground">
           {t('vertex.projectId')}
@@ -170,7 +161,6 @@ export function VertexServiceAccountTab({
         />
       </div>
 
-      {/* Location */}
       <SearchableSelect
         items={VERTEX_LOCATIONS}
         value={location}

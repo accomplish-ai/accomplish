@@ -23,9 +23,9 @@ export function MicrophoneIcon({
 }) {
   return (
     <div className={cn('relative inline-flex items-center justify-center', className)}>
-      <Microphone className={cn('h-4 w-4', isRecording && 'text-red-500 animate-pulse')} />
+      <Microphone className={cn('h-4 w-4', isRecording && 'text-destructive animate-pulse')} />
       {isRecording && (
-        <div className="absolute inset-0 rounded-full border-2 border-red-500 animate-ping opacity-75" />
+        <div className="absolute inset-0 rounded-full border-2 border-destructive animate-ping opacity-75" />
       )}
     </div>
   );

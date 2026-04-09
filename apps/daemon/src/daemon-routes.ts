@@ -12,6 +12,7 @@ import {
   validate,
   logger,
 } from '@accomplish_ai/agent-core';
+import type { AccomplishRuntime, StorageDeps } from '@accomplish_ai/agent-core';
 import { z } from 'zod';
 import { homedir } from 'node:os';
 import type { TaskService } from './task-service.js';
@@ -20,6 +21,7 @@ import type { ThoughtStreamService } from './thought-stream-service.js';
 import type { HealthService } from './health.js';
 import type { StorageService } from './storage-service.js';
 import type { SchedulerService } from './scheduler-service.js';
+import type { WhatsAppDaemonService } from './whatsapp-service.js';
 
 const taskIdSchema = z.object({ taskId: z.string().min(1) });
 // taskConfigSchema already includes modelId — no extension needed
@@ -58,13 +60,23 @@ export interface RouteServices {
   healthService: HealthService;
   storageService: StorageService;
   schedulerService: SchedulerService;
+  accomplishRuntime: AccomplishRuntime;
+  whatsappService: WhatsAppDaemonService;
 }
 
 /**
  * Register all RPC methods on the server.
  */
 export function registerRpcMethods(services: RouteServices): void {
-  const { rpc, taskService, permissionService, healthService, schedulerService } = services;
+  const {
+    rpc,
+    taskService,
+    permissionService,
+    healthService,
+    schedulerService,
+    accomplishRuntime,
+    whatsappService,
+  } = services;
   const storage = services.storageService.getStorage();
 
   rpc.registerMethod(
@@ -231,6 +243,64 @@ export function registerRpcMethods(services: RouteServices): void {
         params,
       );
       schedulerService.setEnabled(validated.scheduleId, validated.enabled);
+      return Promise.resolve();
+    }),
+  );
+
+  // ── Accomplish AI Free Tier ─────────────────────────────────────────────
+  // StorageDeps constructed from daemon's own secure storage — no callbacks over RPC.
+  const accomplishStorageDeps: StorageDeps = {
+    readKey: (key) => storage.get(key),
+    writeKey: (key, value) => storage.set(key, value),
+    readGaClientId: () => null, // GA client ID not available in daemon
+  };
+
+  rpc.registerMethod(
+    'accomplish-ai.connect',
+    safeHandler(async () => {
+      const result = await accomplishRuntime.connect(accomplishStorageDeps);
+      return { deviceFingerprint: result.deviceFingerprint, usage: result.usage };
+    }),
+  );
+
+  rpc.registerMethod(
+    'accomplish-ai.get-usage',
+    safeHandler(async () => {
+      return accomplishRuntime.getUsage();
+    }),
+  );
+
+  rpc.registerMethod(
+    'accomplish-ai.disconnect',
+    safeHandler(async () => {
+      accomplishRuntime.disconnect();
+      return Promise.resolve();
+    }),
+  );
+
+  // Bridge proxy usage updates to daemon notifications → forwarded to renderer via IPC
+  accomplishRuntime.onUsageUpdate((usage) => {
+    rpc.notify('accomplish-ai.usage-update', usage);
+  });
+
+  // ── WhatsApp ─────────────────────────────────────────────────────────────
+  rpc.registerMethod(
+    'whatsapp.connect',
+    safeHandler(() => whatsappService.connect()),
+  );
+  rpc.registerMethod(
+    'whatsapp.disconnect',
+    safeHandler(() => whatsappService.disconnect()),
+  );
+  rpc.registerMethod(
+    'whatsapp.getConfig',
+    safeHandler(() => Promise.resolve(whatsappService.getConfig())),
+  );
+  rpc.registerMethod(
+    'whatsapp.setEnabled',
+    safeHandler((params) => {
+      const validated = validate(z.object({ enabled: z.boolean() }), params);
+      whatsappService.setEnabled(validated.enabled);
       return Promise.resolve();
     }),
   );

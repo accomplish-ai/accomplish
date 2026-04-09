@@ -3,7 +3,6 @@ import {
   Lightning,
   Microphone,
   Info,
-  Plugs,
   FolderSimple,
   Globe,
   ChatCircle,
@@ -15,7 +14,6 @@ export type SettingsTabId =
   | 'providers'
   | 'voice'
   | 'skills'
-  | 'connectors'
   | 'browsers'
   | 'workspaces'
   | 'integrations'
@@ -26,7 +24,6 @@ export type SettingsTabId =
 export const SETTINGS_TABS = [
   { id: 'providers' as const, labelKey: 'tabs.providers', icon: Key },
   { id: 'skills' as const, labelKey: 'tabs.skills', icon: Lightning },
-  { id: 'connectors' as const, labelKey: 'tabs.connectors', icon: Plugs },
   { id: 'browsers' as const, labelKey: 'tabs.browsers', icon: Globe },
   { id: 'workspaces' as const, labelKey: 'tabs.workspaces', icon: FolderSimple },
   { id: 'integrations' as const, labelKey: 'tabs.integrations', icon: ChatCircle },

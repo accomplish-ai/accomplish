@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import http from 'node:http';
 import { RateLimiter } from './rate-limiter.js';
+import { log } from './logger.js';
 
 const MAX_BODY_SIZE = 1024 * 1024; // 1 MB
 
@@ -116,25 +117,25 @@ export function createHttpServer(
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Internal server error' }));
         }
-        console.error(`[${serviceName}] Unhandled error in ${route.method} ${route.path}:`, error);
+        log.error(`[${serviceName}] Unhandled error in ${route.method} ${route.path}:`, error);
       }
     });
 
     server.listen(requestedPort ?? 0, '127.0.0.1', () => {
       const addr = server.address();
       const port = addr && typeof addr === 'object' ? addr.port : 0;
-      console.log(`[${serviceName}] Listening on port ${port}`);
+      log.info(`[${serviceName}] Listening on port ${port}`);
       resolve({ server, port });
     });
 
     server.on('error', (error: NodeJS.ErrnoException) => {
       if (error.code === 'EADDRINUSE' && requestedPort) {
         // Port already in use — fall back to OS-assigned port
-        console.warn(`[${serviceName}] Port ${requestedPort} in use, falling back to random port`);
+        log.warn(`[${serviceName}] Port ${requestedPort} in use, falling back to random port`);
         server.listen(0, '127.0.0.1', () => {
           const addr = server.address();
           const port = addr && typeof addr === 'object' ? addr.port : 0;
-          console.log(`[${serviceName}] Listening on fallback port ${port}`);
+          log.info(`[${serviceName}] Listening on fallback port ${port}`);
           resolve({ server, port });
         });
       } else {

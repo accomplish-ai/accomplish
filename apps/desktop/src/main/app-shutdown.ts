@@ -5,7 +5,6 @@
 
 import { app } from 'electron';
 import { cleanupVertexServiceAccountKey } from './opencode';
-import { disposeWhatsAppService } from './services/whatsapp';
 import { stopAllBrowserPreviewStreams } from './services/browserPreview';
 import { oauthBrowserFlow } from './opencode/auth-browser';
 import { slackMcpOAuthFlow } from './opencode/slack-auth';
@@ -15,6 +14,8 @@ import { getLogCollector, shutdownLogCollector } from './logging';
 import { stopHuggingFaceServer } from './providers/huggingface-local';
 import { destroyTray } from './tray';
 import { shutdownDaemon } from './daemon-bootstrap';
+import { flushAnalytics } from './analytics/analytics-service';
+import { flushMixpanel } from './analytics/mixpanel-service';
 
 type AppLogger = ReturnType<typeof getLogCollector> | null;
 
@@ -35,12 +36,6 @@ export async function shutdownApp(logger: AppLogger): Promise<void> {
     await raceTimeout(stopAllBrowserPreviewStreams(), 5000, 'Stopping browser preview streams');
   } catch (error: unknown) {
     logger?.logEnv('ERROR', `[Main] Failed to stop browser preview streams: ${String(error)}`);
-  }
-
-  try {
-    disposeWhatsAppService();
-  } catch (error: unknown) {
-    logger?.logEnv('ERROR', `[Main] Error during disposeWhatsAppService: ${String(error)}`);
   }
 
   try {
@@ -71,6 +66,14 @@ export async function shutdownApp(logger: AppLogger): Promise<void> {
     workspaceManager.close();
   } catch (error: unknown) {
     logger?.logEnv('ERROR', `[Main] Error during workspaceManager.close: ${String(error)}`);
+  }
+
+  // Flush analytics before closing storage — best effort
+  try {
+    flushAnalytics();
+    flushMixpanel();
+  } catch (error: unknown) {
+    logger?.logEnv('ERROR', `[Main] Error during analytics flush: ${String(error)}`);
   }
 
   try {

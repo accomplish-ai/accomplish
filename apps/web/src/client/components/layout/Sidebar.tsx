@@ -23,7 +23,7 @@ export default function Sidebar() {
     | 'providers'
     | 'voice'
     | 'skills'
-    | 'connectors'
+    | 'integrations'
     | 'workspaces'
     | 'scheduler'
     | 'general'

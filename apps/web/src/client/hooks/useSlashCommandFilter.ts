@@ -24,7 +24,7 @@ export interface UseSlashCommandOptions {
   /** Current text value of the input/textarea. */
   value: string;
   /** Ref to the textarea element where the slash command is being typed. */
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  textareaRef: React.MutableRefObject<HTMLTextAreaElement | null>;
   /** Called with the new text value after a skill command is inserted. */
   onChange: (value: string) => void;
 }

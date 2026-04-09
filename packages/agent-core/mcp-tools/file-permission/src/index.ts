@@ -8,7 +8,10 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 const PERMISSION_API_PORT = process.env.PERMISSION_API_PORT || '9226';
-const PERMISSION_API_URL = `http://localhost:${PERMISSION_API_PORT}/permission`;
+// Use 127.0.0.1 explicitly — on some Linux systems `localhost` resolves to
+// ::1 (IPv6) first, but the daemon HTTP server binds only to 127.0.0.1 (IPv4),
+// which would cause ECONNREFUSED ("fetch failed") on those hosts.
+const PERMISSION_API_URL = `http://127.0.0.1:${PERMISSION_API_PORT}/permission`;
 const AUTH_TOKEN = process.env.ACCOMPLISH_DAEMON_AUTH_TOKEN;
 
 function getHeaders(): Record<string, string> {

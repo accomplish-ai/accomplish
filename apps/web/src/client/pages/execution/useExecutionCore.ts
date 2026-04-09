@@ -1,25 +1,15 @@
-import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
-import { createLogger } from '../../lib/logger';
 import { useTaskStore } from '../../stores/taskStore';
 import { getAccomplish } from '../../lib/accomplish';
 import { useSpeechInput } from '../../hooks/useSpeechInput';
 import { useSlashCommand } from '../../hooks/useSlashCommand';
-import type { DebugLogEntry } from '../../components/execution/DebugPanel';
 import { useExecutionAttachments } from './useExecutionAttachments';
 import { useExecutionEvents } from './useExecutionEvents';
-
-const logger = createLogger('Execution');
-
-function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
-  let timeoutId: ReturnType<typeof setTimeout>;
-  return ((...args: unknown[]) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn(...args), ms);
-  }) as T;
-}
+import { useExecutionScroll } from './useExecutionScroll';
+import { useExecutionDebugState } from './useExecutionDebugState';
 
 /** Core state and effects for the execution page. */
 export function useExecutionCore() {
@@ -29,29 +19,20 @@ export function useExecutionCore() {
   const { t } = useTranslation('execution');
   const { t: tCommon } = useTranslation('common');
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const followUpInputRef = useRef<HTMLTextAreaElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const bugSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSpeechFollowUpRef = useRef<string | null>(null);
 
   const [followUp, setFollowUp] = useState('');
   const [currentTool, setCurrentTool] = useState<string | null>(null);
   const [currentToolInput, setCurrentToolInput] = useState<unknown>(null);
-  const [debugLogs, setDebugLogs] = useState<DebugLogEntry[]>([]);
-  const [debugModeEnabled, setDebugModeEnabled] = useState(false);
-  const [bugReporting, setBugReporting] = useState(false);
-  const [bugReportSaved, setBugReportSaved] = useState(false);
   const [repeatingTask, setRepeatingTask] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
-    'providers' | 'voice' | 'skills' | 'connectors'
+    'providers' | 'voice' | 'skills' | 'integrations'
   >('providers');
   const [taskActionError, setTaskActionError] = useState<string | null>(null);
   const [isTaskActionRunning, setIsTaskActionRunning] = useState(false);
   const [pendingFollowUp, setPendingFollowUp] = useState<string | null>(null);
-  const [isAtBottom, setIsAtBottom] = useState(true);
-  const [elapsedTime, setElapsedTime] = useState(0);
 
   const {
     currentTask,
@@ -76,6 +57,16 @@ export function useExecutionCore() {
     todosTaskId,
   } = useTaskStore();
 
+  const scroll = useExecutionScroll();
+
+  const debug = useExecutionDebugState({
+    accomplish,
+    startupStageTaskId,
+    startupStage,
+    id,
+    currentTool,
+  });
+
   const attachmentState = useExecutionAttachments(accomplish);
 
   const speechInput = useSpeechInput({
@@ -98,53 +89,6 @@ export function useExecutionCore() {
     onChange: setFollowUp,
   });
 
-  const scrollToBottom = useMemo(
-    () =>
-      debounce(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100),
-    [],
-  );
-
-  const handleScroll = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (!container) {
-      return;
-    }
-    const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 150;
-    setIsAtBottom(atBottom);
-  }, []);
-
-  useEffect(() => {
-    accomplish
-      .getDebugMode()
-      .then(setDebugModeEnabled)
-      .catch((err) => {
-        logger.error('Failed to get debug mode:', err);
-      });
-    const unsub = accomplish.onDebugModeChange?.(({ enabled }) => {
-      setDebugModeEnabled(enabled);
-    });
-    return () => {
-      unsub?.();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    const isShowing = startupStageTaskId === id && startupStage && !currentTool;
-    if (!isShowing) {
-      setElapsedTime(0);
-      return;
-    }
-    const calc = () => Math.floor((Date.now() - startupStage.startTime) / 1000);
-    setElapsedTime(calc());
-    const interval = setInterval(() => {
-      setElapsedTime(calc());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [startupStageTaskId, startupStage, id, currentTool]);
-
   useExecutionEvents({
     id,
     accomplish,
@@ -155,15 +99,16 @@ export function useExecutionCore() {
     setCurrentTool,
     setCurrentToolInput,
     clearStartupStage,
-    setDebugLogs,
+    setDebugLogs: debug.setDebugLogs,
     loadTaskById,
   });
 
   useEffect(() => {
-    if (isAtBottom) {
-      scrollToBottom();
+    if (scroll.isAtBottom) {
+      scroll.scrollToBottom();
     }
-  }, [currentTask?.messages?.length, scrollToBottom, isAtBottom]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- scroll object reference changes on every render; individual properties are stable
+  }, [currentTask?.id, currentTask?.messages?.length, scroll.scrollToBottom, scroll.isAtBottom]);
 
   const permissionRequest = (id ? permissionRequests[id] : undefined) ?? null;
   const isComplete = ['completed', 'failed', 'cancelled', 'interrupted'].includes(
@@ -192,10 +137,7 @@ export function useExecutionCore() {
     accomplish,
     t,
     tCommon,
-    messagesEndRef,
     followUpInputRef,
-    scrollContainerRef,
-    bugSavedTimerRef,
     pendingSpeechFollowUpRef,
     followUp,
     setFollowUp,
@@ -203,13 +145,6 @@ export function useExecutionCore() {
     setCurrentTool,
     currentToolInput,
     setCurrentToolInput,
-    debugLogs,
-    setDebugLogs,
-    debugModeEnabled,
-    bugReporting,
-    setBugReporting,
-    bugReportSaved,
-    setBugReportSaved,
     repeatingTask,
     setRepeatingTask,
     showSettingsDialog,
@@ -222,8 +157,6 @@ export function useExecutionCore() {
     setIsTaskActionRunning,
     pendingFollowUp,
     setPendingFollowUp,
-    isAtBottom,
-    elapsedTime,
     currentTask,
     loadTaskById,
     isLoading,
@@ -247,8 +180,6 @@ export function useExecutionCore() {
     ...attachmentState,
     speechInput,
     slashCommand,
-    scrollToBottom,
-    handleScroll,
     permissionRequest,
     isComplete,
     hasSession,
@@ -259,5 +190,9 @@ export function useExecutionCore() {
     taskActionLabel,
     taskActionPendingLabel,
     isFollowUpOverLimit,
+    // scroll
+    ...scroll,
+    // debug
+    ...debug,
   };
 }

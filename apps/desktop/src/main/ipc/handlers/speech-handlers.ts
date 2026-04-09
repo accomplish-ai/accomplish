@@ -1,10 +1,6 @@
 import type { IpcMainInvokeEvent } from 'electron';
 import { getApiKey } from '../../store/secureStorage';
-import {
-  validateElevenLabsApiKey,
-  transcribeAudio,
-  isElevenLabsConfigured,
-} from '../../services/speechToText';
+import { validateElevenLabsApiKey, transcribeAudio } from '../../services/speechToText';
 import { getLogCollector } from '../../logging';
 import { handle } from './utils';
 
@@ -12,7 +8,8 @@ const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25 MB
 
 export function registerSpeechHandlers(): void {
   handle('speech:is-configured', async (_event: IpcMainInvokeEvent) => {
-    return isElevenLabsConfigured();
+    const apiKey = getApiKey('elevenlabs');
+    return Boolean(apiKey && apiKey.trim());
   });
 
   handle('speech:get-config', async (_event: IpcMainInvokeEvent) => {

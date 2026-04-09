@@ -37,6 +37,11 @@
       "types": "./dist/common.d.ts",
       "import": "./dist/common.js",
       "default": "./dist/common.js"
+    },
+    "./runtime-types": {
+      "types": "./dist/accomplish-runtime-types.d.ts",
+      "import": "./dist/accomplish-runtime-types.js",
+      "default": "./dist/accomplish-runtime-types.js"
     }
   },
   "files": [
@@ -65,14 +70,14 @@
     "gray-matter": "^4.0.3",
     "node-pty": "catalog:",
     "proxy-from-env": "^2.1.0",
-    "undici": "^7.0.0",
+    "undici": "^7.24.7",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/better-sqlite3": "catalog:",
     "@types/node": "catalog:",
     "@types/proxy-from-env": "^1.0.4",
-    "typescript": "^5.7.2",
+    "typescript": "^6.0.2",
     "vitest": "^4.1.0"
   }
 }
