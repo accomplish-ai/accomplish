@@ -12,9 +12,12 @@ import { log } from '../logger.js';
  * Used by FR-020: detect connection loss, proactively mark disconnected.
  */
 export const WHATSAPP_CONNECTION_LOSS_PATTERNS = [
-  'Connection Closed',
-  'Connection Lost',
-  'Socket closed',
+  'connection closed',
+  'connection lost',
+  'connection terminated',
+  'connection terminated by server',
+  'connection failure',
+  'socket closed',
   'stream errored',
 ] as const;
 
@@ -46,7 +49,9 @@ export function buildChatsRoute(svc: WhatsAppDaemonService): Route {
     path: '/chats',
     handler: async (data, _req, res) => {
       const rawLimit = (data as { limit?: unknown }).limit;
-      const limit = typeof rawLimit === 'number' && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
+      const parsedLimit = Math.floor(Number(rawLimit));
+      const limit =
+        Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 20;
 
       const config = svc.getConfig();
       if (!config || config.status !== 'connected') {
@@ -79,7 +84,9 @@ export function buildMessagesRoute(svc: WhatsAppDaemonService): Route {
         return;
       }
 
-      const limit = typeof rawLimit === 'number' && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
+      const parsedLimit = Math.floor(Number(rawLimit));
+      const limit =
+        Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 20;
 
       const config = svc.getConfig();
       if (!config || config.status !== 'connected') {
@@ -149,8 +156,12 @@ export function buildSendRoute(svc: WhatsAppDaemonService): Route {
           });
           return;
         }
-        // Detect Baileys connection-loss signals (FR-020).
-        const isConnectionLoss = WHATSAPP_CONNECTION_LOSS_PATTERNS.some((p) => errMsg.includes(p));
+        // Detect Baileys connection-loss signals (FR-020). Match case-insensitively
+        // since Baileys capitalisation varies across versions.
+        const errLower = errMsg.toLowerCase();
+        const isConnectionLoss = WHATSAPP_CONNECTION_LOSS_PATTERNS.some((p) =>
+          errLower.includes(p),
+        );
         if (isConnectionLoss) {
           svc.markDisconnected();
         }
