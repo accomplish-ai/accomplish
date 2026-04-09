@@ -171,7 +171,9 @@
       {
         "from": "resources/nodejs",
         "to": "nodejs",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "build.env",

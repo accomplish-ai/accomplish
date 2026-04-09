@@ -473,7 +473,15 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    needs: [version-bump, build-mac-arm64, build-mac-x64, build-linux-arm64, build-linux-x64, build-windows-x64]
+    needs:
+      [
+        version-bump,
+        build-mac-arm64,
+        build-mac-x64,
+        build-linux-arm64,
+        build-linux-x64,
+        build-windows-x64,
+      ]
     if: always() && needs.version-bump.result == 'success'
     runs-on: ubuntu-latest
     steps:
