@@ -79,8 +79,12 @@ const accomplishAPI = {
     ipcRenderer.on('settings:theme-changed', listener);
     return () => ipcRenderer.removeListener('settings:theme-changed', listener);
   },
-  getAppSettings: (): Promise<{ debugMode: boolean; onboardingComplete: boolean; theme: string }> =>
-    ipcRenderer.invoke('settings:app-settings'),
+  getAppSettings: (): Promise<{
+    debugMode: boolean;
+    onboardingComplete: boolean;
+    theme: string;
+    language: string;
+  }> => ipcRenderer.invoke('settings:app-settings'),
   getCloudBrowserConfig: (): Promise<CloudBrowserConfig | null> =>
     ipcRenderer.invoke('settings:cloud-browser-config:get'),
   setCloudBrowserConfig: (config: CloudBrowserConfig | null): Promise<void> =>
