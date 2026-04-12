@@ -200,7 +200,10 @@ export function ModelIndicator({
                 key={model.id}
                 disabled={isRunning}
                 className="px-3 py-2 text-sm cursor-pointer"
-                onClick={() => void handleSelectModel(model.id)}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  void handleSelectModel(model.id);
+                }}
               >
                 {model.displayName}
               </DropdownMenuItem>
@@ -212,9 +215,9 @@ export function ModelIndicator({
           <div className="px-3 py-2 text-sm text-muted-foreground">{t('model.selectModel')}</div>
         )}
 
-        {otherProviders.length > 0 && (hasModel || siblingModels.length > 0) && (
+        {otherProviders.length > 0 && (
           <>
-            <DropdownMenuSeparator />
+            {(hasModel || siblingModels.length > 0) && <DropdownMenuSeparator />}
             {otherProviders.map(([providerId, provider]) => (
               <ProviderSubMenu
                 key={providerId}

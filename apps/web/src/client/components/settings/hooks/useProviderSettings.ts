@@ -97,14 +97,15 @@ export function useProviderSettings() {
    */
   const switchProviderModel = useCallback(async (providerId: ProviderId, modelId: string) => {
     const accomplish = getAccomplish();
+    // Capture previousModelId before writing so the rollback target is the original value
+    const current = (await accomplish.getProviderSettings()) as ProviderSettings;
+    const previousModelId = current.connectedProviders[providerId]?.selectedModelId ?? null;
     await accomplish.updateProviderModel(providerId, modelId);
     try {
       await accomplish.setActiveProvider(providerId);
     } catch (err) {
       // Revert the model update so settings stay consistent
       try {
-        const prev = (await accomplish.getProviderSettings()) as ProviderSettings;
-        const previousModelId = prev.connectedProviders[providerId]?.selectedModelId ?? null;
         await accomplish.updateProviderModel(providerId, previousModelId);
       } catch {
         // Best-effort rollback; ignore secondary failure
