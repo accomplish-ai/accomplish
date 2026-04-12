@@ -72,20 +72,21 @@ export function ModelIndicator({
   const modelDisplayName = selectedModelId ? getModelDisplayName(selectedModelId) : null;
   const isWarning = !hasModel && !loading;
 
-  // Same-provider sibling models (excludes the currently selected one)
+  // Same-provider sibling models (excludes the currently selected one if set)
   const siblingModels: Array<{ id: string; displayName: string }> = (() => {
-    if (!activeProviderId || !selectedModelId) {
+    if (!activeProviderId) {
       return [];
     }
     const dynamic = activeProvider?.availableModels;
+    // undefined → fall back to static config; explicit [] → real empty state, don't fall back
     const source =
-      dynamic && dynamic.length > 0
+      dynamic !== undefined
         ? dynamic.map((m) => ({ id: m.id, displayName: m.name }))
         : (DEFAULT_PROVIDERS.find((p) => p.id === activeProviderId)?.models ?? []).map((m) => ({
             id: m.fullId,
             displayName: getModelDisplayName(m.fullId),
           }));
-    return source.filter((m) => m.id !== selectedModelId);
+    return selectedModelId != null ? source.filter((m) => m.id !== selectedModelId) : source;
   })();
 
   // Other connected providers (not the active one)
@@ -98,17 +99,25 @@ export function ModelIndicator({
       if (!activeProviderId) {
         return;
       }
-      setOpen(false);
-      await updateModel(activeProviderId, modelId);
+      try {
+        await updateModel(activeProviderId, modelId);
+        setOpen(false);
+      } catch {
+        setOpen(true);
+      }
     },
     [activeProviderId, updateModel],
   );
 
   const handleSelectProviderModel = useCallback(
     async (providerId: ProviderId, modelId: string) => {
-      setOpen(false);
-      await updateModel(providerId, modelId);
-      await setActiveProvider(providerId);
+      try {
+        await updateModel(providerId, modelId);
+        await setActiveProvider(providerId);
+        setOpen(false);
+      } catch {
+        setOpen(true);
+      }
     },
     [updateModel, setActiveProvider],
   );
@@ -172,37 +181,35 @@ export function ModelIndicator({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" sideOffset={8} className="w-52 shadow-lg">
-        {/* Current model — always first */}
+        {/* Current model — only when a model is selected */}
         {hasModel && (
-          <>
-            <div className="px-3 py-2">
-              <div className="text-[11px] text-muted-foreground/60 uppercase tracking-wide mb-0.5">
-                {providerLabel} · {t('model.current')}
-              </div>
-              <div className="text-sm font-medium text-foreground">{modelDisplayName}</div>
+          <div className="px-3 py-2">
+            <div className="text-[11px] text-muted-foreground/60 uppercase tracking-wide mb-0.5">
+              {providerLabel} · {t('model.current')}
             </div>
+            <div className="text-sm font-medium text-foreground">{modelDisplayName}</div>
+          </div>
+        )}
 
-            {/* Same-provider sibling models */}
-            {siblingModels.length > 0 && (
-              <>
-                <DropdownMenuSeparator />
-                {siblingModels.map((model) => (
-                  <DropdownMenuItem
-                    key={model.id}
-                    disabled={isRunning}
-                    className="px-3 py-2 text-sm cursor-pointer"
-                    onClick={() => void handleSelectModel(model.id)}
-                  >
-                    {model.displayName}
-                  </DropdownMenuItem>
-                ))}
-              </>
-            )}
+        {/* Model list — shown whenever the active provider has selectable models */}
+        {activeProviderId && siblingModels.length > 0 && (
+          <>
+            {hasModel && <DropdownMenuSeparator />}
+            {siblingModels.map((model) => (
+              <DropdownMenuItem
+                key={model.id}
+                disabled={isRunning}
+                className="px-3 py-2 text-sm cursor-pointer"
+                onClick={() => void handleSelectModel(model.id)}
+              >
+                {model.displayName}
+              </DropdownMenuItem>
+            ))}
           </>
         )}
 
-        {/* Warning state — no model configured */}
-        {isWarning && (
+        {/* No provider configured at all */}
+        {!activeProviderId && isWarning && (
           <div className="px-3 py-2 text-sm text-muted-foreground">{t('model.selectModel')}</div>
         )}
 
