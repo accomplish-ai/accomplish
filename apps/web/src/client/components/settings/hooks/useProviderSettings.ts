@@ -91,6 +91,39 @@ export function useProviderSettings() {
     setSettings((prev) => (prev ? { ...prev, debugMode: enabled } : null));
   }, []);
 
+  /**
+   * Atomically switches to a model on a different provider.
+   * Rolls back the model update if activating the provider fails.
+   */
+  const switchProviderModel = useCallback(async (providerId: ProviderId, modelId: string) => {
+    const accomplish = getAccomplish();
+    await accomplish.updateProviderModel(providerId, modelId);
+    try {
+      await accomplish.setActiveProvider(providerId);
+    } catch (err) {
+      // Revert the model update so settings stay consistent
+      try {
+        const prev = (await accomplish.getProviderSettings()) as ProviderSettings;
+        const previousModelId = prev.connectedProviders[providerId]?.selectedModelId ?? null;
+        await accomplish.updateProviderModel(providerId, previousModelId);
+      } catch {
+        // Best-effort rollback; ignore secondary failure
+      }
+      throw err;
+    }
+    setSettings((prev) => {
+      if (!prev) return null;
+      const provider = prev.connectedProviders[providerId];
+      return {
+        ...prev,
+        activeProviderId: providerId,
+        connectedProviders: provider
+          ? { ...prev.connectedProviders, [providerId]: { ...provider, selectedModelId: modelId } }
+          : prev.connectedProviders,
+      };
+    });
+  }, []);
+
   return {
     settings,
     loading,
@@ -100,6 +133,7 @@ export function useProviderSettings() {
     connectProvider,
     disconnectProvider,
     updateModel,
+    switchProviderModel,
     setDebugMode,
   };
 }

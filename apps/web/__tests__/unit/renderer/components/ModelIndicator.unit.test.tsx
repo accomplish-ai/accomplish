@@ -56,7 +56,7 @@ vi.mock('@/components/ui/ProviderSubMenu', () => ({
 }));
 
 const mockUpdateModel = vi.fn().mockResolvedValue(undefined);
-const mockSetActiveProvider = vi.fn().mockResolvedValue(undefined);
+const mockSwitchProviderModel = vi.fn().mockResolvedValue(undefined);
 const mockRefetch = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('@/components/settings/hooks/useProviderSettings', () => ({
@@ -65,7 +65,7 @@ vi.mock('@/components/settings/hooks/useProviderSettings', () => ({
     loading: false,
     refetch: mockRefetch,
     updateModel: mockUpdateModel,
-    setActiveProvider: mockSetActiveProvider,
+    switchProviderModel: mockSwitchProviderModel,
   }),
 }));
 
@@ -205,12 +205,11 @@ describe('ModelIndicator', () => {
       expect(screen.queryByTestId('provider-sub-menu-anthropic')).not.toBeInTheDocument();
     });
 
-    it('calls updateModel and setActiveProvider when cross-provider model is selected', async () => {
+    it('calls switchProviderModel when cross-provider model is selected', async () => {
       render(<ModelIndicator onOpenSettings={vi.fn()} />);
       fireEvent.click(screen.getByTestId('select-model-openai'));
       await waitFor(() => {
-        expect(mockUpdateModel).toHaveBeenCalledWith('openai', 'openai/test-model');
-        expect(mockSetActiveProvider).toHaveBeenCalledWith('openai');
+        expect(mockSwitchProviderModel).toHaveBeenCalledWith('openai', 'openai/test-model');
       });
     });
 

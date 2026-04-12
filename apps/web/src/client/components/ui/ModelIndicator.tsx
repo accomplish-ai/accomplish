@@ -32,8 +32,10 @@ import { cn } from '@/lib/utils';
 interface ModelIndicatorProps {
   /** Whether a task is currently running */
   isRunning?: boolean;
-  /** Callback kept for call-site compatibility — no longer used inside the dropdown */
-  onOpenSettings: () => void;
+  /**
+   * @deprecated No longer used inside the dropdown. Kept for call-site compatibility.
+   */
+  onOpenSettings?: () => void;
   /** Additional CSS classes */
   className?: string;
   /** Hide the indicator when no model is selected (instead of showing warning) */
@@ -46,7 +48,7 @@ export function ModelIndicator({
   hideWhenNoModel = false,
 }: ModelIndicatorProps) {
   const { t } = useTranslation('common');
-  const { settings, loading, refetch, updateModel, setActiveProvider } = useProviderSettings();
+  const { settings, loading, refetch, updateModel, switchProviderModel } = useProviderSettings();
   const [open, setOpen] = useState(false);
 
   const handleOpenChange = useCallback(
@@ -73,7 +75,6 @@ export function ModelIndicator({
   const modelDisplayName = selectedModelId ? getModelDisplayName(selectedModelId) : null;
   const isWarning = !hasModel && !loading;
 
-  // Same-provider sibling models (excludes the currently selected one if set)
   const siblingModels: Array<{ id: string; displayName: string }> = (() => {
     if (!activeProviderId) {
       return [];
@@ -90,7 +91,6 @@ export function ModelIndicator({
     return selectedModelId != null ? source.filter((m) => m.id !== selectedModelId) : source;
   })();
 
-  // Other connected providers (not the active one)
   const otherProviders = Object.entries(settings?.connectedProviders ?? {}).filter(
     ([id, p]) => id !== activeProviderId && p.connectionStatus === 'connected',
   ) as Array<[ProviderId, ConnectedProvider]>;
@@ -113,33 +113,15 @@ export function ModelIndicator({
 
   const handleSelectProviderModel = useCallback(
     async (providerId: ProviderId, modelId: string) => {
-      const previousProviderId = activeProviderId;
       try {
-        await updateModel(providerId, modelId);
-        try {
-          await setActiveProvider(providerId);
-          setOpen(false);
-        } catch (err) {
-          // Rollback to previous provider if setActiveProvider fails
-          if (previousProviderId && previousProviderId !== providerId) {
-            try {
-              await setActiveProvider(previousProviderId);
-            } catch (rollbackErr) {
-              logger.error(
-                'Rollback to previous provider failed in handleSelectProviderModel',
-                rollbackErr,
-              );
-            }
-          }
-          logger.error('Failed to set active provider in handleSelectProviderModel', err);
-          setOpen(true);
-        }
+        await switchProviderModel(providerId, modelId);
+        setOpen(false);
       } catch (err) {
-        logger.error('Failed to update model in handleSelectProviderModel', err);
+        logger.error('Failed to switch provider model', err);
         setOpen(true);
       }
     },
-    [updateModel, setActiveProvider, activeProviderId],
+    [switchProviderModel],
   );
 
   if (loading) {
@@ -201,7 +183,6 @@ export function ModelIndicator({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" sideOffset={8} className="w-52 shadow-lg">
-        {/* Current model — only when a model is selected */}
         {hasModel && (
           <div className="px-3 py-2">
             <div className="text-[11px] text-muted-foreground/60 uppercase tracking-wide mb-0.5">
@@ -211,7 +192,6 @@ export function ModelIndicator({
           </div>
         )}
 
-        {/* Model list — shown whenever the active provider has selectable models */}
         {activeProviderId && siblingModels.length > 0 && (
           <>
             {hasModel && <DropdownMenuSeparator />}
@@ -228,13 +208,11 @@ export function ModelIndicator({
           </>
         )}
 
-        {/* No provider configured at all */}
         {!activeProviderId && isWarning && (
           <div className="px-3 py-2 text-sm text-muted-foreground">{t('model.selectModel')}</div>
         )}
 
-        {/* Other connected providers */}
-        {otherProviders.length > 0 && (
+        {otherProviders.length > 0 && (hasModel || siblingModels.length > 0) && (
           <>
             <DropdownMenuSeparator />
             {otherProviders.map(([providerId, provider]) => (
