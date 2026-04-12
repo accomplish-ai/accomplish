@@ -171,13 +171,6 @@
         "to": "daemon"
       },
       {
-        "from": "resources/nodejs",
-        "to": "nodejs",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
         "from": "build.env",
         "to": "build.env"
       }
