@@ -25,6 +25,7 @@ import {
 } from '@accomplish_ai/agent-core/common';
 import type { ProviderId, ConnectedProvider } from '@accomplish_ai/agent-core/common';
 import { useProviderSettings } from '@/components/settings/hooks/useProviderSettings';
+import { logger } from '@/lib/logger';
 import { ProviderSubMenu } from '@/components/ui/ProviderSubMenu';
 import { cn } from '@/lib/utils';
 
@@ -102,7 +103,8 @@ export function ModelIndicator({
       try {
         await updateModel(activeProviderId, modelId);
         setOpen(false);
-      } catch {
+      } catch (err) {
+        logger.error('Failed to update model in handleSelectModel', err);
         setOpen(true);
       }
     },
@@ -111,15 +113,33 @@ export function ModelIndicator({
 
   const handleSelectProviderModel = useCallback(
     async (providerId: ProviderId, modelId: string) => {
+      const previousProviderId = activeProviderId;
       try {
         await updateModel(providerId, modelId);
-        await setActiveProvider(providerId);
-        setOpen(false);
-      } catch {
+        try {
+          await setActiveProvider(providerId);
+          setOpen(false);
+        } catch (err) {
+          // Rollback to previous provider if setActiveProvider fails
+          if (previousProviderId && previousProviderId !== providerId) {
+            try {
+              await setActiveProvider(previousProviderId);
+            } catch (rollbackErr) {
+              logger.error(
+                'Rollback to previous provider failed in handleSelectProviderModel',
+                rollbackErr,
+              );
+            }
+          }
+          logger.error('Failed to set active provider in handleSelectProviderModel', err);
+          setOpen(true);
+        }
+      } catch (err) {
+        logger.error('Failed to update model in handleSelectProviderModel', err);
         setOpen(true);
       }
     },
-    [updateModel, setActiveProvider],
+    [updateModel, setActiveProvider, activeProviderId],
   );
 
   if (loading) {

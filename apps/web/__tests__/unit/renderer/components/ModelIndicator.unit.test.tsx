@@ -4,7 +4,7 @@
 
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { ProviderSettings } from '@accomplish_ai/agent-core/common';
 
 // Render Radix dropdown as plain markup so test logic is not blocked by pointer events
@@ -149,7 +149,7 @@ describe('ModelIndicator', () => {
       render(<ModelIndicator onOpenSettings={vi.fn()} />);
       fireEvent.click(screen.getByText('Claude Opus 4.6'));
       // Allow the async handler to flush
-      await vi.waitFor(() => {
+      await waitFor(() => {
         expect(mockUpdateModel).toHaveBeenCalledWith('anthropic', 'anthropic/claude-opus-4-6');
       });
     });
@@ -208,7 +208,7 @@ describe('ModelIndicator', () => {
     it('calls updateModel and setActiveProvider when cross-provider model is selected', async () => {
       render(<ModelIndicator onOpenSettings={vi.fn()} />);
       fireEvent.click(screen.getByTestId('select-model-openai'));
-      await vi.waitFor(() => {
+      await waitFor(() => {
         expect(mockUpdateModel).toHaveBeenCalledWith('openai', 'openai/test-model');
         expect(mockSetActiveProvider).toHaveBeenCalledWith('openai');
       });
