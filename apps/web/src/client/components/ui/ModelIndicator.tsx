@@ -2,14 +2,15 @@
  * ModelIndicator component
  *
  * Ultra-minimal Claude-style model selector.
- * Just text and chevron, very clean and unobtrusive.
+ * Shows current model with inline switching for same-provider siblings
+ * and sub-menu access to all other connected providers.
  */
 
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CaretDown, Gear, Warning } from '@phosphor-icons/react';
+import { CaretDown, Warning } from '@phosphor-icons/react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,14 +18,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { getModelDisplayName } from '@/lib/model-utils';
+import {
+  getModelDisplayName,
+  DEFAULT_PROVIDERS,
+  PROVIDER_META,
+} from '@accomplish_ai/agent-core/common';
+import type { ProviderId, ConnectedProvider } from '@accomplish_ai/agent-core/common';
 import { useProviderSettings } from '@/components/settings/hooks/useProviderSettings';
+import { ProviderSubMenu } from '@/components/ui/ProviderSubMenu';
 import { cn } from '@/lib/utils';
 
 interface ModelIndicatorProps {
   /** Whether a task is currently running */
   isRunning?: boolean;
-  /** Callback when user wants to open Settings to change model */
+  /** Callback kept for call-site compatibility — no longer used inside the dropdown */
   onOpenSettings: () => void;
   /** Additional CSS classes */
   className?: string;
@@ -34,15 +41,13 @@ interface ModelIndicatorProps {
 
 export function ModelIndicator({
   isRunning = false,
-  onOpenSettings,
   className,
   hideWhenNoModel = false,
 }: ModelIndicatorProps) {
   const { t } = useTranslation('common');
-  const { settings, loading, refetch } = useProviderSettings();
+  const { settings, loading, refetch, updateModel, setActiveProvider } = useProviderSettings();
   const [open, setOpen] = useState(false);
 
-  // Refetch settings when dropdown opens to ensure we have latest data
   const handleOpenChange = useCallback(
     (isOpen: boolean) => {
       if (isOpen) {
@@ -53,29 +58,60 @@ export function ModelIndicator({
     [refetch],
   );
 
-  // Also refetch on mount and periodically to catch settings changes
   useEffect(() => {
     refetch();
     const interval = setInterval(refetch, 2000);
     return () => clearInterval(interval);
   }, [refetch]);
 
-  // Get active provider and model info
   const activeProviderId = settings?.activeProviderId;
   const activeProvider = activeProviderId ? settings?.connectedProviders[activeProviderId] : null;
   const selectedModelId = activeProvider?.selectedModelId;
 
-  // Determine display values
   const hasModel = Boolean(activeProviderId && selectedModelId);
   const modelDisplayName = selectedModelId ? getModelDisplayName(selectedModelId) : null;
-
-  // Determine state
   const isWarning = !hasModel && !loading;
 
-  const handleOpenSettings = () => {
-    setOpen(false);
-    onOpenSettings();
-  };
+  // Same-provider sibling models (excludes the currently selected one)
+  const siblingModels: Array<{ id: string; displayName: string }> = (() => {
+    if (!activeProviderId || !selectedModelId) {
+      return [];
+    }
+    const dynamic = activeProvider?.availableModels;
+    const source =
+      dynamic && dynamic.length > 0
+        ? dynamic.map((m) => ({ id: m.id, displayName: m.name }))
+        : (DEFAULT_PROVIDERS.find((p) => p.id === activeProviderId)?.models ?? []).map((m) => ({
+            id: m.fullId,
+            displayName: getModelDisplayName(m.fullId),
+          }));
+    return source.filter((m) => m.id !== selectedModelId);
+  })();
+
+  // Other connected providers (not the active one)
+  const otherProviders = Object.entries(settings?.connectedProviders ?? {}).filter(
+    ([id, p]) => id !== activeProviderId && p.connectionStatus === 'connected',
+  ) as Array<[ProviderId, ConnectedProvider]>;
+
+  const handleSelectModel = useCallback(
+    async (modelId: string) => {
+      if (!activeProviderId) {
+        return;
+      }
+      setOpen(false);
+      await updateModel(activeProviderId, modelId);
+    },
+    [activeProviderId, updateModel],
+  );
+
+  const handleSelectProviderModel = useCallback(
+    async (providerId: ProviderId, modelId: string) => {
+      setOpen(false);
+      await updateModel(providerId, modelId);
+      await setActiveProvider(providerId);
+    },
+    [updateModel, setActiveProvider],
+  );
 
   if (loading) {
     return (
@@ -85,12 +121,10 @@ export function ModelIndicator({
     );
   }
 
-  // Hide completely when no model and hideWhenNoModel is true
   if (hideWhenNoModel && !hasModel) {
     return null;
   }
 
-  // When running, just show text without dropdown
   if (isRunning) {
     return (
       <div
@@ -101,6 +135,10 @@ export function ModelIndicator({
       </div>
     );
   }
+
+  const providerLabel = activeProviderId
+    ? (PROVIDER_META[activeProviderId]?.name ?? activeProviderId)
+    : null;
 
   return (
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
@@ -114,10 +152,7 @@ export function ModelIndicator({
           )}
           data-testid="model-indicator-trigger"
         >
-          {/* Warning icon when no model */}
           {isWarning && <Warning className="w-3.5 h-3.5 text-warning flex-shrink-0" />}
-
-          {/* Model name */}
           <span
             className={cn(
               'text-[13px] font-medium',
@@ -126,8 +161,6 @@ export function ModelIndicator({
           >
             {isWarning ? t('model.selectModel') : modelDisplayName}
           </span>
-
-          {/* Chevron */}
           <CaretDown
             className={cn(
               'w-3 h-3 flex-shrink-0 transition-transform duration-150',
@@ -138,31 +171,56 @@ export function ModelIndicator({
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" sideOffset={8} className="w-48 shadow-lg">
-        {/* Current model display */}
+      <DropdownMenuContent align="end" sideOffset={8} className="w-52 shadow-lg">
+        {/* Current model — always first */}
         {hasModel && (
           <>
             <div className="px-3 py-2">
-              <div className="text-[11px] text-muted-foreground/60 uppercase tracking-wide mb-1">
-                {t('model.current')}
+              <div className="text-[11px] text-muted-foreground/60 uppercase tracking-wide mb-0.5">
+                {providerLabel} · {t('model.current')}
               </div>
               <div className="text-sm font-medium text-foreground">{modelDisplayName}</div>
             </div>
-            <DropdownMenuSeparator />
+
+            {/* Same-provider sibling models */}
+            {siblingModels.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                {siblingModels.map((model) => (
+                  <DropdownMenuItem
+                    key={model.id}
+                    disabled={isRunning}
+                    className="px-3 py-2 text-sm cursor-pointer"
+                    onClick={() => void handleSelectModel(model.id)}
+                  >
+                    {model.displayName}
+                  </DropdownMenuItem>
+                ))}
+              </>
+            )}
           </>
         )}
 
-        {/* Change model action */}
-        <DropdownMenuItem
-          onClick={handleOpenSettings}
-          disabled={isRunning}
-          className="gap-2 px-3 py-2 cursor-pointer"
-        >
-          <Gear className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm">
-            {isWarning ? t('model.configureModel') : t('model.changeModel')}
-          </span>
-        </DropdownMenuItem>
+        {/* Warning state — no model configured */}
+        {isWarning && (
+          <div className="px-3 py-2 text-sm text-muted-foreground">{t('model.selectModel')}</div>
+        )}
+
+        {/* Other connected providers */}
+        {otherProviders.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            {otherProviders.map(([providerId, provider]) => (
+              <ProviderSubMenu
+                key={providerId}
+                providerId={providerId}
+                provider={provider}
+                onSelectModel={handleSelectProviderModel}
+                disabled={isRunning}
+              />
+            ))}
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
