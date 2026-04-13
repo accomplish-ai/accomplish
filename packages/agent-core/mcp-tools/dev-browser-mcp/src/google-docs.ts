@@ -18,8 +18,12 @@ export function isGoogleWorkspaceEditorUrl(url: string): boolean {
 export function getGoogleWorkspaceBodyTypingHint(url: string): string | null {
   if (/docs\.google\.com\/document/.test(url))
     return 'Click in the document body first, then type.';
-  if (/sheets\.google\.com/.test(url)) return 'Click a cell first, then type.';
-  if (/slides\.google\.com/.test(url)) return 'Click a text box first, then type.';
+  if (/sheets\.google\.com/.test(url) || /docs\.google\.com\/spreadsheets/.test(url)) {
+    return 'Click a cell first, then type.';
+  }
+  if (/slides\.google\.com/.test(url) || /docs\.google\.com\/presentation/.test(url)) {
+    return 'Click a text box first, then type.';
+  }
   return null;
 }
 
@@ -40,7 +44,7 @@ export async function getGoogleDocsElementType(
   page: Page,
   element: import('playwright').ElementHandle,
 ): Promise<string> {
-  const tag = await element.evaluate((el) => el.tagName.toLowerCase());
+  const tag = await element.evaluate((el) => (el as HTMLElement).tagName.toLowerCase());
   const role = await element.getAttribute('role');
   return role || tag;
 }

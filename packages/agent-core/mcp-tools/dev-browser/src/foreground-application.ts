@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 
 export async function withPreservedForeground<T>(operation: () => Promise<T>): Promise<T> {
   if (process.platform !== 'darwin') {
@@ -21,9 +21,8 @@ export async function withPreservedForeground<T>(operation: () => Promise<T>): P
   } finally {
     if (frontmostApp) {
       try {
-        // Escape backslashes and double quotes for AppleScript
-        const escapedApp = frontmostApp.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        execSync(`osascript -e 'tell application "${escapedApp}" to activate'`, {
+        // Use execFileSync to avoid shell quoting issues
+        execFileSync('osascript', ['-e', `tell application "${frontmostApp}" to activate`], {
           encoding: 'utf8',
           timeout: 2000,
         });

@@ -32,6 +32,7 @@ export class BrowserPageService {
   private readonly registry = new Map<string, PageEntry>();
   private readonly releasedPageUrls = new Map<string, string>();
   private readonly knownTaskPages = new Set<string>();
+  private readonly closeHandlers = new WeakMap<import('playwright').Page, () => void>();
   private readonly windowController: BrowserWindowController;
   private readonly screencastController: BrowserScreencastController;
   private readonly pageStateReader: BrowserPageStateReader;
@@ -44,7 +45,6 @@ export class BrowserPageService {
     });
     this.screencastController = new BrowserScreencastController({
       ensureBrowserContext: options.ensureBrowserContext,
-      windowController: this.windowController,
     });
     this.pageFactory = new BrowserTaskPageFactory({
       ensureBrowserContext: options.ensureBrowserContext,
@@ -62,6 +62,8 @@ export class BrowserPageService {
     return this.registry.has(name);
   }
 
+  private pendingCreations: Map<string, Promise<EnsuredPage>> = new Map();
+
   async ensurePage(body: GetPageRequest): Promise<EnsuredPage> {
     const { name, viewport, initialUrl, keepForegroundUntilFirstFrame, launchIntent } = body;
 
@@ -70,15 +72,30 @@ export class BrowserPageService {
       return { name, targetId: existingEntry.targetId, created: false };
     }
 
-    const createdEntry = await this.createAndRegisterPageEntry({
+    if (this.pendingCreations.has(name)) {
+      const pending = this.pendingCreations.get(name)!;
+      const createdEntry = await pending;
+      return { name, targetId: createdEntry.targetId, created: true };
+    }
+
+    const creationPromise: Promise<EnsuredPage> = this.createAndRegisterPageEntry({
       initialUrl,
       keepForegroundUntilFirstFrame,
       launchIntent,
       name,
       viewport,
-    });
-
-    return { name, targetId: createdEntry.targetId, created: true };
+    }).then((createdEntry) => ({
+      name,
+      targetId: createdEntry.targetId,
+      created: true,
+    }));
+    this.pendingCreations.set(name, creationPromise);
+    try {
+      const ensured = await creationPromise;
+      return ensured;
+    } finally {
+      this.pendingCreations.delete(name);
+    }
   }
 
   async deletePage(name: string): Promise<boolean> {
@@ -112,21 +129,20 @@ export class BrowserPageService {
 
     const activeContext = await this.options.ensureBrowserContext();
     const page = await this.pageFactory.acquirePageForExternalOpen(activeContext);
-    const targetId = await this.windowController.getTargetId(page, activeContext);
-
-    await this.windowController.focusPreparedPage(
-      page,
-      targetId,
-      activeContext,
-      `Focus timed out for external page: ${url}`,
-    );
-
     try {
+      const targetId = await this.windowController.getTargetId(page, activeContext);
+      await this.windowController.focusPreparedPage(
+        page,
+        targetId,
+        activeContext,
+        `Focus timed out for external page: ${url}`,
+      );
       await withTimeout(page.goto(url), 30000, `Navigation timed out for external page: ${url}`);
     } catch (error) {
       if (isClosedPageError(error)) {
         return;
       }
+      await page.close().catch(() => {});
       throw error;
     }
   }
@@ -167,11 +183,12 @@ export class BrowserPageService {
     if (!entry) return null;
 
     try {
-      const activeContext = await this.options.ensureBrowserContext();
+      // Use the page's owning context so CDP sessions are created against the correct BrowserContext
+      const pageContext = entry.page.context();
       await this.windowController.focusPreparedPage(
         entry.page,
         entry.targetId,
-        activeContext,
+        pageContext,
         `Focus timed out for ${name}`,
       );
       entry.windowState = 'normal';
@@ -257,6 +274,13 @@ export class BrowserPageService {
   }
 
   private attachPageCloseHandler(name: string, entry: PageEntry): void {
+    // Remove any previous handler for this page to prevent listener accumulation
+    // when a page is reused across multiple task registrations.
+    const previousHandler = this.closeHandlers.get(entry.page);
+    if (previousHandler) {
+      entry.page.off('close', previousHandler);
+    }
+
     const closeHandler = () => {
       // Validate that the registration is still the same PageEntry before acting
       if (this.registry.get(name) === entry) {
@@ -265,6 +289,7 @@ export class BrowserPageService {
       }
     };
     entry.page.on('close', closeHandler);
+    this.closeHandlers.set(entry.page, closeHandler);
   }
 
   private async runPageOperation(
@@ -412,6 +437,12 @@ export class BrowserPageService {
   }
 
   private async detachReleasedEntry(name: string, entry: PageEntry): Promise<void> {
+    // Remove the close handler so it doesn't fire after the page is recycled
+    const handler = this.closeHandlers.get(entry.page);
+    if (handler) {
+      entry.page.off('close', handler);
+      this.closeHandlers.delete(entry.page);
+    }
     await this.screencastController.stop(entry);
     this.registry.delete(name);
   }
@@ -429,7 +460,8 @@ export class BrowserPageService {
    * Called immediately after attaching the startup page in serve().
    */
   async backgroundStartupPage(page: Page): Promise<void> {
-    const ctx = await this.options.ensureBrowserContext();
+    // Use the page's owning context so CDP sessions are created against the correct BrowserContext
+    const ctx = page.context();
     await this.windowController.backgroundPage(page, ctx);
   }
 
@@ -444,7 +476,8 @@ export class BrowserPageService {
     }
 
     try {
-      const ctx = await this.options.ensureBrowserContext();
+      // Use the page's owning context so CDP sessions are created against the correct BrowserContext
+      const ctx = entry.page.context();
       await this.windowController.backgroundPage(entry.page, ctx);
       entry.windowState = 'minimized';
     } catch (error) {

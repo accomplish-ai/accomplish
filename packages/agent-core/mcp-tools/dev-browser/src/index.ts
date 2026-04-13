@@ -43,64 +43,78 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     let browserContext: BrowserContext;
     let usedSystemChrome = false;
 
-    if (useSystemChrome) {
-      try {
-        console.log('Trying to use system Chrome...');
-        const chromeUserDataDir = join(baseProfileDir, 'chrome-profile');
-        mkdirSync(chromeUserDataDir, { recursive: true });
-        browserContext = await chromium.launchPersistentContext(chromeUserDataDir, {
+    try {
+      if (useSystemChrome) {
+        try {
+          console.log('Trying to use system Chrome...');
+          const chromeUserDataDir = join(baseProfileDir, 'chrome-profile');
+          mkdirSync(chromeUserDataDir, { recursive: true });
+          browserContext = await chromium.launchPersistentContext(chromeUserDataDir, {
+            headless,
+            channel: 'chrome',
+            ignoreDefaultArgs: ['--enable-automation'],
+            args: [
+              `--remote-debugging-port=${cdpPort}`,
+              '--disable-blink-features=AutomationControlled',
+            ],
+          });
+          usedSystemChrome = true;
+          console.log('Using system Chrome');
+        } catch {
+          console.log('System Chrome not available, falling back to Playwright Chromium...');
+        }
+      }
+
+      if (!usedSystemChrome) {
+        const playwrightUserDataDir = join(baseProfileDir, 'playwright-profile');
+        mkdirSync(playwrightUserDataDir, { recursive: true });
+        browserContext = await chromium.launchPersistentContext(playwrightUserDataDir, {
           headless,
-          channel: 'chrome',
           ignoreDefaultArgs: ['--enable-automation'],
           args: [
             `--remote-debugging-port=${cdpPort}`,
             '--disable-blink-features=AutomationControlled',
           ],
         });
-        usedSystemChrome = true;
-        console.log('Using system Chrome');
-      } catch {
-        console.log('System Chrome not available, falling back to Playwright Chromium...');
       }
-    }
 
-    if (!usedSystemChrome) {
-      const playwrightUserDataDir = join(baseProfileDir, 'playwright-profile');
-      mkdirSync(playwrightUserDataDir, { recursive: true });
-      browserContext = await chromium.launchPersistentContext(playwrightUserDataDir, {
-        headless,
-        ignoreDefaultArgs: ['--enable-automation'],
-        args: [
-          `--remote-debugging-port=${cdpPort}`,
-          '--disable-blink-features=AutomationControlled',
-        ],
+      const cdpResponse = await fetchWithRetry(`http://127.0.0.1:${cdpPort}/json/version`);
+      const cdpInfo = (await cdpResponse.json()) as { webSocketDebuggerUrl: string };
+      _wsEndpoint = cdpInfo.webSocketDebuggerUrl;
+      console.log(`CDP WebSocket endpoint: ${_wsEndpoint}`);
+
+      _browserContext = browserContext!;
+
+      // Attach any startup page (blank tab Chrome opens on launch)
+      const startupPages = browserContext!.pages();
+      const blankStartup = startupPages.find((p) => p.url() === 'about:blank') ?? null;
+      if (blankStartup) {
+        pageService.attachStartupPage(blankStartup);
+        // Minimize the blank startup tab immediately so no Chrome window appears.
+        // Fire-and-forget: a CDP timing error here (Browser.getWindowForTarget not yet ready)
+        // must NOT reject _launchPromise — that would make every subsequent POST /pages
+        // throw immediately with a 500.  Window minimization is best-effort.
+        void pageService.backgroundPage(blankStartup, browserContext!).catch(() => {});
+      }
+
+      // Reset cached state when the browser context closes so ensureBrowserContext()
+      // retries on the next call instead of returning a stale resolved promise.
+      browserContext!.on('close', () => {
+        console.log('Browser context closed.');
+        _launchPromise = null;
+        _browserContext = null;
+        _wsEndpoint = '';
       });
+
+      return browserContext!;
+    } catch (error) {
+      // Reset so the next ensureBrowserContext() call retries Chrome launch
+      // instead of immediately re-throwing from a permanently-rejected promise.
+      _launchPromise = null;
+      _browserContext = null;
+      _wsEndpoint = '';
+      throw error;
     }
-
-    const cdpResponse = await fetchWithRetry(`http://127.0.0.1:${cdpPort}/json/version`);
-    const cdpInfo = (await cdpResponse.json()) as { webSocketDebuggerUrl: string };
-    _wsEndpoint = cdpInfo.webSocketDebuggerUrl;
-    console.log(`CDP WebSocket endpoint: ${_wsEndpoint}`);
-
-    _browserContext = browserContext!;
-
-    // Attach any startup page (blank tab Chrome opens on launch)
-    const startupPages = browserContext!.pages();
-    const blankStartup = startupPages.find((p) => p.url() === 'about:blank') ?? null;
-    if (blankStartup) {
-      pageService.attachStartupPage(blankStartup);
-      // Minimize the blank startup tab immediately so no Chrome window appears.
-      // Fire-and-forget: a CDP timing error here (Browser.getWindowForTarget not yet ready)
-      // must NOT reject _launchPromise — that would make every subsequent POST /pages
-      // throw immediately with a 500.  Window minimization is best-effort.
-      void pageService.backgroundPage(blankStartup, browserContext!).catch(() => {});
-    }
-
-    browserContext!.on('close', () => {
-      console.log('Browser context closed.');
-    });
-
-    return browserContext!;
   }
 
   function ensureBrowserContext(): Promise<BrowserContext> {
@@ -163,6 +177,13 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
       const { url } = req.body as { url: string };
       if (!url) {
         res.status(400).json({ error: 'url is required' });
+        return;
+      }
+      try {
+        // Validate URL format
+        new URL(url);
+      } catch {
+        res.status(400).json({ error: 'invalid url' });
         return;
       }
       await pageService.openExternalPage(url);

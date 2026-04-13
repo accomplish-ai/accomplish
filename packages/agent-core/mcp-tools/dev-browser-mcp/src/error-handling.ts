@@ -10,7 +10,7 @@ export function toAIFriendlyError(error: unknown, context: string): Error {
     );
   }
 
-  if (message.includes('intercepts pointer events') || message.includes('element is not visible')) {
+  if (message.includes('intercepts pointer events')) {
     return new Error(
       `"${context}" is blocked by an overlay. ` +
         `Try: 1) Dismiss the overlay, 2) Press Escape, 3) Click outside it. Then retry.`,

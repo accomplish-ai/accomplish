@@ -87,4 +87,4 @@ packages/agent-core/mcp-tools/*/package-lock.json
 packages/agent-core/mcp-tools/package-lock.json
 /.run/
 packages/agent-core/mcp-tools/dev-browser/server.mjs
-packages/agent-core/mcp-tools/dev-browser/.browser-data
+packages/agent-core/mcp-tools/dev-browser/.browser-data/

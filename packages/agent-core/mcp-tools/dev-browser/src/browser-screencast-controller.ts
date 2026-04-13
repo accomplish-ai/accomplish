@@ -5,11 +5,9 @@ import {
   SCREENCAST_FRAME_POLL_MS,
   isScreencastFrameStale,
 } from './browser-page-service-state.js';
-import type { BrowserWindowController } from './browser-window-controller.js';
 
 export interface BrowserScreencastControllerOptions {
   ensureBrowserContext: () => Promise<BrowserContext>;
-  windowController: BrowserWindowController;
 }
 
 export class BrowserScreencastController {

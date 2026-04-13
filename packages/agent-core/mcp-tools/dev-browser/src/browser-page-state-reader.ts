@@ -85,11 +85,17 @@ export class BrowserPageStateReader {
       error instanceof Error
         ? { message: error.message, stack: error.stack }
         : { message: String(error) };
+    let url: string | undefined = undefined;
+    try {
+      url = entry.page.url();
+    } catch {
+      url = '<unavailable>';
+    }
     console.error('[dev-browser] page operation failed', {
       operation,
       name,
       targetId: entry.targetId,
-      url: entry.page.url(),
+      url,
       error: errorDetails,
     });
   }

@@ -283,7 +283,7 @@ export class BrowserTaskPageFactory {
           page,
           options.browserContext,
         );
-        const windowState = options.launchMode === 'background-normal' ? 'normal' : 'normal';
+        const windowState = 'normal';
         const backgroundAfterFirstFrame = options.launchMode === 'minimized-once';
         return {
           page,

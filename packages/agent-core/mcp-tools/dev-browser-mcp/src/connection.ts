@@ -58,17 +58,21 @@ async function clearCachedBrowser(): Promise<void> {
   await _manager.clearCachedBrowser();
 }
 
-// Read from environment and update singleton config
-export async function configureFromEnv(): Promise<ConnectionConfig> {
+// Read from environment and update singleton config.
+// Synchronous so callers at module-load and in tests can read the returned
+// ConnectionConfig immediately.  Browser disconnection is fire-and-forget —
+// the next tool call will reconnect with the new config.
+export function configureFromEnv(): ConnectionConfig {
   const newConfig = buildConfigFromEnv();
-  await clearCachedBrowser();
+  void clearCachedBrowser();
   _config = newConfig;
   return _config;
 }
 
-// Update singleton config directly (for testing or runtime reconfiguration)
-export async function configure(config: ConnectionConfig): Promise<void> {
-  await clearCachedBrowser();
+// Update singleton config directly (for testing or runtime reconfiguration).
+// Synchronous for the same reason as configureFromEnv.
+export function configure(config: ConnectionConfig): void {
+  void clearCachedBrowser();
   _config = config;
 }
 
@@ -133,8 +137,17 @@ export async function closePage(pageName?: string): Promise<boolean> {
 
   if (_config.mode === 'builtin') {
     const url = `${_config.devBrowserUrl}/pages/${encodeURIComponent(fullName)}`;
-    const res = await fetch(url, { method: 'DELETE' });
-    return res.ok;
+    try {
+      const res = await fetch(url, { method: 'DELETE' });
+      if (!res.ok) {
+        console.error(`Failed to close page "${fullName}" via fetch:`, res.status, res.statusText);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error(`Failed to close page "${fullName}" via fetch:`, err);
+      return false;
+    }
   }
 
   const registry = _manager.getLocalPageRegistry();

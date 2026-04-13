@@ -86,6 +86,12 @@ export class BrowserWindowController {
       browserContext,
     ).catch((error) => {
       if (isClosedPageError(error)) throw error;
+      console.warn('[syncWindowToViewport] setWindowContentsSizeForPage failed', {
+        targetId,
+        viewport,
+        pageId: page?.id?.(),
+        error,
+      });
     });
     await this.normalizeWindowBoundsForPage(
       page,
@@ -95,6 +101,12 @@ export class BrowserWindowController {
       browserContext,
     ).catch((error) => {
       if (isClosedPageError(error)) throw error;
+      console.warn('[syncWindowToViewport] normalizeWindowBoundsForPage failed', {
+        targetId,
+        viewport,
+        pageId: page?.id?.(),
+        error,
+      });
     });
   }
 

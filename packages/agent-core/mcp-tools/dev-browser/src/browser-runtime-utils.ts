@@ -13,9 +13,10 @@ export function isClosedPageError(error: unknown): boolean {
 
 export function isTransientNavigationContextError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
+  // Only match Cannot read properties of null (reading '...') which is common in navigation context errors
   return (
     /Execution context was destroyed/i.test(message) ||
-    /Cannot read properties of null/i.test(message)
+    /Cannot read properties of null \(reading '.+'\)/i.test(message)
   );
 }
 

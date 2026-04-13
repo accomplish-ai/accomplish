@@ -13,25 +13,76 @@ export interface BrowserSnapshotInput {
   max_tokens?: number; // default 8000, range 1000-50000
 }
 
-export interface BrowserClickInput {
-  ref?: string; // element reference from snapshot (e.g. "e5")
-  selector?: string; // CSS / XPath selector
-  x?: number; // absolute coordinates
-  y?: number;
-  position?: 'center' | 'center-lower';
-  button?: 'left' | 'right' | 'middle';
-  click_count?: number;
-  trigger_ref?: string; // ref of element that triggers a popup/dropdown
-  page_name?: string;
-}
+export type BrowserClickInput =
+  | {
+      target: 'ref';
+      ref: string;
+      position?: 'center' | 'center-lower';
+      button?: 'left' | 'right' | 'middle';
+      click_count?: number;
+      trigger_ref?: string;
+      page_name?: string;
+    }
+  | {
+      target: 'selector';
+      selector: string;
+      position?: 'center' | 'center-lower';
+      button?: 'left' | 'right' | 'middle';
+      click_count?: number;
+      trigger_ref?: string;
+      page_name?: string;
+    }
+  | {
+      target: 'coords';
+      x: number;
+      y: number;
+      position?: 'center' | 'center-lower';
+      button?: 'left' | 'right' | 'middle';
+      click_count?: number;
+      trigger_ref?: string;
+      page_name?: string;
+    };
 
-export interface BrowserTypeInput {
-  ref?: string;
-  selector?: string;
-  text: string;
-  press_enter?: boolean;
-  page_name?: string;
-}
+export type BrowserTypeInput =
+  | { target: 'ref'; ref: string; text: string; press_enter?: boolean; page_name?: string }
+  | {
+      target: 'selector';
+      selector: string;
+      text: string;
+      press_enter?: boolean;
+      page_name?: string;
+    };
+
+export type BrowserHoverInput =
+  | { target: 'ref'; ref: string; page_name?: string }
+  | { target: 'selector'; selector: string; page_name?: string }
+  | { target: 'coords'; x: number; y: number; page_name?: string };
+
+// BrowserScrollInput, BrowserSelectInput already refactored above
+
+export type BrowserGetTextInput =
+  | { target: 'ref'; ref: string; page_name?: string }
+  | { target: 'selector'; selector: string; page_name?: string };
+
+export type BrowserIsVisibleInput =
+  | { target: 'ref'; ref: string; page_name?: string }
+  | { target: 'selector'; selector: string; page_name?: string };
+
+export type BrowserIsEnabledInput =
+  | { target: 'ref'; ref: string; page_name?: string }
+  | { target: 'selector'; selector: string; page_name?: string };
+
+export type BrowserIsCheckedInput =
+  | { target: 'ref'; ref: string; page_name?: string }
+  | { target: 'selector'; selector: string; page_name?: string };
+
+export type BrowserDragInput =
+  | { target: 'ref'; ref: string; to: { x: number; y: number }; page_name?: string }
+  | { target: 'selector'; selector: string; to: { x: number; y: number }; page_name?: string };
+
+export type BrowserFileUploadInput =
+  | { target: 'ref'; ref: string; file_path: string; page_name?: string }
+  | { target: 'selector'; selector: string; file_path: string; page_name?: string };
 
 export interface BrowserScreenshotInput {
   page_name?: string;
@@ -43,12 +94,9 @@ export interface BrowserEvaluateInput {
   page_name?: string;
 }
 
-export interface BrowserKeyboardInput {
-  text?: string; // characters to type via keyboard events
-  key?: string; // single key name e.g. "Enter", "ArrowDown"
-  typing_delay?: number; // ms between keystrokes
-  page_name?: string;
-}
+export type BrowserKeyboardInput =
+  | { text: string; key?: never; typing_delay?: number; page_name?: string }
+  | { key: string; text?: never; typing_delay?: number; page_name?: string };
 
 export interface SequenceAction {
   action: 'click' | 'type' | 'snapshot' | 'screenshot' | 'wait';
@@ -86,11 +134,11 @@ export interface ScriptAction {
   ref?: string;
   text?: string;
   key?: string;
-  pressEnter?: boolean;
+  press_enter?: boolean;
   timeout?: number;
-  fullPage?: boolean;
+  full_page?: boolean;
   code?: string;
-  skipIfNotFound?: boolean;
+  skip_if_not_found?: boolean;
 }
 
 export interface BrowserScriptInput {
@@ -98,78 +146,33 @@ export interface BrowserScriptInput {
   page_name?: string;
 }
 
-export interface BrowserScrollInput {
-  direction?: 'up' | 'down' | 'left' | 'right';
-  amount?: number;
-  ref?: string;
-  selector?: string;
-  position?: 'top' | 'bottom';
-  page_name?: string;
-}
+export type BrowserScrollInput =
+  | {
+      mode: 'relative';
+      direction: 'up' | 'down' | 'left' | 'right';
+      amount: number;
+      page_name?: string;
+    }
+  | { mode: 'absolute'; position: 'top' | 'bottom'; page_name?: string }
+  | {
+      mode: 'element';
+      selector?: string;
+      ref?: string;
+      amount?: number;
+      direction?: 'up' | 'down' | 'left' | 'right';
+      page_name?: string;
+    };
 
-export interface BrowserHoverInput {
-  ref?: string;
-  selector?: string;
-  x?: number;
-  y?: number;
-  page_name?: string;
-}
-
-export interface BrowserSelectInput {
-  ref?: string;
-  selector?: string;
-  value?: string;
-  label?: string;
-  index?: number;
-  page_name?: string;
-}
+export type BrowserSelectInput =
+  | { method: 'value'; value: string; selector?: string; ref?: string; page_name?: string }
+  | { method: 'label'; label: string; selector?: string; ref?: string; page_name?: string }
+  | { method: 'index'; index: number; selector?: string; ref?: string; page_name?: string };
 
 export interface BrowserWaitInput {
   condition: 'selector' | 'hidden' | 'navigation' | 'network_idle' | 'timeout' | 'function';
   selector?: string;
   script?: string;
   timeout?: number;
-  page_name?: string;
-}
-
-export interface BrowserFileUploadInput {
-  ref?: string;
-  selector?: string;
-  files: string[];
-  page_name?: string;
-}
-
-export interface BrowserDragInput {
-  source_ref?: string;
-  source_selector?: string;
-  source_x?: number;
-  source_y?: number;
-  target_ref?: string;
-  target_selector?: string;
-  target_x?: number;
-  target_y?: number;
-  page_name?: string;
-}
-
-export interface BrowserGetTextInput {
-  ref?: string;
-  selector?: string;
-  page_name?: string;
-}
-
-export interface BrowserIsVisibleInput {
-  ref?: string;
-  selector?: string;
-  page_name?: string;
-}
-export interface BrowserIsEnabledInput {
-  ref?: string;
-  selector?: string;
-  page_name?: string;
-}
-export interface BrowserIsCheckedInput {
-  ref?: string;
-  selector?: string;
   page_name?: string;
 }
 

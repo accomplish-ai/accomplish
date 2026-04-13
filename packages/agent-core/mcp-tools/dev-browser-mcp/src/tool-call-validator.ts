@@ -22,8 +22,8 @@ export function validateToolCall(toolName: string, args: unknown): ValidationRes
     return { valid: false, errors: [`Unknown tool: ${toolName}`] };
   }
 
-  if (!args || typeof args !== 'object') {
-    return { valid: false, errors: ['Arguments must be an object'] };
+  if (!args || typeof args !== 'object' || Array.isArray(args) || args === null) {
+    return { valid: false, errors: ['Arguments must be a non-null object and not an array'] };
   }
 
   const required = Array.isArray(schema['required'])

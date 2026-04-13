@@ -28,9 +28,28 @@ export async function tryAutoReopen(
   if (!triggerRef) return;
   const isClosed = await page.evaluate(() => {
     const popup = document.querySelector('[role="listbox"], [role="menu"], [role="dialog"]');
-    return !popup || (popup as HTMLElement).offsetParent === null;
+    if (!popup) return true;
+    const rects = popup.getClientRects();
+    const style = window.getComputedStyle(popup as HTMLElement);
+    const isHidden = style.visibility === 'hidden' || style.display === 'none';
+    const bounds = (popup as HTMLElement).getBoundingClientRect();
+    return rects.length === 0 || isHidden || bounds.width === 0 || bounds.height === 0;
   });
   if (isClosed) {
-    await element.click().catch(() => {});
+    try {
+      await element.click();
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (
+        msg.includes('Node is detached') ||
+        msg.includes('Execution context was destroyed') ||
+        msg.includes('navigation')
+      ) {
+        // Known transient error, suppress
+      } else {
+        console.warn('tryAutoReopen: element.click() failed:', error);
+        throw error;
+      }
+    }
   }
 }

@@ -24,22 +24,29 @@ export async function detectChangesAfterClick(
       }
     });
     observer.observe(document.body, { childList: true, subtree: true, attributes: true });
-    (window as Window & Record<string, unknown>).__clickObserver = { observer, result };
+    (window as unknown as Record<string, unknown>).__clickObserver = { observer, result };
   };
 
   await page.evaluate(observerScript);
-  await clickFn();
-  await page.waitForTimeout(Math.min(timeoutMs, 500));
-
-  const mutationResult = await page
-    .evaluate(() => {
-      const state = (window as Window & Record<string, unknown>).__clickObserver as
-        | { observer: MutationObserver; result: { addedNodes: number; removedNodes: number } }
-        | undefined;
-      if (state) state.observer.disconnect();
-      return state?.result ?? { addedNodes: 0, removedNodes: 0 };
-    })
-    .catch(() => ({ addedNodes: 0, removedNodes: 0 }));
+  let mutationResult: { addedNodes: number; removedNodes: number } = {
+    addedNodes: 0,
+    removedNodes: 0,
+  };
+  try {
+    await clickFn();
+    await page.waitForTimeout(timeoutMs);
+  } finally {
+    mutationResult = await page
+      .evaluate(() => {
+        const state = (window as unknown as Record<string, unknown>).__clickObserver as
+          | { observer: MutationObserver; result: { addedNodes: number; removedNodes: number } }
+          | undefined;
+        if (state) state.observer.disconnect();
+        delete (window as unknown as Record<string, unknown>).__clickObserver;
+        return state?.result ?? { addedNodes: 0, removedNodes: 0 };
+      })
+      .catch(() => ({ addedNodes: 0, removedNodes: 0 }));
+  }
 
   const urlAfter = page.url();
   const urlChanged = urlAfter !== urlBefore;
