@@ -21,6 +21,7 @@ export {
   getBundledOpenCodeVersion,
   cleanupVertexServiceAccountKey,
   recoverDevBrowserServer,
+  stopDevBrowserServer,
 } from './electron-options';
 
 export {

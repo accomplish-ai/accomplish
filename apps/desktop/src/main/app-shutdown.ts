@@ -4,7 +4,7 @@
  */
 
 import { app } from 'electron';
-import { cleanupVertexServiceAccountKey } from './opencode';
+import { cleanupVertexServiceAccountKey, stopDevBrowserServer } from './opencode';
 import { stopAllBrowserPreviewStreams } from './services/browserPreview';
 import { oauthBrowserFlow } from './opencode/auth-browser';
 import { slackMcpOAuthFlow } from './opencode/slack-auth';
@@ -32,6 +32,12 @@ async function raceTimeout<T>(promise: Promise<T>, ms: number, label: string): P
 export async function shutdownApp(logger: AppLogger): Promise<void> {
   destroyTray();
   shutdownDaemon();
+
+  try {
+    stopDevBrowserServer();
+  } catch (error: unknown) {
+    logger?.logEnv('ERROR', `[Main] Failed to stop dev-browser server: ${String(error)}`);
+  }
 
   try {
     await raceTimeout(stopAllBrowserPreviewStreams(), 5000, 'Stopping browser preview streams');

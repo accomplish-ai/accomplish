@@ -53,17 +53,16 @@ export function getLocalIcon(domain: string): string | undefined {
   return undefined;
 }
 
-export function getFaviconUrl(domain: string, size: number = 16): string {
+export function getFaviconUrl(domain: string, _size: number = 16): string {
   const encodedDomain = encodeURIComponent(domain);
-  return (
-    getLocalIcon(domain) ?? `https://www.google.com/s2/favicons?domain=${encodedDomain}&sz=${size}`
-  );
+  // DuckDuckGo's favicon service always returns HTTP 200 (generic icon for unknown domains),
+  // unlike Google's s2/favicons which 404s for domains it doesn't index.
+  return getLocalIcon(domain) ?? `https://icons.duckduckgo.com/ip3/${encodedDomain}.ico`;
 }
 
 export function IntegrationIcon({ domain, className }: { domain: string; className?: string }) {
   const encodedDomain = encodeURIComponent(domain);
-  const src =
-    getLocalIcon(domain) ?? `https://www.google.com/s2/favicons?domain=${encodedDomain}&sz=128`;
+  const src = getLocalIcon(domain) ?? `https://icons.duckduckgo.com/ip3/${encodedDomain}.ico`;
   return (
     <img
       alt={domain}

@@ -75,6 +75,10 @@ function getStatusDotClass(displayStatus: string): string {
   }
 }
 
+// Skips overwriting transitional states (starting/stopping/reconnecting)
+// to prevent the polling loop from defeating intentional state transitions.
+const TRANSITIONAL_STATES = new Set(['starting', 'stopping', 'reconnecting']);
+
 export function DaemonSection() {
   const accomplish = useAccomplish();
   const { t } = useTranslation('settings');
@@ -89,11 +93,6 @@ export function DaemonSection() {
   const [lastPing, setLastPing] = useState<Date | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Poll daemon for uptime/lastPing — status comes from store.
-  // Skips overwriting transitional states (starting/stopping/reconnecting)
-  // to prevent the polling loop from defeating intentional state transitions.
-  const TRANSITIONAL_STATES = new Set(['starting', 'stopping', 'reconnecting']);
 
   const pollStatus = useCallback(async () => {
     try {

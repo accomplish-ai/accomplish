@@ -25,16 +25,29 @@ export async function tryAutoReopen(
   element: ElementHandle,
 ): Promise<void> {
   // If a trigger ref is specified, clicking the trigger may close a popup — reopen it
-  if (!triggerRef) return;
-  const isClosed = await page.evaluate(() => {
-    const popup = document.querySelector('[role="listbox"], [role="menu"], [role="dialog"]');
-    if (!popup) return true;
+  if (!triggerRef) {
+    return;
+  }
+  const isClosed = await page.evaluate((selector) => {
+    const triggerEl = document.querySelector(selector);
+    if (!triggerEl) {
+      return true;
+    }
+    // Search relative to the trigger: check closest ancestor popup, then sibling popups
+    // within the same parent container to avoid matching unrelated UI.
+    const popup =
+      triggerEl.closest('[role="listbox"], [role="menu"], [role="dialog"]') ??
+      triggerEl.parentElement?.querySelector('[role="listbox"], [role="menu"], [role="dialog"]') ??
+      null;
+    if (!popup) {
+      return true;
+    }
     const rects = popup.getClientRects();
     const style = window.getComputedStyle(popup as HTMLElement);
     const isHidden = style.visibility === 'hidden' || style.display === 'none';
     const bounds = (popup as HTMLElement).getBoundingClientRect();
     return rects.length === 0 || isHidden || bounds.width === 0 || bounds.height === 0;
-  });
+  }, triggerRef);
   if (isClosed) {
     try {
       await element.click();

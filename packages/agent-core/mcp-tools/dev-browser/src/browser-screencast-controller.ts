@@ -1,4 +1,3 @@
-import type { BrowserContext } from 'playwright';
 import type { PageEntry } from './browser-page-service-state.js';
 import {
   SCREENCAST_FIRST_FRAME_TIMEOUT_MS,
@@ -6,13 +5,7 @@ import {
   isScreencastFrameStale,
 } from './browser-page-service-state.js';
 
-export interface BrowserScreencastControllerOptions {
-  ensureBrowserContext: () => Promise<BrowserContext>;
-}
-
 export class BrowserScreencastController {
-  constructor(private readonly options: BrowserScreencastControllerOptions) {}
-
   async captureScreenshot(entry: PageEntry, quality: number): Promise<Buffer> {
     await this.ensureScreencastRunning(entry, quality);
     return this.pollForFreshFrame(entry);
@@ -71,8 +64,7 @@ export class BrowserScreencastController {
 
   private async startScreencast(entry: PageEntry, quality: number): Promise<void> {
     const { screencast, page } = entry;
-    const context = await this.options.ensureBrowserContext();
-    const session = await context.newCDPSession(page);
+    const session = await page.context().newCDPSession(page);
     screencast.session = session;
     screencast.quality = quality;
     screencast.latestFrame = null;

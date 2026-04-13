@@ -35,18 +35,18 @@ export function useWhatsAppSubscriptions({
   fetchConfig,
   normalizeStatus,
 }: UseWhatsAppSubscriptionsOptions) {
-  const clearTimers = () => {
-    if (qrTimerRef.current) {
-      clearInterval(qrTimerRef.current);
-      qrTimerRef.current = null;
-    }
-    if (connectTimeoutRef.current) {
-      clearTimeout(connectTimeoutRef.current);
-      connectTimeoutRef.current = null;
-    }
-  };
-
   useEffect(() => {
+    const clearTimers = () => {
+      if (qrTimerRef.current) {
+        clearInterval(qrTimerRef.current);
+        qrTimerRef.current = null;
+      }
+      if (connectTimeoutRef.current) {
+        clearTimeout(connectTimeoutRef.current);
+        connectTimeoutRef.current = null;
+      }
+    };
+
     const unsubQR = accomplish.onWhatsAppQR((qr: string) => {
       setQrCode(qr);
       setQrExpiresAt(Date.now() + QR_EXPIRY_SECONDS * 1000);

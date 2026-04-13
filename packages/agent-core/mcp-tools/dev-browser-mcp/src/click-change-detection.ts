@@ -41,7 +41,9 @@ export async function detectChangesAfterClick(
         const state = (window as unknown as Record<string, unknown>).__clickObserver as
           | { observer: MutationObserver; result: { addedNodes: number; removedNodes: number } }
           | undefined;
-        if (state) state.observer.disconnect();
+        if (state) {
+          state.observer.disconnect();
+        }
         delete (window as unknown as Record<string, unknown>).__clickObserver;
         return state?.result ?? { addedNodes: 0, removedNodes: 0 };
       })

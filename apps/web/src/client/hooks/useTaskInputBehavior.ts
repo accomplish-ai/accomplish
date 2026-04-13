@@ -51,7 +51,14 @@ export function useTaskInputBehavior({
       pendingAutoSubmitRef.current = null;
       onSubmit();
     }
-  }, [autoSubmitOnTranscription, isInputDisabled, isOverLimit, onSubmit, value]);
+  }, [
+    autoSubmitOnTranscription,
+    isInputDisabled,
+    isOverLimit,
+    onSubmit,
+    pendingAutoSubmitRef,
+    value,
+  ]);
 
   useEffect(() => {
     const textarea = textareaRef.current;

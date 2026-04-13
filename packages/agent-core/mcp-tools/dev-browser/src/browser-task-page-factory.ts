@@ -19,17 +19,27 @@ export interface BrowserTaskPageFactoryOptions {
 
 export class BrowserTaskPageFactory {
   private reusableStartupPage: Page | null = null;
+  private readonly startupCloseHandlers = new WeakMap<Page, () => void>();
 
   constructor(private readonly options: BrowserTaskPageFactoryOptions) {}
 
   attachStartupPage(page: Page | null): void {
     if (page && isReusableStartupPageUrl(page.url())) {
+      // Remove any existing handler for this page before adding a new one
+      // to prevent accumulation when the same page is recycled multiple times.
+      const prevHandler = this.startupCloseHandlers.get(page);
+      if (prevHandler) {
+        page.off('close', prevHandler);
+      }
       this.reusableStartupPage = page;
-      page.once('close', () => {
+      const closeHandler = () => {
         if (this.reusableStartupPage === page) {
           this.reusableStartupPage = null;
         }
-      });
+        this.startupCloseHandlers.delete(page);
+      };
+      this.startupCloseHandlers.set(page, closeHandler);
+      page.once('close', closeHandler);
       return;
     }
     this.reusableStartupPage = null;

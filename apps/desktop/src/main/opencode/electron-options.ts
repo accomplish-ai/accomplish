@@ -100,6 +100,7 @@ export async function onBeforeStart(): Promise<void> {
 const BROWSER_RECOVERY_COOLDOWN_MS = 30_000;
 let browserEnsurePromise: Promise<void> | null = null;
 let lastBrowserRecoveryAt = 0;
+let _devBrowserPid: number | null = null;
 
 function getBrowserServerConfig(): BrowserServerConfig {
   const bundledPaths = getBundledNodePaths();
@@ -117,12 +118,33 @@ async function ensureBrowserServer(callbacks?: Pick<TaskCallbacks, 'onProgress'>
 
   const browserConfig = getBrowserServerConfig();
   browserEnsurePromise = ensureDevBrowserServer(browserConfig, callbacks?.onProgress)
-    .then(() => undefined)
+    .then((result) => {
+      if (result.pid != null) {
+        _devBrowserPid = result.pid;
+      }
+    })
     .finally(() => {
       browserEnsurePromise = null;
     });
 
   return browserEnsurePromise;
+}
+
+export function stopDevBrowserServer(): void {
+  if (_devBrowserPid == null) {
+    return;
+  }
+  try {
+    process.kill(_devBrowserPid, 'SIGTERM');
+    logOC('INFO', `[Browser] Sent SIGTERM to dev-browser process (PID: ${_devBrowserPid})`);
+  } catch (error: unknown) {
+    // ESRCH means process already exited — not an error
+    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
+      logOC('WARN', `[Browser] Failed to stop dev-browser process: ${String(error)}`);
+    }
+  } finally {
+    _devBrowserPid = null;
+  }
 }
 
 export async function recoverDevBrowserServer(
@@ -156,7 +178,10 @@ export async function onBeforeTaskStart(
   }
 
   const browserConfig = getBrowserServerConfig();
-  await ensureDevBrowserServer(browserConfig, callbacks.onProgress);
+  const result = await ensureDevBrowserServer(browserConfig, callbacks.onProgress);
+  if (result.pid != null) {
+    _devBrowserPid = result.pid;
+  }
 }
 
 export function createElectronTaskManagerOptions(): TaskManagerOptions {

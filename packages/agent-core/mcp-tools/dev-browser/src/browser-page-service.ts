@@ -43,9 +43,7 @@ export class BrowserPageService {
     this.pageStateReader = new BrowserPageStateReader({
       ensureBrowserContext: options.ensureBrowserContext,
     });
-    this.screencastController = new BrowserScreencastController({
-      ensureBrowserContext: options.ensureBrowserContext,
-    });
+    this.screencastController = new BrowserScreencastController();
     this.pageFactory = new BrowserTaskPageFactory({
       ensureBrowserContext: options.ensureBrowserContext,
       headless: options.headless,

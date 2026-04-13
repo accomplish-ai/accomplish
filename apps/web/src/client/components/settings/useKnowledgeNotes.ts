@@ -84,6 +84,7 @@ export function useKnowledgeNotes(
         }
       });
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       activeRequestRef.current++;
     };
   }, [accomplish, workspaceId]);

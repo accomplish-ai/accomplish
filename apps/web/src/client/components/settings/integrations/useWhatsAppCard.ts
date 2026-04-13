@@ -62,8 +62,10 @@ export function useWhatsAppCard(): WhatsAppCardState & WhatsAppCardActions {
     return () => clearTimeout(timer);
   }, [confirmDisconnect]);
 
-  // Cleanup timers on unmount
+  // Cleanup timers on unmount. Reads .current in the cleanup function intentionally —
+  // we want whatever timers are active at unmount time, not the values at mount time.
   useEffect(() => {
+    /* eslint-disable react-hooks/exhaustive-deps */
     return () => {
       if (qrTimerRef.current) {
         clearInterval(qrTimerRef.current);
@@ -72,7 +74,8 @@ export function useWhatsAppCard(): WhatsAppCardState & WhatsAppCardActions {
         clearTimeout(connectTimeoutRef.current);
       }
     };
-  }, []);
+    /* eslint-enable react-hooks/exhaustive-deps */
+  }, [qrTimerRef, connectTimeoutRef]);
 
   const fetchConfig = useCallback(async () => {
     try {
