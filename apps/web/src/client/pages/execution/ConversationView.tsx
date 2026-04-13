@@ -6,6 +6,7 @@ import { springs } from '../../lib/animations';
 import { isWaitingForUser } from '../../lib/waiting-detection';
 import { MessageBubble } from '../../components/execution/MessageList';
 import { ToolProgress } from '../../components/execution/ToolProgress';
+import { BrowserPreview } from '../../components/execution/BrowserPreview';
 import { PermissionDialog } from '../../components/execution/PermissionDialog';
 import { TodoSidebar } from '../../components/TodoSidebar';
 import type { Task, PermissionRequest, TodoItem } from '@accomplish_ai/agent-core/common';
@@ -123,6 +124,8 @@ export function ConversationView(props: ConversationViewProps) {
             taskId={taskId}
             elapsedTime={elapsedTime}
           />
+
+          {taskId && <BrowserPreview taskId={taskId} currentTool={currentTool} />}
 
           <AnimatePresence>
             {permissionRequest && (

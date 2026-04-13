@@ -79,8 +79,12 @@ export function useBrowserPreview({
     if (!currentTool) {
       return;
     }
-    const isBrowserTool =
-      currentTool.startsWith('browser_') && currentTool !== 'browser_screencast';
+    // Tool names arrive with the MCP server prefix (e.g. "dev-browser-mcp_browser_navigate")
+    // or without it (e.g. "browser_navigate") depending on how the tool event was emitted.
+    const toolSuffix = currentTool.includes('_browser_')
+      ? currentTool.slice(currentTool.lastIndexOf('_browser_') + 1)
+      : currentTool;
+    const isBrowserTool = toolSuffix.startsWith('browser_') && toolSuffix !== 'browser_screencast';
     if (!isBrowserTool || screencastStartedRef.current) {
       return;
     }
