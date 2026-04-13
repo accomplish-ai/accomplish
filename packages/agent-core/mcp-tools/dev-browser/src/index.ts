@@ -91,7 +91,9 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
       pageService.attachStartupPage(blankStartup);
       // Minimize the blank startup tab immediately so no Chrome window appears.
       // Content is delivered via the in-app screencast preview instead.
-      await pageService.backgroundStartupPage(blankStartup);
+      // Pass browserContext directly — calling backgroundStartupPage() would re-enter
+      // ensureBrowserContext() which returns the still-pending _launchPromise → deadlock.
+      await pageService.backgroundPage(blankStartup, browserContext!);
     }
 
     browserContext!.on('close', () => {

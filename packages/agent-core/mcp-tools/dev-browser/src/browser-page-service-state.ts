@@ -1,5 +1,5 @@
 import type { CDPSession, Page } from 'playwright';
-import type { PageLaunchIntent } from './types';
+import type { PageLaunchIntent } from './types.js';
 
 // minimized: intentionally hidden from the desktop
 // normal: available for background/live use without implying user-visible foreground

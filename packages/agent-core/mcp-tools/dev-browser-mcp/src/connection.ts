@@ -209,7 +209,7 @@ export async function getCDPSession(pageName?: string): Promise<CDPSession> {
       // Remove failed promise from cache to allow retry
       _cdpSessionCache.delete(page);
       throw error;
-    }
+    },
   );
 
   _cdpSessionCache.set(page, sessionPromise);
@@ -257,34 +257,17 @@ async function getBuiltinPage(fullName: string): Promise<Page> {
   }
 
   const pages = context.pages();
-  // First, try to match by targetId via CDP
+  // Match by targetId using short-lived CDP sessions.
+  // Do NOT use _cdpSessionCache here — this is a one-shot lookup and the session
+  // is detached immediately after. Caching then detaching would poison the cache
+  // and break all subsequent tool calls for the same page.
   for (const page of pages) {
     if (page.isClosed()) {
       continue;
     }
     let session: CDPSession | undefined;
     try {
-      // Check cache first to reuse existing session
-      const cachedSessionPromise = _cdpSessionCache.get(page);
-      if (cachedSessionPromise) {
-        session = await cachedSessionPromise;
-      } else {
-        // Create and cache new session promise
-        const sessionPromise = context.newCDPSession(page).then(
-          (s) => {
-            page.once('close', () => {
-              _cdpSessionCache.delete(page);
-            });
-            return s;
-          },
-          (error) => {
-            _cdpSessionCache.delete(page);
-            throw error;
-          }
-        );
-        _cdpSessionCache.set(page, sessionPromise);
-        session = await sessionPromise;
-      }
+      session = await context.newCDPSession(page);
       const { targetInfo } = (await session.send('Target.getTargetInfo')) as {
         targetInfo: { targetId: string };
       };
