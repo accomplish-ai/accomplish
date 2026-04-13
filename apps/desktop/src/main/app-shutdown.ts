@@ -34,7 +34,7 @@ export async function shutdownApp(logger: AppLogger): Promise<void> {
   shutdownDaemon();
 
   try {
-    stopDevBrowserServer();
+    await raceTimeout(stopDevBrowserServer(), 5000, 'Dev-browser shutdown');
   } catch (error: unknown) {
     logger?.logEnv('ERROR', `[Main] Failed to stop dev-browser server: ${String(error)}`);
   }

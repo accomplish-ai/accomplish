@@ -16,6 +16,7 @@ export interface BrowserServerConfig {
   mcpToolsPath: string;
   bundledNodeBinPath?: string;
   devBrowserPort: number;
+  devBrowserCdpPort?: number;
 }
 
 const log = createConsoleLogger({ prefix: 'Browser' });

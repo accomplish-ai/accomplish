@@ -86,6 +86,11 @@ const WEB_DIST = app.isPackaged // In production, web's build output is an extra
 
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
+// isShuttingDown is set when shutdownApp() actually starts running.
+// This is the re-entrancy guard for before-quit (shutdownApp calls app.quit() at the
+// end, which re-fires before-quit). It is intentionally separate from isQuitting, which
+// only prevents the close dialog from appearing during shutdown.
+let isShuttingDown = false;
 const isQuittingRef = {
   get value() {
     return isQuitting;
@@ -154,9 +159,12 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', (event) => {
-  if (isQuitting) {
+  if (isShuttingDown) {
+    // Re-entrancy guard: shutdownApp calls app.quit() at the end, which re-fires
+    // before-quit. Allow the second call through without re-running shutdownApp.
     return;
   }
+  isShuttingDown = true;
   isQuitting = true;
   event.preventDefault();
   let logger: ReturnType<typeof getLogCollector> | null = null;

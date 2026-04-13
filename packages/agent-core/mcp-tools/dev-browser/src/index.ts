@@ -355,6 +355,12 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     }
   });
 
+  // ─── Graceful shutdown endpoint ───────────────────────────────────────────
+  app.post('/shutdown', (_req: Request, res: Response) => {
+    res.json({ ok: true });
+    void cleanup().then(() => process.exit(0));
+  });
+
   // ─── HTTP server + graceful shutdown ──────────────────────────────────────
   const server = app.listen(port, () => {
     console.log(`dev-browser HTTP server running on port ${port}`);

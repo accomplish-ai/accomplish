@@ -289,7 +289,7 @@ export { mapResultToStatus } from './utils/task-status.js';
 // -----------------------------------------------------------------------------
 
 // Browser server for dev-browser MCP tool
-export { ensureDevBrowserServer } from './browser/server.js';
+export { ensureDevBrowserServer, shutdownDevBrowserServer } from './browser/server.js';
 export type { BrowserServerConfig } from './browser/server.js';
 
 // -----------------------------------------------------------------------------

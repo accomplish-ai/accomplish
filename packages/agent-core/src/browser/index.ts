@@ -12,4 +12,5 @@ export {
   waitForDevBrowserServer,
   startDevBrowserServer,
   ensureDevBrowserServer,
+  shutdownDevBrowserServer,
 } from './server.js';

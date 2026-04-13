@@ -5,9 +5,11 @@ import { DEV_BROWSER_PORT } from '@accomplish_ai/agent-core';
 import {
   getAzureEntraToken,
   ensureDevBrowserServer,
+  shutdownDevBrowserServer,
   buildCliArgs as coreBuildCliArgs,
   createSandboxProvider,
   getModelDisplayName,
+  DEV_BROWSER_CDP_PORT,
   type BrowserServerConfig,
   type SandboxPaths,
 } from '@accomplish_ai/agent-core';
@@ -100,7 +102,6 @@ export async function onBeforeStart(): Promise<void> {
 const BROWSER_RECOVERY_COOLDOWN_MS = 30_000;
 let browserEnsurePromise: Promise<void> | null = null;
 let lastBrowserRecoveryAt = 0;
-let _devBrowserPid: number | null = null;
 
 function getBrowserServerConfig(): BrowserServerConfig {
   const bundledPaths = getBundledNodePaths();
@@ -108,6 +109,7 @@ function getBrowserServerConfig(): BrowserServerConfig {
     mcpToolsPath: getMcpToolsPath(),
     bundledNodeBinPath: bundledPaths?.binDir,
     devBrowserPort: DEV_BROWSER_PORT,
+    devBrowserCdpPort: DEV_BROWSER_CDP_PORT,
   };
 }
 
@@ -118,11 +120,7 @@ async function ensureBrowserServer(callbacks?: Pick<TaskCallbacks, 'onProgress'>
 
   const browserConfig = getBrowserServerConfig();
   browserEnsurePromise = ensureDevBrowserServer(browserConfig, callbacks?.onProgress)
-    .then((result) => {
-      if (result.pid != null) {
-        _devBrowserPid = result.pid;
-      }
-    })
+    .then(() => undefined)
     .finally(() => {
       browserEnsurePromise = null;
     });
@@ -130,21 +128,9 @@ async function ensureBrowserServer(callbacks?: Pick<TaskCallbacks, 'onProgress'>
   return browserEnsurePromise;
 }
 
-export function stopDevBrowserServer(): void {
-  if (_devBrowserPid == null) {
-    return;
-  }
-  try {
-    process.kill(_devBrowserPid, 'SIGTERM');
-    logOC('INFO', `[Browser] Sent SIGTERM to dev-browser process (PID: ${_devBrowserPid})`);
-  } catch (error: unknown) {
-    // ESRCH means process already exited — not an error
-    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
-      logOC('WARN', `[Browser] Failed to stop dev-browser process: ${String(error)}`);
-    }
-  } finally {
-    _devBrowserPid = null;
-  }
+export async function stopDevBrowserServer(): Promise<void> {
+  logOC('INFO', '[Browser] Sending shutdown request to dev-browser server...');
+  await shutdownDevBrowserServer({ devBrowserPort: DEV_BROWSER_PORT, devBrowserCdpPort: DEV_BROWSER_CDP_PORT });
 }
 
 export async function recoverDevBrowserServer(
@@ -177,11 +163,7 @@ export async function onBeforeTaskStart(
     callbacks.onProgress({ stage: 'browser', message: 'Preparing browser...', isFirstTask });
   }
 
-  const browserConfig = getBrowserServerConfig();
-  const result = await ensureDevBrowserServer(browserConfig, callbacks.onProgress);
-  if (result.pid != null) {
-    _devBrowserPid = result.pid;
-  }
+  await ensureBrowserServer(callbacks);
 }
 
 export function createElectronTaskManagerOptions(): TaskManagerOptions {

@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+import { spawn, execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { isSystemChromeInstalled, isPlaywrightInstalled } from './detection.js';
@@ -110,6 +110,74 @@ export async function startDevBrowserServer(
   log.info('[Browser] ========== END DEV-BROWSER SERVER STARTUP ==========');
 
   return { ready: serverReady, pid: child.pid, logs: serverLogs };
+}
+
+/**
+ * Finds and terminates the process(es) listening on a TCP port.
+ * Used as a fallback when the HTTP /shutdown endpoint is unavailable.
+ */
+function killProcessOnPort(port: number): void {
+  try {
+    if (process.platform === 'win32') {
+      const out = execFileSync('netstat', ['-ano'], { encoding: 'utf8' });
+      for (const line of out.split('\n')) {
+        if (line.includes(`:${port} `) && line.includes('LISTENING')) {
+          const pid = line.trim().split(/\s+/).pop();
+          if (pid && /^\d+$/.test(pid)) {
+            execFileSync('taskkill', ['/PID', pid, '/F'], { stdio: 'ignore' });
+          }
+        }
+      }
+    } else {
+      const pids = execFileSync('lsof', ['-t', '-i', `tcp:${port}`, '-sTCP:LISTEN'], {
+        encoding: 'utf8',
+      })
+        .trim()
+        .split('\n')
+        .filter(Boolean);
+      for (const pid of pids) {
+        process.kill(parseInt(pid, 10), 'SIGTERM');
+      }
+    }
+  } catch {
+    // Port not in use or command not available — nothing to kill
+  }
+}
+
+/**
+ * Asks the running dev-browser server to shut down gracefully via its HTTP API,
+ * then falls back to killing the process by port if the endpoint is unavailable
+ * (e.g. server.mjs built before /shutdown was added).
+ */
+export async function shutdownDevBrowserServer(
+  config: Pick<BrowserServerConfig, 'devBrowserPort' | 'devBrowserCdpPort'>,
+): Promise<void> {
+  const { devBrowserPort, devBrowserCdpPort } = config;
+
+  let responded = false;
+  try {
+    const res = await fetch(`http://127.0.0.1:${devBrowserPort}/shutdown`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(3000),
+    });
+    responded = res.ok;
+  } catch {
+    // Server not reachable — will fall back to port kill below
+  }
+
+  if (responded) {
+    // Allow time for graceful cleanup + process.exit() inside the server
+    await new Promise<void>((resolve) => setTimeout(resolve, 2000));
+  }
+
+  // Force-kill any process still listening on the Express port (the Node.js server.mjs process).
+  killProcessOnPort(devBrowserPort);
+
+  // Also kill the Chrome/Playwright browser process, which listens on the CDP port.
+  // Chrome is a separate OS process that survives when the Node.js server is killed.
+  if (devBrowserCdpPort) {
+    killProcessOnPort(devBrowserCdpPort);
+  }
 }
 
 export async function ensureDevBrowserServer(

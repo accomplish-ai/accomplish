@@ -81,11 +81,17 @@ function getSelectedModelContext(): {
 }
 
 export function registerAnalyticsHandlers(): void {
-  // Skip registration entirely if analytics is not enabled (OSS builds)
-  if (!isAnalyticsEnabled()) return;
+  const analyticsEnabled = isAnalyticsEnabled();
+
+  // When analytics is disabled, register no-op handlers so the renderer's
+  // ipcRenderer.invoke() calls don't produce "No handler registered" errors.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function ha(channel: string, fn: (event: any, ...args: any[]) => Promise<unknown>): void {
+    handle(channel, analyticsEnabled ? fn : async () => {});
+  }
 
   // Generic event tracking
-  handle(
+  ha(
     'analytics:track',
     async (
       _event: IpcMainInvokeEvent,
@@ -97,7 +103,7 @@ export function registerAnalyticsHandlers(): void {
   );
 
   // Navigation
-  handle(
+  ha(
     'analytics:page-view',
     async (_event: IpcMainInvokeEvent, pagePath: string, pageTitle?: string) => {
       trackPageView(pagePath, pageTitle);
@@ -105,21 +111,21 @@ export function registerAnalyticsHandlers(): void {
   );
 
   // Engagement
-  handle('analytics:submit-task', async () => {
+  ha('analytics:submit-task', async () => {
     const { model, provider } = getSelectedModelContext();
     trackSubmitTask(model, provider);
   });
 
-  handle('analytics:new-task', async () => {
+  ha('analytics:new-task', async () => {
     trackNewTask();
   });
 
-  handle('analytics:open-settings', async () => {
+  ha('analytics:open-settings', async () => {
     trackOpenSettings();
   });
 
   // Settings
-  handle(
+  ha(
     'analytics:save-api-key',
     async (
       _event: IpcMainInvokeEvent,
@@ -131,23 +137,23 @@ export function registerAnalyticsHandlers(): void {
     },
   );
 
-  handle('analytics:select-provider', async (_event: IpcMainInvokeEvent, provider: string) => {
+  ha('analytics:select-provider', async (_event: IpcMainInvokeEvent, provider: string) => {
     trackSelectProvider(provider);
   });
 
-  handle(
+  ha(
     'analytics:select-model',
     async (_event: IpcMainInvokeEvent, model: string, provider?: string) => {
       trackSelectModel(model, provider);
     },
   );
 
-  handle('analytics:toggle-debug-mode', async (_event: IpcMainInvokeEvent, enabled: boolean) => {
+  ha('analytics:toggle-debug-mode', async (_event: IpcMainInvokeEvent, enabled: boolean) => {
     trackToggleDebugMode(enabled);
   });
 
   // Task Lifecycle (from renderer — e.g., when renderer knows task state)
-  handle(
+  ha(
     'analytics:task-start',
     async (_event: IpcMainInvokeEvent, taskId: string, sessionId: string, taskType: string) => {
       const { model, provider } = getSelectedModelContext();
@@ -155,7 +161,7 @@ export function registerAnalyticsHandlers(): void {
     },
   );
 
-  handle(
+  ha(
     'analytics:task-complete',
     async (
       _event: IpcMainInvokeEvent,
@@ -180,7 +186,7 @@ export function registerAnalyticsHandlers(): void {
     },
   );
 
-  handle(
+  ha(
     'analytics:task-error',
     async (
       _event: IpcMainInvokeEvent,
@@ -205,7 +211,7 @@ export function registerAnalyticsHandlers(): void {
     },
   );
 
-  handle(
+  ha(
     'analytics:permission-requested',
     async (
       _event: IpcMainInvokeEvent,
@@ -218,7 +224,7 @@ export function registerAnalyticsHandlers(): void {
     },
   );
 
-  handle(
+  ha(
     'analytics:permission-response',
     async (
       _event: IpcMainInvokeEvent,
@@ -232,7 +238,7 @@ export function registerAnalyticsHandlers(): void {
     },
   );
 
-  handle(
+  ha(
     'analytics:tool-used',
     async (
       _event: IpcMainInvokeEvent,
@@ -245,7 +251,7 @@ export function registerAnalyticsHandlers(): void {
     },
   );
 
-  handle(
+  ha(
     'analytics:user-interaction',
     async (
       _event: IpcMainInvokeEvent,
@@ -260,20 +266,20 @@ export function registerAnalyticsHandlers(): void {
   );
 
   // Session
-  handle('analytics:app-close', async () => {
+  ha('analytics:app-close', async () => {
     await trackAppClose();
   });
 
-  handle('analytics:app-backgrounded', async () => {
+  ha('analytics:app-backgrounded', async () => {
     trackAppBackgrounded();
   });
 
-  handle('analytics:app-foregrounded', async () => {
+  ha('analytics:app-foregrounded', async () => {
     trackAppForegrounded();
   });
 
   // Model Selection
-  handle(
+  ha(
     'analytics:model-selection-step',
     async (
       _event: IpcMainInvokeEvent,
@@ -286,14 +292,14 @@ export function registerAnalyticsHandlers(): void {
     },
   );
 
-  handle(
+  ha(
     'analytics:model-selection-complete',
     async (_event: IpcMainInvokeEvent, provider: string, isOnboarding: boolean, model?: string) => {
       trackModelSelectionComplete(provider, isOnboarding, model);
     },
   );
 
-  handle(
+  ha(
     'analytics:model-selection-abandoned',
     async (_event: IpcMainInvokeEvent, lastStep: string, isOnboarding: boolean) => {
       trackModelSelectionAbandoned(lastStep, isOnboarding);
@@ -301,36 +307,36 @@ export function registerAnalyticsHandlers(): void {
   );
 
   // Feature Usage
-  handle('analytics:history-viewed', async () => {
+  ha('analytics:history-viewed', async () => {
     trackHistoryViewed();
   });
-  handle('analytics:task-from-history', async () => {
+  ha('analytics:task-from-history', async () => {
     trackTaskFromHistory();
   });
-  handle('analytics:history-cleared', async () => {
+  ha('analytics:history-cleared', async () => {
     trackHistoryCleared();
   });
-  handle('analytics:task-details-expanded', async () => {
+  ha('analytics:task-details-expanded', async () => {
     trackTaskDetailsExpanded();
   });
-  handle('analytics:output-copied', async () => {
+  ha('analytics:output-copied', async () => {
     trackOutputCopied();
   });
 
   // Provider Lifecycle
-  handle(
+  ha(
     'analytics:provider-disconnected',
     async (_event: IpcMainInvokeEvent, provider: string) => {
       trackProviderDisconnected(provider);
     },
   );
 
-  handle('analytics:help-link-clicked', async (_event: IpcMainInvokeEvent, provider: string) => {
+  ha('analytics:help-link-clicked', async (_event: IpcMainInvokeEvent, provider: string) => {
     trackHelpLinkClicked(provider);
   });
 
   // Skills
-  handle(
+  ha(
     'analytics:skill-action',
     async (
       _event: IpcMainInvokeEvent,
@@ -347,25 +353,25 @@ export function registerAnalyticsHandlers(): void {
   );
 
   // Voice
-  handle('analytics:save-voice-api-key', async (_event: IpcMainInvokeEvent, success: boolean) => {
+  ha('analytics:save-voice-api-key', async (_event: IpcMainInvokeEvent, success: boolean) => {
     trackSaveVoiceApiKey(success);
   });
 
   // Debug
-  handle('analytics:export-logs', async () => {
+  ha('analytics:export-logs', async () => {
     trackExportLogs();
   });
-  handle('analytics:thread-exported', async () => {
+  ha('analytics:thread-exported', async () => {
     trackThreadExported();
   });
 
   // Task Launcher
-  handle('analytics:task-launcher-action', async (_event: IpcMainInvokeEvent, action: string) => {
+  ha('analytics:task-launcher-action', async (_event: IpcMainInvokeEvent, action: string) => {
     trackTaskLauncherAction(action);
   });
 
   // Task Feedback
-  handle(
+  ha(
     'analytics:task-feedback',
     async (
       _event: IpcMainInvokeEvent,
@@ -392,7 +398,7 @@ export function registerAnalyticsHandlers(): void {
   );
 
   // Agent Control
-  handle(
+  ha(
     'analytics:stop-agent',
     async (_event: IpcMainInvokeEvent, taskId: string, sessionId: string) => {
       trackStopAgent(taskId, sessionId);
@@ -400,7 +406,7 @@ export function registerAnalyticsHandlers(): void {
   );
 
   // Provider Box
-  handle(
+  ha(
     'analytics:provider-box-clicked',
     async (
       _event: IpcMainInvokeEvent,

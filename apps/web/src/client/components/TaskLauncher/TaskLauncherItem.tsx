@@ -34,28 +34,29 @@ export function TaskLauncherItem({ task, isSelected, onClick }: TaskLauncherItem
       <span className="truncate flex-1 tracking-[0.18px]">{task.prompt}</span>
       {domains.length > 0 && (
         <span className={cn('flex items-center shrink-0', domains.length > 1 && 'pr-1')}>
-          {domains.map((domain, i) => (
-            <span
-              key={domain}
-              className={cn(
-                'flex items-center p-0.5 rounded-full bg-white shrink-0 relative',
-                i > 0 && '-ml-1',
-                i === 0 && 'z-30',
-                i === 1 && 'z-20',
-                i === 2 && 'z-10',
-              )}
-            >
-              <img
-                src={getFaviconUrl(domain, 16)}
-                alt={domain}
-                className="w-3 h-3 rounded-full"
-                loading="lazy"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            </span>
-          ))}
+          {domains.map((domain, i) => {
+            const faviconUrl = getFaviconUrl(domain);
+            if (!faviconUrl) { return null; }
+            return (
+              <span
+                key={domain}
+                className={cn(
+                  'flex items-center p-0.5 rounded-full bg-white shrink-0 relative',
+                  i > 0 && '-ml-1',
+                  i === 0 && 'z-30',
+                  i === 1 && 'z-20',
+                  i === 2 && 'z-10',
+                )}
+              >
+                <img
+                  src={faviconUrl}
+                  alt={domain}
+                  className="w-3 h-3 rounded-full"
+                  loading="lazy"
+                />
+              </span>
+            );
+          })}
         </span>
       )}
     </button>
