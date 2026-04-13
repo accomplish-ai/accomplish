@@ -34,10 +34,10 @@ export function TaskLauncherItem({ task, isSelected, onClick }: TaskLauncherItem
       <span className="truncate flex-1 tracking-[0.18px]">{task.prompt}</span>
       {domains.length > 0 && (
         <span className={cn('flex items-center shrink-0', domains.length > 1 && 'pr-1')}>
-          {domains.map((domain, i) => {
-            const faviconUrl = getFaviconUrl(domain);
-            if (!faviconUrl) { return null; }
-            return (
+          {domains
+            .map((domain) => ({ domain, faviconUrl: getFaviconUrl(domain) }))
+            .filter(({ faviconUrl }) => faviconUrl !== null)
+            .map(({ domain, faviconUrl }, i) => (
               <span
                 key={domain}
                 className={cn(
@@ -49,14 +49,13 @@ export function TaskLauncherItem({ task, isSelected, onClick }: TaskLauncherItem
                 )}
               >
                 <img
-                  src={faviconUrl}
+                  src={faviconUrl!}
                   alt={domain}
                   className="w-3 h-3 rounded-full"
                   loading="lazy"
                 />
               </span>
-            );
-          })}
+            ))}
         </span>
       )}
     </button>

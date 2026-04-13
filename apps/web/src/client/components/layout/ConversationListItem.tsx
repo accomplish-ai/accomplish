@@ -76,10 +76,10 @@ export function ConversationListItem({ task }: ConversationListItemProps) {
       <span className="relative flex items-center shrink-0 h-5">
         {domains.length > 0 && (
           <span className="flex items-center group-hover:opacity-0 transition-opacity duration-200">
-            {domains.map((domain, i) => {
-              const faviconUrl = getFaviconUrl(domain);
-              if (!faviconUrl) { return null; }
-              return (
+            {domains
+              .map((domain) => ({ domain, faviconUrl: getFaviconUrl(domain) }))
+              .filter(({ faviconUrl }) => faviconUrl !== null)
+              .map(({ domain, faviconUrl }, i) => (
                 <span
                   key={domain}
                   className={cn(
@@ -91,14 +91,13 @@ export function ConversationListItem({ task }: ConversationListItemProps) {
                   )}
                 >
                   <img
-                    src={faviconUrl}
+                    src={faviconUrl!}
                     alt={domain}
                     className="w-3 h-3 rounded-full"
                     loading="lazy"
                   />
                 </span>
-              );
-            })}
+              ))}
           </span>
         )}
         {canFavorite && (
