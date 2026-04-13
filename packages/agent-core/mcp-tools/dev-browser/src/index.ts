@@ -90,10 +90,10 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
     if (blankStartup) {
       pageService.attachStartupPage(blankStartup);
       // Minimize the blank startup tab immediately so no Chrome window appears.
-      // Content is delivered via the in-app screencast preview instead.
-      // Pass browserContext directly — calling backgroundStartupPage() would re-enter
-      // ensureBrowserContext() which returns the still-pending _launchPromise → deadlock.
-      await pageService.backgroundPage(blankStartup, browserContext!);
+      // Fire-and-forget: a CDP timing error here (Browser.getWindowForTarget not yet ready)
+      // must NOT reject _launchPromise — that would make every subsequent POST /pages
+      // throw immediately with a 500.  Window minimization is best-effort.
+      void pageService.backgroundPage(blankStartup, browserContext!).catch(() => {});
     }
 
     browserContext!.on('close', () => {
