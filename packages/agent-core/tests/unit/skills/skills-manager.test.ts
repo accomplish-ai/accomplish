@@ -29,9 +29,18 @@ describe('SkillsManager', () => {
   let moduleAvailable = false;
 
   beforeAll(async () => {
+    if (process.env.SKIP_SQLITE_TESTS) {
+      console.warn('Skipping skills-manager tests: better-sqlite3 native module not available');
+      return;
+    }
     try {
-      // Verify better-sqlite3 is loadable
-      await import('better-sqlite3');
+      // Probe instantiation — import alone succeeds even on ABI mismatch;
+      // the error only surfaces when new Database() is called.
+      const BetterSqlite3 = await import('better-sqlite3');
+      const probe = new (
+        BetterSqlite3 as unknown as { default: new (p: string) => { close(): void } }
+      ).default(':memory:');
+      probe.close();
       const dbModule = await import('../../../src/storage/database.js');
       initializeDatabase = dbModule.initializeDatabase;
       closeDatabase = dbModule.closeDatabase;
