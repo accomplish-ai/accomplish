@@ -123,9 +123,17 @@ export function registerTaskHandlers(): void {
 
   handle('task:list', async (_event: IpcMainInvokeEvent) => {
     const client = getDaemonClient();
-    return await client.call('task.list', {
-      workspaceId: workspaceManager.getActiveWorkspace() ?? undefined,
-    });
+    const activeId = workspaceManager.getActiveWorkspace();
+    // Skip workspace filter for the default workspace so unassigned tasks (workspace_id = NULL)
+    // remain visible — the default workspace acts as an "all tasks" view.
+    const activeWorkspace = activeId ? workspaceManager.getWorkspace(activeId) : null;
+    // Default workspace: pass its UUID + includeUnassigned=true so NULL-workspace
+    // tasks (created before workspaces existed) are also returned, but tasks
+    // explicitly assigned to other workspaces are excluded.
+    // Non-default workspaces: strict filter, no unassigned tasks included.
+    const isDefault = !!activeWorkspace?.isDefault;
+    const workspaceId = activeId && activeWorkspace ? activeId : undefined;
+    return await client.call('task.list', { workspaceId, includeUnassigned: isDefault });
   });
 
   handle('task:delete', async (_event: IpcMainInvokeEvent, taskId: string) => {

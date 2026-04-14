@@ -11,6 +11,7 @@ export interface StoredTask {
   createdAt: string;
   startedAt?: string;
   completedAt?: string;
+  workspaceId?: string;
 }
 
 export interface TaskRow {
@@ -22,6 +23,7 @@ export interface TaskRow {
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
+  workspace_id: string | null;
 }
 
 export interface MessageRow {
@@ -118,6 +120,7 @@ export function rowToTask(row: TaskRow): StoredTask {
     createdAt: row.created_at,
     startedAt: row.started_at || undefined,
     completedAt: row.completed_at || undefined,
+    workspaceId: row.workspace_id || undefined,
     messages: getMessagesForTask(row.id),
   };
 }

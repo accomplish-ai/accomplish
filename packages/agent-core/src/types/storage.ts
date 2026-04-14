@@ -81,7 +81,7 @@ export interface AppSettings {
 /** API for task CRUD operations and todo management */
 export interface TaskStorageAPI {
   /** Get all stored tasks, optionally filtered by workspace */
-  getTasks(workspaceId?: string | null): StoredTask[];
+  getTasks(workspaceId?: string | null, includeUnassigned?: boolean): StoredTask[];
   /** Get a task by ID, returns undefined if not found */
   getTask(taskId: string): StoredTask | undefined;
   /** Persist a new task or update an existing one */

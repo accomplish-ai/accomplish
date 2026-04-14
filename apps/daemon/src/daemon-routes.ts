@@ -95,7 +95,18 @@ export function registerRpcMethods(services: RouteServices): void {
   );
   rpc.registerMethod(
     'task.list',
-    safeHandler(() => Promise.resolve(taskService.listTasks())),
+    safeHandler((params) => {
+      const raw =
+        params && typeof params === 'object' && 'workspaceId' in params
+          ? (params as { workspaceId?: unknown }).workspaceId
+          : undefined;
+      const workspaceId = typeof raw === 'string' && raw.trim() !== '' ? raw.trim() : undefined;
+      const includeUnassigned =
+        params && typeof params === 'object' && 'includeUnassigned' in params
+          ? (params as { includeUnassigned?: unknown }).includeUnassigned === true
+          : false;
+      return Promise.resolve(taskService.listTasks(workspaceId, includeUnassigned));
+    }),
   );
   rpc.registerMethod(
     'task.status',

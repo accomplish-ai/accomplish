@@ -101,7 +101,7 @@ export class TaskService extends EventEmitter {
       timestamp: new Date().toISOString(),
     };
     task.messages = [initialUserMessage];
-    this.storage.saveTask(task);
+    this.storage.saveTask(task, params.workspaceId);
 
     runTaskSummaryGeneration(taskId, validatedConfig.prompt, this.storage, (summary) => {
       this.emit('summary', { taskId, summary });
@@ -173,8 +173,8 @@ export class TaskService extends EventEmitter {
     return this.taskManager.startTask(taskId, config, callbacks);
   }
 
-  listTasks(): Task[] {
-    return this.storage.getTasks() as Task[];
+  listTasks(workspaceId?: string, includeUnassigned = false): Task[] {
+    return this.storage.getTasks(workspaceId, includeUnassigned) as Task[];
   }
 
   getTaskStatus(params: {
