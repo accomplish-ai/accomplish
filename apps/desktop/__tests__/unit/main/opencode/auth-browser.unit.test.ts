@@ -157,6 +157,12 @@ vi.mock('@main/opencode/config-generator', () => ({
   generateOpenCodeConfig: vi.fn(() => Promise.resolve('/mock/config/path')),
 }));
 
+// Mock bundled-node — controls whether packaged-mode auth detects bundled Node
+const mockGetBundledNodePaths = vi.fn();
+vi.mock('@main/utils/bundled-node', () => ({
+  getBundledNodePaths: mockGetBundledNodePaths,
+}));
+
 // Mock net for port checking
 const mockServer = {
   once: vi.fn((event: string, callback: () => void) => {
@@ -603,6 +609,121 @@ describe('OAuthBrowserFlow', () => {
         'http://localhost:3118/callback is already in use',
       );
       expect(agentCoreMocks.clearSlackMcpAuth).toHaveBeenCalled();
+    });
+  });
+});
+
+/**
+ * Regression tests for the packaged-build bug where `Login with OpenAI`
+ * failed with `env: node: No such file or directory` (exit 127) because the
+ * OpenCode CLI shebang `#!/usr/bin/env node` could not resolve `node` —
+ * the packaged Electron environment has no `node` on PATH, only the bundled
+ * Node.js binary at Resources/nodejs/{platform}-{arch}/bin/node.
+ *
+ * See: https://github.com/accomplish-ai/accomplish (yanai/fix-openai-auth-bundled-node-path)
+ */
+describe('getOpenCodeCommandContext (packaged-build PATH injection)', () => {
+  let getOpenCodeCommandContext: typeof import('@main/opencode/auth-browser-pty').getOpenCodeCommandContext;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    vi.resetModules();
+
+    // Default: packaged with bundled Node available (the happy path)
+    mockApp.isPackaged = true;
+    mockGetBundledNodePaths.mockReturnValue({
+      nodePath: '/mock/Resources/nodejs/darwin-arm64/bin/node',
+      npmPath: '/mock/Resources/nodejs/darwin-arm64/bin/npm',
+      npxPath: '/mock/Resources/nodejs/darwin-arm64/bin/npx',
+      binDir: '/mock/Resources/nodejs/darwin-arm64/bin',
+      nodeDir: '/mock/Resources/nodejs/darwin-arm64',
+    });
+
+    const mod = await import('@main/opencode/auth-browser-pty');
+    getOpenCodeCommandContext = mod.getOpenCodeCommandContext;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    mockApp.isPackaged = false;
+  });
+
+  describe('packaged mode', () => {
+    it('prepends bundled Node bin dir to PATH', async () => {
+      const originalPath = process.env.PATH;
+      process.env.PATH = '/usr/bin:/bin';
+
+      try {
+        const ctx = await getOpenCodeCommandContext();
+        const delimiter = process.platform === 'win32' ? ';' : ':';
+        expect(ctx.env.PATH).toBe(
+          `/mock/Resources/nodejs/darwin-arm64/bin${delimiter}/usr/bin:/bin`,
+        );
+      } finally {
+        process.env.PATH = originalPath;
+      }
+    });
+
+    it('sets ELECTRON_RUN_AS_NODE=1 so spawned Electron runs as Node', async () => {
+      const ctx = await getOpenCodeCommandContext();
+      expect(ctx.env.ELECTRON_RUN_AS_NODE).toBe('1');
+    });
+
+    it('handles empty PATH by setting it to bundled bin dir alone', async () => {
+      const originalPath = process.env.PATH;
+      delete process.env.PATH;
+      const originalPathWin = process.env.Path;
+      delete process.env.Path;
+
+      try {
+        const ctx = await getOpenCodeCommandContext();
+        expect(ctx.env.PATH).toBe('/mock/Resources/nodejs/darwin-arm64/bin');
+      } finally {
+        if (originalPath !== undefined) process.env.PATH = originalPath;
+        if (originalPathWin !== undefined) process.env.Path = originalPathWin;
+      }
+    });
+
+    it('throws an explicit error when bundled Node is missing (fail fast)', async () => {
+      mockGetBundledNodePaths.mockReturnValue(null);
+      await expect(getOpenCodeCommandContext()).rejects.toThrow(
+        /Bundled Node\.js not found in packaged build/,
+      );
+    });
+  });
+
+  describe('dev mode (not packaged)', () => {
+    beforeEach(() => {
+      mockApp.isPackaged = false;
+    });
+
+    it('does NOT modify PATH (relies on developer shell PATH)', async () => {
+      const originalPath = process.env.PATH;
+      process.env.PATH = '/usr/local/bin:/usr/bin:/bin';
+
+      try {
+        const ctx = await getOpenCodeCommandContext();
+        expect(ctx.env.PATH).toBe('/usr/local/bin:/usr/bin:/bin');
+      } finally {
+        process.env.PATH = originalPath;
+      }
+    });
+
+    it('does NOT set ELECTRON_RUN_AS_NODE', async () => {
+      const originalEnv = process.env.ELECTRON_RUN_AS_NODE;
+      delete process.env.ELECTRON_RUN_AS_NODE;
+
+      try {
+        const ctx = await getOpenCodeCommandContext();
+        expect(ctx.env.ELECTRON_RUN_AS_NODE).toBeUndefined();
+      } finally {
+        if (originalEnv !== undefined) process.env.ELECTRON_RUN_AS_NODE = originalEnv;
+      }
+    });
+
+    it('does NOT throw when bundled Node is missing (only enforced in packaged mode)', async () => {
+      mockGetBundledNodePaths.mockReturnValue(null);
+      await expect(getOpenCodeCommandContext()).resolves.toBeDefined();
     });
   });
 });

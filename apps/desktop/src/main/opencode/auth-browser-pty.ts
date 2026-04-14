@@ -53,26 +53,28 @@ export async function getOpenCodeCommandContext(): Promise<OpenCodeCommandContex
   if (app.isPackaged) {
     env.ELECTRON_RUN_AS_NODE = '1';
     const bundledNodePaths = getBundledNodePaths();
-    if (bundledNodePaths) {
-      const delimiter = process.platform === 'win32' ? ';' : ':';
-      const existingPath = env.PATH ?? env.Path ?? '';
-      const combinedPath = existingPath
-        ? `${bundledNodePaths.binDir}${delimiter}${existingPath}`
-        : bundledNodePaths.binDir;
-      env.PATH = combinedPath;
-      // Windows env vars are case-insensitive at the OS level, but Node's
-      // process.env preserves the original case. Set both so child processes
-      // see the bundled Node regardless of which name they look up.
-      if (process.platform === 'win32') {
-        env.Path = combinedPath;
-      }
-      logOC('INFO', `[OpenCode Auth] Added bundled Node.js to PATH: ${bundledNodePaths.binDir}`);
-    } else {
-      logOC(
-        'WARN',
-        '[OpenCode Auth] Bundled Node.js not found — auth login will likely fail with `env: node: No such file or directory`',
+    if (!bundledNodePaths) {
+      // Fail fast in packaged mode rather than letting the auth flow
+      // silently degrade to the opaque `env: node: No such file or directory`
+      // exit-127 error. This makes packaging regressions obvious.
+      // Mirrors the behavior of environment-builder.ts buildEnvironment().
+      throw new Error(
+        'Bundled Node.js not found in packaged build. Cannot spawn opencode auth login without it.',
       );
     }
+    const delimiter = process.platform === 'win32' ? ';' : ':';
+    const existingPath = env.PATH ?? env.Path ?? '';
+    const combinedPath = existingPath
+      ? `${bundledNodePaths.binDir}${delimiter}${existingPath}`
+      : bundledNodePaths.binDir;
+    env.PATH = combinedPath;
+    // Windows env vars are case-insensitive at the OS level, but Node's
+    // process.env preserves the original case. Set both so child processes
+    // see the bundled Node regardless of which name they look up.
+    if (process.platform === 'win32') {
+      env.Path = combinedPath;
+    }
+    logOC('INFO', `[OpenCode Auth] Added bundled Node.js to PATH: ${bundledNodePaths.binDir}`);
   }
 
   return {
