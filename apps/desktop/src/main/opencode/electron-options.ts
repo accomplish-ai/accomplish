@@ -120,7 +120,11 @@ async function ensureBrowserServer(callbacks?: Pick<TaskCallbacks, 'onProgress'>
 
   const browserConfig = getBrowserServerConfig();
   browserEnsurePromise = ensureDevBrowserServer(browserConfig, callbacks?.onProgress)
-    .then(() => undefined)
+    .then((result) => {
+      if (!result.ready) {
+        logOC('WARN', '[Browser] Dev-browser server did not become ready; browser tools may fail');
+      }
+    })
     .finally(() => {
       browserEnsurePromise = null;
     });

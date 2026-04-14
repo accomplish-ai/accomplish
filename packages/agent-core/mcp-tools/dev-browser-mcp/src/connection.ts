@@ -231,6 +231,9 @@ export async function getCDPSession(pageName?: string): Promise<CDPSession> {
 
 // ─── Internal helpers ────────────────────────────────────────────────────────
 
+const BROWSER_CONNECT_MAX_ATTEMPTS = 3;
+const BROWSER_CONNECT_RETRY_BASE_MS = 500;
+
 async function connectBrowser(config: ConnectionConfig): Promise<Browser> {
   if (config.mode === 'remote') {
     return chromium.connectOverCDP(config.cdpEndpoint, {
@@ -238,14 +241,33 @@ async function connectBrowser(config: ConnectionConfig): Promise<Browser> {
     });
   }
 
-  // Builtin: fetch wsEndpoint from dev-browser HTTP server, then connect via CDP
+  // Builtin: fetch wsEndpoint from dev-browser HTTP server, then connect via CDP.
+  // Retry with backoff to handle the race condition where the HTTP server is still
+  // starting up when the first tool call arrives (ENG-1514).
   const infoUrl = `${config.devBrowserUrl}/`;
-  const res = await fetch(infoUrl);
-  if (!res.ok) {
-    throw new Error(`dev-browser health check failed: ${res.status}`);
+  let lastError: Error | undefined;
+  for (let attempt = 0; attempt < BROWSER_CONNECT_MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(infoUrl, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) {
+        throw new Error(`dev-browser health check failed: ${res.status}`);
+      }
+      const info = (await res.json()) as { wsEndpoint: string };
+      return chromium.connectOverCDP(info.wsEndpoint);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt < BROWSER_CONNECT_MAX_ATTEMPTS - 1 && isRecoverableConnectionError(lastError)) {
+        const delayMs = BROWSER_CONNECT_RETRY_BASE_MS * Math.pow(2, attempt);
+        console.error(
+          `[connection] dev-browser server not ready (attempt ${attempt + 1}/${BROWSER_CONNECT_MAX_ATTEMPTS}), retrying in ${delayMs}ms...`,
+        );
+        await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+      } else {
+        break;
+      }
+    }
   }
-  const info = (await res.json()) as { wsEndpoint: string };
-  return chromium.connectOverCDP(info.wsEndpoint);
+  throw lastError ?? new Error('Failed to connect to dev-browser server');
 }
 
 async function getBuiltinPage(fullName: string): Promise<Page> {
