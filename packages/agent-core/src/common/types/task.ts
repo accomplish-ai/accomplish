@@ -56,6 +56,7 @@ export interface Task {
   startedAt?: string;
   completedAt?: string;
   result?: TaskResult;
+  workspaceId?: string;
 }
 
 export interface TaskAttachment {

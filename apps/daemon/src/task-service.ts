@@ -173,8 +173,8 @@ export class TaskService extends EventEmitter {
     return this.taskManager.startTask(taskId, config, callbacks);
   }
 
-  listTasks(): Task[] {
-    return this.storage.getTasks() as Task[];
+  listTasks(workspaceId?: string): Task[] {
+    return this.storage.getTasks(workspaceId) as Task[];
   }
 
   getTaskStatus(params: {

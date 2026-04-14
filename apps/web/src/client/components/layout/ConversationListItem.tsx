@@ -5,6 +5,7 @@ import type { Task } from '@accomplish_ai/agent-core/common';
 import { cn } from '@/lib/utils';
 import { X, Star, SpinnerGap } from '@phosphor-icons/react';
 import { useTaskStore } from '@/stores/taskStore';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { STATUS_COLORS, FAVORITABLE_STATUSES, extractDomains } from '@/lib/task-utils';
 import { getFaviconUrl } from '@/components/landing/IntegrationIcons';
 
@@ -20,6 +21,13 @@ export function ConversationListItem({ task }: ConversationListItemProps) {
   const deleteTask = useTaskStore((state) => state.deleteTask);
   const domains = useMemo(() => extractDomains(task), [task]);
   const { favorites, addFavorite, removeFavorite } = useTaskStore();
+  const workspaces = useWorkspaceStore((state) => state.workspaces);
+  const workspaceColor = useMemo(() => {
+    if (!task.workspaceId) {
+      return undefined;
+    }
+    return workspaces.find((w) => w.id === task.workspaceId)?.color;
+  }, [task.workspaceId, workspaces]);
   const favoritesList = Array.isArray(favorites) ? favorites : [];
   const isFavorited = favoritesList.some((f) => f.taskId === task.id);
   const canFavorite = FAVORITABLE_STATUSES.includes(task.status);
@@ -58,6 +66,7 @@ export function ConversationListItem({ task }: ConversationListItemProps) {
         }
       }}
       title={task.summary || task.prompt}
+      style={workspaceColor ? { borderLeft: `2px solid ${workspaceColor}` } : undefined}
       className={cn(
         'w-full text-left p-2 rounded-lg text-xs font-medium transition-colors duration-200',
         'text-foreground hover:bg-accent hover:text-foreground',
