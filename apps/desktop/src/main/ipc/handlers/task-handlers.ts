@@ -127,7 +127,8 @@ export function registerTaskHandlers(): void {
     // Skip workspace filter for the default workspace so unassigned tasks (workspace_id = NULL)
     // remain visible — the default workspace acts as an "all tasks" view.
     const activeWorkspace = activeId ? workspaceManager.getWorkspace(activeId) : null;
-    const workspaceId = activeId && !activeWorkspace?.isDefault ? activeId : undefined;
+    const workspaceId =
+      activeId && activeWorkspace && !activeWorkspace.isDefault ? activeId : undefined;
     return await client.call('task.list', { workspaceId });
   });
 
