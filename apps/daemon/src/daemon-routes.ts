@@ -100,7 +100,7 @@ export function registerRpcMethods(services: RouteServices): void {
         params && typeof params === 'object' && 'workspaceId' in params
           ? (params as { workspaceId?: unknown }).workspaceId
           : undefined;
-      const workspaceId = typeof raw === 'string' && raw.trim() !== '' ? raw : undefined;
+      const workspaceId = typeof raw === 'string' && raw.trim() !== '' ? raw.trim() : undefined;
       return Promise.resolve(taskService.listTasks(workspaceId));
     }),
   );
