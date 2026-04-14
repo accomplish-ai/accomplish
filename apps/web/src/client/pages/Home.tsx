@@ -77,6 +77,7 @@ export function HomePage() {
                 typingPlaceholder={true}
                 large={true}
                 autoFocus={true}
+                autoSubmitOnTranscription={false}
                 onOpenSpeechSettings={handleOpenSpeechSettings}
                 onOpenModelSettings={handleOpenModelSettings}
                 hideModelWhenNoModel={true}
