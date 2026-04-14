@@ -17,11 +17,8 @@ export function getTasks(workspaceId?: string | null): StoredTask[] {
   const db = getDatabase();
   let rows: TaskRow[];
   if (workspaceId) {
-    // Include tasks belonging to this workspace AND tasks with no workspace (unassigned)
     rows = db
-      .prepare(
-        'SELECT * FROM tasks WHERE workspace_id = ? OR workspace_id IS NULL ORDER BY created_at DESC LIMIT ?',
-      )
+      .prepare('SELECT * FROM tasks WHERE workspace_id = ? ORDER BY created_at DESC LIMIT ?')
       .all(workspaceId, MAX_HISTORY_ITEMS) as TaskRow[];
   } else {
     rows = db
