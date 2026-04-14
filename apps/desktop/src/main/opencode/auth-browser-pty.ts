@@ -8,7 +8,19 @@ import { quoteForShell, getPlatformShell, getShellArgs } from '@accomplish_ai/ag
 import { getOpenCodeCliPath } from './electron-options';
 import { generateOpenCodeConfig } from './config-generator';
 import { isOpenCodeCliInstallError, INSTALL_ERROR_MESSAGE } from './cli-error-utils';
+import { getBundledNodePaths } from '../utils/bundled-node';
 import { getLogCollector } from '../logging';
+
+function logOC(level: 'INFO' | 'WARN' | 'ERROR', msg: string): void {
+  try {
+    const l = getLogCollector();
+    if (l?.log) {
+      l.log(level, 'opencode', msg);
+    }
+  } catch {
+    /* best-effort logging */
+  }
+}
 
 export interface LoginResult {
   openedUrl?: string;
@@ -29,6 +41,37 @@ export async function getOpenCodeCommandContext(): Promise<OpenCodeCommandContex
   for (const [key, value] of Object.entries(process.env)) {
     if (typeof value === 'string') {
       env[key] = value;
+    }
+  }
+
+  // In packaged builds, the OpenCode CLI is a Node script with a `#!/usr/bin/env node`
+  // shebang (Unix) and is invoked via `node opencode` resolution on Windows.
+  // The packaged Electron environment has no plain `node` on PATH, so the
+  // shebang resolution fails with `env: node: No such file or directory` (exit 127).
+  // Prepend the bundled Node bin dir to PATH so `env node` resolves correctly,
+  // matching what the task-execution path does in environment-builder.ts.
+  if (app.isPackaged) {
+    env.ELECTRON_RUN_AS_NODE = '1';
+    const bundledNodePaths = getBundledNodePaths();
+    if (bundledNodePaths) {
+      const delimiter = process.platform === 'win32' ? ';' : ':';
+      const existingPath = env.PATH ?? env.Path ?? '';
+      const combinedPath = existingPath
+        ? `${bundledNodePaths.binDir}${delimiter}${existingPath}`
+        : bundledNodePaths.binDir;
+      env.PATH = combinedPath;
+      // Windows env vars are case-insensitive at the OS level, but Node's
+      // process.env preserves the original case. Set both so child processes
+      // see the bundled Node regardless of which name they look up.
+      if (process.platform === 'win32') {
+        env.Path = combinedPath;
+      }
+      logOC('INFO', `[OpenCode Auth] Added bundled Node.js to PATH: ${bundledNodePaths.binDir}`);
+    } else {
+      logOC(
+        'WARN',
+        '[OpenCode Auth] Bundled Node.js not found — auth login will likely fail with `env: node: No such file or directory`',
+      );
     }
   }
 
