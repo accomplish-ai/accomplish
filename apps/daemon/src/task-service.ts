@@ -101,7 +101,7 @@ export class TaskService extends EventEmitter {
       timestamp: new Date().toISOString(),
     };
     task.messages = [initialUserMessage];
-    this.storage.saveTask(task);
+    this.storage.saveTask(task, params.workspaceId);
 
     runTaskSummaryGeneration(taskId, validatedConfig.prompt, this.storage, (summary) => {
       this.emit('summary', { taskId, summary });

@@ -96,10 +96,11 @@ export function registerRpcMethods(services: RouteServices): void {
   rpc.registerMethod(
     'task.list',
     safeHandler((params) => {
-      const workspaceId =
+      const raw =
         params && typeof params === 'object' && 'workspaceId' in params
-          ? (params as { workspaceId?: string }).workspaceId
+          ? (params as { workspaceId?: unknown }).workspaceId
           : undefined;
+      const workspaceId = typeof raw === 'string' && raw.trim() !== '' ? raw : undefined;
       return Promise.resolve(taskService.listTasks(workspaceId));
     }),
   );
