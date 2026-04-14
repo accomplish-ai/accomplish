@@ -13,13 +13,21 @@ export { getMessagesForTask };
 
 const MAX_HISTORY_ITEMS = 100;
 
-export function getTasks(workspaceId?: string | null): StoredTask[] {
+export function getTasks(workspaceId?: string | null, includeUnassigned = false): StoredTask[] {
   const db = getDatabase();
   let rows: TaskRow[];
   if (workspaceId) {
-    rows = db
-      .prepare('SELECT * FROM tasks WHERE workspace_id = ? ORDER BY created_at DESC LIMIT ?')
-      .all(workspaceId, MAX_HISTORY_ITEMS) as TaskRow[];
+    if (includeUnassigned) {
+      rows = db
+        .prepare(
+          'SELECT * FROM tasks WHERE workspace_id = ? OR workspace_id IS NULL ORDER BY created_at DESC LIMIT ?',
+        )
+        .all(workspaceId, MAX_HISTORY_ITEMS) as TaskRow[];
+    } else {
+      rows = db
+        .prepare('SELECT * FROM tasks WHERE workspace_id = ? ORDER BY created_at DESC LIMIT ?')
+        .all(workspaceId, MAX_HISTORY_ITEMS) as TaskRow[];
+    }
   } else {
     rows = db
       .prepare('SELECT * FROM tasks ORDER BY created_at DESC LIMIT ?')

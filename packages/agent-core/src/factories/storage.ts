@@ -132,7 +132,7 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
 
   return {
     // Task History
-    getTasks: (workspaceId) => getTasks(workspaceId),
+    getTasks: (workspaceId, includeUnassigned) => getTasks(workspaceId, includeUnassigned),
     getTask: (taskId) => getTask(taskId),
     saveTask: (task, workspaceId) => saveTask(task, workspaceId),
     updateTaskStatus: (taskId, status, completedAt) =>

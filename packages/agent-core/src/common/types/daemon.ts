@@ -97,6 +97,8 @@ export interface TaskIdParams {
 /** Parameters for task.list (optional workspace filter) */
 export interface TaskListParams {
   workspaceId?: string;
+  /** When true, also return tasks with no workspace (workspace_id IS NULL) */
+  includeUnassigned?: boolean;
 }
 
 /** Parameters for task.sendResponse */

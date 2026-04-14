@@ -101,7 +101,11 @@ export function registerRpcMethods(services: RouteServices): void {
           ? (params as { workspaceId?: unknown }).workspaceId
           : undefined;
       const workspaceId = typeof raw === 'string' && raw.trim() !== '' ? raw.trim() : undefined;
-      return Promise.resolve(taskService.listTasks(workspaceId));
+      const includeUnassigned =
+        params && typeof params === 'object' && 'includeUnassigned' in params
+          ? (params as { includeUnassigned?: unknown }).includeUnassigned === true
+          : false;
+      return Promise.resolve(taskService.listTasks(workspaceId, includeUnassigned));
     }),
   );
   rpc.registerMethod(
