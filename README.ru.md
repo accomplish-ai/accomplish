@@ -11,12 +11,12 @@
   <a href="https://github.com/accomplish-ai/accomplish/stargazers"><img src="https://img.shields.io/github/stars/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Stars" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/issues"><img src="https://img.shields.io/github/issues/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Issues" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/commits"><img src="https://img.shields.io/github/last-commit/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="Последний коммит" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/macos/Accomplish-0.4.14-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="Скачать для macOS (Apple Silicon)" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/macos/Accomplish-0.4.14-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="Скачать для macOS (Intel)" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/windows/Accomplish-0.4.14-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Скачать для Windows 11" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-arm64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(ARM64)-0ea5e9?style=flat-square" alt="Скачать для Linux (ARM64)" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-x86_64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(x64)-0ea5e9?style=flat-square" alt="Скачать для Linux (x64)" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-amd64.deb"><img src="https://img.shields.io/badge/Download-Linux_(.deb_x64)-0ea5e9?style=flat-square" alt="Скачать для Linux (.deb x64)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/macos/Accomplish-0.5.17-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="Скачать для macOS (Apple Silicon)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/macos/Accomplish-0.5.17-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="Скачать для macOS (Intel)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/windows/Accomplish-0.5.17-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Скачать для Windows 11" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-arm64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(ARM64)-0ea5e9?style=flat-square" alt="Скачать для Linux (ARM64)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-x86_64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(x64)-0ea5e9?style=flat-square" alt="Скачать для Linux (x64)" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-amd64.deb"><img src="https://img.shields.io/badge/Download-Linux_(.deb_x64)-0ea5e9?style=flat-square" alt="Скачать для Linux (.deb x64)" /></a>
   <a href="https://discord.gg/kg5Nekpm"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
@@ -29,17 +29,17 @@ Accomplish — это открытый ИИ-агент для рабочего �
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/macos/Accomplish-0.4.14-mac-arm64.dmg"><strong>Скачать для Mac (Apple Silicon)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/macos/Accomplish-0.5.17-mac-arm64.dmg"><strong>Скачать для Mac (Apple Silicon)</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/macos/Accomplish-0.4.14-mac-x64.dmg"><strong>Скачать для Mac (Intel)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/macos/Accomplish-0.5.17-mac-x64.dmg"><strong>Скачать для Mac (Intel)</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/windows/Accomplish-0.4.14-win-x64.exe"><strong>Скачать для Windows 11</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/windows/Accomplish-0.5.17-win-x64.exe"><strong>Скачать для Windows 11</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-arm64.AppImage"><strong>Скачать для Linux (ARM64)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-arm64.AppImage"><strong>Скачать для Linux (ARM64)</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-x86_64.AppImage"><strong>Скачать для Linux (x64)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-x86_64.AppImage"><strong>Скачать для Linux (x64)</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-amd64.deb"><strong>Скачать для Linux (.deb x64)</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-amd64.deb"><strong>Скачать для Linux (.deb x64)</strong></a>
   ·
   <a href="https://www.accomplish.ai/">Сайт Accomplish</a>
   ·
@@ -201,7 +201,7 @@ Accomplish работает локально на вашем компьютер�
 
 <div align="center">
 
-[**Скачать для Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.4.14/macos/Accomplish-0.4.14-mac-arm64.dmg) · [**Скачать для Mac (Intel)**](https://downloads.accomplish.ai/downloads/0.4.14/macos/Accomplish-0.4.14-mac-x64.dmg) · [**Скачать для Windows 11**](https://downloads.accomplish.ai/downloads/0.4.14/windows/Accomplish-0.4.14-win-x64.exe) · [**Скачать для Linux (ARM64)**](https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-arm64.AppImage) · [**Скачать для Linux (x64)**](https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-x86_64.AppImage) · [**Скачать для Linux (.deb x64)**](https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-amd64.deb)
+[**Скачать для Mac (Apple Silicon)**](https://downloads.accomplish.ai/downloads/0.5.17/macos/Accomplish-0.5.17-mac-arm64.dmg) · [**Скачать для Mac (Intel)**](https://downloads.accomplish.ai/downloads/0.5.17/macos/Accomplish-0.5.17-mac-x64.dmg) · [**Скачать для Windows 11**](https://downloads.accomplish.ai/downloads/0.5.17/windows/Accomplish-0.5.17-win-x64.exe) · [**Скачать для Linux (ARM64)**](https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-arm64.AppImage) · [**Скачать для Linux (x64)**](https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-x86_64.AppImage) · [**Скачать для Linux (.deb x64)**](https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-amd64.deb)
 
 </div>
 
