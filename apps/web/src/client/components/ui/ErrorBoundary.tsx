@@ -1,10 +1,11 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react';
 import { WarningCircle, ArrowCounterClockwise } from '@phosphor-icons/react';
+import { Button } from './button';
 
 interface Props {
   children: ReactNode;
-  /** Custom fallback. Receives `reset` callback to retry. */
-  fallback?: (reset: () => void) => ReactNode;
+  /** Custom fallback. Receives the caught Error and a reset callback. */
+  fallback?: (error: Error, reset: () => void) => ReactNode;
 }
 
 interface State {
@@ -28,7 +29,7 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       if (this.props.fallback) {
-        return this.props.fallback(this.reset);
+        return this.props.fallback(this.state.error, this.reset);
       }
       return <DefaultFallback error={this.state.error} reset={this.reset} />;
     }
@@ -44,22 +45,30 @@ interface FallbackProps {
 }
 
 export function DefaultFallback({ error, reset, compact = false }: FallbackProps) {
+  const isDev = process.env.NODE_ENV === 'development';
+  let safeMessage = 'An unexpected error occurred.';
+  if (isDev) {
+    safeMessage = error.message?.length > 500 ? error.message.slice(0, 500) + '…' : error.message;
+  }
+
   if (compact) {
     return (
       <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
         <WarningCircle className="h-4 w-4 shrink-0" />
         <span className="flex-1 truncate">
           Something went wrong rendering this content.{' '}
-          <span className="opacity-60 font-mono text-xs">{error.message}</span>
+          <span className="opacity-60 font-mono text-xs">{safeMessage}</span>
         </span>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={reset}
-          className="shrink-0 flex items-center gap-1 text-xs text-destructive/80 hover:text-destructive transition-colors"
+          className="shrink-0 gap-1 text-xs text-destructive/80 hover:text-destructive hover:bg-transparent px-1"
         >
           <ArrowCounterClockwise className="h-3.5 w-3.5" />
           Retry
-        </button>
+        </Button>
       </div>
     );
   }
@@ -73,15 +82,11 @@ export function DefaultFallback({ error, reset, compact = false }: FallbackProps
           </div>
         </div>
         <h2 className="mb-1 text-base font-semibold text-foreground">Something went wrong</h2>
-        <p className="mb-4 text-sm text-muted-foreground font-mono break-all">{error.message}</p>
-        <button
-          type="button"
-          onClick={reset}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          <ArrowCounterClockwise className="h-4 w-4" />
+        <p className="mb-4 text-sm text-muted-foreground font-mono break-all">{safeMessage}</p>
+        <Button type="button" onClick={reset}>
+          <ArrowCounterClockwise />
           Try again
-        </button>
+        </Button>
       </div>
     </div>
   );

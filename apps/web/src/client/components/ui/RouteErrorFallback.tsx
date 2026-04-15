@@ -1,14 +1,22 @@
 import { useRouteError, isRouteErrorResponse, Link } from 'react-router';
 import { WarningCircle } from '@phosphor-icons/react';
+import { Button } from './button';
 
 export function RouteErrorFallback() {
   const error = useRouteError();
+  const isDev = process.env.NODE_ENV === 'development';
 
   let message = 'An unexpected error occurred.';
   if (isRouteErrorResponse(error)) {
     message = `${error.status} — ${error.statusText}`;
+    if (isDev) console.error('[RouteErrorFallback] RouteErrorResponse:', error);
   } else if (error instanceof Error) {
-    message = error.message;
+    if (isDev) {
+      console.error('[RouteErrorFallback] Error:', error);
+      message = error.message?.length > 500 ? error.message.slice(0, 500) + '…' : error.message;
+    }
+  } else if (isDev) {
+    console.error('[RouteErrorFallback] Unknown error:', error);
   }
 
   return (
@@ -21,12 +29,9 @@ export function RouteErrorFallback() {
         </div>
         <h1 className="mb-1 text-lg font-semibold text-foreground">Something went wrong</h1>
         <p className="mb-6 text-sm text-muted-foreground font-mono break-all">{message}</p>
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          Go home
-        </Link>
+        <Button asChild>
+          <Link to="/">Go home</Link>
+        </Button>
       </div>
     </div>
   );

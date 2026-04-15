@@ -128,13 +128,9 @@ export default function ExecutionPage() {
         {/* Running messages */}
         {s.currentTask.status !== 'queued' && (
           <ErrorBoundary
-            fallback={(reset) => (
+            fallback={(error, reset) => (
               <div className="flex-1 flex items-center justify-center p-6">
-                <DefaultFallback
-                  error={new Error('Failed to render conversation')}
-                  reset={reset}
-                  compact={false}
-                />
+                <DefaultFallback error={error} reset={reset} compact={false} />
               </div>
             )}
           >

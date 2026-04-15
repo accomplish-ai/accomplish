@@ -46,7 +46,17 @@ function rowToProvider(row: ProviderRow): ConnectedProvider {
       const parsed = safeParseJsonWithFallback<Array<{ id: string; name: string }>>(
         row.available_models,
       );
-      return Array.isArray(parsed) ? parsed : undefined;
+      if (!Array.isArray(parsed)) {
+        return undefined;
+      }
+      const valid = parsed.filter(
+        (m) =>
+          m !== null &&
+          typeof m === 'object' &&
+          typeof m.id === 'string' &&
+          typeof m.name === 'string',
+      );
+      return valid.length > 0 ? valid : undefined;
     })(),
     customBaseUrl: row.custom_base_url || undefined,
   };
