@@ -15,11 +15,15 @@ export type {
   TaskAttachment,
   FileAttachmentInfo,
   TaskMessage,
+  TaskPauseAction,
   TaskResult,
   TaskProgress,
   TaskUpdateEvent,
 } from './common/types/task.js';
 export { STARTUP_STAGES } from './common/types/task.js';
+
+// Google Workspace file picker
+export { GOOGLE_FILE_PICKER_MARKER } from './common/google-picker-constants.js';
 
 // Permission types
 export type {
@@ -238,3 +242,11 @@ export {
   resumeSessionSchema,
   validate,
 } from './common/schemas/validation.js';
+
+// Google Workspace multi-account types
+export type {
+  GoogleAccountStatus,
+  GoogleAccount,
+  GoogleAccountToken,
+  GwsAccountsContext,
+} from './common/types/google-account.js';

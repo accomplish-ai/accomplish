@@ -50,6 +50,19 @@ export interface ConfigGeneratorOptions {
    * concurrent tasks from overwriting each other's config.
    */
   configFileName?: string;
+
+  /**
+   * Path to the GWS accounts manifest JSON file.
+   * When set, gmail-mcp, calendar-mcp, and gws-mcp are registered and
+   * receive this path via the GWS_ACCOUNTS_MANIFEST env var.
+   */
+  gwsAccountsManifestPath?: string;
+
+  /**
+   * Summary of connected Google accounts for system-prompt injection.
+   * Only accounts with status 'connected' should be included.
+   */
+  gwsAccountsSummary?: Array<{ label: string; email: string; status: string }>;
 }
 
 export interface ProviderConfig {

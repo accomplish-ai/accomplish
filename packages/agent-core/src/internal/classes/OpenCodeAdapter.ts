@@ -1025,7 +1025,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     this.emit('complete', {
       status: 'success',
       sessionId: this.currentSessionId || undefined,
-      pauseReason: 'auth',
+      pauseReason: 'oauth',
       pauseAction: {
         type: 'oauth-connect',
         providerId,

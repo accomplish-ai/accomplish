@@ -31,7 +31,7 @@ const skillsDir = path.join(
 );
 
 // Skills that have runtime dependencies (playwright) that cannot be bundled
-const SKILLS_WITH_RUNTIME_DEPS = ['dev-browser', 'dev-browser-mcp'];
+const SKILLS_WITH_RUNTIME_DEPS = ['dev-browser', 'dev-browser-mcp', 'gws-mcp'];
 
 // Skills that are fully bundled (no runtime node_modules needed)
 const SKILLS_FULLY_BUNDLED = [
@@ -42,7 +42,11 @@ const SKILLS_FULLY_BUNDLED = [
   'start-task',
   'desktop-control',
   'whatsapp',
+  'request-google-file-picker',
 ];
+
+// Skills that need googleapis at runtime — bundle JS but mark googleapis as external
+const SKILLS_WITH_GOOGLEAPIS = ['gmail-mcp', 'calendar-mcp'];
 
 const bundles = [
   {
@@ -81,6 +85,33 @@ const bundles = [
     outfile: 'dist/index.mjs',
   },
   {
+    // gmail-mcp uses googleapis at runtime — bundle JS but mark googleapis as external
+    name: 'gmail-mcp',
+    entry: 'src/index.ts',
+    outfile: 'dist/index.mjs',
+    external: ['googleapis'],
+  },
+  {
+    // calendar-mcp uses googleapis at runtime — bundle JS but mark googleapis as external
+    name: 'calendar-mcp',
+    entry: 'src/index.ts',
+    outfile: 'dist/index.mjs',
+    external: ['googleapis'],
+  },
+  {
+    name: 'request-google-file-picker',
+    entry: 'src/index.ts',
+    outfile: 'dist/index.mjs',
+  },
+  {
+    // gws-mcp requires @googleworkspace/cli at runtime (native binary).
+    // Bundle the JS wrapper but leave the CLI package as external.
+    name: 'gws-mcp',
+    entry: 'src/index.ts',
+    outfile: 'dist/index.mjs',
+    external: ['@googleworkspace/cli'],
+  },
+  {
     name: 'dev-browser-mcp',
     entry: 'src/index.ts',
     outfile: 'dist/index.mjs',
@@ -116,7 +147,11 @@ const bundles = [
 
 function validateSkillDependencyCategories() {
   const bundledSkillNames = new Set(bundles.map((bundle) => bundle.name));
-  const categorizedSkillNames = new Set([...SKILLS_WITH_RUNTIME_DEPS, ...SKILLS_FULLY_BUNDLED]);
+  const categorizedSkillNames = new Set([
+    ...SKILLS_WITH_RUNTIME_DEPS,
+    ...SKILLS_FULLY_BUNDLED,
+    ...SKILLS_WITH_GOOGLEAPIS,
+  ]);
   const uncategorizedSkills = [...bundledSkillNames].filter(
     (skillName) => !categorizedSkillNames.has(skillName),
   );
@@ -245,6 +280,29 @@ function reinstallProductionDepsForBundledBuild() {
     if (fs.existsSync(nodeModulesPath)) {
       fs.rmSync(nodeModulesPath, { recursive: true, force: true });
       console.log(`[bundle-skills] Removed ${nodeModulesPath} (fully bundled)`);
+    }
+  }
+
+  // Skills with googleapis as external dep: keep production node_modules (googleapis only)
+  for (const skillName of SKILLS_WITH_GOOGLEAPIS) {
+    const skillPath = path.join(skillsDir, skillName);
+    const packageJsonPath = path.join(skillPath, 'package.json');
+
+    if (!fs.existsSync(packageJsonPath)) {
+      console.log(`[bundle-skills] Skipping ${skillName}: no package.json`);
+      continue;
+    }
+
+    console.log(`[bundle-skills] Installing production deps for ${skillName} (googleapis)...`);
+    try {
+      execSync('npm install --omit=dev --ignore-scripts', {
+        cwd: skillPath,
+        stdio: 'inherit',
+      });
+      console.log(`[bundle-skills] Installed production deps for ${skillName}`);
+    } catch (error) {
+      console.error(`[bundle-skills] Failed to install deps for ${skillName}:`, error.message);
+      throw error;
     }
   }
 }

@@ -1,5 +1,6 @@
 import { app } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import {
   generateConfig,
   ACCOMPLISH_AGENT_NAME,
@@ -16,6 +17,7 @@ import { getBundledNodePaths } from '../utils/bundled-node';
 import { skillsManager } from '../skills';
 import { getLogCollector } from '../logging';
 import * as workspaceManager from '../store/workspaceManager';
+import type { AccountManager } from '../google-accounts/account-manager';
 
 function logOC(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
   try {
@@ -29,6 +31,60 @@ function logOC(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<stri
 }
 
 export { ACCOMPLISH_AGENT_NAME };
+
+/**
+ * Writes per-account token files and the manifest used by GWS MCP servers.
+ * Returns the manifest path, or undefined if no connected accounts exist.
+ */
+function prepareGwsManifest(accountManager: AccountManager): string | undefined {
+  const accounts = accountManager.listAccounts().filter((a) => a.status === 'connected');
+  if (accounts.length === 0) {
+    return undefined;
+  }
+
+  const tokenDir = path.join(app.getPath('userData'), 'gws-tokens');
+  fs.mkdirSync(tokenDir, { recursive: true });
+  try {
+    fs.chmodSync(tokenDir, 0o700);
+  } catch {
+    /* non-critical on platforms that don't support chmod */
+  }
+
+  const entries: Array<{
+    googleAccountId: string;
+    label: string;
+    email: string;
+    tokenFilePath: string;
+  }> = [];
+
+  for (const account of accounts) {
+    const token = accountManager.getAccountToken(account.googleAccountId);
+    if (!token) {
+      continue;
+    }
+    const tokenFilePath = path.join(tokenDir, `${account.googleAccountId}.json`);
+    const tmpPath = `${tokenFilePath}.tmp`;
+    fs.writeFileSync(tmpPath, JSON.stringify(token), { encoding: 'utf-8' });
+    fs.renameSync(tmpPath, tokenFilePath);
+    try {
+      fs.chmodSync(tokenFilePath, 0o600);
+    } catch {
+      /* non-critical */
+    }
+    entries.push({
+      googleAccountId: account.googleAccountId,
+      label: account.label,
+      email: account.email,
+      tokenFilePath,
+    });
+  }
+
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  return accountManager.writeAccountsManifest(entries);
+}
 
 /**
  * Returns the path to MCP tools directory.
@@ -101,6 +157,26 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     workspaceId: activeWorkspaceId ?? undefined,
     log: logOC,
   });
+
+  // Prepare GWS manifest for connected Google accounts
+  try {
+    const { getAccountManager } = await import('../google-accounts/index');
+    const accountManager = getAccountManager();
+    const manifestPath = prepareGwsManifest(accountManager);
+    if (manifestPath) {
+      configOptions.gwsAccountsManifestPath = manifestPath;
+      configOptions.gwsAccountsSummary = accountManager
+        .listAccounts()
+        .filter((a) => a.status === 'connected')
+        .map((a) => ({ label: a.label, email: a.email, status: a.status }));
+      logOC(
+        'INFO',
+        `[OpenCode Config] GWS manifest written for ${configOptions.gwsAccountsSummary.length} account(s)`,
+      );
+    }
+  } catch (err) {
+    logOC('WARN', '[OpenCode Config] Failed to prepare GWS manifest', { err: String(err) });
+  }
 
   const result = generateConfig(configOptions);
 

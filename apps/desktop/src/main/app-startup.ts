@@ -219,13 +219,50 @@ export async function startApp(
     logMain('INFO', '[Main] E2E mock mode — skipping daemon bootstrap');
   }
 
-  registerIPCHandlers();
+  // Initialize Google account managers (lazy singletons — safe after initializeStorage())
+  let googleAccountManager: import('./google-accounts/account-manager').AccountManager | undefined;
+  let googleTokenManager: import('./google-accounts/token-manager').TokenManager | undefined;
+  let startGoogleOAuthFn:
+    | typeof import('./google-accounts/google-auth').startGoogleOAuth
+    | undefined;
+  let cancelGoogleOAuthFn:
+    | typeof import('./google-accounts/google-auth').cancelGoogleOAuth
+    | undefined;
+  try {
+    const { getAccountManager, getTokenManager, startGoogleOAuth, cancelGoogleOAuth } =
+      await import('./google-accounts/index');
+    googleAccountManager = getAccountManager();
+    googleTokenManager = getTokenManager();
+    startGoogleOAuthFn = startGoogleOAuth;
+    cancelGoogleOAuthFn = cancelGoogleOAuth;
+  } catch (err) {
+    logMain('WARN', '[Main] Google account managers unavailable', { err: String(err) });
+  }
+  // Register IPC handlers exactly once, after the import attempt settles
+  registerIPCHandlers(
+    googleAccountManager,
+    googleTokenManager,
+    startGoogleOAuthFn,
+    cancelGoogleOAuthFn,
+  );
   logMain('INFO', '[Main] IPC handlers registered');
 
   createWindow();
 
   const mainWindow = getMainWindow();
   if (mainWindow) {
+    // Wire TokenManager window reference and start refresh timers for connected accounts
+    if (googleTokenManager && googleAccountManager) {
+      try {
+        googleTokenManager.setWindow(mainWindow);
+        googleTokenManager.startAllTimers(googleAccountManager.listAccounts());
+        logMain('INFO', '[Main] Google account token refresh timers started');
+      } catch (err) {
+        logMain('WARN', '[Main] Failed to start Google token refresh timers', {
+          err: String(err),
+        });
+      }
+    }
     // Forward daemon notifications to the renderer via IPC.
     // Uses a dynamic getter so recreated windows (macOS activate) receive events.
     registerNotificationForwarding(() => getMainWindow());
@@ -291,6 +328,14 @@ export async function startApp(
     const windows = BrowserWindow.getAllWindows();
     if (windows.length === 0) {
       createWindow();
+      // Rebind TokenManager to the newly created window so background
+      // notifications target the fresh BrowserWindow reference
+      if (googleTokenManager) {
+        const newWindow = getMainWindow();
+        if (newWindow) {
+          googleTokenManager.setWindow(newWindow);
+        }
+      }
       try {
         getLogCollector()?.logEnv?.('INFO', '[Main] Application reactivated; recreated window');
       } catch (_e) {
@@ -299,6 +344,10 @@ export async function startApp(
     } else {
       windows[0].show();
       windows[0].focus();
+      // Ensure TokenManager always holds a reference to the current focused window
+      if (googleTokenManager) {
+        googleTokenManager.setWindow(windows[0]);
+      }
       try {
         getLogCollector()?.logEnv?.(
           'INFO',

@@ -75,22 +75,49 @@ export interface TaskMessage {
   attachments?: TaskAttachment[];
 }
 
-export interface TaskPauseAction {
-  type: 'oauth-connect';
-  providerId: OAuthProviderId;
-  label: string;
-  pendingLabel?: string;
-  successText?: string;
-}
+export type TaskPauseAction =
+  | {
+      type: 'oauth-connect';
+      providerId: OAuthProviderId;
+      label: string;
+      pendingLabel?: string;
+      successText?: string;
+    }
+  | {
+      type: 'google-file-picker';
+      label: string;
+      pendingLabel?: string;
+      /** Pre-filled search query for the file picker UI */
+      query?: string;
+      /** Label of the Google account to open the picker for */
+      accountLabel?: string;
+      /** Email of the Google account to open the picker for */
+      accountEmail?: string;
+    };
 
-export interface TaskResult {
-  status: 'success' | 'error' | 'interrupted';
-  sessionId?: string;
-  durationMs?: number;
-  error?: string;
-  pauseReason?: 'auth';
-  pauseAction?: TaskPauseAction;
-}
+export type TaskResult =
+  | {
+      status: 'success' | 'error' | 'interrupted';
+      sessionId?: string;
+      durationMs?: number;
+      error?: string;
+      pauseReason: 'oauth';
+      pauseAction: Extract<TaskPauseAction, { type: 'oauth-connect' }>;
+    }
+  | {
+      status: 'success' | 'error' | 'interrupted';
+      sessionId?: string;
+      durationMs?: number;
+      error?: string;
+      pauseReason: 'file-picker';
+      pauseAction: Extract<TaskPauseAction, { type: 'google-file-picker' }>;
+    }
+  | {
+      status: 'success' | 'error' | 'interrupted';
+      sessionId?: string;
+      durationMs?: number;
+      error?: string;
+    };
 
 export type StartupStage =
   | 'starting'

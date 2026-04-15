@@ -115,11 +115,15 @@ export function useExecutionCore() {
     currentTask?.status ?? '',
   );
   const hasSession = currentTask?.sessionId || currentTask?.result?.sessionId;
-  const isAuthPause = currentTask?.result?.pauseReason === 'auth';
-  const pauseAction = currentTask?.result?.pauseAction;
+  const result = currentTask?.result;
+  const isAuthPause = result && 'pauseReason' in result && result.pauseReason === 'oauth';
+  const pauseAction = result && 'pauseAction' in result ? result.pauseAction : undefined;
   const canFollowUp = isComplete && (hasSession || currentTask?.status === 'interrupted');
-  const isConnectorAuthPause =
-    currentTask?.status === 'completed' && isAuthPause && pauseAction?.type === 'oauth-connect';
+  const isConnectorAuthPause: boolean = !!(
+    currentTask?.status === 'completed' &&
+    isAuthPause &&
+    pauseAction?.type === 'oauth-connect'
+  );
   let taskActionLabel: string;
   if (currentTask?.status === 'interrupted') {
     taskActionLabel = tCommon('buttons.continue');

@@ -112,6 +112,34 @@ const agentCoreMocks = {
     tokenType: 'Bearer',
     scope: 'chat:write users:read',
   })),
+  buildAuthorizationUrl: vi.fn(
+    (params: {
+      authorizationEndpoint: string;
+      clientId: string;
+      redirectUri: string;
+      codeChallenge: string;
+      state: string;
+      scope?: string;
+      extraParams?: Record<string, string>;
+    }) => {
+      const url = new URL(params.authorizationEndpoint);
+      url.searchParams.set('response_type', 'code');
+      url.searchParams.set('client_id', params.clientId);
+      url.searchParams.set('redirect_uri', params.redirectUri);
+      url.searchParams.set('code_challenge', params.codeChallenge);
+      url.searchParams.set('code_challenge_method', 'S256');
+      url.searchParams.set('state', params.state);
+      if (params.scope) {
+        url.searchParams.set('scope', params.scope);
+      }
+      if (params.extraParams) {
+        for (const [key, value] of Object.entries(params.extraParams)) {
+          url.searchParams.set(key, value);
+        }
+      }
+      return url.toString();
+    },
+  ),
   clearSlackMcpAuth: vi.fn(),
   getSlackMcpCallbackUrl: vi.fn(() => 'http://localhost:3118/callback'),
   setSlackMcpPendingAuth: vi.fn(),
@@ -123,15 +151,16 @@ const agentCoreMocks = {
   OPENCODE_SLACK_MCP_CALLBACK_PATH: '/callback',
 };
 
-vi.mock('@accomplish_ai/agent-core', async () => {
-  const actual = await vi.importActual<typeof import('@accomplish_ai/agent-core')>(
-    '@accomplish_ai/agent-core',
-  );
-  return {
-    ...actual,
-    ...agentCoreMocks,
-  };
-});
+vi.mock('@accomplish_ai/agent-core', () => ({
+  ...agentCoreMocks,
+  // Utility stubs needed by auth-browser and auth-browser-pty
+  // eslint-disable-next-line no-control-regex
+  stripAnsi: (s: string) => s.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''),
+  quoteForShell: (s: string) => s,
+  getPlatformShell: () => '/bin/sh',
+  getShellArgs: (cmd: string) => ['-c', cmd],
+  waitForPortRelease: vi.fn(() => Promise.resolve()),
+}));
 
 const mockCallbackServer = {
   redirectUri: 'http://localhost:3118/callback',

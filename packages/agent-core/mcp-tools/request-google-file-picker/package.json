@@ -1,0 +1,13 @@
+{
+  "name": "request-google-file-picker",
+  "version": "0.0.1",
+  "type": "module",
+  "dependencies": {
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.0.0"
+  }
+}

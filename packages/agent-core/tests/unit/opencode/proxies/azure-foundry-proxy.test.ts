@@ -6,6 +6,42 @@ import {
   isAzureFoundryProxyRunning,
 } from '../../../../src/opencode/proxies/azure-foundry-proxy.js';
 
+// Mock http so tests don't bind a real TCP port
+class MockHttpServer {
+  listening = false;
+  private _errorHandler?: (err: Error) => void;
+
+  once(event: string, callback: (err?: Error) => void) {
+    if (event === 'error') {
+      this._errorHandler = callback as (err: Error) => void;
+    }
+    return this;
+  }
+
+  /** Expose stored error handler so tests can simulate startup errors. */
+  emitError(err: Error) {
+    this._errorHandler?.(err);
+  }
+
+  listen(_port: number, _host: string, callback: () => void) {
+    this.listening = true;
+    callback();
+    return this;
+  }
+
+  close(callback?: (err?: Error) => void) {
+    this.listening = false;
+    callback?.();
+    return this;
+  }
+}
+
+vi.mock('http', () => ({
+  default: {
+    createServer: vi.fn(() => new MockHttpServer()),
+  },
+}));
+
 describe('Azure Foundry Proxy', () => {
   beforeEach(() => {
     vi.spyOn(console, 'log').mockImplementation(() => {});

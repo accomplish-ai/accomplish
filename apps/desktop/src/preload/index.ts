@@ -19,7 +19,7 @@ import type {
   KnowledgeNoteCreateInput,
   KnowledgeNoteUpdateInput,
 } from '@accomplish_ai/agent-core';
-import type { CloudBrowserConfig } from '@accomplish_ai/agent-core/common';
+import type { CloudBrowserConfig, GoogleAccount } from '@accomplish_ai/agent-core/common';
 
 // Safe analytics IPC invoke — silently catches "No handler" errors for OSS builds
 // where analytics IPC handlers are not registered.
@@ -879,6 +879,25 @@ const accomplishAPI = {
   },
   respondToClose: (decision: 'keep-daemon' | 'stop-daemon' | 'cancel'): void => {
     ipcRenderer.send('app:close-response', decision);
+  },
+
+  // ── Google Workspace Accounts ────────────────────────────────────────────
+  gws: {
+    listAccounts: (): Promise<GoogleAccount[]> => ipcRenderer.invoke('gws:accounts:list'),
+    startAuth: (label: string): Promise<{ state: string; authUrl: string }> =>
+      ipcRenderer.invoke('gws:accounts:start-auth', label),
+    completeAuth: (state: string, code: string): Promise<GoogleAccount> =>
+      ipcRenderer.invoke('gws:accounts:complete-auth', state, code),
+    removeAccount: (id: string): Promise<void> => ipcRenderer.invoke('gws:accounts:remove', id),
+    updateLabel: (id: string, label: string): Promise<void> =>
+      ipcRenderer.invoke('gws:accounts:update-label', id, label),
+    cancelAuth: (state: string): Promise<void> =>
+      ipcRenderer.invoke('gws:accounts:cancel-auth', state),
+    onStatusChanged: (callback: (id: string, status: string) => void): (() => void) => {
+      const listener = (_: unknown, id: string, status: string) => callback(id, status);
+      ipcRenderer.on('gws:account:status-changed', listener);
+      return () => ipcRenderer.removeListener('gws:account:status-changed', listener);
+    },
   },
 
   // ── Analytics ─────────────────────────────────────────────────────────────

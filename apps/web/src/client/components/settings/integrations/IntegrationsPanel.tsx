@@ -6,6 +6,7 @@ import { SlackConnectorSection } from '@/components/settings/connectors/SlackCon
 import { ConnectorAddForm } from '@/components/settings/connectors/ConnectorAddForm';
 import { ConnectorList } from '@/components/settings/connectors/ConnectorList';
 import { useConnectorsPanel } from '@/components/settings/connectors/useConnectorsPanel';
+import { GoogleAccountsSection } from '../google-accounts/GoogleAccountsSection';
 
 export function IntegrationsPanel() {
   const { t } = useTranslation('settings');
@@ -31,6 +32,8 @@ export function IntegrationsPanel() {
 
   return (
     <div className="space-y-6" data-testid="integrations-panel">
+      <GoogleAccountsSection />
+
       <div>
         <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {t('integrations.messaging')}

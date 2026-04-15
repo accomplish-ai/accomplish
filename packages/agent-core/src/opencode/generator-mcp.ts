@@ -69,6 +69,11 @@ export interface BuildMcpServersOptions {
     url: string;
     accessToken: string;
   }>;
+  /**
+   * Path to GWS accounts manifest JSON. When set, gmail-mcp, calendar-mcp,
+   * and gws-mcp are registered and receive this path via GWS_ACCOUNTS_MANIFEST.
+   */
+  gwsAccountsManifestPath?: string;
 }
 
 /**
@@ -85,6 +90,7 @@ export function buildMcpServers(options: BuildMcpServersOptions): Record<string,
     browserConfig,
     authToken,
     connectors,
+    gwsAccountsManifestPath,
   } = options;
 
   // Auth env for daemon HTTP APIs — MCP tools send this as Authorization header
@@ -174,6 +180,59 @@ export function buildMcpServers(options: BuildMcpServersOptions): Record<string,
       ...(Object.keys(browserEnv).length > 0 && { environment: browserEnv }),
       timeout: 30000,
     };
+  }
+
+  if (gwsAccountsManifestPath) {
+    const gwsEnv = { GWS_ACCOUNTS_MANIFEST: gwsAccountsManifestPath };
+    try {
+      mcpServers['gmail-mcp'] = {
+        type: 'local',
+        command: resolveMcpCommand(mcpToolsPath, 'gmail-mcp', 'dist/index.mjs', nodeExe),
+        enabled: true,
+        environment: gwsEnv,
+        timeout: 60000,
+      };
+    } catch {
+      // gmail-mcp not available (not yet built or installed)
+    }
+    try {
+      mcpServers['calendar-mcp'] = {
+        type: 'local',
+        command: resolveMcpCommand(mcpToolsPath, 'calendar-mcp', 'dist/index.mjs', nodeExe),
+        enabled: true,
+        environment: gwsEnv,
+        timeout: 60000,
+      };
+    } catch {
+      // calendar-mcp not available
+    }
+    try {
+      mcpServers['gws-mcp'] = {
+        type: 'local',
+        command: resolveMcpCommand(mcpToolsPath, 'gws-mcp', 'dist/index.mjs', nodeExe),
+        enabled: true,
+        environment: gwsEnv,
+        timeout: 60000,
+      };
+    } catch {
+      // gws-mcp not available (requires @googleworkspace/cli)
+    }
+    try {
+      mcpServers['request-google-file-picker'] = {
+        type: 'local',
+        command: resolveMcpCommand(
+          mcpToolsPath,
+          'request-google-file-picker',
+          'dist/index.mjs',
+          nodeExe,
+        ),
+        enabled: true,
+        environment: gwsEnv,
+        timeout: 30000,
+      };
+    } catch {
+      // request-google-file-picker not available
+    }
   }
 
   if (connectors) {

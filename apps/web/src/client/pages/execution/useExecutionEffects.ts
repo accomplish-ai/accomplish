@@ -11,10 +11,13 @@ export function useExecutionEffects(s: CoreState, accomplish: CoreState['accompl
   useEffect(() => {
     s.setTaskActionError(null);
     s.setIsTaskActionRunning(false);
-    const action = s.currentTask?.result?.pauseAction;
+    const result = s.currentTask?.result;
+    const action = result && 'pauseAction' in result ? result.pauseAction : undefined;
     if (
       s.currentTask?.status === 'completed' &&
-      s.currentTask?.result?.pauseReason === 'auth' &&
+      result &&
+      'pauseReason' in result &&
+      result.pauseReason === 'oauth' &&
       action?.type === 'oauth-connect'
     ) {
       let stale = false;
@@ -37,10 +40,21 @@ export function useExecutionEffects(s: CoreState, accomplish: CoreState['accompl
     accomplish,
     s.currentTask?.id,
     s.currentTask?.status,
-    s.currentTask?.result?.pauseReason,
-    s.currentTask?.result?.pauseAction,
-    s.currentTask?.result?.pauseAction?.type,
-    s.currentTask?.result?.pauseAction?.providerId,
+    s.currentTask?.result && 'pauseReason' in s.currentTask.result
+      ? s.currentTask.result.pauseReason
+      : undefined,
+    s.currentTask?.result && 'pauseAction' in s.currentTask.result
+      ? s.currentTask.result.pauseAction
+      : undefined,
+    s.currentTask?.result && 'pauseAction' in s.currentTask.result
+      ? s.currentTask.result.pauseAction?.type
+      : undefined,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- providerId only exists on oauth-connect variant; narrowing inside deps array is intentional
+    s.currentTask?.result &&
+    'pauseAction' in s.currentTask.result &&
+    s.currentTask.result.pauseAction?.type === 'oauth-connect'
+      ? s.currentTask.result.pauseAction?.providerId
+      : undefined,
   ]);
 
   useEffect(() => {
