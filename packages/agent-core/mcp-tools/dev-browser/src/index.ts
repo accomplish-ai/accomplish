@@ -369,7 +369,7 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
   });
 
   // ─── HTTP server + graceful shutdown ──────────────────────────────────────
-  const server = app.listen(port, () => {
+  const server = app.listen(port, '127.0.0.1', () => {
     console.log(`dev-browser HTTP server running on port ${port}`);
   });
 

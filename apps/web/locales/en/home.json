@@ -73,6 +73,13 @@
       "prompt": "Scrape event listings from Eventbrite, filter by location, and add top 5 to my calendar."
     }
   },
+  "slashCommand": {
+    "title": "Skills",
+    "filtering": "Skills matching \"{{query}}\"",
+    "navigate": "navigate",
+    "select": "select",
+    "dismiss": "dismiss"
+  },
   "selectFolder": "Select Folder",
   "selectedFolder": {
     "badge": "📁 {folder}",

@@ -144,7 +144,10 @@ export async function isDevBrowserServerReady(port: number): Promise<boolean> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 1000);
   try {
-    const res = await fetch(`http://localhost:${port}`, {
+    // Use 127.0.0.1 instead of localhost: avoids macOS Local Network permission
+    // dialog (triggered by mDNS resolution of "localhost" on some macOS versions)
+    // and ensures IPv4 loopback is used consistently.
+    const res = await fetch(`http://127.0.0.1:${port}`, {
       signal: controller.signal,
     });
     return res.ok;

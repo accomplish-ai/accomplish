@@ -73,6 +73,13 @@
     "showAll_many": "Afficher les {{count}} favoris",
     "showAll_other": "Afficher les {{count}} favoris"
   },
+  "slashCommand": {
+    "title": "Compétences",
+    "filtering": "Compétences correspondant à « {{query}} »",
+    "navigate": "naviguer",
+    "select": "sélectionner",
+    "dismiss": "fermer"
+  },
   "selectFolder": "Sélectionner un dossier",
   "selectedFolder": {
     "badge": "📁 {folder}",

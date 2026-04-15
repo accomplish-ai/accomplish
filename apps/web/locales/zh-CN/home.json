@@ -73,6 +73,13 @@
       "prompt": "从 Eventbrite 抓取活动列表，按地点筛选，并将前 5 个添加到我的日历。"
     }
   },
+  "slashCommand": {
+    "title": "技能",
+    "filtering": "匹配「{{query}}」的技能",
+    "navigate": "导航",
+    "select": "选择",
+    "dismiss": "关闭"
+  },
   "selectFolder": "选择文件夹",
   "selectedFolder": {
     "badge": "📁 {folder}",

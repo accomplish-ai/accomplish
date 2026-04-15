@@ -50,7 +50,9 @@ function buildConfigFromEnv(): ConnectionConfig {
   if (!Number.isFinite(port) || !Number.isInteger(port) || port < 1 || port > 65535) {
     port = 9224;
   }
-  return { mode: 'builtin', devBrowserUrl: `http://localhost:${port}`, taskId };
+  // Use 127.0.0.1 instead of localhost to avoid macOS Local Network permission
+  // dialog and ensure IPv4 loopback is used consistently.
+  return { mode: 'builtin', devBrowserUrl: `http://127.0.0.1:${port}`, taskId };
 }
 
 // Internal helper: async cleanup that propagates errors

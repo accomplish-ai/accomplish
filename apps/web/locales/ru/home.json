@@ -73,6 +73,13 @@
     "showAll_other": "Показать {{count}} избранных",
     "showAll": "Показать все {{count}} избранных"
   },
+  "slashCommand": {
+    "title": "Навыки",
+    "filtering": "Навыки, соответствующие «{{query}}»",
+    "navigate": "навигация",
+    "select": "выбрать",
+    "dismiss": "закрыть"
+  },
   "selectFolder": "Выбрать папку",
   "selectedFolder": {
     "badge": "📁 {folder}",

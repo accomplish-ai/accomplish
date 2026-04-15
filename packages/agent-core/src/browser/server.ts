@@ -206,12 +206,12 @@ export async function ensureDevBrowserServer(
     }
   }
 
-  // Skip check on macOS to avoid triggering Local Network permission dialog
-  if (process.platform !== 'darwin') {
-    if (await isDevBrowserServerReady(config.devBrowserPort)) {
-      log.info('[Browser] Dev-browser server already running');
-      return { ready: true, logs: [] };
-    }
+  // Use 127.0.0.1 (not localhost) in isDevBrowserServerReady so this check is
+  // safe on macOS — it avoids the Local Network permission dialog that could be
+  // triggered by localhost mDNS resolution on some macOS versions.
+  if (await isDevBrowserServerReady(config.devBrowserPort)) {
+    log.info('[Browser] Dev-browser server already running');
+    return { ready: true, logs: [] };
   }
 
   return startDevBrowserServer(config);
