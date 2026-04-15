@@ -29,7 +29,11 @@ export function GoogleAccountsSection() {
     };
   }, [fetchAccounts]);
 
-  const openAuth = async (label: string, onComplete?: () => void, accountId?: string): Promise<void> => {
+  const openAuth = async (
+    label: string,
+    onComplete?: () => void,
+    accountId?: string,
+  ): Promise<void> => {
     setConnecting(true);
     try {
       const result = await window.accomplish?.gws?.startAuth(label);
