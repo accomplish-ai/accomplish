@@ -11,12 +11,12 @@
   <a href="https://github.com/accomplish-ai/accomplish/stargazers"><img src="https://img.shields.io/github/stars/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Stars" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/issues"><img src="https://img.shields.io/github/issues/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="GitHub Issues" /></a>
   <a href="https://github.com/accomplish-ai/accomplish/commits"><img src="https://img.shields.io/github/last-commit/accomplish-ai/accomplish?style=flat-square&color=22c55e" alt="கடைசி கமிட்" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/macos/Accomplish-0.4.14-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="macOS (Apple Silicon) க்கான பதிவிறக்கம்" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/macos/Accomplish-0.4.14-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="macOS (Intel) க்கான பதிவிறக்கம்" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/windows/Accomplish-0.4.14-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Windows 11 க்கான பதிவிறக்கம்" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-arm64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(ARM64)-0ea5e9?style=flat-square" alt="Linux (ARM64) க்கான பதிவிறக்கம்" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-x86_64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(x64)-0ea5e9?style=flat-square" alt="Linux (x64) க்கான பதிவிறக்கம்" /></a>
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-amd64.deb"><img src="https://img.shields.io/badge/Download-Linux_(.deb_x64)-0ea5e9?style=flat-square" alt="Linux (.deb x64) க்கான பதிவிறக்கம்" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/macos/Accomplish-0.5.17-mac-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Apple_Silicon)-0ea5e9?style=flat-square" alt="macOS (Apple Silicon) க்கான பதிவிறக்கம்" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/macos/Accomplish-0.5.17-mac-x64.dmg"><img src="https://img.shields.io/badge/Download-macOS_(Intel)-0ea5e9?style=flat-square" alt="macOS (Intel) க்கான பதிவிறக்கம்" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/windows/Accomplish-0.5.17-win-x64.exe"><img src="https://img.shields.io/badge/Download-Windows_11-0ea5e9?style=flat-square" alt="Windows 11 க்கான பதிவிறக்கம்" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-arm64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(ARM64)-0ea5e9?style=flat-square" alt="Linux (ARM64) க்கான பதிவிறக்கம்" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-x86_64.AppImage"><img src="https://img.shields.io/badge/Download-Linux_(x64)-0ea5e9?style=flat-square" alt="Linux (x64) க்கான பதிவிறக்கம்" /></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-amd64.deb"><img src="https://img.shields.io/badge/Download-Linux_(.deb_x64)-0ea5e9?style=flat-square" alt="Linux (.deb x64) க்கான பதிவிறக்கம்" /></a>
   <a href="https://discord.gg/kg5Nekpm"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
@@ -29,17 +29,17 @@ Accomplish என்பது உங்கள் கணினியிலேய�
 </p>
 
 <p align="center">
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/macos/Accomplish-0.4.14-mac-arm64.dmg"><strong>Mac (Apple Silicon) க்கான பதிவிறக்கம்</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/macos/Accomplish-0.5.17-mac-arm64.dmg"><strong>Mac (Apple Silicon) க்கான பதிவிறக்கம்</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/macos/Accomplish-0.4.14-mac-x64.dmg"><strong>Mac (Intel) க்கான பதிவிறக்கம்</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/macos/Accomplish-0.5.17-mac-x64.dmg"><strong>Mac (Intel) க்கான பதிவிறக்கம்</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/windows/Accomplish-0.4.14-win-x64.exe"><strong>Windows 11 க்கான பதிவிறக்கம்</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/windows/Accomplish-0.5.17-win-x64.exe"><strong>Windows 11 க்கான பதிவிறக்கம்</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-arm64.AppImage"><strong>Linux (ARM64) க்கான பதிவிறக்கம்</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-arm64.AppImage"><strong>Linux (ARM64) க்கான பதிவிறக்கம்</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-x86_64.AppImage"><strong>Linux (x64) க்கான பதிவிறக்கம்</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-x86_64.AppImage"><strong>Linux (x64) க்கான பதிவிறக்கம்</strong></a>
   ·
-  <a href="https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-amd64.deb"><strong>Linux (.deb x64) க்கான பதிவிறக்கம்</strong></a>
+  <a href="https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-amd64.deb"><strong>Linux (.deb x64) க்கான பதிவிறக்கம்</strong></a>
   ·
   <a href="https://www.accomplish.ai/">Accomplish வலைத்தளம்</a>
   ·
@@ -201,7 +201,7 @@ Accomplish உங்கள் கணினியிலேயே இயங்க�
 
 <div align="center">
 
-[**Mac (Apple Silicon) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.4.14/macos/Accomplish-0.4.14-mac-arm64.dmg) · [**Mac (Intel) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.4.14/macos/Accomplish-0.4.14-mac-x64.dmg) · [**Windows 11 க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.4.14/windows/Accomplish-0.4.14-win-x64.exe) · [**Linux (ARM64) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-arm64.AppImage) · [**Linux (x64) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-x86_64.AppImage) · [**Linux (.deb x64) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.4.14/linux/Accomplish-0.4.14-linux-amd64.deb)
+[**Mac (Apple Silicon) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.5.17/macos/Accomplish-0.5.17-mac-arm64.dmg) · [**Mac (Intel) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.5.17/macos/Accomplish-0.5.17-mac-x64.dmg) · [**Windows 11 க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.5.17/windows/Accomplish-0.5.17-win-x64.exe) · [**Linux (ARM64) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-arm64.AppImage) · [**Linux (x64) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-x86_64.AppImage) · [**Linux (.deb x64) க்கான பதிவிறக்கம்**](https://downloads.accomplish.ai/downloads/0.5.17/linux/Accomplish-0.5.17-linux-amd64.deb)
 
 </div>
 
