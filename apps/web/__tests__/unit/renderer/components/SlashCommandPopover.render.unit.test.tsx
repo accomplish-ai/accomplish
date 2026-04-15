@@ -149,7 +149,7 @@ describe('SlashCommandPopover – rendering', () => {
         query=""
       />,
     );
-    expect(screen.getByText('home:slashCommand.title')).toBeInTheDocument();
+    expect(screen.getByText('Skills')).toBeInTheDocument();
   });
 
   it('should show filtering header when query is present', () => {
@@ -163,6 +163,6 @@ describe('SlashCommandPopover – rendering', () => {
         query="code"
       />,
     );
-    expect(screen.getByText('home:slashCommand.filtering')).toBeInTheDocument();
+    expect(screen.getByText('Skills matching "code"')).toBeInTheDocument();
   });
 });

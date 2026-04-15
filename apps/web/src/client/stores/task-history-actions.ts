@@ -27,8 +27,12 @@ export function createTaskHistoryActions(set: SetFn, get: GetFn) {
       try {
         tasks = await accomplish.listTasks();
       } catch (err) {
-        logger.error('Failed to load tasks (daemon unavailable):', err);
-        return;
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('Daemon not bootstrapped') || msg.includes('daemon')) {
+          logger.error('Failed to load tasks (daemon unavailable):', err);
+          return;
+        }
+        throw err;
       }
       if (!hasTaskStateToken(get(), taskStateToken)) {
         return;
