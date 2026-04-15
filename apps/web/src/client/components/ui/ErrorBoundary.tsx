@@ -1,4 +1,5 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { WarningCircle, ArrowCounterClockwise } from '@phosphor-icons/react';
 import { Button } from './button';
 
@@ -45,19 +46,32 @@ interface FallbackProps {
 }
 
 export function DefaultFallback({ error, reset, compact = false }: FallbackProps) {
+  const { t } = useTranslation('errors');
+  const { t: tCommon } = useTranslation('common');
   const isDev = process.env.NODE_ENV === 'development';
-  let safeMessage = 'An unexpected error occurred.';
-  if (isDev) {
-    safeMessage = error.message?.length > 500 ? error.message.slice(0, 500) + '…' : error.message;
-  }
+  const safeMessage = isDev
+    ? error.message?.length > 500
+      ? error.message.slice(0, 500) + '…'
+      : error.message
+    : t('boundary.unexpectedError');
 
   if (compact) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-        <WarningCircle className="h-4 w-4 shrink-0" />
+      <div
+        className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <WarningCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span className="flex-1 truncate">
-          Something went wrong rendering this content.{' '}
-          <span className="opacity-60 font-mono text-xs">{safeMessage}</span>
+          {t('boundary.compactMessage')}{' '}
+          <span className="opacity-60 font-mono text-xs" aria-atomic="true">
+            {safeMessage}
+            <span className="sr-only">
+              {t('boundary.errorPrefix')} {safeMessage}
+            </span>
+          </span>
         </span>
         <Button
           type="button"
@@ -67,7 +81,7 @@ export function DefaultFallback({ error, reset, compact = false }: FallbackProps
           className="shrink-0 gap-1 text-xs text-destructive/80 hover:text-destructive hover:bg-transparent px-1"
         >
           <ArrowCounterClockwise className="h-3.5 w-3.5" />
-          Retry
+          {tCommon('buttons.retry')}
         </Button>
       </div>
     );
@@ -81,11 +95,11 @@ export function DefaultFallback({ error, reset, compact = false }: FallbackProps
             <WarningCircle className="h-7 w-7 text-destructive" />
           </div>
         </div>
-        <h2 className="mb-1 text-base font-semibold text-foreground">Something went wrong</h2>
+        <h2 className="mb-1 text-base font-semibold text-foreground">{t('boundary.title')}</h2>
         <p className="mb-4 text-sm text-muted-foreground font-mono break-all">{safeMessage}</p>
         <Button type="button" onClick={reset}>
           <ArrowCounterClockwise />
-          Try again
+          {t('boundary.tryAgain')}
         </Button>
       </div>
     </div>

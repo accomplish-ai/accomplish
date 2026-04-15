@@ -1,12 +1,15 @@
 import { useRouteError, isRouteErrorResponse, Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { WarningCircle } from '@phosphor-icons/react';
 import { Button } from './button';
 
 export function RouteErrorFallback() {
   const error = useRouteError();
+  const { t } = useTranslation('errors');
+  const { t: tCommon } = useTranslation('common');
   const isDev = process.env.NODE_ENV === 'development';
 
-  let message = 'An unexpected error occurred.';
+  let message = t('boundary.unexpectedError');
   if (isRouteErrorResponse(error)) {
     message = `${error.status} — ${error.statusText}`;
     if (isDev) console.error('[RouteErrorFallback] RouteErrorResponse:', error);
@@ -27,10 +30,10 @@ export function RouteErrorFallback() {
             <WarningCircle className="h-7 w-7 text-destructive" />
           </div>
         </div>
-        <h1 className="mb-1 text-lg font-semibold text-foreground">Something went wrong</h1>
+        <h1 className="mb-1 text-lg font-semibold text-foreground">{t('boundary.title')}</h1>
         <p className="mb-6 text-sm text-muted-foreground font-mono break-all">{message}</p>
         <Button asChild>
-          <Link to="/">Go home</Link>
+          <Link to="/">{tCommon('buttons.goHome')}</Link>
         </Button>
       </div>
     </div>
