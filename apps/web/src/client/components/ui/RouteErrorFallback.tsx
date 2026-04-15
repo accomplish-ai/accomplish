@@ -7,7 +7,7 @@ export function RouteErrorFallback() {
   const error = useRouteError();
   const { t } = useTranslation('errors');
   const { t: tCommon } = useTranslation('common');
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev: boolean = import.meta.env.DEV;
 
   let message = t('boundary.unexpectedError');
   if (isRouteErrorResponse(error)) {

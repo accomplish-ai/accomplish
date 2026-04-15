@@ -48,7 +48,7 @@ interface FallbackProps {
 export function DefaultFallback({ error, reset, compact = false }: FallbackProps) {
   const { t } = useTranslation('errors');
   const { t: tCommon } = useTranslation('common');
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev: boolean = import.meta.env.DEV;
   let rawMessage = error?.message ?? String(error);
   if (!rawMessage || typeof rawMessage !== 'string' || rawMessage.trim() === '') {
     rawMessage = t('boundary.unexpectedError');
