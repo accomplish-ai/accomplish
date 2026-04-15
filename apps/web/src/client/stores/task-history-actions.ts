@@ -23,7 +23,13 @@ export function createTaskHistoryActions(set: SetFn, get: GetFn) {
     loadTasks: async () => {
       const accomplish = getAccomplish();
       const taskStateToken = get()._taskStateToken;
-      const tasks = await accomplish.listTasks();
+      let tasks;
+      try {
+        tasks = await accomplish.listTasks();
+      } catch (err) {
+        logger.error('Failed to load tasks (daemon unavailable):', err);
+        return;
+      }
       if (!hasTaskStateToken(get(), taskStateToken)) {
         return;
       }
