@@ -253,7 +253,18 @@ async function connectBrowser(config: ConnectionConfig): Promise<Browser> {
         throw new Error(`dev-browser health check failed: ${res.status}`);
       }
       const info = (await res.json()) as { wsEndpoint: string };
-      return chromium.connectOverCDP(info.wsEndpoint);
+      if (!info.wsEndpoint) {
+        // Chrome not yet launched — treat as a recoverable error so the retry loop
+        // waits and tries again (the POST /pages call will trigger launch on first use).
+        throw new Error('fetch failed: dev-browser wsEndpoint is empty (browser not ready)');
+      }
+      // Normalize to 127.0.0.1: Chrome may report "localhost" which resolves to ::1 (IPv6)
+      // on macOS Sequoia/Tahoe, causing connectOverCDP to fail with ECONNREFUSED.
+      const normalizedEndpoint = info.wsEndpoint.replace(
+        /^(wss?:\/\/)localhost(:\d+)/,
+        '$1127.0.0.1$2',
+      );
+      return chromium.connectOverCDP(normalizedEndpoint);
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       if (attempt < BROWSER_CONNECT_MAX_ATTEMPTS - 1 && isRecoverableConnectionError(lastError)) {

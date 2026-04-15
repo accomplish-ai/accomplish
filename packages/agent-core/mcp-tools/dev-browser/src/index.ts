@@ -55,6 +55,7 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
             ignoreDefaultArgs: ['--enable-automation'],
             args: [
               `--remote-debugging-port=${cdpPort}`,
+              '--remote-debugging-address=127.0.0.1',
               '--disable-blink-features=AutomationControlled',
             ],
           });
@@ -73,6 +74,7 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
           ignoreDefaultArgs: ['--enable-automation'],
           args: [
             `--remote-debugging-port=${cdpPort}`,
+            '--remote-debugging-address=127.0.0.1',
             '--disable-blink-features=AutomationControlled',
           ],
         });
@@ -80,7 +82,12 @@ export async function serve(options: ServeOptions = {}): Promise<DevBrowserServe
 
       const cdpResponse = await fetchWithRetry(`http://127.0.0.1:${cdpPort}/json/version`);
       const cdpInfo = (await cdpResponse.json()) as { webSocketDebuggerUrl: string };
-      _wsEndpoint = cdpInfo.webSocketDebuggerUrl;
+      // Normalize to 127.0.0.1 — Chrome may report "localhost" which resolves to ::1 (IPv6)
+      // on macOS Sequoia/Tahoe, breaking connectOverCDP and the browser preview.
+      _wsEndpoint = cdpInfo.webSocketDebuggerUrl.replace(
+        /^(wss?:\/\/)localhost(:\d+)/,
+        '$1127.0.0.1$2',
+      );
       console.log(`CDP WebSocket endpoint: ${_wsEndpoint}`);
 
       _browserContext = browserContext!;

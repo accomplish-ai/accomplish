@@ -26,7 +26,26 @@ export class BrowserWindowController {
     if (this.options.headless) {
       return;
     }
-    await this.setWindowStateForPage(page, 'minimized', undefined, browserContext);
+    // Retry a few times with backoff: Browser.getWindowForTarget is not always ready
+    // immediately after Chrome launches, especially on macOS with system Chrome.
+    const MAX_ATTEMPTS = 3;
+    const RETRY_DELAY_MS = 500;
+    let lastError: unknown;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      try {
+        await this.setWindowStateForPage(page, 'minimized', undefined, browserContext);
+        return;
+      } catch (error) {
+        lastError = error;
+        if (isClosedPageError(error)) {
+          throw error;
+        }
+        if (attempt < MAX_ATTEMPTS - 1) {
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
+        }
+      }
+    }
+    throw lastError;
   }
 
   async setNormalWindowState(
