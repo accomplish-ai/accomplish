@@ -56,7 +56,7 @@ function rowToProvider(row: ProviderRow): ConnectedProvider {
           typeof m.id === 'string' &&
           typeof m.name === 'string',
       );
-      return valid.length > 0 ? valid : undefined;
+      return valid;
     })(),
     customBaseUrl: row.custom_base_url || undefined,
   };

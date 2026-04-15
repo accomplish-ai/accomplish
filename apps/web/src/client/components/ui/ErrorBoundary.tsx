@@ -49,11 +49,17 @@ export function DefaultFallback({ error, reset, compact = false }: FallbackProps
   const { t } = useTranslation('errors');
   const { t: tCommon } = useTranslation('common');
   const isDev = process.env.NODE_ENV === 'development';
-  const safeMessage = isDev
-    ? error.message?.length > 500
-      ? error.message.slice(0, 500) + '…'
-      : error.message
-    : t('boundary.unexpectedError');
+  let rawMessage = error?.message ?? String(error);
+  if (!rawMessage || typeof rawMessage !== 'string' || rawMessage.trim() === '') {
+    rawMessage = t('boundary.unexpectedError');
+  }
+
+  let safeMessage: string;
+  if (isDev) {
+    safeMessage = rawMessage.length > 500 ? rawMessage.slice(0, 500) + '...' : rawMessage;
+  } else {
+    safeMessage = t('boundary.unexpectedError');
+  }
 
   if (compact) {
     return (
@@ -66,12 +72,7 @@ export function DefaultFallback({ error, reset, compact = false }: FallbackProps
         <WarningCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span className="flex-1 truncate">
           {t('boundary.compactMessage')}{' '}
-          <span className="opacity-60 font-mono text-xs" aria-atomic="true">
-            {safeMessage}
-            <span className="sr-only">
-              {t('boundary.errorPrefix')} {safeMessage}
-            </span>
-          </span>
+          <span className="opacity-60 font-mono text-xs">{safeMessage}</span>
         </span>
         <Button
           type="button"
