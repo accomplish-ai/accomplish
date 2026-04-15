@@ -120,5 +120,13 @@
     "reconnectFailed": "Reconnection Failed",
     "reconnectFailedMessage": "Could not reconnect to the daemon. Tasks may be interrupted.",
     "openSettings": "Open Settings"
+  },
+  "boundary": {
+    "title": "Something went wrong",
+    "unexpectedError": "An unexpected error occurred.",
+    "compactMessage": "Something went wrong rendering this content.",
+    "errorPrefix": "Error:",
+    "tryAgain": "Try again",
+    "sidebarLoading": "Loading navigation…"
   }
 }

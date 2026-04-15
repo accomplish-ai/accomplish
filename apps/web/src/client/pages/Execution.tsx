@@ -17,6 +17,7 @@ import { FollowUpInput } from './execution/FollowUpInput';
 import { useExecutionPage } from './execution/useExecutionPage';
 import { CreditExhaustedChatBanner } from '../components/execution/CreditExhaustedChatBanner';
 import { useCreditsState } from '../hooks/useCreditsState';
+import { ErrorBoundary, DefaultFallback } from '../components/ui/ErrorBoundary';
 
 /** Detects Accomplish AI free-tier credit exhaustion errors specifically. */
 function isAccomplishCreditExhaustedError(message?: string): boolean {
@@ -126,32 +127,40 @@ export default function ExecutionPage() {
 
         {/* Running messages */}
         {s.currentTask.status !== 'queued' && (
-          <ConversationView
-            currentTask={s.currentTask}
-            taskId={s.id}
-            scrollContainerRef={scrollContainerRef}
-            messagesEndRef={messagesEndRef}
-            onScroll={s.handleScroll}
-            isAtBottom={s.isAtBottom}
-            scrollToBottom={s.scrollToBottom}
-            hasSession={s.hasSession}
-            isConnectorAuthPause={s.isConnectorAuthPause}
-            taskActionLabel={s.taskActionLabel}
-            taskActionPendingLabel={s.taskActionPendingLabel}
-            onTaskAction={s.handleTaskAction}
-            isTaskActionRunning={s.isTaskActionRunning}
-            taskActionError={s.taskActionError}
-            isLoading={s.isLoading}
-            permissionRequest={s.permissionRequest}
-            onPermissionResponse={s.handlePermissionResponse}
-            currentTool={s.currentTool}
-            currentToolInput={s.currentToolInput}
-            startupStage={s.startupStage}
-            startupStageTaskId={s.startupStageTaskId}
-            elapsedTime={s.elapsedTime}
-            todos={s.todos}
-            todosTaskId={s.todosTaskId}
-          />
+          <ErrorBoundary
+            fallback={(error, reset) => (
+              <div className="flex-1 flex items-center justify-center p-6">
+                <DefaultFallback error={error} reset={reset} compact={false} />
+              </div>
+            )}
+          >
+            <ConversationView
+              currentTask={s.currentTask}
+              taskId={s.id}
+              scrollContainerRef={scrollContainerRef}
+              messagesEndRef={messagesEndRef}
+              onScroll={s.handleScroll}
+              isAtBottom={s.isAtBottom}
+              scrollToBottom={s.scrollToBottom}
+              hasSession={s.hasSession}
+              isConnectorAuthPause={s.isConnectorAuthPause}
+              taskActionLabel={s.taskActionLabel}
+              taskActionPendingLabel={s.taskActionPendingLabel}
+              onTaskAction={s.handleTaskAction}
+              isTaskActionRunning={s.isTaskActionRunning}
+              taskActionError={s.taskActionError}
+              isLoading={s.isLoading}
+              permissionRequest={s.permissionRequest}
+              onPermissionResponse={s.handlePermissionResponse}
+              currentTool={s.currentTool}
+              currentToolInput={s.currentToolInput}
+              startupStage={s.startupStage}
+              startupStageTaskId={s.startupStageTaskId}
+              elapsedTime={s.elapsedTime}
+              todos={s.todos}
+              todosTaskId={s.todosTaskId}
+            />
+          </ErrorBoundary>
         )}
 
         {/* Running — stop button */}

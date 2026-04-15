@@ -10,6 +10,7 @@ import { OAuthProviderId } from '@accomplish_ai/agent-core/common';
 
 // Components
 import Sidebar from './components/layout/Sidebar';
+import { SidebarFallback } from './components/layout/SidebarFallback';
 import { TaskLauncher } from './components/TaskLauncher';
 import { AuthErrorToast } from './components/AuthErrorToast';
 import { DaemonConnectionToast } from './components/DaemonConnectionToast';
@@ -17,6 +18,7 @@ import { CloseConfirmDialog } from './components/CloseConfirmDialog';
 import SettingsDialog from './components/layout/SettingsDialog';
 import { useTaskStore } from './stores/taskStore';
 import { SpinnerGap, Warning } from '@phosphor-icons/react';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 
 type AppStatus = 'loading' | 'ready' | 'error';
 
@@ -172,7 +174,9 @@ export function App() {
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Invisible drag region for window dragging (macOS hiddenInset titlebar) */}
       <div className="drag-region fixed top-0 left-0 right-0 h-10 z-50 pointer-events-none" />
-      <Sidebar />
+      <ErrorBoundary fallback={(_error, _reset) => <SidebarFallback />}>
+        <Sidebar />
+      </ErrorBoundary>
       <main className="flex-1 overflow-hidden">
         <AnimatedOutletWrapper />
       </main>

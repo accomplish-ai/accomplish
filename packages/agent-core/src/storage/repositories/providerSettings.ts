@@ -42,9 +42,22 @@ function rowToProvider(row: ProviderRow): ConnectedProvider {
     selectedModelId: row.selected_model_id,
     credentials,
     lastConnectedAt: row.last_connected_at || new Date().toISOString(),
-    availableModels:
-      safeParseJsonWithFallback<Array<{ id: string; name: string }>>(row.available_models) ??
-      undefined,
+    availableModels: (() => {
+      const parsed = safeParseJsonWithFallback<Array<{ id: string; name: string }>>(
+        row.available_models,
+      );
+      if (!Array.isArray(parsed)) {
+        return undefined;
+      }
+      const valid = parsed.filter(
+        (m) =>
+          m !== null &&
+          typeof m === 'object' &&
+          typeof m.id === 'string' &&
+          typeof m.name === 'string',
+      );
+      return valid;
+    })(),
     customBaseUrl: row.custom_base_url || undefined,
   };
 }

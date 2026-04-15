@@ -178,7 +178,7 @@ export async function initI18n(): Promise<void> {
           lookupLocalStorage: LANGUAGE_STORAGE_KEY,
         },
 
-        debug: process.env.NODE_ENV === 'development',
+        debug: import.meta.env.DEV,
 
         returnEmptyString: false,
 

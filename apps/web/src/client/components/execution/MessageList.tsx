@@ -78,7 +78,7 @@ export const MessageBubble = memo(
       >
         {isTool &&
         toolName?.endsWith('browser_script') &&
-        (message.toolInput as { actions?: unknown[] })?.actions ? (
+        Array.isArray((message.toolInput as { actions?: unknown })?.actions) ? (
           <BrowserScriptCard
             actions={
               (
