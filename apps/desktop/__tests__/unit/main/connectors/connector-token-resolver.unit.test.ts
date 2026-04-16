@@ -62,6 +62,7 @@ const { mockGetConnectorDefinition } = vi.hoisted(() => ({
 
 vi.mock('@accomplish_ai/agent-core/common', () => ({
   getConnectorDefinition: mockGetConnectorDefinition,
+  getConnectorDefinitions: vi.fn().mockReturnValue([]),
 }));
 
 const { mockWaitForCallback, mockCreateOAuthCallbackServer } = vi.hoisted(() => {
@@ -91,8 +92,11 @@ const { mockStore } = vi.hoisted(() => ({
 }));
 
 vi.mock('@main/connectors/connector-auth-store', () => ({
-  getConnectorAuthStore: vi.fn().mockReturnValue(mockStore),
   ConnectorAuthStore: class {},
+}));
+
+vi.mock('@main/connectors/connector-auth-registry', () => ({
+  getConnectorAuthStore: vi.fn().mockReturnValue(mockStore),
 }));
 
 // ---------------------------------------------------------------------------
