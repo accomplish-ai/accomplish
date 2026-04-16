@@ -314,11 +314,11 @@ export interface DaemonNotificationMap {
   'task.error': { taskId: string; error?: string };
   // Phase 2 of the SDK cutover port decided to stay with the flat
   // `PermissionRequest` wire shape. The runtime at
-  // `apps/daemon/src/task-event-forwarding.ts:24` forwards the flat payload,
-  // `packages/agent-core/src/daemon/types.ts:166` is flat too, and renderer
-  // consumers read `request.taskId` directly. Earlier drafts of this map
-  // said `{ taskId, request }` — that never matched the wire; typed callers
-  // and future refactors would have carried a bogus contract.
+  // `apps/daemon/src/task-event-forwarding.ts:24` forwards the flat
+  // payload and renderer consumers read `request.taskId` directly.
+  // Earlier drafts of this map said `{ taskId, request }` — that never
+  // matched the wire; typed callers and future refactors would have
+  // carried a bogus contract.
   'permission.request': PermissionRequest;
   'todo.update': { taskId: string; todos: TodoItem[] };
   // Connector auth-required marker observed in tool output. Renderer
