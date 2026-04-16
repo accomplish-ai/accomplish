@@ -1,10 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { oauthStatusTextClass, oauthStatusDotClass, getOAuthStatusKey } from './oauth-status';
-import { normalizeLightdashUrl } from './lightdash/normalize-url';
-import { getAccomplish } from '@/lib/accomplish';
+import { useLightdashServerUrl } from './lightdash/useLightdashServerUrl';
 import type { ConnectorAuthStatus } from '@accomplish_ai/agent-core/common';
 import lightdashIcon from '/assets/icons/integrations/lightdash.svg';
 
@@ -26,70 +25,45 @@ export function LightdashConnectorCard({
   const { t } = useTranslation('settings');
   const prefix = 'connectors.lightdash';
 
-  const [serverUrl, setServerUrl] = useState<string | null>(null);
-  const [urlInput, setUrlInput] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [urlError, setUrlError] = useState<string | null>(null);
-  const [urlLoading, setUrlLoading] = useState(true);
-
-  useEffect(() => {
-    getAccomplish()
-      .lightdashGetServerUrl()
-      .then((url) => {
-        setServerUrl(url);
-        if (url) {
-          setUrlInput(url);
-        }
-      })
-      .catch(() => {
-        // Failed to load server URL — leave as null
-      })
-      .finally(() => setUrlLoading(false));
-  }, []);
+  const {
+    serverUrl,
+    urlInput,
+    setUrlInput,
+    saving,
+    editing,
+    setEditing,
+    urlError,
+    setUrlError,
+    urlLoading,
+    handleSaveUrl,
+  } = useLightdashServerUrl();
 
   const statusKey = getOAuthStatusKey(authState);
-
   const hasUrl = !!serverUrl;
   const showUrlInput = !hasUrl || editing;
 
-  const handleSaveUrl = useCallback(async () => {
-    const normalized = normalizeLightdashUrl(urlInput);
-    if (!normalized) {
-      setUrlError(t(`${prefix}.instanceUrlRequired`));
-      return;
-    }
-
-    try {
-      new URL(normalized);
-    } catch {
-      setUrlError(t(`${prefix}.instanceUrlRequired`));
-      return;
-    }
-
-    setSaving(true);
-    setUrlError(null);
-    try {
-      await getAccomplish().lightdashSetServerUrl(normalized);
-      setServerUrl(normalized);
-      setUrlInput(normalized);
-      setEditing(false);
-      await refetch();
-    } catch (err) {
-      setUrlError(err instanceof Error ? err.message : t(`${prefix}.saveFailed`));
-    } finally {
-      setSaving(false);
-    }
-  }, [urlInput, t, prefix, refetch]);
+  const onSave = useCallback(() => {
+    void handleSaveUrl({ t, prefix, refetch });
+  }, [handleSaveUrl, t, prefix, refetch]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' && !saving) {
-        handleSaveUrl();
+        onSave();
       }
     },
-    [handleSaveUrl, saving],
+    [onSave, saving],
   );
+
+  function getHintKey(): string {
+    if (authState.connected) {
+      return `${prefix}.connectedHint`;
+    }
+    if (authState.pendingAuthorization) {
+      return `${prefix}.pendingHint`;
+    }
+    return `${prefix}.authHint`;
+  }
 
   if (urlLoading) {
     return null;
@@ -134,7 +108,7 @@ export function LightdashConnectorCard({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={handleSaveUrl}
+                  onClick={onSave}
                   disabled={saving || !urlInput.trim()}
                   className="text-xs"
                 >
@@ -164,28 +138,22 @@ export function LightdashConnectorCard({
             <div className="flex items-center gap-2">
               <p className="text-xs text-muted-foreground">{serverUrl}</p>
               {!authState.connected && (
-                <button
+                <Button
+                  size="sm"
+                  variant="ghost"
                   onClick={() => {
                     setEditing(true);
                     setUrlInput(serverUrl ?? '');
                   }}
-                  className="text-xs text-primary hover:underline"
+                  className="h-auto p-0 text-xs text-primary hover:underline"
                 >
                   {t(`${prefix}.edit`)}
-                </button>
+                </Button>
               )}
             </div>
           )}
 
-          {hasUrl && (
-            <p className="text-xs text-muted-foreground">
-              {authState.connected
-                ? t(`${prefix}.connectedHint`)
-                : authState.pendingAuthorization
-                  ? t(`${prefix}.pendingHint`)
-                  : t(`${prefix}.authHint`)}
-            </p>
-          )}
+          {hasUrl && <p className="text-xs text-muted-foreground">{t(getHintKey())}</p>}
         </div>
 
         {hasUrl && !showUrlInput && (

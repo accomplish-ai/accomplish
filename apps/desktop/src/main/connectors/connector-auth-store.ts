@@ -178,6 +178,11 @@ export class ConnectorAuthStore {
     return this.readEntry()?.refreshToken;
   }
 
+  /** Returns the stored token expiry timestamp (Unix ms), or undefined if not set. */
+  getTokenExpiry(): number | undefined {
+    return this.readEntry()?.expiresAt;
+  }
+
   private readEntry(): StoredAuthEntry | undefined {
     const storage = getStorage();
     const raw = storage.get(`${STORE_KEY_PREFIX}${this.config.key}`);

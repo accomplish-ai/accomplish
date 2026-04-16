@@ -6,6 +6,29 @@
  * at startup and updated as connectors connect/disconnect during the session.
  */
 
+import path from 'path';
+
+/** Ordered list of gh CLI binary locations to probe, covering macOS, Linux, and Windows. */
+export const GH_BINARY_CANDIDATES: readonly string[] = [
+  'gh',
+  '/opt/homebrew/bin/gh', // Apple Silicon Homebrew (macOS)
+  '/usr/local/bin/gh', // Intel Homebrew / manual install (macOS/Linux)
+  '/usr/bin/gh', // system package manager (Linux)
+  '/home/linuxbrew/.linuxbrew/bin/gh', // Linuxbrew
+  'C:\\Program Files\\GitHub CLI\\gh.exe', // Windows winget/msi (64-bit)
+  'C:\\Program Files (x86)\\GitHub CLI\\gh.exe', // Windows (32-bit)
+];
+
+/**
+ * Augmented PATH for spawning gh subprocesses.
+ * Adds Homebrew and common install dirs that Electron's minimal PATH omits.
+ */
+export function buildGhAugmentedPath(): string {
+  const base = process.env.PATH ?? process.env.Path ?? '';
+  const extra = ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin'];
+  return [base, ...extra].join(path.delimiter);
+}
+
 const connectedProviders = new Set<string>();
 
 export function setDesktopConnectorConnected(providerId: string, connected: boolean): void {

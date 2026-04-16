@@ -23,11 +23,19 @@ import {
   exchangeCodeForTokens,
   refreshAccessToken,
 } from '@accomplish_ai/agent-core';
-import type { OAuthProviderId, ConnectorDesktopOAuthKind } from '@accomplish_ai/agent-core/common';
+import type {
+  OAuthProviderId,
+  ConnectorDesktopOAuthKind,
+  ConnectorDefinition,
+} from '@accomplish_ai/agent-core/common';
 import { getConnectorDefinition } from '@accomplish_ai/agent-core/common';
 import { createOAuthCallbackServer } from '../oauth-callback-server';
 import { getConnectorAuthStore, ConnectorAuthStore } from './connector-auth-store';
-import { setDesktopConnectorConnected } from './desktop-connector-state';
+import {
+  setDesktopConnectorConnected,
+  GH_BINARY_CANDIDATES,
+  buildGhAugmentedPath,
+} from './desktop-connector-state';
 
 const execFileAsync = promisify(execFile);
 
@@ -63,7 +71,7 @@ export async function connectBuiltInConnector(
 
   switch (kind) {
     case 'mcp-dcr':
-      return performMcpDcrFlow(providerId);
+      return performMcpDcrFlow(providerId, def);
     case 'mcp-fixed-client':
       return performMcpFixedClientFlow(providerId);
     case 'desktop-google':
@@ -93,8 +101,8 @@ export async function resolveMcpConnectorAccessToken(
   }
 
   // Try silent token refresh if expired
-  const entry = store['readEntry']?.();
-  if (entry && entry.expiresAt && Date.now() >= entry.expiresAt - 5 * 60 * 1000) {
+  const expiry = store.getTokenExpiry();
+  if (expiry && Date.now() >= expiry - 5 * 60 * 1000) {
     const refreshed = await tryRefreshToken(store);
     if (refreshed) {
       return refreshed;
@@ -109,8 +117,10 @@ export async function resolveMcpConnectorAccessToken(
 // Strategy implementations
 // ---------------------------------------------------------------------------
 
-async function performMcpDcrFlow(providerId: OAuthProviderId): Promise<ConnectorOAuthResult> {
-  const def = getConnectorDefinition(providerId)!;
+async function performMcpDcrFlow(
+  providerId: OAuthProviderId,
+  def: ConnectorDefinition,
+): Promise<ConnectorOAuthResult> {
   const oauth = def.desktopOAuth;
   if (oauth.kind !== 'mcp-dcr') {
     return { ok: false, error: 'not-configured' };
@@ -156,7 +166,7 @@ async function performMcpDcrFlow(providerId: OAuthProviderId): Promise<Connector
     });
 
     const callbackServer = await createOAuthCallbackServer({
-      host: '127.0.0.1',
+      host: oauth.store.callback.host,
       port: oauth.store.callback.port,
       callbackPath: oauth.store.callback.path,
     });
@@ -232,7 +242,7 @@ async function performMcpFixedClientFlow(
     });
 
     const callbackServer = await createOAuthCallbackServer({
-      host: '127.0.0.1',
+      host: oauth.store.callback.host,
       port: oauth.store.callback.port,
       callbackPath: oauth.store.callback.path,
     });
@@ -319,13 +329,7 @@ async function performDesktopGithubFlow(
     // Electron's process.env.PATH excludes Homebrew and shell-profile paths.
     const augmentedEnv = {
       ...process.env,
-      PATH: [
-        process.env.PATH ?? '',
-        '/opt/homebrew/bin',
-        '/usr/local/bin',
-        '/usr/bin',
-        '/bin',
-      ].join(':'),
+      PATH: buildGhAugmentedPath(),
     };
     await execFileAsync(ghPath, ['auth', 'login', '--git-protocol', 'https', '--web'], {
       timeout: 120_000,
@@ -369,14 +373,7 @@ async function performDesktopGithubFlow(
 async function findGhBinary(): Promise<string | null> {
   // Electron's main process PATH is minimal (no shell profile), so we must
   // probe common installation locations in addition to the raw PATH lookup.
-  const candidates = [
-    'gh',
-    '/opt/homebrew/bin/gh', // Apple Silicon Homebrew (macOS)
-    '/usr/local/bin/gh', // Intel Homebrew / manual install (macOS/Linux)
-    '/usr/bin/gh', // system package manager (Linux)
-    '/home/linuxbrew/.linuxbrew/bin/gh', // Linuxbrew
-  ];
-  for (const bin of candidates) {
+  for (const bin of GH_BINARY_CANDIDATES) {
     try {
       await execFileAsync(bin, ['--version'], { timeout: 5_000 });
       return bin;

@@ -9,13 +9,18 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import type { IpcMainInvokeEvent } from 'electron';
-import { OAuthProviderId, getConnectorDefinitions } from '@accomplish_ai/agent-core/common';
+import {
+  OAuthProviderId,
+  getConnectorDefinitions,
+  isOAuthProviderId,
+} from '@accomplish_ai/agent-core/common';
 import type { ConnectorAuthStatus } from '@accomplish_ai/agent-core/common';
 import { getConnectorAuthStore } from '../../connectors/connector-auth-store';
 import { connectBuiltInConnector } from '../../connectors/connector-token-resolver';
 import {
   isDesktopConnectorConnected,
   setDesktopConnectorConnected,
+  GH_BINARY_CANDIDATES,
 } from '../../connectors/desktop-connector-state';
 import { handle } from './utils';
 
@@ -23,14 +28,7 @@ const execFileAsync = promisify(execFile);
 
 /** Check existing gh CLI token at startup and seed in-memory state. */
 async function initGitHubState(): Promise<void> {
-  const candidates = [
-    'gh',
-    '/opt/homebrew/bin/gh',
-    '/usr/local/bin/gh',
-    '/usr/bin/gh',
-    '/home/linuxbrew/.linuxbrew/bin/gh',
-  ];
-  for (const bin of candidates) {
+  for (const bin of GH_BINARY_CANDIDATES) {
     try {
       const { stdout } = await execFileAsync(bin, ['auth', 'token'], { timeout: 10_000 });
       if (stdout.trim()) {
@@ -57,10 +55,19 @@ export function registerBuiltInConnectorHandlers(): void {
     if (!store) {
       throw new Error('Lightdash connector not configured');
     }
-    if (typeof url !== 'string' || !url.trim()) {
+    const trimmed = typeof url === 'string' ? url.trim() : '';
+    if (!trimmed) {
       throw new Error('Invalid Lightdash server URL');
     }
-    store.setServerUrl(url.trim());
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error('URL must use http or https');
+      }
+    } catch {
+      throw new Error('Invalid Lightdash server URL');
+    }
+    store.setServerUrl(trimmed);
   });
 
   // Datadog site URL
@@ -74,10 +81,19 @@ export function registerBuiltInConnectorHandlers(): void {
     if (!store) {
       throw new Error('Datadog connector not configured');
     }
-    if (typeof url !== 'string' || !url.trim()) {
+    const trimmed = typeof url === 'string' ? url.trim() : '';
+    if (!trimmed) {
       throw new Error('Invalid Datadog server URL');
     }
-    store.setServerUrl(url.trim());
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error('URL must use http or https');
+      }
+    } catch {
+      throw new Error('Invalid Datadog server URL');
+    }
+    store.setServerUrl(trimmed);
   });
 
   // Auth status for all built-in connectors
@@ -108,8 +124,8 @@ export function registerBuiltInConnectorHandlers(): void {
   handle(
     'connectors:built-in-login',
     async (_event: IpcMainInvokeEvent, providerId: OAuthProviderId) => {
-      if (!Object.values(OAuthProviderId).includes(providerId)) {
-        throw new Error(`Unknown provider ID: ${providerId}`);
+      if (!isOAuthProviderId(providerId)) {
+        throw new Error(`Unknown provider ID: ${String(providerId)}`);
       }
       const result = await connectBuiltInConnector(providerId);
       if (!result.ok) {
@@ -125,8 +141,8 @@ export function registerBuiltInConnectorHandlers(): void {
   handle(
     'connectors:built-in-logout',
     async (_event: IpcMainInvokeEvent, providerId: OAuthProviderId) => {
-      if (!Object.values(OAuthProviderId).includes(providerId)) {
-        throw new Error(`Unknown provider ID: ${providerId}`);
+      if (!isOAuthProviderId(providerId)) {
+        throw new Error(`Unknown provider ID: ${String(providerId)}`);
       }
       const store = getConnectorAuthStore(providerId);
       if (store) {

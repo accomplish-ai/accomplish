@@ -188,9 +188,8 @@ describe('DatadogConnectorCard', () => {
           string
         >;
         const msg = ddSection?.reconnectRequired;
-        if (msg) {
-          expect(screen.getByText(msg)).toBeInTheDocument();
-        }
+        expect(msg).toBeDefined();
+        expect(screen.getByText(msg!)).toBeInTheDocument();
       });
     });
   });

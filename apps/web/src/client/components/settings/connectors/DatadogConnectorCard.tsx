@@ -1,10 +1,10 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { oauthStatusTextClass, oauthStatusDotClass, getOAuthStatusKey } from './oauth-status';
-import datadogIcon from '/assets/icons/integrations/datadog.svg';
+import { useDatadogServerUrl } from './datadog/useDatadogServerUrl';
 import { DATADOG_REGIONS, findDatadogRegionByMcpUrl } from './datadog/regions';
-import { getAccomplish } from '@/lib/accomplish';
+import datadogIcon from '/assets/icons/integrations/datadog.svg';
 import type { ConnectorAuthStatus } from '@accomplish_ai/agent-core/common';
 
 interface DatadogConnectorCardProps {
@@ -25,60 +25,48 @@ export function DatadogConnectorCard({
   const { t } = useTranslation('settings');
   const prefix = 'connectors.datadog';
 
-  const [serverUrl, setServerUrl] = useState<string | null>(null);
-  const [selectedRegionId, setSelectedRegionId] = useState<string>('');
-  const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [urlLoading, setUrlLoading] = useState(true);
-
-  useEffect(() => {
-    getAccomplish()
-      .datadogGetServerUrl()
-      .then((url) => {
-        setServerUrl(url);
-        const region = findDatadogRegionByMcpUrl(url);
-        if (region) {
-          setSelectedRegionId(region.id);
-        }
-      })
-      .catch(() => {
-        // Failed to load server URL — leave as null
-      })
-      .finally(() => setUrlLoading(false));
-  }, []);
+  const {
+    serverUrl,
+    selectedRegionId,
+    setSelectedRegionId,
+    saving,
+    editing,
+    setEditing,
+    saveError,
+    setSaveError,
+    urlLoading,
+    handleSaveRegion,
+  } = useDatadogServerUrl();
 
   const statusKey = getOAuthStatusKey(authState);
-
   const hasUrl = !!serverUrl;
   const showRegionPicker = !hasUrl || editing;
+  const currentRegion = findDatadogRegionByMcpUrl(serverUrl);
 
-  const handleSaveRegion = useCallback(async () => {
-    const region = DATADOG_REGIONS.find((r) => r.id === selectedRegionId);
-    if (!region) {
-      setSaveError(t(`${prefix}.regionRequired`));
-      return;
-    }
+  const onSave = useCallback(() => {
+    void handleSaveRegion({ t, prefix, refetch });
+  }, [handleSaveRegion, t, prefix, refetch]);
 
-    setSaving(true);
-    setSaveError(null);
-    try {
-      await getAccomplish().datadogSetServerUrl(region.mcpUrl);
-      setServerUrl(region.mcpUrl);
-      setEditing(false);
-      await refetch();
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : t(`${prefix}.saveFailed`));
-    } finally {
-      setSaving(false);
+  function getStatusText(): string {
+    if (!hasUrl && !authState.connected) {
+      return t(`${prefix}.status.noSite`);
     }
-  }, [selectedRegionId, t, prefix, refetch]);
+    return t(`${prefix}.status.${statusKey}`);
+  }
+
+  function getHintKey(): string {
+    if (authState.connected) {
+      return `${prefix}.connectedHint`;
+    }
+    if (authState.pendingAuthorization) {
+      return `${prefix}.pendingHint`;
+    }
+    return `${prefix}.authHint`;
+  }
 
   if (urlLoading) {
     return null;
   }
-
-  const currentRegion = findDatadogRegionByMcpUrl(serverUrl);
 
   return (
     <div className="rounded-xl border border-border bg-card p-5" data-testid="datadog-auth-card">
@@ -93,9 +81,7 @@ export function DatadogConnectorCard({
               <span
                 className={`inline-block h-1.5 w-1.5 rounded-full ${oauthStatusDotClass[statusKey]}`}
               />
-              {!hasUrl && !authState.connected
-                ? t(`${prefix}.status.noSite`)
-                : t(`${prefix}.status.${statusKey}`)}
+              {getStatusText()}
             </span>
           </div>
           <p className="text-sm text-muted-foreground">{t(`${prefix}.description`)}</p>
@@ -126,7 +112,7 @@ export function DatadogConnectorCard({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={handleSaveRegion}
+                  onClick={onSave}
                   disabled={saving || !selectedRegionId}
                   className="text-xs"
                 >
@@ -158,31 +144,25 @@ export function DatadogConnectorCard({
               <p className="text-xs text-muted-foreground">
                 {currentRegion ? `${currentRegion.label} · ${currentRegion.webUiHost}` : serverUrl}
               </p>
-              <button
+              <Button
+                size="sm"
+                variant="ghost"
                 onClick={() => {
                   setEditing(true);
                   const region = findDatadogRegionByMcpUrl(serverUrl);
                   setSelectedRegionId(region?.id ?? '');
                 }}
-                className="text-xs text-primary hover:underline"
+                className="h-auto p-0 text-xs text-primary hover:underline"
               >
                 {t(`${prefix}.edit`)}
-              </button>
+              </Button>
               {authState.connected && (
                 <span className="text-xs text-amber-600">{t(`${prefix}.reconnectRequired`)}</span>
               )}
             </div>
           )}
 
-          {hasUrl && (
-            <p className="text-xs text-muted-foreground">
-              {authState.connected
-                ? t(`${prefix}.connectedHint`)
-                : authState.pendingAuthorization
-                  ? t(`${prefix}.pendingHint`)
-                  : t(`${prefix}.authHint`)}
-            </p>
-          )}
+          {hasUrl && <p className="text-xs text-muted-foreground">{t(getHintKey())}</p>}
         </div>
 
         {hasUrl && !showRegionPicker && (
