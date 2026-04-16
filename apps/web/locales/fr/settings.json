@@ -352,7 +352,13 @@
       "scanQr": "Scannez le QR code ci-dessous avec votre application WhatsApp pour connecter cet appareil. Allez dans WhatsApp > Paramètres > Appareils liés > Lier un appareil.",
       "qrPlaceholder": "Le QR code apparaîtra ici lorsque le service WhatsApp démarrera",
       "securityNotice": "En connectant WhatsApp, vous accordez à Accomplish l'accès à vos messages WhatsApp. Toutes les données restent sur votre appareil et ne sont pas partagées à l'extérieur."
-    }
+    },
+    "tabs": {
+      "messaging": "Messagerie",
+      "connectors": "Connecteurs",
+      "custom": "Personnalisé"
+    },
+    "errorDismiss": "Ignorer"
   },
   "appearance": {
     "title": "Thème",
@@ -401,7 +407,8 @@
       "disconnecting": "Disconnecting...",
       "authHint": "Accomplish will open your browser to authorize access.",
       "pendingHint": "Authorization was started but not finished. Reconnect to try again.",
-      "connectedHint": "Connected and ready for the agent to use."
+      "connectedHint": "Connected and ready for the agent to use.",
+      "waitingForBrowser": "En attente du navigateur…"
     },
     "marketplaceHint": "This connector requires the app to be installed from the marketplace.",
     "marketplaceLink": "Open marketplace",

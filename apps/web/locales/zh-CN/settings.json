@@ -270,7 +270,13 @@
       "scanQr": "使用您的 WhatsApp 应用扫描下方二维码以连接此设备。前往 WhatsApp > 设置 > 已关联的设备 > 关联设备。",
       "qrPlaceholder": "WhatsApp 服务启动后，二维码将显示在此处",
       "securityNotice": "连接 WhatsApp 后，您将授予 Accomplish 访问您的 WhatsApp 消息的权限。所有数据保留在您的设备上，不会对外共享。"
-    }
+    },
+    "tabs": {
+      "messaging": "消息",
+      "connectors": "连接器",
+      "custom": "自定义"
+    },
+    "errorDismiss": "关闭"
   },
   "notifications": {
     "toggle": {
@@ -373,7 +379,8 @@
       "disconnecting": "Disconnecting...",
       "authHint": "Accomplish will open your browser to authorize access.",
       "pendingHint": "Authorization was started but not finished. Reconnect to try again.",
-      "connectedHint": "Connected and ready for the agent to use."
+      "connectedHint": "Connected and ready for the agent to use.",
+      "waitingForBrowser": "等待浏览器…"
     },
     "marketplaceHint": "This connector requires the app to be installed from the marketplace.",
     "marketplaceLink": "Open marketplace",

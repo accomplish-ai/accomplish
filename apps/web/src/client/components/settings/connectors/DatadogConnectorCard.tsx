@@ -196,22 +196,21 @@ export function DatadogConnectorCard({
               >
                 {actionLoading ? t('connectors.cta.disconnecting') : t('connectors.cta.disconnect')}
               </Button>
+            ) : actionLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <span>{t('connectors.cta.waitingForBrowser')}</span>
+              </div>
             ) : (
               <Button
                 size="sm"
                 onClick={onAuthenticate}
-                disabled={actionLoading}
                 data-testid="datadog-auth-button"
                 className="text-xs"
               >
-                {actionLoading ? (
-                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                ) : null}
-                {actionLoading
-                  ? t('connectors.cta.connecting')
-                  : authState.pendingAuthorization
-                    ? t('connectors.cta.reconnect')
-                    : t('connectors.cta.connect')}
+                {authState.pendingAuthorization
+                  ? t('connectors.cta.reconnect')
+                  : t('connectors.cta.connect')}
               </Button>
             )}
           </div>

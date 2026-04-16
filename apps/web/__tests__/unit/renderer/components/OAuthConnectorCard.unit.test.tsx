@@ -118,10 +118,10 @@ describe('OAuthConnectorCard', () => {
   });
 
   describe('loading state (actionLoading = true)', () => {
-    it('disables the Connect button while loading', () => {
+    it('shows spinner and "Waiting for browser" text instead of Connect button while loading', () => {
       render(<OAuthConnectorCard {...baseProps} authState={disconnected} actionLoading={true} />);
-      const btn = screen.getByTestId('jira-card-button');
-      expect(btn).toBeDisabled();
+      expect(screen.queryByTestId('jira-card-button')).not.toBeInTheDocument();
+      expect(screen.getByText(/waiting for browser/i)).toBeInTheDocument();
     });
 
     it('disables the Disconnect button while loading', () => {

@@ -190,6 +190,10 @@ export function useConnectorsPanel() {
     setAddError(null);
   }, []);
 
+  const dismissTabError = useCallback(() => {
+    setOauthError(null);
+  }, []);
+
   return {
     connectors,
     slackAuth,
@@ -204,6 +208,8 @@ export function useConnectorsPanel() {
     slackActionLoading,
     addError,
     oauthError,
+    tabError: oauthError,
+    dismissTabError,
     handleAdd,
     handleConnect,
     handleBuiltInAuthenticate,

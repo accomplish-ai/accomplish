@@ -376,7 +376,8 @@
       "disconnecting": "Disconnecting...",
       "authHint": "Accomplish will open your browser to authorize access.",
       "pendingHint": "Authorization was started but not finished. Reconnect to try again.",
-      "connectedHint": "Connected and ready for the agent to use."
+      "connectedHint": "Connected and ready for the agent to use.",
+      "waitingForBrowser": "Waiting for browser…"
     },
     "marketplaceHint": "This connector requires the app to be installed from the marketplace.",
     "marketplaceLink": "Open marketplace",
@@ -615,7 +616,13 @@
       "scanQr": "Scan the QR code below with your WhatsApp app to connect this device. Go to WhatsApp > Settings > Linked Devices > Link a Device.",
       "qrPlaceholder": "QR code will appear here when the WhatsApp service starts",
       "securityNotice": "By connecting WhatsApp, you grant Accomplish access to your WhatsApp messages. All data remains on your device and is not shared externally."
-    }
+    },
+    "tabs": {
+      "messaging": "Messaging",
+      "connectors": "Connectors",
+      "custom": "Custom"
+    },
+    "errorDismiss": "Dismiss"
   },
   "baseUrl": {
     "title": "Base URL",

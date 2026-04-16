@@ -1,5 +1,14 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
+
+// Prevent undici from crashing on Node 20 (undici 8 requires Node 22 APIs)
+vi.mock('undici', () => ({
+  ProxyAgent: class ProxyAgent {},
+  Agent: class Agent {},
+  fetch: vi.fn(),
+  setGlobalDispatcher: vi.fn(),
+  getGlobalDispatcher: vi.fn(),
+}));
 import fs from 'fs';
 import path from 'path';
 

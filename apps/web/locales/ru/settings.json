@@ -352,7 +352,13 @@
       "scanQr": "Отсканируйте QR-код ниже в приложении WhatsApp для подключения этого устройства. Перейдите в WhatsApp > Настройки > Связанные устройства > Привязать устройство.",
       "qrPlaceholder": "QR-код появится здесь после запуска сервиса WhatsApp",
       "securityNotice": "Подключая WhatsApp, вы предоставляете Accomplish доступ к своим сообщениям. Все данные остаются на вашем устройстве и не передаются третьим лицам."
-    }
+    },
+    "tabs": {
+      "messaging": "Сообщения",
+      "connectors": "Коннекторы",
+      "custom": "Пользовательские"
+    },
+    "errorDismiss": "Закрыть"
   },
   "appearance": {
     "title": "Тема",
@@ -401,7 +407,8 @@
       "disconnecting": "Disconnecting...",
       "authHint": "Accomplish will open your browser to authorize access.",
       "pendingHint": "Authorization was started but not finished. Reconnect to try again.",
-      "connectedHint": "Connected and ready for the agent to use."
+      "connectedHint": "Connected and ready for the agent to use.",
+      "waitingForBrowser": "Ожидание браузера…"
     },
     "marketplaceHint": "This connector requires the app to be installed from the marketplace.",
     "marketplaceLink": "Open marketplace",
