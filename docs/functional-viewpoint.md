@@ -1,7 +1,13 @@
-# Functional Viewpoint — Accomplish Architecture
+# Functional Viewpoint — Accomplish Architecture (PTY era — HISTORICAL)
 
 > [!WARNING]
-> **This document describes the pre-SDK-cutover PTY architecture.** The OpenCode SDK cutover port (commercial PR #720) replaced `node-pty` + `StreamParser` with `@opencode-ai/sdk` + `opencode serve`, so the `PTY Process` / `StreamParser` participants and byte-stream flows shown below no longer reflect runtime behaviour. The transport, participant names, and byte-stream fan-out are stale; the participants and data they exchange (adapter, TaskManager, daemon, UI) are still structurally accurate, as are the ordering and causality of events. Treat these diagrams as historical reference until they are rewritten in a follow-up docs PR. Current flow: `apps/daemon/src/opencode/server-manager.ts` spawns `opencode serve` per task; `packages/agent-core/src/internal/classes/OpenCodeAdapter.ts` subscribes to the SDK event stream; permissions/questions go through `client.permission.reply` / `client.question.reply` (not HTTP+MCP bridges).
+> **This document describes the pre-SDK-cutover PTY architecture. It is retained for historical reference only.**
+>
+> **→ For the current architecture, read [`functional-viewpoint-sdk.md`](functional-viewpoint-sdk.md).**
+>
+> The OpenCode SDK cutover port (commercial PR #720, landed in OSS as PR #938) replaced `node-pty` + `StreamParser` with `@opencode-ai/sdk` + `opencode serve`. In the current runtime, `apps/daemon/src/opencode/server-manager.ts` spawns `opencode serve` per task; `packages/agent-core/src/internal/classes/OpenCodeAdapter.ts` subscribes to the SDK SSE event stream; permissions/questions go through `client.permission.reply` / `client.question.reply` (not HTTP+MCP bridges on `:9226` / `:9227`).
+>
+> The diagrams below still have some structural value — the participants and data they exchange (adapter, TaskManager, daemon, UI) are roughly correct, as is the ordering and causality of events. But the `PTY Process` / `StreamParser` participants and the byte-stream fan-out are stale. Use them only as a baseline for understanding how the system evolved.
 
 > Rozanski & Woods Functional Viewpoint: identifies the system's functional elements, their responsibilities, interfaces, and primary interactions.
 

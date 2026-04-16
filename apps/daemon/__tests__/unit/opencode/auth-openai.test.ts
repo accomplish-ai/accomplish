@@ -1,23 +1,23 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 /**
- * Phase 5 test for the OpenAI OAuth RPC round-trip (added by Phase 4a of the
- * SDK cutover port). Covers:
- *   - startLogin returns a sessionId + authorizeUrl from the SDK
- *   - awaitCompletion resolves with { ok: true, plan } once the auth-state
- *     file reports connected
- *   - awaitCompletion returns { ok: false, error: 'awaitCompletion RPC
- *     timed out.' } when the caller-supplied timeoutMs is short enough that
- *     the internal polling hasn't produced a result yet
+ * Tests for the OpenAI OAuth RPC round-trip.
  *
- * The transient `opencode serve` and auth-state polling helpers are mocked
- * so the test runs without a real runtime or filesystem side-effects.
+ * Post-regression-fix: the manager now drives the two-step OpenCode OAuth
+ * contract — `client.provider.oauth.authorize` followed by
+ * `client.provider.oauth.callback`. The second call is what makes opencode
+ * serve consume the pending browser redirect, exchange the code, and persist
+ * tokens to `auth.json`. The prior implementation polled `auth.json` mtime
+ * instead of calling `callback`, which left the tokens unconsumed and every
+ * OAuth attempt hanging for two minutes before timing out.
+ *
+ * These tests pin the new contract. `client.provider.oauth.callback` is a
+ * manually-resolved Promise so tests can simulate the browser completing,
+ * timing out, or being aborted mid-flight.
  */
 
 let connected = false;
 let mockExpires: number | undefined = undefined;
-let mockAccessToken = '';
-let mockFileMtimeMs = 0;
 let oauthPlanValue: 'free' | 'paid' = 'paid';
 
 vi.mock('@accomplish_ai/agent-core', () => ({
@@ -27,23 +27,6 @@ vi.mock('@accomplish_ai/agent-core', () => ({
     connected ? { connected: true, expires: mockExpires } : { connected: false },
   ),
   getOpenCodeAuthJsonPath: vi.fn(() => '/tmp/fake-auth.json'),
-}));
-
-// `auth-openai.ts` reads the auth-state file directly (via fs.statSync +
-// fs.readFileSync) to compute its fingerprint (mtime + entry hash). Mock
-// node:fs so the test can drive the snapshot deterministically without
-// touching disk.
-vi.mock('node:fs', () => ({
-  default: {
-    statSync: vi.fn(() => ({ mtimeMs: mockFileMtimeMs })),
-    readFileSync: vi.fn(() =>
-      JSON.stringify({
-        openai: connected
-          ? { type: 'oauth', access: mockAccessToken, expires: mockExpires }
-          : undefined,
-      }),
-    ),
-  },
 }));
 
 vi.mock('../../../src/logger.js', () => ({
@@ -63,12 +46,49 @@ const oauthAuthorizeMock = vi.fn(async () => ({
   data: { url: 'https://auth.openai.com/login?client_id=fake' },
 }));
 
+/**
+ * Test handle for the oauth.callback RPC. Each `startLogin` creates a new
+ * Promise that the test can resolve (browser finished), reject (opencode
+ * reported an error), or leave pending (user still in browser → exercises
+ * timeout/abort paths). A fresh handle is minted at the top of every
+ * `beforeEach` so tests don't share state.
+ */
+interface CallbackHandle {
+  resolve: () => void;
+  reject: (err: unknown) => void;
+  signal?: AbortSignal;
+}
+let pendingCallback: CallbackHandle | null = null;
+const oauthCallbackMock = vi.fn(async (_params: unknown, options?: { signal?: AbortSignal }) => {
+  return new Promise<{ data: boolean }>((resolve, reject) => {
+    pendingCallback = {
+      resolve: () => resolve({ data: true }),
+      reject,
+      signal: options?.signal,
+    };
+    // Propagate aborts so the manager's completion promise rejects when the
+    // AbortController is tripped. Mirrors real fetch-layer behaviour.
+    options?.signal?.addEventListener(
+      'abort',
+      () => {
+        const err = new Error('AbortError');
+        err.name = 'AbortError';
+        reject(err);
+      },
+      { once: true },
+    );
+  });
+});
+
 vi.mock('../../../src/opencode/server-manager.js', () => ({
   createTransientOpencodeClient: vi.fn(async () => ({
     client: {
       provider: {
         auth: providerAuthMock,
-        oauth: { authorize: oauthAuthorizeMock },
+        oauth: {
+          authorize: oauthAuthorizeMock,
+          callback: oauthCallbackMock,
+        },
       },
     },
     close: transientCloseMock,
@@ -82,12 +102,12 @@ describe('OpenAiOauthManager', () => {
   beforeEach(() => {
     connected = false;
     mockExpires = undefined;
-    mockAccessToken = '';
-    mockFileMtimeMs = 0;
     oauthPlanValue = 'paid';
+    pendingCallback = null;
     transientCloseMock.mockClear();
     providerAuthMock.mockClear();
     oauthAuthorizeMock.mockClear();
+    oauthCallbackMock.mockClear();
   });
 
   afterEach(() => {
@@ -105,28 +125,33 @@ describe('OpenAiOauthManager', () => {
     expect(oauthAuthorizeMock).toHaveBeenCalledWith(
       expect.objectContaining({ providerID: 'openai', method: 0 }),
     );
+    // Pins the fix for the post-SDK-cutover regression: `startLogin` must
+    // issue the two-step OAuth contract — authorize FOLLOWED BY callback.
+    // Without the callback RPC, opencode holds the browser-redirect tokens
+    // in memory forever and never writes auth.json, causing the user-visible
+    // "success page, then hang" failure mode.
+    expect(oauthCallbackMock).toHaveBeenCalledWith(
+      expect.objectContaining({ providerID: 'openai', method: 0 }),
+      expect.any(Object),
+    );
 
     manager.dispose();
     expect(transientCloseMock).toHaveBeenCalled();
   });
 
-  it('awaitCompletion resolves with { ok: true, plan } once auth state reports connected', async () => {
+  it('awaitCompletion resolves with { ok: true, plan } once oauth.callback resolves', async () => {
     const manager = new OpenAiOauthManager({} as never);
     oauthPlanValue = 'paid';
 
     const { sessionId } = await manager.startLogin();
 
-    // Flip the mocked auth-state flag after a short delay — simulates the
-    // user finishing the browser OAuth handshake. Bump mtime + token so
-    // the file-fingerprint detection sees the change (was-disconnected →
-    // connected is also enough on its own, but bumping mtime models the
-    // real opencode write).
+    // Simulate the user finishing the browser flow — opencode's internal
+    // handler fires the exchange, writes auth.json, and the callback RPC
+    // resolves. A short setTimeout mimics the real-world delay between
+    // startLogin returning and the user clicking through the browser.
     setTimeout(() => {
-      connected = true;
-      mockExpires = 1_999_999_999;
-      mockAccessToken = 'eyJfresh-token';
-      mockFileMtimeMs = 1_000;
-    }, 50);
+      pendingCallback?.resolve();
+    }, 20);
 
     const result = await manager.awaitCompletion({ sessionId, timeoutMs: 5_000 });
 
@@ -134,88 +159,32 @@ describe('OpenAiOauthManager', () => {
     expect(transientCloseMock).toHaveBeenCalled();
   });
 
-  it('does NOT short-circuit on a leftover OAuth token from a prior login', async () => {
-    // REGRESSION (manual OAuth test): the previous version of
-    // `waitForOpenAiConnection` returned on first poll whenever
-    // `getOpenAiOauthStatus().connected === true` — including when the
-    // user already had a valid token from a previous sign-in. That
-    // caused the manager to close the transient `opencode serve`'s
-    // OAuth callback server (port 1455) before the browser ever
-    // redirected back, breaking real OAuth flows for any user with
-    // a prior session in `auth.json`. This test pins the fix:
-    // `startLogin` snapshots the initial state; the polling loop
-    // only resolves on a STATE CHANGE (was disconnected → connected,
-    // OR was connected with token X → connected with token Y).
-
-    // Pre-existing valid token before the new flow starts. The auth.json
-    // file already exists with stable mtime + token contents.
-    connected = true;
-    mockExpires = 1_500_000_000;
-    mockAccessToken = 'eyJleftover-token';
-    mockFileMtimeMs = 100;
-
+  it('propagates the AbortSignal into the oauth.callback RPC', async () => {
+    // The callback RPC blocks server-side for up to 5 minutes (opencode's
+    // internal waitForOAuthCallback timeout). Without propagating our
+    // AbortSignal, disposing the manager or superseding the session would
+    // leave the RPC in flight on the old transient runtime, which doesn't
+    // get torn down cleanly. This test pins that the manager's
+    // abortController.signal reaches the SDK's options.signal.
     const manager = new OpenAiOauthManager({} as never);
-    const { sessionId } = await manager.startLogin();
+    await manager.startLogin();
 
-    // The transient runtime MUST still be open while the user is in
-    // the browser. The manager must not have called close().
-    expect(transientCloseMock).not.toHaveBeenCalled();
-
-    // Race a short awaitCompletion against the poll loop. Without the
-    // fix, awaitCompletion would resolve immediately as `{ ok: true }`
-    // (because polling short-circuits on the leftover token).
-    // With the fix, the poll keeps waiting → the RPC times out cleanly.
-    const result = await manager.awaitCompletion({ sessionId, timeoutMs: 100 });
-    expect(result.ok).toBe(false);
-    if (result.ok === false) {
-      expect(result.error).toMatch(/timed out/i);
-    }
-
-    // Now simulate the browser flow completing — opencode rewrites
-    // auth.json with a fresh token. Either mtime change OR contents
-    // change is sufficient (we bump both, mirroring real opencode).
-    mockExpires = 1_500_001_234;
-    mockAccessToken = 'eyJfresh-token';
-    mockFileMtimeMs = 200;
-    const result2 = await manager.awaitCompletion({ sessionId, timeoutMs: 5_000 });
-    expect(result2).toEqual({ ok: true, plan: 'paid' });
+    expect(pendingCallback).not.toBeNull();
+    expect(pendingCallback?.signal).toBeInstanceOf(AbortSignal);
+    expect(pendingCallback?.signal?.aborted).toBe(false);
 
     manager.dispose();
+
+    expect(pendingCallback?.signal?.aborted).toBe(true);
   });
 
-  it('detects a fresh OAuth even when expires is unchanged (token-string change suffices)', async () => {
-    // REGRESSION (manual OAuth test, round 2): an earlier version of the
-    // fingerprint compared only `expires`. During real testing the user's
-    // auth.json had identical `expires` across multiple successful OAuth
-    // attempts (opencode rotated tokens but kept the same exp), so the
-    // poll never returned. Switching to mtime + entry-hash makes a token
-    // string change sufficient even when expires holds steady.
-    connected = true;
-    mockExpires = 1_500_000_000; // never changes throughout this test
-    mockAccessToken = 'eyJleftover-token';
-    mockFileMtimeMs = 100;
-
-    const manager = new OpenAiOauthManager({} as never);
-    const { sessionId } = await manager.startLogin();
-
-    // Simulate opencode writing a NEW token but with the same expires.
-    setTimeout(() => {
-      mockAccessToken = 'eyJrotated-token-same-expires';
-      mockFileMtimeMs = 200;
-    }, 50);
-
-    const result = await manager.awaitCompletion({ sessionId, timeoutMs: 5_000 });
-    expect(result).toEqual({ ok: true, plan: 'paid' });
-
-    manager.dispose();
-  });
-
-  it('awaitCompletion returns { ok: false } when the RPC timeoutMs fires before the flow completes', async () => {
+  it('awaitCompletion returns { ok: false } when the caller timeoutMs fires before the flow completes', async () => {
     const manager = new OpenAiOauthManager({} as never);
 
     const { sessionId } = await manager.startLogin();
-    // Never flip `connected` — the internal 2-minute poll loop keeps
-    // waiting, but the caller-supplied RPC timeout aborts sooner.
+    // Never resolve the callback — the user is still in the browser. The
+    // internal 2-minute deadline would eventually fire, but the caller-
+    // supplied timeoutMs aborts this RPC call sooner.
     const result = await manager.awaitCompletion({ sessionId, timeoutMs: 50 });
 
     expect(result.ok).toBe(false);
@@ -226,16 +195,39 @@ describe('OpenAiOauthManager', () => {
     manager.dispose();
   });
 
+  it('awaitCompletion surfaces opencode-side callback errors verbatim', async () => {
+    // If opencode rejects the callback RPC (bad code exchange, provider
+    // error, user cancelled mid-browser), the manager should propagate the
+    // failure rather than hang. The 2-minute internal deadline is for the
+    // *caller not finishing* case; an SDK-side error must short-circuit.
+    const manager = new OpenAiOauthManager({} as never);
+    const { sessionId } = await manager.startLogin();
+
+    setTimeout(() => {
+      pendingCallback?.reject(new Error('oauth exchange failed: 400 bad_verification_code'));
+    }, 10);
+
+    const result = await manager.awaitCompletion({ sessionId, timeoutMs: 5_000 });
+
+    expect(result.ok).toBe(false);
+    if (result.ok === false) {
+      expect(result.error).toMatch(/bad_verification_code/);
+    }
+
+    manager.dispose();
+  });
+
   it('startLogin aborts the prior active session when called twice', async () => {
     const manager = new OpenAiOauthManager({} as never);
 
     const first = await manager.startLogin();
-    // Second startLogin should abort the first session's runtime.
+    const firstSignal = pendingCallback?.signal;
+    // Second startLogin should abort the first session's runtime AND the
+    // first session's in-flight callback RPC.
     const second = await manager.startLogin();
 
     expect(second.sessionId).not.toBe(first.sessionId);
-    // `close` fires for the first runtime on abort, plus each successful
-    // runtime teardown — count at least 1 (the abort).
+    expect(firstSignal?.aborted).toBe(true);
     expect(transientCloseMock).toHaveBeenCalled();
 
     manager.dispose();
