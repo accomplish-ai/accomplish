@@ -53,7 +53,10 @@ async function initGitHubState(): Promise<void> {
         timeout: 10_000,
         env: augmentedEnv,
       });
-      if (stdout.trim()) {
+      const token = stdout.trim();
+      if (token) {
+        const ghStore = getConnectorAuthStore(OAuthProviderId.GitHub);
+        ghStore?.setTokens({ accessToken: token, tokenType: 'bearer' }, Date.now());
         setDesktopConnectorConnected(OAuthProviderId.GitHub, true);
         return;
       }

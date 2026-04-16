@@ -1,14 +1,7 @@
 /**
  * @vitest-environment jsdom
  *
- * Unit tests for DatadogConnectorCard (T021)
- *
- * Validates:
- * - All 6 regions appear in the dropdown
- * - Selecting a region and clicking Save calls datadogSetServerUrl with the correct MCP URL
- * - noSite status shown when no server URL is stored
- * - Region picker hidden and Edit button shown once a region is saved
- * - reconnectRequired warning visible when editing region while connected
+ * Unit tests for DatadogConnectorCard.
  */
 
 import '@testing-library/jest-dom/vitest';
@@ -161,6 +154,7 @@ describe('DatadogConnectorCard', () => {
       await waitFor(() => {
         expect(screen.queryByTestId('datadog-region-select')).not.toBeInTheDocument();
       });
+      expect(screen.getByRole('button', { name: /^edit$/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /connect/i })).toBeInTheDocument();
     });
 

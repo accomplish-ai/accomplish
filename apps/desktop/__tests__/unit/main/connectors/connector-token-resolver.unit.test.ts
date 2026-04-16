@@ -32,6 +32,7 @@ const { mockExecFileAsync, mockShellOpenExternal } = vi.hoisted(() => ({
 vi.mock('child_process', () => ({ execFile: mockExecFileAsync }));
 vi.mock('util', () => ({ promisify: (fn: unknown) => fn }));
 vi.mock('electron', () => ({ shell: { openExternal: mockShellOpenExternal } }));
+vi.mock('crypto', () => ({ default: { randomUUID: () => 'test-csrf-state' } }));
 
 const {
   mockDiscoverOAuthMetadata,
@@ -87,6 +88,7 @@ const { mockStore } = vi.hoisted(() => ({
     setTokens: vi.fn(),
     setClientRegistration: vi.fn(),
     setPendingAuth: vi.fn(),
+    clearTokens: vi.fn(),
     callbackUrl: 'http://127.0.0.1:3120/callback',
   },
 }));
@@ -299,7 +301,7 @@ describe('connectBuiltInConnector', () => {
         codeChallenge: 'challenge',
       });
       mockBuildAuthorizationUrl.mockReturnValue('https://jira.example.com/oauth/authorize?foo=bar');
-      mockWaitForCallback.mockResolvedValue({ code: 'authcode123' });
+      mockWaitForCallback.mockResolvedValue({ code: 'authcode123', state: 'test-csrf-state' });
       mockExchangeCodeForTokens.mockResolvedValue({
         accessToken: 'jira_tok',
         tokenType: 'bearer',
@@ -332,7 +334,7 @@ describe('connectBuiltInConnector', () => {
       mockDiscoverOAuthMetadata.mockResolvedValue(metadata);
       mockGeneratePkceChallenge.mockReturnValue({ codeVerifier: 'v', codeChallenge: 'c' });
       mockBuildAuthorizationUrl.mockReturnValue('https://jira.example.com/oauth/authorize?x=1');
-      mockWaitForCallback.mockResolvedValue({ code: 'code' });
+      mockWaitForCallback.mockResolvedValue({ code: 'code', state: 'test-csrf-state' });
       mockExchangeCodeForTokens.mockResolvedValue({ accessToken: 'tok', tokenType: 'bearer' });
 
       await connectBuiltInConnector('jira' as never);
@@ -364,7 +366,7 @@ describe('connectBuiltInConnector', () => {
       mockDiscoverOAuthMetadata.mockResolvedValue(metadata);
       mockGeneratePkceChallenge.mockReturnValue({ codeVerifier: 'v', codeChallenge: 'c' });
       mockBuildAuthorizationUrl.mockReturnValue('https://slack.com/oauth/authorize?bar=1');
-      mockWaitForCallback.mockResolvedValue({ code: 'slack-code' });
+      mockWaitForCallback.mockResolvedValue({ code: 'slack-code', state: 'test-csrf-state' });
       mockExchangeCodeForTokens.mockResolvedValue({
         accessToken: 'slack_token',
         tokenType: 'bearer',

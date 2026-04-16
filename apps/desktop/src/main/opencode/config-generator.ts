@@ -183,13 +183,20 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
 
   // Populate built-in connector statuses for system-prompt injection (T006)
   try {
+    const { getAccountManager: getAccountManagerForStatus } =
+      await import('../google-accounts/index');
+    const accountManagerForStatus = getAccountManagerForStatus();
     const defs = getConnectorDefinitions();
     const statuses: Array<{ displayName: string; connected: boolean }> = [];
     for (const def of defs) {
-      const store = getConnectorAuthStore(def.id);
-      const connected = store
-        ? store.getOAuthStatus().connected
-        : isDesktopConnectorConnected(def.id);
+      let connected: boolean;
+      if (def.desktopOAuth.kind === 'desktop-google') {
+        // Google's connected state comes from persisted account rows, not in-memory state.
+        connected = accountManagerForStatus.listAccounts().some((a) => a.status === 'connected');
+      } else {
+        const store = getConnectorAuthStore(def.id);
+        connected = store ? store.getOAuthStatus().connected : isDesktopConnectorConnected(def.id);
+      }
       statuses.push({ displayName: def.displayName, connected });
     }
     if (statuses.length > 0) {

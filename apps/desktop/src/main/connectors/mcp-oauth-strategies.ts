@@ -74,13 +74,18 @@ export async function performMcpDcrFlow(
       callbackPath: oauth.store.callback.path,
     });
 
+    let authSucceeded = false;
     try {
       store.setPendingAuth({ codeVerifier: pkce.codeVerifier, oauthState: state });
       await shell.openExternal(authUrl);
 
-      const { code } = await callbackServer.waitForCallback().catch(() => {
+      const { code, state: returnedState } = await callbackServer.waitForCallback().catch(() => {
         throw new Error(oauth.tokenExchangeError);
       });
+
+      if (returnedState !== state) {
+        throw new Error(oauth.tokenExchangeError);
+      }
 
       const tokens = await exchangeCodeForTokens({
         tokenEndpoint: metadata.tokenEndpoint,
@@ -94,8 +99,12 @@ export async function performMcpDcrFlow(
       });
 
       store.setTokens(tokens, Date.now());
+      authSucceeded = true;
       return { ok: true, accessToken: tokens.accessToken };
     } finally {
+      if (!authSucceeded) {
+        store.clearTokens(); // clears codeVerifier/oauthState so pendingAuthorization resets
+      }
       callbackServer.shutdown();
     }
   } catch (err) {
@@ -150,13 +159,18 @@ export async function performMcpFixedClientFlow(
       callbackPath: oauth.store.callback.path,
     });
 
+    let authSucceeded = false;
     try {
       store.setPendingAuth({ codeVerifier: pkce.codeVerifier, oauthState: state });
       await shell.openExternal(authUrl);
 
-      const { code } = await callbackServer.waitForCallback().catch(() => {
+      const { code, state: returnedState } = await callbackServer.waitForCallback().catch(() => {
         throw new Error(oauth.tokenExchangeError);
       });
+
+      if (returnedState !== state) {
+        throw new Error(oauth.tokenExchangeError);
+      }
 
       const tokens = await exchangeCodeForTokens({
         tokenEndpoint: metadata.tokenEndpoint,
@@ -169,8 +183,12 @@ export async function performMcpFixedClientFlow(
       });
 
       store.setTokens(tokens, Date.now());
+      authSucceeded = true;
       return { ok: true, accessToken: tokens.accessToken };
     } finally {
+      if (!authSucceeded) {
+        store.clearTokens(); // clears codeVerifier/oauthState so pendingAuthorization resets
+      }
       callbackServer.shutdown();
     }
   } catch (err) {

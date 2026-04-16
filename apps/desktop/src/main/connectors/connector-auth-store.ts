@@ -6,8 +6,6 @@
  * Each connector gets one instance, keyed by provider ID.
  *
  * Storage key format: connector-auth:<providerKey>
- * Stored shape: { accessToken?, refreshToken?, expiresAt?, lastOAuthValidatedAt?,
- *                 clientRegistration?, serverUrl?, codeVerifier?, oauthState? }
  */
 
 import type {
@@ -15,28 +13,10 @@ import type {
   OAuthClientRegistration,
   ConnectorAuthStoreConfig,
 } from '@accomplish_ai/agent-core/common';
-import { getStorage } from '../store/storage';
+import type { StoredAuthEntry, ConnectorOAuthStatus } from './connector-auth-types';
+import { readEntry, writeEntry, deleteEntry, resolveServerUrl } from './connector-auth-entry';
 
-const STORE_KEY_PREFIX = 'connector-auth:';
-
-interface StoredAuthEntry {
-  accessToken?: string;
-  refreshToken?: string;
-  /** Unix ms timestamp — stored in ms (unlike mcp-auth.json which stores seconds) */
-  expiresAt?: number;
-  /** Unix ms timestamp of last successful token validation */
-  lastOAuthValidatedAt?: number;
-  clientRegistration?: OAuthClientRegistration;
-  serverUrl?: string;
-  codeVerifier?: string;
-  oauthState?: string;
-}
-
-export interface ConnectorOAuthStatus {
-  connected: boolean;
-  pendingAuthorization: boolean;
-  lastValidatedAt?: number;
-}
+export type { ConnectorOAuthStatus };
 
 export class ConnectorAuthStore {
   constructor(readonly config: ConnectorAuthStoreConfig) {}
@@ -47,7 +27,7 @@ export class ConnectorAuthStore {
   }
 
   getOAuthStatus(): ConnectorOAuthStatus {
-    const entry = this.readEntry();
+    const entry = readEntry(this.config);
     if (!entry) {
       return { connected: false, pendingAuthorization: false };
     }
@@ -69,7 +49,7 @@ export class ConnectorAuthStore {
   }
 
   getAccessToken(): string | undefined {
-    const entry = this.readEntry();
+    const entry = readEntry(this.config);
     return entry?.accessToken?.trim() || undefined;
   }
 
@@ -80,7 +60,7 @@ export class ConnectorAuthStore {
     if (!this.config.storesServerUrl) {
       return undefined;
     }
-    const entry = this.readEntry();
+    const entry = readEntry(this.config);
     return entry?.serverUrl?.trim() || undefined;
   }
 
@@ -89,7 +69,7 @@ export class ConnectorAuthStore {
       return;
     }
     const normalized = url.trim();
-    const existing = this.readEntry() ?? {};
+    const existing = readEntry(this.config) ?? {};
     const previousUrl = existing.serverUrl?.trim();
 
     // If URL changed, reset auth state but keep the new URL
@@ -98,59 +78,59 @@ export class ConnectorAuthStore {
         ? { ...existing, serverUrl: normalized }
         : { serverUrl: normalized };
 
-    this.writeEntry(next);
+    writeEntry(this.config, next);
   }
 
   getClientRegistration(): OAuthClientRegistration | undefined {
     if (!this.config.usesDcr) {
       return undefined;
     }
-    const entry = this.readEntry();
+    const entry = readEntry(this.config);
     const reg = entry?.clientRegistration;
     return reg?.clientId ? reg : undefined;
   }
 
   setClientRegistration(reg: OAuthClientRegistration): void {
-    const existing = this.readEntry() ?? {};
-    this.writeEntry({ ...existing, clientRegistration: reg });
+    const existing = readEntry(this.config) ?? {};
+    writeEntry(this.config, { ...existing, clientRegistration: reg });
   }
 
   setPendingAuth(params: { codeVerifier: string; oauthState: string }): void {
-    const existing = this.readEntry() ?? {};
+    const existing = readEntry(this.config) ?? {};
     const next: StoredAuthEntry = {
       codeVerifier: params.codeVerifier,
       oauthState: params.oauthState,
-      serverUrl: this.resolveServerUrl(existing),
+      serverUrl: resolveServerUrl(this.config, existing),
     };
     if (this.config.usesDcr && existing.clientRegistration) {
       next.clientRegistration = existing.clientRegistration;
     }
-    this.writeEntry(next);
+    writeEntry(this.config, next);
   }
 
   setTokens(tokens: OAuthTokens, lastValidatedAt?: number): void {
-    const existing = this.readEntry() ?? {};
+    const existing = readEntry(this.config) ?? {};
     const next: StoredAuthEntry = {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
       expiresAt: tokens.expiresAt,
       lastOAuthValidatedAt: lastValidatedAt ?? Date.now(),
-      serverUrl: this.resolveServerUrl(existing),
+      serverUrl: resolveServerUrl(this.config, existing),
     };
     if (this.config.usesDcr && existing.clientRegistration) {
       next.clientRegistration = existing.clientRegistration;
     }
-    this.writeEntry(next);
+    writeEntry(this.config, next);
   }
 
   setLastValidatedAt(timestamp: number): void {
-    const existing = this.readEntry() ?? {};
-    this.writeEntry({ ...existing, lastOAuthValidatedAt: timestamp });
+    const existing = readEntry(this.config) ?? {};
+    writeEntry(this.config, { ...existing, lastOAuthValidatedAt: timestamp });
   }
 
   /** Clear tokens but preserve client registration (DCR) and server URL (storesServerUrl) */
   clearTokens(): void {
-    const existing = this.readEntry();
+    const existing = readEntry(this.config);
     if (!existing) {
       return;
     }
@@ -162,57 +142,24 @@ export class ConnectorAuthStore {
       preserved.serverUrl = existing.serverUrl;
     }
     if (Object.keys(preserved).length === 0) {
-      this.deleteEntry();
+      deleteEntry(this.config);
     } else {
-      this.writeEntry(preserved);
+      writeEntry(this.config, preserved);
     }
   }
 
   /** Nuke the entire entry including DCR registration */
   clearAuth(): void {
-    this.deleteEntry();
+    deleteEntry(this.config);
   }
 
   /** Get the stored refresh token (needed by token resolver for silent refresh) */
   getRefreshToken(): string | undefined {
-    return this.readEntry()?.refreshToken;
+    return readEntry(this.config)?.refreshToken;
   }
 
   /** Returns the stored token expiry timestamp (Unix ms), or undefined if not set. */
   getTokenExpiry(): number | undefined {
-    return this.readEntry()?.expiresAt;
-  }
-
-  private readEntry(): StoredAuthEntry | undefined {
-    const storage = getStorage();
-    const raw = storage.get(`${STORE_KEY_PREFIX}${this.config.key}`);
-    if (!raw) {
-      return undefined;
-    }
-    try {
-      return JSON.parse(raw) as StoredAuthEntry;
-    } catch {
-      return undefined;
-    }
-  }
-
-  private writeEntry(entry: StoredAuthEntry): void {
-    const storage = getStorage();
-    storage.set(`${STORE_KEY_PREFIX}${this.config.key}`, JSON.stringify(entry));
-  }
-
-  private deleteEntry(): void {
-    const storage = getStorage();
-    storage.set(`${STORE_KEY_PREFIX}${this.config.key}`, '');
-  }
-
-  private resolveServerUrl(existing: StoredAuthEntry): string | undefined {
-    if (this.config.serverUrl) {
-      return this.config.serverUrl;
-    }
-    if (this.config.storesServerUrl && existing.serverUrl) {
-      return existing.serverUrl;
-    }
-    return undefined;
+    return readEntry(this.config)?.expiresAt;
   }
 }

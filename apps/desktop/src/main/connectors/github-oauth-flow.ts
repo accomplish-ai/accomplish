@@ -39,7 +39,8 @@ export async function performDesktopGithubFlow(
     };
   }
 
-  const store = getConnectorAuthStore(providerId);
+  // GitHub always has a synthetic store in the registry; assert non-null.
+  const store = getConnectorAuthStore(providerId)!;
   const augmentedEnv = { ...process.env, PATH: buildGhAugmentedPath() };
 
   // Try reading an existing token first
@@ -50,8 +51,8 @@ export async function performDesktopGithubFlow(
     });
     const token = stdout.trim();
     if (token) {
-      // Store a synthetic token entry so auth status reads as connected
-      store?.setTokens({ accessToken: token, tokenType: 'bearer' }, Date.now());
+      // Persist token to SecureStorage so auth status survives restarts.
+      store.setTokens({ accessToken: token, tokenType: 'bearer' }, Date.now());
       setDesktopConnectorConnected(providerId, true);
       return { ok: true, accessToken: token };
     }
@@ -72,7 +73,7 @@ export async function performDesktopGithubFlow(
     });
     const token = stdout.trim();
     if (token) {
-      store?.setTokens({ accessToken: token, tokenType: 'bearer' }, Date.now());
+      store.setTokens({ accessToken: token, tokenType: 'bearer' }, Date.now());
       setDesktopConnectorConnected(providerId, true);
       return { ok: true, accessToken: token };
     }
