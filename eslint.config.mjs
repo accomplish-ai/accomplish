@@ -20,10 +20,6 @@ export default tseslint.config(
       '.claude/**',
       '**/mcp-tools/dev-browser/server.cjs',
       '**/mcp-tools/dev-browser/server.mjs',
-      // Phase 0 SDK spike + e2e smoke scratch — not shipped, not tested,
-      // intentionally informal style. They're committed alongside the
-      // SDK cutover port so the verification recipe is reproducible.
-      '**/__scratch__/**',
     ],
   },
   eslint.configs.recommended,

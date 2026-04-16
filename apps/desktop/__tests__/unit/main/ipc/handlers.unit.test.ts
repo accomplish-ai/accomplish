@@ -495,11 +495,6 @@ vi.mock('@main/store/secureStorage', () => ({
 
 // Note: App settings and provider settings are now mocked via @accomplish/core mock above
 
-// Mock config
-vi.mock('@main/config', () => ({
-  getDesktopConfig: vi.fn(() => ({})),
-}));
-
 // Mock logging module
 const mockLogFn = vi.fn();
 const mockLogCollector = { log: mockLogFn, logEnv: vi.fn() };

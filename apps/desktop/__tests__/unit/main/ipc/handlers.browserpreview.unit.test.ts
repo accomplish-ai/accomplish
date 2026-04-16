@@ -249,10 +249,6 @@ vi.mock('@main/services/speechToText', () => ({
   transcribeAudio: vi.fn(() => Promise.resolve({ success: true, result: { text: '' } })),
 }));
 
-vi.mock('@main/config', () => ({
-  getDesktopConfig: vi.fn(() => ({})),
-}));
-
 // ── Mock global fetch ─────────────────────────────────────────────────────────
 
 const mockFetch = vi.fn();
