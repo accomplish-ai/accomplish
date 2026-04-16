@@ -1,0 +1,175 @@
+# Dead Code Feature Audit
+
+Static review date: 2026-04-16
+Last updated: 2026-04-16 (post PR #947, #948)
+
+Scope: broad static scan for large dead or half-dead feature areas after the
+thought-stream cleanup. This is not a full reachability proof. It highlights
+high-value candidates for team review.
+
+## Status snapshot
+
+Of the 10 drop candidates + 1 live wiring gap surfaced on 2026-04-16:
+
+- **6 resolved** — daemon task-config wiring (PR #947), GWS runtime gap
+  (PR #947), and 4 low-risk orphan deletions (PR #948: daemon/types.ts,
+  daemon/cron-utils.ts, `__scratch__/`, desktop shims, `ws` dep).
+- **5 still open** — desktop-control MCP, desktop OpenCode config
+  generator, completion continuation loop, thought-stream stale docs,
+  "other task config features" follow-up audit (the last of these is
+  now largely closed by #947, but left open until product confirms
+  knowledge-notes / cloud-browser / language flows end-to-end).
+
+## Summary
+
+The biggest remaining risks are not small unused helpers. They are either dead
+feature surfaces that should be removed, or live features whose old wiring did
+not fully survive the daemon migration.
+
+Recommended sequence (updated):
+
+1. ~~Finish current thought-stream cleanup leftovers.~~ Docs remnants still
+   outstanding (P3).
+2. Remove or rebuild `desktop-control`. **Still the top blocker.**
+3. ~~Treat GWS as a live feature with a daemon-wiring gap; do not delete it.~~
+   **Resolved in PR #947.** Daemon now materializes the GWS accounts manifest
+   via `prepareGwsManifest` and registers `gws-mcp` / `gmail-mcp` /
+   `calendar-mcp` per task.
+4. ~~Decide product direction for connectors, cloud browser, knowledge notes,
+   and language prompting.~~ **Wiring resolved in PR #947** — all five
+   dropped features (GWS, connectors, knowledge notes, cloud browser,
+   OpenAI `store: false`, UI language) now flow through `resolveTaskConfig`
+   on the daemon path. Product audit still recommended to confirm UX.
+5. Remove old desktop OpenCode config generation after any needed behavior is
+   migrated to the daemon. GWS manifest prep has been migrated to agent-core
+   by #947; the desktop generator is now fully orphan and can be deleted.
+6. ~~Clean small duplicate utilities and scratch files.~~ **Resolved in
+   PR #948** — 6 P3 items deleted (-1483 LOC).
+
+## Drop Candidates
+
+| Candidate                                      | Priority | Status                           |                                      Rough size | Files to drop/edit                                                                                                                                              | Original purpose                                                                                                                    | Why it appears dead now                                                                                                                                                                                                  | Recommendation                                                                                                                                                                                                                                                                           |
+| ---------------------------------------------- | -------: | -------------------------------- | ----------------------------------------------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `desktop-control` MCP feature                  |       P1 | **Open**                         | ~300 source LOC; larger with docs/tests/storage | Drop/edit ~8-15 files: `packages/agent-core/mcp-tools/desktop-control/`, MCP generator entry, bundle config, system prompt, skill docs, blocklist storage/tests | Let the agent control the desktop through screenshot, click, type, permissions, and blocklist actions                               | It is registered as a local MCP server, but implementation only exports `serve()` and has no top-level entrypoint or MCP stdio transport. When spawned as `dist/index.mjs`, it loads and exits without speaking MCP      | Drop unless the team plans to rewrite it soon as a real MCP stdio tool                                                                                                                                                                                                                   |
+| Daemon bypasses old task-feature resolver      |       P1 | **Resolved (PR #947)**           |          Medium/large scattered feature surface | Mainly `apps/daemon/src/task-config-builder.ts`; possibly old resolver code after migration                                                                     | Old resolver injected connectors, cloud browser config, knowledge notes, language prompting, and GWS manifests into OpenCode config | Live daemon task config is built directly and skips `resolveTaskConfig`, so multiple UI/storage features may not affect actual tasks                                                                                     | Daemon `task-config-builder.ts` now routes through `resolveTaskConfig`; all 6 dropped features restored. See PR #947 for wiring details.                                                                                                                                                 |
+| Desktop OpenCode config generator              |       P2 | **Open (now fully orphan)**      |                                    ~250-350 LOC | Drop `apps/desktop/src/main/opencode/config-generator.ts`; update related docs/import comments                                                                  | Desktop used to generate OpenCode config before daemon-owned task execution                                                         | Desktop OpenCode barrel no longer exports it, Slack OAuth notes the old call was removed, and daemon owns runtime config. GWS manifest prep (the last behavior this held that mattered) is now in agent-core per PR #947 | Safe to delete in a follow-up PR. No remaining behavior needs migration.                                                                                                                                                                                                                 |
+| Completion continuation loop                   |       P2 | **Open (deferred from PR #948)** |            ~150-300 LOC plus tests/prompts/docs | Edit `completion-enforcer.ts`, `OpenCodeAdapter.ts`, continuation prompts/tests/docs                                                                            | PTY-era safety loop that nudged the agent to continue after partial completion or process exit                                      | SDK runtime no longer calls `handleStepFinish` or `handleProcessExit`; live completion uses SDK idle and complete-task observation                                                                                       | Remove carefully. The dormant branch shares state with live completion behavior, so keep complete-task detection and rewrite tests with care. PR #948 explicitly deferred this item because its ~600 LOC of test cascade does not fit a deletion-only sweep.                             |
+| Thought-stream stale docs                      |       P3 | **Open**                         |                                       Docs only | Edit QA and architecture docs                                                                                                                                   | Document live thought/checkpoint streaming to UI                                                                                    | Runtime pipeline was deleted (PR #945), but docs still describe it as live                                                                                                                                               | Remove/update now                                                                                                                                                                                                                                                                        |
+| `ws` daemon dependency                         |       P3 | **Resolved (PR #948)**           |                                 Dependency only | `apps/daemon/package.json` and lockfile                                                                                                                         | Supported deleted daemon WebSocket module                                                                                           | `apps/daemon/src/websocket.ts` is deleted and no daemon source imports `ws`                                                                                                                                              | Dropped from `apps/daemon/package.json` in PR #948. `ws` still appears in the lockfile via transitive consumers (Baileys, dev-browser), which is expected.                                                                                                                               |
+| `packages/agent-core/src/daemon/types.ts`      |       P3 | **Resolved (PR #948)**           |                                        ~200 LOC | Drop 1 file; update comments/tests if needed                                                                                                                    | Alternate daemon RPC type definitions                                                                                               | Appears unimported and duplicates canonical daemon types in `common/types/daemon.ts`                                                                                                                                     | Deleted in PR #948. Canonical types live in `common/types/daemon.ts`.                                                                                                                                                                                                                    |
+| `packages/agent-core/src/daemon/cron-utils.ts` |       P3 | **Resolved (PR #948)**           |                                        ~150 LOC | Drop 1 file; update tests if needed                                                                                                                             | Shared cron parsing helpers                                                                                                         | Appears unimported. Live scheduler/storage code carries its own cron parsing                                                                                                                                             | Deleted in PR #948. The two local `parseCronField` copies remain in `scheduler-service.ts` and `storage/repositories/scheduled-tasks.ts` (consolidating those into a shared helper is a separate, optional cleanup).                                                                     |
+| `apps/daemon/__scratch__/`                     |       P3 | **Resolved (PR #948)**           |                                          ~40 KB | Drop scratch directory                                                                                                                                          | SDK spike and smoke-test experiments                                                                                                | Not runtime product code                                                                                                                                                                                                 | Deleted in PR #948; companion `**/__scratch__/**` ESLint ignore removed alongside.                                                                                                                                                                                                       |
+| Small desktop shims                            |       P3 | **Resolved (PR #948)**           |                                  <300 LOC total | Review `apps/desktop/src/main/config.ts`, `readJsonBody.ts`, `task-notification.ts`, `cli-error-utils.ts`, deprecated summarizer re-export                      | Helpers from older desktop/main-process flows                                                                                       | Runtime imports appear absent in static search                                                                                                                                                                           | Deleted in PR #948 (4 of 5 listed): `config.ts` + its test + dead `vi.mock('@main/config', ...)` entries, `readJsonBody.ts` (parent dir gone), `task-notification.ts`, `cli-error-utils.ts`. Deprecated summarizer re-export was not part of the sweep — still pending a separate check. |
+
+## Live Wiring Gaps
+
+| Area                              | Priority | Status                 |                                                 Rough size | Keep                                                                                          | Original purpose                                                                         | Current gap                                                                                                                     | Recommendation                                                                                                                                                                                                                                                                                     |
+| --------------------------------- | -------: | ---------------------- | ---------------------------------------------------------: | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GWS / Google Workspace task tools |       P1 | **Resolved (PR #947)** | Large: ~1.7k TS source LOC plus ~100k generated `dist` LOC | Google account UI/auth/storage, `gmail-mcp`, `calendar-mcp`, `gws-mcp`, file-picker MCP, docs | Let tasks use connected Google accounts for Gmail, Calendar, Workspace, and file picking | Daemon task config does not currently pass a GWS accounts manifest, so the MCP servers are not registered for real daemon tasks | `prepareGwsManifest` (pure helper in `packages/agent-core/src/google-accounts/`) now reads connected accounts, lazy-refreshes near-expiry tokens inline, and writes the per-task manifest. `resolveTaskConfig` step 7 wires it into the generated config. Daemon task config flows GWS end-to-end. |
+
+## Notes By Area
+
+### Desktop Control
+
+**Status: still open.** Top remaining deletion candidate.
+
+This is the cleanest large deletion candidate. The current code advertises a
+capability to the agent, but the implementation shape does not match how local
+MCP servers are launched elsewhere in the repo.
+
+Evidence:
+
+- Registered as a local MCP server in
+  `packages/agent-core/src/opencode/generator-mcp.ts`.
+- Implementation lives at
+  `packages/agent-core/mcp-tools/desktop-control/src/index.ts`.
+- The implementation exports `serve()` but does not invoke it at module load,
+  and it does not set up an MCP stdio transport.
+
+Decision:
+
+- Rebuild it as a real MCP stdio tool; or
+- Remove the MCP registration, package, prompt/tool documentation, bundle entry,
+  and related blocklist storage.
+
+### GWS
+
+**Status: resolved in PR #947.**
+
+GWS is fully live on the daemon path as of PR #947. The per-task `gws-mcp` /
+`gmail-mcp` / `calendar-mcp` servers are registered through `resolveTaskConfig`
+step 7, which calls `prepareGwsManifest` to materialize the per-task manifest
+file and lazy-refresh any near-expiry tokens inline.
+
+Post-PR #947 state:
+
+- `packages/agent-core/src/google-accounts/prepare-manifest.ts` reads
+  `google_accounts` rows via direct SQL, refreshes tokens that are within
+  `TOKEN_REFRESH_MARGIN_MS`, and writes both per-account token files and the
+  manifest atomically.
+- `resolveTaskConfig` consumes the returned manifest path + summary and sets
+  `gwsAccountsManifestPath` + `gwsAccountsSummary` on the generated config.
+- Desktop still owns the background refresh timer via `TokenManager`; daemon
+  does best-effort lazy refresh as a belt-and-braces last line of defense for
+  scheduled / WhatsApp tasks running without a live desktop.
+
+Remaining desktop cleanup: the old manifest producer at
+`apps/desktop/src/main/opencode/config-generator.ts` is now fully orphan. Safe
+to delete in a follow-up.
+
+### Other Task Config Features
+
+**Status: wiring resolved in PR #947.**
+
+User connectors, cloud browser config, workspace knowledge notes, language
+prompting, and OpenAI `store: false` all now flow through `resolveTaskConfig`
+on the daemon path per PR #947. A follow-up runtime audit is still recommended
+to confirm UX for each feature, especially workspace knowledge notes (which
+depend on the daemon also opening the separate workspace-meta DB — that fix
+was the last piece landed in PR #947).
+
+Evidence:
+
+- Daemon `task-config-builder.ts` routes through `resolveTaskConfig` with
+  `accomplishRuntime`, `accomplishStorageDeps`, `configFileName`, and the
+  workspace-scoped `OnBeforeStartContext`.
+- `apps/daemon/src/storage-service.ts` calls `initializeMetaDatabase` alongside
+  the main DB so knowledge-note lookups via `getKnowledgeNotesForPrompt` do
+  not silently fail.
+
+### Completion Continuation
+
+**Status: still open, explicitly deferred.**
+
+Do not delete the whole completion system. The complete-task detection path is
+still important. The likely-dead part is the older continuation-nudge branch
+that depended on PTY-era lifecycle callbacks. Removal should be surgical because
+the continuation state machine shares types/state with live completion handling.
+
+Why it was deferred from PR #948: the dormant surface (`handleStepFinish`,
+`handleProcessExit`, `onStartContinuation` callback, `getContinuationPrompt` /
+`getPartialContinuationPrompt`, and most of the continuation-attempt
+state-machine internals) is covered by ~600 LOC of tests that exercise behavior
+no longer reachable from the runtime. Bundling that test refactor into a
+deletion-only sweep would have blown up the diff. It needs its own PR where
+the state-machine surgery and test changes can be reviewed as one unit.
+
+Live parts to preserve: `handleCompleteTaskDetection`, `markTaskRequiresCompletion`,
+`markToolsUsed`, `updateTodos`, `getState`, and the `complete_task` tool wiring
+in `OpenCodeAdapter.handlePartUpdated`.
+
+### Thought Stream
+
+**Status: runtime deleted in PR #945; docs cleanup still open.**
+
+The runtime removal landed in PR #945. Remaining cleanup should focus on stale
+documentation and dependencies that still imply thought/checkpoint streaming is
+live.
+
+## PR cross-reference
+
+| PR                                                           | Summary                                                                 | Audit items closed                                                                                                                          |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| [#945](https://github.com/accomplish-ai/accomplish/pull/945) | Remove dead thought-stream reporting pipeline                           | Thought Stream (runtime only — docs still outstanding)                                                                                      |
+| [#947](https://github.com/accomplish-ai/accomplish/pull/947) | Route daemon task config through resolveTaskConfig (restore 6 features) | Daemon resolver bypass (P1); GWS wiring gap (P1); connectors / cloud browser / knowledge notes / language / `store:false` (follow-up audit) |
+| [#948](https://github.com/accomplish-ai/accomplish/pull/948) | Drop orphan files & unused ws dep (dead-code sweep P3)                  | `daemon/types.ts`, `daemon/cron-utils.ts`, `__scratch__/`, 4 desktop shims, `ws` daemon dep, eslint ignore cleanup                          |
