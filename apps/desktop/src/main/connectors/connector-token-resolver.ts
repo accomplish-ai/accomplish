@@ -160,26 +160,30 @@ async function performMcpDcrFlow(providerId: OAuthProviderId): Promise<Connector
       callbackPath: oauth.store.callback.path,
     });
 
-    store.setPendingAuth({ codeVerifier: pkce.codeVerifier, oauthState: state });
-    await shell.openExternal(authUrl);
+    try {
+      store.setPendingAuth({ codeVerifier: pkce.codeVerifier, oauthState: state });
+      await shell.openExternal(authUrl);
 
-    const { code } = await callbackServer.waitForCallback().catch(() => {
-      throw new Error(oauth.tokenExchangeError);
-    });
+      const { code } = await callbackServer.waitForCallback().catch(() => {
+        throw new Error(oauth.tokenExchangeError);
+      });
 
-    const tokens = await exchangeCodeForTokens({
-      tokenEndpoint: metadata.tokenEndpoint,
-      code,
-      codeVerifier: pkce.codeVerifier,
-      clientId: clientReg.clientId,
-      clientSecret: clientReg.clientSecret,
-      redirectUri: store.callbackUrl,
-    }).catch(() => {
-      throw new Error(oauth.tokenExchangeError);
-    });
+      const tokens = await exchangeCodeForTokens({
+        tokenEndpoint: metadata.tokenEndpoint,
+        code,
+        codeVerifier: pkce.codeVerifier,
+        clientId: clientReg.clientId,
+        clientSecret: clientReg.clientSecret,
+        redirectUri: store.callbackUrl,
+      }).catch(() => {
+        throw new Error(oauth.tokenExchangeError);
+      });
 
-    store.setTokens(tokens, Date.now());
-    return { ok: true, accessToken: tokens.accessToken };
+      store.setTokens(tokens, Date.now());
+      return { ok: true, accessToken: tokens.accessToken };
+    } finally {
+      callbackServer.shutdown();
+    }
   } catch (err) {
     return {
       ok: false,
@@ -232,25 +236,29 @@ async function performMcpFixedClientFlow(
       callbackPath: oauth.store.callback.path,
     });
 
-    store.setPendingAuth({ codeVerifier: pkce.codeVerifier, oauthState: state });
-    await shell.openExternal(authUrl);
+    try {
+      store.setPendingAuth({ codeVerifier: pkce.codeVerifier, oauthState: state });
+      await shell.openExternal(authUrl);
 
-    const { code } = await callbackServer.waitForCallback().catch(() => {
-      throw new Error(oauth.tokenExchangeError);
-    });
+      const { code } = await callbackServer.waitForCallback().catch(() => {
+        throw new Error(oauth.tokenExchangeError);
+      });
 
-    const tokens = await exchangeCodeForTokens({
-      tokenEndpoint: metadata.tokenEndpoint,
-      code,
-      codeVerifier: pkce.codeVerifier,
-      clientId,
-      redirectUri: store.callbackUrl,
-    }).catch(() => {
-      throw new Error(oauth.tokenExchangeError);
-    });
+      const tokens = await exchangeCodeForTokens({
+        tokenEndpoint: metadata.tokenEndpoint,
+        code,
+        codeVerifier: pkce.codeVerifier,
+        clientId,
+        redirectUri: store.callbackUrl,
+      }).catch(() => {
+        throw new Error(oauth.tokenExchangeError);
+      });
 
-    store.setTokens(tokens, Date.now());
-    return { ok: true, accessToken: tokens.accessToken };
+      store.setTokens(tokens, Date.now());
+      return { ok: true, accessToken: tokens.accessToken };
+    } finally {
+      callbackServer.shutdown();
+    }
   } catch (err) {
     return {
       ok: false,

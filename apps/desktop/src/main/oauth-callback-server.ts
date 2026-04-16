@@ -37,6 +37,11 @@ function renderErrorHtml(message: string): string {
   return ERROR_HTML.replace('Missing code or state parameter.', message);
 }
 
+function closeServer(server: http.Server): void {
+  server.closeAllConnections();
+  server.close();
+}
+
 export async function createOAuthCallbackServer(
   options: OAuthCallbackServerOptions = {},
 ): Promise<OAuthCallbackServer> {
@@ -73,7 +78,7 @@ export async function createOAuthCallbackServer(
         if (!settled) {
           settled = true;
           clearTimeout(timeout);
-          server.close();
+          closeServer(server);
           rejectCallback(new Error(message));
         }
       });
@@ -91,7 +96,7 @@ export async function createOAuthCallbackServer(
       if (!settled) {
         settled = true;
         clearTimeout(timeout);
-        server.close();
+        closeServer(server);
         resolveCallback({ code, state, redirectUri });
       }
     });
@@ -108,7 +113,7 @@ export async function createOAuthCallbackServer(
   const timeout = setTimeout(() => {
     if (!settled) {
       settled = true;
-      server.close();
+      closeServer(server);
       rejectCallback(new Error('OAuth callback timed out'));
     }
   }, timeoutMs);
@@ -120,7 +125,7 @@ export async function createOAuthCallbackServer(
       if (!settled) {
         settled = true;
         clearTimeout(timeout);
-        server.close();
+        closeServer(server);
         rejectCallback(new Error('OAuth callback server shut down'));
       }
     },
