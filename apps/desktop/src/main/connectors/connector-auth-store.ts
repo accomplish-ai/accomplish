@@ -91,6 +91,9 @@ export class ConnectorAuthStore {
   }
 
   setClientRegistration(reg: OAuthClientRegistration): void {
+    if (!this.config.usesDcr) {
+      return;
+    }
     const existing = readEntry(this.config) ?? {};
     writeEntry(this.config, { ...existing, clientRegistration: reg });
   }
