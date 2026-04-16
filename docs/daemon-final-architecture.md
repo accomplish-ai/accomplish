@@ -13,7 +13,7 @@
 
 | Owner                     | Responsibilities                                                                                                                                                                                                        |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`apps/daemon`**         | Task execution, task/session lifecycle, permission/question HTTP services, thought streaming, durable task state, reconnectable notification stream                                                                     |
+| **`apps/daemon`**         | Task execution, task/session lifecycle, permission/question HTTP services, durable task state, reconnectable notification stream                                                                                        |
 | **`apps/desktop`**        | Thin UI/integration shell: trusted-window checks, renderer IPC surface, tray, native notifications, native dialogs/file pickers, auth/browser flows (OAuth popups), forwarding daemon notifications to renderer         |
 | **`packages/agent-core`** | Daemon protocol/server/client/transport abstractions, TaskManager/OpenCodeAdapter/runtime building blocks, storage primitives, **shared config-building helpers** (skills, connectors, sandbox, workspace, attachments) |
 
