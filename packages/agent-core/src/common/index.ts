@@ -138,13 +138,11 @@ export type { Workspace, WorkspaceCreateInput, WorkspaceUpdateInput } from './ty
 // Other types
 export type { TodoItem } from './types/todo.js';
 export type { LogLevel, LogSource, LogEntry } from './types/logging.js';
-export type { ThoughtEvent, CheckpointEvent } from './types/thought-stream.js';
 
 // === CONSTANTS ===
 export {
   DEV_BROWSER_PORT,
   DEV_BROWSER_CDP_PORT,
-  THOUGHT_STREAM_PORT,
   PERMISSION_API_PORT,
   QUESTION_API_PORT,
   WHATSAPP_API_PORT,

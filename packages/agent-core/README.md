@@ -74,14 +74,6 @@ Handles file operation and tool permission requests from running tasks. Creates 
 import { createPermissionHandler } from '@accomplish_ai/agent-core';
 ```
 
-### createThoughtStreamHandler(options?) → ThoughtStreamAPI
-
-Streams AI thought and checkpoint events from MCP tools. Tracks active tasks, validates incoming thought/checkpoint data, and categorizes events (observation, reasoning, decision, action).
-
-```typescript
-import { createThoughtStreamHandler } from '@accomplish_ai/agent-core';
-```
-
 ### createLogWriter(options) → LogWriterAPI
 
 Structured rotating log file writer with buffered writes. Supports multiple log sources (main, mcp, browser, opencode, env, ipc) and configurable rotation size, retention period, and flush intervals.

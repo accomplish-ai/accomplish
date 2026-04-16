@@ -159,8 +159,6 @@ export interface RpcNotificationMap {
   'task.message': TaskMessageNotification;
   'task.complete': TaskCompleteNotification;
   'task.error': TaskErrorNotification;
-  'task.thought': Record<string, unknown>;
-  'task.checkpoint': Record<string, unknown>;
   'task.summary': TaskSummaryNotification;
   'task.statusChange': TaskStatusChangeNotification;
   'permission.request': PermissionRequest;

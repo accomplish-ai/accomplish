@@ -59,7 +59,7 @@ graph TB
     RPC["DaemonRpcServer<br/><i>JSON-RPC over Unix socket / named pipe</i>"]
     CORE["Agent Core<br/><i>TaskManager · OpenCodeAdapter<br/>CompletionEnforcer · Watchdog</i>"]
     SM["OpenCodeServerManager<br/><i>spawns one opencode serve per task</i>"]
-    HTTP_AUX["Auxiliary HTTP<br/><i>:9228 thought stream<br/>:9229 WhatsApp send</i>"]
+    HTTP_AUX["Auxiliary HTTP<br/><i>:9230 WhatsApp send</i>"]
     subgraph STORAGE["Storage"]
       direction LR
       DB["🗄️ SQLite DB<br/><i>Tasks · messages · todos<br/>providers · skills · connectors</i>"]
@@ -103,7 +103,7 @@ graph TB
   CORE -->|"read/write"| DB
   CORE -->|"encrypt/decrypt"| KEYS
 
-  OC1 -->|"report-thought<br/>report-checkpoint MCP"| HTTP_AUX
+  OC1 -->|"whatsapp-send MCP"| HTTP_AUX
 
   classDef userClass fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
   classDef electronClass fill:#f5f5f5,stroke:#424242,stroke-width:2px
@@ -165,9 +165,8 @@ graph TB
     TASK_SVC["TaskService<br/><i>orchestrates task lifecycle</i>"]
     TASK_CB["TaskCallbacks<br/><i>adapter events → RPC notify</i>"]
     SVR_MGR["OpenCodeServerManager<br/><i>per-task opencode serve pool</i>"]
-    THOUGHT_API["ThoughtStreamService<br/><i>HTTP :9228 · MCP hook</i>"]
     WA_SVC["WhatsAppDaemonService<br/><i>Baileys socket, inbound messages</i>"]
-    WA_API["WhatsAppSendApi<br/><i>HTTP :9229 · MCP hook</i>"]
+    WA_API["WhatsAppSendApi<br/><i>HTTP :9230 · MCP hook</i>"]
     SCHED["SchedulerService<br/><i>cron-driven task.start</i>"]
     OPENAI_OAUTH["OpenAiOauthManager<br/><i>transient opencode serve<br/>for ChatGPT OAuth</i>"]
     HEALTH["HealthService"]
@@ -272,7 +271,6 @@ graph TB
   OC_TOOLS --> FS["Local File System"]
 
   %% MCP tools reach back into the daemon HTTP surface
-  OC_MCP -->|"POST /thought · /checkpoint"| THOUGHT_API
   OC_MCP -->|"POST /send"| WA_API
 
   %% RPC surface for permission + OAuth
@@ -290,7 +288,7 @@ graph TB
 
   class MAIN,PRELOAD,HANDLERS,DAEMON_CLIENT,DAEMON_BOOT,NOTIF_FWD,AUTH_BROWSER,TRAY desktop
   class ROUTER,TASK_STORE,SETTINGS_UI,EXEC_PAGE,LAUNCHER web
-  class RPC_SRV,ROUTES,TASK_SVC,TASK_CB,SVR_MGR,THOUGHT_API,WA_SVC,WA_API,SCHED,OPENAI_OAUTH,HEALTH,STORAGE_SVC daemon
+  class RPC_SRV,ROUTES,TASK_SVC,TASK_CB,SVR_MGR,WA_SVC,WA_API,SCHED,OPENAI_OAUTH,HEALTH,STORAGE_SVC daemon
   class TASK_MGR,OC_ADAPTER,CE,WATCHDOG,MSG_PROC,SKILLS_MGR,SUMMARIZER,CFG_GEN,CFG_BUILD,AUTH_SYNC,MCP_OAUTH,BROWSER_SVC,PROXIES,SPEECH,LOG_WATCHER,SECURE,DB,RPC_TRANSPORT core
   class OC_HTTP,OC_SESSION,OC_LLM,OC_TOOLS,OC_MCP,OC_PERMS,OC_QS opencode
   class EXTERNAL,FS external
@@ -419,8 +417,9 @@ graph LR
 **What's gone vs. the PTY-era `agent-core`:**
 
 - `StreamParser` — no byte-stream to parse; the SDK delivers structured events.
-- `PermissionRequestHandler` / `ThoughtStreamHandler` in the deferred-promise shape — `PendingRequest` inside the adapter replaces the former; the latter still exists at the RPC layer but doesn't gate task progression.
+- `PermissionRequestHandler` in the deferred-promise shape — `PendingRequest` inside the adapter replaces it.
 - PTY spawn helpers (`buildCliArgs`, `buildEnvironment` per-task) — `ConfigGenerator` still builds the environment, but the spawn happens in `OpenCodeServerManager`, not `OpenCodeAdapter`.
+- `ThoughtStreamHandler` / `ThoughtStreamService` — the whole `report-thought` / `report-checkpoint` HTTP pipeline was dead code (unregistered MCP tools, no renderer consumer) and has been removed entirely.
 
 **What's new:**
 
@@ -455,14 +454,13 @@ graph TB
     RPC_SRV["DaemonRpcServer<br/><i>daemon.sock / named pipe</i>"]
     TASK_SVC["TaskService"]
     ADAPTER["OpenCodeAdapter"]
-    THOUGHT_HTTP["HTTP :9228<br/><i>thought stream</i>"]
-    WA_HTTP["HTTP :9229<br/><i>WhatsApp send</i>"]
+    WA_HTTP["HTTP :9230<br/><i>WhatsApp send</i>"]
   end
 
   subgraph OC_SVR["opencode serve (per task)"]
     OC["HTTP API<br/><i>127.0.0.1:random</i>"]
     OC_SSE["SSE event stream<br/><i>event.subscribe</i>"]
-    OC_MCP["MCP clients<br/><i>thought · whatsapp · connectors</i>"]
+    OC_MCP["MCP clients<br/><i>whatsapp · connectors</i>"]
   end
 
   %% Invoke (renderer → main)
@@ -477,7 +475,7 @@ graph TB
   RPC_SRV -->|"response"| DAEMON_CLIENT
 
   %% Daemon → Main (notifications)
-  RPC_SRV -->|"rpc.notify('task.message' | 'permission.request' |<br/>'task.progress' | 'task.statusChange' |<br/>'todo.update' | 'auth.error' | 'browser.frame' |<br/>'task.thought' | 'task.checkpoint' | ...)"| DAEMON_CLIENT
+  RPC_SRV -->|"rpc.notify('task.message' | 'permission.request' |<br/>'task.progress' | 'task.statusChange' |<br/>'todo.update' | 'auth.error' | 'browser.frame' | ...)"| DAEMON_CLIENT
   DAEMON_CLIENT --> NOTIF_FWD
   NOTIF_FWD -->|"webContents.send(channel, data)"| CB
   CB -->|"ipcRenderer.on()"| STORE
@@ -492,10 +490,7 @@ graph TB
   OC_SSE -->|"message.updated<br/>message.part.updated<br/>message.part.delta<br/>permission.asked<br/>question.asked<br/>session.idle · session.error<br/>todo.updated"| ADAPTER
 
   %% MCP hooks (opencode → daemon HTTP)
-  OC_MCP -->|"POST /thought (auth token)"| THOUGHT_HTTP
-  OC_MCP -->|"POST /checkpoint (auth token)"| THOUGHT_HTTP
   OC_MCP -->|"POST /send (auth token)"| WA_HTTP
-  THOUGHT_HTTP -->|"rpc.notify('task.thought')"| RPC_SRV
 
   %% Styling
   classDef renderer fill:#fce4ec,stroke:#e53935
@@ -507,20 +502,20 @@ graph TB
   class UI,STORE renderer
   class CB bridge
   class IPC_H,DAEMON_CLIENT,NOTIF_FWD main
-  class RPC_SRV,TASK_SVC,ADAPTER,THOUGHT_HTTP,WA_HTTP daemon
+  class RPC_SRV,TASK_SVC,ADAPTER,WA_HTTP daemon
   class OC,OC_SSE,OC_MCP oc
 ```
 
 **Channels inventory:**
 
-| Channel                    | Transport                          | Direction      | Purpose                                                                               |
-| -------------------------- | ---------------------------------- | -------------- | ------------------------------------------------------------------------------------- |
-| Renderer ↔ Main            | `ipcRenderer.invoke` / `on`        | Bidirectional  | UI → task commands; main → streaming updates                                          |
-| Main ↔ Daemon              | Unix socket / Windows named pipe   | Bidirectional  | JSON-RPC 2.0; task lifecycle, permission.respond, session.resume, etc.                |
-| Daemon notify → Main       | same socket                        | Daemon → Main  | `rpc.notify` for messages, permission prompts, progress, todos, auth errors, frames   |
-| Adapter ↔ `opencode serve` | HTTP + SSE (loopback, random port) | Bidirectional  | SDK v2 method calls (request/reply) + event stream (SSE) for session state            |
-| MCP tool → Daemon          | HTTP `:9228` / `:9229` + token     | MCP → Daemon   | `report-thought`, `report-checkpoint`, `whatsapp-send` (still MCP-callback for those) |
-| Daemon → External          | HTTPS                              | Daemon → Cloud | AI provider APIs (only during the Summarizer path); OpenCode does its own LLM calls   |
+| Channel                    | Transport                          | Direction      | Purpose                                                                             |
+| -------------------------- | ---------------------------------- | -------------- | ----------------------------------------------------------------------------------- |
+| Renderer ↔ Main            | `ipcRenderer.invoke` / `on`        | Bidirectional  | UI → task commands; main → streaming updates                                        |
+| Main ↔ Daemon              | Unix socket / Windows named pipe   | Bidirectional  | JSON-RPC 2.0; task lifecycle, permission.respond, session.resume, etc.              |
+| Daemon notify → Main       | same socket                        | Daemon → Main  | `rpc.notify` for messages, permission prompts, progress, todos, auth errors, frames |
+| Adapter ↔ `opencode serve` | HTTP + SSE (loopback, random port) | Bidirectional  | SDK v2 method calls (request/reply) + event stream (SSE) for session state          |
+| MCP tool → Daemon          | HTTP `:9230` + token               | MCP → Daemon   | `whatsapp-send` (the one remaining MCP-callback HTTP path)                          |
+| Daemon → External          | HTTPS                              | Daemon → Cloud | AI provider APIs (only during the Summarizer path); OpenCode does its own LLM calls |
 
 **Ports that are gone:**
 
@@ -630,7 +625,7 @@ graph TB
 
 So the HTTP server exists because the supported programmatic contract with OpenCode **is** HTTP + SSE. In the PTY era, Accomplish drove opencode through the `opencode run` CLI and parsed its stdout. That form offered no structured event model, no permission primitives, and was sensitive to terminal control codes. `opencode serve` + SDK is the opencode team's recommended integration path; moving to it was the whole point of the cutover.
 
-The two remaining auxiliary HTTP endpoints on the daemon (`:9228` thought stream, `:9229` WhatsApp send) are **orthogonal** — they are plain MCP tool callback servers that OpenCode's MCP-tool clients POST to. They are not part of the SDK transport.
+The one remaining auxiliary HTTP endpoint on the daemon (`:9230` WhatsApp send) is **orthogonal** — it's a plain MCP tool callback server that OpenCode's `whatsapp-send` MCP client POSTs to. It is not part of the SDK transport.
 
 ### 5.2 Why one server per task — even for follow-ups?
 
@@ -1116,8 +1111,7 @@ The live safeguard is in `handleCompleteTaskDetection`: if the agent calls `comp
 | **OpenCodeServerManager**          | apps/daemon  | Per-task `opencode serve` pool: spawn, readiness wait, idle reuse, process-tree cleanup, transient OAuth clients    | `ensureTaskRuntime()`, `waitForServerUrl()`, `scheduleTaskRuntimeCleanup()`, `createTransientOpencodeClient()`    |
 | **TaskService**                    | apps/daemon  | Daemon-side task orchestrator, source-based routing, server-manager owner                                           | `startTask()`, `stopTask()`, `resumeSession()`, `sendResponse()`                                                  |
 | **DaemonRpcServer / DaemonClient** | agent-core   | JSON-RPC 2.0 over Unix socket / Windows named pipe, notify fan-out                                                  | `registerMethod()`, `notify()`, `call()`, `onNotification()`                                                      |
-| **ThoughtStreamService**           | apps/daemon  | HTTP `:9228` endpoint for MCP `report-thought` / `report-checkpoint` tools                                          | `POST /thought`, `POST /checkpoint`                                                                               |
-| **WhatsAppSendApi**                | apps/daemon  | HTTP `:9229` endpoint for MCP `whatsapp-send` tool                                                                  | `POST /send`                                                                                                      |
+| **WhatsAppSendApi**                | apps/daemon  | HTTP `:9230` endpoint for MCP `whatsapp-send` tool                                                                  | `POST /send`                                                                                                      |
 | **WhatsAppDaemonService**          | apps/daemon  | Baileys socket, inbound message → `taskService.startTask(source='whatsapp')`                                        | `connect()`, `disconnect()`                                                                                       |
 | **SchedulerService**               | apps/daemon  | Cron-driven `startTask(source='scheduler')`                                                                         | `createSchedule()`, `listSchedules()`, `deleteSchedule()`, `setEnabled()`                                         |
 | **OpenAiOauthManager**             | apps/daemon  | ChatGPT OAuth flow driven through a transient `opencode serve`                                                      | `startLogin()`, `awaitCompletion()`, `status()`, `getAccessToken()`                                               |

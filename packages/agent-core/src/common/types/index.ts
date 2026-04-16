@@ -112,8 +112,6 @@ export type {
   TaskUpdateEvent,
 } from './task.js';
 
-export type { ThoughtEvent, CheckpointEvent } from './thought-stream.js';
-
 export type { TodoItem } from './todo.js';
 export * from './auth.js';
 export * from './logging.js';
@@ -123,7 +121,6 @@ export * from './provider.js';
 export * from './providerSettings.js';
 export * from './skills.js';
 export * from './task.js';
-export * from './thought-stream.js';
 export * from './todo.js';
 export * from './workspace.js';
 

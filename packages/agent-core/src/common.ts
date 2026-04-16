@@ -213,13 +213,11 @@ export { DESKTOP_ACTION_TYPES } from './common/types/desktop.js';
 // Other types
 export type { TodoItem } from './common/types/todo.js';
 export type { LogLevel, LogSource, LogEntry } from './common/types/logging.js';
-export type { ThoughtEvent, CheckpointEvent } from './common/types/thought-stream.js';
 
 // === CONSTANTS ===
 export {
   DEV_BROWSER_PORT,
   DEV_BROWSER_CDP_PORT,
-  THOUGHT_STREAM_PORT,
   PERMISSION_API_PORT,
   QUESTION_API_PORT,
   PERMISSION_REQUEST_TIMEOUT_MS,

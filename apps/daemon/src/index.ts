@@ -10,12 +10,10 @@ import {
   noopRuntime,
   type PidLockHandle,
   type AccomplishRuntime,
-  THOUGHT_STREAM_PORT,
   WHATSAPP_API_PORT,
 } from '@accomplish_ai/agent-core';
 import { StorageService } from './storage-service.js';
 import { TaskService } from './task-service.js';
-import { ThoughtStreamService } from './thought-stream-service.js';
 import { SchedulerService } from './scheduler-service.js';
 import { HealthService, VERSION } from './health.js';
 import { parseArgs } from './cli.js';
@@ -167,7 +165,6 @@ async function main(): Promise<void> {
     setProxyTaskId,
   });
   const healthService = new HealthService();
-  const thoughtStreamService = new ThoughtStreamService(authToken);
   // Scheduler-sourced tasks: `source: 'scheduler'` drives the no-UI auto-deny
   // policy in task-callbacks. If no RPC client is connected when a scheduled
   // task asks for a permission, it auto-denies immediately (matches the
@@ -197,17 +194,10 @@ async function main(): Promise<void> {
   // back via 'permission.respond' RPC → taskService.sendResponse → SDK reply.
   // The /permission and /question HTTP endpoints are gone with the service.
 
-  // 8. Set up thought stream event forwarding
-  thoughtStreamService.setEventHandlers(
-    (event) => rpc.notify('task.thought', event),
-    (event) => rpc.notify('task.checkpoint', event),
-  );
-
-  // 9 & 10. Register RPC methods and task event forwarding
+  // Register RPC methods and task event forwarding
   const routeServices = {
     rpc,
     taskService,
-    thoughtStreamService,
     healthService,
     storageService,
     schedulerService,
@@ -218,23 +208,19 @@ async function main(): Promise<void> {
   registerRpcMethods(routeServices);
   registerTaskEventForwarding(routeServices);
 
-  // 11. Start remaining HTTP / RPC services on well-known ports.
+  // Start remaining HTTP / RPC services on well-known ports.
   // PERMISSION_API_PORT (9226) and QUESTION_API_PORT (9227) are no longer
   // listened on — their MCP shims (file-permission, ask-user-question) were
-  // replaced by native SDK events in Phase 2. THOUGHT_STREAM_PORT (9228)
-  // stays as today.
+  // replaced by native SDK events in Phase 2.
+  // THOUGHT_STREAM_PORT (9228) was removed with the rest of the unused
+  // thought-stream reporting pipeline (report-thought / report-checkpoint
+  // MCP tools were never registered in the opencode config, so the HTTP
+  // server never received real traffic).
   await rpc.start();
-  await thoughtStreamService.start(THOUGHT_STREAM_PORT);
   await whatsappSendApi.start(WHATSAPP_API_PORT);
 
   // Pass auth token and actual ports to child processes via environment
-  const thoughtPort = thoughtStreamService.getPort();
   process.env.ACCOMPLISH_DAEMON_AUTH_TOKEN = authToken;
-  if (thoughtPort) {
-    process.env.ACCOMPLISH_THOUGHT_STREAM_PORT = String(thoughtPort);
-    // MCP tools (report-thought, report-checkpoint) read THOUGHT_STREAM_PORT
-    process.env.THOUGHT_STREAM_PORT = String(thoughtPort);
-  }
   const whatsappPort = whatsappSendApi.getPort();
   if (whatsappPort) {
     process.env.ACCOMPLISH_WHATSAPP_API_PORT = String(whatsappPort);
@@ -296,7 +282,6 @@ async function main(): Promise<void> {
     whatsappSendApi.stop();
     whatsappService.dispose();
     openAiOauthManager.dispose();
-    thoughtStreamService.close();
     taskService.dispose();
     await rpc.stop();
     storageService.close();

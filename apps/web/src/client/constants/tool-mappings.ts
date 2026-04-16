@@ -22,8 +22,6 @@ import {
   ShieldCheck,
   ChatCircleDots,
   CheckCircle,
-  Lightbulb,
-  Flag,
   Play,
 } from '@phosphor-icons/react';
 
@@ -74,8 +72,6 @@ export const TOOL_PROGRESS_MAP: Record<string, { label: string; icon: typeof Fil
   request_file_permission: { label: 'Requesting permission', icon: ShieldCheck },
   AskUserQuestion: { label: 'Asking question', icon: ChatCircleDots },
   complete_task: { label: 'Completing task', icon: CheckCircle },
-  report_thought: { label: 'Thinking', icon: Lightbulb },
-  report_checkpoint: { label: 'Checkpoint', icon: Flag },
   start_task: { label: 'Starting Task', icon: Play },
 };
 

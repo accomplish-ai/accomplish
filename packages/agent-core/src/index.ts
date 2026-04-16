@@ -16,7 +16,6 @@ export {
   createTaskManager,
   createStorage,
   createPermissionHandler,
-  createThoughtStreamHandler,
   createLogWriter,
   createSkillsManager,
   createSpeechService,
@@ -56,13 +55,6 @@ export type {
   QuestionRequestData as PermissionQuestionRequestData,
   QuestionResponseData as PermissionQuestionResponseData,
   PermissionValidationResult,
-  // Thought Stream API
-  ThoughtStreamAPI,
-  ThoughtStreamOptions,
-  ThoughtEvent as ThoughtStreamEvent,
-  CheckpointEvent as ThoughtStreamCheckpointEvent,
-  ThoughtCategory,
-  CheckpointStatus,
   // Log Writer API
   LogWriterAPI,
   LogWriterOptions,
@@ -505,7 +497,6 @@ export {
 // Other types
 export type { TodoItem } from './common/types/todo.js';
 export type { LogLevel, LogSource, LogEntry } from './common/types/logging.js';
-export type { ThoughtEvent, CheckpointEvent } from './common/types/thought-stream.js';
 
 // Sandbox types
 export type {
@@ -526,7 +517,6 @@ export { DockerSandboxProvider } from './sandbox/docker-provider.js';
 export {
   DEV_BROWSER_PORT,
   DEV_BROWSER_CDP_PORT,
-  THOUGHT_STREAM_PORT,
   PERMISSION_API_PORT,
   QUESTION_API_PORT,
   WHATSAPP_API_PORT,

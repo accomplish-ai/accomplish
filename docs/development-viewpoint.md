@@ -216,7 +216,7 @@ graph TD
   CLIENT --> PAGES["pages/<br/><i>Home · Execution<br/>History · Settings</i>"]
   CLIENT --> COMPONENTS["components/<br/><i>UI primitives (Radix)<br/>Layout · TaskLauncher<br/>Execution · Skills</i>"]
   CLIENT --> STORES["stores/<br/><i>Zustand stores<br/>Task · Settings · Provider</i>"]
-  CLIENT --> HOOKS["hooks/<br/><i>useTask · useProviders<br/>useThoughtStream</i>"]
+  CLIENT --> HOOKS["hooks/<br/><i>useTask · useProviders</i>"]
   CLIENT --> LIB["lib/<br/><i>IPC client · Theme<br/>Formatters · Providers</i>"]
   CLIENT --> I18N_DIR["i18n/<br/><i>Translations (en, ...)<br/>i18next config</i>"]
 
@@ -242,7 +242,7 @@ graph TD
   CORE --> INTERNAL["internal/classes/<br/><i>TaskManager · Storage<br/>(implementation details)</i>"]
   CORE --> BROWSER["browser/<br/><i>Playwright server<br/>Element detection</i>"]
 
-  MCP["mcp-tools/<br/><i>8 tools: start-task · complete-task<br/>file-permission · ask-user<br/>dev-browser · dev-browser-mcp<br/>report-thought · report-checkpoint</i>"]
+  MCP["mcp-tools/<br/><i>start-task · complete-task<br/>dev-browser · dev-browser-mcp<br/>desktop-control · whatsapp<br/>request-connector-auth · …</i>"]
   CORE --> MCP
 
   classDef dir fill:#fff3e0,stroke:#fb8c00

@@ -9,8 +9,6 @@ import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme } from 'e
 import path from 'path';
 import { FutureSchemaError } from '@accomplish_ai/agent-core';
 import type { ProviderId } from '@accomplish_ai/agent-core';
-// thought-stream-api removed — daemon owns thought/checkpoint streaming.
-// Events forwarded via daemon notification subscription (task.thought, task.checkpoint).
 import { migrateLegacyData } from './store/legacyMigration';
 import { initializeStorage, getStorage } from './store/storage';
 import { getApiKey } from './store/secureStorage';

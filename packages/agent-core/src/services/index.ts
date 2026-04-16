@@ -5,7 +5,6 @@ export {
   type TranscriptionResult,
   type TranscriptionError,
 } from './speech.js';
-export { ThoughtStreamHandler } from './thought-stream-handler.js';
 export {
   PermissionRequestHandler,
   type PendingRequest,

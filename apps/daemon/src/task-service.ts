@@ -222,15 +222,14 @@ export class TaskService extends EventEmitter {
     // Emit `statusChange` with `'cancelled'` in BOTH branches so every
     // terminal listener runs the same cleanup chain that success/error
     // already trigger:
-    //   - task-event-forwarding unregisters the thought-stream entry,
-    //     refreshes the health service active-task count, and notifies
-    //     desktop via `task.statusChange` RPC;
+    //   - task-event-forwarding refreshes the health service active-task
+    //     count and notifies desktop via `task.statusChange` RPC;
     //   - this class's own listener (registered in the constructor)
     //     deletes the `taskSources` entry and schedules the per-task
     //     `opencode serve` runtime for idle cleanup.
     // Before this change `stopTask` only touched storage, so cancelled
-    // tasks leaked their runtime, their source entry, and their
-    // thought-stream registration until the daemon was restarted.
+    // tasks leaked their runtime and their source entry until the daemon
+    // was restarted.
     if (this.taskManager.isTaskQueued(taskId)) {
       this.taskManager.cancelQueuedTask(taskId);
       this.storage.updateTaskStatus(taskId, 'cancelled', completedAt);

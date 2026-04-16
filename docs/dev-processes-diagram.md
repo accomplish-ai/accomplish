@@ -81,8 +81,7 @@ flowchart TB
         oca["OpenCodeAdapter"]
         perm_api["Permission API
         HTTP :9226 (files)
-        HTTP :9227 (questions)
-        HTTP :9228 (thought stream)"]
+        HTTP :9227 (questions)"]
     end
 
     subgraph pty_proc["Process 3: OpenCode CLI (via PTY)"]

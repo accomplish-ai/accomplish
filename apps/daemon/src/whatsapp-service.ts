@@ -2,9 +2,8 @@
  * WhatsAppDaemonService — top-level orchestrator for WhatsApp in the daemon.
  *
  * Owns the lifecycle of WhatsAppService, TaskBridge, and storage sync.
- * Follows the same pattern as PermissionService/ThoughtStreamService:
- * service class in daemon, RPC methods in daemon-routes.ts, desktop IPC
- * handlers proxy to daemon RPC.
+ * Follows the daemon's standard service pattern: service class in daemon,
+ * RPC methods in daemon-routes.ts, desktop IPC handlers proxy to daemon RPC.
  *
  * Emits events for notification forwarding to connected Electron clients:
  *   'qr'     — QR code ready for display

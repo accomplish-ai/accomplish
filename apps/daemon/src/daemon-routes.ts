@@ -16,7 +16,6 @@ import type { AccomplishRuntime, StorageDeps } from '@accomplish_ai/agent-core';
 import { z } from 'zod';
 import { homedir } from 'node:os';
 import type { TaskService } from './task-service.js';
-import type { ThoughtStreamService } from './thought-stream-service.js';
 import type { HealthService } from './health.js';
 import type { StorageService } from './storage-service.js';
 import type { SchedulerService } from './scheduler-service.js';
@@ -55,7 +54,6 @@ export function safeHandler(
 export interface RouteServices {
   rpc: DaemonRpcServer;
   taskService: TaskService;
-  thoughtStreamService: ThoughtStreamService;
   healthService: HealthService;
   storageService: StorageService;
   schedulerService: SchedulerService;

@@ -16,7 +16,6 @@ import type {
   TaskStatus,
 } from './task.js';
 import type { PermissionRequest, PermissionResponse } from './permission.js';
-import type { ThoughtEvent, CheckpointEvent } from './thought-stream.js';
 import type { TodoItem } from './todo.js';
 import type { CreditUsage } from './gateway.js';
 
@@ -330,11 +329,6 @@ export interface DaemonNotificationMap {
   // subscribes via `accomplish.onBrowserFrame`. ENG-695 / PR #414 —
   // plan decision #7 explicitly preserves this path.
   'browser.frame': { taskId: string; [key: string]: unknown };
-  'thought.event': ThoughtEvent;
-  'checkpoint.event': CheckpointEvent;
-  // Extended notifications used by the standalone daemon process
-  'task.thought': ThoughtEvent;
-  'task.checkpoint': CheckpointEvent;
 
   // Accomplish AI credit usage updates (emitted by proxy on each gateway response)
   'accomplish-ai.usage-update': CreditUsage;
