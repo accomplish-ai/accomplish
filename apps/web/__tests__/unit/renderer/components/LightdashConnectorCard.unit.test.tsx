@@ -86,9 +86,8 @@ describe('LightdashConnectorCard', () => {
         >;
         const statusSection = ldSection?.status as Record<string, string>;
         const noInstanceLabel = statusSection?.noInstance;
-        if (noInstanceLabel) {
-          expect(screen.getByText(noInstanceLabel)).toBeInTheDocument();
-        }
+        expect(noInstanceLabel).toBeDefined();
+        expect(screen.getByText(noInstanceLabel!)).toBeInTheDocument();
       });
     });
   });

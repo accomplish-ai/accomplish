@@ -6,6 +6,7 @@ import { oauthStatusTextClass, oauthStatusDotClass, getOAuthStatusKey } from './
 import { normalizeLightdashUrl } from './lightdash/normalize-url';
 import { getAccomplish } from '@/lib/accomplish';
 import type { ConnectorAuthStatus } from '@accomplish_ai/agent-core/common';
+import lightdashIcon from '/assets/icons/integrations/lightdash.svg';
 
 interface LightdashConnectorCardProps {
   authState: Pick<ConnectorAuthStatus, 'connected' | 'pendingAuthorization'>;
@@ -99,7 +100,7 @@ export function LightdashConnectorCard({
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-center gap-2">
-            <img src="/assets/icons/integrations/lightdash.svg" alt="" className="h-4 w-4" />
+            <img src={lightdashIcon} alt="" className="h-4 w-4" />
             <h3 className="text-sm font-medium text-foreground">{t(`${prefix}.title`)}</h3>
             <span
               className={`flex items-center gap-1 text-[11px] ${oauthStatusTextClass[statusKey]}`}

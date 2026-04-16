@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
-// Prevent undici from crashing on Node 20 (undici 8 requires Node 22 APIs)
+// Agent-core transitively loads undici at module evaluation time. The global
+// mock in setup.ts is applied too late for this import chain, so we hoist an
+// explicit mock here to prevent the Node 20 / undici 8 crash.
 vi.mock('undici', () => ({
   ProxyAgent: class ProxyAgent {},
   Agent: class Agent {},

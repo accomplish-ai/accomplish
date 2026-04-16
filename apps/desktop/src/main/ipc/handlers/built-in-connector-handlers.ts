@@ -6,14 +6,46 @@
  * All handlers delegate to ConnectorAuthStore instances.
  */
 
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import type { IpcMainInvokeEvent } from 'electron';
 import { OAuthProviderId, getConnectorDefinitions } from '@accomplish_ai/agent-core/common';
 import type { ConnectorAuthStatus } from '@accomplish_ai/agent-core/common';
 import { getConnectorAuthStore } from '../../connectors/connector-auth-store';
 import { connectBuiltInConnector } from '../../connectors/connector-token-resolver';
+import {
+  isDesktopConnectorConnected,
+  setDesktopConnectorConnected,
+} from '../../connectors/desktop-connector-state';
 import { handle } from './utils';
 
+const execFileAsync = promisify(execFile);
+
+/** Check existing gh CLI token at startup and seed in-memory state. */
+async function initGitHubState(): Promise<void> {
+  const candidates = [
+    'gh',
+    '/opt/homebrew/bin/gh',
+    '/usr/local/bin/gh',
+    '/usr/bin/gh',
+    '/home/linuxbrew/.linuxbrew/bin/gh',
+  ];
+  for (const bin of candidates) {
+    try {
+      const { stdout } = await execFileAsync(bin, ['auth', 'token'], { timeout: 10_000 });
+      if (stdout.trim()) {
+        setDesktopConnectorConnected(OAuthProviderId.GitHub, true);
+        return;
+      }
+    } catch {
+      // try next candidate
+    }
+  }
+}
+
 export function registerBuiltInConnectorHandlers(): void {
+  // Initialize GitHub state from existing gh CLI session (fire-and-forget)
+  void initGitHubState();
   // Lightdash instance URL
   handle('lightdash:get-server-url', async (_event: IpcMainInvokeEvent) => {
     const store = getConnectorAuthStore(OAuthProviderId.Lightdash);
@@ -54,8 +86,12 @@ export function registerBuiltInConnectorHandlers(): void {
     const statuses: ConnectorAuthStatus[] = defs.map((def) => {
       const store = getConnectorAuthStore(def.id);
       if (!store) {
-        // Google and GitHub use custom flows; treat as disconnected here
-        return { providerId: def.id, connected: false, pendingAuthorization: false };
+        // GitHub and Google use custom flows — check in-memory state
+        return {
+          providerId: def.id,
+          connected: isDesktopConnectorConnected(def.id),
+          pendingAuthorization: false,
+        };
       }
       const status = store.getOAuthStatus();
       return {
@@ -95,6 +131,9 @@ export function registerBuiltInConnectorHandlers(): void {
       const store = getConnectorAuthStore(providerId);
       if (store) {
         store.clearTokens();
+      } else {
+        // GitHub / Google — clear in-memory state
+        setDesktopConnectorConnected(providerId, false);
       }
     },
   );

@@ -18,8 +18,9 @@ import { skillsManager } from '../skills';
 import { getLogCollector } from '../logging';
 import * as workspaceManager from '../store/workspaceManager';
 import type { AccountManager } from '../google-accounts/account-manager';
-import { getAllConnectorAuthStores } from '../connectors/connector-auth-store';
-import { getConnectorDefinition } from '@accomplish_ai/agent-core/common';
+import { getConnectorAuthStore } from '../connectors/connector-auth-store';
+import { isDesktopConnectorConnected } from '../connectors/desktop-connector-state';
+import { getConnectorDefinitions } from '@accomplish_ai/agent-core/common';
 
 function logOC(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {
   try {
@@ -182,17 +183,14 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
 
   // Populate built-in connector statuses for system-prompt injection (T006)
   try {
-    const storeMap = getAllConnectorAuthStores();
+    const defs = getConnectorDefinitions();
     const statuses: Array<{ displayName: string; connected: boolean }> = [];
-    for (const [providerId, store] of storeMap) {
-      const def = getConnectorDefinition(providerId);
-      if (!def) {
-        continue;
-      }
-      statuses.push({
-        displayName: def.displayName,
-        connected: store.getOAuthStatus().connected,
-      });
+    for (const def of defs) {
+      const store = getConnectorAuthStore(def.id);
+      const connected = store
+        ? store.getOAuthStatus().connected
+        : isDesktopConnectorConnected(def.id);
+      statuses.push({ displayName: def.displayName, connected });
     }
     if (statuses.length > 0) {
       configOptions.builtInConnectorStatuses = statuses;

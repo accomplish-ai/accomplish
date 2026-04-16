@@ -27,6 +27,7 @@ import type { OAuthProviderId, ConnectorDesktopOAuthKind } from '@accomplish_ai/
 import { getConnectorDefinition } from '@accomplish_ai/agent-core/common';
 import { createOAuthCallbackServer } from '../oauth-callback-server';
 import { getConnectorAuthStore, ConnectorAuthStore } from './connector-auth-store';
+import { setDesktopConnectorConnected } from './desktop-connector-state';
 
 const execFileAsync = promisify(execFile);
 
@@ -305,6 +306,7 @@ async function performDesktopGithubFlow(
         },
         Date.now(),
       );
+      setDesktopConnectorConnected(providerId, true);
       return { ok: true, accessToken: token };
     }
   } catch {
@@ -340,15 +342,18 @@ async function performDesktopGithubFlow(
         },
         Date.now(),
       );
+      setDesktopConnectorConnected(providerId, true);
       return { ok: true, accessToken: token };
     }
 
+    setDesktopConnectorConnected(providerId, false);
     return {
       ok: false,
       error: 'oauth-failed',
       message: 'GitHub login succeeded but no token was retrieved',
     };
   } catch (err) {
+    setDesktopConnectorConnected(providerId, false);
     return {
       ok: false,
       error: 'oauth-failed',

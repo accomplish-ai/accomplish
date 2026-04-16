@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { oauthStatusTextClass, oauthStatusDotClass, getOAuthStatusKey } from './oauth-status';
+import datadogIcon from '/assets/icons/integrations/datadog.svg';
 import { DATADOG_REGIONS, findDatadogRegionByMcpUrl } from './datadog/regions';
 import { getAccomplish } from '@/lib/accomplish';
 import type { ConnectorAuthStatus } from '@accomplish_ai/agent-core/common';
@@ -84,7 +85,7 @@ export function DatadogConnectorCard({
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-center gap-2">
-            <img src="/assets/icons/integrations/datadog.svg" alt="" className="h-4 w-4" />
+            <img src={datadogIcon} alt="" className="h-4 w-4" />
             <h3 className="text-sm font-medium text-foreground">{t(`${prefix}.title`)}</h3>
             <span
               className={`flex items-center gap-1 text-[11px] ${oauthStatusTextClass[statusKey]}`}
@@ -109,7 +110,7 @@ export function DatadogConnectorCard({
                     setSelectedRegionId(e.target.value);
                     setSaveError(null);
                   }}
-                  disabled={saving || authState.connected}
+                  disabled={saving}
                   data-testid="datadog-region-select"
                   className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground disabled:opacity-50"
                 >

@@ -20,10 +20,10 @@ export function normalizeLightdashUrl(input: string): string {
   try {
     const parsed = new URL(url);
     const normalizedPath = parsed.pathname.replace(/\/+$/, '');
-    if (!normalizedPath.endsWith('/api/v1/mcp')) {
-      parsed.pathname = normalizedPath + '/api/v1/mcp';
-      url = parsed.toString();
-    }
+    parsed.pathname = normalizedPath.endsWith('/api/v1/mcp')
+      ? normalizedPath
+      : normalizedPath + '/api/v1/mcp';
+    url = parsed.toString();
   } catch {
     // Leave as-is if URL parsing fails
   }

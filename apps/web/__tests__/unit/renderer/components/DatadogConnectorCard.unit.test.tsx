@@ -103,9 +103,8 @@ describe('DatadogConnectorCard', () => {
       >;
       const statusSection = ddSection?.status as Record<string, string>;
       const noSiteLabel = statusSection?.noSite;
-      if (noSiteLabel) {
-        expect(screen.getByText(noSiteLabel)).toBeInTheDocument();
-      }
+      expect(noSiteLabel).toBeDefined();
+      expect(screen.getByText(noSiteLabel!)).toBeInTheDocument();
     });
   });
 
