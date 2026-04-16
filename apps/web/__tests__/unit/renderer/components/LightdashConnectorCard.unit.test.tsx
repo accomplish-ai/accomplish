@@ -4,7 +4,7 @@
  * Unit tests for LightdashConnectorCard (T023)
  *
  * Validates:
- * - Invalid/empty URL shows validation error and does NOT call lightdashSetServerUrl
+ * - Empty URL disables Save button and does not call lightdashSetServerUrl
  * - HTTP URLs accepted
  * - HTTPS URLs accepted
  * - URL field pre-populated from lightdashGetServerUrl() after mount
@@ -93,7 +93,7 @@ describe('LightdashConnectorCard', () => {
   });
 
   describe('URL validation', () => {
-    it('shows validation error and does NOT call lightdashSetServerUrl for empty input', async () => {
+    it('disables Save button and does not call lightdashSetServerUrl for empty input', async () => {
       render(<LightdashConnectorCard {...baseProps} />);
       await waitFor(() => {
         expect(screen.getByPlaceholderText(/lightdash/i)).toBeInTheDocument();

@@ -65,6 +65,42 @@ export function LightdashConnectorCard({
     return `${prefix}.authHint`;
   }
 
+  function renderActionButton() {
+    if (authState.connected) {
+      return (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onDisconnect}
+          disabled={actionLoading}
+          className="text-xs text-muted-foreground hover:border-destructive hover:text-destructive"
+        >
+          {actionLoading ? t('connectors.cta.disconnecting') : t('connectors.cta.disconnect')}
+        </Button>
+      );
+    }
+    if (actionLoading) {
+      return (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          <span>{t('connectors.cta.waitingForBrowser')}</span>
+        </div>
+      );
+    }
+    return (
+      <Button
+        size="sm"
+        onClick={onAuthenticate}
+        data-testid="lightdash-auth-button"
+        className="text-xs"
+      >
+        {authState.pendingAuthorization
+          ? t('connectors.cta.reconnect')
+          : t('connectors.cta.connect')}
+      </Button>
+    );
+  }
+
   if (urlLoading) {
     return null;
   }
@@ -157,35 +193,7 @@ export function LightdashConnectorCard({
         </div>
 
         {hasUrl && !showUrlInput && (
-          <div className="flex shrink-0 items-center">
-            {authState.connected ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onDisconnect}
-                disabled={actionLoading}
-                className="text-xs text-muted-foreground hover:border-destructive hover:text-destructive"
-              >
-                {actionLoading ? t('connectors.cta.disconnecting') : t('connectors.cta.disconnect')}
-              </Button>
-            ) : actionLoading ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                <span>{t('connectors.cta.waitingForBrowser')}</span>
-              </div>
-            ) : (
-              <Button
-                size="sm"
-                onClick={onAuthenticate}
-                data-testid="lightdash-auth-button"
-                className="text-xs"
-              >
-                {authState.pendingAuthorization
-                  ? t('connectors.cta.reconnect')
-                  : t('connectors.cta.connect')}
-              </Button>
-            )}
-          </div>
+          <div className="flex shrink-0 items-center">{renderActionButton()}</div>
         )}
       </div>
     </div>

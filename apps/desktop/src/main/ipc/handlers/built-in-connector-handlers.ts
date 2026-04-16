@@ -15,22 +15,44 @@ import {
   isOAuthProviderId,
 } from '@accomplish_ai/agent-core/common';
 import type { ConnectorAuthStatus } from '@accomplish_ai/agent-core/common';
-import { getConnectorAuthStore } from '../../connectors/connector-auth-store';
+import { getConnectorAuthStore } from '../../connectors/connector-auth-registry';
 import { connectBuiltInConnector } from '../../connectors/connector-token-resolver';
 import {
   isDesktopConnectorConnected,
   setDesktopConnectorConnected,
   GH_BINARY_CANDIDATES,
+  buildGhAugmentedPath,
 } from '../../connectors/desktop-connector-state';
 import { handle } from './utils';
 
 const execFileAsync = promisify(execFile);
 
+/** Validate and return a trimmed server URL, or throw with a connector-specific message. */
+function validateServerUrl(url: unknown, connectorName: string): string {
+  const trimmed = typeof url === 'string' ? url.trim() : '';
+  if (!trimmed) {
+    throw new Error(`Invalid ${connectorName} server URL`);
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error('URL must use http or https');
+    }
+  } catch {
+    throw new Error(`Invalid ${connectorName} server URL`);
+  }
+  return trimmed;
+}
+
 /** Check existing gh CLI token at startup and seed in-memory state. */
 async function initGitHubState(): Promise<void> {
+  const augmentedEnv = { ...process.env, PATH: buildGhAugmentedPath() };
   for (const bin of GH_BINARY_CANDIDATES) {
     try {
-      const { stdout } = await execFileAsync(bin, ['auth', 'token'], { timeout: 10_000 });
+      const { stdout } = await execFileAsync(bin, ['auth', 'token'], {
+        timeout: 10_000,
+        env: augmentedEnv,
+      });
       if (stdout.trim()) {
         setDesktopConnectorConnected(OAuthProviderId.GitHub, true);
         return;
@@ -55,19 +77,7 @@ export function registerBuiltInConnectorHandlers(): void {
     if (!store) {
       throw new Error('Lightdash connector not configured');
     }
-    const trimmed = typeof url === 'string' ? url.trim() : '';
-    if (!trimmed) {
-      throw new Error('Invalid Lightdash server URL');
-    }
-    try {
-      const parsed = new URL(trimmed);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        throw new Error('URL must use http or https');
-      }
-    } catch {
-      throw new Error('Invalid Lightdash server URL');
-    }
-    store.setServerUrl(trimmed);
+    store.setServerUrl(validateServerUrl(url, 'Lightdash'));
   });
 
   // Datadog site URL
@@ -81,19 +91,7 @@ export function registerBuiltInConnectorHandlers(): void {
     if (!store) {
       throw new Error('Datadog connector not configured');
     }
-    const trimmed = typeof url === 'string' ? url.trim() : '';
-    if (!trimmed) {
-      throw new Error('Invalid Datadog server URL');
-    }
-    try {
-      const parsed = new URL(trimmed);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        throw new Error('URL must use http or https');
-      }
-    } catch {
-      throw new Error('Invalid Datadog server URL');
-    }
-    store.setServerUrl(trimmed);
+    store.setServerUrl(validateServerUrl(url, 'Datadog'));
   });
 
   // Auth status for all built-in connectors

@@ -18,7 +18,7 @@ import { skillsManager } from '../skills';
 import { getLogCollector } from '../logging';
 import * as workspaceManager from '../store/workspaceManager';
 import type { AccountManager } from '../google-accounts/account-manager';
-import { getConnectorAuthStore } from '../connectors/connector-auth-store';
+import { getConnectorAuthStore } from '../connectors/connector-auth-registry';
 import { isDesktopConnectorConnected } from '../connectors/desktop-connector-state';
 import { getConnectorDefinitions } from '@accomplish_ai/agent-core/common';
 

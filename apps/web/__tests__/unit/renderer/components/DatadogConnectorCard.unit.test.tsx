@@ -127,8 +127,8 @@ describe('DatadogConnectorCard', () => {
         expect(mockSetServerUrl).toHaveBeenCalledWith(
           'https://mcp.datadoghq.eu/api/unstable/mcp-server/mcp',
         );
+        expect(baseProps.refetch).toHaveBeenCalled();
       });
-      expect(baseProps.refetch).toHaveBeenCalled();
     });
 
     it('calls datadogSetServerUrl with US1 MCP URL when US1 selected', async () => {

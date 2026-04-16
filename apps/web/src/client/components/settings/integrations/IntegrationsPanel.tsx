@@ -13,6 +13,10 @@ import { LightdashConnectorCard } from '@/components/settings/connectors/Lightda
 import { useConnectorsPanel } from '@/components/settings/connectors/useConnectorsPanel';
 import { GoogleAccountsSection } from '../google-accounts/GoogleAccountsSection';
 import { OAuthProviderId } from '@accomplish_ai/agent-core/common';
+import jiraIcon from '/assets/icons/integrations/jira.svg';
+import githubIcon from '/assets/icons/integrations/github.svg';
+import notionIcon from '/assets/icons/integrations/notion.svg';
+import mondayIcon from '/assets/icons/integrations/monday.svg';
 
 export function IntegrationsPanel() {
   const { t } = useTranslation('settings');
@@ -124,7 +128,7 @@ export function IntegrationsPanel() {
             <GoogleAccountsSection />
 
             <OAuthConnectorCard
-              iconSrc="/assets/icons/integrations/jira.svg"
+              iconSrc={jiraIcon}
               displayName={t('connectors.jira.title')}
               authState={getAuthState(OAuthProviderId.Jira)}
               actionLoading={isActionLoading(OAuthProviderId.Jira)}
@@ -134,7 +138,7 @@ export function IntegrationsPanel() {
             />
 
             <OAuthConnectorCard
-              iconSrc="/assets/icons/integrations/github.svg"
+              iconSrc={githubIcon}
               displayName={t('connectors.github.title')}
               authState={getAuthState(OAuthProviderId.GitHub)}
               actionLoading={isActionLoading(OAuthProviderId.GitHub)}
@@ -144,7 +148,7 @@ export function IntegrationsPanel() {
             />
 
             <OAuthConnectorCard
-              iconSrc="/assets/icons/integrations/notion.svg"
+              iconSrc={notionIcon}
               displayName={t('connectors.notion.title')}
               authState={getAuthState(OAuthProviderId.Notion)}
               actionLoading={isActionLoading(OAuthProviderId.Notion)}
@@ -154,7 +158,7 @@ export function IntegrationsPanel() {
             />
 
             <OAuthConnectorCard
-              iconSrc="/assets/icons/integrations/monday.svg"
+              iconSrc={mondayIcon}
               displayName={t('connectors.monday.title')}
               authState={getAuthState(OAuthProviderId.Monday)}
               actionLoading={isActionLoading(OAuthProviderId.Monday)}

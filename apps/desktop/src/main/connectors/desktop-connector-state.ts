@@ -25,7 +25,14 @@ export const GH_BINARY_CANDIDATES: readonly string[] = [
  */
 export function buildGhAugmentedPath(): string {
   const base = process.env.PATH ?? process.env.Path ?? '';
-  const extra = ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin'];
+  const extra =
+    process.platform === 'win32'
+      ? [
+          'C:\\Program Files\\GitHub CLI',
+          'C:\\Program Files (x86)\\GitHub CLI',
+          'C:\\Program Files\\Git\\bin',
+        ]
+      : ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin'];
   return [base, ...extra].join(path.delimiter);
 }
 

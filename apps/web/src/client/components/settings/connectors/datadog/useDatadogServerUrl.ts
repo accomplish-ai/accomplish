@@ -37,9 +37,7 @@ export function useDatadogServerUrl(): UseDatadogServerUrl {
           setSelectedRegionId(region.id);
         }
       })
-      .catch(() => {
-        // Failed to load server URL — leave as null
-      })
+      .catch(() => {})
       .finally(() => setUrlLoading(false));
   }, []);
 
