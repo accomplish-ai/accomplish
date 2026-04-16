@@ -313,8 +313,21 @@ async function performDesktopGithubFlow(
 
   // No token — initiate login
   try {
+    // Augment PATH so gh can find its helpers (git, etc.) on macOS where
+    // Electron's process.env.PATH excludes Homebrew and shell-profile paths.
+    const augmentedEnv = {
+      ...process.env,
+      PATH: [
+        process.env.PATH ?? '',
+        '/opt/homebrew/bin',
+        '/usr/local/bin',
+        '/usr/bin',
+        '/bin',
+      ].join(':'),
+    };
     await execFileAsync(ghPath, ['auth', 'login', '--git-protocol', 'https', '--web'], {
       timeout: 120_000,
+      env: augmentedEnv,
     });
 
     const { stdout } = await execFileAsync(ghPath, ['auth', 'token'], { timeout: 10_000 });
@@ -349,13 +362,21 @@ async function performDesktopGithubFlow(
 // ---------------------------------------------------------------------------
 
 async function findGhBinary(): Promise<string | null> {
-  const candidates = ['gh'];
+  // Electron's main process PATH is minimal (no shell profile), so we must
+  // probe common installation locations in addition to the raw PATH lookup.
+  const candidates = [
+    'gh',
+    '/opt/homebrew/bin/gh', // Apple Silicon Homebrew (macOS)
+    '/usr/local/bin/gh', // Intel Homebrew / manual install (macOS/Linux)
+    '/usr/bin/gh', // system package manager (Linux)
+    '/home/linuxbrew/.linuxbrew/bin/gh', // Linuxbrew
+  ];
   for (const bin of candidates) {
     try {
       await execFileAsync(bin, ['--version'], { timeout: 5_000 });
       return bin;
     } catch {
-      // not found
+      // not found at this path
     }
   }
   return null;
