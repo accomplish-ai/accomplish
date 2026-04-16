@@ -1,4 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
+
+// Prevent undici from crashing on Node 20 (undici 8 requires Node 22 APIs)
+vi.mock('undici', () => ({
+  ProxyAgent: class ProxyAgent {},
+  Agent: class Agent {},
+  fetch: vi.fn(),
+  setGlobalDispatcher: vi.fn(),
+  getGlobalDispatcher: vi.fn(),
+}));
 import type { TaskMessage, Task, TaskUpdateEvent } from '@accomplish_ai/agent-core';
 import { createTaskUpdateActions } from '@/stores/task-update-actions';
 import type { TaskState } from '@/stores/taskStore';
