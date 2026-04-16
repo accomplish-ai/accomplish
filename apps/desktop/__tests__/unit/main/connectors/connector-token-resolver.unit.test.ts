@@ -68,6 +68,7 @@ const { mockWaitForCallback, mockCreateOAuthCallbackServer } = vi.hoisted(() => 
   const mockWaitForCallback = vi.fn();
   const mockCreateOAuthCallbackServer = vi.fn().mockResolvedValue({
     waitForCallback: mockWaitForCallback,
+    shutdown: vi.fn(),
   });
   return { mockWaitForCallback, mockCreateOAuthCallbackServer };
 });
