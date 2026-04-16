@@ -8,6 +8,7 @@ import { registerFileHandlers } from './file-handlers';
 import { registerSkillsHandlers } from './skills-handlers';
 import { registerFavoritesHandlers } from './favorites-handlers';
 import { registerConnectorHandlers } from './connector-handlers';
+import { registerBuiltInConnectorHandlers } from './built-in-connector-handlers';
 import { registerWorkspaceHandlers } from './workspace-handlers';
 import { registerHuggingFaceHandlers } from './huggingface-handlers';
 import { registerAnalyticsHandlers } from './analytics-handlers';
@@ -35,6 +36,7 @@ export function registerIPCHandlers(
   registerSkillsHandlers();
   registerFavoritesHandlers();
   registerConnectorHandlers();
+  registerBuiltInConnectorHandlers();
   registerWorkspaceHandlers();
   registerHuggingFaceHandlers();
   registerAnalyticsHandlers();
