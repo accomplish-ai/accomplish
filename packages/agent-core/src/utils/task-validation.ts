@@ -36,6 +36,15 @@ export function validateTaskConfig(config: TaskConfig): TaskConfig {
   if (config.modelId) {
     validated.modelId = sanitizeString(config.modelId, 'modelId', 128);
   }
+  // Copy workspaceId through so `resolveTaskConfig` can inject the
+  // workspace's knowledge notes into the system prompt. Without this
+  // copy, `task-service.startTask` writes `config.workspaceId` but
+  // `validateTaskConfig` silently strips it, the adapter builds
+  // `{ workspaceId: undefined }`, and `resolveTaskConfig`'s step 5
+  // skips the notes. Tight length limit (128) matches other IDs here.
+  if (config.workspaceId) {
+    validated.workspaceId = sanitizeString(config.workspaceId, 'workspaceId', 128);
+  }
   // Pass through file attachments — they are validated at the IPC/RPC boundary,
   // not here. Stripping them silently breaks the daemon task path.
   if (Array.isArray(config.files) && config.files.length > 0) {

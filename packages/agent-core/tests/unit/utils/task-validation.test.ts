@@ -84,4 +84,35 @@ describe('validateTaskConfig', () => {
     const validated = validateTaskConfig(config);
     expect(validated.source).toBeUndefined();
   });
+
+  // Regression: `TaskService.startTask` writes `config.workspaceId` but an
+  // earlier version of `validateTaskConfig` rebuilt the object field-by-field
+  // and silently dropped this one. Downstream, `resolveTaskConfig` never saw
+  // the workspace and skipped knowledge-note injection for every non-resume
+  // task. This test pins the fix so the field always makes it through.
+  it('preserves workspaceId on the validated config', () => {
+    const config: TaskConfig = {
+      prompt: 'Workspace task',
+      workspaceId: 'ws_abc123',
+    };
+
+    const validated = validateTaskConfig(config);
+    expect(validated.workspaceId).toBe('ws_abc123');
+  });
+
+  it('rejects a workspaceId longer than 128 chars (matches other ID fields)', () => {
+    const longId = 'ws_' + 'x'.repeat(200);
+    const config: TaskConfig = {
+      prompt: 'Long workspace',
+      workspaceId: longId,
+    };
+
+    expect(() => validateTaskConfig(config)).toThrow(/exceeds maximum length/i);
+  });
+
+  it('omits workspaceId when not provided', () => {
+    const config: TaskConfig = { prompt: 'No workspace' };
+    const validated = validateTaskConfig(config);
+    expect(validated.workspaceId).toBeUndefined();
+  });
 });

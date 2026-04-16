@@ -113,13 +113,21 @@ export class TaskService extends EventEmitter {
         // talks HTTP. `onBeforeStart` still runs to write the per-task
         // `opencode.json`, sync API keys to `auth.json`, and surface
         // `OPENCODE_CONFIG[_DIR]` so the spawned `opencode serve` picks them up.
-        onBeforeStart: async () => {
-          const result = await onBeforeStart(this.storage, this.opts);
+        //
+        // The adapter passes a per-task `ctx` with `taskId` + `workspaceId`;
+        // we forward it unchanged. `resolveTaskConfig` inside `onBeforeStart`
+        // consumes `ctx.workspaceId` for knowledge-note injection and uses
+        // `ctx.taskId` to compute a per-task config filename.
+        onBeforeStart: async (ctx) => {
+          const result = await onBeforeStart(this.storage, this.opts, ctx);
           return result.env;
         },
-        // SDK-based adapter resolves its `opencode serve` URL here.
-        getServerUrl: async (taskId) => {
-          await this.serverManager.ensureTaskRuntime(taskId);
+        // SDK-based adapter resolves its `opencode serve` URL here. The
+        // optional `ctx` carries the same per-task context into the
+        // server-manager's own `onBeforeStart` call so the spawned
+        // `opencode serve` sees the workspace-scoped config.
+        getServerUrl: async (taskId, ctx) => {
+          await this.serverManager.ensureTaskRuntime(taskId, ctx);
           return this.serverManager.waitForServerUrl(taskId);
         },
         getModelDisplayName,
@@ -182,6 +190,7 @@ export class TaskService extends EventEmitter {
       modelId: params.modelId,
       sessionId: params.sessionId,
       workingDirectory: params.workingDirectory,
+      workspaceId: params.workspaceId,
       systemPromptAppend: params.systemPromptAppend,
       files: params.attachments,
       allowedTools: params.allowedTools,
@@ -257,6 +266,13 @@ export class TaskService extends EventEmitter {
     /** Same rationale as `startTask.attachments` — follow-up turns also
      * carry user-attached files and must forward them into TaskConfig.files. */
     attachments?: FileAttachmentInfo[];
+    /**
+     * Caller-supplied workspace for the resumed turn. When the caller
+     * omits this but `existingTaskId` is present, we fall back to the
+     * workspace the original task was saved under so workspace knowledge
+     * notes keep flowing across resume turns.
+     */
+    workspaceId?: string;
   }): Promise<Task> {
     const { sessionId, prompt, existingTaskId, attachments } = params;
     const taskId = existingTaskId || createTaskId();
@@ -273,12 +289,21 @@ export class TaskService extends EventEmitter {
 
     const activeModel = this.storage.getActiveProviderModel();
     const selectedModel = activeModel || this.storage.getSelectedModel();
+    // Workspace resolution order:
+    //   1. explicit `params.workspaceId` (caller knows best)
+    //   2. the workspace the existing task was saved under (resume case)
+    //   3. undefined (fresh session with no workspace context)
+    let workspaceId = params.workspaceId;
+    if (!workspaceId && existingTaskId) {
+      workspaceId = this.storage.getTask(existingTaskId)?.workspaceId;
+    }
     const task = await this._runTask(taskId, {
       prompt,
       sessionId,
       taskId,
       modelId: selectedModel?.model,
       files: attachments,
+      workspaceId,
     });
 
     if (existingTaskId) {

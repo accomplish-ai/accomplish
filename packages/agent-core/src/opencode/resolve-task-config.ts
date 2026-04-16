@@ -2,20 +2,24 @@
  * Shared task config resolution — the "one brain" for config assembly.
  *
  * Resolves skills, connectors (with token refresh), cloud browser config,
- * workspace knowledge notes, and OpenAI store:false injection into a
- * ConfigGeneratorOptions object that can be passed to generateConfig().
+ * workspace knowledge notes, Google Workspace accounts, and OpenAI
+ * store:false injection into a ConfigGeneratorOptions object that can be
+ * passed to generateConfig().
  *
  * Used by both the desktop config-generator (bridge period) and the
  * standalone daemon's TaskService.
  */
 
+import type { Database } from 'better-sqlite3';
 import type { StorageAPI } from '../types/storage.js';
 import type { Skill } from '../common/types/skills.js';
 import type { ConfigGeneratorOptions, ProviderConfig } from './config-generator.js';
 import type { BrowserConfig } from './generator-mcp.js';
+import type { AccomplishRuntime, StorageDeps } from './accomplish-runtime.js';
 import { isTokenExpired, refreshAccessToken } from '../connectors/oauth-tokens.js';
 import { getKnowledgeNotesForPrompt } from '../storage/repositories/knowledgeNotes.js';
 import { buildProviderConfigs } from './config-builder.js';
+import { prepareGwsManifest, type LogFn } from '../google-accounts/index.js';
 
 export interface ResolveTaskConfigOptions {
   /** Storage API for reading connectors, cloud browser, sandbox, etc. */
@@ -57,10 +61,44 @@ export interface ResolveTaskConfigOptions {
   workspaceId?: string;
 
   /**
+   * Optional per-task config filename (e.g. `opencode-<taskId>.json`).
+   * When concurrent tasks run simultaneously, sharing the default
+   * `opencode.json` makes them race on the same file. The daemon passes
+   * a taskId-scoped filename; desktop can omit to keep legacy behavior.
+   */
+  configFileName?: string;
+
+  /**
+   * Accomplish AI runtime adapter (noop in OSS, real impl in commercial).
+   * Forwarded into `buildProviderConfigs` so the Accomplish-AI provider can
+   * register itself when the runtime is available.
+   */
+  accomplishRuntime?: AccomplishRuntime;
+
+  /**
+   * Accomplish AI identity storage deps (injected from the caller's
+   * secure storage). Forwarded into `buildProviderConfigs`.
+   */
+  accomplishStorageDeps?: StorageDeps;
+
+  /**
+   * Optional SQLite handle for GWS manifest generation. The daemon passes
+   * its shared database; desktop omits (its own config-generator calls
+   * `prepareGwsManifest` separately with its own AccountManager).
+   *
+   * When provided AND the `google_accounts` table has `status='connected'`
+   * rows, `resolveTaskConfig` writes per-account token files + a manifest
+   * and sets `gwsAccountsManifestPath` + `gwsAccountsSummary` on the
+   * returned configOptions. If the table is missing (pre-migration DB) or
+   * empty, this step silently skips.
+   */
+  database?: Database;
+
+  /**
    * Logger function for non-fatal warnings.
    * Defaults to console.warn if not provided.
    */
-  log?: (level: 'INFO' | 'WARN' | 'ERROR', message: string, data?: Record<string, unknown>) => void;
+  log?: LogFn;
 }
 
 export interface ResolvedTaskConfig {
@@ -92,14 +130,22 @@ export async function resolveTaskConfig(
     authToken,
     skills,
     workspaceId,
+    configFileName,
+    accomplishRuntime,
+    accomplishStorageDeps,
+    database,
   } = options;
 
-  const log = options.log ?? ((_level: string, msg: string) => console.warn(msg));
+  const log: LogFn = options.log ?? ((_level, msg) => console.warn(msg));
 
-  // 1. Build provider configs
+  // 1. Build provider configs. `accomplishRuntime` + `accomplishStorageDeps`
+  // forward to the Accomplish-AI provider when the optional runtime is loaded
+  // (Free build); omitted on OSS so the provider stays dormant.
   const { providerConfigs, enabledProviders, modelOverride } = await buildProviderConfigs({
     getApiKey,
     azureFoundryToken,
+    accomplishRuntime,
+    accomplishStorageDeps,
   });
 
   // 2. Inject store:false for OpenAI to prevent 403 errors with project-scoped keys
@@ -140,6 +186,29 @@ export async function resolveTaskConfig(
     // Non-critical: language column may be absent in older DBs before migration
   }
 
+  // 7. Resolve Google Workspace accounts manifest (daemon only — desktop's
+  // config-generator calls `prepareGwsManifest` separately via its own
+  // `AccountManager`). When the caller omits `database`, we skip this step.
+  let gwsAccountsManifestPath: string | undefined;
+  let gwsAccountsSummary: Array<{ label: string; email: string; status: string }> | undefined;
+  if (database) {
+    try {
+      const gwsResult = await prepareGwsManifest(storage, database, userDataPath, log);
+      if (gwsResult?.manifestPath) {
+        gwsAccountsManifestPath = gwsResult.manifestPath;
+      }
+      if (gwsResult?.summary && gwsResult.summary.length > 0) {
+        gwsAccountsSummary = gwsResult.summary.map((s) => ({
+          label: s.label,
+          email: s.email,
+          status: s.status,
+        }));
+      }
+    } catch (err) {
+      log('WARN', '[resolveTaskConfig] GWS manifest step failed', { err: String(err) });
+    }
+  }
+
   return {
     configOptions: {
       platform,
@@ -160,6 +229,9 @@ export async function resolveTaskConfig(
       browser,
       knowledgeNotes,
       language,
+      configFileName,
+      gwsAccountsManifestPath,
+      gwsAccountsSummary,
     },
   };
 }

@@ -41,6 +41,12 @@ export interface TaskConfig {
    * daemon can apply the right permission-prompt policy. Defaults to `'ui'` when omitted.
    */
   source?: TaskSource;
+  /**
+   * Workspace this task belongs to. Threaded into the daemon's `onBeforeStart`
+   * so `resolveTaskConfig` can load per-workspace knowledge notes. Optional —
+   * scheduler/WhatsApp tasks may run without a workspace context.
+   */
+  workspaceId?: string;
 }
 
 /** Metadata for a user-attached file in a task. */

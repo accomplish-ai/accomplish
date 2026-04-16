@@ -12,6 +12,7 @@ export type {
   TaskAdapterOptions,
   TaskCallbacks,
   TaskProgressEvent,
+  OnBeforeStartContext,
 } from './task-manager.js';
 
 // Storage API

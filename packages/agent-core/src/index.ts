@@ -36,6 +36,7 @@ export type {
   TaskAdapterOptions,
   TaskCallbacks as TaskManagerCallbacks,
   TaskProgressEvent as TaskManagerProgressEvent,
+  OnBeforeStartContext,
   // Storage API
   StorageAPI,
   StorageOptions,
@@ -300,6 +301,22 @@ export { validateHttpUrl } from './utils/url.js';
 
 // Task validation functions
 export { validateTaskConfig } from './utils/task-validation.js';
+
+// Google Workspace account manifest helper (daemon-portable). The desktop
+// side keeps its own `AccountManager` / `TokenManager` singletons; agent-core
+// exports only the stateless pieces the daemon needs for per-task manifest
+// generation at `onBeforeStart` time.
+export {
+  prepareGwsManifest,
+  gwsTokenKey,
+  TOKEN_REFRESH_MARGIN_MS,
+  GOOGLE_TOKEN_ENDPOINT,
+} from './google-accounts/index.js';
+export type {
+  PrepareGwsManifestResult,
+  GwsAccountEntry,
+  GwsAccountSummary,
+} from './google-accounts/index.js';
 
 // JSON parsing functions
 export { safeParseJson } from './utils/json.js';

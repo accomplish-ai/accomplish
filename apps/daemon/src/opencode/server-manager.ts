@@ -36,6 +36,7 @@ import {
   type StorageAPI,
   type AccomplishRuntime,
   type CliResolverConfig,
+  type OnBeforeStartContext,
 } from '@accomplish_ai/agent-core';
 import { createOpencodeClient, type OpencodeClient } from '@opencode-ai/sdk/v2';
 
@@ -333,11 +334,32 @@ class OpenCodeTaskRuntime {
   private startPromise: Promise<void> | null = null;
   private startAbortController: AbortController | null = null;
   private disposed = false;
+  /**
+   * Per-task context forwarded to `onBeforeStart`. Populated by
+   * `ensureTaskRuntime(taskId, ctx)`. Defaults to `{ taskId }` so runtimes
+   * spawned by code paths that predate the workspace-aware task path
+   * (transient OAuth client, future callers) still get a taskId at
+   * minimum — `prepareGwsManifest` etc. only need the `workspaceId` when
+   * it's actually present.
+   */
+  private ctx: OnBeforeStartContext;
 
   constructor(
     readonly taskId: string,
     private readonly deps: ServerManagerDeps,
-  ) {}
+  ) {
+    this.ctx = { taskId };
+  }
+
+  /**
+   * Update the per-task context. Called by the manager before `start()` /
+   * on follow-up `ensureTaskRuntime` calls so the latest workspace context
+   * reaches `onBeforeStart` if the runtime is still warm from a previous
+   * task step.
+   */
+  setContext(ctx: OnBeforeStartContext): void {
+    this.ctx = { taskId: this.taskId, ...ctx };
+  }
 
   isReady(): boolean {
     return this.ready;
@@ -373,7 +395,7 @@ class OpenCodeTaskRuntime {
     const startedAt = performance.now();
     try {
       throwIfStartAborted(signal);
-      const { env: runtimeEnv } = await onBeforeStart(this.deps.storage, this.deps);
+      const { env: runtimeEnv } = await onBeforeStart(this.deps.storage, this.deps, this.ctx);
       throwIfStartAborted(signal);
 
       const spawnedServer = await spawnOpenCodeServer(runtimeEnv, this.deps, signal, () => {
@@ -451,10 +473,14 @@ export class OpenCodeServerManager {
     return this.runtimes.get(taskId)?.isReady() ?? false;
   }
 
-  async ensureTaskRuntime(taskId: string): Promise<void> {
+  async ensureTaskRuntime(taskId: string, ctx?: OnBeforeStartContext): Promise<void> {
     if (!taskId || this.disposed) return;
     this.clearCleanupTimer(taskId);
-    await this.getOrCreateRuntime(taskId).start();
+    const runtime = this.getOrCreateRuntime(taskId);
+    if (ctx) {
+      runtime.setContext(ctx);
+    }
+    await runtime.start();
   }
 
   async waitForServerUrl(taskId: string): Promise<string | undefined> {
@@ -549,7 +575,10 @@ export async function createTransientOpencodeClient(
   signal?: AbortSignal,
 ): Promise<{ client: OpencodeClient; close: () => void }> {
   throwIfStartAborted(signal);
-  const { env: runtimeEnv } = await onBeforeStart(deps.storage, deps);
+  // No task context for the OAuth flow — pass an empty ctx. The daemon's
+  // onBeforeStart uses this to skip workspace/config-filename specifics and
+  // write the default `opencode.json` for OAuth.
+  const { env: runtimeEnv } = await onBeforeStart(deps.storage, deps, {});
   throwIfStartAborted(signal);
   const server = await spawnOpenCodeServer(runtimeEnv, deps, signal);
   return {

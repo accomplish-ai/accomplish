@@ -20,6 +20,19 @@ export interface TaskProgressEvent {
   modelName?: string;
 }
 
+/**
+ * Per-task context passed to the adapter's `onBeforeStart` hook.
+ *
+ * The daemon uses this to:
+ *   - write per-task config filenames (`opencode-<taskId>.json`) so concurrent
+ *     tasks don't race on the same file
+ *   - thread `workspaceId` into `resolveTaskConfig` for knowledge-note injection
+ */
+export interface OnBeforeStartContext {
+  taskId?: string;
+  workspaceId?: string;
+}
+
 /** Callbacks for task lifecycle events */
 export interface TaskCallbacks {
   /**
@@ -101,8 +114,14 @@ export interface TaskAdapterOptions {
    * adapter's externalEnv before opening the SDK session — the daemon uses
    * this to surface `OPENCODE_CONFIG[_DIR]` after writing the per-task
    * config file.
+   *
+   * The `ctx` argument gives the hook access to the current task's identity
+   * and workspace so the per-task config filename can include the taskId
+   * and `resolveTaskConfig` can inject workspace-scoped knowledge notes.
+   * Both fields are optional — callers that don't have a task context yet
+   * (legacy PTY paths, transient OAuth clients) pass an empty object.
    */
-  onBeforeStart?: () => Promise<NodeJS.ProcessEnv | void>;
+  onBeforeStart?: (ctx: OnBeforeStartContext) => Promise<NodeJS.ProcessEnv | void>;
   /** Function to get display name for a model ID */
   getModelDisplayName?: (modelId: string) => string;
   /**
@@ -113,10 +132,13 @@ export interface TaskAdapterOptions {
    * Optional during Phase 1a — the legacy PTY adapter ignores it; the SDK adapter requires it.
    *
    * @param taskId - ID of the task whose runtime server URL is needed
+   * @param ctx - optional per-task context; the daemon threads `workspaceId`
+   *              into its `server-manager` → `onBeforeStart` call so the
+   *              opencode-serve process sees the right per-task config.
    * @returns Base URL of the opencode-serve instance hosting this task, or `undefined`
    *          if no runtime exists for that task.
    */
-  getServerUrl?: (taskId: string) => Promise<string | undefined>;
+  getServerUrl?: (taskId: string, ctx?: OnBeforeStartContext) => Promise<string | undefined>;
   /**
    * Optional proxy tagger (Phase 2 of the SDK cutover port). Called by the
    * adapter on task start (with `taskId`) and teardown (with `undefined`).

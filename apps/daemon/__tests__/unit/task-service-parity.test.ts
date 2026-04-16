@@ -177,6 +177,85 @@ describe('TaskService parity', () => {
     expect(capturedTaskConfigs[0].config.files).toEqual(attachments);
   });
 
+  // Regression: `resumeSession` used to not accept `workspaceId` at all,
+  // so every follow-up turn in a workspace conversation ran without
+  // workspace-scoped knowledge notes. This test pins the explicit forward.
+  it('resumeSession forwards caller-supplied workspaceId into the resumed TaskConfig', async () => {
+    const storage = createMockStorage();
+    const service = new TaskService(storage as never, {
+      userDataPath: '/data',
+      mcpToolsPath: '/tools',
+    });
+
+    await service.resumeSession({
+      sessionId: 'sess-ws-1',
+      prompt: 'continue please',
+      existingTaskId: 'tsk_ws_resume',
+      workspaceId: 'ws_explicit',
+    });
+
+    expect(capturedTaskConfigs).toHaveLength(1);
+    expect(capturedTaskConfigs[0].config.workspaceId).toBe('ws_explicit');
+  });
+
+  // Regression: without an explicit workspaceId, `resumeSession` should
+  // fall back to the workspace the existing task was originally saved
+  // under — otherwise users who scheduled a workspace task and later
+  // resume via a daemon-only source (WhatsApp, scheduler) would still
+  // lose workspace knowledge notes on the resumed turn.
+  it('resumeSession falls back to the stored task workspaceId when none is provided', async () => {
+    const storage = createMockStorage();
+    (storage.getTask as ReturnType<typeof vi.fn>).mockReturnValue({
+      id: 'tsk_stored_ws',
+      prompt: 'original',
+      status: 'completed',
+      messages: [],
+      createdAt: new Date().toISOString(),
+      workspaceId: 'ws_from_storage',
+    });
+    const service = new TaskService(storage as never, {
+      userDataPath: '/data',
+      mcpToolsPath: '/tools',
+    });
+
+    await service.resumeSession({
+      sessionId: 'sess-fallback',
+      prompt: 'continue',
+      existingTaskId: 'tsk_stored_ws',
+    });
+
+    expect(capturedTaskConfigs).toHaveLength(1);
+    expect(capturedTaskConfigs[0].config.workspaceId).toBe('ws_from_storage');
+  });
+
+  // Regression: when the resumed task has no workspaceId anywhere,
+  // `resumeSession` must not invent one — it stays undefined so the
+  // resolver skips the knowledge-note step cleanly.
+  it('resumeSession leaves workspaceId undefined when neither params nor stored task has one', async () => {
+    const storage = createMockStorage();
+    (storage.getTask as ReturnType<typeof vi.fn>).mockReturnValue({
+      id: 'tsk_no_ws',
+      prompt: 'original',
+      status: 'completed',
+      messages: [],
+      createdAt: new Date().toISOString(),
+      workspaceId: undefined,
+    });
+    const service = new TaskService(storage as never, {
+      userDataPath: '/data',
+      mcpToolsPath: '/tools',
+    });
+
+    await service.resumeSession({
+      sessionId: 'sess-plain',
+      prompt: 'continue',
+      existingTaskId: 'tsk_no_ws',
+    });
+
+    expect(capturedTaskConfigs).toHaveLength(1);
+    expect(capturedTaskConfigs[0].config.workspaceId).toBeUndefined();
+  });
+
   it('listTasks passes workspaceId to storage', () => {
     const storage = createMockStorage();
     const service = new TaskService(storage as never, {

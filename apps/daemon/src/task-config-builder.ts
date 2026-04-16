@@ -9,7 +9,7 @@ import path from 'node:path';
 import {
   isCliAvailable as coreIsCliAvailable,
   generateConfig,
-  buildProviderConfigs,
+  resolveTaskConfig,
   syncApiKeysToOpenCodeAuth,
   getOpenCodeAuthJsonPath,
   getBundledNodePaths,
@@ -17,7 +17,9 @@ import {
   type StorageAPI,
   type CliResolverConfig,
   type AccomplishRuntime,
+  type OnBeforeStartContext,
 } from '@accomplish_ai/agent-core';
+import { getDatabase } from '@accomplish_ai/agent-core/storage/database';
 
 export interface TaskConfigBuilderOptions {
   userDataPath: string;
@@ -56,32 +58,75 @@ export async function isCliAvailable(opts: TaskConfigBuilderOptions): Promise<bo
   return coreIsCliAvailable(cliConfig);
 }
 
+/**
+ * Read a port number from the given env var, returning `undefined` when the
+ * var is unset or not an integer. Used to pick up port assignments that the
+ * daemon emits from its own HTTP services (WhatsApp API) into child-process
+ * MCP tools.
+ */
+function getPort(envVar: string): number | undefined {
+  const val = process.env[envVar];
+  if (!val) {
+    return undefined;
+  }
+  const parsed = parseInt(val, 10);
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+/**
+ * Build the per-task config filename from the adapter-supplied taskId,
+ * scrubbed to a safe character set. `task.start` accepts an optional
+ * caller-provided `taskId` as an arbitrary string, and `generateConfig`
+ * joins `configFileName` straight into a filesystem path — a value
+ * containing `/`, `..`, or NUL could write outside the opencode config
+ * directory. Replace anything outside `[A-Za-z0-9_-]` with `_`.
+ *
+ * Returns `undefined` when no taskId is supplied (the transient OAuth
+ * path passes an empty `ctx`) so `generateConfig` falls back to its
+ * default `opencode.json` filename.
+ */
+function buildConfigFileName(taskId: string | undefined): string | undefined {
+  if (!taskId) {
+    return undefined;
+  }
+  const safe = taskId.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 128);
+  if (!safe) {
+    return undefined;
+  }
+  return `opencode-${safe}.json`;
+}
+
+/**
+ * Pre-task hook invoked from two places:
+ *   1. `OpenCodeAdapter.startTask` (agent-core) — writes the per-task config
+ *      file, then calls `session.create` against the running `opencode serve`.
+ *   2. `OpenCodeTaskRuntime.doStart` (server-manager) — writes the same
+ *      config file and surfaces `OPENCODE_CONFIG[_DIR]` into the env the
+ *      `opencode serve` child inherits.
+ *
+ * Both calls route through `resolveTaskConfig` — the shared "one brain"
+ * that injects skills, connectors (with token refresh), cloud browser,
+ * knowledge notes, language, GWS accounts manifest, and OpenAI store:false
+ * into a single `ConfigGeneratorOptions` payload.
+ *
+ * The `ctx` argument carries per-task context:
+ *   - `ctx.taskId` → lets us emit a per-task config filename
+ *     (`opencode-<taskId>.json`) so concurrent tasks don't race on the same
+ *     `opencode.json`.
+ *   - `ctx.workspaceId` → workspace-scoped knowledge notes.
+ *
+ * The transient OAuth flow (`createTransientOpencodeClient`) passes an empty
+ * ctx; in that case we fall back to the default `opencode.json` filename and
+ * skip the workspace context.
+ */
 export async function onBeforeStart(
   storage: StorageAPI,
   opts: TaskConfigBuilderOptions,
+  ctx: OnBeforeStartContext,
 ): Promise<{ configPath: string; env: NodeJS.ProcessEnv }> {
   const authPath = getOpenCodeAuthJsonPath();
   const apiKeys = await storage.getAllApiKeys();
   await syncApiKeysToOpenCodeAuth(authPath, apiKeys);
-
-  const { providerConfigs, enabledProviders, modelOverride } = await buildProviderConfigs({
-    getApiKey: (provider) => storage.getApiKey(provider),
-    accomplishRuntime: opts.accomplishRuntime,
-    accomplishStorageDeps: {
-      readKey: (key) => storage.get(key),
-      writeKey: (key, value) => storage.set(key, value),
-      readGaClientId: () => null, // GA client ID not available in daemon — fingerprint fallback used
-    },
-  });
-
-  const getPort = (envVar: string) => {
-    const val = process.env[envVar];
-    if (!val) {
-      return undefined;
-    }
-    const parsed = parseInt(val, 10);
-    return Number.isNaN(parsed) ? undefined : parsed;
-  };
 
   const permissionApiPort = getPort('ACCOMPLISH_PERMISSION_API_PORT');
   const questionApiPort = getPort('ACCOMPLISH_QUESTION_API_PORT');
@@ -89,41 +134,41 @@ export async function onBeforeStart(
 
   const skills = getEnabledSkills();
 
-  // KNOWN GAP — Google Workspace (GWS) feature merged from main (#921) is
-  // not wired into the daemon's task-execution path. `generator-mcp.ts`
-  // only registers `gmail-mcp`, `calendar-mcp`, `gws-mcp`, and
-  // `request-google-file-picker` when `gwsAccountsManifestPath` is set on
-  // the config-generator options below. The only producer of that manifest
-  // is `apps/desktop/src/main/opencode/config-generator.ts`'s
-  // `prepareGwsManifest`, which is no longer on the task-execution path
-  // under SDK architecture (the daemon owns runtime config generation).
-  // Result: users can connect Google accounts in Settings, but real daemon
-  // tasks won't get the GWS MCP tools.
-  //
-  // Wiring it requires the daemon to (a) read `google_accounts` from the
-  // shared SQLite, (b) materialise per-account token files, and (c) pass
-  // `gwsAccountsManifestPath`/`gwsAccountsSummary` into `generateConfig`.
-  // Step (b) is non-trivial because tokens live in Electron's SecureStorage
-  // (AES-256-GCM) which is not directly daemon-accessible — we'd need
-  // either a daemon→desktop "prepare manifest" RPC or a token-storage
-  // layer the daemon can decrypt. Tracked as a follow-up; not in scope
-  // for this merge.
-  const result = generateConfig({
+  // Resolve the database lazily. Tests or daemon callers that initialize
+  // storage differently may not have `getDatabase()` set up — treat it as
+  // optional (GWS manifest step then silently skips).
+  let database: ReturnType<typeof getDatabase> | undefined;
+  try {
+    database = getDatabase();
+  } catch {
+    database = undefined;
+  }
+
+  const { configOptions } = await resolveTaskConfig({
+    storage,
     platform: process.platform,
     mcpToolsPath: opts.mcpToolsPath,
     userDataPath: opts.userDataPath,
     isPackaged: opts.isPackaged,
     bundledNodeBinPath: getBundledNodeBinPath(opts),
-    providerConfigs,
-    enabledProviders,
+    getApiKey: (provider) => storage.getApiKey(provider),
     permissionApiPort,
     questionApiPort,
     whatsappApiPort,
     authToken: process.env.ACCOMPLISH_DAEMON_AUTH_TOKEN,
-    model: modelOverride?.model,
-    smallModel: modelOverride?.smallModel,
     skills,
+    workspaceId: ctx.workspaceId,
+    configFileName: buildConfigFileName(ctx.taskId),
+    accomplishRuntime: opts.accomplishRuntime,
+    accomplishStorageDeps: {
+      readKey: (key) => storage.get(key),
+      writeKey: (key, value) => storage.set(key, value),
+      readGaClientId: () => null, // GA client ID not available in daemon — fingerprint fallback used
+    },
+    database,
   });
+
+  const result = generateConfig(configOptions);
 
   // Prepend the bundled Node.js bin dir to the env's PATH so the
   // `apps/desktop/node_modules/.bin/opencode` shell wrapper (and the

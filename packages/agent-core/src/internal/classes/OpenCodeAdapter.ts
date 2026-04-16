@@ -60,6 +60,7 @@ import {
 } from '../../opencode/completion/index.js';
 
 import type { TaskConfig, Task, TaskResult } from '../../common/types/task.js';
+import type { OnBeforeStartContext } from '../../types/task-manager.js';
 import type { OpenCodeMessage } from '../../common/types/opencode.js';
 import type { PermissionRequest, PermissionResponse } from '../../common/types/permission.js';
 import {
@@ -132,8 +133,12 @@ export interface AdapterOptions {
    * Populated in Phase 2 by the daemon's server-manager. Required for the
    * SDK adapter; constructors that omit it will succeed, but startTask will
    * throw `OpenCodeRuntimeUnavailableError` until it is wired up.
+   *
+   * The optional `ctx` carries per-task context (workspaceId) through to the
+   * server-manager's own `onBeforeStart` call so the daemon can write the
+   * correct per-task config file when spawning `opencode serve`.
    */
-  getServerUrl?: (taskId: string) => Promise<string | undefined>;
+  getServerUrl?: (taskId: string, ctx?: OnBeforeStartContext) => Promise<string | undefined>;
   /**
    * Optional pre-task hook. Returns environment variables to merge into
    * `this.externalEnv` before opening the SDK session. The daemon's
@@ -144,8 +149,12 @@ export interface AdapterOptions {
    * `getCliCommand`, `buildEnvironment`, and `buildCliArgs` siblings — the
    * SDK flow has no equivalent of CLI args (it uses `session.prompt`) and
    * the spawn environment is owned by `apps/daemon/src/opencode/server-manager.ts`.
+   *
+   * The `ctx` argument lets the hook include per-task data (taskId for the
+   * per-task config filename, workspaceId for workspace knowledge notes).
+   * Callers that don't have a task context pass an empty object.
    */
-  onBeforeStart?: () => Promise<NodeJS.ProcessEnv | void>;
+  onBeforeStart?: (ctx: OnBeforeStartContext) => Promise<NodeJS.ProcessEnv | void>;
   getModelDisplayName?: (modelId: string) => string;
   /** Lazy sandbox factory, called once per adapter instance. */
   sandboxFactory?: () => { provider: SandboxProvider; config: SandboxConfig };
@@ -377,8 +386,19 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       await this.logWatcher.start();
     }
 
+    // Per-task context lets the daemon's onBeforeStart resolve workspace-
+    // scoped knowledge notes and pick a per-task config filename so
+    // concurrent tasks don't race on the same opencode.json. Built once and
+    // forwarded both to the adapter-side `onBeforeStart` hook AND the
+    // server-manager `getServerUrl` call, since both end up invoking the
+    // daemon's `onBeforeStart` internally.
+    const onBeforeStartCtx: OnBeforeStartContext = {
+      taskId,
+      workspaceId: config.workspaceId,
+    };
+
     if (this.options.onBeforeStart) {
-      this.externalEnv = (await this.options.onBeforeStart()) ?? {};
+      this.externalEnv = (await this.options.onBeforeStart(onBeforeStartCtx)) ?? {};
     }
 
     // Resolve the running opencode-serve URL. Phase 2 populates this from the
@@ -388,7 +408,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
         'AdapterOptions.getServerUrl not configured. Daemon server-manager wiring lands in Phase 2 of the SDK cutover port.',
       );
     }
-    const serverUrl = await this.options.getServerUrl(taskId);
+    const serverUrl = await this.options.getServerUrl(taskId, onBeforeStartCtx);
     if (!serverUrl) {
       throw new OpenCodeRuntimeUnavailableError(
         `No opencode-serve URL available for task ${taskId}.`,

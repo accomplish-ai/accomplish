@@ -47,6 +47,13 @@ export interface StoredTask {
   createdAt: string;
   startedAt?: string;
   completedAt?: string;
+  /**
+   * Workspace this task is filed under, if any. Already populated from the
+   * `tasks.workspace_id` column by the storage row mapper — previously the
+   * type surface omitted it, so `TaskService.resumeSession` couldn't fall
+   * back to the original task's workspace on resume turns.
+   */
+  workspaceId?: string;
 }
 
 /** A favorited (starred) completed task, stored for quick reuse on the home page */
