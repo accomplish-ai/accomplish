@@ -364,6 +364,7 @@
     "status": {
       "connected": "已连接",
       "disconnected": "未连接",
+      "pending": "待定",
       "connecting": "连接中...",
       "error": "错误"
     },

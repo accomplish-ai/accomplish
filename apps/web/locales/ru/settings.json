@@ -390,6 +390,7 @@
     "status": {
       "connected": "Подключено",
       "disconnected": "Отключено",
+      "pending": "Ожидание",
       "connecting": "Подключение...",
       "error": "Ошибка"
     },

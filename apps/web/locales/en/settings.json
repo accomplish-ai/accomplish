@@ -361,6 +361,7 @@
     "status": {
       "connected": "Connected",
       "disconnected": "Disconnected",
+      "pending": "Pending",
       "connecting": "Connecting...",
       "error": "Error"
     },

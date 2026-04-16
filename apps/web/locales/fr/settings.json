@@ -390,6 +390,7 @@
     "status": {
       "connected": "Connecté",
       "disconnected": "Déconnecté",
+      "pending": "En attente",
       "connecting": "Connexion...",
       "error": "Erreur"
     },
