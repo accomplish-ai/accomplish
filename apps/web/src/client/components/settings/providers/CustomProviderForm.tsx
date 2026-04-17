@@ -5,7 +5,7 @@ import { ConnectButton, ConnectedControls, ProviderFormHeader, FormError } from 
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { getAccomplish } from '@/lib/accomplish';
 
-import customLogo from '@assets/ai-logos/custom.svg';
+import customLogo from '/assets/ai-logos/custom.svg';
 
 interface CustomProviderFormProps {
   connectedProvider?: ConnectedProvider;

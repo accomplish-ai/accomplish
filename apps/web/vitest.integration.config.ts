@@ -9,8 +9,8 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      '/assets': path.resolve(__dirname, 'public/assets'),
       '@': path.resolve(__dirname, 'src/client'),
-      '@assets': path.resolve(__dirname, 'public/assets'),
       '@accomplish_ai/agent-core/common': path.resolve(
         __dirname,
         '../../packages/agent-core/src/common',

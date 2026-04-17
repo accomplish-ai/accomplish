@@ -13,7 +13,7 @@ import ConversationListItem from './ConversationListItem';
 import SettingsDialog from './SettingsDialog';
 import WorkspaceSelector from './WorkspaceSelector';
 import { Gear, ChatText, MagnifyingGlass } from '@phosphor-icons/react';
-import logoImage from '@assets/logo-1.png';
+import logoImage from '/assets/logo-1.png';
 
 export default function Sidebar() {
   const navigate = useNavigate();

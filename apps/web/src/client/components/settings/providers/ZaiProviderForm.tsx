@@ -19,7 +19,7 @@ import {
   FormError,
 } from '../shared';
 
-import zaiLogo from '@assets/ai-logos/zai.svg';
+import zaiLogo from '/assets/ai-logos/zai.svg';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('ZaiProviderForm');

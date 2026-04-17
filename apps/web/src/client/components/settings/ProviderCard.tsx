@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { PROVIDER_LOGOS, DARK_INVERT_PROVIDERS } from '@/lib/provider-logos';
 import { cn } from '@/lib/utils';
-import connectedKeyIcon from '@assets/icons/connected-key.svg';
+import connectedKeyIcon from '/assets/icons/connected-key.svg';
 
 interface ProviderCardProps {
   providerId: ProviderId;

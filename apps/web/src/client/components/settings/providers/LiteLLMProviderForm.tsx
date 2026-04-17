@@ -15,7 +15,7 @@ import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { getAccomplish } from '@/lib/accomplish';
 
 // Import LiteLLM logo
-import litellmLogo from '@assets/ai-logos/litellm.svg';
+import litellmLogo from '/assets/ai-logos/litellm.svg';
 
 interface LiteLLMProviderFormProps {
   connectedProvider?: ConnectedProvider;

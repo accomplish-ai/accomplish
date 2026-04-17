@@ -15,7 +15,6 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/client/*"],
-      "@assets/*": ["public/assets/*"],
       "@accomplish_ai/agent-core/common": ["../../packages/agent-core/src/common.ts"],
       "@accomplish_ai/agent-core": ["../../packages/agent-core/src/index.ts"],
       "@accomplish_ai/agent-core/*": ["../../packages/agent-core/src/*"],
