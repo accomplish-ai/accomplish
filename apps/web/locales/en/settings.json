@@ -80,7 +80,7 @@
     "xai": "Grok models",
     "deepseek": "DeepSeek models",
     "zai": "GLM models",
-    "novita": "Kimi, GLM, M2.5",
+    "novita": "Kimi, GLM, M2.7",
     "bedrock": "AWS managed",
     "ollama": "Local inference",
     "openrouter": "200+ models",

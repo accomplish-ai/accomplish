@@ -80,7 +80,7 @@
     "xai": "Modèles Grok",
     "deepseek": "Modèles DeepSeek",
     "zai": "Modèles GLM",
-    "novita": "Kimi, GLM, M2.5",
+    "novita": "Kimi, GLM, M2.7",
     "bedrock": "Géré par AWS",
     "ollama": "Inférence locale",
     "openrouter": "200+ modèles",
