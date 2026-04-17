@@ -27,6 +27,7 @@ const PROVIDER_COLORS: Record<string, string> = {
   litellm: 'bg-[#06B6D4]', // Cyan
   bedrock: 'bg-[#FF9900]', // AWS Orange
   zai: 'bg-[#22C55E]', // Green
+  novita: 'bg-[#0F172A]', // Slate
   minimax: 'bg-[#EF4444]', // Red
   lmstudio: 'bg-[#3B82F6]', // Blue
   'azure-foundry': 'bg-[#0078D4]', // Azure blue
@@ -54,6 +55,7 @@ const PROVIDER_INITIALS: Record<string, string> = {
   litellm: 'L',
   bedrock: 'B',
   zai: 'Z',
+  novita: 'N',
   minimax: 'M',
   lmstudio: 'L',
   'azure-foundry': 'A',

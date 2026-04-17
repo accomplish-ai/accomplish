@@ -17,6 +17,7 @@ export type ProviderType =
   | 'deepseek'
   | 'moonshot'
   | 'zai'
+  | 'novita'
   | 'azure-foundry'
   | 'custom'
   | 'bedrock'
@@ -43,6 +44,7 @@ export type ApiKeyProvider =
   | 'deepseek'
   | 'moonshot'
   | 'zai'
+  | 'novita'
   | 'azure-foundry'
   | 'custom'
   | 'bedrock'
@@ -75,6 +77,7 @@ export const ALLOWED_API_KEY_PROVIDERS: ReadonlySet<string> = new Set<string>([
   'deepseek',
   'moonshot',
   'zai',
+  'novita',
   'azure-foundry',
   'custom',
   'bedrock',
@@ -108,6 +111,7 @@ export const STANDARD_VALIDATION_PROVIDERS: ReadonlySet<string> = new Set<string
   'openrouter',
   'moonshot',
   'zai',
+  'novita',
   'minimax',
   'nebius',
   'together',
@@ -340,6 +344,45 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
         provider: 'zai',
         fullId: 'zai/glm-5',
         contextWindow: 128000,
+        supportsVision: false,
+      },
+    ],
+  },
+  {
+    id: 'novita',
+    name: 'Novita AI',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'NOVITA_API_KEY',
+    baseUrl: 'https://api.novita.ai/openai',
+    defaultModelId: 'moonshotai/kimi-k2.5',
+    modelsEndpoint: {
+      url: 'https://api.novita.ai/openai/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+    },
+    models: [
+      {
+        id: 'moonshotai/kimi-k2.5',
+        displayName: 'Kimi K2.5',
+        provider: 'novita',
+        fullId: 'moonshotai/kimi-k2.5',
+        contextWindow: 262144,
+        supportsVision: true,
+      },
+      {
+        id: 'zai-org/glm-5.1',
+        displayName: 'GLM-5.1',
+        provider: 'novita',
+        fullId: 'zai-org/glm-5.1',
+        contextWindow: 204800,
+        supportsVision: false,
+      },
+      {
+        id: 'minimax/minimax-m2.7',
+        displayName: 'MiniMax M2.7',
+        provider: 'novita',
+        fullId: 'minimax/minimax-m2.7',
+        contextWindow: 204800,
         supportsVision: false,
       },
     ],

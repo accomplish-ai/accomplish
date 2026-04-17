@@ -15,6 +15,7 @@ const PROVIDER_ORDER: ProviderId[] = [
   'bedrock',
   'vertex',
   'moonshot',
+  'novita',
   'azure-foundry',
   'deepseek',
   'zai',

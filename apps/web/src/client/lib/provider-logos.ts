@@ -6,6 +6,7 @@ import xaiLogo from '/assets/ai-logos/xai.svg';
 import deepseekLogo from '/assets/ai-logos/deepseek.svg';
 import moonshotLogo from '/assets/ai-logos/moonshot.svg';
 import zaiLogo from '/assets/ai-logos/zai.svg';
+import novitaLogo from '/assets/ai-logos/novita.svg';
 import bedrockLogo from '/assets/ai-logos/bedrock.svg';
 import vertexLogo from '/assets/ai-logos/vertex.svg';
 import azureLogo from '/assets/ai-logos/azure.svg';
@@ -33,6 +34,7 @@ export const PROVIDER_LOGOS: Record<ProviderId, string> = {
   deepseek: deepseekLogo,
   moonshot: moonshotLogo,
   zai: zaiLogo,
+  novita: novitaLogo,
   bedrock: bedrockLogo,
   vertex: vertexLogo,
   'azure-foundry': azureLogo,

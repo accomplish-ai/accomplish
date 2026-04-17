@@ -124,4 +124,51 @@ describe('buildProviderConfigs', () => {
       expect(googleConfig).toBeUndefined();
     });
   });
+
+  describe('Novita provider', () => {
+    it('registers curated Novita models with the approved unprefixed model IDs', async () => {
+      const result = await buildProviderConfigs({
+        getApiKey: (p) => (p === 'novita' ? 'test-novita-api-key' : undefined),
+        providerSettings: {
+          connectedProviders: {
+            novita: {
+              providerId: 'novita',
+              connectionStatus: 'connected',
+              selectedModelId: 'moonshotai/kimi-k2.5',
+              credentials: {
+                type: 'api_key',
+                keyPrefix: 'test-novita-api-key',
+              },
+              availableModels: [
+                {
+                  id: 'moonshotai/kimi-k2.5',
+                  name: 'Kimi K2.5',
+                },
+                {
+                  id: 'zai-org/glm-5.1',
+                  name: 'GLM-5.1',
+                },
+                {
+                  id: 'minimax/minimax-m2.7',
+                  name: 'MiniMax M2.7',
+                },
+              ],
+            },
+          },
+        } as never,
+      });
+
+      const novitaConfig = result.providerConfigs.find((p) => p.id === 'novita');
+      expect(novitaConfig).toBeDefined();
+      expect(novitaConfig?.options).toEqual({
+        baseURL: 'https://api.novita.ai/openai',
+        apiKey: 'test-novita-api-key',
+      });
+      expect(novitaConfig?.models).toEqual({
+        'moonshotai/kimi-k2.5': { name: 'Kimi K2.5', tools: true },
+        'zai-org/glm-5.1': { name: 'GLM-5.1', tools: true },
+        'minimax/minimax-m2.7': { name: 'MiniMax M2.7', tools: true },
+      });
+    });
+  });
 });

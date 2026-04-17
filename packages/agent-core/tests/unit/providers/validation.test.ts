@@ -240,6 +240,28 @@ describe('API Key Validation', () => {
       });
     });
 
+    describe('Novita', () => {
+      it('should validate Novita key successfully against the approved OpenAI-compatible base URL', async () => {
+        vi.mocked(fetch).mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ data: [] }),
+        } as Response);
+
+        const result = await validateApiKey('novita', 'novita-key');
+
+        expect(result.valid).toBe(true);
+        expect(fetch).toHaveBeenCalledWith(
+          'https://api.novita.ai/openai/models',
+          expect.objectContaining({
+            method: 'GET',
+            headers: expect.objectContaining({
+              Authorization: 'Bearer novita-key',
+            }),
+          }),
+        );
+      });
+    });
+
     describe('Providers without API validation', () => {
       it('should skip validation for Ollama', async () => {
         const result = await validateApiKey('ollama', 'any-key');

@@ -7,6 +7,7 @@ const log = createConsoleLogger({ prefix: 'OpenCodeConfigAuthSync' });
 
 /** Providers that use the @ai-sdk/openai-compatible adapter */
 export const OPENAI_COMPATIBLE_PROVIDER_IDS = [
+  'novita',
   'nebius',
   'together',
   'fireworks',

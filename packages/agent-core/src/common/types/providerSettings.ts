@@ -6,6 +6,7 @@ export type ProviderId =
   | 'deepseek'
   | 'moonshot'
   | 'zai'
+  | 'novita'
   | 'bedrock'
   | 'azure-foundry'
   | 'ollama'
@@ -94,6 +95,14 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     helpUrl: 'https://platform.moonshot.ai/docs/guide/start-using-kimi-api',
   },
   zai: { id: 'zai', name: 'Z-AI', category: 'classic', label: 'Service', logoKey: 'z-ai' },
+  novita: {
+    id: 'novita',
+    name: 'Novita AI',
+    category: 'classic',
+    label: 'OpenAI-compatible',
+    logoKey: 'novita',
+    helpUrl: 'https://novita.ai/settings/key-management',
+  },
   bedrock: {
     id: 'bedrock',
     name: 'AWS Bedrock',
@@ -388,6 +397,7 @@ export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
   deepseek: 'deepseek/deepseek-chat',
   moonshot: 'moonshot/kimi-k2.5',
   zai: 'zai/glm-4.7-flashx',
+  novita: 'moonshotai/kimi-k2.5',
   minimax: 'minimax/MiniMax-M2',
   bedrock: 'amazon-bedrock/anthropic.claude-opus-4-5-20251101-v1:0',
   nebius: 'nebius/meta-llama/Meta-Llama-3.1-70B-Instruct',
@@ -416,6 +426,7 @@ export const PROVIDER_ID_TO_OPENCODE: Record<ProviderId, string> = {
   deepseek: 'deepseek',
   moonshot: 'moonshot',
   zai: 'zai-coding-plan',
+  novita: 'novita',
   bedrock: 'amazon-bedrock',
   'azure-foundry': 'azure-foundry',
   ollama: 'ollama',
