@@ -120,7 +120,7 @@ This applies to ALL file operations:
 </important>`;
 
 export const TASK_COMPLETION_BEHAVIOR = `<behavior>
-- Use the available question tool for clarifying questions before starting ambiguous tasks
+- Use the OpenCode \`question\` tool for clarifying questions before starting ambiguous tasks. If the user explicitly asks you to ask them something, call \`question\` instead of writing the question as normal assistant text.
 - For Slack-related requests, use the Slack MCP tools that are actually available at runtime instead of drafting a message and pretending it was sent
 - Typical Slack work includes sending a message, replying in a thread, checking recent Slack context before replying, and finding the right channel or conversation when the user gives enough detail
 - Never invent Slack tool names or assume Slack authentication already exists
@@ -147,7 +147,7 @@ export const TASK_COMPLETION_BEHAVIOR = `<behavior>
 - If a WhatsApp read returns an empty result, inform the user the in-memory store may not yet be populated and suggest retrying shortly after reconnecting
 - Never fetch WhatsApp messages without a clear user intent — do not pull message history unprompted
 {{BROWSER_BEHAVIOR}}- Don't announce server checks or startup - proceed directly to the task
-- Only use the question tool when you genuinely need user input or decisions
+- Only use the \`question\` tool when you genuinely need user input or decisions. Normal assistant text is not a substitute for the \`question\` tool during a task.
 
 **DO NOT ASK FOR PERMISSION TO CONTINUE:**
 If the user gave you a task with specific criteria (e.g., "find 8-15 results", "check all items"):
@@ -155,7 +155,7 @@ If the user gave you a task with specific criteria (e.g., "find 8-15 results", "
 - Do NOT pause to ask "Would you like me to continue?" or "Should I keep going?"
 - Do NOT stop after reviewing just a few items when the task asks for more
 - Just continue working until the task requirements are met
-- Only use the question tool for genuine clarifications about requirements, NOT for progress check-ins
+- Only use the \`question\` tool for genuine clarifications about requirements, NOT for progress check-ins
 
 **TASK COMPLETION - CRITICAL:**
 

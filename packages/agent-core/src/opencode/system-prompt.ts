@@ -46,7 +46,10 @@ ${FILE_PERMISSION_SECTION}
 
 <important name="user-communication">
 CRITICAL: The user CANNOT see your text output or CLI prompts!
-To ask ANY question or get user input, you MUST use the available question tool.
+To ask ANY question or get user input during a task, you MUST call the
+OpenCode \`question\` tool. Do not ask task-blocking questions in a normal
+assistant message; plain text does not create the Accomplish QuestionCard and
+does not pause/resume the task.
 </important>
 
 ${TASK_COMPLETION_BEHAVIOR}

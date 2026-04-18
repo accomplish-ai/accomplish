@@ -27,7 +27,53 @@ import { BASE_PROVIDERS, getBrowserBehaviorInstructions } from './config-generat
 
 const log = createConsoleLogger({ prefix: 'OpenCodeConfig' });
 const DEFAULT_CONFIG_FILE_NAME = 'opencode.json';
-const WILDCARD_PERMISSION_KEY = '*';
+const BASH_PERMISSION_POLICY = {
+  '*': 'allow',
+  '* > *': 'ask',
+  '* >> *': 'ask',
+  '* 2> *': 'ask',
+  '* | tee *': 'ask',
+  '* && tee *': 'ask',
+  'tee *': 'ask',
+  'cat > *': 'ask',
+  'rm *': 'ask',
+  'mv *': 'ask',
+  'cp *': 'ask',
+  'mkdir *': 'ask',
+  'touch *': 'ask',
+  'chmod *': 'ask',
+  'chown *': 'ask',
+  'ln *': 'ask',
+  'install *': 'ask',
+  'truncate *': 'ask',
+  'sed -i*': 'ask',
+  'python*': 'ask',
+  'node *': 'ask',
+  'ruby *': 'ask',
+  'perl *': 'ask',
+  'sh *': 'ask',
+  'bash *': 'ask',
+  'zsh *': 'ask',
+  'osascript *': 'ask',
+  'curl * -o *': 'ask',
+  'curl * --output *': 'ask',
+  'wget *': 'ask',
+  'tar *x*': 'ask',
+  'unzip *': 'ask',
+  'rsync *': 'ask',
+} as const;
+const ACCOMPLISH_PERMISSION_POLICY = {
+  '*': 'allow',
+  bash: BASH_PERMISSION_POLICY,
+  edit: 'ask',
+  write: 'ask',
+  patch: 'ask',
+  multiedit: 'ask',
+  modify: 'ask',
+  delete: 'ask',
+  question: 'allow',
+  todowrite: 'allow',
+} as const;
 
 // LANGUAGE_DISPLAY_NAMES uses keys matching LanguagePreference (BCP-47/ISO 639-1, e.g., 'zh-CN', 'ru', 'fr').
 // This list is intentionally minimal and only includes supported UI languages.
@@ -63,10 +109,7 @@ function getLanguageInstruction(language: string | undefined): string {
 
 export const ACCOMPLISH_AGENT_NAME = 'accomplish';
 
-function scrubWildcardPermissionFromDefaultConfig(
-  configDir: string,
-  activeConfigPath: string,
-): void {
+function syncPermissionPolicyIntoDefaultConfig(configDir: string, activeConfigPath: string): void {
   const defaultConfigPath = path.join(configDir, DEFAULT_CONFIG_FILE_NAME);
   if (path.resolve(defaultConfigPath) === path.resolve(activeConfigPath)) {
     return;
@@ -85,19 +128,13 @@ function scrubWildcardPermissionFromDefaultConfig(
 
   const maybeConfig = parsed as { permission?: unknown };
   if (!maybeConfig.permission || typeof maybeConfig.permission !== 'object') {
-    return;
+    maybeConfig.permission = { ...ACCOMPLISH_PERMISSION_POLICY };
+  } else {
+    Object.assign(maybeConfig.permission as Record<string, unknown>, ACCOMPLISH_PERMISSION_POLICY);
   }
-
-  const permission = maybeConfig.permission as Record<string, unknown>;
-  if (permission[WILDCARD_PERMISSION_KEY] !== 'allow') {
-    return;
-  }
-
-  delete permission[WILDCARD_PERMISSION_KEY];
-  permission.todowrite ??= 'allow';
 
   fs.writeFileSync(defaultConfigPath, JSON.stringify(parsed, null, 2));
-  log.info(`[OpenCode Config] Removed stale wildcard permission from: ${defaultConfigPath}`);
+  log.info(`[OpenCode Config] Synced permission policy into: ${defaultConfigPath}`);
 }
 
 export function generateConfig(options: ConfigGeneratorOptions): GeneratedConfig {
@@ -330,12 +367,15 @@ ${options.knowledgeContext}
     ...(smallModel && { small_model: smallModel }),
     default_agent: ACCOMPLISH_AGENT_NAME,
     enabled_providers: enabledProviders,
-    // Permission policy: only Accomplish's internal bookkeeping tools
-    // get a blanket `allow` — `todowrite` is called by every agent turn
-    // to update the task-plan TODO list and prompting on it would drown
-    // the user in noise. Everything else (bash, write, edit, patch,
-    // webfetch, read, task, …) intentionally falls through to OpenCode's
-    // default `ask` behavior so the existing flow reaches the user:
+    // Permission policy: allow normal non-mutating tools by default, but
+    // ask before native file writes and likely file-mutating shell commands.
+    // OpenCode evaluates the last matching rule, so bash's object syntax
+    // keeps harmless commands like `date` quiet while redirection, mutators,
+    // and arbitrary interpreters pause for approval. `question` must be
+    // allowed so OpenCode can emit `question.asked` and surface the renderer's
+    // QuestionCard; OpenCode's built-in default denies it. `todowrite` is
+    // called by every agent turn to update the task-plan TODO list and
+    // prompting on it would drown the user in noise. Risky tools route via:
     //
     //   OpenCode → `permission.asked` → daemon.TaskCallbacks
     //     → `permission.request` RPC notify → main process
@@ -343,13 +383,12 @@ ${options.knowledgeContext}
     //     → renderer decision → `permission.respond` RPC
     //     → daemon.TaskService.sendResponse → SDK reply
     //
-    // An earlier version here had `{ '*': 'allow', todowrite: 'allow' }`
-    // which silently auto-authorized every tool invocation — OpenCode
-    // matched `bash` / `write` / `edit` against `*: allow` and never
-    // fired `permission.asked`, so the desktop permission UI could
-    // never appear. Any regression that re-adds the wildcard is a
-    // safety bug; see `config-generator.test.ts` for the guard.
-    permission: { todowrite: 'allow' },
+    // An earlier version here had only `{ '*': 'allow', todowrite: 'allow' }`
+    // which silently auto-authorized bash/file writes. Another version used
+    // `{ '*': 'ask', ... }`, which prompted for everything including browser
+    // and webfetch actions. Keep this policy narrow; see
+    // `config-generator.test.ts` for the guard.
+    permission: { ...ACCOMPLISH_PERMISSION_POLICY },
     provider: Object.keys(providerConfig).length > 0 ? providerConfig : undefined,
     plugin: ['@tarquinen/opencode-dcp@^2.0.0'],
     agent: {
@@ -375,7 +414,7 @@ ${options.knowledgeContext}
 
   const configJson = JSON.stringify(config, null, 2);
   fs.writeFileSync(configPath, configJson);
-  scrubWildcardPermissionFromDefaultConfig(configDir, configPath);
+  syncPermissionPolicyIntoDefaultConfig(configDir, configPath);
 
   log.info(`[OpenCode Config] Generated config at: ${configPath}`);
 
