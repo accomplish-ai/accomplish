@@ -6,6 +6,13 @@ import {
   deleteLegacyWorkspaceMetaFiles,
   type StorageAPI,
 } from '@accomplish_ai/agent-core';
+// Deep import so the daemon's raw-SQL helpers (legacy electron-store import,
+// etc.) can reach the underlying `better-sqlite3` handle without widening
+// the `StorageAPI` interface — agent-core keeps its public surface free of
+// the native Database type. Daemon is the sole DB owner post-migration, so
+// this coupling is intentional and scoped.
+import { getDatabase } from '@accomplish_ai/agent-core/storage/database';
+import type { Database } from 'better-sqlite3';
 import { log } from './logger.js';
 
 const DEV_DEFAULT_DATA_DIR = join(homedir(), '.accomplish');
@@ -66,6 +73,20 @@ export class StorageService {
       throw new Error('Storage not initialized. Call initialize() first.');
     }
     return this.storage;
+  }
+
+  /**
+   * Raw `better-sqlite3` handle for one-shot helpers that need direct SQL
+   * access (legacy electron-store import, ad-hoc schema-meta reads/writes).
+   * Use `getStorage()` for everything that has a typed `StorageAPI` method —
+   * this escape hatch exists specifically because `StorageAPI` intentionally
+   * omits raw-DB access from its public surface.
+   */
+  getRawDatabase(): Database {
+    if (!this.storage) {
+      throw new Error('Storage not initialized. Call initialize() first.');
+    }
+    return getDatabase();
   }
 
   close(): void {

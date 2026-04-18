@@ -22,6 +22,14 @@ import { registerTaskEventForwarding } from './task-event-forwarding.js';
 import { WhatsAppDaemonService } from './whatsapp-service.js';
 import { WhatsAppSendApi } from './whatsapp/whatsapp-send-api.js';
 import { OpenAiOauthManager } from './opencode/auth-openai.js';
+// Milestone 2 of the daemon-only-SQLite migration — these four services
+// expose the daemon's storage surface over RPC so main can progressively
+// stop opening the DB itself. They're purely additive in M2; desktop doesn't
+// consume them yet.
+import { SecretsService } from './secrets-service.js';
+import { SettingsService } from './settings-service.js';
+import { WorkspaceService } from './workspace-service.js';
+import { LegacyImportService } from './legacy-import-service.js';
 import { log } from './logger.js';
 
 // __dirname is available natively in CJS (the daemon is built as CJS by tsup)
@@ -194,6 +202,15 @@ async function main(): Promise<void> {
   // back via 'permission.respond' RPC → taskService.sendResponse → SDK reply.
   // The /permission and /question HTTP endpoints are gone with the service.
 
+  // Milestone 2: storage-surface services. Thin wrappers over StorageAPI
+  // (plus, in the legacy importer's case, the raw `better-sqlite3` handle)
+  // that expose typed RPC endpoints. Nothing in main consumes these yet —
+  // Milestones 3 and 5 repoint desktop callers onto them.
+  const secretsService = new SecretsService(storage);
+  const settingsService = new SettingsService(storage);
+  const workspaceService = new WorkspaceService();
+  const legacyImportService = new LegacyImportService(storageService.getRawDatabase());
+
   // Register RPC methods and task event forwarding
   const routeServices = {
     rpc,
@@ -204,6 +221,10 @@ async function main(): Promise<void> {
     accomplishRuntime,
     whatsappService,
     openAiOauthManager,
+    secretsService,
+    settingsService,
+    workspaceService,
+    legacyImportService,
   };
   registerRpcMethods(routeServices);
   registerTaskEventForwarding(routeServices);

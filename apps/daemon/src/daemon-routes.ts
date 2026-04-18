@@ -21,6 +21,10 @@ import type { StorageService } from './storage-service.js';
 import type { SchedulerService } from './scheduler-service.js';
 import type { WhatsAppDaemonService } from './whatsapp-service.js';
 import type { OpenAiOauthManager } from './opencode/auth-openai.js';
+import type { SecretsService } from './secrets-service.js';
+import type { SettingsService, SettingsChangePayload } from './settings-service.js';
+import type { WorkspaceService, WorkspaceChangePayload } from './workspace-service.js';
+import type { LegacyImportService } from './legacy-import-service.js';
 
 const taskIdSchema = z.object({ taskId: z.string().min(1) });
 // taskConfigSchema already includes modelId — no extension needed
@@ -62,6 +66,13 @@ export interface RouteServices {
   /** OAuth manager (Phase 4a of the SDK cutover port). Owns transient
    *  `opencode serve` spawns + the SDK auth flow + plan detection. */
   openAiOauthManager: OpenAiOauthManager;
+  // Milestone 2 of the daemon-only-SQLite migration. Four thin services that
+  // expose the StorageAPI surface over RPC. Main doesn't consume them yet;
+  // they're registered so M3/M5 can progressively repoint desktop callers.
+  secretsService: SecretsService;
+  settingsService: SettingsService;
+  workspaceService: WorkspaceService;
+  legacyImportService: LegacyImportService;
 }
 
 /**
@@ -76,6 +87,10 @@ export function registerRpcMethods(services: RouteServices): void {
     accomplishRuntime,
     whatsappService,
     openAiOauthManager,
+    secretsService,
+    settingsService,
+    workspaceService,
+    legacyImportService,
   } = services;
   const storage = services.storageService.getStorage();
 
@@ -353,5 +368,447 @@ export function registerRpcMethods(services: RouteServices): void {
   rpc.registerMethod(
     'auth.openai.getAccessToken',
     safeHandler(() => Promise.resolve(openAiOauthManager.getAccessToken())),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Milestone 2 of the daemon-only-SQLite migration.
+  //
+  // Everything below this line is additive: new RPC endpoints and change
+  // notifications for the storage surface main currently opens itself.
+  // No existing route is modified. Desktop consumes these incrementally
+  // during M3 + M5.
+  //
+  // Validation strategy: inline zod schemas. A single shared file would
+  // help reuse, but these are all trivial (one string / one bool / a typed
+  // config object) and scoping them here keeps the related `registerMethod`
+  // call self-contained.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  const providerIdSchema = z
+    .string()
+    .min(1)
+    .describe('ProviderId — any value of the ProviderId type literal');
+
+  // ── Secrets ──────────────────────────────────────────────────────────────
+  rpc.registerMethod(
+    'secrets.storeApiKey',
+    safeHandler((params) => {
+      const v = validate(
+        z.object({ provider: z.string().min(1), apiKey: z.string().min(1) }),
+        params,
+      );
+      secretsService.storeApiKey(v.provider, v.apiKey);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'secrets.getApiKey',
+    safeHandler((params) => {
+      const v = validate(z.object({ provider: z.string().min(1) }), params);
+      return Promise.resolve(secretsService.getApiKey(v.provider));
+    }),
+  );
+  rpc.registerMethod(
+    'secrets.deleteApiKey',
+    safeHandler((params) => {
+      const v = validate(z.object({ provider: z.string().min(1) }), params);
+      return Promise.resolve(secretsService.deleteApiKey(v.provider));
+    }),
+  );
+  rpc.registerMethod(
+    'secrets.getAllApiKeys',
+    safeHandler(() => secretsService.getAllApiKeys()),
+  );
+  rpc.registerMethod(
+    'secrets.hasAnyApiKey',
+    safeHandler(() => secretsService.hasAnyApiKey()),
+  );
+  rpc.registerMethod(
+    'secrets.storeBedrockCredentials',
+    safeHandler((params) => {
+      const v = validate(z.object({ credentials: z.string().min(1) }), params);
+      secretsService.storeBedrockCredentials(v.credentials);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'secrets.getBedrockCredentials',
+    safeHandler(() => Promise.resolve(secretsService.getBedrockCredentials())),
+  );
+  rpc.registerMethod(
+    'secrets.clear',
+    safeHandler(() => {
+      secretsService.clear();
+      return Promise.resolve();
+    }),
+  );
+
+  // ── Settings — app-level ─────────────────────────────────────────────────
+  rpc.registerMethod(
+    'settings.getAll',
+    safeHandler(() => Promise.resolve(settingsService.getAll())),
+  );
+  rpc.registerMethod(
+    'settings.setTheme',
+    safeHandler((params) => {
+      const v = validate(z.object({ theme: z.enum(['system', 'light', 'dark']) }), params);
+      settingsService.setTheme(v.theme);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'settings.setLanguage',
+    safeHandler((params) => {
+      const v = validate(
+        z.object({ language: z.enum(['auto', 'en', 'zh-CN', 'ru', 'fr']) }),
+        params,
+      );
+      settingsService.setLanguage(v.language);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'settings.setDebugMode',
+    safeHandler((params) => {
+      const v = validate(z.object({ enabled: z.boolean() }), params);
+      settingsService.setDebugMode(v.enabled);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'settings.setNotificationsEnabled',
+    safeHandler((params) => {
+      const v = validate(z.object({ enabled: z.boolean() }), params);
+      settingsService.setNotificationsEnabled(v.enabled);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'settings.setCloseBehavior',
+    safeHandler((params) => {
+      const v = validate(z.object({ behavior: z.enum(['keep-daemon', 'stop-daemon']) }), params);
+      settingsService.setCloseBehavior(v.behavior);
+      return Promise.resolve();
+    }),
+  );
+  // Sandbox / cloud-browser / messaging configs are typed objects; their
+  // Zod schemas would duplicate the TypeScript types. Pass-through `.unknown()`
+  // for the config payload and trust the type at the call site — misuse
+  // surfaces as a StorageAPI-level error, not a silent no-op.
+  rpc.registerMethod(
+    'settings.setSandboxConfig',
+    safeHandler((params) => {
+      const v = validate(z.object({ config: z.unknown() }), params);
+      settingsService.setSandboxConfig(
+        v.config as Parameters<typeof settingsService.setSandboxConfig>[0],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'settings.setCloudBrowserConfig',
+    safeHandler((params) => {
+      const v = validate(z.object({ config: z.unknown().nullable() }), params);
+      settingsService.setCloudBrowserConfig(
+        v.config as Parameters<typeof settingsService.setCloudBrowserConfig>[0],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'settings.setMessagingConfig',
+    safeHandler((params) => {
+      const v = validate(z.object({ config: z.unknown().nullable() }), params);
+      settingsService.setMessagingConfig(
+        v.config as Parameters<typeof settingsService.setMessagingConfig>[0],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'settings.setOnboardingComplete',
+    safeHandler((params) => {
+      const v = validate(z.object({ complete: z.boolean() }), params);
+      settingsService.setOnboardingComplete(v.complete);
+      return Promise.resolve();
+    }),
+  );
+
+  // ── Settings — provider ──────────────────────────────────────────────────
+  rpc.registerMethod(
+    'provider.getSettings',
+    safeHandler(() => Promise.resolve(settingsService.getProviderSettings())),
+  );
+  rpc.registerMethod(
+    'provider.setActive',
+    safeHandler((params) => {
+      const v = validate(z.object({ providerId: providerIdSchema.nullable() }), params);
+      settingsService.setActiveProvider(
+        v.providerId as Parameters<typeof settingsService.setActiveProvider>[0],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'provider.setConnected',
+    safeHandler((params) => {
+      const v = validate(z.object({ providerId: providerIdSchema, provider: z.unknown() }), params);
+      settingsService.setConnectedProvider(
+        v.providerId as Parameters<typeof settingsService.setConnectedProvider>[0],
+        v.provider as Parameters<typeof settingsService.setConnectedProvider>[1],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'provider.removeConnected',
+    safeHandler((params) => {
+      const v = validate(z.object({ providerId: providerIdSchema }), params);
+      settingsService.removeConnectedProvider(
+        v.providerId as Parameters<typeof settingsService.removeConnectedProvider>[0],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'provider.updateModel',
+    safeHandler((params) => {
+      const v = validate(
+        z.object({ providerId: providerIdSchema, modelId: z.string().nullable() }),
+        params,
+      );
+      settingsService.updateProviderModel(
+        v.providerId as Parameters<typeof settingsService.updateProviderModel>[0],
+        v.modelId,
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'provider.setDebugMode',
+    safeHandler((params) => {
+      const v = validate(z.object({ enabled: z.boolean() }), params);
+      settingsService.setProviderDebugMode(v.enabled);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'provider.getDebugMode',
+    safeHandler(() => Promise.resolve(settingsService.getProviderDebugMode())),
+  );
+  rpc.registerMethod(
+    'provider.getAccomplishAiCredits',
+    safeHandler(() => Promise.resolve(settingsService.getAccomplishAiCredits())),
+  );
+  rpc.registerMethod(
+    'provider.saveAccomplishAiCredits',
+    safeHandler((params) => {
+      const v = validate(z.object({ usage: z.unknown() }), params);
+      settingsService.saveAccomplishAiCredits(
+        v.usage as Parameters<typeof settingsService.saveAccomplishAiCredits>[0],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'provider.getHuggingFaceLocalConfig',
+    safeHandler(() => Promise.resolve(settingsService.getHuggingFaceLocalConfig())),
+  );
+  rpc.registerMethod(
+    'provider.setHuggingFaceLocalConfig',
+    safeHandler((params) => {
+      const v = validate(z.object({ config: z.unknown().nullable() }), params);
+      settingsService.setHuggingFaceLocalConfig(
+        v.config as Parameters<typeof settingsService.setHuggingFaceLocalConfig>[0],
+      );
+      return Promise.resolve();
+    }),
+  );
+
+  // Forward settings.changed events to all connected clients.
+  settingsService.on('settings.changed', (payload: SettingsChangePayload) => {
+    rpc.notify('settings.changed', payload);
+  });
+
+  // ── Workspaces ───────────────────────────────────────────────────────────
+  const workspaceIdParam = z.object({ workspaceId: z.string().min(1) });
+
+  rpc.registerMethod(
+    'workspace.list',
+    safeHandler(() => Promise.resolve(workspaceService.list())),
+  );
+  rpc.registerMethod(
+    'workspace.get',
+    safeHandler((params) => {
+      const v = validate(workspaceIdParam, params);
+      return Promise.resolve(workspaceService.get(v.workspaceId));
+    }),
+  );
+  rpc.registerMethod(
+    'workspace.getActive',
+    safeHandler(() => Promise.resolve(workspaceService.getActive())),
+  );
+  rpc.registerMethod(
+    'workspace.setActive',
+    safeHandler((params) => {
+      const v = validate(workspaceIdParam, params);
+      workspaceService.setActive(v.workspaceId);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'workspace.create',
+    safeHandler((params) => {
+      const v = validate(z.object({ input: z.unknown() }), params);
+      return Promise.resolve(
+        workspaceService.create(v.input as Parameters<typeof workspaceService.create>[0]),
+      );
+    }),
+  );
+  rpc.registerMethod(
+    'workspace.update',
+    safeHandler((params) => {
+      const v = validate(z.object({ workspaceId: z.string().min(1), input: z.unknown() }), params);
+      return Promise.resolve(
+        workspaceService.update(
+          v.workspaceId,
+          v.input as Parameters<typeof workspaceService.update>[1],
+        ),
+      );
+    }),
+  );
+  rpc.registerMethod(
+    'workspace.delete',
+    safeHandler((params) => {
+      const v = validate(workspaceIdParam, params);
+      workspaceService.delete(v.workspaceId);
+      return Promise.resolve();
+    }),
+  );
+
+  // ── Knowledge notes ─────────────────────────────────────────────────────
+  const noteKeyParam = z.object({
+    noteId: z.string().min(1),
+    workspaceId: z.string().min(1),
+  });
+
+  rpc.registerMethod(
+    'knowledgeNote.list',
+    safeHandler((params) => {
+      const v = validate(workspaceIdParam, params);
+      return Promise.resolve(workspaceService.listKnowledgeNotes(v.workspaceId));
+    }),
+  );
+  rpc.registerMethod(
+    'knowledgeNote.get',
+    safeHandler((params) => {
+      const v = validate(noteKeyParam, params);
+      return Promise.resolve(workspaceService.getKnowledgeNote(v.noteId, v.workspaceId));
+    }),
+  );
+  rpc.registerMethod(
+    'knowledgeNote.create',
+    safeHandler((params) => {
+      const v = validate(z.object({ input: z.unknown() }), params);
+      return Promise.resolve(
+        workspaceService.createKnowledgeNote(
+          v.input as Parameters<typeof workspaceService.createKnowledgeNote>[0],
+        ),
+      );
+    }),
+  );
+  rpc.registerMethod(
+    'knowledgeNote.update',
+    safeHandler((params) => {
+      const v = validate(
+        z.object({
+          noteId: z.string().min(1),
+          workspaceId: z.string().min(1),
+          input: z.unknown(),
+        }),
+        params,
+      );
+      return Promise.resolve(
+        workspaceService.updateKnowledgeNote(
+          v.noteId,
+          v.workspaceId,
+          v.input as Parameters<typeof workspaceService.updateKnowledgeNote>[2],
+        ),
+      );
+    }),
+  );
+  rpc.registerMethod(
+    'knowledgeNote.delete',
+    safeHandler((params) => {
+      const v = validate(noteKeyParam, params);
+      workspaceService.deleteKnowledgeNote(v.noteId, v.workspaceId);
+      return Promise.resolve();
+    }),
+  );
+
+  // Forward workspace.changed events to all connected clients.
+  workspaceService.on('workspace.changed', (payload: WorkspaceChangePayload) => {
+    rpc.notify('workspace.changed', payload);
+  });
+
+  // ── Favorites ────────────────────────────────────────────────────────────
+  rpc.registerMethod(
+    'favorites.list',
+    safeHandler(() => Promise.resolve(storage.getFavorites())),
+  );
+  rpc.registerMethod(
+    'favorites.add',
+    safeHandler((params) => {
+      const v = validate(
+        z.object({
+          taskId: z.string().min(1),
+          prompt: z.string(),
+          summary: z.string().optional(),
+        }),
+        params,
+      );
+      storage.addFavorite(v.taskId, v.prompt, v.summary);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'favorites.remove',
+    safeHandler((params) => {
+      const v = validate(taskIdSchema, params);
+      storage.removeFavorite(v.taskId);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'favorites.isFavorite',
+    safeHandler((params) => {
+      const v = validate(taskIdSchema, params);
+      return Promise.resolve(storage.isFavorite(v.taskId));
+    }),
+  );
+
+  // ── Logs (bug-report support) ───────────────────────────────────────────
+  // The desktop bug-report handler reads recent task history to attach to
+  // the generated report. Exposing it here avoids having the renderer reach
+  // into the DB through main after M3.
+  rpc.registerMethod(
+    'logs.getTasksForBugReport',
+    safeHandler(() => Promise.resolve(storage.getTasks())),
+  );
+
+  // ── Legacy electron-store import (one-shot, guarded) ─────────────────────
+  rpc.registerMethod(
+    'legacy.importElectronStoreIfNeeded',
+    safeHandler((params) => {
+      const v = validate(
+        z.object({
+          appSettingsPath: z.string().min(1),
+          providerSettingsPath: z.string().min(1),
+          taskHistoryPath: z.string().min(1),
+        }),
+        params,
+      );
+      return Promise.resolve(legacyImportService.importElectronStoreIfNeeded(v));
+    }),
   );
 }
