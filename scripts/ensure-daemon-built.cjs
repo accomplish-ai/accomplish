@@ -6,6 +6,8 @@
  * to spawn the daemon process.
  *
  * Only builds if the output is missing or stale relative to source.
+ * The daemon bundle includes @accomplish_ai/agent-core code, so agent-core
+ * source changes must also invalidate this output.
  */
 
 const fs = require('fs');
@@ -16,6 +18,10 @@ const rootDir = path.join(__dirname, '..');
 const daemonDir = path.join(rootDir, 'apps', 'daemon');
 const daemonDistEntry = path.join(daemonDir, 'dist', 'index.js');
 const daemonSourceDir = path.join(daemonDir, 'src');
+const agentCoreDir = path.join(rootDir, 'packages', 'agent-core');
+const agentCoreSourceDir = path.join(agentCoreDir, 'src');
+const agentCorePackageJsonPath = path.join(agentCoreDir, 'package.json');
+const agentCoreTsconfigPath = path.join(agentCoreDir, 'tsconfig.json');
 
 function getNewestMtimeMs(dirPath) {
   let newest = 0;
@@ -53,11 +59,24 @@ function getNewestMtimeMs(dirPath) {
   return newest;
 }
 
+function getFileMtimeMs(filePath) {
+  try {
+    return fs.statSync(filePath).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+
 function needsBuild() {
   if (!fs.existsSync(daemonDistEntry)) {
     return true;
   }
-  const sourceMtime = getNewestMtimeMs(daemonSourceDir);
+  const sourceMtime = Math.max(
+    getNewestMtimeMs(daemonSourceDir),
+    getNewestMtimeMs(agentCoreSourceDir),
+    getFileMtimeMs(agentCorePackageJsonPath),
+    getFileMtimeMs(agentCoreTsconfigPath),
+  );
   let distMtime = 0;
   try {
     distMtime = fs.statSync(daemonDistEntry).mtimeMs;

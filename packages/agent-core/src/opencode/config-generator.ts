@@ -26,6 +26,8 @@ import type {
 import { BASE_PROVIDERS, getBrowserBehaviorInstructions } from './config-generator-types.js';
 
 const log = createConsoleLogger({ prefix: 'OpenCodeConfig' });
+const DEFAULT_CONFIG_FILE_NAME = 'opencode.json';
+const WILDCARD_PERMISSION_KEY = '*';
 
 // LANGUAGE_DISPLAY_NAMES uses keys matching LanguagePreference (BCP-47/ISO 639-1, e.g., 'zh-CN', 'ru', 'fr').
 // This list is intentionally minimal and only includes supported UI languages.
@@ -60,6 +62,43 @@ function getLanguageInstruction(language: string | undefined): string {
 }
 
 export const ACCOMPLISH_AGENT_NAME = 'accomplish';
+
+function scrubWildcardPermissionFromDefaultConfig(
+  configDir: string,
+  activeConfigPath: string,
+): void {
+  const defaultConfigPath = path.join(configDir, DEFAULT_CONFIG_FILE_NAME);
+  if (path.resolve(defaultConfigPath) === path.resolve(activeConfigPath)) {
+    return;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(fs.readFileSync(defaultConfigPath, 'utf8'));
+  } catch {
+    return;
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    return;
+  }
+
+  const maybeConfig = parsed as { permission?: unknown };
+  if (!maybeConfig.permission || typeof maybeConfig.permission !== 'object') {
+    return;
+  }
+
+  const permission = maybeConfig.permission as Record<string, unknown>;
+  if (permission[WILDCARD_PERMISSION_KEY] !== 'allow') {
+    return;
+  }
+
+  delete permission[WILDCARD_PERMISSION_KEY];
+  permission.todowrite ??= 'allow';
+
+  fs.writeFileSync(defaultConfigPath, JSON.stringify(parsed, null, 2));
+  log.info(`[OpenCode Config] Removed stale wildcard permission from: ${defaultConfigPath}`);
+}
 
 export function generateConfig(options: ConfigGeneratorOptions): GeneratedConfig {
   const {
@@ -327,7 +366,7 @@ ${options.knowledgeContext}
   };
 
   const configDir = path.join(userDataPath, 'opencode');
-  const configFileName = options.configFileName ?? 'opencode.json';
+  const configFileName = options.configFileName ?? DEFAULT_CONFIG_FILE_NAME;
   const configPath = path.join(configDir, configFileName);
 
   if (!fs.existsSync(configDir)) {
@@ -336,6 +375,7 @@ ${options.knowledgeContext}
 
   const configJson = JSON.stringify(config, null, 2);
   fs.writeFileSync(configPath, configJson);
+  scrubWildcardPermissionFromDefaultConfig(configDir, configPath);
 
   log.info(`[OpenCode Config] Generated config at: ${configPath}`);
 

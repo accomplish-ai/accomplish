@@ -435,6 +435,42 @@ describe('ConfigGenerator', () => {
       }
     });
 
+    it('scrubs stale wildcard allow from the default config when writing a task config', () => {
+      const configDir = path.join(userDataPath, 'opencode');
+      const defaultConfigPath = path.join(configDir, 'opencode.json');
+      fs.mkdirSync(configDir, { recursive: true });
+      fs.writeFileSync(
+        defaultConfigPath,
+        JSON.stringify(
+          {
+            $schema: 'https://opencode.ai/config.json',
+            permission: {
+              '*': 'allow',
+              todowrite: 'allow',
+            },
+            plugin: ['keep-this-plugin'],
+          },
+          null,
+          2,
+        ),
+      );
+
+      const result = generateConfig({
+        ...baseOptions,
+        mcpToolsPath,
+        userDataPath,
+        configFileName: 'opencode-task_test.json',
+      });
+
+      const defaultConfig = JSON.parse(fs.readFileSync(defaultConfigPath, 'utf8'));
+      const taskConfig = JSON.parse(fs.readFileSync(result.configPath, 'utf8'));
+
+      expect(defaultConfig.permission).toEqual({ todowrite: 'allow' });
+      expect(defaultConfig.plugin).toEqual(['keep-this-plugin']);
+      expect(taskConfig.permission).toEqual({ todowrite: 'allow' });
+      expect(taskConfig.permission).not.toHaveProperty('*');
+    });
+
     it('should include DCP plugin', () => {
       const options: ConfigGeneratorOptions = {
         ...baseOptions,
