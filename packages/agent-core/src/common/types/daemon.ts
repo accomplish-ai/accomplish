@@ -18,6 +18,29 @@ import type {
 import type { PermissionRequest, PermissionResponse } from './permission.js';
 import type { TodoItem } from './todo.js';
 import type { CreditUsage } from './gateway.js';
+// M2 storage-surface types. These are type-only imports — TypeScript erases
+// them at emit time, so pulling them in from sibling common modules (and
+// from `../../types/storage.js`, the `AppSettings` / `SelectedModel` layer)
+// does not widen the runtime graph. Keeps the RPC contract single-sourced.
+import type { HuggingFaceLocalConfig } from './provider.js';
+import type { ProviderId, ConnectedProvider, ProviderSettings } from './providerSettings.js';
+import type {
+  Workspace,
+  WorkspaceCreateInput,
+  WorkspaceUpdateInput,
+  KnowledgeNote,
+  KnowledgeNoteCreateInput,
+  KnowledgeNoteUpdateInput,
+} from './workspace.js';
+import type { SandboxConfig } from './sandbox.js';
+import type { CloudBrowserConfig } from './cloud-browser.js';
+import type { MessagingConfig } from './messaging.js';
+import type {
+  AppSettings,
+  ThemePreference,
+  LanguagePreference,
+  StoredFavorite,
+} from '../../types/storage.js';
 
 // =============================================================================
 // JSON-RPC 2.0 Base Types
@@ -218,6 +241,90 @@ export interface WhatsAppDaemonConfig {
 }
 
 // =============================================================================
+// M2 storage-surface payloads (daemon-only-SQLite migration)
+//
+// Defined here (not in the daemon package) so both sides of the RPC share a
+// single source of truth. Extending `DaemonMethodMap` and
+// `DaemonNotificationMap` below pulls these types into `DaemonClient.call()`
+// and `onNotification()`, giving M3 typed callers from the desktop side.
+// =============================================================================
+
+/** Snapshot of user-visible settings returned by `settings.getAll`. Used by
+ *  M5's daemon-first startup to fetch everything needed to render the first
+ *  frame in a single RPC round-trip. */
+export interface SettingsSnapshot {
+  /** The `AppSettings` row (theme, language, debug, onboarding, model + local-provider configs). */
+  app: AppSettings;
+  /** Active + connected providers + debug mode. */
+  providers: ProviderSettings;
+  /** HuggingFace-local MCP config (enabled + selected model), stored separately from `AppSettings`. */
+  huggingFaceLocalConfig: HuggingFaceLocalConfig | null;
+  /** Desktop notification toggle. Not included in `AppSettings` today. */
+  notificationsEnabled: boolean;
+  /** What the close-window button does: keep the daemon running or stop it. */
+  closeBehavior: 'keep-daemon' | 'stop-daemon';
+  /** Sandbox execution config (network policy, mount points, etc.). */
+  sandboxConfig: SandboxConfig;
+  /** Cloud-browser config (null if cloud-browser isn't configured). */
+  cloudBrowserConfig: CloudBrowserConfig | null;
+  /** Messaging integration config (null if not configured). */
+  messagingConfig: MessagingConfig | null;
+}
+
+/** Discriminated union describing a settings write. Subscribers can patch
+ *  their cache in place using the `key` to route; `providerSettings` is a
+ *  deliberately-coarse bucket since provider writes touch a shared JSON blob. */
+export type SettingsChangePayload =
+  | { key: 'theme'; value: ThemePreference }
+  | { key: 'language'; value: LanguagePreference }
+  | { key: 'debugMode'; value: boolean }
+  | { key: 'notificationsEnabled'; value: boolean }
+  | { key: 'closeBehavior'; value: 'keep-daemon' | 'stop-daemon' }
+  | { key: 'sandboxConfig'; value: SandboxConfig }
+  | { key: 'cloudBrowserConfig'; value: CloudBrowserConfig | null }
+  | { key: 'messagingConfig'; value: MessagingConfig | null }
+  | { key: 'onboardingComplete'; value: boolean }
+  | { key: 'providerSettings' }
+  | { key: 'huggingFaceLocalConfig'; value: HuggingFaceLocalConfig | null };
+
+/** Result shape for `workspace.setActive` and `workspace.delete`: callers
+ *  need to know whether the operation actually changed state so they can
+ *  avoid redundant UI re-renders and report accurate success to the user. */
+export interface WorkspaceSetActiveResult {
+  /** `true` if the active workspace changed; `false` if it was already active. */
+  changed: boolean;
+}
+export interface WorkspaceDeleteResult {
+  /** `true` if a row was deleted; `false` if the workspace didn't exist or was the default. */
+  deleted: boolean;
+  /** If the deleted workspace was active, the id we switched to (default or first remaining). */
+  newActiveWorkspaceId?: string;
+}
+
+/** Discriminated union describing a workspace-or-KN write. `workspaceId` is
+ *  always the workspace the change scopes to — for KN operations, the
+ *  workspaceId the note lives in; for workspace-level events, the affected
+ *  workspace itself. */
+export type WorkspaceChangePayload =
+  | { kind: 'workspace.created'; workspaceId: string }
+  | { kind: 'workspace.updated'; workspaceId: string }
+  | { kind: 'workspace.deleted'; workspaceId: string }
+  | { kind: 'workspace.activeChanged'; workspaceId: string }
+  | { kind: 'knowledgeNote.changed'; workspaceId: string };
+
+/** Result of the one-shot electron-store → SQLite importer (`legacy.importElectronStoreIfNeeded`). */
+export type LegacyImportResult =
+  | { imported: true; reason: 'completed' }
+  | { imported: false; reason: 'already-imported' }
+  | { imported: false; reason: 'existing-data' };
+
+export interface LegacyImportPaths {
+  appSettingsPath: string;
+  providerSettingsPath: string;
+  taskHistoryPath: string;
+}
+
+// =============================================================================
 // Method Map: maps RPC method names to { params, result } types
 // =============================================================================
 
@@ -296,6 +403,142 @@ export interface DaemonMethodMap {
     params: undefined;
     result: string | null;
   };
+
+  // ──────────────────────────────────────────────────────────────────────
+  // M2 storage-surface routes (daemon-only-SQLite migration).
+  //
+  // All of these wrap StorageAPI (or agent-core repo functions) on the
+  // daemon side. Nothing in main consumes them yet; M3 and M5 will
+  // progressively repoint desktop callers.
+  // ──────────────────────────────────────────────────────────────────────
+
+  // Secrets — SecureStorageAPI pass-throughs
+  'secrets.storeApiKey': { params: { provider: string; apiKey: string }; result: void };
+  'secrets.getApiKey': { params: { provider: string }; result: string | null };
+  'secrets.deleteApiKey': { params: { provider: string }; result: boolean };
+  'secrets.getAllApiKeys': { params: undefined; result: Record<string, string | null> };
+  'secrets.hasAnyApiKey': { params: undefined; result: boolean };
+  'secrets.storeBedrockCredentials': { params: { credentials: string }; result: void };
+  'secrets.getBedrockCredentials': {
+    params: undefined;
+    result: Record<string, string> | null;
+  };
+  'secrets.clear': { params: undefined; result: void };
+
+  // Settings — bulk read + individual setters + on-demand getters for the
+  // fields AppSettings doesn't already cover (notifications, closeBehavior,
+  // and the three typed-config blobs).
+  'settings.getAll': { params: undefined; result: SettingsSnapshot };
+  'settings.setTheme': { params: { theme: ThemePreference }; result: void };
+  'settings.setLanguage': { params: { language: LanguagePreference }; result: void };
+  'settings.setDebugMode': { params: { enabled: boolean }; result: void };
+  'settings.setNotificationsEnabled': { params: { enabled: boolean }; result: void };
+  'settings.getNotificationsEnabled': { params: undefined; result: boolean };
+  'settings.setCloseBehavior': {
+    params: { behavior: 'keep-daemon' | 'stop-daemon' };
+    result: void;
+  };
+  'settings.getCloseBehavior': {
+    params: undefined;
+    result: 'keep-daemon' | 'stop-daemon';
+  };
+  'settings.setSandboxConfig': { params: { config: SandboxConfig }; result: void };
+  'settings.getSandboxConfig': { params: undefined; result: SandboxConfig };
+  'settings.setCloudBrowserConfig': {
+    params: { config: CloudBrowserConfig | null };
+    result: void;
+  };
+  'settings.getCloudBrowserConfig': {
+    params: undefined;
+    result: CloudBrowserConfig | null;
+  };
+  'settings.setMessagingConfig': {
+    params: { config: MessagingConfig | null };
+    result: void;
+  };
+  'settings.getMessagingConfig': { params: undefined; result: MessagingConfig | null };
+  'settings.setOnboardingComplete': { params: { complete: boolean }; result: void };
+
+  // Provider settings
+  'provider.getSettings': { params: undefined; result: ProviderSettings };
+  'provider.setActive': { params: { providerId: ProviderId | null }; result: void };
+  'provider.setConnected': {
+    params: { providerId: ProviderId; provider: ConnectedProvider };
+    result: void;
+  };
+  'provider.removeConnected': { params: { providerId: ProviderId }; result: void };
+  'provider.updateModel': {
+    params: { providerId: ProviderId; modelId: string | null };
+    result: void;
+  };
+  'provider.setDebugMode': { params: { enabled: boolean }; result: void };
+  'provider.getDebugMode': { params: undefined; result: boolean };
+  'provider.getAccomplishAiCredits': { params: undefined; result: CreditUsage | null };
+  'provider.saveAccomplishAiCredits': { params: { usage: CreditUsage }; result: void };
+  'provider.getHuggingFaceLocalConfig': {
+    params: undefined;
+    result: HuggingFaceLocalConfig | null;
+  };
+  'provider.setHuggingFaceLocalConfig': {
+    params: { config: HuggingFaceLocalConfig | null };
+    result: void;
+  };
+
+  // Workspaces
+  'workspace.list': { params: undefined; result: Workspace[] };
+  'workspace.get': { params: { workspaceId: string }; result: Workspace | null };
+  'workspace.getActive': { params: undefined; result: Workspace | null };
+  'workspace.setActive': {
+    params: { workspaceId: string };
+    result: WorkspaceSetActiveResult;
+  };
+  'workspace.create': { params: { input: WorkspaceCreateInput }; result: Workspace };
+  'workspace.update': {
+    params: { workspaceId: string; input: WorkspaceUpdateInput };
+    result: Workspace | null;
+  };
+  'workspace.delete': {
+    params: { workspaceId: string };
+    result: WorkspaceDeleteResult;
+  };
+
+  // Knowledge notes (composite `(noteId, workspaceId)` key — the repo
+  // requires both because notes are workspace-scoped)
+  'knowledgeNote.list': { params: { workspaceId: string }; result: KnowledgeNote[] };
+  'knowledgeNote.get': {
+    params: { noteId: string; workspaceId: string };
+    result: KnowledgeNote | null;
+  };
+  'knowledgeNote.create': {
+    params: { input: KnowledgeNoteCreateInput };
+    result: KnowledgeNote;
+  };
+  'knowledgeNote.update': {
+    params: { noteId: string; workspaceId: string; input: KnowledgeNoteUpdateInput };
+    result: KnowledgeNote | null;
+  };
+  'knowledgeNote.delete': {
+    params: { noteId: string; workspaceId: string };
+    result: void;
+  };
+
+  // Favorites
+  'favorites.list': { params: undefined; result: StoredFavorite[] };
+  'favorites.add': {
+    params: { taskId: string; prompt: string; summary?: string };
+    result: void;
+  };
+  'favorites.remove': { params: TaskIdParams; result: void };
+  'favorites.isFavorite': { params: TaskIdParams; result: boolean };
+
+  // Logs (bug-report support)
+  'logs.getTasksForBugReport': { params: undefined; result: Task[] };
+
+  // Legacy electron-store import (one-shot, guarded by schema_meta flag)
+  'legacy.importElectronStoreIfNeeded': {
+    params: LegacyImportPaths;
+    result: LegacyImportResult;
+  };
 }
 
 /** All valid daemon RPC method names. */
@@ -335,6 +578,14 @@ export interface DaemonNotificationMap {
   // WhatsApp notifications
   'whatsapp.qr': { qr: string };
   'whatsapp.status': { status: import('./messaging.js').MessagingConnectionStatus };
+
+  // M2 storage-surface notifications (daemon-only-SQLite migration).
+  // `settings.changed` is emitted by the daemon's SettingsService on every
+  // write; `workspace.changed` by WorkspaceService on every workspace or
+  // knowledge-note mutation. The renderer uses these to patch its cache
+  // instead of re-fetching on every IPC round-trip.
+  'settings.changed': SettingsChangePayload;
+  'workspace.changed': WorkspaceChangePayload;
 }
 
 /** All valid daemon notification names. */

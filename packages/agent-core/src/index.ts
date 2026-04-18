@@ -617,7 +617,22 @@ export type {
   ScheduledTask,
   TaskScheduleParams,
   TaskCancelScheduledParams,
+  // Milestone 2 of the daemon-only-SQLite migration — storage-surface
+  // payload types. Both daemon services and the M3 renderer subscriptions
+  // pull these from the same common module.
+  SettingsSnapshot,
+  SettingsChangePayload,
+  WorkspaceChangePayload,
+  WorkspaceSetActiveResult,
+  WorkspaceDeleteResult,
+  LegacyImportResult,
+  LegacyImportPaths,
 } from './common/types/daemon.js';
+
+// `LanguagePreference` lives in the storage-types module next to
+// `AppSettings`; re-exporting it here keeps the daemon's SettingsService able
+// to name its parameter types without a deep import.
+export type { LanguagePreference } from './types/storage.js';
 
 // Browser live-view types (ENG-695)
 export type {

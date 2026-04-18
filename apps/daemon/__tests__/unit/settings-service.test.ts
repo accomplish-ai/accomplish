@@ -15,6 +15,12 @@ function makeStorageStub(): StorageAPI {
       () => ({}) as unknown as ReturnType<StorageAPI['getProviderSettings']>,
     ),
     getHuggingFaceLocalConfig: vi.fn(() => null),
+    // M2 review follow-up: getAll must cover the full M5 first-frame payload
+    getNotificationsEnabled: vi.fn(() => true),
+    getCloseBehavior: vi.fn(() => 'keep-daemon' as const),
+    getSandboxConfig: vi.fn(() => ({}) as unknown as ReturnType<StorageAPI['getSandboxConfig']>),
+    getCloudBrowserConfig: vi.fn(() => null),
+    getMessagingConfig: vi.fn(() => null),
     setTheme: vi.fn(),
     setLanguage: vi.fn(),
     setDebugMode: vi.fn(),
@@ -51,7 +57,7 @@ describe('SettingsService', () => {
     service = new SettingsService(storage);
   });
 
-  it('getAll returns a snapshot built from three StorageAPI reads', () => {
+  it('getAll returns the full first-frame snapshot (covers fields AppSettings does not bundle)', () => {
     vi.mocked(storage.getAppSettings).mockReturnValue({
       debugMode: true,
     } as unknown as ReturnType<StorageAPI['getAppSettings']>);
@@ -59,12 +65,46 @@ describe('SettingsService', () => {
       activeProviderId: 'anthropic',
     } as unknown as ReturnType<StorageAPI['getProviderSettings']>);
     vi.mocked(storage.getHuggingFaceLocalConfig).mockReturnValue(null);
+    vi.mocked(storage.getNotificationsEnabled).mockReturnValue(false);
+    vi.mocked(storage.getCloseBehavior).mockReturnValue('stop-daemon');
+    vi.mocked(storage.getSandboxConfig).mockReturnValue({
+      mode: 'disabled',
+    } as unknown as ReturnType<StorageAPI['getSandboxConfig']>);
+    vi.mocked(storage.getCloudBrowserConfig).mockReturnValue(null);
+    vi.mocked(storage.getMessagingConfig).mockReturnValue(null);
 
     const snap = service.getAll();
 
     expect(snap.app).toEqual({ debugMode: true });
     expect(snap.providers).toEqual({ activeProviderId: 'anthropic' });
     expect(snap.huggingFaceLocalConfig).toBeNull();
+    // Review P2: these five fields are NOT in AppSettings and must be
+    // present in the snapshot so M5's daemon-first startup doesn't need
+    // to issue follow-up RPCs for basic chrome state.
+    expect(snap.notificationsEnabled).toBe(false);
+    expect(snap.closeBehavior).toBe('stop-daemon');
+    expect(snap.sandboxConfig).toEqual({ mode: 'disabled' });
+    expect(snap.cloudBrowserConfig).toBeNull();
+    expect(snap.messagingConfig).toBeNull();
+  });
+
+  it('exposes on-demand getters for the fields AppSettings does not bundle', () => {
+    // Renderer re-reads these independently (notifications toggle in tray,
+    // close-behavior picker in settings, sandbox config UI). Fetching the
+    // whole snapshot for a single field is wasteful.
+    vi.mocked(storage.getNotificationsEnabled).mockReturnValue(true);
+    vi.mocked(storage.getCloseBehavior).mockReturnValue('keep-daemon');
+
+    expect(service.getNotificationsEnabled()).toBe(true);
+    expect(service.getCloseBehavior()).toBe('keep-daemon');
+    // The three typed-config getters all delegate straight to storage; we
+    // don't need fancy fixtures here — just confirm the plumbing.
+    service.getSandboxConfig();
+    service.getCloudBrowserConfig();
+    service.getMessagingConfig();
+    expect(storage.getSandboxConfig).toHaveBeenCalled();
+    expect(storage.getCloudBrowserConfig).toHaveBeenCalled();
+    expect(storage.getMessagingConfig).toHaveBeenCalled();
   });
 
   it('setTheme writes to storage and emits settings.changed with the new value', () => {

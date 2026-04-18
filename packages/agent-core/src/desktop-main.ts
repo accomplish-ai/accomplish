@@ -209,3 +209,17 @@ export type {
 
 export type { CreditUsage } from './common/types/gateway.js';
 export type { BedrockCredentials, VertexCredentials } from './common/types/auth.js';
+
+// Milestone 2 of the daemon-only-SQLite migration. M3 uses these payload
+// types to type-check renderer subscriptions to the daemon's
+// `settings.changed` and `workspace.changed` notifications, and to type
+// the result shape for M5's first-frame `settings.getAll` read.
+export type {
+  SettingsSnapshot,
+  SettingsChangePayload,
+  WorkspaceChangePayload,
+  WorkspaceSetActiveResult,
+  WorkspaceDeleteResult,
+  LegacyImportResult,
+  LegacyImportPaths,
+} from './common/types/daemon.js';

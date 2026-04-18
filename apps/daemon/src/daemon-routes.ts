@@ -484,12 +484,20 @@ export function registerRpcMethods(services: RouteServices): void {
     }),
   );
   rpc.registerMethod(
+    'settings.getNotificationsEnabled',
+    safeHandler(() => Promise.resolve(settingsService.getNotificationsEnabled())),
+  );
+  rpc.registerMethod(
     'settings.setCloseBehavior',
     safeHandler((params) => {
       const v = validate(z.object({ behavior: z.enum(['keep-daemon', 'stop-daemon']) }), params);
       settingsService.setCloseBehavior(v.behavior);
       return Promise.resolve();
     }),
+  );
+  rpc.registerMethod(
+    'settings.getCloseBehavior',
+    safeHandler(() => Promise.resolve(settingsService.getCloseBehavior())),
   );
   // Sandbox / cloud-browser / messaging configs are typed objects; their
   // Zod schemas would duplicate the TypeScript types. Pass-through `.unknown()`
@@ -506,6 +514,10 @@ export function registerRpcMethods(services: RouteServices): void {
     }),
   );
   rpc.registerMethod(
+    'settings.getSandboxConfig',
+    safeHandler(() => Promise.resolve(settingsService.getSandboxConfig())),
+  );
+  rpc.registerMethod(
     'settings.setCloudBrowserConfig',
     safeHandler((params) => {
       const v = validate(z.object({ config: z.unknown().nullable() }), params);
@@ -516,6 +528,10 @@ export function registerRpcMethods(services: RouteServices): void {
     }),
   );
   rpc.registerMethod(
+    'settings.getCloudBrowserConfig',
+    safeHandler(() => Promise.resolve(settingsService.getCloudBrowserConfig())),
+  );
+  rpc.registerMethod(
     'settings.setMessagingConfig',
     safeHandler((params) => {
       const v = validate(z.object({ config: z.unknown().nullable() }), params);
@@ -524,6 +540,10 @@ export function registerRpcMethods(services: RouteServices): void {
       );
       return Promise.resolve();
     }),
+  );
+  rpc.registerMethod(
+    'settings.getMessagingConfig',
+    safeHandler(() => Promise.resolve(settingsService.getMessagingConfig())),
   );
   rpc.registerMethod(
     'settings.setOnboardingComplete',
@@ -652,8 +672,10 @@ export function registerRpcMethods(services: RouteServices): void {
     'workspace.setActive',
     safeHandler((params) => {
       const v = validate(workspaceIdParam, params);
-      workspaceService.setActive(v.workspaceId);
-      return Promise.resolve();
+      // Returns { changed: boolean } — the service rejects unknown ids with
+      // a thrown error (caught by safeHandler), and no-ops when the target
+      // is already active. Callers use `changed` to skip redundant reloads.
+      return Promise.resolve(workspaceService.setActive(v.workspaceId));
     }),
   );
   rpc.registerMethod(
@@ -681,8 +703,11 @@ export function registerRpcMethods(services: RouteServices): void {
     'workspace.delete',
     safeHandler((params) => {
       const v = validate(workspaceIdParam, params);
-      workspaceService.delete(v.workspaceId);
-      return Promise.resolve();
+      // Returns { deleted: boolean; newActiveWorkspaceId?: string }. `deleted`
+      // is false for missing/default workspaces; when the active workspace
+      // was deleted, `newActiveWorkspaceId` points at the fallback the
+      // service switched to before the delete.
+      return Promise.resolve(workspaceService.delete(v.workspaceId));
     }),
   );
 

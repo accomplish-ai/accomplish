@@ -73,11 +73,33 @@ describe('WorkspaceService', () => {
       expect(service.getActive()).toEqual({ id: 'w1', name: 'Default' });
     });
 
-    it('setActive forwards + emits activeChanged', () => {
-      const changes = capture(service);
-      service.setActive('w2');
-      expect(mocks.setActiveWorkspaceId).toHaveBeenCalledWith('w2');
-      expect(changes).toEqual([{ kind: 'workspace.activeChanged', workspaceId: 'w2' }]);
+    // ── setActive invariants (review P2a) ──────────────────────────────
+    describe('setActive', () => {
+      it('throws when the target workspace does not exist', () => {
+        mocks.getWorkspace.mockReturnValue(undefined);
+        expect(() => service.setActive('w-missing')).toThrow(/not found/);
+        expect(mocks.setActiveWorkspaceId).not.toHaveBeenCalled();
+      });
+
+      it('returns { changed: false } and does NOT emit when already active', () => {
+        mocks.getWorkspace.mockReturnValue({ id: 'w1' });
+        mocks.getActiveWorkspaceId.mockReturnValue('w1');
+        const changes = capture(service);
+
+        expect(service.setActive('w1')).toEqual({ changed: false });
+        expect(mocks.setActiveWorkspaceId).not.toHaveBeenCalled();
+        expect(changes).toEqual([]);
+      });
+
+      it('writes and emits when switching to a different workspace', () => {
+        mocks.getWorkspace.mockReturnValue({ id: 'w2' });
+        mocks.getActiveWorkspaceId.mockReturnValue('w1');
+        const changes = capture(service);
+
+        expect(service.setActive('w2')).toEqual({ changed: true });
+        expect(mocks.setActiveWorkspaceId).toHaveBeenCalledWith('w2');
+        expect(changes).toEqual([{ kind: 'workspace.activeChanged', workspaceId: 'w2' }]);
+      });
     });
 
     it('create forwards input, returns the new row, and emits created', () => {
@@ -100,11 +122,97 @@ describe('WorkspaceService', () => {
       expect(changes).toEqual([{ kind: 'workspace.updated', workspaceId: 'w1' }]);
     });
 
-    it('delete forwards + emits deleted', () => {
-      const changes = capture(service);
-      service.delete('w1');
-      expect(mocks.deleteWorkspaceRecord).toHaveBeenCalledWith('w1');
-      expect(changes).toEqual([{ kind: 'workspace.deleted', workspaceId: 'w1' }]);
+    // ── delete invariants (review P2a) ─────────────────────────────────
+    describe('delete', () => {
+      it('returns { deleted: false } and does NOT emit when the workspace does not exist', () => {
+        mocks.getWorkspace.mockReturnValue(undefined);
+        const changes = capture(service);
+
+        expect(service.delete('w-missing')).toEqual({ deleted: false });
+        expect(mocks.deleteWorkspaceRecord).not.toHaveBeenCalled();
+        expect(mocks.setActiveWorkspaceId).not.toHaveBeenCalled();
+        expect(changes).toEqual([]);
+      });
+
+      it('refuses to delete the default workspace', () => {
+        mocks.getWorkspace.mockReturnValue({ id: 'w-default', isDefault: true });
+        const changes = capture(service);
+
+        expect(service.delete('w-default')).toEqual({ deleted: false });
+        expect(mocks.deleteWorkspaceRecord).not.toHaveBeenCalled();
+        expect(changes).toEqual([]);
+      });
+
+      it('deletes a non-active, non-default workspace and emits deleted', () => {
+        mocks.getWorkspace.mockReturnValue({ id: 'w1', isDefault: false });
+        mocks.getActiveWorkspaceId.mockReturnValue('w-active');
+        mocks.deleteWorkspaceRecord.mockReturnValue(true);
+        const changes = capture(service);
+
+        const result = service.delete('w1');
+
+        expect(result).toEqual({ deleted: true });
+        expect(mocks.setActiveWorkspaceId).not.toHaveBeenCalled();
+        expect(changes).toEqual([{ kind: 'workspace.deleted', workspaceId: 'w1' }]);
+      });
+
+      it('switches active to the default BEFORE deleting the active workspace', () => {
+        mocks.getWorkspace.mockReturnValue({ id: 'w-active', isDefault: false });
+        mocks.getActiveWorkspaceId.mockReturnValue('w-active');
+        mocks.listWorkspaces.mockReturnValue([
+          { id: 'w-default', isDefault: true },
+          { id: 'w-active', isDefault: false },
+        ]);
+        mocks.deleteWorkspaceRecord.mockReturnValue(true);
+        const changes = capture(service);
+
+        const result = service.delete('w-active');
+
+        expect(result).toEqual({
+          deleted: true,
+          newActiveWorkspaceId: 'w-default',
+        });
+        // Order: activeChanged FIRST (preempts stale pointer), deleted SECOND
+        expect(changes).toEqual([
+          { kind: 'workspace.activeChanged', workspaceId: 'w-default' },
+          { kind: 'workspace.deleted', workspaceId: 'w-active' },
+        ]);
+        // And the repo call order matches — setActive before delete
+        const setActiveOrder = mocks.setActiveWorkspaceId.mock.invocationCallOrder[0];
+        const deleteOrder = mocks.deleteWorkspaceRecord.mock.invocationCallOrder[0];
+        expect(setActiveOrder).toBeLessThan(deleteOrder);
+      });
+
+      it('falls back to the first remaining workspace when no default exists', () => {
+        // This is the (unlikely but possible) edge case where someone
+        // deletes the default or a profile is imported without one.
+        mocks.getWorkspace.mockReturnValue({ id: 'w-active', isDefault: false });
+        mocks.getActiveWorkspaceId.mockReturnValue('w-active');
+        mocks.listWorkspaces.mockReturnValue([
+          { id: 'w-active', isDefault: false },
+          { id: 'w-other', isDefault: false },
+        ]);
+        mocks.deleteWorkspaceRecord.mockReturnValue(true);
+
+        const result = service.delete('w-active');
+
+        expect(result.newActiveWorkspaceId).toBe('w-other');
+        expect(mocks.setActiveWorkspaceId).toHaveBeenCalledWith('w-other');
+      });
+
+      it('handles the race where the row disappears between check and delete', () => {
+        mocks.getWorkspace.mockReturnValue({ id: 'w1', isDefault: false });
+        mocks.getActiveWorkspaceId.mockReturnValue('w-active');
+        // Repo returns false — something raced us
+        mocks.deleteWorkspaceRecord.mockReturnValue(false);
+        const changes = capture(service);
+
+        const result = service.delete('w1');
+
+        expect(result.deleted).toBe(false);
+        // No deleted event emitted — the state didn't change due to our call
+        expect(changes.filter((c) => c.kind === 'workspace.deleted')).toEqual([]);
+      });
     });
   });
 

@@ -5,54 +5,37 @@
  * Milestone 2 of the daemon-only-SQLite migration
  * (plan: /Users/yanai/.claude/plans/squishy-exploring-hamster.md).
  *
- * Emits `settings.changed` on every write. The daemon wires that through
- * `rpc.notify('settings.changed', payload)` so main can forward to the
- * renderer and invalidate its local caches.
+ * Emits `settings.changed` on every write. The payload type lives in
+ * `@accomplish_ai/agent-core` (`common/types/daemon.ts`) so both daemon and
+ * client side agree on the shape — the daemon wires that into
+ * `rpc.notify('settings.changed', payload)` and main forwards it to the
+ * renderer to patch its cache.
  *
- * The payload is a discriminated `{ key, value }` object so subscribers can
- * patch their cache in place. `getAll` returns a full snapshot used by the
- * renderer on startup (M5 daemon-first boot).
+ * The `getAll` snapshot covers everything the renderer needs to render the
+ * first frame on M5's daemon-first startup (theme, language, debug, provider
+ * config, plus the fields `AppSettings` does not bundle: notifications,
+ * close-behavior, sandbox / cloud-browser / messaging configs).
  */
 import { EventEmitter } from 'node:events';
 import type { StorageAPI } from '@accomplish_ai/agent-core';
 import type {
-  AppSettings,
-  ThemePreference,
-  ProviderId,
   ConnectedProvider,
-  ProviderSettings,
   HuggingFaceLocalConfig,
+  ProviderId,
+  ProviderSettings,
+  SettingsChangePayload,
+  SettingsSnapshot,
 } from '@accomplish_ai/agent-core';
-
-/** Subset of `AppSettingsAPI`'s `language` literal. Re-declared here so
- *  consumers don't need a second import. */
-export type LanguagePreference = 'auto' | 'en' | 'zh-CN' | 'ru' | 'fr';
-
-export type SettingsChangePayload =
-  | { key: 'theme'; value: ThemePreference }
-  | { key: 'language'; value: LanguagePreference }
-  | { key: 'debugMode'; value: boolean }
-  | { key: 'notificationsEnabled'; value: boolean }
-  | { key: 'closeBehavior'; value: 'keep-daemon' | 'stop-daemon' }
-  | { key: 'sandboxConfig'; value: unknown }
-  | { key: 'cloudBrowserConfig'; value: unknown | null }
-  | { key: 'messagingConfig'; value: unknown | null }
-  | { key: 'onboardingComplete'; value: boolean }
-  | { key: 'providerSettings' }
-  | { key: 'huggingFaceLocalConfig'; value: HuggingFaceLocalConfig | null };
-
-export type SettingsSnapshot = {
-  app: AppSettings;
-  providers: ProviderSettings;
-  huggingFaceLocalConfig: HuggingFaceLocalConfig | null;
-};
+import type { ThemePreference, LanguagePreference } from '@accomplish_ai/agent-core';
+import type { CreditUsage } from '@accomplish_ai/agent-core';
+import type { SandboxConfig } from '@accomplish_ai/agent-core';
 
 /**
- * Event name — subscribe via `service.on(SETTINGS_CHANGED, listener)`. The
- * listener receives a `SettingsChangePayload`. We intentionally do NOT use
- * `declare interface` + class merging here (forbidden by
- * `@typescript-eslint/no-unsafe-declaration-merging`); the string constant
- * keeps callers honest and the payload type is the source of truth.
+ * Event name — subscribe via `service.on(SETTINGS_CHANGED, listener)`. We
+ * intentionally do NOT use `declare interface` + class merging here
+ * (forbidden by `@typescript-eslint/no-unsafe-declaration-merging`); the
+ * string constant keeps callers honest and the payload type
+ * (`SettingsChangePayload`, imported from agent-core) is the source of truth.
  */
 export const SETTINGS_CHANGED = 'settings.changed' as const;
 
@@ -68,10 +51,15 @@ export class SettingsService extends EventEmitter {
       app: this.storage.getAppSettings(),
       providers: this.storage.getProviderSettings(),
       huggingFaceLocalConfig: this.storage.getHuggingFaceLocalConfig(),
+      notificationsEnabled: this.storage.getNotificationsEnabled(),
+      closeBehavior: this.storage.getCloseBehavior(),
+      sandboxConfig: this.storage.getSandboxConfig(),
+      cloudBrowserConfig: this.storage.getCloudBrowserConfig(),
+      messagingConfig: this.storage.getMessagingConfig(),
     };
   }
 
-  // ─── App-level settings ─────────────────────────────────────────────────
+  // ─── App-level settings — writers ───────────────────────────────────────
 
   setTheme(theme: ThemePreference): void {
     this.storage.setTheme(theme);
@@ -98,7 +86,7 @@ export class SettingsService extends EventEmitter {
     this.emit('settings.changed', { key: 'closeBehavior', value: behavior });
   }
 
-  setSandboxConfig(config: Parameters<StorageAPI['setSandboxConfig']>[0]): void {
+  setSandboxConfig(config: SandboxConfig): void {
     this.storage.setSandboxConfig(config);
     this.emit('settings.changed', { key: 'sandboxConfig', value: config });
   }
@@ -116,6 +104,34 @@ export class SettingsService extends EventEmitter {
   setOnboardingComplete(complete: boolean): void {
     this.storage.setOnboardingComplete(complete);
     this.emit('settings.changed', { key: 'onboardingComplete', value: complete });
+  }
+
+  // ─── App-level settings — on-demand getters ─────────────────────────────
+  //
+  // `getAll()` already covers the startup read, but the renderer has a few
+  // surfaces that re-read these independently (notifications toggle, close-
+  // behavior picker, sandbox config UI). Exposing individual getters avoids
+  // having to fetch the whole snapshot for a single field and keeps M3's
+  // repointing of those handlers a one-line change.
+
+  getNotificationsEnabled(): boolean {
+    return this.storage.getNotificationsEnabled();
+  }
+
+  getCloseBehavior(): 'keep-daemon' | 'stop-daemon' {
+    return this.storage.getCloseBehavior();
+  }
+
+  getSandboxConfig(): SandboxConfig {
+    return this.storage.getSandboxConfig();
+  }
+
+  getCloudBrowserConfig(): ReturnType<StorageAPI['getCloudBrowserConfig']> {
+    return this.storage.getCloudBrowserConfig();
+  }
+
+  getMessagingConfig(): ReturnType<StorageAPI['getMessagingConfig']> {
+    return this.storage.getMessagingConfig();
   }
 
   // ─── Provider settings ──────────────────────────────────────────────────
@@ -155,11 +171,11 @@ export class SettingsService extends EventEmitter {
 
   // ─── Accomplish AI credits cache ────────────────────────────────────────
 
-  getAccomplishAiCredits(): Parameters<StorageAPI['saveAccomplishAiCredits']>[0] | null {
+  getAccomplishAiCredits(): CreditUsage | null {
     return this.storage.getAccomplishAiCredits();
   }
 
-  saveAccomplishAiCredits(usage: Parameters<StorageAPI['saveAccomplishAiCredits']>[0]): void {
+  saveAccomplishAiCredits(usage: CreditUsage): void {
     this.storage.saveAccomplishAiCredits(usage);
     this.emit('settings.changed', { key: 'providerSettings' });
   }
@@ -175,3 +191,7 @@ export class SettingsService extends EventEmitter {
     this.emit('settings.changed', { key: 'huggingFaceLocalConfig', value: config });
   }
 }
+
+// Re-export the shared payload types so daemon-routes.ts can keep its
+// existing import path. Single source of truth stays in agent-core.
+export type { SettingsChangePayload, SettingsSnapshot };
