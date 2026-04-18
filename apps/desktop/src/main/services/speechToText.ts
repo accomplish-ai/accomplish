@@ -36,11 +36,11 @@ export type {
 } from '@accomplish_ai/agent-core/desktop-main';
 
 /**
- * Build a one-shot `SpeechService` pre-seeded with the ElevenLabs API key.
- * Any `provider` other than `'elevenlabs'` returns `null` — the service
- * only ever asks for that one.
+ * Build a one-shot `SpeechService` pre-seeded with the ElevenLabs API key
+ * fetched from the daemon. Any `provider` other than `'elevenlabs'` returns
+ * `null` — the service only ever asks for that one.
  */
-async function buildService(): Promise<SpeechServiceAPI> {
+async function buildServiceFromDaemon(): Promise<SpeechServiceAPI> {
   const elevenlabsKey = await getApiKey('elevenlabs');
   const fakeStorage = {
     getApiKey: (provider: string): string | null =>
@@ -50,17 +50,36 @@ async function buildService(): Promise<SpeechServiceAPI> {
 }
 
 /**
+ * Build a `SpeechService` with a no-storage adapter. Every `getApiKey`
+ * lookup returns `null`. Used when the caller supplies an explicit
+ * `apiKey` override — the service's `validateElevenLabsApiKey(apiKey)`
+ * never asks storage in that case, so making the RPC call would be
+ * wasted work AND would fail in degraded startup / mock-daemon modes.
+ */
+function buildServiceWithoutStorage(): SpeechServiceAPI {
+  const nullStorage = {
+    getApiKey: (): string | null => null,
+  } as unknown as SecureStorageAPI;
+  return createSpeechService({ storage: nullStorage });
+}
+
+/**
  * Validate ElevenLabs API key by making a test request.
  *
- * The `apiKey` override path bypasses storage entirely — used by the
- * "test this key before saving" settings flow — so we can skip the
- * daemon round-trip in that case.
+ * The `apiKey` override path — used by the settings "test this key before
+ * saving" flow — bypasses the daemon entirely: `SpeechService.validate`
+ * uses the explicit param and never touches the adapter's `getApiKey`.
+ * Pre-fetching would be both wasted work and a spurious failure in degraded
+ * startup / `E2E_MOCK_TASK_EVENTS` paths.
  */
 export async function validateElevenLabsApiKey(
   apiKey?: string,
 ): Promise<{ valid: boolean; error?: string }> {
-  const service = await buildService();
-  return service.validateElevenLabsApiKey(apiKey);
+  if (apiKey) {
+    return buildServiceWithoutStorage().validateElevenLabsApiKey(apiKey);
+  }
+  const service = await buildServiceFromDaemon();
+  return service.validateElevenLabsApiKey();
 }
 
 /**
@@ -76,6 +95,6 @@ export async function transcribeAudio(
 ): Promise<
   { success: true; result: TranscriptionResult } | { success: false; error: TranscriptionError }
 > {
-  const service = await buildService();
+  const service = await buildServiceFromDaemon();
   return service.transcribeAudio(audioData, mimeType);
 }

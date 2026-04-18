@@ -33,7 +33,14 @@ async function raceTimeout<T>(promise: Promise<T>, ms: number, label: string): P
 
 export async function shutdownApp(logger: AppLogger): Promise<void> {
   destroyTray();
-  shutdownDaemon();
+  // NOTE: `shutdownDaemon()` moved below the analytics-flush block in
+  // Milestone 3 sub-chunk 3a (daemon-only-SQLite migration). `trackAppClose`
+  // enriches its payload with `getAllApiKeys()`, which post-M3 routes over
+  // daemon RPC — closing the daemon client before that runs turns every
+  // normal quit into an analytics-flush failure. The daemon process itself
+  // is designed to outlive Electron, so closing the client socket later is
+  // harmless; the daemon keeps handling scheduled tasks / background token
+  // refresh regardless of when we disconnect.
 
   try {
     await raceTimeout(stopDevBrowserServer(), 5000, 'Dev-browser shutdown');
@@ -73,7 +80,10 @@ export async function shutdownApp(logger: AppLogger): Promise<void> {
     logger?.logEnv('ERROR', `[Main] Error during workspaceManager.close: ${String(error)}`);
   }
 
-  // Track app close + flush analytics before closing storage — best effort
+  // Track app close + flush analytics before closing storage — best effort.
+  // MUST run before `shutdownDaemon()` below: `trackAppClose` reads
+  // `getAllApiKeys()` via daemon RPC to enrich the event payload, and
+  // closing the client first would turn this into a throw on every quit.
   try {
     await trackAppClose();
     flushAnalytics();
@@ -81,6 +91,12 @@ export async function shutdownApp(logger: AppLogger): Promise<void> {
   } catch (error: unknown) {
     logger?.logEnv('ERROR', `[Main] Error during analytics flush: ${String(error)}`);
   }
+
+  // Close the daemon client socket. Safe to run after analytics (daemon
+  // process itself survives Electron exit and keeps servicing scheduled
+  // tasks + background token refresh). Moved here from the top of the
+  // function as part of Milestone 3 sub-chunk 3a.
+  shutdownDaemon();
 
   try {
     closeStorage();
