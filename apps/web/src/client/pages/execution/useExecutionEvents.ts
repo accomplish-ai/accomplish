@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import type { TaskUpdateEvent } from '@accomplish_ai/agent-core/common';
 import type { DebugLogEntry } from '../../components/execution/DebugPanel';
 import { getAccomplish } from '../../lib/accomplish';
+import { useTaskStore } from '../../stores/taskStore';
 
 type Accomplish = ReturnType<typeof getAccomplish>;
 
@@ -48,9 +49,7 @@ export function useExecutionEvents(opts: UseExecutionEventsOptions) {
       setCurrentTool(null);
       setCurrentToolInput(null);
       accomplish.getTodosForTask(id).then((todos) => {
-        import('../../stores/taskStore').then(({ useTaskStore }) => {
-          useTaskStore.getState().setTodos(id, todos);
-        });
+        useTaskStore.getState().setTodos(id, todos);
       });
     }
 
@@ -129,12 +128,10 @@ export function useExecutionEvents(opts: UseExecutionEventsOptions) {
 
     const unsubscribeDaemonReconnectFailed = accomplish.onDaemonReconnectFailed?.(() => {
       if (id) {
-        import('../../stores/taskStore').then(({ useTaskStore }) => {
-          const state = useTaskStore.getState();
-          if (state.currentTask?.id === id && state.currentTask.status === 'running') {
-            updateTaskStatus(id, 'failed');
-          }
-        });
+        const state = useTaskStore.getState();
+        if (state.currentTask?.id === id && state.currentTask.status === 'running') {
+          updateTaskStatus(id, 'failed');
+        }
       }
     });
 
