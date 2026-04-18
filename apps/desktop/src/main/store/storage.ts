@@ -5,10 +5,6 @@ import {
   deleteLegacyWorkspaceMetaFiles,
   type StorageAPI,
 } from '@accomplish_ai/agent-core';
-// Deep import for legacy migration only — getDatabase is intentionally not part of StorageAPI
-import { getDatabase as coreGetDatabase } from '@accomplish_ai/agent-core/storage/database';
-import type { Database } from 'better-sqlite3';
-import { importLegacyElectronStoreData } from './electronStoreImport';
 
 let _storage: StorageAPI | null = null;
 
@@ -29,6 +25,32 @@ export function getLegacyMetaDbPath(): string {
   return path.join(app.getPath('userData'), fileName);
 }
 
+/**
+ * Paths to the legacy `electron-store` JSON files (app-settings,
+ * provider-settings, task-history). Milestone 3 sub-chunk 3b removed the
+ * desktop-side importer; `app-startup.ts` now hands these paths to the
+ * daemon's `legacy.importElectronStoreIfNeeded` RPC post-bootstrap and the
+ * daemon reads + imports them directly (guarded by a `schema_meta` flag,
+ * idempotent across boots).
+ *
+ * The filename + path derivation here has to match what `electron-store`
+ * chose historically: `<storeName>.json` in `app.getPath('userData')`,
+ * where `storeName` gets a `-dev` suffix in non-packaged builds.
+ */
+export function getLegacyElectronStorePaths(): {
+  appSettingsPath: string;
+  providerSettingsPath: string;
+  taskHistoryPath: string;
+} {
+  const userData = app.getPath('userData');
+  const suffix = app.isPackaged ? '' : '-dev';
+  return {
+    appSettingsPath: path.join(userData, `app-settings${suffix}.json`),
+    providerSettingsPath: path.join(userData, `provider-settings${suffix}.json`),
+    taskHistoryPath: path.join(userData, `task-history${suffix}.json`),
+  };
+}
+
 export function getStorage(): StorageAPI {
   if (!_storage) {
     _storage = createStorage({
@@ -43,25 +65,20 @@ export function getStorage(): StorageAPI {
 }
 
 /**
- * Initialize both the database and secure storage.
- * On first run, also imports data from the legacy electron-store format and
- * deletes the retired `workspace-meta{.db,-dev.db}` triplet if v030 import
- * succeeded. Deletion is a no-op unless `legacy_meta_import_status='copied'`
- * was written by `importLegacyWorkspaceMeta` during `storage.initialize()`.
+ * Initialize the local DB singleton. Still required in M3 because Google
+ * accounts and skills (both slated for M4) hold a handle to it via
+ * `getStorage()` + `coreGetDatabase()`. The legacy electron-store import
+ * that used to run here was removed in sub-chunk 3b: the daemon owns that
+ * import now, triggered from `app-startup.ts` via
+ * `legacy.importElectronStoreIfNeeded` RPC after `bootstrapDaemon()`. We
+ * still call `deleteLegacyWorkspaceMetaFiles` locally because M3 has both
+ * main and daemon opening the same DB; the helper is idempotent and only
+ * fires when `schema_meta.legacy_meta_import_status='copied'`.
  */
 export function initializeStorage(): void {
   const storage = getStorage();
   if (!storage.isDatabaseInitialized()) {
     storage.initialize();
-
-    // One-time legacy data import from old electron-store format
-    const db: Database = coreGetDatabase();
-    importLegacyElectronStoreData(db);
-
-    // After `storage.initialize()` has run migrations + the in-db import
-    // helper, clean up the retired legacy workspace-meta file on disk.
-    // Runs on every boot; terminal status in schema_meta makes it a no-op
-    // after the first successful import (or a no-op for non-'copied' states).
     deleteLegacyWorkspaceMetaFiles(getLegacyMetaDbPath());
   }
 }

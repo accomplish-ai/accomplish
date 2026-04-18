@@ -62,21 +62,11 @@ vi.mock('@accomplish_ai/agent-core', async () => {
   };
 });
 
-// Deep import mocked — the real module pulls in better-sqlite3.
-vi.mock('@accomplish_ai/agent-core/storage/database', () => ({
-  getDatabase: vi.fn(() => ({
-    prepare: vi.fn(() => ({
-      run: vi.fn(),
-      get: vi.fn(),
-      all: vi.fn(() => []),
-    })),
-  })),
-}));
-
-// Neuter the one-time electron-store import so it doesn't do anything.
-vi.mock('@main/store/electronStoreImport', () => ({
-  importLegacyElectronStoreData: vi.fn(),
-}));
+// Milestone 3 sub-chunk 3b: the deep-`storage/database` import and the
+// `@main/store/electronStoreImport` mock are both gone. `storage.ts` no
+// longer reaches for the raw `Database` handle (the legacy electron-store
+// import moved to the daemon and is invoked over RPC from `app-startup.ts`
+// post-bootstrap) and the importer module itself was deleted.
 
 describe('desktop storage bootstrap — init contract', () => {
   beforeEach(() => {
@@ -158,5 +148,31 @@ describe('desktop storage bootstrap — init contract', () => {
     const initOrder = storageInitializeSpy.mock.invocationCallOrder[0];
     const deleteOrder = deleteLegacySpy.mock.invocationCallOrder[0];
     expect(initOrder).toBeLessThan(deleteOrder);
+  });
+
+  // Milestone 3 sub-chunk 3b: the daemon owns the legacy electron-store
+  // import now, but `app.getPath` is Electron-only so main has to compute
+  // the JSON paths and hand them over via the
+  // `legacy.importElectronStoreIfNeeded` RPC. These tests pin the filename
+  // derivation so dev/packaged profiles read the right files.
+  it('getLegacyElectronStorePaths returns dev-suffixed filenames when isPackaged=false', async () => {
+    const storage = await importFreshStorage();
+    const paths = storage.getLegacyElectronStorePaths();
+    expect(paths).toEqual({
+      appSettingsPath: path.join('/mock/userData', 'app-settings-dev.json'),
+      providerSettingsPath: path.join('/mock/userData', 'provider-settings-dev.json'),
+      taskHistoryPath: path.join('/mock/userData', 'task-history-dev.json'),
+    });
+  });
+
+  it('getLegacyElectronStorePaths returns unsuffixed filenames when isPackaged=true', async () => {
+    electronState.isPackaged = true;
+    const storage = await importFreshStorage();
+    const paths = storage.getLegacyElectronStorePaths();
+    expect(paths).toEqual({
+      appSettingsPath: path.join('/mock/userData', 'app-settings.json'),
+      providerSettingsPath: path.join('/mock/userData', 'provider-settings.json'),
+      taskHistoryPath: path.join('/mock/userData', 'task-history.json'),
+    });
   });
 });

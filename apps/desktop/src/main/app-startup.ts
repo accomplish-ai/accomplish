@@ -10,14 +10,18 @@ import path from 'path';
 import { FutureSchemaError } from '@accomplish_ai/agent-core/desktop-main';
 import type { ProviderId } from '@accomplish_ai/agent-core/desktop-main';
 import { migrateLegacyData } from './store/legacyMigration';
-import { initializeStorage, getStorage } from './store/storage';
+import { initializeStorage, getStorage, getLegacyElectronStorePaths } from './store/storage';
 import { getApiKey } from './store/secureStorage';
 import * as workspaceManager from './store/workspaceManager';
 import { getLogCollector } from './logging';
 import { skillsManager } from './skills';
 import { startHuggingFaceServer } from './providers/huggingface-local';
 import { createTray } from './tray';
-import { bootstrapDaemon, registerNotificationForwarding } from './daemon-bootstrap';
+import {
+  bootstrapDaemon,
+  registerNotificationForwarding,
+  getDaemonClient,
+} from './daemon-bootstrap';
 import { registerIPCHandlers } from './ipc/handlers';
 import { drainProtocolUrlQueue } from './protocol-handlers';
 import { getBuildConfig, getBuildId, isAnalyticsEnabled } from './config/build-config';
@@ -202,6 +206,34 @@ export async function startApp(
     logMain('INFO', '[Main] E2E mock mode — skipping daemon bootstrap');
   }
 
+  // Legacy electron-store import — MOVED to the daemon in Milestone 3
+  // sub-chunk 3b. Main used to run `importLegacyElectronStoreData(db)`
+  // inside `initializeStorage()` against the local DB handle; the daemon
+  // now owns the import against its own (same) DB, triggered via RPC.
+  //
+  // Hands the JSON paths to the daemon because `app.getPath` is Electron-
+  // only — the daemon cannot derive them itself. The service guards with
+  // `schema_meta.legacy_electron_store_import_complete`, so every-boot
+  // invocation is a cheap no-op after the first successful import.
+  //
+  // Skipped in E2E mock mode for the same reason as provider validation
+  // below: no daemon client is connected.
+  if (process.env.E2E_MOCK_TASK_EVENTS !== '1') {
+    try {
+      const paths = getLegacyElectronStorePaths();
+      const client = getDaemonClient();
+      const result = await client.call('legacy.importElectronStoreIfNeeded', paths);
+      logMain('INFO', '[Main] Legacy electron-store import', result);
+    } catch (err) {
+      // Non-fatal: a failed/missing legacy import should not block app startup.
+      // The daemon logs the details on its side; we log + continue here so
+      // providers and settings can still load from the main DB path.
+      logMain('WARN', '[Main] Legacy electron-store import RPC failed', {
+        err: String(err),
+      });
+    }
+  }
+
   // Provider validation — MOVED here from pre-bootstrap (Milestone 3 of the
   // daemon-only-SQLite migration). `getApiKey` now routes over RPC to the
   // daemon, so this loop can only run once `bootstrapDaemon()` has resolved.
@@ -209,6 +241,9 @@ export async function startApp(
   // mock task events and no provider is expected to have a real key, so the
   // loop would just prune everything. Guard on mock mode to keep the
   // E2E fixtures stable.
+  //
+  // Runs AFTER the legacy import so any connected-provider rows the import
+  // just brought in are validated against secure storage in the same pass.
   if (process.env.E2E_MOCK_TASK_EVENTS !== '1') {
     try {
       const storage = getStorage();
