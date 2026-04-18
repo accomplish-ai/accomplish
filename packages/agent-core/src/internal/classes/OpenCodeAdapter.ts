@@ -1230,16 +1230,12 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     };
     const fileOp = this.inferFileOperation(sdkReq);
     const filePath = this.inferFilePath(sdkReq);
-    // Note: SDK v2 permission requests reference the originating tool via
-    // `tool: { messageID, callID }` — not by name. Resolving to a human-
-    // readable tool name would require looking up the tool part separately;
-    // the renderer can do that via its existing tool registry. Leave
-    // toolName undefined for now.
     const req: PermissionRequest = {
       id: requestId,
       taskId: this.currentTaskId ?? '',
       type: fileOp ? 'file' : 'tool',
-      toolInput: sdkReq.metadata,
+      toolName: this.formatPermissionToolName(sdkReq.permission),
+      toolInput: this.buildPermissionToolInput(sdkReq),
       ...(fileOp ? { fileOperation: fileOp } : {}),
       ...(filePath ? { filePath } : {}),
       createdAt: new Date().toISOString(),
@@ -1280,6 +1276,56 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
     if (perm === 'write') return 'create';
     if (perm === 'delete') return 'delete';
     return undefined;
+  }
+
+  private formatPermissionToolName(permission: string): string | undefined {
+    const trimmed = permission.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+    const knownLabels: Record<string, string> = {
+      bash: 'Bash',
+      write: 'Write',
+      edit: 'Edit',
+      patch: 'Patch',
+      multiedit: 'MultiEdit',
+      read: 'Read',
+      webfetch: 'WebFetch',
+      external_directory: 'External Directory Access',
+    };
+    const known = knownLabels[trimmed.toLowerCase()];
+    if (known) {
+      return known;
+    }
+    return trimmed
+      .split(/[-_:.\s]+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }
+
+  private buildPermissionToolInput(
+    req: OpenCodeSdkPermissionRequest,
+  ): Record<string, unknown> | undefined {
+    const input: Record<string, unknown> = {};
+    const patterns = Array.isArray(req.patterns) ? req.patterns.filter(Boolean) : [];
+    const metadata =
+      req.metadata && typeof req.metadata === 'object'
+        ? (req.metadata as Record<string, unknown>)
+        : {};
+
+    if (req.permission.toLowerCase() === 'bash' && patterns.length === 1) {
+      input.command = patterns[0];
+    } else if (patterns.length === 1) {
+      input.pattern = patterns[0];
+    } else if (patterns.length > 1) {
+      input.patterns = patterns;
+    }
+
+    Object.assign(input, metadata);
+    input.permission = req.permission;
+
+    return Object.keys(input).length > 0 ? input : undefined;
   }
 
   private inferFilePath(req: OpenCodeSdkPermissionRequest): string | undefined {

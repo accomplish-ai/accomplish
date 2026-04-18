@@ -63,7 +63,6 @@ const BASH_PERMISSION_POLICY = {
   'rsync *': 'ask',
 } as const;
 const ACCOMPLISH_PERMISSION_POLICY = {
-  '*': 'allow',
   bash: BASH_PERMISSION_POLICY,
   edit: 'ask',
   write: 'ask',
@@ -130,7 +129,9 @@ function syncPermissionPolicyIntoDefaultConfig(configDir: string, activeConfigPa
   if (!maybeConfig.permission || typeof maybeConfig.permission !== 'object') {
     maybeConfig.permission = { ...ACCOMPLISH_PERMISSION_POLICY };
   } else {
-    Object.assign(maybeConfig.permission as Record<string, unknown>, ACCOMPLISH_PERMISSION_POLICY);
+    const permission = maybeConfig.permission as Record<string, unknown>;
+    delete permission['*'];
+    Object.assign(permission, ACCOMPLISH_PERMISSION_POLICY);
   }
 
   fs.writeFileSync(defaultConfigPath, JSON.stringify(parsed, null, 2));
@@ -367,15 +368,19 @@ ${options.knowledgeContext}
     ...(smallModel && { small_model: smallModel }),
     default_agent: ACCOMPLISH_AGENT_NAME,
     enabled_providers: enabledProviders,
-    // Permission policy: allow normal non-mutating tools by default, but
-    // ask before native file writes and likely file-mutating shell commands.
-    // OpenCode evaluates the last matching rule, so bash's object syntax
-    // keeps harmless commands like `date` quiet while redirection, mutators,
-    // and arbitrary interpreters pause for approval. `question` must be
-    // allowed so OpenCode can emit `question.asked` and surface the renderer's
-    // QuestionCard; OpenCode's built-in default denies it. `todowrite` is
-    // called by every agent turn to update the task-plan TODO list and
-    // prompting on it would drown the user in noise. Risky tools route via:
+    // Permission policy: leave OpenCode's built-in defaults in charge of
+    // normal non-mutating tools, and only add overrides for risky native file
+    // writes, external-directory access, questions, and noisy bookkeeping.
+    // Do not add a top-level `'*': 'allow'` here: it overrides OpenCode's
+    // built-in `external_directory: ask` rule, which is the guard that catches
+    // writes like `~/Desktop/kuku.txt` even when the bash permission pattern
+    // itself is just `printf ...`. Bash's nested object keeps harmless commands
+    // like `date` quiet while redirection, mutators, and arbitrary interpreters
+    // pause for approval. `question` must be allowed so OpenCode can emit
+    // `question.asked` and surface the renderer's QuestionCard; OpenCode's
+    // built-in default denies it. `todowrite` is called by every agent turn to
+    // update the task-plan TODO list and prompting on it would drown the user
+    // in noise. Risky tools route via:
     //
     //   OpenCode → `permission.asked` → daemon.TaskCallbacks
     //     → `permission.request` RPC notify → main process
@@ -383,10 +388,11 @@ ${options.knowledgeContext}
     //     → renderer decision → `permission.respond` RPC
     //     → daemon.TaskService.sendResponse → SDK reply
     //
-    // An earlier version here had only `{ '*': 'allow', todowrite: 'allow' }`
-    // which silently auto-authorized bash/file writes. Another version used
-    // `{ '*': 'ask', ... }`, which prompted for everything including browser
-    // and webfetch actions. Keep this policy narrow; see
+    // Earlier versions here had `{ '*': 'allow', todowrite: 'allow' }`, or a
+    // top-level wildcard plus native-file asks. Both silently auto-authorized
+    // external-directory file writes. Another version used `{ '*': 'ask', ... }`,
+    // which prompted for everything including browser and webfetch actions.
+    // Keep this policy narrow; see
     // `config-generator.test.ts` for the guard.
     permission: { ...ACCOMPLISH_PERMISSION_POLICY },
     provider: Object.keys(providerConfig).length > 0 ? providerConfig : undefined,

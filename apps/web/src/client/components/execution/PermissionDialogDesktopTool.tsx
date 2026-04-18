@@ -4,6 +4,13 @@ interface PermissionDialogDesktopToolProps {
   permissionRequest: PermissionRequest;
 }
 
+function formatToolInput(input: unknown): string {
+  if (typeof input === 'string') {
+    return input;
+  }
+  return JSON.stringify(input, null, 2);
+}
+
 export function PermissionDialogDesktopTool({
   permissionRequest,
 }: PermissionDialogDesktopToolProps) {
@@ -51,6 +58,8 @@ export function PermissionDialogDesktopTool({
   }
 
   // type === 'tool'
+  const hasToolInput = permissionRequest.toolInput !== undefined;
+
   return (
     <>
       <p className="text-sm text-muted-foreground mb-4">
@@ -58,12 +67,14 @@ export function PermissionDialogDesktopTool({
           ? `Allow ${permissionRequest.toolName}?`
           : 'Allow this tool action?'}
       </p>
-      {permissionRequest.toolName && (
+      {(permissionRequest.toolName || hasToolInput) && (
         <div className="mb-4 p-3 rounded-lg bg-muted text-xs font-mono overflow-x-auto">
-          <p className="text-muted-foreground mb-1">Tool: {permissionRequest.toolName}</p>
-          <pre className="text-foreground">
-            {JSON.stringify(permissionRequest.toolInput, null, 2)}
-          </pre>
+          {permissionRequest.toolName && (
+            <p className="text-muted-foreground mb-1">Tool: {permissionRequest.toolName}</p>
+          )}
+          {hasToolInput && (
+            <pre className="text-foreground">{formatToolInput(permissionRequest.toolInput)}</pre>
+          )}
         </div>
       )}
     </>

@@ -104,6 +104,22 @@ describe('PermissionDialog', () => {
 
       expect(screen.getByText(/ls -la/)).toBeInTheDocument();
     });
+
+    it('should display tool input details even when the tool name is missing', () => {
+      const onRespond = vi.fn();
+      render(
+        <PermissionDialog
+          permissionRequest={createToolPermission({
+            toolName: undefined,
+            toolInput: { command: 'printf "hello" > ~/Desktop/kuku.txt' },
+          })}
+          onRespond={onRespond}
+        />,
+      );
+
+      expect(screen.getByText('Allow this tool action?')).toBeInTheDocument();
+      expect(screen.getByText(/kuku\.txt/)).toBeInTheDocument();
+    });
   });
 
   describe('file permission inline card', () => {

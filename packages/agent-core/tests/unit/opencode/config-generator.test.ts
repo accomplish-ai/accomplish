@@ -379,8 +379,9 @@ describe('ConfigGenerator', () => {
     // cutover removed those shims, so native OpenCode permissions now need a
     // narrow policy:
     //
-    //   1. `*` stays `allow` so non-mutating tools (browser/webfetch/read/
-    //      grep/glob/list/task/skill) don't prompt constantly.
+    //   1. No top-level `*` override: OpenCode's defaults already allow
+    //      non-mutating tools, and its built-in `external_directory: ask`
+    //      must remain active for paths like ~/Desktop.
     //   2. Native file mutation tools are explicit `ask`.
     //   3. Bash allows read-only utilities by default, but asks for obvious
     //      file mutation patterns and arbitrary interpreters.
@@ -398,7 +399,6 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
 
       expect(result.config.permission).toEqual({
-        '*': 'allow',
         bash: {
           '*': 'allow',
           '* > *': 'ask',
@@ -455,6 +455,7 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
       const permission = result.config.permission as Record<string, unknown>;
 
+      expect(permission).not.toHaveProperty('*');
       for (const tool of ['write', 'edit', 'patch', 'multiedit', 'modify', 'delete']) {
         expect(permission).toHaveProperty(tool, 'ask');
       }
@@ -532,8 +533,8 @@ describe('ConfigGenerator', () => {
       const defaultConfig = JSON.parse(fs.readFileSync(defaultConfigPath, 'utf8'));
       const taskConfig = JSON.parse(fs.readFileSync(result.configPath, 'utf8'));
 
+      expect(defaultConfig.permission).not.toHaveProperty('*');
       expect(defaultConfig.permission).toMatchObject({
-        '*': 'allow',
         bash: {
           '*': 'allow',
           '* > *': 'ask',
@@ -550,8 +551,8 @@ describe('ConfigGenerator', () => {
         todowrite: 'allow',
       });
       expect(defaultConfig.plugin).toEqual(['keep-this-plugin']);
+      expect(taskConfig.permission).not.toHaveProperty('*');
       expect(taskConfig.permission).toMatchObject({
-        '*': 'allow',
         bash: {
           '*': 'allow',
           '* > *': 'ask',
@@ -595,8 +596,8 @@ describe('ConfigGenerator', () => {
       });
 
       const defaultConfig = JSON.parse(fs.readFileSync(defaultConfigPath, 'utf8'));
+      expect(defaultConfig.permission).not.toHaveProperty('*');
       expect(defaultConfig.permission).toMatchObject({
-        '*': 'allow',
         bash: expect.objectContaining({
           '*': 'allow',
           '* > *': 'ask',
