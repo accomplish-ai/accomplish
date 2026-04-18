@@ -50,124 +50,132 @@ if (process.argv.includes('--e2e-mock-tasks') || process.env.E2E_MOCK_TASK_EVENT
  * of SQLite + secure storage. If a user quit with "keep daemon running",
  * a detached daemon process is still holding DB, pid, and socket file
  * descriptors under `userData`. Running `fs.rmSync` on that directory
- * while the daemon is live creates two failure modes:
+ * while the daemon is live corrupts the on-disk state (files unlinked
+ * under open fds, pid/socket reappearing during daemon flush, etc.).
  *
- *   1. `rmSync` unlinks the files the daemon has open; the daemon
- *      continues writing into dangling inodes. On the next boot we spawn
- *      a second daemon that creates fresh files, and the old daemon's
- *      in-flight writes vanish on its exit.
- *   2. Pid/socket files re-appear before the rmSync completes (the old
- *      daemon's flush cycle), and the next bootstrap observes ghost
- *      state that belongs to a process we've effectively stranded.
+ * Round-3 review finding P1.E: the pre-fix path read `daemon.pid` and
+ * raw-signalled the pid with SIGTERM/SIGKILL. The OS reuses pids, so a
+ * stale lock file can point at a PID now owned by an unrelated process
+ * (editor, browser, etc.) — SIGKILL'ing it would be a very bad day.
  *
- * Signal escalation (review round 2, finding P1):
- *   1. SIGTERM gives the daemon a chance to close SQLite cleanly. But
- *      the daemon's SIGTERM handler drains active tasks for up to
- *      `DRAIN_TIMEOUT_MS` (30s) + a 10s force-shutdown buffer. Waiting
- *      that full window would make CLEAN_START feel broken — and the
- *      user has already explicitly opted to wipe everything, so
- *      in-flight tasks are throwaway regardless.
- *   2. After `CLEAN_START_SIGTERM_GRACE_MS`, if the daemon is still
- *      alive, SIGKILL it. SIGKILL is guaranteed on POSIX; on Windows
- *      `process.kill(pid, 'SIGKILL')` collapses to TerminateProcess.
- *      The daemon loses its release-pid-lock path, but that's fine —
- *      `rmSync` below nukes the pid file anyway.
- *   3. If even SIGKILL doesn't take (kernel zombie or permissions),
- *      log and proceed — we've done what we can.
+ * Identity-safe shutdown:
+ *   1. Import the `DaemonClient` + `createSocketTransport` from
+ *      agent-core/desktop-main and try to connect to the profile's
+ *      socket path. A successful connection proves *an Accomplish
+ *      daemon process* is listening on *this profile's* socket — the
+ *      identity we need. The pid file alone is not trustworthy.
+ *   2. On connect: send `daemon.shutdown` RPC. The daemon replies
+ *      immediately then schedules its own graceful shutdown 100ms
+ *      later (apps/daemon/src/index.ts). Wait for the socket to close,
+ *      bounded by `CLEAN_START_SHUTDOWN_TIMEOUT_MS`.
+ *   3. If the socket connect fails (daemon crashed, left stale pid),
+ *      we CANNOT safely touch the pid — log, skip the kill, let
+ *      `rmSync` unlink the stale files. This is the right outcome:
+ *      CLEAN_START's contract is "wipe the profile", not "kill any
+ *      process that happens to match a stale pid we found".
  *
- * Best-effort throughout: if the daemon is not running, is from another
- * profile, or the pid file is corrupt, we log and continue.
+ * The only process signal we emit in this path is via RPC over the
+ * profile-scoped socket. Pid-reuse cannot produce a false positive.
  */
 async function stopDetachedDaemonForCleanStart(userDataPath: string): Promise<void> {
+  // Quick check: if neither the pid file nor the socket exist, no
+  // previous daemon left traces. Skip the connect attempt entirely.
   const pidPath = path.join(userDataPath, 'daemon.pid');
   if (!fs.existsSync(pidPath)) {
     return;
   }
 
-  let pid: number | null = null;
+  const CLEAN_START_CONNECT_TIMEOUT_MS = 2000;
+  const CLEAN_START_SHUTDOWN_TIMEOUT_MS = 10_000;
+
+  let DaemonClientCtor: typeof import('@accomplish_ai/agent-core/desktop-main').DaemonClient;
+  let createSocketTransport: typeof import('@accomplish_ai/agent-core/desktop-main').createSocketTransport;
   try {
-    const raw = fs.readFileSync(pidPath, 'utf-8');
-    const parsed = JSON.parse(raw) as { pid?: unknown };
-    if (typeof parsed.pid === 'number' && Number.isFinite(parsed.pid) && parsed.pid > 0) {
-      pid = parsed.pid;
-    }
+    const mod = await import('@accomplish_ai/agent-core/desktop-main');
+    DaemonClientCtor = mod.DaemonClient;
+    createSocketTransport = mod.createSocketTransport;
   } catch (err) {
-    logMain('WARN', '[Clean Mode] Could not parse daemon pid file; proceeding to rmSync', {
-      err: String(err),
+    logMain(
+      'WARN',
+      '[Clean Mode] Could not load daemon-client transport; skipping identity-safe shutdown',
+      { err: String(err) },
+    );
+    return;
+  }
+
+  // Attempt to connect to the profile-scoped socket. A successful
+  // connect proves the peer is an Accomplish daemon for THIS userData.
+  let transport: Awaited<ReturnType<typeof createSocketTransport>>;
+  try {
+    transport = await createSocketTransport({
+      dataDir: userDataPath,
+      connectTimeout: CLEAN_START_CONNECT_TIMEOUT_MS,
     });
-    return;
-  }
-  if (pid === null) {
+  } catch (err) {
+    // Common cases: socket file doesn't exist, or it exists but nothing
+    // is listening. Either way the pid (if any) belongs to a crashed
+    // daemon or a reused-pid ghost. Do not signal.
+    logMain(
+      'INFO',
+      `[Clean Mode] Could not connect to daemon socket; leaving any stale pid alone. ${String(err)}`,
+    );
     return;
   }
 
-  // Liveness probe — `process.kill(pid, 0)` throws if the pid is stale.
+  const client = new DaemonClientCtor({ transport });
+  let daemonExited = false;
+
   try {
-    process.kill(pid, 0);
-  } catch {
-    logMain('INFO', `[Clean Mode] Stale daemon pid (${pid}); no live process to stop`);
-    return;
-  }
+    // Subscribe to transport disconnect BEFORE firing shutdown so we
+    // don't miss a fast close between RPC reply and the wait below.
+    const closePromise = new Promise<void>((resolve) => {
+      transport.onDisconnect(() => {
+        daemonExited = true;
+        resolve();
+      });
+    });
 
-  const CLEAN_START_SIGTERM_GRACE_MS = 5000;
-  const CLEAN_START_SIGKILL_GRACE_MS = 3000;
-  const POLL_INTERVAL_MS = 50;
-
-  // Helper: poll `process.kill(pid, 0)` until it throws (pid gone) or
-  // we hit `timeoutMs`. Returns true if the pid exited in time.
-  async function waitForPidExit(pidToWatch: number, timeoutMs: number): Promise<boolean> {
-    const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline) {
-      try {
-        process.kill(pidToWatch, 0);
-      } catch {
-        return true;
-      }
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    logMain('INFO', '[Clean Mode] Connected to detached daemon; sending shutdown RPC');
+    try {
+      await client.call('daemon.shutdown');
+    } catch (err) {
+      // Daemon may close the socket before sending a reply — some RPC
+      // transports surface that as a call-side rejection. The close
+      // promise below is the real signal.
+      logMain('INFO', `[Clean Mode] daemon.shutdown RPC returned: ${String(err)}`);
     }
-    return false;
-  }
 
-  logMain(
-    'INFO',
-    `[Clean Mode] SIGTERM to detached daemon (pid ${pid}); waiting up to ${CLEAN_START_SIGTERM_GRACE_MS}ms`,
-  );
-  try {
-    process.kill(pid, 'SIGTERM');
-  } catch (err) {
-    logMain('WARN', `[Clean Mode] SIGTERM to daemon pid ${pid} failed`, { err: String(err) });
-    return;
-  }
-  if (await waitForPidExit(pid, CLEAN_START_SIGTERM_GRACE_MS)) {
-    logMain('INFO', `[Clean Mode] Daemon (pid ${pid}) exited cleanly; safe to rmSync`);
-    return;
-  }
+    const timeout = new Promise<void>((resolve) =>
+      setTimeout(resolve, CLEAN_START_SHUTDOWN_TIMEOUT_MS),
+    );
+    await Promise.race([closePromise, timeout]);
 
-  // Grace period elapsed — the daemon is likely inside its drain loop,
-  // which can run for up to DRAIN_TIMEOUT_MS (30s) + buffer. Escalate
-  // to SIGKILL since the user asked to nuke the profile.
-  logMain(
-    'WARN',
-    `[Clean Mode] Daemon (pid ${pid}) did not exit within SIGTERM grace; escalating to SIGKILL`,
-  );
-  try {
-    process.kill(pid, 'SIGKILL');
-  } catch (err) {
-    logMain('WARN', `[Clean Mode] SIGKILL to daemon pid ${pid} failed`, { err: String(err) });
-    return;
+    if (daemonExited) {
+      logMain('INFO', '[Clean Mode] Detached daemon closed its socket; safe to rmSync');
+    } else {
+      // The daemon is still draining (active tasks held it past the
+      // shutdown timeout). Proceed anyway — CLEAN_START is destructive
+      // by design. No raw pid signal: the daemon will exit on its own
+      // soon, and its writes into an rmSync'd directory are the
+      // daemon's problem, not ours.
+      logMain(
+        'WARN',
+        `[Clean Mode] Daemon did not close socket within ${CLEAN_START_SHUTDOWN_TIMEOUT_MS}ms; ` +
+          `proceeding with rmSync (daemon will exit on its own drain timeout).`,
+      );
+    }
+  } finally {
+    try {
+      client.close();
+    } catch {
+      /* best-effort */
+    }
+    try {
+      transport.close();
+    } catch {
+      /* best-effort */
+    }
   }
-  if (await waitForPidExit(pid, CLEAN_START_SIGKILL_GRACE_MS)) {
-    logMain('INFO', `[Clean Mode] Daemon (pid ${pid}) killed; safe to rmSync`);
-    return;
-  }
-
-  // Extremely unlikely — SIGKILL bypasses the handler. A failure here
-  // usually means the pid has been reparented or the user lacks
-  // permission (different uid). Proceed with rmSync as a last resort.
-  logMain(
-    'ERROR',
-    `[Clean Mode] Daemon (pid ${pid}) still alive after SIGKILL; proceeding with rmSync anyway`,
-  );
 }
 
 if (process.env.CLEAN_START === '1') {

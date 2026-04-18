@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { isWindows, runCommandSync, runPnpmSync } = require('../../../scripts/dev-runtime.cjs');
+const { runCommandSync, runPnpmSync } = require('../../../scripts/dev-runtime.cjs');
 
 const desktopRoot = path.join(__dirname, '..');
 const cliArgs = new Set(process.argv.slice(2));
@@ -19,7 +19,18 @@ if (isClean) {
 
 try {
   runNodeScript('patch-electron-name.cjs', env);
-  ensureNativeModules(env);
+
+  // Milestone 6 of the daemon-only-SQLite migration removed the
+  // `ensureNativeModules()` + `validate-native-modules.cjs` path. Pre-M6
+  // this ran `electron-rebuild` on macOS/Linux and a better-sqlite3
+  // prebuild probe on Windows. Post-M6 the Electron main process ships
+  // zero native modules (the daemon owns its own better-sqlite3 copy
+  // and runs under bundled Node, not Electron), so there is nothing for
+  // electron-rebuild to do — and `@electron/rebuild` is no longer
+  // installed. Running the pre-M6 path would fail immediately on every
+  // `pnpm dev`. If a future Electron-native dependency reappears, add a
+  // targeted check here at that point rather than resurrecting the
+  // blanket rebuild.
 
   if (!isCheck) {
     fs.rmSync(path.join(desktopRoot, 'dist-electron'), { recursive: true, force: true });
@@ -45,70 +56,4 @@ function runNodeScript(scriptName, commandEnv) {
     cwd: desktopRoot,
     env: commandEnv,
   });
-}
-
-function ensureNativeModules(commandEnv) {
-  const forceRebuild = process.env.ACCOMPLISH_FORCE_ELECTRON_REBUILD === '1';
-  if (!isWindows || forceRebuild) {
-    runElectronRebuild(commandEnv);
-    return;
-  }
-
-  if (hasWindowsPrebuiltNativeModules(commandEnv)) {
-    console.log('[desktop] Using Windows prebuilt native modules');
-    return;
-  }
-
-  console.log('[desktop] Native prebuild validation failed; running electron-rebuild');
-  runElectronRebuild(commandEnv);
-}
-
-function runElectronRebuild(commandEnv) {
-  // Let electron-rebuild delegate Visual Studio discovery to node-gyp so
-  // Windows developers can build with whichever supported MSVC toolchain is
-  // installed, including Visual Studio 2026. The root package.json pins
-  // electron-rebuild to a node-gyp release that supports newer VS versions.
-  runPnpmSync(['exec', 'electron-rebuild', '-f'], {
-    cwd: desktopRoot,
-    env: commandEnv,
-  });
-}
-
-function hasWindowsPrebuiltNativeModules(commandEnv) {
-  const arch = process.arch === 'arm64' ? 'arm64' : process.arch === 'x64' ? 'x64' : null;
-  if (!arch) {
-    return false;
-  }
-
-  // Phase 4c of the OpenCode SDK cutover port removed `node-pty`; only
-  // better-sqlite3 remains as an Electron-native module to verify on Windows.
-  const betterSqliteBinary = path.join(
-    desktopRoot,
-    'node_modules',
-    'better-sqlite3',
-    'build',
-    'Release',
-    'better_sqlite3.node',
-  );
-
-  if (!fs.existsSync(betterSqliteBinary)) {
-    console.log(`[desktop] Missing better-sqlite3 binary at ${betterSqliteBinary}`);
-    return false;
-  }
-
-  return validateNativeModulesInElectron(commandEnv);
-}
-
-function validateNativeModulesInElectron(commandEnv) {
-  try {
-    runPnpmSync(['exec', 'electron', path.join(__dirname, 'validate-native-modules.cjs')], {
-      cwd: desktopRoot,
-      env: commandEnv,
-    });
-    return true;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.log(`[desktop] Electron native module validation failed: ${message}`);
-    return false;
-  }
 }
