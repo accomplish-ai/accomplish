@@ -85,11 +85,6 @@ export default tseslint.config(
       'apps/desktop/src/main/google-accounts/account-manager.ts', // removed in Milestone 4
       'apps/desktop/src/main/google-accounts/token-manager.ts', // removed in Milestone 4
       'apps/desktop/src/main/skills/SkillsManager.ts', // removed in Milestone 4
-      // `OpenCodeCliNotFoundError` lives inside the large OpenCodeAdapter class;
-      // extracting it to its own module is a minor refactor tracked separately.
-      // Types in this file are allowed via allowTypeImports; only the error-class
-      // value import is why the file is on the allowlist.
-      'apps/desktop/src/main/opencode/index.ts',
     ],
     rules: {
       'no-restricted-imports': [

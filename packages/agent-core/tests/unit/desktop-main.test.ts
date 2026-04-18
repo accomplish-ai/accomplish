@@ -30,28 +30,88 @@ describe('desktop-main entrypoint', () => {
   describe('source-level invariants', () => {
     const source = fs.readFileSync(DESKTOP_MAIN_SRC, 'utf-8');
 
+    // Extract all import/export source specifiers so each invariant can run
+    // against the parsed-string list rather than trying to grep the whole
+    // file. Handles `import {...} from '...'`, `import '...'`,
+    // `export {...} from '...'`, and `export * from '...'`.
+    const specifiers: string[] = [];
+    const specifierRegex = /from\s+['"]([^'"]+)['"]|^\s*import\s+['"]([^'"]+)['"]/gm;
+    let match: RegExpExecArray | null;
+    while ((match = specifierRegex.exec(source)) !== null) {
+      specifiers.push(match[1] ?? match[2]);
+    }
+
     it('never re-exports from the root barrel `./index.js`', () => {
-      expect(source).not.toMatch(/from\s+['"]\.\/index\.js['"]/);
-      expect(source).not.toMatch(/from\s+['"]\.\/index['"]/);
+      expect(specifiers).not.toContain('./index.js');
+      expect(specifiers).not.toContain('./index');
     });
 
     it('never re-exports from `./common.js`', () => {
       // `./common.js` is a sibling barrel; importing through it risks pulling
       // in whatever common.ts re-exports (including, potentially, DB-bound
       // modules if common.ts itself grows).
-      expect(source).not.toMatch(/from\s+['"]\.\/common\.js['"]/);
-      expect(source).not.toMatch(/from\s+['"]\.\/common['"]/);
+      expect(specifiers).not.toContain('./common.js');
+      expect(specifiers).not.toContain('./common');
     });
 
     it('never re-exports from any sub-barrel `index.js`', () => {
       // e.g. `./daemon/index.js`, `./providers/index.js`, etc. Re-export
       // from the concrete file instead (`./daemon/client.js`).
-      const barrelPattern = /from\s+['"]\.(?:\/[^'"/]+)+\/index(?:\.js)?['"]/g;
-      const matches = source.match(barrelPattern);
+      const barrels = specifiers.filter((s) => /^\.(?:\/[^/]+)+\/index(?:\.js)?$/.test(s));
       expect(
-        matches,
-        `Found barrel re-exports (must point at concrete modules instead): ${JSON.stringify(matches)}`,
-      ).toBeNull();
+        barrels,
+        `Found barrel re-exports (must point at concrete modules instead): ${JSON.stringify(barrels)}`,
+      ).toEqual([]);
+    });
+
+    // ── DB-coupling denylist (the real invariant this file exists to protect) ──
+    //
+    // The reviewer's M1 finding: a future concrete re-export from any of these
+    // paths would pass the "no barrels" check while silently pulling
+    // better-sqlite3 back into main's module graph. Enforce an explicit
+    // denylist so regressions fail the test loudly.
+    //
+    // `storage/migrations/errors` is intentionally excluded — it defines pure
+    // `Error` subclasses with zero imports and is safe for main to see.
+
+    it('never imports `better-sqlite3`', () => {
+      expect(specifiers).not.toContain('better-sqlite3');
+    });
+
+    it('never re-exports from `./storage/database` (the DB singleton)', () => {
+      const dbSpecs = specifiers.filter((s) => /\.\/storage\/database(?:\.js)?$/.test(s));
+      expect(
+        dbSpecs,
+        `desktop-main must not re-export from storage/database: ${JSON.stringify(dbSpecs)}`,
+      ).toEqual([]);
+    });
+
+    it('never re-exports from `./factories/storage` (constructs the DB singleton)', () => {
+      const factorySpecs = specifiers.filter((s) => /\.\/factories\/storage(?:\.js)?$/.test(s));
+      expect(
+        factorySpecs,
+        `desktop-main must not re-export createStorage: ${JSON.stringify(factorySpecs)}`,
+      ).toEqual([]);
+    });
+
+    it('never re-exports from `./storage/repositories/*` (all DB-bound)', () => {
+      const repoSpecs = specifiers.filter((s) => /\.\/storage\/repositories\//.test(s));
+      expect(
+        repoSpecs,
+        `desktop-main must not re-export storage repositories: ${JSON.stringify(repoSpecs)}`,
+      ).toEqual([]);
+    });
+
+    it('only re-exports from `./storage/` for the pure-error module', () => {
+      // Catch-all: any future `./storage/<something>` path that isn't the
+      // known-safe `migrations/errors` module is suspicious.
+      const storageSpecs = specifiers.filter(
+        (s) => /^\.\/storage\//.test(s) && !/^\.\/storage\/migrations\/errors(?:\.js)?$/.test(s),
+      );
+      expect(
+        storageSpecs,
+        `desktop-main re-exports from an unexpected ./storage/ path; only migrations/errors is allowed: ${JSON.stringify(storageSpecs)}`,
+      ).toEqual([]);
     });
   });
 

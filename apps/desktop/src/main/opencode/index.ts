@@ -9,13 +9,21 @@
 //   - `loginOpenAiWithChatGpt` was removed in Phase 4a (now a daemon RPC).
 
 // Re-export agent-core types still used by callers in the main process.
+// Sourced from `/desktop-main` to keep this file fully off the root barrel —
+// even type-only imports from root are avoided here so the M1 invariant
+// (no runtime evaluation of root `@accomplish_ai/agent-core` from main) is
+// held statically as well as dynamically. `OpenCodeCliNotFoundError` used
+// to be re-exported here but has no consumer in `apps/desktop` (only
+// `packages/agent-core/src/internal/classes/TaskManager.ts` throws it, and
+// that code never runs in main post-SDK-cutover); removing the value
+// re-export eliminates the only path by which importing this barrel pulled
+// `storage/database.ts` + `better-sqlite3` into main's module graph.
 export type {
   TaskManagerOptions,
   TaskCallbacks,
   TaskProgressEvent,
   TaskManagerAPI,
-} from '@accomplish_ai/agent-core';
-export { OpenCodeCliNotFoundError } from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/desktop-main';
 
 export { cleanupVertexServiceAccountKey } from './vertex-cleanup';
 export { stopDevBrowserServer } from './dev-browser-shutdown';
