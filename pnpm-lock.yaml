@@ -133,9 +133,6 @@ importers:
       '@whiskeysockets/baileys':
         specifier: 7.0.0-rc.9
         version: 7.0.0-rc.9(sharp@0.34.5)
-      better-sqlite3:
-        specifier: 'catalog:'
-        version: 12.9.0
       dotenv:
         specifier: ^17.2.3
         version: 17.4.2
@@ -170,15 +167,9 @@ importers:
         specifier: 'catalog:'
         version: 3.25.76
     devDependencies:
-      '@electron/rebuild':
-        specifier: ^4.0.2
-        version: 4.0.3
       '@playwright/test':
         specifier: ^1.57.0
         version: 1.59.1
-      '@types/better-sqlite3':
-        specifier: 'catalog:'
-        version: 7.6.13
       '@types/node':
         specifier: 'catalog:'
         version: 24.12.2
@@ -814,11 +805,6 @@ packages:
   '@electron/rebuild@3.6.1':
     resolution: {integrity: sha512-f6596ZHpEq/YskUd8emYvOUne89ij8mQgjYFA5ru25QwbrRO+t1SImofdDv7kKOuWCmVOuU5tvfkbgGxIl3E/w==}
     engines: {node: '>=12.13.0'}
-    hasBin: true
-
-  '@electron/rebuild@4.0.3':
-    resolution: {integrity: sha512-u9vpTHRMkOYCs/1FLiSVAFZ7FbjsXK+bQuzviJZa+lG7BHZl1nz52/IcGvwa3sk80/fc3llutBkbCq10Vh8WQA==}
-    engines: {node: '>=22.12.0'}
     hasBin: true
 
   '@electron/universal@2.0.1':
@@ -5171,10 +5157,6 @@ packages:
     resolution: {integrity: sha512-+CGM1L1CgmtheLcBuleyYOn7NWPVu0s0EJH2C4puxgEZb9h8QpR9G2dBfZJOAUhi7VQxuBPMd0hiISWcTyiYyQ==}
     engines: {node: '>=10'}
 
-  node-abi@4.26.0:
-    resolution: {integrity: sha512-8QwIZqikRvDIkXS2S93LjzhsSPJuIbfaMETWH+Bx8oOT9Sa9UsUtBFQlc3gBNd1+QINjaTloitXr1W3dQLi9Iw==}
-    engines: {node: '>=22.12.0'}
-
   node-addon-api@1.7.2:
     resolution: {integrity: sha512-ibPK3iA+vaY1eEjESkQkM0BbCqFOaZMiXRTtdB0u7b4djtY6JnsjvPdUHVMg6xQt3B8fpTTWHI9A+ADjM9frzg==}
 
@@ -7557,24 +7539,6 @@ snapshots:
       fs-extra: 10.1.0
       got: 11.8.6
       node-abi: 3.87.0
-      node-api-version: 0.2.1
-      node-gyp: 12.2.0
-      ora: 5.4.1
-      read-binary-file-arch: 1.0.6
-      semver: 7.7.4
-      tar: 7.5.13
-      yargs: 17.7.2
-    transitivePeerDependencies:
-      - supports-color
-
-  '@electron/rebuild@4.0.3':
-    dependencies:
-      '@malept/cross-spawn-promise': 2.0.0
-      debug: 4.4.3
-      detect-libc: 2.1.2
-      got: 11.8.6
-      graceful-fs: 4.2.11
-      node-abi: 4.26.0
       node-api-version: 0.2.1
       node-gyp: 12.2.0
       ora: 5.4.1
@@ -12386,10 +12350,6 @@ snapshots:
   negotiator@1.0.0: {}
 
   node-abi@3.87.0:
-    dependencies:
-      semver: 7.7.4
-
-  node-abi@4.26.0:
     dependencies:
       semver: 7.7.4
 

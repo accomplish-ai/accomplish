@@ -2,8 +2,17 @@
 
 /**
  * Custom packaging script for Electron app with pnpm workspaces.
- * Temporarily removes workspace symlinks that cause electron-builder issues.
- * On Windows, skips native module rebuild (uses prebuilt binaries).
+ *
+ * Temporarily removes workspace symlinks that cause electron-builder
+ * issues, and substitutes pnpm's `.pnpm/` store symlinks with real
+ * copies for the opencode platform packages so electron-builder can
+ * pack them. Restores both sets in a `finally` block so a failed build
+ * leaves the working tree intact.
+ *
+ * Post-M6 (daemon-only-SQLite migration): Electron main ships no native
+ * modules, so there's no `electron-rebuild` or `npmRebuild` toggling
+ * here. The daemon keeps its own `better-sqlite3` built against the
+ * bundled Node ABI via `scripts/stage-daemon-deps.cjs`.
  */
 
 const { execSync } = require('child_process');
@@ -79,20 +88,15 @@ try {
   // Get command line args (everything after 'node scripts/package.js')
   const args = process.argv.slice(2).join(' ');
 
-  // On Windows, skip native module rebuild (use prebuilt binaries).
-  // Phase 4c of the OpenCode SDK cutover port removed `node-pty` (whose
-  // winpty.gyp batch-file handling was the original reason to skip rebuild);
-  // the skip remains because better-sqlite3's Windows prebuild is already
-  // Electron-ABI-compatible — rebuilding adds time and can fail in CI.
-  const npmRebuildFlag = isWindows ? ' --config.npmRebuild=false' : '';
-
-  // Use npx to run electron-builder to ensure it's found in node_modules
-  const command = `npx electron-builder ${args}${npmRebuildFlag}`;
+  // Milestone 6 of the daemon-only-SQLite migration removed the
+  // `--config.npmRebuild=false` Windows workaround: Electron main no
+  // longer ships native modules (pre-M6 the flag existed to skip rebuild
+  // of `better-sqlite3`, whose Windows prebuild is Electron-ABI-
+  // compatible without rebuilding). `build.npmRebuild: false` in
+  // package.json stays as a belt-and-braces guard.
+  const command = `npx electron-builder ${args}`;
 
   console.log('Running:', command);
-  if (isWindows) {
-    console.log('(Skipping native module rebuild on Windows - using prebuilt binaries)');
-  }
   execSync(command, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
 } finally {
   // Restore pnpm store symlinks

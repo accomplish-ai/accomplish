@@ -1,29 +1,37 @@
 /**
  * Custom postinstall script for the desktop app.
  *
- * Phase 4c of the OpenCode SDK cutover port removed `node-pty`. The legacy
- * reasons to skip electron-rebuild on Windows (node-pty's prebuilt binaries
- * tripping up electron-rebuild, Spectre mitigation, pnpm's 260-char path
- * limit) no longer apply — the only Electron-native module the desktop now
- * ships is `better-sqlite3`. We still install an Electron-compatible
- * better-sqlite3 prebuild on Windows for compatibility with packaged mode.
+ * Milestone 6 of the daemon-only-SQLite migration
+ * (plan: /Users/yanai/.claude/plans/squishy-exploring-hamster.md).
  *
- * On macOS/Linux, we run electron-rebuild normally.
+ * Pre-M6 history (now retired):
+ *   - Phase 4c of the OpenCode SDK cutover port removed `node-pty`, which
+ *     eliminated the original reasons to skip electron-rebuild on Windows.
+ *   - The script still ran `npx electron-rebuild` on macOS/Linux to rebuild
+ *     `better-sqlite3` against Electron's embedded Node ABI, and used
+ *     `prebuild-install --runtime electron` on Windows to drop a
+ *     compatible prebuild in place.
+ *
+ * Post-M6: Electron main owns no native modules. The daemon keeps its
+ * own copy of `better-sqlite3` built against the bundled Node 24 ABI via
+ * `scripts/stage-daemon-deps.cjs`; that script is unchanged. This
+ * postinstall is reduced to its remaining responsibility — installing
+ * the shared MCP-tools runtime + per-tool dev dependencies.
  */
+
+'use strict';
 
 const { execSync } = require('child_process');
 const path = require('path');
-const fs = require('fs');
 
-// Prevent infinite recursion when npm install triggers parent postinstall
-// This happens on Windows where npm walks up to find package.json
+// Prevent infinite recursion when `npm install` triggered by this script
+// walks back up the tree and re-runs the parent postinstall. Happens most
+// often on Windows where path handling encourages upward walks.
 if (process.env.ACCOMPLISH_POSTINSTALL_RUNNING) {
   console.log('> Postinstall already running, skipping nested invocation');
   process.exit(0);
 }
 process.env.ACCOMPLISH_POSTINSTALL_RUNNING = '1';
-
-const isWindows = process.platform === 'win32';
 
 function runCommand(command, description) {
   console.log(`\n> ${description}...`);
@@ -37,67 +45,23 @@ function runCommand(command, description) {
         ACCOMPLISH_POSTINSTALL_RUNNING: '1',
       },
     });
-  } catch (error) {
+  } catch (_error) {
     console.error(`Failed: ${description}`);
     process.exit(1);
   }
 }
 
-if (isWindows) {
-  // On Windows, install an Electron-compatible prebuilt for better-sqlite3.
-  // (Phase 4c: `node-pty` no longer ships, so the verify-prebuilds step for
-  // it is gone too.)
-  console.log('\n> Windows: Installing Electron-compatible better-sqlite3 prebuild...');
-
-  // Get the Electron version from package.json
-  const packageJson = require('../package.json');
-  const electronVersion = packageJson.devDependencies?.electron?.replace('^', '') || '35.0.0';
-  console.log(`> Electron version: ${electronVersion}`);
-
-  // Find better-sqlite3 in pnpm store and install Electron prebuild
-  const betterSqlite3Path = findBetterSqlite3();
-  if (betterSqlite3Path) {
-    console.log(`> Found better-sqlite3 at: ${betterSqlite3Path}`);
-    try {
-      // Remove existing build to force prebuild-install to run
-      const buildPath = path.join(betterSqlite3Path, 'build');
-      if (fs.existsSync(buildPath)) {
-        fs.rmSync(buildPath, { recursive: true, force: true });
-      }
-
-      // Use prebuild-install to get Electron-compatible binary
-      execSync(`npx prebuild-install --runtime electron --target ${electronVersion}`, {
-        stdio: 'inherit',
-        cwd: betterSqlite3Path,
-        shell: true,
-      });
-      console.log('> better-sqlite3 Electron prebuild installed successfully');
-    } catch (error) {
-      console.error('> Failed to install better-sqlite3 prebuild:', error.message);
-      console.error('> The app may not work correctly in packaged mode.');
-      // Don't exit - the app might still work in development
-    }
-  } else {
-    console.warn('> Warning: better-sqlite3 not found, skipping prebuild installation');
-  }
-
-  // Phase 4c: node-pty prebuild verification dropped with the dependency.
-} else {
-  // On macOS/Linux, run electron-rebuild first (matches original behavior)
-  runCommand('npx electron-rebuild', 'Running electron-rebuild');
-}
-
 const useBundledMcp = process.env.ACCOMPLISH_BUNDLED_MCP === '1' || process.env.CI === 'true';
 
-// Install shared MCP tools runtime dependencies (Playwright) at mcp-tools/ root
-// MCP tools are now in packages/agent-core/mcp-tools
+// Install shared MCP tools runtime dependencies (Playwright) at mcp-tools/ root.
+// MCP tools live in packages/agent-core/mcp-tools.
 const mcpToolsPath = path.join(__dirname, '..', '..', '..', 'packages', 'agent-core', 'mcp-tools');
 runCommand(
   `npm --prefix "${mcpToolsPath}" install --omit=dev --no-package-lock`,
   'Installing shared MCP tools runtime dependencies',
 );
 
-// Install per-tool dependencies for dev/tsx workflows
+// Install per-tool dependencies for dev/tsx workflows.
 if (!useBundledMcp) {
   // Install ALL dependencies (including devDependencies) during development
   // because esbuild needs them for bundling. The bundle-skills.cjs script
@@ -114,33 +78,3 @@ if (!useBundledMcp) {
 }
 
 console.log('\n> Postinstall complete!');
-
-function findBetterSqlite3() {
-  return findPackage('better-sqlite3');
-}
-
-function findPackage(packageName) {
-  // Try to find package in node_modules (may be a symlink in pnpm)
-  const directPath = path.join(__dirname, '..', 'node_modules', packageName);
-  if (fs.existsSync(directPath)) {
-    // Resolve symlink to get actual path
-    const realPath = fs.realpathSync(directPath);
-    return realPath;
-  }
-
-  // Look in pnpm's .pnpm directory
-  const pnpmPath = path.join(__dirname, '..', '..', '..', 'node_modules', '.pnpm');
-  if (fs.existsSync(pnpmPath)) {
-    const entries = fs.readdirSync(pnpmPath);
-    for (const entry of entries) {
-      if (entry.startsWith(`${packageName}@`)) {
-        const packageDir = path.join(pnpmPath, entry, 'node_modules', packageName);
-        if (fs.existsSync(packageDir)) {
-          return packageDir;
-        }
-      }
-    }
-  }
-
-  return null;
-}
