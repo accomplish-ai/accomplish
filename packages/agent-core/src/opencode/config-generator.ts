@@ -291,7 +291,26 @@ ${options.knowledgeContext}
     ...(smallModel && { small_model: smallModel }),
     default_agent: ACCOMPLISH_AGENT_NAME,
     enabled_providers: enabledProviders,
-    permission: { '*': 'allow', todowrite: 'allow' },
+    // Permission policy: only Accomplish's internal bookkeeping tools
+    // get a blanket `allow` — `todowrite` is called by every agent turn
+    // to update the task-plan TODO list and prompting on it would drown
+    // the user in noise. Everything else (bash, write, edit, patch,
+    // webfetch, read, task, …) intentionally falls through to OpenCode's
+    // default `ask` behavior so the existing flow reaches the user:
+    //
+    //   OpenCode → `permission.asked` → daemon.TaskCallbacks
+    //     → `permission.request` RPC notify → main process
+    //     → preload → renderer (PermissionCard UI)
+    //     → renderer decision → `permission.respond` RPC
+    //     → daemon.TaskService.sendResponse → SDK reply
+    //
+    // An earlier version here had `{ '*': 'allow', todowrite: 'allow' }`
+    // which silently auto-authorized every tool invocation — OpenCode
+    // matched `bash` / `write` / `edit` against `*: allow` and never
+    // fired `permission.asked`, so the desktop permission UI could
+    // never appear. Any regression that re-adds the wildcard is a
+    // safety bug; see `config-generator.test.ts` for the guard.
+    permission: { todowrite: 'allow' },
     provider: Object.keys(providerConfig).length > 0 ? providerConfig : undefined,
     plugin: ['@tarquinen/opencode-dcp@^2.0.0'],
     agent: {

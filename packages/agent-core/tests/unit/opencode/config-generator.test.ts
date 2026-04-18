@@ -371,7 +371,22 @@ describe('ConfigGenerator', () => {
       expect(result.config.$schema).toBe('https://opencode.ai/config.json');
     });
 
-    it('should configure permissions to allow all', () => {
+    // Permission policy regression guard.
+    //
+    // The earlier implementation emitted `{ '*': 'allow', todowrite: 'allow' }`,
+    // which caused OpenCode to auto-authorize every tool invocation
+    // (bash, write, edit, webfetch, …) before firing `permission.asked`.
+    // The desktop permission UI consequently never appeared — users
+    // could ask "write ~/Desktop/kuku.txt" and OpenCode would just do it
+    // silently. These three tests pin the restored policy:
+    //
+    //   1. `todowrite` stays `allow` (internal bookkeeping; fires on
+    //      every agent turn, prompting would be deafening).
+    //   2. No wildcard `*` entry (re-introducing it is the bug).
+    //   3. Risky tools (bash/write/edit/patch/webfetch/read/task) are
+    //      NOT present in the map, so they fall through to OpenCode's
+    //      default `ask` path — which routes via daemon → main → renderer.
+    it('allows todowrite as the only blanket permission entry', () => {
       const options: ConfigGeneratorOptions = {
         ...baseOptions,
         mcpToolsPath,
@@ -381,9 +396,43 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
 
       expect(result.config.permission).toEqual({
-        '*': 'allow',
         todowrite: 'allow',
       });
+    });
+
+    it('never emits a wildcard allow that would bypass the permission UI', () => {
+      const options: ConfigGeneratorOptions = {
+        ...baseOptions,
+        mcpToolsPath,
+        userDataPath,
+      };
+
+      const result = generateConfig(options);
+      const permission = result.config.permission;
+
+      // Defensive: the type union allows string | Record<...>; only the
+      // Record form is meaningful here, and the wildcard key should
+      // never be present in that Record.
+      expect(typeof permission).toBe('object');
+      expect(permission).not.toHaveProperty('*');
+    });
+
+    it('does not pre-authorize file-mutating or shell tools', () => {
+      const options: ConfigGeneratorOptions = {
+        ...baseOptions,
+        mcpToolsPath,
+        userDataPath,
+      };
+
+      const result = generateConfig(options);
+      const permission = result.config.permission as Record<string, unknown>;
+
+      // Each of these should be absent from the allow map so OpenCode's
+      // default `ask` path runs and the `permission.asked` event
+      // reaches the desktop.
+      for (const tool of ['bash', 'write', 'edit', 'patch', 'webfetch', 'read', 'task']) {
+        expect(permission).not.toHaveProperty(tool);
+      }
     });
 
     it('should include DCP plugin', () => {
