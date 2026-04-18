@@ -6,7 +6,7 @@ import {
   resolveCliPath,
   isCliAvailable as coreIsCliAvailable,
   type CliResolverConfig,
-} from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/desktop-main';
 
 function getCliResolverConfig(): CliResolverConfig {
   return {

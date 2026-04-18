@@ -13,11 +13,15 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { app, BrowserWindow } from 'electron';
-import { DaemonClient, createSocketTransport, getSocketPath } from '@accomplish_ai/agent-core';
+import {
+  DaemonClient,
+  createSocketTransport,
+  getSocketPath,
+} from '@accomplish_ai/agent-core/desktop-main';
 import { getNodePath } from '../utils/bundled-node';
 import { getLogCollector } from '../logging';
 import { getBuildConfig, getBuildId } from '../config/build-config';
-import { getPidFilePath } from '@accomplish_ai/agent-core';
+import { getPidFilePath } from '@accomplish_ai/agent-core/desktop-main';
 
 /** How long to wait for the daemon to become ready after spawning. */
 const SPAWN_READY_TIMEOUT_MS = 10_000;

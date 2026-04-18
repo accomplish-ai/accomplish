@@ -48,7 +48,7 @@ const {
   mockExchangeCodeForTokens: vi.fn(),
 }));
 
-vi.mock('@accomplish_ai/agent-core', () => ({
+vi.mock('@accomplish_ai/agent-core/desktop-main', () => ({
   discoverOAuthMetadata: mockDiscoverOAuthMetadata,
   registerOAuthClient: mockRegisterOAuthClient,
   generatePkceChallenge: mockGeneratePkceChallenge,

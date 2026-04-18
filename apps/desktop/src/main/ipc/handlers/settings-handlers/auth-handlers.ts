@@ -1,7 +1,7 @@
 import type { IpcMainInvokeEvent } from 'electron';
 import { shell } from 'electron';
-import { validateHttpUrl } from '@accomplish_ai/agent-core';
-import { getSlackMcpOauthStatus } from '@accomplish_ai/agent-core';
+import { validateHttpUrl } from '@accomplish_ai/agent-core/desktop-main';
+import { getSlackMcpOauthStatus } from '@accomplish_ai/agent-core/desktop-main';
 import { loginSlackMcp, logoutSlackMcp } from '../../../opencode/slack-auth';
 import {
   loginGithubCopilot,

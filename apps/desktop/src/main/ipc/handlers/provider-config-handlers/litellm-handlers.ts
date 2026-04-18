@@ -3,8 +3,8 @@ import {
   testLiteLLMConnection,
   fetchLiteLLMModels,
   validateHttpUrl,
-} from '@accomplish_ai/agent-core';
-import type { LiteLLMConfig } from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/desktop-main';
+import type { LiteLLMConfig } from '@accomplish_ai/agent-core/desktop-main';
 import type { IpcHandler } from '../../types';
 import { getApiKey } from '../../../store/secureStorage';
 import { getStorage } from '../../../store/storage';

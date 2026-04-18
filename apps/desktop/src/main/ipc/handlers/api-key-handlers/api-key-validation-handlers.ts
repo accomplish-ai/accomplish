@@ -1,10 +1,14 @@
 import type { IpcMainInvokeEvent } from 'electron';
-import { validateApiKey, validateAzureFoundry, sanitizeString } from '@accomplish_ai/agent-core';
+import {
+  validateApiKey,
+  validateAzureFoundry,
+  sanitizeString,
+} from '@accomplish_ai/agent-core/desktop-main';
 import {
   ALLOWED_API_KEY_PROVIDERS,
   STANDARD_VALIDATION_PROVIDERS,
-} from '@accomplish_ai/agent-core';
-import type { ZaiRegion } from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/desktop-main';
+import type { ZaiRegion } from '@accomplish_ai/agent-core/desktop-main';
 import { storeApiKey, getApiKey, deleteApiKey, hasAnyApiKey } from '../../../store/secureStorage';
 import { getStorage } from '../../../store/storage';
 import { getLogCollector } from '../../../logging';

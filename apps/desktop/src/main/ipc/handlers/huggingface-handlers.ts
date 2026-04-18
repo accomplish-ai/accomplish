@@ -7,7 +7,7 @@
 import type { IpcMainInvokeEvent } from 'electron';
 import { getStorage } from '../../store/storage';
 import { handle } from './utils';
-import type { HuggingFaceLocalConfig } from '@accomplish_ai/agent-core';
+import type { HuggingFaceLocalConfig } from '@accomplish_ai/agent-core/desktop-main';
 import {
   startHuggingFaceServer,
   stopHuggingFaceServer,

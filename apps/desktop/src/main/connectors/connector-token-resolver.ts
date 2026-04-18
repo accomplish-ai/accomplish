@@ -11,7 +11,7 @@
  *   desktop-github   — gh CLI: `gh auth token`, fallback to `gh auth login`
  */
 
-import { discoverOAuthMetadata, refreshAccessToken } from '@accomplish_ai/agent-core';
+import { discoverOAuthMetadata, refreshAccessToken } from '@accomplish_ai/agent-core/desktop-main';
 import type { OAuthProviderId, ConnectorDesktopOAuthKind } from '@accomplish_ai/agent-core/common';
 import { getConnectorDefinition } from '@accomplish_ai/agent-core/common';
 import { ConnectorAuthStore } from './connector-auth-store';

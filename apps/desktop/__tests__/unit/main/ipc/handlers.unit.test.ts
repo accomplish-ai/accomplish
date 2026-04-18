@@ -261,6 +261,14 @@ let mockOnboardingComplete = false;
 let mockSelectedModel: { provider: string; model: string } | null = null;
 let mockOpenAiBaseUrl = '';
 
+// Milestone 1 of the daemon-only-SQLite migration routed most Electron-main
+// value imports from `@accomplish_ai/agent-core` → `@accomplish_ai/agent-core/desktop-main`.
+// Mirror the comprehensive root mock onto the new subpath so both resolution
+// paths share the same vi.fn() instances and tests can drive either one.
+vi.mock('@accomplish_ai/agent-core/desktop-main', async () => {
+  return await vi.importMock('@accomplish_ai/agent-core');
+});
+
 // Mock @accomplish_ai/agent-core - comprehensive mock covering all exports used by handlers.ts
 vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@accomplish_ai/agent-core')>();
@@ -879,7 +887,7 @@ describe('IPC Handlers Integration', () => {
     });
 
     it('opencode:auth:slack:status should return Slack MCP auth status', async () => {
-      const { getSlackMcpOauthStatus } = await import('@accomplish_ai/agent-core');
+      const { getSlackMcpOauthStatus } = await import('@accomplish_ai/agent-core/desktop-main');
       vi.mocked(getSlackMcpOauthStatus).mockReturnValue({
         connected: true,
         pendingAuthorization: false,

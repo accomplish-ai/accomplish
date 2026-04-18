@@ -1,6 +1,6 @@
 import type { IpcMainInvokeEvent } from 'electron';
-import { testOllamaConnection, validateHttpUrl } from '@accomplish_ai/agent-core';
-import type { OllamaConfig } from '@accomplish_ai/agent-core';
+import { testOllamaConnection, validateHttpUrl } from '@accomplish_ai/agent-core/desktop-main';
+import type { OllamaConfig } from '@accomplish_ai/agent-core/desktop-main';
 import type { IpcHandler } from '../../types';
 import { getStorage } from '../../../store/storage';
 

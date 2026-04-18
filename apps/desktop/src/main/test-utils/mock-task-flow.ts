@@ -1,6 +1,6 @@
 import { BrowserWindow } from 'electron';
-import type { Task, TaskMessage } from '@accomplish_ai/agent-core';
-import { createMessageId } from '@accomplish_ai/agent-core';
+import type { Task, TaskMessage } from '@accomplish_ai/agent-core/desktop-main';
+import { createMessageId } from '@accomplish_ai/agent-core/desktop-main';
 import { getStorage } from '../store/storage';
 import { getLogCollector } from '../logging';
 

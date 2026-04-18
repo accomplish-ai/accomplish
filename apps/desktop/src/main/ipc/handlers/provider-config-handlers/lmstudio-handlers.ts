@@ -5,8 +5,8 @@ import {
   validateLMStudioConfig,
   testCustomConnection,
   sanitizeString,
-} from '@accomplish_ai/agent-core';
-import type { LMStudioConfig } from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/desktop-main';
+import type { LMStudioConfig } from '@accomplish_ai/agent-core/desktop-main';
 import type { IpcHandler } from '../../types';
 import { getStorage } from '../../../store/storage';
 

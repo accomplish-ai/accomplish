@@ -1,7 +1,7 @@
 import type { IpcMainInvokeEvent } from 'electron';
-import { fetchOpenRouterModels, fetchProviderModels } from '@accomplish_ai/agent-core';
-import { DEFAULT_PROVIDERS, ZAI_ENDPOINTS } from '@accomplish_ai/agent-core';
-import type { ZaiRegion } from '@accomplish_ai/agent-core';
+import { fetchOpenRouterModels, fetchProviderModels } from '@accomplish_ai/agent-core/desktop-main';
+import { DEFAULT_PROVIDERS, ZAI_ENDPOINTS } from '@accomplish_ai/agent-core/desktop-main';
+import type { ZaiRegion } from '@accomplish_ai/agent-core/desktop-main';
 import { getApiKey } from '../../../store/secureStorage';
 import { handle, API_KEY_VALIDATION_TIMEOUT_MS } from '../utils';
 import { ensureDaemonRunning } from '../../../daemon/daemon-connector';

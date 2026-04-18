@@ -12,7 +12,7 @@ import {
   createTaskId,
   type TaskConfig,
   type FileAttachmentInfo,
-} from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/desktop-main';
 import { getStorage } from '../../store/storage';
 import {
   isMockTaskEventsEnabled,

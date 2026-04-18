@@ -2,7 +2,7 @@ import {
   shutdownDevBrowserServer,
   DEV_BROWSER_PORT,
   DEV_BROWSER_CDP_PORT,
-} from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/desktop-main';
 import { getLogCollector } from '../logging';
 
 function logOC(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string, unknown>) {

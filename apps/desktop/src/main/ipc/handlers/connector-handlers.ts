@@ -8,12 +8,12 @@ import {
   generatePkceChallenge,
   buildAuthorizationUrl,
   exchangeCodeForTokens,
-} from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/desktop-main';
 import type {
   McpConnector,
   OAuthMetadata,
   OAuthClientRegistration,
-} from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/desktop-main';
 import { getStorage } from '../../store/storage';
 import { handle } from './utils';
 

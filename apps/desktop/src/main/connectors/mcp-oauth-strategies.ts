@@ -13,7 +13,7 @@ import {
   generatePkceChallenge,
   buildAuthorizationUrl,
   exchangeCodeForTokens,
-} from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/desktop-main';
 import type { OAuthProviderId, ConnectorDefinition } from '@accomplish_ai/agent-core/common';
 import { getConnectorDefinition } from '@accomplish_ai/agent-core/common';
 import { createOAuthCallbackServer } from '../oauth-callback-server';

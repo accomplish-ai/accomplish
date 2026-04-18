@@ -18,7 +18,7 @@ import type {
   KnowledgeNote,
   KnowledgeNoteCreateInput,
   KnowledgeNoteUpdateInput,
-} from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/desktop-main';
 import type {
   CloudBrowserConfig,
   GoogleAccount,

@@ -5,11 +5,11 @@
  * all LogCollector functionality internally.
  */
 
-import { type LogWriterAPI } from '@accomplish_ai/agent-core';
+import { type LogWriterAPI } from '@accomplish_ai/agent-core/desktop-main';
 import { getLogFileWriter, shutdownLogFileWriter } from './log-file-writer';
 
 // Re-export types from shared package for backward compatibility
-export type { LogLevel, LogSource } from '@accomplish_ai/agent-core';
+export type { LogLevel, LogSource } from '@accomplish_ai/agent-core/desktop-main';
 
 // LogWriterAPI now includes all LogCollector methods (log, logMcp, logBrowser, etc.)
 let instance: LogWriterAPI | null = null;

@@ -16,9 +16,12 @@ import {
   type SecureStorageAPI,
   type TranscriptionResult,
   type TranscriptionError,
-} from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/desktop-main';
 
-export type { TranscriptionResult, TranscriptionError } from '@accomplish_ai/agent-core';
+export type {
+  TranscriptionResult,
+  TranscriptionError,
+} from '@accomplish_ai/agent-core/desktop-main';
 
 let _speechService: SpeechServiceAPI | null = null;
 

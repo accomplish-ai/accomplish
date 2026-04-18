@@ -7,7 +7,7 @@
  */
 
 import type { BrowserWindow } from 'electron';
-import type { DaemonClient } from '@accomplish_ai/agent-core';
+import type { DaemonClient } from '@accomplish_ai/agent-core/desktop-main';
 import { trackTaskComplete, trackTaskError, classifyErrorCategory } from './analytics/events';
 
 /** Per-task context for analytics — populated on task.start notification, consumed on complete/error. */
@@ -15,7 +15,7 @@ const taskContextMap = new Map<
   string,
   { startTime: number; sessionId: string; taskType: string }
 >();
-import { createSocketTransport } from '@accomplish_ai/agent-core';
+import { createSocketTransport } from '@accomplish_ai/agent-core/desktop-main';
 import {
   ensureDaemonRunning,
   onReconnect,

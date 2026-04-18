@@ -7,7 +7,7 @@
  */
 
 import type { IpcMainInvokeEvent } from 'electron';
-import type { CreditUsage, AccomplishAiCredentials } from '@accomplish_ai/agent-core';
+import type { CreditUsage, AccomplishAiCredentials } from '@accomplish_ai/agent-core/desktop-main';
 
 type AccomplishConnectRpcResult = { deviceFingerprint: string; usage: CreditUsage | null };
 import { getStorage } from '../../../store/storage';

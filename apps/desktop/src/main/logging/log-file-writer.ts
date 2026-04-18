@@ -7,10 +7,10 @@
 
 import path from 'path';
 import { app } from 'electron';
-import { createLogWriter, type LogWriterAPI } from '@accomplish_ai/agent-core';
+import { createLogWriter, type LogWriterAPI } from '@accomplish_ai/agent-core/desktop-main';
 
 // Re-export types from shared package for backward compatibility
-export type { LogLevel, LogSource, LogEntry } from '@accomplish_ai/agent-core';
+export type { LogLevel, LogSource, LogEntry } from '@accomplish_ai/agent-core/desktop-main';
 
 let instance: LogWriterAPI | null = null;
 

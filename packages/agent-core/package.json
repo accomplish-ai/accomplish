@@ -38,6 +38,11 @@
       "import": "./dist/common.js",
       "default": "./dist/common.js"
     },
+    "./desktop-main": {
+      "types": "./dist/desktop-main.d.ts",
+      "import": "./dist/desktop-main.js",
+      "default": "./dist/desktop-main.js"
+    },
     "./runtime-types": {
       "types": "./dist/accomplish-runtime-types.d.ts",
       "import": "./dist/accomplish-runtime-types.js",

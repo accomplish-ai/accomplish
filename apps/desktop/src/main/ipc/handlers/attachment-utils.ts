@@ -1,4 +1,4 @@
-import type { FileAttachmentInfo } from '@accomplish_ai/agent-core';
+import type { FileAttachmentInfo } from '@accomplish_ai/agent-core/desktop-main';
 
 const VALID_ATTACHMENT_TYPES = new Set(['image', 'pdf', 'code', 'text', 'other']);
 const MAX_ATTACHMENT_SIZE = 10_485_760; // 10 MB

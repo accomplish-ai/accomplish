@@ -7,8 +7,8 @@
 
 import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme } from 'electron';
 import path from 'path';
-import { FutureSchemaError } from '@accomplish_ai/agent-core';
-import type { ProviderId } from '@accomplish_ai/agent-core';
+import { FutureSchemaError } from '@accomplish_ai/agent-core/desktop-main';
+import type { ProviderId } from '@accomplish_ai/agent-core/desktop-main';
 import { migrateLegacyData } from './store/legacyMigration';
 import { initializeStorage, getStorage } from './store/storage';
 import { getApiKey } from './store/secureStorage';

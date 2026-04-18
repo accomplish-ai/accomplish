@@ -4,7 +4,7 @@
  */
 
 import { BrowserWindow } from 'electron';
-import { DEV_BROWSER_CDP_PORT, DEV_BROWSER_PORT } from '@accomplish_ai/agent-core';
+import { DEV_BROWSER_CDP_PORT, DEV_BROWSER_PORT } from '@accomplish_ai/agent-core/desktop-main';
 
 export const DEV_BROWSER_HOST = '127.0.0.1';
 export const DEFAULT_VIEWPORT = { width: 1280, height: 720 };
