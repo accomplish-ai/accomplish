@@ -160,6 +160,9 @@ export type {
   ConnectorCustomOAuthDefinition,
   ConnectorDesktopOAuthDefinition,
   ConnectorDefinition,
+  // M2 review polish: keep the built-in connector auth-store blob
+  // reachable from the same pure-types subpath as its siblings.
+  StoredAuthEntry,
   ConnectorAuthStatus,
 } from './common/types/connector.js';
 
