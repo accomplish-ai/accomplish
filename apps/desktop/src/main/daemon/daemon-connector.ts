@@ -178,25 +178,73 @@ async function waitForDaemonExit(dataDir: string, timeoutMs: number = 30_000): P
 }
 
 /**
+ * Dev-mode resolver for a real Node binary to spawn the daemon with.
+ *
+ * Pre-M6: dev mode used `process.execPath` + `ELECTRON_RUN_AS_NODE=1`,
+ * which runs Electron's embedded Node (ABI 145 for Electron 41). That
+ * worked because the daemon's `better-sqlite3` was rebuilt to match
+ * Electron's ABI as part of desktop's `@electron/rebuild` postinstall.
+ *
+ * Post-M6 (daemon-only-SQLite migration): desktop no longer owns
+ * `better-sqlite3`, `@electron/rebuild` is gone, and the daemon's own
+ * copy is built for normal Node's ABI (137 for Node 24). Spawning with
+ * Electron-as-Node now crashes immediately:
+ *   "better_sqlite3.node was compiled against NODE_MODULE_VERSION 137.
+ *    This version of Node.js requires NODE_MODULE_VERSION 145."
+ *
+ * Preference order:
+ *   1. Bundled Node under `resources/nodejs/<platform>-<arch>/…` —
+ *      same binary the packaged app uses. Requires
+ *      `pnpm -F @accomplish/desktop download:nodejs` to have been run;
+ *      the build scripts chain it in, so most dev checkouts already
+ *      have it.
+ *   2. `process.env.npm_node_execpath` — the Node that launched pnpm.
+ *      This is also the Node that ran `pnpm install` in
+ *      `apps/daemon/`, so its ABI matches whatever prebuild
+ *      prebuild-install resolved for `apps/daemon/node_modules/
+ *      better-sqlite3`. Reliable when pnpm is on the shell's PATH.
+ *   3. Literal `node` — last resort. May pick up a different Node
+ *      major than the one that built the daemon's native deps, so
+ *      this only succeeds if the user has Node 24 on PATH.
+ */
+function getDevNodePath(): string {
+  try {
+    return getNodePath();
+  } catch {
+    // Bundled Node not downloaded yet — fall through.
+  }
+
+  const pnpmNode = process.env.npm_node_execpath;
+  if (pnpmNode && fs.existsSync(pnpmNode)) {
+    return pnpmNode;
+  }
+
+  return 'node';
+}
+
+/**
  * Spawn the daemon as a fully detached process.
  * The daemon process survives Electron exit (detached + unref).
  */
 export function spawnDaemon(dataDir: string): void {
-  // In dev mode, use Electron's own Node runtime (process.execPath with
-  // ELECTRON_RUN_AS_NODE=1) so native modules (better-sqlite3) are ABI-compatible.
-  // In packaged mode, use the bundled Node.js binary.
-  const nodeBin = app.isPackaged ? getNodePath() : process.execPath;
+  // M6 invariant: spawn under real Node (bundled in packaged mode, same
+  // or system Node in dev) — never Electron-as-Node. The daemon's
+  // `better-sqlite3` is built against Node's ABI, not Electron's.
+  const nodeBin = app.isPackaged ? getNodePath() : getDevNodePath();
   const entryPath = getDaemonEntryPath();
 
   log('INFO', `[DaemonConnector] Spawning daemon: ${nodeBin} ${entryPath} --data-dir ${dataDir}`);
 
   const daemonEnv: Record<string, string | undefined> = {
     ...process.env,
-    // In dev mode, tell Electron to act as plain Node.js
-    ELECTRON_RUN_AS_NODE: app.isPackaged ? undefined : '1',
     // Build identity for version-guard — daemon returns this in ping response
     ACCOMPLISH_BUILD_ID: getBuildId(),
   };
+  // M6: `ELECTRON_RUN_AS_NODE` is actively harmful now — it forces
+  // Electron's ABI regardless of the launcher binary. Pre-M6 we set
+  // this for dev mode; post-M6 we must ensure it's NOT set even if
+  // the parent Electron process inherited it from its own shell.
+  delete daemonEnv.ELECTRON_RUN_AS_NODE;
 
   // Inject gateway URL so the daemon can start the Accomplish AI proxy.
   // Only set when build.env is present (Free builds); absent in OSS builds.
