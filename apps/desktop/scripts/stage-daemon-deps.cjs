@@ -55,6 +55,12 @@ const DAEMON_DIST = path.join(REPO_ROOT, 'apps', 'daemon', 'dist');
 
 const DEPS = ['ws@8', 'better-sqlite3@12'];
 
+/** Subset of DEPS that install a native binary — must be purged before
+ *  re-staging so `prebuild-install` actually re-runs and picks the
+ *  correct target's `.node` binary. `ws` is pure JS; leaving it in
+ *  place between runs is safe and faster. */
+const NATIVE_DEPS = ['better-sqlite3'];
+
 const SUPPORTED_TARGET_PLATFORMS = new Set([
   'darwin-x64',
   'darwin-arm64',
@@ -179,6 +185,155 @@ function npmInstallEnv(nodeBinDir, target) {
   return env;
 }
 
+/**
+ * Read the architecture signature of a compiled `.node` addon and
+ * return a short arch tag ('x64'/'arm64') or null on unknown format.
+ *
+ * Called after staging to make sure the binary actually matches the
+ * declared `--target-platform`. Without this check, a stale native
+ * module from the previous stage run (different target arch) could
+ * slip through — the review finding P1.F case.
+ *
+ * Parses magic bytes directly instead of shelling out to `file` so
+ * the check works identically on macOS, Linux, and Windows (and on
+ * CI runners without the `file` utility installed).
+ */
+function readNativeArch(binaryPath) {
+  const fd = fs.openSync(binaryPath, 'r');
+  try {
+    const header = Buffer.alloc(64);
+    fs.readSync(fd, header, 0, 64, 0);
+
+    // Mach-O (macOS). Magic FEEDFACF = MH_MAGIC_64 (little-endian).
+    if (header.readUInt32LE(0) === 0xfeedfacf) {
+      const cpuType = header.readInt32LE(4);
+      if (cpuType === 7) return 'x64'; // CPU_TYPE_X86_64
+      if (cpuType === (12 | 0x01000000)) return 'arm64'; // CPU_TYPE_ARM64 (with ABI64 bit)
+      return null;
+    }
+
+    // ELF (Linux). Magic 7F 45 4C 46 + class/encoding bytes.
+    if (header[0] === 0x7f && header[1] === 0x45 && header[2] === 0x4c && header[3] === 0x46) {
+      // `e_machine` is a 2-byte LE value at offset 0x12 for EI_DATA=1
+      // (little-endian, which covers every supported target).
+      const machine = header.readUInt16LE(0x12);
+      if (machine === 0x3e) return 'x64'; // EM_X86_64
+      if (machine === 0xb7) return 'arm64'; // EM_AARCH64
+      return null;
+    }
+
+    // PE (Windows). Magic 4D 5A (MZ). The PE header offset lives at
+    // 0x3C (LE). `IMAGE_FILE_HEADER.Machine` is the first 2 bytes
+    // after the 4-byte 'PE\0\0' signature.
+    if (header[0] === 0x4d && header[1] === 0x5a) {
+      const peOffset = header.readUInt32LE(0x3c);
+      const peHeader = Buffer.alloc(6);
+      fs.readSync(fd, peHeader, 0, 6, peOffset);
+      // 'PE\0\0' signature then IMAGE_FILE_HEADER.Machine
+      const sigOk =
+        peHeader[0] === 0x50 && peHeader[1] === 0x45 && peHeader[2] === 0 && peHeader[3] === 0;
+      if (!sigOk) return null;
+      const machine = peHeader.readUInt16LE(4);
+      if (machine === 0x8664) return 'x64'; // IMAGE_FILE_MACHINE_AMD64
+      if (machine === 0xaa64) return 'arm64'; // IMAGE_FILE_MACHINE_ARM64
+      return null;
+    }
+    return null;
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/**
+ * Purge the previously-installed copy of every native dependency from
+ * `apps/daemon/dist/node_modules/` before re-running `npm install`.
+ *
+ * Review finding P1.F: npm's idempotence is the bug here. When
+ * `better-sqlite3@12` is already installed at the same version, `npm
+ * install --no-save better-sqlite3@12` short-circuits — it skips the
+ * install script, which is where `prebuild-install` runs. That's
+ * normally a win, but for cross-arch staging it means the second
+ * `package:linux:<arch>` invocation inherits the first arch's native
+ * binary. Deleting the package dir forces a full re-install every time.
+ *
+ * Also remove `package-lock.json` / `pnpm-lock.yaml` if present: a
+ * stale lockfile can pin the resolved-URL to a previous-arch prebuild
+ * asset, and we want prebuild-install to re-resolve against
+ * `npm_config_target_arch`.
+ */
+function purgePreviousStaging() {
+  const nodeModules = path.join(DAEMON_DIST, 'node_modules');
+  for (const name of NATIVE_DEPS) {
+    const pkgDir = path.join(nodeModules, name);
+    if (fs.existsSync(pkgDir)) {
+      log(`Removing previous ${name} install at ${pkgDir}`);
+      fs.rmSync(pkgDir, { recursive: true, force: true });
+    }
+  }
+  for (const lockfile of ['package-lock.json', 'pnpm-lock.yaml']) {
+    const lockPath = path.join(DAEMON_DIST, lockfile);
+    if (fs.existsSync(lockPath)) {
+      log(`Removing stale ${lockfile}`);
+      fs.rmSync(lockPath, { force: true });
+    }
+  }
+}
+
+/**
+ * Confirm each native dep's `.node` file is actually for `target`.
+ * Throws (via `die`) on mismatch so the build fails LOUDLY instead of
+ * packaging a wrong-arch daemon that would crash on first DB call.
+ */
+function verifyNativeBinariesForTarget(target) {
+  const expectedArch = target.split('-')[1];
+  // Sanity: if someone adds a target string that doesn't end in 'x64'
+  // or 'arm64' (e.g. future riscv64), `readNativeArch` would return
+  // null for the known-good cases and the comparison would fail
+  // misleadingly. Fail fast here with a clear message instead.
+  if (expectedArch !== 'x64' && expectedArch !== 'arm64') {
+    die(
+      `verifyNativeBinariesForTarget: unsupported arch '${expectedArch}' in target ` +
+        `'${target}'. Extend readNativeArch() + this check when adding new arches.`,
+    );
+  }
+
+  for (const name of NATIVE_DEPS) {
+    const releaseDir = path.join(DAEMON_DIST, 'node_modules', name, 'build', 'Release');
+    if (!fs.existsSync(releaseDir)) {
+      die(
+        `Expected native build directory missing after install: ${releaseDir}. ` +
+          `prebuild-install for ${name} did not run or failed silently.`,
+      );
+    }
+    const nodeFiles = fs.readdirSync(releaseDir).filter((f) => f.endsWith('.node'));
+    if (nodeFiles.length === 0) {
+      die(
+        `No *.node binary under ${releaseDir} after install. ` +
+          `Check that ${name}'s release assets include a build for ${target}.`,
+      );
+    }
+    for (const file of nodeFiles) {
+      const binaryPath = path.join(releaseDir, file);
+      const actualArch = readNativeArch(binaryPath);
+      if (actualArch === null) {
+        die(
+          `Could not determine arch of ${binaryPath}. Unknown binary format ` +
+            `(not Mach-O / ELF / PE). Target=${target}.`,
+        );
+      }
+      if (actualArch !== expectedArch) {
+        die(
+          `Arch mismatch for ${name}: ${binaryPath} is ${actualArch}, ` +
+            `expected ${expectedArch} (target=${target}). The previous stage run ` +
+            `may have left a stale binary — purgePreviousStaging() should have ` +
+            `removed it, so this is a bug.`,
+        );
+      }
+      log(`Verified ${name} binary matches target arch ${expectedArch}: ${file}`);
+    }
+  }
+}
+
 function main() {
   if (!fs.existsSync(DAEMON_DIST)) {
     die(
@@ -207,6 +362,12 @@ function main() {
   log(`Dependencies: ${DEPS.join(' ')}`);
   log(`Target: ${target}${isCrossArch ? ` (cross-arch; host=${host})` : ''}`);
 
+  // Purge previous native installs BEFORE npm runs. Without this,
+  // re-installing the same version of `better-sqlite3` is a no-op and
+  // the prior target's `.node` binary is reused verbatim — the P1.F
+  // correctness bug. Pure-JS deps (ws) stay in place across runs.
+  purgePreviousStaging();
+
   const env = npmInstallEnv(binDir, target);
 
   execFileSync(nodeBin, [npmCli, 'install', '--no-save', ...DEPS], {
@@ -215,37 +376,15 @@ function main() {
     stdio: 'inherit',
   });
 
-  // Host-arch staging: verify each dep loads under the bundled Node to
-  // catch ABI mismatches before electron-builder bundles a broken dist/.
-  // Cross-arch staging: skip the runtime smoke — a foreign-arch `.node`
-  // can't be `require()`'d on the host — and check the binary file
-  // exists at the expected path instead.
-  if (isCrossArch) {
-    for (const spec of DEPS) {
-      const name = packageName(spec);
-      log(`Target=${target}: skipping runtime require('${name}') smoke (cross-arch)`);
-      if (name === 'better-sqlite3') {
-        const releaseDir = path.join(
-          DAEMON_DIST,
-          'node_modules',
-          'better-sqlite3',
-          'build',
-          'Release',
-        );
-        const hasNode = fs.existsSync(releaseDir)
-          ? fs.readdirSync(releaseDir).some((f) => f.endsWith('.node'))
-          : false;
-        if (!hasNode) {
-          die(
-            `Cross-arch staging: no *.node binary under ${releaseDir} after ` +
-              `prebuild-install. Check that better-sqlite3's release assets ` +
-              `include a build for ${target}.`,
-          );
-        }
-        log(`Target=${target}: better-sqlite3 native binary present in build/Release/`);
-      }
-    }
-  } else {
+  // Always verify the native binary matches the target — structural
+  // check via magic bytes. Runs for both host and cross-arch staging.
+  verifyNativeBinariesForTarget(target);
+
+  // Host-arch staging: additionally run the runtime `require()` smoke
+  // to catch ABI mismatches (right arch, wrong Node major). Cross-arch
+  // can't load a foreign-arch binary, so the magic-byte check above
+  // is our end-of-the-line signal.
+  if (!isCrossArch) {
     for (const spec of DEPS) {
       const name = packageName(spec);
       log(`Verifying require('${name}') under bundled Node...`);
@@ -259,6 +398,11 @@ function main() {
         },
       );
     }
+  } else {
+    log(
+      `Target=${target}: cross-arch, skipping runtime require() smoke (would fail ABI). ` +
+        `Arch check via magic bytes above is the correctness gate.`,
+    );
   }
 
   log('Staging complete.');

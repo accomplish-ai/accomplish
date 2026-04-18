@@ -43,6 +43,39 @@ if (process.argv.includes('--e2e-mock-tasks') || process.env.E2E_MOCK_TASK_EVENT
 }
 
 /**
+ * Match the daemon's worst-case graceful-shutdown window. The daemon's
+ * SIGTERM handler (apps/daemon/src/index.ts) drains active tasks for up
+ * to `DRAIN_TIMEOUT_MS = 30_000ms`, then `forceShutdown` fires
+ * 10_000ms after that — absolute worst case 40s from signal to exit.
+ * 45s gives us a small margin to observe the socket close after the
+ * process actually terminates.
+ *
+ * Round-4 review finding P1.G: the previous 10s bound was too short.
+ * After it elapsed we continued to `rmSync` even when we had just
+ * confirmed (via socket identity) that a live daemon still owned the
+ * profile — the exact corruption hazard CLEAN_START is supposed to
+ * avoid. Now we either wait out the real drain window OR abort the
+ * whole CLEAN_START.
+ */
+const CLEAN_START_CONNECT_TIMEOUT_MS = 2_000;
+const CLEAN_START_SHUTDOWN_TIMEOUT_MS = 45_000;
+
+/**
+ * Result of the pre-rmSync daemon check:
+ *   - `no-daemon`     — socket connect failed; either no daemon was
+ *                       running, or any pid file is stale. Safe to
+ *                       rmSync.
+ *   - `exited`        — we connected to an Accomplish daemon, sent it
+ *                       `daemon.shutdown`, and observed the socket
+ *                       close within the drain window. Safe to rmSync.
+ *   - `still-alive`   — we connected to a live Accomplish daemon but
+ *                       it did NOT close the socket within the drain
+ *                       window. Rm under a live owner would corrupt
+ *                       state — caller must abort.
+ */
+type CleanStartDaemonState = 'no-daemon' | 'exited' | 'still-alive';
+
+/**
  * Stop a daemon that survived the previous Electron session before we
  * delete its `userData` directory.
  *
@@ -53,40 +86,29 @@ if (process.argv.includes('--e2e-mock-tasks') || process.env.E2E_MOCK_TASK_EVENT
  * while the daemon is live corrupts the on-disk state (files unlinked
  * under open fds, pid/socket reappearing during daemon flush, etc.).
  *
- * Round-3 review finding P1.E: the pre-fix path read `daemon.pid` and
- * raw-signalled the pid with SIGTERM/SIGKILL. The OS reuses pids, so a
- * stale lock file can point at a PID now owned by an unrelated process
- * (editor, browser, etc.) — SIGKILL'ing it would be a very bad day.
- *
  * Identity-safe shutdown:
- *   1. Import the `DaemonClient` + `createSocketTransport` from
- *      agent-core/desktop-main and try to connect to the profile's
- *      socket path. A successful connection proves *an Accomplish
- *      daemon process* is listening on *this profile's* socket — the
- *      identity we need. The pid file alone is not trustworthy.
- *   2. On connect: send `daemon.shutdown` RPC. The daemon replies
- *      immediately then schedules its own graceful shutdown 100ms
- *      later (apps/daemon/src/index.ts). Wait for the socket to close,
- *      bounded by `CLEAN_START_SHUTDOWN_TIMEOUT_MS`.
- *   3. If the socket connect fails (daemon crashed, left stale pid),
- *      we CANNOT safely touch the pid — log, skip the kill, let
- *      `rmSync` unlink the stale files. This is the right outcome:
- *      CLEAN_START's contract is "wipe the profile", not "kill any
- *      process that happens to match a stale pid we found".
- *
- * The only process signal we emit in this path is via RPC over the
- * profile-scoped socket. Pid-reuse cannot produce a false positive.
+ *   1. Connect to the profile-scoped daemon socket — a successful
+ *      connect proves the peer is *our* daemon for *this* userData.
+ *      We never raw-signal a pid (pid-reuse would be catastrophic).
+ *   2. Send `daemon.shutdown` RPC, wait for the socket to close within
+ *      `CLEAN_START_SHUTDOWN_TIMEOUT_MS` (45s, matching the daemon's
+ *      full drain window).
+ *   3. If the socket connect fails, return `'no-daemon'` — stale/crashed
+ *      daemon traces can be safely rmSync'd.
+ *   4. If the daemon exits in time, return `'exited'` — safe to rmSync.
+ *   5. If the daemon is confirmed alive and doesn't exit, return
+ *      `'still-alive'` — the caller MUST abort rather than rmSync
+ *      under a live SQLite owner (review round 4 finding P1.G).
  */
-async function stopDetachedDaemonForCleanStart(userDataPath: string): Promise<void> {
+async function stopDetachedDaemonForCleanStart(
+  userDataPath: string,
+): Promise<CleanStartDaemonState> {
   // Quick check: if neither the pid file nor the socket exist, no
   // previous daemon left traces. Skip the connect attempt entirely.
   const pidPath = path.join(userDataPath, 'daemon.pid');
   if (!fs.existsSync(pidPath)) {
-    return;
+    return 'no-daemon';
   }
-
-  const CLEAN_START_CONNECT_TIMEOUT_MS = 2000;
-  const CLEAN_START_SHUTDOWN_TIMEOUT_MS = 10_000;
 
   let DaemonClientCtor: typeof import('@accomplish_ai/agent-core/desktop-main').DaemonClient;
   let createSocketTransport: typeof import('@accomplish_ai/agent-core/desktop-main').createSocketTransport;
@@ -95,12 +117,10 @@ async function stopDetachedDaemonForCleanStart(userDataPath: string): Promise<vo
     DaemonClientCtor = mod.DaemonClient;
     createSocketTransport = mod.createSocketTransport;
   } catch (err) {
-    logMain(
-      'WARN',
-      '[Clean Mode] Could not load daemon-client transport; skipping identity-safe shutdown',
-      { err: String(err) },
-    );
-    return;
+    logMain('WARN', '[Clean Mode] Could not load daemon-client transport; treating as no-daemon', {
+      err: String(err),
+    });
+    return 'no-daemon';
   }
 
   // Attempt to connect to the profile-scoped socket. A successful
@@ -119,7 +139,7 @@ async function stopDetachedDaemonForCleanStart(userDataPath: string): Promise<vo
       'INFO',
       `[Clean Mode] Could not connect to daemon socket; leaving any stale pid alone. ${String(err)}`,
     );
-    return;
+    return 'no-daemon';
   }
 
   const client = new DaemonClientCtor({ transport });
@@ -152,18 +172,18 @@ async function stopDetachedDaemonForCleanStart(userDataPath: string): Promise<vo
 
     if (daemonExited) {
       logMain('INFO', '[Clean Mode] Detached daemon closed its socket; safe to rmSync');
-    } else {
-      // The daemon is still draining (active tasks held it past the
-      // shutdown timeout). Proceed anyway — CLEAN_START is destructive
-      // by design. No raw pid signal: the daemon will exit on its own
-      // soon, and its writes into an rmSync'd directory are the
-      // daemon's problem, not ours.
-      logMain(
-        'WARN',
-        `[Clean Mode] Daemon did not close socket within ${CLEAN_START_SHUTDOWN_TIMEOUT_MS}ms; ` +
-          `proceeding with rmSync (daemon will exit on its own drain timeout).`,
-      );
+      return 'exited';
     }
+
+    // Confirmed-live daemon did not exit within the drain window.
+    // Return `still-alive` so the caller aborts; do NOT rmSync (that
+    // would corrupt SQLite/secure-storage under a live writer).
+    logMain(
+      'ERROR',
+      `[Clean Mode] Confirmed-live daemon did not close within ${CLEAN_START_SHUTDOWN_TIMEOUT_MS}ms; ` +
+        `refusing to rmSync under a live owner.`,
+    );
+    return 'still-alive';
   } finally {
     try {
       client.close();
@@ -185,7 +205,30 @@ if (process.env.CLEAN_START === '1') {
   // startup until the detached daemon has had a chance to exit. This
   // runs before `app.whenReady()` fires, so there's no window yet and
   // no user-facing hang.
-  await stopDetachedDaemonForCleanStart(userDataPath);
+  const shutdownState = await stopDetachedDaemonForCleanStart(userDataPath);
+
+  if (shutdownState === 'still-alive') {
+    // Round-4 review finding P1.G: we confirmed via socket identity
+    // that an Accomplish daemon owns this profile and it didn't exit
+    // inside the daemon's own 40s drain window. Deleting under it
+    // would corrupt SQLite/secure-storage state. Abort with a clear
+    // error directed at the user — the daemon will finish its active
+    // tasks and exit on its own, after which CLEAN_START can retry.
+    const abortMsg =
+      '[CLEAN_START] Aborted: an Accomplish daemon is still active on this profile and did ' +
+      `not exit within ${CLEAN_START_SHUTDOWN_TIMEOUT_MS / 1000}s. Deleting userData under a ` +
+      'live owner would corrupt SQLite and secure-storage state.\n\n' +
+      'Fully quit the app (check the system tray for a running daemon) and retry ' +
+      'CLEAN_START, or wait for active tasks to finish and let the daemon exit naturally.';
+    logMain('ERROR', abortMsg);
+    // Before app.whenReady(), Electron's dialog/app.quit paths are
+    // unreliable. A process.exit(1) is the cleanest signal to the
+    // launcher (pnpm run script / CI) that CLEAN_START refused to
+    // proceed. Use code 1 so shell pipelines flag the failure.
+    console.error(`\n${abortMsg}\n`);
+    process.exit(1);
+  }
+
   try {
     if (fs.existsSync(userDataPath)) {
       fs.rmSync(userDataPath, { recursive: true, force: true });
