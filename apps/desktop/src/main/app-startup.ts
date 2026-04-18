@@ -80,12 +80,12 @@ export async function startApp(
     throw err;
   }
 
-  try {
-    workspaceManager.initialize();
-  } catch (err) {
-    logMain('ERROR', '[Main] Workspace initialization failed', { err: String(err) });
-    throw err;
-  }
+  // Milestone 3 sub-chunk 3d: `workspaceManager.initialize()` is now async
+  // and hydrates its cache from the daemon's `workspace.*` RPCs, so it
+  // must run AFTER `bootstrapDaemon()`. Moved to the post-bootstrap block
+  // below (search for `workspaceManager.initialize` there). Nothing that
+  // runs between here and that call reads a workspace, so the reorder is
+  // safe — renderer IPC registers afterwards in `registerIPCHandlers()`.
 
   // HuggingFace auto-start + accomplish-ai cleanup used to run here in the
   // pre-M3 flow, but both read state the legacy electron-store import
@@ -195,6 +195,24 @@ export async function startApp(
       logMain('WARN', '[Main] Legacy electron-store import RPC failed', {
         err: String(err),
       });
+    }
+  }
+
+  // Milestone 3 sub-chunk 3d: hydrate the workspace cache from the daemon
+  // and subscribe to `workspace.changed` notifications. Must run AFTER
+  // `bootstrapDaemon()` (the RPCs need a live client) and after the legacy
+  // import (so imported workspace rows land in the cache on first boot).
+  // Intentionally kept BEFORE HF auto-start and provider validation so the
+  // task IPC handlers (registered further down) see a warm cache on their
+  // first invocation. Skipped in E2E mock mode — no daemon, no cache.
+  if (process.env.E2E_MOCK_TASK_EVENTS !== '1') {
+    try {
+      await workspaceManager.initialize();
+    } catch (err) {
+      logMain('ERROR', '[Main] Workspace initialization failed', { err: String(err) });
+      // Non-fatal: task handlers will see `getActiveWorkspace() === null`
+      // and fall back to the no-workspace-filter code path, same as a
+      // fresh pre-workspace-feature profile. Better than a blocked startup.
     }
   }
 

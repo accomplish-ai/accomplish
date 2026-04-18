@@ -1,18 +1,12 @@
 import { BrowserWindow } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import type {
-  WorkspaceCreateInput,
-  WorkspaceUpdateInput,
   KnowledgeNoteCreateInput,
   KnowledgeNoteUpdateInput,
-} from '@accomplish_ai/agent-core';
+  WorkspaceCreateInput,
+  WorkspaceUpdateInput,
+} from '@accomplish_ai/agent-core/desktop-main';
 import * as workspaceManager from '../../store/workspaceManager';
-import {
-  listKnowledgeNotes,
-  createKnowledgeNote,
-  updateKnowledgeNote,
-  deleteKnowledgeNote,
-} from '@accomplish_ai/agent-core';
 import { handle } from './utils';
 import { getDaemonClient } from '../../daemon-bootstrap';
 import { isDaemonStopped } from '../../daemon/daemon-connector';
@@ -33,6 +27,10 @@ async function hasDaemonActiveTasks(): Promise<boolean> {
 }
 
 export function registerWorkspaceHandlers(): void {
+  // Milestone 3 sub-chunk 3d: workspace + knowledge-note reads/writes
+  // route through the daemon. `workspaceManager` is now a thin
+  // event-cached RPC wrapper; knowledge notes talk to the daemon
+  // directly (they don't need a local cache).
   handle('workspace:list', async () => {
     return workspaceManager.listWorkspaces();
   });
@@ -51,7 +49,7 @@ export function registerWorkspaceHandlers(): void {
 
     let switched: boolean;
     try {
-      switched = workspaceManager.switchWorkspace(workspaceId);
+      switched = await workspaceManager.switchWorkspace(workspaceId);
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       return { success: false, reason };
@@ -87,24 +85,26 @@ export function registerWorkspaceHandlers(): void {
       return false;
     }
 
-    const deleted = workspaceManager.deleteWorkspace(id);
+    const result = await workspaceManager.deleteWorkspace(id);
 
-    if (deleted && window && !window.isDestroyed()) {
+    if (result.deleted && window && !window.isDestroyed()) {
       window.webContents.send('workspace:deleted', { workspaceId: id });
     }
 
-    return deleted;
+    return result.deleted;
   });
 
-  // Knowledge Notes handlers
+  // Knowledge Notes handlers — talk to the daemon directly. No local
+  // cache because the renderer subscribes to `knowledgeNote.changed`
+  // via the `workspace.changed` forwarder and re-fetches.
   handle('knowledge-notes:list', async (_event: IpcMainInvokeEvent, workspaceId: string) => {
-    return listKnowledgeNotes(workspaceId);
+    return getDaemonClient().call('knowledgeNote.list', { workspaceId });
   });
 
   handle(
     'knowledge-notes:create',
     async (_event: IpcMainInvokeEvent, input: KnowledgeNoteCreateInput) => {
-      return createKnowledgeNote(input);
+      return getDaemonClient().call('knowledgeNote.create', { input });
     },
   );
 
@@ -116,14 +116,18 @@ export function registerWorkspaceHandlers(): void {
       workspaceId: string,
       input: KnowledgeNoteUpdateInput,
     ) => {
-      return updateKnowledgeNote(id, workspaceId, input);
+      return getDaemonClient().call('knowledgeNote.update', {
+        noteId: id,
+        workspaceId,
+        input,
+      });
     },
   );
 
   handle(
     'knowledge-notes:delete',
     async (_event: IpcMainInvokeEvent, id: string, workspaceId: string) => {
-      return deleteKnowledgeNote(id, workspaceId);
+      await getDaemonClient().call('knowledgeNote.delete', { noteId: id, workspaceId });
     },
   );
 }
