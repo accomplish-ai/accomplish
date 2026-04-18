@@ -29,6 +29,14 @@ import type {
 import type { ThemePreference, LanguagePreference } from '@accomplish_ai/agent-core';
 import type { CreditUsage } from '@accomplish_ai/agent-core';
 import type { SandboxConfig } from '@accomplish_ai/agent-core';
+import type {
+  SelectedModel,
+  OllamaConfig,
+  LiteLLMConfig,
+  AzureFoundryConfig,
+  LMStudioConfig,
+  NimConfig,
+} from '@accomplish_ai/agent-core';
 
 /**
  * Event name — subscribe via `service.on(SETTINGS_CHANGED, listener)`. We
@@ -56,6 +64,10 @@ export class SettingsService extends EventEmitter {
       sandboxConfig: this.storage.getSandboxConfig(),
       cloudBrowserConfig: this.storage.getCloudBrowserConfig(),
       messagingConfig: this.storage.getMessagingConfig(),
+      // `AppSettings` exposes ollama/litellm/azure/lmstudio/huggingface
+      // configs but NOT nim, so it rides on the snapshot explicitly to keep
+      // M5's first-frame read complete.
+      nimConfig: this.storage.getNimConfig(),
     };
   }
 
@@ -189,6 +201,77 @@ export class SettingsService extends EventEmitter {
   setHuggingFaceLocalConfig(config: HuggingFaceLocalConfig | null): void {
     this.storage.setHuggingFaceLocalConfig(config);
     this.emit('settings.changed', { key: 'huggingFaceLocalConfig', value: config });
+  }
+
+  // ─── Selected-model + app-settings writers for provider configs ─────────
+  //
+  // These live on `AppSettings` (bundled into `getAll().app`) but desktop
+  // today writes them individually via `setStorage().setXxxConfig(...)` and
+  // `model:set`. Exposing dedicated setters + getters here gives M3 a
+  // one-line repoint for each handler without needing coarse `app.*`
+  // buckets that would invalidate unrelated UI.
+
+  getSelectedModel(): SelectedModel | null {
+    return this.storage.getSelectedModel();
+  }
+
+  setSelectedModel(model: SelectedModel): void {
+    this.storage.setSelectedModel(model);
+    this.emit('settings.changed', { key: 'selectedModel', value: model });
+  }
+
+  getOpenAiBaseUrl(): string {
+    return this.storage.getOpenAiBaseUrl();
+  }
+
+  setOpenAiBaseUrl(baseUrl: string): void {
+    this.storage.setOpenAiBaseUrl(baseUrl);
+    this.emit('settings.changed', { key: 'openaiBaseUrl', value: baseUrl });
+  }
+
+  getOllamaConfig(): OllamaConfig | null {
+    return this.storage.getOllamaConfig();
+  }
+
+  setOllamaConfig(config: OllamaConfig | null): void {
+    this.storage.setOllamaConfig(config);
+    this.emit('settings.changed', { key: 'ollamaConfig', value: config });
+  }
+
+  getLiteLLMConfig(): LiteLLMConfig | null {
+    return this.storage.getLiteLLMConfig();
+  }
+
+  setLiteLLMConfig(config: LiteLLMConfig | null): void {
+    this.storage.setLiteLLMConfig(config);
+    this.emit('settings.changed', { key: 'litellmConfig', value: config });
+  }
+
+  getAzureFoundryConfig(): AzureFoundryConfig | null {
+    return this.storage.getAzureFoundryConfig();
+  }
+
+  setAzureFoundryConfig(config: AzureFoundryConfig | null): void {
+    this.storage.setAzureFoundryConfig(config);
+    this.emit('settings.changed', { key: 'azureFoundryConfig', value: config });
+  }
+
+  getLMStudioConfig(): LMStudioConfig | null {
+    return this.storage.getLMStudioConfig();
+  }
+
+  setLMStudioConfig(config: LMStudioConfig | null): void {
+    this.storage.setLMStudioConfig(config);
+    this.emit('settings.changed', { key: 'lmstudioConfig', value: config });
+  }
+
+  getNimConfig(): NimConfig | null {
+    return this.storage.getNimConfig();
+  }
+
+  setNimConfig(config: NimConfig | null): void {
+    this.storage.setNimConfig(config);
+    this.emit('settings.changed', { key: 'nimConfig', value: config });
   }
 }
 

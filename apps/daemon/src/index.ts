@@ -29,6 +29,7 @@ import { OpenAiOauthManager } from './opencode/auth-openai.js';
 import { SecretsService } from './secrets-service.js';
 import { SettingsService } from './settings-service.js';
 import { WorkspaceService } from './workspace-service.js';
+import { ConnectorService } from './connector-service.js';
 import { LegacyImportService } from './legacy-import-service.js';
 import { log } from './logger.js';
 
@@ -209,7 +210,15 @@ async function main(): Promise<void> {
   const secretsService = new SecretsService(storage);
   const settingsService = new SettingsService(storage);
   const workspaceService = new WorkspaceService();
+  const connectorService = new ConnectorService(storage);
   const legacyImportService = new LegacyImportService(storageService.getRawDatabase());
+
+  // Ensure the default workspace exists and the active-workspace pointer is
+  // valid BEFORE registering any workspace RPCs. Ports the bootstrap from
+  // desktop's `workspaceManager.initialize()`; migrations only create the
+  // tables, so without this a fresh profile would answer `workspace.list`
+  // with `[]` and `workspace.getActive` with `null`. Idempotent.
+  workspaceService.ensureInitialized();
 
   // Register RPC methods and task event forwarding
   const routeServices = {
@@ -224,6 +233,7 @@ async function main(): Promise<void> {
     secretsService,
     settingsService,
     workspaceService,
+    connectorService,
     legacyImportService,
   };
   registerRpcMethods(routeServices);

@@ -11,6 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * repo function.
  */
 const mocks = vi.hoisted(() => ({
+  createDefaultWorkspace: vi.fn(),
   listWorkspaces: vi.fn(),
   getWorkspace: vi.fn(),
   createWorkspaceRecord: vi.fn(),
@@ -48,6 +49,44 @@ describe('WorkspaceService', () => {
   beforeEach(() => {
     Object.values(mocks).forEach((m) => m.mockReset());
     service = new WorkspaceService();
+  });
+
+  // ── ensureInitialized (review P2) ─────────────────────────────────────
+  // Ports desktop `workspaceManager.initialize()` so fresh profiles get a
+  // default workspace + a normalized active-id even after M5 removes main's
+  // initialize() call. Idempotent by design.
+  describe('ensureInitialized', () => {
+    it('creates the default workspace and sets active when no active id is stored', () => {
+      mocks.createDefaultWorkspace.mockReturnValue({ id: 'w-default' });
+      mocks.getActiveWorkspaceId.mockReturnValue(null);
+
+      service.ensureInitialized();
+
+      expect(mocks.createDefaultWorkspace).toHaveBeenCalledTimes(1);
+      expect(mocks.setActiveWorkspaceId).toHaveBeenCalledWith('w-default');
+    });
+
+    it('normalizes a stale active id pointing at a deleted workspace', () => {
+      mocks.createDefaultWorkspace.mockReturnValue({ id: 'w-default' });
+      mocks.getActiveWorkspaceId.mockReturnValue('w-gone');
+      mocks.getWorkspace.mockReturnValue(undefined);
+
+      service.ensureInitialized();
+
+      expect(mocks.setActiveWorkspaceId).toHaveBeenCalledWith('w-default');
+    });
+
+    it('leaves active id untouched when it still points at a real workspace', () => {
+      mocks.createDefaultWorkspace.mockReturnValue({ id: 'w-default' });
+      mocks.getActiveWorkspaceId.mockReturnValue('w-custom');
+      mocks.getWorkspace.mockReturnValue({ id: 'w-custom' });
+
+      service.ensureInitialized();
+
+      // createDefault still runs (idempotent) — but no pointer rewrite.
+      expect(mocks.createDefaultWorkspace).toHaveBeenCalledTimes(1);
+      expect(mocks.setActiveWorkspaceId).not.toHaveBeenCalled();
+    });
   });
 
   describe('workspaces', () => {

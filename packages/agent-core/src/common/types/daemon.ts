@@ -22,7 +22,16 @@ import type { CreditUsage } from './gateway.js';
 // them at emit time, so pulling them in from sibling common modules (and
 // from `../../types/storage.js`, the `AppSettings` / `SelectedModel` layer)
 // does not widen the runtime graph. Keeps the RPC contract single-sourced.
-import type { HuggingFaceLocalConfig } from './provider.js';
+import type {
+  HuggingFaceLocalConfig,
+  SelectedModel,
+  OllamaConfig,
+  LiteLLMConfig,
+  AzureFoundryConfig,
+  LMStudioConfig,
+  NimConfig,
+} from './provider.js';
+import type { McpConnector, ConnectorStatus, OAuthTokens } from './connector.js';
 import type { ProviderId, ConnectedProvider, ProviderSettings } from './providerSettings.js';
 import type {
   Workspace,
@@ -269,6 +278,8 @@ export interface SettingsSnapshot {
   cloudBrowserConfig: CloudBrowserConfig | null;
   /** Messaging integration config (null if not configured). */
   messagingConfig: MessagingConfig | null;
+  /** NVIDIA NIM provider config — NOT in `AppSettings`, so carried separately. */
+  nimConfig: NimConfig | null;
 }
 
 /** Discriminated union describing a settings write. Subscribers can patch
@@ -285,7 +296,17 @@ export type SettingsChangePayload =
   | { key: 'messagingConfig'; value: MessagingConfig | null }
   | { key: 'onboardingComplete'; value: boolean }
   | { key: 'providerSettings' }
-  | { key: 'huggingFaceLocalConfig'; value: HuggingFaceLocalConfig | null };
+  | { key: 'huggingFaceLocalConfig'; value: HuggingFaceLocalConfig | null }
+  // Individual provider-config + selected-model variants, emitted by each
+  // of the corresponding SettingsService setters so the renderer can patch
+  // only the affected bucket.
+  | { key: 'selectedModel'; value: SelectedModel }
+  | { key: 'openaiBaseUrl'; value: string }
+  | { key: 'ollamaConfig'; value: OllamaConfig | null }
+  | { key: 'litellmConfig'; value: LiteLLMConfig | null }
+  | { key: 'azureFoundryConfig'; value: AzureFoundryConfig | null }
+  | { key: 'lmstudioConfig'; value: LMStudioConfig | null }
+  | { key: 'nimConfig'; value: NimConfig | null };
 
 /** Result shape for `workspace.setActive` and `workspace.delete`: callers
  *  need to know whether the operation actually changed state so they can
@@ -459,6 +480,31 @@ export interface DaemonMethodMap {
   'settings.getMessagingConfig': { params: undefined; result: MessagingConfig | null };
   'settings.setOnboardingComplete': { params: { complete: boolean }; result: void };
 
+  // Selected model + provider configs currently reachable through desktop's
+  // `getStorage().setXxxConfig` + `model:set` IPC handlers. Named-field
+  // setters + getters so M3 can repoint each handler one-for-one; matching
+  // `settings.changed` variants live in `SettingsChangePayload`.
+  'settings.getSelectedModel': { params: undefined; result: SelectedModel | null };
+  'settings.setSelectedModel': { params: { model: SelectedModel }; result: void };
+  'settings.getOpenAiBaseUrl': { params: undefined; result: string };
+  'settings.setOpenAiBaseUrl': { params: { baseUrl: string }; result: void };
+  'settings.getOllamaConfig': { params: undefined; result: OllamaConfig | null };
+  'settings.setOllamaConfig': { params: { config: OllamaConfig | null }; result: void };
+  'settings.getLiteLLMConfig': { params: undefined; result: LiteLLMConfig | null };
+  'settings.setLiteLLMConfig': { params: { config: LiteLLMConfig | null }; result: void };
+  'settings.getAzureFoundryConfig': {
+    params: undefined;
+    result: AzureFoundryConfig | null;
+  };
+  'settings.setAzureFoundryConfig': {
+    params: { config: AzureFoundryConfig | null };
+    result: void;
+  };
+  'settings.getLMStudioConfig': { params: undefined; result: LMStudioConfig | null };
+  'settings.setLMStudioConfig': { params: { config: LMStudioConfig | null }; result: void };
+  'settings.getNimConfig': { params: undefined; result: NimConfig | null };
+  'settings.setNimConfig': { params: { config: NimConfig | null }; result: void };
+
   // Provider settings
   'provider.getSettings': { params: undefined; result: ProviderSettings };
   'provider.setActive': { params: { providerId: ProviderId | null }; result: void };
@@ -530,6 +576,26 @@ export interface DaemonMethodMap {
   };
   'favorites.remove': { params: TaskIdParams; result: void };
   'favorites.isFavorite': { params: TaskIdParams; result: boolean };
+
+  // Connectors (MCP + OAuth tokens). M3 repoints `connector-handlers.ts`
+  // + `connector-auth-entry.ts` onto these. The `connectors.storeTokens`
+  // surface uses the typed `ConnectorStorageAPI.storeConnectorTokens`
+  // (encrypted via the secure-storage file under a per-connector key),
+  // NOT the legacy `connector-auth:<key>` prefix that desktop wrote
+  // directly — M3 handles any key-space migration needed.
+  'connectors.list': { params: undefined; result: McpConnector[] };
+  'connectors.getEnabled': { params: undefined; result: McpConnector[] };
+  'connectors.getById': { params: { id: string }; result: McpConnector | null };
+  'connectors.upsert': { params: { connector: McpConnector }; result: void };
+  'connectors.setEnabled': { params: { id: string; enabled: boolean }; result: void };
+  'connectors.setStatus': { params: { id: string; status: ConnectorStatus }; result: void };
+  'connectors.delete': { params: { id: string }; result: void };
+  'connectors.storeTokens': {
+    params: { connectorId: string; tokens: OAuthTokens };
+    result: void;
+  };
+  'connectors.getTokens': { params: { connectorId: string }; result: OAuthTokens | null };
+  'connectors.deleteTokens': { params: { connectorId: string }; result: void };
 
   // Logs (bug-report support)
   'logs.getTasksForBugReport': { params: undefined; result: Task[] };

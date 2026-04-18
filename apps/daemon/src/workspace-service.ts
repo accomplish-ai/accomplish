@@ -30,6 +30,7 @@
  */
 import { EventEmitter } from 'node:events';
 import {
+  createDefaultWorkspace,
   listWorkspaces,
   getWorkspace,
   createWorkspaceRecord,
@@ -62,6 +63,31 @@ import type {
 export const WORKSPACE_CHANGED = 'workspace.changed' as const;
 
 export class WorkspaceService extends EventEmitter {
+  /**
+   * Bootstrap invariants: ensure the default workspace exists and that
+   * `active_workspace_id` points at a real row. Ported from the desktop
+   * `workspaceManager.initialize()` so M5's daemon-first startup can drop
+   * main's own `workspaceManager.initialize()` call without regressing
+   * fresh-profile behavior (migrations only create the tables — they do NOT
+   * seed a default row).
+   *
+   * Idempotent: safe to call on every daemon startup. `createDefaultWorkspace`
+   * returns the existing default if one already exists; the active-id
+   * normalization only runs when the stored id is missing or stale.
+   *
+   * Must be called AFTER `StorageService.initialize()` has run (so migrations
+   * are applied and `getDatabase()` resolves) and BEFORE any RPC registers —
+   * otherwise the first `workspace.list` or `workspace.getActive` on a fresh
+   * profile can return `[]` / `null`.
+   */
+  ensureInitialized(): void {
+    const defaultWs = createDefaultWorkspace();
+    const activeId = getActiveWorkspaceId();
+    if (!activeId || !getWorkspace(activeId)) {
+      setActiveWorkspaceId(defaultWs.id);
+    }
+  }
+
   // ─── Workspaces ─────────────────────────────────────────────────────────
 
   list(): Workspace[] {

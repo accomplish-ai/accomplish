@@ -24,6 +24,7 @@ import type { OpenAiOauthManager } from './opencode/auth-openai.js';
 import type { SecretsService } from './secrets-service.js';
 import type { SettingsService, SettingsChangePayload } from './settings-service.js';
 import type { WorkspaceService, WorkspaceChangePayload } from './workspace-service.js';
+import type { ConnectorService } from './connector-service.js';
 import type { LegacyImportService } from './legacy-import-service.js';
 
 const taskIdSchema = z.object({ taskId: z.string().min(1) });
@@ -66,12 +67,14 @@ export interface RouteServices {
   /** OAuth manager (Phase 4a of the SDK cutover port). Owns transient
    *  `opencode serve` spawns + the SDK auth flow + plan detection. */
   openAiOauthManager: OpenAiOauthManager;
-  // Milestone 2 of the daemon-only-SQLite migration. Four thin services that
-  // expose the StorageAPI surface over RPC. Main doesn't consume them yet;
-  // they're registered so M3/M5 can progressively repoint desktop callers.
+  // Milestone 2 of the daemon-only-SQLite migration. Five thin services
+  // that expose the StorageAPI + ConnectorStorageAPI surfaces over RPC.
+  // Main doesn't consume them yet; they're registered so M3/M5 can
+  // progressively repoint desktop callers.
   secretsService: SecretsService;
   settingsService: SettingsService;
   workspaceService: WorkspaceService;
+  connectorService: ConnectorService;
   legacyImportService: LegacyImportService;
 }
 
@@ -90,6 +93,7 @@ export function registerRpcMethods(services: RouteServices): void {
     secretsService,
     settingsService,
     workspaceService,
+    connectorService,
     legacyImportService,
   } = services;
   const storage = services.storageService.getStorage();
@@ -554,6 +558,104 @@ export function registerRpcMethods(services: RouteServices): void {
     }),
   );
 
+  // ── Selected model + provider configs (app-settings writers) ────────────
+  // Typed config objects pass through as `z.unknown()` — the TS contract at
+  // the `DaemonMethodMap` level is the source of truth for their shapes.
+  rpc.registerMethod(
+    'settings.getSelectedModel',
+    safeHandler(() => Promise.resolve(settingsService.getSelectedModel())),
+  );
+  rpc.registerMethod(
+    'settings.setSelectedModel',
+    safeHandler((params) => {
+      const v = validate(z.object({ model: z.unknown() }), params);
+      settingsService.setSelectedModel(
+        v.model as Parameters<typeof settingsService.setSelectedModel>[0],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'settings.getOpenAiBaseUrl',
+    safeHandler(() => Promise.resolve(settingsService.getOpenAiBaseUrl())),
+  );
+  rpc.registerMethod(
+    'settings.setOpenAiBaseUrl',
+    safeHandler((params) => {
+      const v = validate(z.object({ baseUrl: z.string() }), params);
+      settingsService.setOpenAiBaseUrl(v.baseUrl);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'settings.getOllamaConfig',
+    safeHandler(() => Promise.resolve(settingsService.getOllamaConfig())),
+  );
+  rpc.registerMethod(
+    'settings.setOllamaConfig',
+    safeHandler((params) => {
+      const v = validate(z.object({ config: z.unknown().nullable() }), params);
+      settingsService.setOllamaConfig(
+        v.config as Parameters<typeof settingsService.setOllamaConfig>[0],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'settings.getLiteLLMConfig',
+    safeHandler(() => Promise.resolve(settingsService.getLiteLLMConfig())),
+  );
+  rpc.registerMethod(
+    'settings.setLiteLLMConfig',
+    safeHandler((params) => {
+      const v = validate(z.object({ config: z.unknown().nullable() }), params);
+      settingsService.setLiteLLMConfig(
+        v.config as Parameters<typeof settingsService.setLiteLLMConfig>[0],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'settings.getAzureFoundryConfig',
+    safeHandler(() => Promise.resolve(settingsService.getAzureFoundryConfig())),
+  );
+  rpc.registerMethod(
+    'settings.setAzureFoundryConfig',
+    safeHandler((params) => {
+      const v = validate(z.object({ config: z.unknown().nullable() }), params);
+      settingsService.setAzureFoundryConfig(
+        v.config as Parameters<typeof settingsService.setAzureFoundryConfig>[0],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'settings.getLMStudioConfig',
+    safeHandler(() => Promise.resolve(settingsService.getLMStudioConfig())),
+  );
+  rpc.registerMethod(
+    'settings.setLMStudioConfig',
+    safeHandler((params) => {
+      const v = validate(z.object({ config: z.unknown().nullable() }), params);
+      settingsService.setLMStudioConfig(
+        v.config as Parameters<typeof settingsService.setLMStudioConfig>[0],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'settings.getNimConfig',
+    safeHandler(() => Promise.resolve(settingsService.getNimConfig())),
+  );
+  rpc.registerMethod(
+    'settings.setNimConfig',
+    safeHandler((params) => {
+      const v = validate(z.object({ config: z.unknown().nullable() }), params);
+      settingsService.setNimConfig(v.config as Parameters<typeof settingsService.setNimConfig>[0]);
+      return Promise.resolve();
+    }),
+  );
+
   // ── Settings — provider ──────────────────────────────────────────────────
   rpc.registerMethod(
     'provider.getSettings',
@@ -809,6 +911,84 @@ export function registerRpcMethods(services: RouteServices): void {
     safeHandler((params) => {
       const v = validate(taskIdSchema, params);
       return Promise.resolve(storage.isFavorite(v.taskId));
+    }),
+  );
+
+  // ── Connectors (MCP registry + OAuth tokens) ───────────────────────────
+  rpc.registerMethod(
+    'connectors.list',
+    safeHandler(() => Promise.resolve(connectorService.list())),
+  );
+  rpc.registerMethod(
+    'connectors.getEnabled',
+    safeHandler(() => Promise.resolve(connectorService.getEnabled())),
+  );
+  rpc.registerMethod(
+    'connectors.getById',
+    safeHandler((params) => {
+      const v = validate(z.object({ id: z.string().min(1) }), params);
+      return Promise.resolve(connectorService.getById(v.id));
+    }),
+  );
+  rpc.registerMethod(
+    'connectors.upsert',
+    safeHandler((params) => {
+      const v = validate(z.object({ connector: z.unknown() }), params);
+      connectorService.upsert(v.connector as Parameters<typeof connectorService.upsert>[0]);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'connectors.setEnabled',
+    safeHandler((params) => {
+      const v = validate(z.object({ id: z.string().min(1), enabled: z.boolean() }), params);
+      connectorService.setEnabled(v.id, v.enabled);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'connectors.setStatus',
+    safeHandler((params) => {
+      const v = validate(z.object({ id: z.string().min(1), status: z.unknown() }), params);
+      connectorService.setStatus(
+        v.id,
+        v.status as Parameters<typeof connectorService.setStatus>[1],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'connectors.delete',
+    safeHandler((params) => {
+      const v = validate(z.object({ id: z.string().min(1) }), params);
+      connectorService.delete(v.id);
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'connectors.storeTokens',
+    safeHandler((params) => {
+      const v = validate(z.object({ connectorId: z.string().min(1), tokens: z.unknown() }), params);
+      connectorService.storeTokens(
+        v.connectorId,
+        v.tokens as Parameters<typeof connectorService.storeTokens>[1],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'connectors.getTokens',
+    safeHandler((params) => {
+      const v = validate(z.object({ connectorId: z.string().min(1) }), params);
+      return Promise.resolve(connectorService.getTokens(v.connectorId));
+    }),
+  );
+  rpc.registerMethod(
+    'connectors.deleteTokens',
+    safeHandler((params) => {
+      const v = validate(z.object({ connectorId: z.string().min(1) }), params);
+      connectorService.deleteTokens(v.connectorId);
+      return Promise.resolve();
     }),
   );
 
