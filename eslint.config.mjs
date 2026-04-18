@@ -78,14 +78,13 @@ export default tseslint.config(
     files: ['apps/desktop/src/main/**/*.ts', 'apps/desktop/src/preload/**/*.ts'],
     ignores: [
       'apps/desktop/src/main/store/storage.ts', // removed in Milestone 5
-      // `store/secureStorage.ts` dropped off the allowlist in M3 (sub-chunk 3a):
-      // it is now a pure RPC façade and imports only from `/desktop-main`.
-      'apps/desktop/src/main/store/workspaceManager.ts', // calls workspace/KN DB repos — removed in Milestone 3 (sub-chunk 3d)
-      'apps/desktop/src/main/ipc/handlers/workspace-handlers.ts', // calls knowledgeNotes DB repo — removed in Milestone 3 (sub-chunk 3d)
-      'apps/desktop/src/main/google-accounts/index.ts', // removed in Milestone 4
-      'apps/desktop/src/main/google-accounts/account-manager.ts', // removed in Milestone 4
-      'apps/desktop/src/main/google-accounts/token-manager.ts', // removed in Milestone 4
-      'apps/desktop/src/main/skills/SkillsManager.ts', // removed in Milestone 4
+      // M3 3a: `store/secureStorage.ts` — now a pure RPC façade.
+      // M3 3d: `store/workspaceManager.ts` + `ipc/handlers/workspace-handlers.ts`.
+      // M4: `google-accounts/*` (account-manager + token-manager deleted,
+      //     index.ts re-exports only the OAuth loopback helpers) +
+      //     `skills/SkillsManager.ts` (now a daemon-client wrapper).
+      // Only `store/storage.ts` remains — it's the last main-side DB
+      // consumer and Milestone 5 finishes it off.
     ],
     rules: {
       'no-restricted-imports': [

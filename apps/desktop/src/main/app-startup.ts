@@ -329,9 +329,13 @@ export async function startApp(
     );
   }
 
-  // Initialize Google account managers (lazy singletons — safe after initializeStorage())
-  let googleAccountManager: import('./google-accounts/account-manager').AccountManager | undefined;
-  let googleTokenManager: import('./google-accounts/token-manager').TokenManager | undefined;
+  // Milestone 4 — Google account DB + token refresh moved to the daemon.
+  // Main now only holds the OAuth loopback helpers (`shell.openExternal`
+  // + local HTTP listener); on successful callback the handler hands the
+  // result to `gwsAccount.add` via RPC, and the daemon's
+  // `GoogleAccountService.startAllTimers()` rebuilt the refresh schedule
+  // on its own startup. The `setWindow` / `startAllTimers` calls on this
+  // side are gone along with the classes they used to drive.
   let startGoogleOAuthFn:
     | typeof import('./google-accounts/google-auth').startGoogleOAuth
     | undefined;
@@ -339,40 +343,20 @@ export async function startApp(
     | typeof import('./google-accounts/google-auth').cancelGoogleOAuth
     | undefined;
   try {
-    const { getAccountManager, getTokenManager, startGoogleOAuth, cancelGoogleOAuth } =
-      await import('./google-accounts/index');
-    googleAccountManager = getAccountManager();
-    googleTokenManager = getTokenManager();
+    const { startGoogleOAuth, cancelGoogleOAuth } = await import('./google-accounts/index');
     startGoogleOAuthFn = startGoogleOAuth;
     cancelGoogleOAuthFn = cancelGoogleOAuth;
   } catch (err) {
-    logMain('WARN', '[Main] Google account managers unavailable', { err: String(err) });
+    logMain('WARN', '[Main] Google OAuth helpers unavailable', { err: String(err) });
   }
   // Register IPC handlers exactly once, after the import attempt settles
-  registerIPCHandlers(
-    googleAccountManager,
-    googleTokenManager,
-    startGoogleOAuthFn,
-    cancelGoogleOAuthFn,
-  );
+  registerIPCHandlers(startGoogleOAuthFn, cancelGoogleOAuthFn);
   logMain('INFO', '[Main] IPC handlers registered');
 
   createWindow();
 
   const mainWindow = getMainWindow();
   if (mainWindow) {
-    // Wire TokenManager window reference and start refresh timers for connected accounts
-    if (googleTokenManager && googleAccountManager) {
-      try {
-        googleTokenManager.setWindow(mainWindow);
-        googleTokenManager.startAllTimers(googleAccountManager.listAccounts());
-        logMain('INFO', '[Main] Google account token refresh timers started');
-      } catch (err) {
-        logMain('WARN', '[Main] Failed to start Google token refresh timers', {
-          err: String(err),
-        });
-      }
-    }
     // Forward daemon notifications to the renderer via IPC.
     // Uses a dynamic getter so recreated windows (macOS activate) receive events.
     registerNotificationForwarding(() => getMainWindow());
@@ -439,14 +423,11 @@ export async function startApp(
     const windows = BrowserWindow.getAllWindows();
     if (windows.length === 0) {
       createWindow();
-      // Rebind TokenManager to the newly created window so background
-      // notifications target the fresh BrowserWindow reference
-      if (googleTokenManager) {
-        const newWindow = getMainWindow();
-        if (newWindow) {
-          googleTokenManager.setWindow(newWindow);
-        }
-      }
+      // Milestone 4: daemon owns Google token refresh now — there's no
+      // main-side `setWindow` to re-bind here. `registerNotificationForwarding`
+      // already uses a dynamic window getter so the recreated window
+      // receives `gwsAccount.statusChanged` (and all other daemon
+      // notifications) without additional wiring.
       try {
         getLogCollector()?.logEnv?.('INFO', '[Main] Application reactivated; recreated window');
       } catch (_e) {
@@ -455,10 +436,6 @@ export async function startApp(
     } else {
       windows[0].show();
       windows[0].focus();
-      // Ensure TokenManager always holds a reference to the current focused window
-      if (googleTokenManager) {
-        googleTokenManager.setWindow(windows[0]);
-      }
       try {
         getLogCollector()?.logEnv?.(
           'INFO',

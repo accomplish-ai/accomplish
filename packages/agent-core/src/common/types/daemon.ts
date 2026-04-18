@@ -50,6 +50,8 @@ import type {
   LanguagePreference,
   StoredFavorite,
 } from '../../types/storage.js';
+import type { GoogleAccount, GoogleAccountStatus, GoogleAccountToken } from './google-account.js';
+import type { Skill } from './skills.js';
 
 // =============================================================================
 // JSON-RPC 2.0 Base Types
@@ -333,6 +335,44 @@ export type WorkspaceChangePayload =
   | { kind: 'workspace.activeChanged'; workspaceId: string }
   | { kind: 'knowledgeNote.changed'; workspaceId: string };
 
+/** Payload for `gwsAccount.add` — OAuth loopback on desktop hands the
+ *  daemon the account metadata (from the Google userinfo endpoint) and the
+ *  token bundle (access + refresh + expiry + scopes). The daemon owns the
+ *  DB row + secure-storage token from there. */
+export interface GwsAccountAddInput {
+  googleAccountId: string;
+  email: string;
+  displayName: string;
+  pictureUrl: string | null;
+  label: string;
+  connectedAt: string;
+  token: GoogleAccountToken;
+}
+
+/** Result emitted by `gwsAccount.getToken` — deliberately excludes the
+ *  refresh token. Main only needs the access token to mint manifest
+ *  entries for child OpenCode processes; the refresh token stays
+ *  daemon-side so it never crosses the IPC boundary. */
+export interface GwsAccountTokenResult {
+  accessToken: string;
+  scopes: string[];
+  expiresAt: number;
+}
+
+/** `gwsAccount.statusChanged` notification — emitted by GoogleAccountService
+ *  whenever a token-refresh success/failure changes the status column. */
+export interface GwsAccountStatusChangedPayload {
+  googleAccountId: string;
+  status: GoogleAccountStatus;
+}
+
+/** `skills.changed` notification — emitted by SkillsService whenever a
+ *  skill is added, removed, toggled, or resynced. Renderer patches its
+ *  cache by reloading `skills.list` on every such event; no partial diffs. */
+export interface SkillsChangedPayload {
+  kind: 'added' | 'removed' | 'updated' | 'resynced';
+}
+
 /** Result of the one-shot electron-store → SQLite importer (`legacy.importElectronStoreIfNeeded`). */
 export type LegacyImportResult =
   | { imported: true; reason: 'completed' }
@@ -613,6 +653,43 @@ export interface DaemonMethodMap {
   };
   'connectors.authEntry.delete': { params: { connectorKey: string }; result: void };
 
+  // Google accounts (M4 — daemon owns DB + token refresh). OAuth loopback
+  // stays in main because it needs `shell.openExternal` + a local HTTP
+  // server; on success main calls `gwsAccount.add` which schedules the
+  // refresh timer daemon-side. `gwsAccount.getToken` returns the access
+  // token only — the refresh token stays daemon-owned.
+  'gwsAccount.list': { params: undefined; result: GoogleAccount[] };
+  'gwsAccount.add': { params: { input: GwsAccountAddInput }; result: void };
+  'gwsAccount.remove': { params: { googleAccountId: string }; result: void };
+  'gwsAccount.updateLabel': {
+    params: { googleAccountId: string; label: string };
+    result: void;
+  };
+  'gwsAccount.updateToken': {
+    params: { googleAccountId: string; token: GoogleAccountToken; connectedAt: string };
+    result: void;
+  };
+  'gwsAccount.getToken': {
+    params: { googleAccountId: string };
+    result: GwsAccountTokenResult | null;
+  };
+  'gwsAccount.refreshNow': { params: { googleAccountId: string }; result: void };
+
+  // Skills (M4). The daemon owns the skills repo + disk-scan / frontmatter
+  // parsing via `createSkillsManager`. Main keeps the Electron-only parts:
+  // dialog.showOpenDialog for folder pickers, `shell.openPath` /
+  // `shell.showItemInFolder`. File paths selected by the user are passed
+  // to the daemon via `skills.addFromPath`. The daemon emits
+  // `skills.changed` on every mutation; renderer reloads via `skills.list`.
+  'skills.list': { params: undefined; result: Skill[] };
+  'skills.listEnabled': { params: undefined; result: Skill[] };
+  'skills.setEnabled': { params: { skillId: string; enabled: boolean }; result: void };
+  'skills.getContent': { params: { skillId: string }; result: string | null };
+  'skills.addFromPath': { params: { sourcePath: string }; result: Skill | null };
+  'skills.delete': { params: { skillId: string }; result: void };
+  'skills.resync': { params: undefined; result: Skill[] };
+  'skills.getUserSkillsPath': { params: undefined; result: string };
+
   // Logs (bug-report support)
   'logs.getTasksForBugReport': { params: undefined; result: Task[] };
 
@@ -668,6 +745,10 @@ export interface DaemonNotificationMap {
   // instead of re-fetching on every IPC round-trip.
   'settings.changed': SettingsChangePayload;
   'workspace.changed': WorkspaceChangePayload;
+  // M4 — daemon owns Google accounts + skills. Main forwards these events
+  // to the renderer over IPC (`gws:account:status-changed`, `skills:changed`).
+  'gwsAccount.statusChanged': GwsAccountStatusChangedPayload;
+  'skills.changed': SkillsChangedPayload;
 }
 
 /** All valid daemon notification names. */

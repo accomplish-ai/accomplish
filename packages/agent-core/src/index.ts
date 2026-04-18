@@ -628,7 +628,22 @@ export type {
   WorkspaceDeleteResult,
   LegacyImportResult,
   LegacyImportPaths,
+  // Milestone 4 — daemon-owned Google accounts + skills payloads.
+  GwsAccountAddInput,
+  GwsAccountTokenResult,
+  GwsAccountStatusChangedPayload,
+  SkillsChangedPayload,
 } from './common/types/daemon.js';
+
+// Milestone 4 — daemon services import these directly from the root for
+// DB-layer typings (`GoogleAccount` is read/written via SQL in
+// `GoogleAccountService`). They already live in the common tree.
+export type {
+  GoogleAccount,
+  GoogleAccountStatus,
+  GoogleAccountToken,
+  GwsAccountsContext,
+} from './common/types/google-account.js';
 
 // `LanguagePreference` lives in the storage-types module next to
 // `AppSettings`; re-exporting it here keeps the daemon's SettingsService able

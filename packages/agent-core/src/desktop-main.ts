@@ -161,6 +161,11 @@ export type { Task, TaskMessage, TaskConfig, FileAttachmentInfo } from './common
 export type { TodoItem } from './common/types/todo.js';
 export type { Skill } from './common/types/skills.js';
 export type {
+  GoogleAccount,
+  GoogleAccountStatus,
+  GoogleAccountToken,
+} from './common/types/google-account.js';
+export type {
   Workspace,
   WorkspaceCreateInput,
   WorkspaceUpdateInput,
@@ -223,6 +228,11 @@ export type {
   WorkspaceDeleteResult,
   LegacyImportResult,
   LegacyImportPaths,
+  // Milestone 4 — daemon-owned Google accounts + skills notification payloads.
+  GwsAccountAddInput,
+  GwsAccountTokenResult,
+  GwsAccountStatusChangedPayload,
+  SkillsChangedPayload,
 } from './common/types/daemon.js';
 
 // M2 scope-completeness follow-up: the built-in connector auth-store blob

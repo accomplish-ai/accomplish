@@ -243,4 +243,28 @@ function registerNotificationHandlers(
   client.onNotification('whatsapp.status', (data) => {
     forward('integrations:whatsapp:status', (data as { status: string }).status);
   });
+
+  // Milestone 4 of the daemon-only-SQLite migration — daemon owns Google
+  // accounts + skills now, so status changes come through RPC
+  // notifications. The renderer channel name (`gws:account:status-changed`)
+  // stays identical to the pre-M4 `webContents.send(channel, id, status)`
+  // shape TokenManager used (preload subscribes with a two-positional
+  // listener); bypass `forward` so the two args get passed through as a
+  // varargs `webContents.send`, not collapsed into a single data payload.
+  client.onNotification('gwsAccount.statusChanged', (data) => {
+    const payload = data as { googleAccountId: string; status: string };
+    const win = getWindow();
+    if (!win || win.isDestroyed()) {
+      return;
+    }
+    try {
+      win.webContents.send('gws:account:status-changed', payload.googleAccountId, payload.status);
+    } catch {
+      // window torn down between check and send
+    }
+  });
+
+  client.onNotification('skills.changed', (data) => {
+    forward('skills:changed', data);
+  });
 }

@@ -31,6 +31,12 @@ import { SettingsService } from './settings-service.js';
 import { WorkspaceService } from './workspace-service.js';
 import { ConnectorService } from './connector-service.js';
 import { LegacyImportService } from './legacy-import-service.js';
+// Milestone 4 of the daemon-only-SQLite migration — daemon takes over
+// ownership of Google accounts (CRUD + token refresh) and skills (CRUD +
+// disk scan). Main keeps the Electron-only parts (OAuth loopback +
+// `shell.open*`) and calls these services over RPC.
+import { GoogleAccountService } from './google-account-service.js';
+import { SkillsService } from './skills-service.js';
 import { log } from './logger.js';
 
 // __dirname is available natively in CJS (the daemon is built as CJS by tsup)
@@ -213,12 +219,40 @@ async function main(): Promise<void> {
   const connectorService = new ConnectorService(storage);
   const legacyImportService = new LegacyImportService(storageService.getRawDatabase());
 
+  // Milestone 4 services — own Google accounts + skills.
+  const googleAccountService = new GoogleAccountService(storageService.getRawDatabase(), storage);
+  // Bundled-skills location mirrors the desktop pre-M4 path. In packaged
+  // builds Electron passes `--resources-path`; in dev we fall back to the
+  // repo root so `pnpm dev` still finds the bundled skills directory.
+  const bundledSkillsPath = isPackaged
+    ? path.join(resourcesPath, 'bundled-skills')
+    : appPath
+      ? path.join(appPath, 'bundled-skills')
+      : path.resolve(__dirname, '..', '..', '..', 'bundled-skills');
+  const skillsService = new SkillsService({
+    dataDir: userDataPath,
+    bundledSkillsPath,
+  });
+
   // Ensure the default workspace exists and the active-workspace pointer is
   // valid BEFORE registering any workspace RPCs. Ports the bootstrap from
   // desktop's `workspaceManager.initialize()`; migrations only create the
   // tables, so without this a fresh profile would answer `workspace.list`
   // with `[]` and `workspace.getActive` with `null`. Idempotent.
   workspaceService.ensureInitialized();
+
+  // Milestone 4 — initialize SkillsService (reads bundled + user skill
+  // directories from disk, reconciles with the DB) and restart Google
+  // account refresh timers for every previously-connected account. Both
+  // are crash-safe: idempotent and tolerant of partial / corrupted state.
+  try {
+    await skillsService.initialize();
+  } catch (err) {
+    log.warn(
+      `[Daemon] SkillsService initialize failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  googleAccountService.startAllTimers();
 
   // Register RPC methods and task event forwarding
   const routeServices = {
@@ -235,6 +269,8 @@ async function main(): Promise<void> {
     workspaceService,
     connectorService,
     legacyImportService,
+    googleAccountService,
+    skillsService,
   };
   registerRpcMethods(routeServices);
   registerTaskEventForwarding(routeServices);

@@ -21,7 +21,7 @@ export function registerSkillsHandlers(): void {
   });
 
   handle('skills:get-user-skills-path', async () => {
-    return skillsManager.getUserSkillsPath();
+    return await skillsManager.getUserSkillsPath();
   });
 
   handle('skills:pick-folder', async (event: IpcMainInvokeEvent) => {
