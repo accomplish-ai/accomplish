@@ -134,7 +134,9 @@
       "node_modules/opencode-linux-x64-musl/**",
       "node_modules/opencode-linux-x64-baseline-musl/**",
       "node_modules/opencode-linux-arm64/**",
-      "node_modules/opencode-linux-arm64-musl/**"
+      "node_modules/opencode-linux-arm64-musl/**",
+      "node_modules/opencode-windows-x64/**",
+      "node_modules/opencode-windows-x64-baseline/**"
     ],
     "extraResources": [
       {
