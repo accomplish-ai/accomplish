@@ -58,7 +58,7 @@ export function registerApiKeyValidationHandlers(): void {
   });
 
   handle('api-key:get', async (_event: IpcMainInvokeEvent) => {
-    return getApiKey('anthropic');
+    return await getApiKey('anthropic');
   });
 
   handle('api-key:validate', async (_event: IpcMainInvokeEvent, key: string) => {

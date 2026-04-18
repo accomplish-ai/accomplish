@@ -53,7 +53,7 @@ export function registerBedrockHandlers(): void {
       throw new Error('Invalid authentication type');
     }
 
-    storeApiKey('bedrock', credentials);
+    await storeApiKey('bedrock', credentials);
 
     let label: string;
     let keyPrefix: string;
@@ -79,8 +79,10 @@ export function registerBedrockHandlers(): void {
   });
 
   handle('bedrock:get-credentials', async (_event: IpcMainInvokeEvent) => {
-    const stored = getApiKey('bedrock');
-    if (!stored) return null;
+    const stored = await getApiKey('bedrock');
+    if (!stored) {
+      return null;
+    }
     try {
       return JSON.parse(stored);
     } catch {

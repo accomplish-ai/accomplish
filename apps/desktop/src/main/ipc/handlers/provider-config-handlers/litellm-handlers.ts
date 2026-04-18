@@ -21,7 +21,7 @@ export function registerLiteLLMHandlers(handle: IpcHandler): void {
 
   handle('litellm:fetch-models', async (_event: IpcMainInvokeEvent) => {
     const config = storage.getLiteLLMConfig();
-    const apiKey = getApiKey('litellm');
+    const apiKey = await getApiKey('litellm');
     return fetchLiteLLMModels({ config, apiKey: apiKey || undefined });
   });
 

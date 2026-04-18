@@ -189,6 +189,7 @@ export type {
   NimConfig,
   SelectedModel,
   ProviderType,
+  ApiKeyProvider,
 } from './common/types/provider.js';
 export {
   ALLOWED_API_KEY_PROVIDERS,

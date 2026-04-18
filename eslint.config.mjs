@@ -78,9 +78,10 @@ export default tseslint.config(
     files: ['apps/desktop/src/main/**/*.ts', 'apps/desktop/src/preload/**/*.ts'],
     ignores: [
       'apps/desktop/src/main/store/storage.ts', // removed in Milestone 5
-      'apps/desktop/src/main/store/secureStorage.ts', // removed in Milestone 3
-      'apps/desktop/src/main/store/workspaceManager.ts', // calls workspace/KN DB repos — removed in Milestone 3
-      'apps/desktop/src/main/ipc/handlers/workspace-handlers.ts', // calls knowledgeNotes DB repo — removed in Milestone 3
+      // `store/secureStorage.ts` dropped off the allowlist in M3 (sub-chunk 3a):
+      // it is now a pure RPC façade and imports only from `/desktop-main`.
+      'apps/desktop/src/main/store/workspaceManager.ts', // calls workspace/KN DB repos — removed in Milestone 3 (sub-chunk 3d)
+      'apps/desktop/src/main/ipc/handlers/workspace-handlers.ts', // calls knowledgeNotes DB repo — removed in Milestone 3 (sub-chunk 3d)
       'apps/desktop/src/main/google-accounts/index.ts', // removed in Milestone 4
       'apps/desktop/src/main/google-accounts/account-manager.ts', // removed in Milestone 4
       'apps/desktop/src/main/google-accounts/token-manager.ts', // removed in Milestone 4

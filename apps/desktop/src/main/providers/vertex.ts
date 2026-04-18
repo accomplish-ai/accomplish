@@ -72,7 +72,7 @@ export function registerVertexHandlers(handle: IpcHandler): void {
       }
     }
 
-    storeApiKey('vertex', credentials);
+    await storeApiKey('vertex', credentials);
 
     const label =
       parsed.authType === 'serviceAccount' ? 'Service Account' : 'Application Default Credentials';
@@ -89,8 +89,10 @@ export function registerVertexHandlers(handle: IpcHandler): void {
   });
 
   handle('vertex:get-credentials', async (_event: IpcMainInvokeEvent) => {
-    const stored = getApiKey('vertex');
-    if (!stored) return null;
+    const stored = await getApiKey('vertex');
+    if (!stored) {
+      return null;
+    }
     try {
       return JSON.parse(stored);
     } catch {

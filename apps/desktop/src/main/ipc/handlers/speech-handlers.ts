@@ -8,12 +8,12 @@ const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25 MB
 
 export function registerSpeechHandlers(): void {
   handle('speech:is-configured', async (_event: IpcMainInvokeEvent) => {
-    const apiKey = getApiKey('elevenlabs');
+    const apiKey = await getApiKey('elevenlabs');
     return Boolean(apiKey && apiKey.trim());
   });
 
   handle('speech:get-config', async (_event: IpcMainInvokeEvent) => {
-    const apiKey = getApiKey('elevenlabs');
+    const apiKey = await getApiKey('elevenlabs');
     return {
       enabled: Boolean(apiKey && apiKey.trim()),
       hasApiKey: Boolean(apiKey),

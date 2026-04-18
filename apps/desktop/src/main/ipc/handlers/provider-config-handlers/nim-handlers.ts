@@ -14,7 +14,7 @@ export function registerNimHandlers(handle: IpcHandler): void {
 
   handle('nim:fetch-models', async (_event: IpcMainInvokeEvent) => {
     const config = storage.getNimConfig();
-    const apiKey = getApiKey('nim');
+    const apiKey = await getApiKey('nim');
     return fetchNimModels({ config, apiKey: apiKey || undefined });
   });
 

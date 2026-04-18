@@ -87,24 +87,13 @@ export async function startApp(
     throw err;
   }
 
+  // HuggingFace auto-start reads local DB only — safe to run before daemon
+  // bootstrap. The provider-validation loop that used to live here was
+  // split out and MOVED to after `bootstrapDaemon()` below (Milestone 3 of
+  // the daemon-only-SQLite migration), because the secret-key read now
+  // routes over RPC and requires the daemon to be connected.
   try {
     const storage = getStorage();
-    const settings = storage.getProviderSettings();
-    for (const [id, provider] of Object.entries(settings.connectedProviders)) {
-      const providerId = id as ProviderId;
-      const credType = provider?.credentials?.type;
-      if (!credType || credType === 'api_key') {
-        const key = getApiKey(providerId);
-        if (!key) {
-          logMain(
-            'WARN',
-            `[Main] Provider ${providerId} has api_key auth but key not found in secure storage`,
-          );
-          storage.removeConnectedProvider(providerId);
-          logMain('INFO', `[Main] Removed provider ${providerId} due to missing API key`);
-        }
-      }
-    }
     const hfConfig = storage.getHuggingFaceLocalConfig();
     if (hfConfig?.enabled && hfConfig.selectedModelId) {
       logMain(
@@ -126,7 +115,7 @@ export async function startApp(
         });
     }
   } catch (err) {
-    logMain('ERROR', '[Main] Provider validation failed', { err: String(err) });
+    logMain('ERROR', '[Main] HuggingFace auto-start setup failed', { err: String(err) });
   }
 
   // Clean up stale accomplish-ai provider if free mode is no longer available.
@@ -148,7 +137,12 @@ export async function startApp(
     // best-effort cleanup
   }
 
-  // Initialize analytics — no-op when build.env is absent (OSS builds)
+  // Initialize analytics — no-op when build.env is absent (OSS builds).
+  // `initAnalytics` / `initDeviceFingerprint` / `initMixpanel` only touch
+  // local state (electron-store for the analytics device id, process-level
+  // SDK globals), so they run pre-daemon. The `trackAppLaunched` call was
+  // split out and MOVED to after `bootstrapDaemon()` below — its
+  // `getAllApiKeys()` enrichment now routes over RPC.
   let isFirstLaunch = false;
   try {
     if (isAnalyticsEnabled()) {
@@ -158,11 +152,6 @@ export async function startApp(
     }
     if (getBuildConfig().mixpanelToken) {
       initMixpanel();
-    }
-    if (isAnalyticsEnabled()) {
-      trackAppLaunched(isFirstLaunch).catch((err) =>
-        logMain('WARN', '[Main] trackAppLaunched failed', { err: String(err) }),
-      );
     }
   } catch (err) {
     logMain('WARN', '[Main] Analytics initialization failed', { err: String(err) });
@@ -215,6 +204,46 @@ export async function startApp(
     }
   } else {
     logMain('INFO', '[Main] E2E mock mode — skipping daemon bootstrap');
+  }
+
+  // Provider validation — MOVED here from pre-bootstrap (Milestone 3 of the
+  // daemon-only-SQLite migration). `getApiKey` now routes over RPC to the
+  // daemon, so this loop can only run once `bootstrapDaemon()` has resolved.
+  // In E2E mock mode the daemon is skipped entirely — the renderer uses
+  // mock task events and no provider is expected to have a real key, so the
+  // loop would just prune everything. Guard on mock mode to keep the
+  // E2E fixtures stable.
+  if (process.env.E2E_MOCK_TASK_EVENTS !== '1') {
+    try {
+      const storage = getStorage();
+      const settings = storage.getProviderSettings();
+      for (const [id, provider] of Object.entries(settings.connectedProviders)) {
+        const providerId = id as ProviderId;
+        const credType = provider?.credentials?.type;
+        if (!credType || credType === 'api_key') {
+          const key = await getApiKey(providerId);
+          if (!key) {
+            logMain(
+              'WARN',
+              `[Main] Provider ${providerId} has api_key auth but key not found in secure storage`,
+            );
+            storage.removeConnectedProvider(providerId);
+            logMain('INFO', `[Main] Removed provider ${providerId} due to missing API key`);
+          }
+        }
+      }
+    } catch (err) {
+      logMain('ERROR', '[Main] Provider validation failed', { err: String(err) });
+    }
+  }
+
+  // `trackAppLaunched` enriches its event payload with `getAllApiKeys()`
+  // (for "which providers are configured" context) — MOVED here from
+  // pre-bootstrap alongside provider validation.
+  if (process.env.E2E_MOCK_TASK_EVENTS !== '1' && isAnalyticsEnabled()) {
+    trackAppLaunched(isFirstLaunch).catch((err) =>
+      logMain('WARN', '[Main] trackAppLaunched failed', { err: String(err) }),
+    );
   }
 
   // Initialize Google account managers (lazy singletons — safe after initializeStorage())

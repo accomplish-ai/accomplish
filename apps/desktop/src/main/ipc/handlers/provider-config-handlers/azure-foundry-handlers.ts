@@ -97,7 +97,7 @@ export function registerAzureFoundryHandlers(handle: IpcHandler): void {
       }
 
       if (authType === 'api-key' && apiKey) {
-        storeApiKey('azure-foundry', apiKey);
+        await storeApiKey('azure-foundry', apiKey);
       }
 
       const azureConfig: AzureFoundryConfig = {

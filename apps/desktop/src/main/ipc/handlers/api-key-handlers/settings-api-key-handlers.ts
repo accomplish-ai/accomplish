@@ -19,13 +19,17 @@ export function registerSettingsApiKeyHandlers(): void {
 
   handle('settings:api-keys', async (_event: IpcMainInvokeEvent) => {
     const storedKeys = await getAllApiKeys();
+    // Pre-fetch bedrock credentials ONCE. `getBedrockCredentials` is async
+    // post-M3 (RPC round-trip), and we can't await inside `Array.map` without
+    // reshaping the whole pipeline to `Promise.all`. Bedrock appears at most
+    // once in the map, so a single fetch is both correct and cheaper.
+    const bedrockCreds = storedKeys['bedrock'] ? await getBedrockCredentials() : null;
 
     const keys = Object.entries(storedKeys)
       .filter(([_provider, apiKey]) => apiKey !== null)
       .map(([provider, apiKey]) => {
         let keyPrefix = '';
         if (provider === 'bedrock') {
-          const bedrockCreds = getBedrockCredentials();
           if (bedrockCreds) {
             if (bedrockCreds.authType === 'accessKeys') {
               keyPrefix = `${bedrockCreds.accessKeyId?.substring(0, 8) || 'AKIA'}...`;
@@ -55,7 +59,6 @@ export function registerSettingsApiKeyHandlers(): void {
         // Derive label to match bedrock:save / vertex:save output exactly
         let label: string;
         if (provider === 'bedrock') {
-          const bedrockCreds = getBedrockCredentials();
           if (bedrockCreds?.authType === 'accessKeys') {
             label = 'AWS Access Keys';
           } else if (bedrockCreds?.authType === 'profile') {
