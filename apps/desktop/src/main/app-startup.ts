@@ -87,55 +87,17 @@ export async function startApp(
     throw err;
   }
 
-  // HuggingFace auto-start reads local DB only — safe to run before daemon
-  // bootstrap. The provider-validation loop that used to live here was
-  // split out and MOVED to after `bootstrapDaemon()` below (Milestone 3 of
-  // the daemon-only-SQLite migration), because the secret-key read now
-  // routes over RPC and requires the daemon to be connected.
-  try {
-    const storage = getStorage();
-    const hfConfig = storage.getHuggingFaceLocalConfig();
-    if (hfConfig?.enabled && hfConfig.selectedModelId) {
-      logMain(
-        'INFO',
-        `[Main] Auto-starting HuggingFace server for model: ${hfConfig.selectedModelId}`,
-      );
-      startHuggingFaceServer(hfConfig.selectedModelId)
-        .then((result) => {
-          if (!result.success) {
-            logMain('ERROR', '[Main] Failed to auto-start HuggingFace local server', {
-              error: result.error,
-            });
-          }
-        })
-        .catch((err: unknown) => {
-          logMain('ERROR', '[Main] Failed to auto-start HuggingFace local server (thrown)', {
-            err: String(err),
-          });
-        });
-    }
-  } catch (err) {
-    logMain('ERROR', '[Main] HuggingFace auto-start setup failed', { err: String(err) });
-  }
-
-  // Clean up stale accomplish-ai provider if free mode is no longer available.
-  // Handles the case where a user switches from Free to OSS build.
-  try {
-    const { isFreeMode } = await import('./config/build-config');
-    if (!isFreeMode()) {
-      const s = getStorage();
-      const provider = s.getConnectedProvider('accomplish-ai');
-      if (provider) {
-        s.removeConnectedProvider('accomplish-ai');
-        if (s.getActiveProviderId() === 'accomplish-ai') {
-          s.setActiveProvider(null);
-        }
-        logMain('INFO', '[Main] Removed stale accomplish-ai provider (free mode not available)');
-      }
-    }
-  } catch {
-    // best-effort cleanup
-  }
+  // HuggingFace auto-start + accomplish-ai cleanup used to run here in the
+  // pre-M3 flow, but both read state the legacy electron-store import
+  // writes on first upgrade. The import now runs post-bootstrap (it needs
+  // the daemon), so moving these two consumers to after the import closes
+  // a first-upgrade correctness gap: on an OSS build that previously stored
+  // `accomplish-ai` under the free tier, the old pre-import cleanup would
+  // no-op (nothing yet) and the subsequent import would restore the stale
+  // provider; on any upgrade with HF configured, the auto-start would miss
+  // the imported `selected_model_id` and not fire until the next launch.
+  //
+  // See the post-bootstrap block starting near line ~220.
 
   // Initialize analytics — no-op when build.env is absent (OSS builds).
   // `initAnalytics` / `initDeviceFingerprint` / `initMixpanel` only touch
@@ -218,12 +180,14 @@ export async function startApp(
   //
   // Skipped in E2E mock mode for the same reason as provider validation
   // below: no daemon client is connected.
+  let legacyImportActuallyRan = false;
   if (process.env.E2E_MOCK_TASK_EVENTS !== '1') {
     try {
       const paths = getLegacyElectronStorePaths();
       const client = getDaemonClient();
       const result = await client.call('legacy.importElectronStoreIfNeeded', paths);
       logMain('INFO', '[Main] Legacy electron-store import', result);
+      legacyImportActuallyRan = result.imported;
     } catch (err) {
       // Non-fatal: a failed/missing legacy import should not block app startup.
       // The daemon logs the details on its side; we log + continue here so
@@ -231,6 +195,76 @@ export async function startApp(
       logMain('WARN', '[Main] Legacy electron-store import RPC failed', {
         err: String(err),
       });
+    }
+  }
+
+  // HuggingFace auto-start — MOVED here after the legacy import because the
+  // imported `huggingface_local_config` blob drives what we auto-start.
+  // Pre-M3 this ran in `initializeStorage()` right after the in-process
+  // importer; on first upgrade post-3b the user would have to restart
+  // before HF kicked in.
+  try {
+    const storage = getStorage();
+    const hfConfig = storage.getHuggingFaceLocalConfig();
+    if (hfConfig?.enabled && hfConfig.selectedModelId) {
+      logMain(
+        'INFO',
+        `[Main] Auto-starting HuggingFace server for model: ${hfConfig.selectedModelId}`,
+      );
+      startHuggingFaceServer(hfConfig.selectedModelId)
+        .then((result) => {
+          if (!result.success) {
+            logMain('ERROR', '[Main] Failed to auto-start HuggingFace local server', {
+              error: result.error,
+            });
+          }
+        })
+        .catch((err: unknown) => {
+          logMain('ERROR', '[Main] Failed to auto-start HuggingFace local server (thrown)', {
+            err: String(err),
+          });
+        });
+    }
+  } catch (err) {
+    logMain('ERROR', '[Main] HuggingFace auto-start setup failed', { err: String(err) });
+  }
+
+  // Clean up stale accomplish-ai provider if free mode is no longer available.
+  // Handles the case where a user switches from Free to OSS build.
+  //
+  // MOVED here from pre-bootstrap in sub-chunk 3c. The pre-bootstrap version
+  // ran BEFORE the legacy electron-store import, which on first upgrade meant
+  // the cleanup pass saw an empty state; the subsequent import would then
+  // bring in the stale `accomplish-ai` connected-provider row, and the
+  // post-bootstrap provider-validation loop would skip it (its credential
+  // type is `accomplish-ai`, not `api_key`). OSS users would end up with a
+  // dead accomplish-ai entry in their provider list indefinitely.
+  try {
+    const { isFreeMode } = await import('./config/build-config');
+    if (!isFreeMode()) {
+      const s = getStorage();
+      const provider = s.getConnectedProvider('accomplish-ai');
+      if (provider) {
+        s.removeConnectedProvider('accomplish-ai');
+        if (s.getActiveProviderId() === 'accomplish-ai') {
+          s.setActiveProvider(null);
+        }
+        logMain('INFO', '[Main] Removed stale accomplish-ai provider (free mode not available)');
+      }
+    }
+  } catch {
+    // best-effort cleanup
+  }
+
+  // Re-apply theme if the legacy import actually ran. The pre-bootstrap
+  // `nativeTheme.themeSource` assignment further up used a default (or the
+  // pre-import DB value); after an import we may have a new theme to
+  // surface without making the user restart.
+  if (legacyImportActuallyRan) {
+    try {
+      nativeTheme.themeSource = getStorage().getTheme();
+    } catch {
+      // best-effort — leave whatever was applied earlier
     }
   }
 
