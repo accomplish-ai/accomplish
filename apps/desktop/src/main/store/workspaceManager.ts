@@ -46,7 +46,6 @@ function log(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<string
 let _activeWorkspaceId: string | null = null;
 const _workspaces = new Map<string, Workspace>();
 let _initialized = false;
-let _notificationSubscribed = false;
 
 export function isInitialized(): boolean {
   return _initialized;
@@ -71,11 +70,27 @@ export function listWorkspaces(): Workspace[] {
 }
 
 /**
- * Hydrate the cache from the daemon and subscribe to change notifications.
+ * Hydrate the cache from the daemon and subscribe to change notifications
+ * on the CURRENT `DaemonClient`.
+ *
  * Must be called AFTER `bootstrapDaemon()` has resolved — the daemon's
  * `WorkspaceService.ensureInitialized()` guarantees a default workspace
  * exists and that `active_workspace_id` is valid, so this function just
  * pulls the current state.
+ *
+ * Called twice in the lifecycle:
+ *   1. Once at app startup, after the initial bootstrap. Subscribes to
+ *      the original client.
+ *   2. On every daemon reconnect, from `daemon-bootstrap.ts`. The old
+ *      client was `close()`d by the reconnect path (which clears its
+ *      notification-handlers map), so without re-subscribing here the
+ *      cache would go permanently stale on a daemon restart. See review
+ *      finding P2.2 post-M5.
+ *
+ * Subscribing once per current client — we don't save handler refs for
+ * `offNotification` because a closed client has no surviving listeners
+ * to leak. A double-subscribe on the SAME client would simply re-fetch
+ * each workspace twice on every change event (idempotent, not incorrect).
  */
 export async function initialize(): Promise<void> {
   log('INFO', '[WorkspaceManager] Initializing...');
@@ -90,16 +105,10 @@ export async function initialize(): Promise<void> {
   const active = await client.call('workspace.getActive');
   _activeWorkspaceId = active?.id ?? null;
 
-  // Subscribe once. The desktop `DaemonClient` forwards every
-  // `workspace.changed` payload to every registered listener, so a second
-  // subscribe would duplicate cache updates.
-  if (!_notificationSubscribed) {
-    client.onNotification('workspace.changed', (payload) => {
-      // fire-and-forget — cache-refresh errors are non-fatal
-      void refreshCacheFromEvent(payload);
-    });
-    _notificationSubscribed = true;
-  }
+  client.onNotification('workspace.changed', (payload) => {
+    // fire-and-forget — cache-refresh errors are non-fatal
+    void refreshCacheFromEvent(payload);
+  });
 
   _initialized = true;
   log(
@@ -179,7 +188,4 @@ export function close(): void {
   _activeWorkspaceId = null;
   _workspaces.clear();
   _initialized = false;
-  // `_notificationSubscribed` intentionally stays true — the daemon client
-  // re-emits through the same listener set across reconnects, and resetting
-  // here would cause a duplicate subscription on the next bootstrap.
 }

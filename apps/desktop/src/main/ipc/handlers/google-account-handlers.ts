@@ -13,11 +13,45 @@
  *     `gwsAccount.add` / `gwsAccount.updateToken`,
  *   - pass-through for label updates, removal, and listing.
  */
+import { BrowserWindow } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import type { GoogleAccount } from '@accomplish_ai/agent-core/desktop-main';
 import type { startGoogleOAuth, cancelGoogleOAuth } from '../../google-accounts/google-auth.js';
 import { handle } from './utils.js';
 import { getDaemonClient } from '../../daemon-bootstrap';
+import { getLogCollector } from '../../logging';
+
+/**
+ * Surface a Google-account OAuth error to every live renderer window on
+ * the `gws:account:auth-error` channel. Used by the background
+ * `waitForCallback` consumer to break the pre-M5 silent-drop behavior
+ * documented in review finding P2.3 — the user had no way to learn the
+ * flow had failed (the browser callback page claimed success and the
+ * renderer polled `gws:accounts:list` until timeout).
+ *
+ * Fan-out to every window instead of tracking a single "main" window
+ * here — windows can be recreated on macOS `activate`, and the OAuth
+ * flow's lifetime may span a `close`/`show` cycle.
+ */
+function broadcastAuthError(message: string): void {
+  try {
+    getLogCollector()?.log('WARN', 'main', '[GoogleAccounts] OAuth error surfaced to renderer', {
+      message,
+    });
+  } catch {
+    /* best-effort */
+  }
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed() || win.webContents.isDestroyed()) {
+      continue;
+    }
+    try {
+      win.webContents.send('gws:account:auth-error', { message });
+    } catch {
+      // Window torn down between check and send — safe to skip.
+    }
+  }
+}
 
 type GoogleAuthFn = typeof startGoogleOAuth;
 type CancelGoogleOAuthFn = typeof cancelGoogleOAuth;
@@ -43,6 +77,14 @@ export function registerGoogleAccountHandlers(
       // the local DB + scheduled a refresh timer directly; now it's two
       // RPC calls (`gwsAccount.add` happy-path, fall-through to
       // `gwsAccount.updateToken` if the account already exists).
+      //
+      // M5 review finding P2.3: errors that don't match the
+      // "Account already connected" fall-through used to be silently
+      // swallowed, including the one Google returns when it omits the
+      // refresh token. Any non-reconnect failure now broadcasts to the
+      // renderer via `gws:account:auth-error` so the UI can show a
+      // toast; timeout/user-cancel on `waitForCallback()` itself stays
+      // silent (expected user behavior).
       waitForCallback()
         .then(async (result) => {
           const now = new Date().toISOString();
@@ -69,16 +111,27 @@ export function registerGoogleAccountHandlers(
                   token: result.token,
                   connectedAt: now,
                 });
-              } catch {
-                // Storage error — silently ignore (matches pre-M4).
+              } catch (updateErr) {
+                const updateMsg =
+                  updateErr instanceof Error ? updateErr.message : String(updateErr);
+                broadcastAuthError(`Failed to update Google account token: ${updateMsg}`);
               }
+              return;
             }
-            // Any other error path (label collision, storage failure) —
-            // also silently ignored to preserve pre-M4 behavior.
+            broadcastAuthError(`Google account connection failed: ${msg}`);
           }
         })
-        .catch(() => {
-          /* OAuth timed out or user cancelled */
+        .catch((err: unknown) => {
+          // `waitForCallback` rejects on timeout, user cancel, or —
+          // post-P2.3 — a missing refresh_token detected during the
+          // token exchange. The refresh-token message is targeted so the
+          // renderer can show a dedicated toast; other rejections are
+          // surfaced with their raw message.
+          const msg = err instanceof Error ? err.message : String(err);
+          if (msg === 'Google OAuth timed out') {
+            return; // User closed the browser or took too long — silent.
+          }
+          broadcastAuthError(msg);
         });
 
       return { state, authUrl };

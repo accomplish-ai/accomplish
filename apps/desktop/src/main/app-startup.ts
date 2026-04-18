@@ -5,7 +5,7 @@
  * top-level bootstrap (single-instance lock, env, window factory).
  */
 
-import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme, shell } from 'electron';
 import path from 'path';
 import type { ProviderId } from '@accomplish_ai/agent-core/desktop-main';
 import { migrateLegacyData } from './store/legacyMigration';
@@ -34,6 +34,91 @@ function logMain(level: 'INFO' | 'WARN' | 'ERROR', msg: string, data?: Record<st
     if (l?.log) l.log(level, 'main', msg, data);
   } catch (_e) {
     /* best-effort */
+  }
+}
+
+/**
+ * Bootstrap the daemon, prompting the user via a native modal on every
+ * failure. Returns `'connected'` when the socket is up, or `'quit'` if
+ * the user explicitly chose to exit from the failure modal.
+ *
+ * Added in M5's review cycle to replace the pre-M5 "log a warning and
+ * open a broken GUI" behavior. See the caller for the full justification.
+ */
+async function bootstrapDaemonWithRetry(): Promise<'connected' | 'quit'> {
+  // Outer loop: one iteration per bootstrap attempt. We re-enter it on
+  // every 'retry' choice. On success we return.
+  // Inner loop: handles the 'open-logs' action without re-bootstrapping,
+  // so the user can inspect the log file and come back to the same
+  // retry/quit choice on the same error.
+  for (;;) {
+    try {
+      await bootstrapDaemon();
+      logMain('INFO', '[Main] Daemon connected');
+      return 'connected';
+    } catch (err) {
+      const { DaemonRestartError } = await import('./daemon/daemon-connector');
+
+      // Upgrade-path failure — a stale daemon from a previous version is
+      // still running and we can't kill it from here. No amount of retry
+      // will clear this without manual user action, so skip the retry
+      // loop and surface the original warning text.
+      if (err instanceof DaemonRestartError) {
+        logMain('ERROR', '[Main] Failed to restart daemon after upgrade', { error: String(err) });
+        await dialog.showMessageBox({
+          type: 'warning',
+          title: 'Background Service Update',
+          message: 'The background service from a previous version could not be stopped.',
+          detail:
+            'Please fully quit the application (check the system tray), wait a few seconds, ' +
+            'and reopen it. If the issue persists, restart your computer.',
+          buttons: ['Quit'],
+        });
+        return 'quit';
+      }
+
+      logMain('ERROR', '[Main] Daemon bootstrap failed', { error: String(err) });
+
+      // Nested prompt loop — 'open-logs' loops back here without retrying;
+      // 'retry' / 'quit' break out to the outer loop.
+      for (;;) {
+        const response = await dialog.showMessageBox({
+          type: 'error',
+          title: 'Accomplish cannot start',
+          message: 'The background service failed to start.',
+          detail:
+            'Accomplish stores your settings, conversations, and credentials in a background ' +
+            'process. Without it the app cannot load.\n\n' +
+            `Error: ${err instanceof Error ? err.message : String(err)}`,
+          buttons: ['Retry', 'Open Logs', 'Quit'],
+          defaultId: 0,
+          cancelId: 2,
+        });
+
+        if (response.response === 0) {
+          // Retry — break inner, outer loop attempts bootstrap again.
+          break;
+        }
+        if (response.response === 2) {
+          // Quit
+          return 'quit';
+        }
+
+        // Open Logs — best-effort; if the log directory doesn't exist
+        // yet (first boot crash), fall back to userData.
+        try {
+          const logDir = path.join(app.getPath('userData'), 'logs');
+          const openErr = await shell.openPath(logDir);
+          if (openErr) {
+            logMain('WARN', '[Main] shell.openPath(logs) returned error', { openErr });
+            await shell.openPath(app.getPath('userData'));
+          }
+        } catch (openErr) {
+          logMain('WARN', '[Main] Could not open log directory', { err: String(openErr) });
+        }
+        // Loop to show the modal again.
+      }
+    }
   }
 }
 
@@ -124,37 +209,47 @@ export async function startApp(
   // here and the daemon read uses Electron's default ('system') — the
   // deferred assignment below updates it within a few ms of socket connect.
 
-  // Daemon bootstrap is non-blocking — the GUI must always open even if
-  // the daemon fails to start. The status dot and toast will show the user
-  // that the daemon is disconnected, and task launch will be disabled.
-  // Skip daemon entirely in E2E mock mode — tests use mock task events.
-  if (process.env.E2E_MOCK_TASK_EVENTS !== '1') {
-    try {
-      await bootstrapDaemon();
-      logMain('INFO', '[Main] Daemon connected');
-    } catch (err) {
-      const { DaemonRestartError } = await import('./daemon/daemon-connector');
-      if (err instanceof DaemonRestartError) {
-        logMain('ERROR', '[Main] Failed to restart daemon after upgrade', {
-          error: String(err),
-        });
-        const { dialog } = await import('electron');
-        dialog.showMessageBox({
-          type: 'warning',
-          title: 'Background Service Update',
-          message:
-            'The background service from a previous version could not be stopped. ' +
-            'Please fully quit the application (check the system tray), wait a few seconds, ' +
-            'and reopen it. If the issue persists, restart your computer.',
-        });
-      } else {
-        logMain('WARN', '[Main] Daemon bootstrap failed — GUI will open without daemon', {
-          error: String(err),
-        });
-      }
-    }
-  } else {
-    logMain('INFO', '[Main] E2E mock mode — skipping daemon bootstrap');
+  // Daemon bootstrap is a hard precondition for opening the window.
+  //
+  // Milestone 5 of the daemon-only-SQLite migration made the daemon the
+  // sole owner of SQLite + secure storage. Pre-M5 the pre-bootstrap
+  // storage init would have populated main's local DB handle; if
+  // bootstrap then failed, the GUI could still render from that handle
+  // in a "degraded mode". Post-M5 every renderer-triggered read —
+  // theme, provider settings, onboarding state, task list, secrets,
+  // workspaces, Google accounts, skills — goes through `getDaemonClient()`
+  // and throws `Daemon not bootstrapped` until the socket is up. Opening
+  // the GUI in that state shows a broken app.
+  //
+  // Instead, loop on bootstrap failures with a native modal:
+  //   Retry     — re-attempt `bootstrapDaemon()` (same errors as the
+  //                first try, so most transient failures clear on retry).
+  //   Open Logs — opens the daemon log directory in the OS file browser.
+  //                Doesn't retry or quit; the modal comes back on the
+  //                next prompt loop so the user can choose after looking.
+  //   Quit      — `app.quit()` and return early from startApp.
+  //
+  // The `DaemonRestartError` branch keeps its pre-M5 warning text since
+  // it's a specific upgrade-path failure the user has to act on outside
+  // the app (fully quit the tray, wait, reopen) — retry within the same
+  // Electron instance can't resolve it.
+  //
+  // Milestone 5 review finding P2.1: E2E mock mode used to skip daemon
+  // bootstrap entirely. That worked pre-M5 when main owned its own DB,
+  // but post-M5 every storage-backed IPC (`settings:theme`,
+  // `onboarding:complete`, `provider-settings:get`, workspaces, secrets)
+  // goes through `getDaemonClient()` and immediately throws "Daemon not
+  // bootstrapped" without a live socket. The mock flag only needs to
+  // bypass *task execution* — every task-handler that should run the
+  // mock flow already branches on `isMockTaskEventsEnabled()` — so the
+  // daemon runs the same way it would in a normal launch. Playwright
+  // fixtures already isolate via a temp `userData`, so no cross-test
+  // contamination from the daemon's scheduler or token refreshers.
+  const outcome = await bootstrapDaemonWithRetry();
+  if (outcome === 'quit') {
+    logMain('INFO', '[Main] User chose to quit from daemon-failure modal');
+    app.quit();
+    return;
   }
 
   // Legacy electron-store import — MOVED to the daemon in Milestone 3
@@ -166,25 +261,20 @@ export async function startApp(
   // only — the daemon cannot derive them itself. The service guards with
   // `schema_meta.legacy_electron_store_import_complete`, so every-boot
   // invocation is a cheap no-op after the first successful import.
-  //
-  // Skipped in E2E mock mode for the same reason as provider validation
-  // below: no daemon client is connected.
   let legacyImportActuallyRan = false;
-  if (process.env.E2E_MOCK_TASK_EVENTS !== '1') {
-    try {
-      const paths = getLegacyElectronStorePaths();
-      const client = getDaemonClient();
-      const result = await client.call('legacy.importElectronStoreIfNeeded', paths);
-      logMain('INFO', '[Main] Legacy electron-store import', result);
-      legacyImportActuallyRan = result.imported;
-    } catch (err) {
-      // Non-fatal: a failed/missing legacy import should not block app startup.
-      // The daemon logs the details on its side; we log + continue here so
-      // providers and settings can still load from the main DB path.
-      logMain('WARN', '[Main] Legacy electron-store import RPC failed', {
-        err: String(err),
-      });
-    }
+  try {
+    const paths = getLegacyElectronStorePaths();
+    const client = getDaemonClient();
+    const result = await client.call('legacy.importElectronStoreIfNeeded', paths);
+    logMain('INFO', '[Main] Legacy electron-store import', result);
+    legacyImportActuallyRan = result.imported;
+  } catch (err) {
+    // Non-fatal: a failed/missing legacy import should not block app startup.
+    // The daemon logs the details on its side; we log + continue here so
+    // providers and settings can still load from the main DB path.
+    logMain('WARN', '[Main] Legacy electron-store import RPC failed', {
+      err: String(err),
+    });
   }
 
   // Milestone 3 sub-chunk 3d: hydrate the workspace cache from the daemon
@@ -193,23 +283,21 @@ export async function startApp(
   // import (so imported workspace rows land in the cache on first boot).
   // Intentionally kept BEFORE HF auto-start and provider validation so the
   // task IPC handlers (registered further down) see a warm cache on their
-  // first invocation. Skipped in E2E mock mode — no daemon, no cache.
-  if (process.env.E2E_MOCK_TASK_EVENTS !== '1') {
-    try {
-      await workspaceManager.initialize();
-    } catch (err) {
-      logMain('ERROR', '[Main] Workspace initialization failed', { err: String(err) });
-      // Non-fatal: task handlers will see `getActiveWorkspace() === null`
-      // and fall back to the no-workspace-filter code path, same as a
-      // fresh pre-workspace-feature profile. Better than a blocked startup.
-    }
+  // first invocation.
+  try {
+    await workspaceManager.initialize();
+  } catch (err) {
+    logMain('ERROR', '[Main] Workspace initialization failed', { err: String(err) });
+    // Non-fatal: task handlers will see `getActiveWorkspace() === null`
+    // and fall back to the no-workspace-filter code path, same as a
+    // fresh pre-workspace-feature profile. Better than a blocked startup.
   }
 
   // Milestone 5: read theme + HF config from the daemon in a single
   // `settings.getAll` RPC. Previous M4 reads went through `getStorage()`
   // locally; the main-side DB singleton is gone as of M5 so everything
-  // is routed here instead. Skipped in E2E mock mode (no daemon).
-  if (process.env.E2E_MOCK_TASK_EVENTS !== '1') {
+  // is routed here instead.
+  {
     try {
       const snap = await getDaemonClient().call('settings.getAll');
 
@@ -281,7 +369,7 @@ export async function startApp(
   // `settings.changed` notification would reach the renderer too, but
   // main's `nativeTheme.themeSource` is separate — we have to refresh
   // it explicitly here before the first frame renders.
-  if (legacyImportActuallyRan && process.env.E2E_MOCK_TASK_EVENTS !== '1') {
+  if (legacyImportActuallyRan) {
     try {
       const snap = await getDaemonClient().call('settings.getAll');
       nativeTheme.themeSource = snap.app.theme;
@@ -293,41 +381,35 @@ export async function startApp(
   // Provider validation — MOVED here from pre-bootstrap (Milestone 3 of the
   // daemon-only-SQLite migration). `getApiKey` now routes over RPC to the
   // daemon, so this loop can only run once `bootstrapDaemon()` has resolved.
-  // In E2E mock mode the daemon is skipped entirely — the renderer uses
-  // mock task events and no provider is expected to have a real key, so the
-  // loop would just prune everything. Guard on mock mode to keep the
-  // E2E fixtures stable.
   //
   // Runs AFTER the legacy import so any connected-provider rows the import
   // just brought in are validated against secure storage in the same pass.
-  if (process.env.E2E_MOCK_TASK_EVENTS !== '1') {
-    try {
-      const client = getDaemonClient();
-      const providerSettings = await client.call('provider.getSettings');
-      for (const [id, provider] of Object.entries(providerSettings.connectedProviders)) {
-        const providerId = id as ProviderId;
-        const credType = provider?.credentials?.type;
-        if (!credType || credType === 'api_key') {
-          const key = await getApiKey(providerId);
-          if (!key) {
-            logMain(
-              'WARN',
-              `[Main] Provider ${providerId} has api_key auth but key not found in secure storage`,
-            );
-            await client.call('provider.removeConnected', { providerId });
-            logMain('INFO', `[Main] Removed provider ${providerId} due to missing API key`);
-          }
+  try {
+    const client = getDaemonClient();
+    const providerSettings = await client.call('provider.getSettings');
+    for (const [id, provider] of Object.entries(providerSettings.connectedProviders)) {
+      const providerId = id as ProviderId;
+      const credType = provider?.credentials?.type;
+      if (!credType || credType === 'api_key') {
+        const key = await getApiKey(providerId);
+        if (!key) {
+          logMain(
+            'WARN',
+            `[Main] Provider ${providerId} has api_key auth but key not found in secure storage`,
+          );
+          await client.call('provider.removeConnected', { providerId });
+          logMain('INFO', `[Main] Removed provider ${providerId} due to missing API key`);
         }
       }
-    } catch (err) {
-      logMain('ERROR', '[Main] Provider validation failed', { err: String(err) });
     }
+  } catch (err) {
+    logMain('ERROR', '[Main] Provider validation failed', { err: String(err) });
   }
 
   // `trackAppLaunched` enriches its event payload with `getAllApiKeys()`
   // (for "which providers are configured" context) — MOVED here from
   // pre-bootstrap alongside provider validation.
-  if (process.env.E2E_MOCK_TASK_EVENTS !== '1' && isAnalyticsEnabled()) {
+  if (isAnalyticsEnabled()) {
     trackAppLaunched(isFirstLaunch).catch((err) =>
       logMain('WARN', '[Main] trackAppLaunched failed', { err: String(err) }),
     );

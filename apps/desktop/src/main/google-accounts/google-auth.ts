@@ -214,9 +214,35 @@ async function exchangeCodeForResult(
     scope: string;
   };
 
+  // Milestone 5 review finding P2.3: Google omits the refresh token
+  // whenever it believes the user already has one (e.g. a prior consent
+  // that wasn't revoked, the account's third-party-access tile still
+  // listing Accomplish). Pre-M5 we silently accepted `refreshToken: ''`,
+  // which meant `TokenManager.refreshToken` had nothing to send to the
+  // token endpoint — the account would look connected until the first
+  // expiry, then go permanently expired with no explanation. Post-M5
+  // the daemon's `gwsAccount.add` route validates `refreshToken` as
+  // non-empty; without this throw the RPC fails silently (its error is
+  // caught + swallowed by the background `waitForCallback` consumer),
+  // so the renderer never learns the connection failed and polls until
+  // timeout.
+  //
+  // The explicit throw lets the handler's `.catch()` surface this to the
+  // user — it suggests revoking app access at myaccount.google.com and
+  // reconnecting, which is the only fix Google offers here. `prompt=consent`
+  // + `access_type=offline` in the authorize URL already set us up to
+  // *request* a refresh token; this branch runs only on the edge-case
+  // response.
+  if (!tokenData.refresh_token || tokenData.refresh_token.trim() === '') {
+    throw new Error(
+      'Google did not return a refresh token. Please revoke access at ' +
+        'https://myaccount.google.com/permissions and try connecting again.',
+    );
+  }
+
   const token: GoogleAccountToken = {
     accessToken: tokenData.access_token,
-    refreshToken: tokenData.refresh_token ?? '',
+    refreshToken: tokenData.refresh_token,
     expiresAt: Date.now() + tokenData.expires_in * 1000,
     scopes: tokenData.scope.split(' '),
   };

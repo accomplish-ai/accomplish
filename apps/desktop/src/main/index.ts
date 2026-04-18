@@ -42,9 +42,99 @@ if (process.argv.includes('--e2e-mock-tasks') || process.env.E2E_MOCK_TASK_EVENT
   (global as Record<string, unknown>).E2E_MOCK_TASK_EVENTS = true;
 }
 
+/**
+ * Stop a daemon that survived the previous Electron session before we
+ * delete its `userData` directory.
+ *
+ * M5 of the daemon-only-SQLite migration made the daemon the sole owner
+ * of SQLite + secure storage. If a user quit with "keep daemon running",
+ * a detached daemon process is still holding DB, pid, and socket file
+ * descriptors under `userData`. Running `fs.rmSync` on that directory
+ * while the daemon is live creates two failure modes:
+ *
+ *   1. `rmSync` unlinks the files the daemon has open; the daemon
+ *      continues writing into dangling inodes. On the next boot we spawn
+ *      a second daemon that creates fresh files, and the old daemon's
+ *      in-flight writes vanish on its exit.
+ *   2. Pid/socket files re-appear before the rmSync completes (the old
+ *      daemon's flush cycle), and the next bootstrap observes ghost
+ *      state that belongs to a process we've effectively stranded.
+ *
+ * The fix: read the pid file, SIGTERM the daemon, and poll for exit up
+ * to `CLEAN_START_STOP_TIMEOUT_MS`. Best-effort — if the daemon is not
+ * running, is from another profile, or ignores the signal, we log and
+ * proceed. The subsequent `rmSync` is the hard reset regardless.
+ */
+async function stopDetachedDaemonForCleanStart(userDataPath: string): Promise<void> {
+  const pidPath = path.join(userDataPath, 'daemon.pid');
+  if (!fs.existsSync(pidPath)) {
+    return;
+  }
+
+  let pid: number | null = null;
+  try {
+    const raw = fs.readFileSync(pidPath, 'utf-8');
+    const parsed = JSON.parse(raw) as { pid?: unknown };
+    if (typeof parsed.pid === 'number' && Number.isFinite(parsed.pid) && parsed.pid > 0) {
+      pid = parsed.pid;
+    }
+  } catch (err) {
+    logMain('WARN', '[Clean Mode] Could not parse daemon pid file; proceeding to rmSync', {
+      err: String(err),
+    });
+    return;
+  }
+  if (pid === null) {
+    return;
+  }
+
+  // Liveness probe — `process.kill(pid, 0)` throws if the pid is stale.
+  try {
+    process.kill(pid, 0);
+  } catch {
+    logMain('INFO', `[Clean Mode] Stale daemon pid (${pid}); no live process to stop`);
+    return;
+  }
+
+  logMain('INFO', `[Clean Mode] Signalling detached daemon (pid ${pid}) to exit before rmSync`);
+  try {
+    // `SIGTERM` lets the daemon close SQLite + release pid/socket. On
+    // Windows `process.kill` with `SIGTERM` collapses to TerminateProcess,
+    // which is ungraceful — acceptable here since CLEAN_START is
+    // explicitly destructive.
+    process.kill(pid, 'SIGTERM');
+  } catch (err) {
+    logMain('WARN', `[Clean Mode] SIGTERM to daemon pid ${pid} failed`, { err: String(err) });
+    return;
+  }
+
+  const CLEAN_START_STOP_TIMEOUT_MS = 3000;
+  const POLL_INTERVAL_MS = 50;
+  const deadline = Date.now() + CLEAN_START_STOP_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    try {
+      process.kill(pid, 0);
+    } catch {
+      logMain('INFO', `[Clean Mode] Daemon (pid ${pid}) exited; safe to rmSync`);
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+  }
+
+  logMain(
+    'WARN',
+    `[Clean Mode] Daemon (pid ${pid}) still alive after ${CLEAN_START_STOP_TIMEOUT_MS}ms; proceeding with rmSync anyway`,
+  );
+}
+
 if (process.env.CLEAN_START === '1') {
   const userDataPath = app.getPath('userData');
   logMain('INFO', `[Clean Mode] Clearing userData directory: ${userDataPath}`);
+  // Top-level await (ESM module) — blocks the rest of main-process
+  // startup until the detached daemon has had a chance to exit. This
+  // runs before `app.whenReady()` fires, so there's no window yet and
+  // no user-facing hang.
+  await stopDetachedDaemonForCleanStart(userDataPath);
   try {
     if (fs.existsSync(userDataPath)) {
       fs.rmSync(userDataPath, { recursive: true, force: true });
@@ -55,10 +145,9 @@ if (process.env.CLEAN_START === '1') {
   }
   // Milestone 5: `resetStorageSingleton()` is gone along with the
   // desktop-side DB handle. `clearSecureStorage()` is now a no-op
-  // (kept for signature compat — see store/secureStorage.ts), and the
-  // daemon hasn't spawned yet, so there's no socket-level handle to
-  // close. The `fs.rmSync` above wipes the on-disk DB / secure-storage
-  // files; the daemon starts fresh on its next boot.
+  // (kept for signature compat — see store/secureStorage.ts). The
+  // `fs.rmSync` above wipes the on-disk DB / secure-storage files; the
+  // daemon starts fresh on its next boot.
   clearSecureStorage();
   logMain('INFO', '[Clean Mode] userData wiped; daemon will reinitialize on spawn');
 }

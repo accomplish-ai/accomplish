@@ -80,6 +80,26 @@ export async function bootstrapDaemon(): Promise<DaemonClient> {
       }
       // Set up disconnect detection on the new client
       void setupTransportReconnection(newClient);
+
+      // M5 review finding P2.2: the old client's notificationHandlers
+      // map was cleared by its `close()`, so `workspaceManager`'s
+      // `workspace.changed` subscription did not survive. Re-hydrate the
+      // cache + re-subscribe on the new client. Same pattern would apply
+      // to any future module that takes its own long-lived subscription
+      // (none today beyond workspaceManager).
+      void import('./store/workspaceManager')
+        .then((workspaceManager) => {
+          if (workspaceManager.isInitialized()) {
+            return workspaceManager.initialize();
+          }
+          return undefined;
+        })
+        .catch((err: unknown) => {
+          log(
+            'WARN',
+            `[DaemonBootstrap] workspaceManager re-init on reconnect failed: ${String(err)}`,
+          );
+        });
     },
   );
 
