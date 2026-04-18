@@ -205,10 +205,21 @@ function readNativeArch(binaryPath) {
     fs.readSync(fd, header, 0, 64, 0);
 
     // Mach-O (macOS). Magic FEEDFACF = MH_MAGIC_64 (little-endian).
+    //
+    // Mach-O's `cputype` encodes the base CPU in the low bits and OR's
+    // in `CPU_ARCH_ABI64 = 0x01000000` for 64-bit variants. `MH_MAGIC_64`
+    // guarantees we're looking at a 64-bit binary, so both supported
+    // arches will have the ABI64 bit set:
+    //   CPU_TYPE_X86_64 = CPU_TYPE_X86 (7) | 0x01000000 = 0x01000007
+    //   CPU_TYPE_ARM64  = CPU_TYPE_ARM (12) | 0x01000000 = 0x0100000C
+    //
+    // Masking the ABI64 bit off lets us compare against the base types
+    // directly and handles both explicitly-constructed variants.
     if (header.readUInt32LE(0) === 0xfeedfacf) {
       const cpuType = header.readInt32LE(4);
-      if (cpuType === 7) return 'x64'; // CPU_TYPE_X86_64
-      if (cpuType === (12 | 0x01000000)) return 'arm64'; // CPU_TYPE_ARM64 (with ABI64 bit)
+      const baseCpuType = cpuType & ~0x01000000;
+      if (baseCpuType === 7) return 'x64'; // CPU_TYPE_X86_64
+      if (baseCpuType === 12) return 'arm64'; // CPU_TYPE_ARM64
       return null;
     }
 
