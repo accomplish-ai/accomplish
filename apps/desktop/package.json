@@ -34,6 +34,7 @@
     "lint": "tsc --noEmit",
     "clean": "node -e \"const fs=require('fs');['dist','dist-electron','release'].forEach(d=>fs.rmSync(d,{recursive:true,force:true}))\"",
     "download:nodejs": "node scripts/download-nodejs.cjs",
+    "smoke:packaged-opencode": "node scripts/smoke-packaged-opencode.cjs",
     "test": "vitest run",
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
