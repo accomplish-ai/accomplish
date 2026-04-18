@@ -1,20 +1,22 @@
 import { BrowserWindow } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
-import { getStorage } from '../../store/storage';
 import { handle, assertTrustedWindow } from './utils';
+import { getDaemonClient } from '../../daemon-bootstrap';
 
 export function registerCaptureHandlers(): void {
-  const storage = getStorage();
-
-  const assertDebugModeEnabled = () => {
-    if (!storage.getDebugMode()) {
+  // Milestone 3 sub-chunk 3c: `storage.getDebugMode()` now routes through
+  // the daemon via `settings.getAll`. Each debug-mode gate is an RPC; the
+  // handlers are user-triggered (Cmd+Shift+I capture), not hot loops.
+  const assertDebugModeEnabled = async () => {
+    const snap = await getDaemonClient().call('settings.getAll');
+    if (!snap.app.debugMode) {
       throw new Error('Debug mode is disabled');
     }
   };
 
   handle('debug:capture-screenshot', async (event: IpcMainInvokeEvent) => {
     try {
-      assertDebugModeEnabled();
+      await assertDebugModeEnabled();
     } catch (e) {
       return { success: false, error: (e as Error).message };
     }
@@ -39,7 +41,7 @@ export function registerCaptureHandlers(): void {
 
   handle('debug:capture-axtree', async (event: IpcMainInvokeEvent) => {
     try {
-      assertDebugModeEnabled();
+      await assertDebugModeEnabled();
     } catch (e) {
       return { success: false, error: (e as Error).message };
     }

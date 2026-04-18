@@ -9,14 +9,13 @@ import {
   getCopilotOAuthStatus,
 } from '../../../opencode/copilot-auth';
 import type { IpcHandler } from '../../types';
-import { getStorage } from '../../../store/storage';
+import { getDaemonClient } from '../../../daemon-bootstrap';
 import { ensureDaemonRunning } from '../../../daemon/daemon-connector';
 
 export function registerAuthHandlers(handle: IpcHandler): void {
-  const storage = getStorage();
-
+  // Milestone 3 sub-chunk 3c: OpenAI base URL get/set route through daemon.
   handle('settings:openai-base-url:get', async (_event: IpcMainInvokeEvent) => {
-    return storage.getOpenAiBaseUrl();
+    return getDaemonClient().call('settings.getOpenAiBaseUrl');
   });
 
   handle('settings:openai-base-url:set', async (_event: IpcMainInvokeEvent, baseUrl: string) => {
@@ -26,12 +25,14 @@ export function registerAuthHandlers(handle: IpcHandler): void {
 
     const trimmed = baseUrl.trim();
     if (!trimmed) {
-      storage.setOpenAiBaseUrl('');
+      await getDaemonClient().call('settings.setOpenAiBaseUrl', { baseUrl: '' });
       return;
     }
 
     validateHttpUrl(trimmed, 'OpenAI base URL');
-    storage.setOpenAiBaseUrl(trimmed.replace(/\/+$/, ''));
+    await getDaemonClient().call('settings.setOpenAiBaseUrl', {
+      baseUrl: trimmed.replace(/\/+$/, ''),
+    });
   });
 
   // Phase 4a of the SDK cutover port: OpenAI OAuth moved into the daemon

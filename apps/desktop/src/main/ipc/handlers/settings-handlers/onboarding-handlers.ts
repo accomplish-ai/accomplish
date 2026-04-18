@@ -1,23 +1,29 @@
 import type { IpcMainInvokeEvent } from 'electron';
 import type { IpcHandler } from '../../types';
-import { getStorage } from '../../../store/storage';
+import { getDaemonClient } from '../../../daemon-bootstrap';
 import { isE2ESkipAuthEnabled } from '../utils';
 
 export function registerOnboardingHandlers(handle: IpcHandler): void {
-  const storage = getStorage();
-
+  // Milestone 3 sub-chunk 3c: onboarding-state get/set + task-count
+  // heuristic all route through the daemon. The `onboarding:complete`
+  // handler's "auto-complete if user already has tasks" branch used to
+  // call `storage.getTasks()` — now `task.list()` via RPC. We pass no
+  // `workspaceId` (undefined) so the daemon returns tasks across all
+  // workspaces, matching pre-3c behavior.
   handle('onboarding:complete', async (_event: IpcMainInvokeEvent) => {
     if (isE2ESkipAuthEnabled()) {
       return true;
     }
 
-    if (storage.getOnboardingComplete()) {
+    const client = getDaemonClient();
+    const snap = await client.call('settings.getAll');
+    if (snap.app.onboardingComplete) {
       return true;
     }
 
-    const tasks = storage.getTasks();
+    const tasks = await client.call('task.list', {});
     if (tasks.length > 0) {
-      storage.setOnboardingComplete(true);
+      await client.call('settings.setOnboardingComplete', { complete: true });
       return true;
     }
 
@@ -28,6 +34,6 @@ export function registerOnboardingHandlers(handle: IpcHandler): void {
     if (typeof complete !== 'boolean') {
       throw new Error('complete must be a boolean');
     }
-    storage.setOnboardingComplete(complete);
+    await getDaemonClient().call('settings.setOnboardingComplete', { complete });
   });
 }

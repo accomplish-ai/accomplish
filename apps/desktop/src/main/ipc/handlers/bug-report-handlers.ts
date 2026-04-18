@@ -2,14 +2,14 @@ import path from 'path';
 import fs from 'fs';
 import { BrowserWindow, dialog, app } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
-import { getStorage } from '../../store/storage';
 import { handle, assertTrustedWindow } from './utils';
+import { getDaemonClient } from '../../daemon-bootstrap';
 
 export function registerBugReportHandlers(): void {
-  const storage = getStorage();
-
-  const assertDebugModeEnabled = () => {
-    if (!storage.getDebugMode()) {
+  // Milestone 3 sub-chunk 3c: debug-mode gate routes through the daemon.
+  const assertDebugModeEnabled = async () => {
+    const snap = await getDaemonClient().call('settings.getAll');
+    if (!snap.app.debugMode) {
       throw new Error('Debug mode is disabled');
     }
   };
@@ -33,7 +33,7 @@ export function registerBugReportHandlers(): void {
       },
     ) => {
       try {
-        assertDebugModeEnabled();
+        await assertDebugModeEnabled();
       } catch (e) {
         return { success: false, error: (e as Error).message };
       }

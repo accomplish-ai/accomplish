@@ -1,13 +1,12 @@
 import type { IpcMainInvokeEvent } from 'electron';
 import { sanitizeString } from '@accomplish_ai/agent-core/desktop-main';
 import type { IpcHandler } from '../../types';
-import { getStorage } from '../../../store/storage';
+import { getDaemonClient } from '../../../daemon-bootstrap';
 
 export function registerSandboxHandlers(handle: IpcHandler): void {
-  const storage = getStorage();
-
+  // Milestone 3 sub-chunk 3c: config get/set route through daemon RPC.
   handle('sandbox:get-config', async (_event: IpcMainInvokeEvent) => {
-    return storage.getSandboxConfig();
+    return getDaemonClient().call('settings.getSandboxConfig');
   });
 
   handle(
@@ -39,7 +38,7 @@ export function registerSandboxHandlers(handle: IpcHandler): void {
         throw new Error('allowedHosts must be an array');
       }
 
-      storage.setSandboxConfig({
+      const sanitized = {
         mode: config.mode as 'disabled' | 'native' | 'docker',
         allowedPaths: config.allowedPaths.map((p) => sanitizeString(p, 'allowedPath', 512)),
         networkRestricted: config.networkRestricted,
@@ -59,7 +58,8 @@ export function registerSandboxHandlers(handle: IpcHandler): void {
               }),
             },
           }),
-      });
+      };
+      await getDaemonClient().call('settings.setSandboxConfig', { config: sanitized });
     },
   );
 }

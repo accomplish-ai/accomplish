@@ -2,20 +2,20 @@ import fs from 'fs';
 import { BrowserWindow, dialog } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import { getLogCollector } from '../../logging';
-import { getStorage } from '../../store/storage';
 import { handle, assertTrustedWindow } from './utils';
+import { getDaemonClient } from '../../daemon-bootstrap';
 
 export function registerLogHandlers(): void {
-  const storage = getStorage();
-
-  const assertDebugModeEnabled = () => {
-    if (!storage.getDebugMode()) {
+  // Milestone 3 sub-chunk 3c: debug-mode gate routes through the daemon.
+  const assertDebugModeEnabled = async () => {
+    const snap = await getDaemonClient().call('settings.getAll');
+    if (!snap.app.debugMode) {
       throw new Error('Debug mode is disabled');
     }
   };
 
   handle('logs:export', async (event: IpcMainInvokeEvent) => {
-    assertDebugModeEnabled();
+    await assertDebugModeEnabled();
     const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
 
     const collector = getLogCollector();

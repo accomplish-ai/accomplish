@@ -1,21 +1,20 @@
 import type { IpcMainInvokeEvent } from 'electron';
 import type { IpcHandler } from '../../types';
-import { getStorage } from '../../../store/storage';
+import { getDaemonClient } from '../../../daemon-bootstrap';
 
 const VALID_CLOUD_BROWSER_PROVIDERS = new Set(['aws-agentcore', 'browserbase', 'steel']);
 
 export function registerCloudBrowserHandlers(handle: IpcHandler): void {
-  const storage = getStorage();
-
+  // Milestone 3 sub-chunk 3c: config get/set route through daemon RPC.
   handle('settings:cloud-browser-config:get', async (_event: IpcMainInvokeEvent) => {
-    return storage.getCloudBrowserConfig();
+    return getDaemonClient().call('settings.getCloudBrowserConfig');
   });
 
   handle(
     'settings:cloud-browser-config:set',
     async (_event: IpcMainInvokeEvent, config: string | null) => {
       if (config === null) {
-        storage.setCloudBrowserConfig(null);
+        await getDaemonClient().call('settings.setCloudBrowserConfig', { config: null });
         return;
       }
       if (typeof config !== 'string') {
@@ -59,9 +58,11 @@ export function registerCloudBrowserHandlers(handle: IpcHandler): void {
           );
         }
       }
-      storage.setCloudBrowserConfig(
-        cfg as unknown as Parameters<typeof storage.setCloudBrowserConfig>[0],
-      );
+      // The `CloudBrowserConfig` shape is validated field-by-field above;
+      // the RPC wire type is `unknown`-backed on the daemon side anyway
+      // (see `settings.setCloudBrowserConfig` in `common/types/daemon.ts`).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await getDaemonClient().call('settings.setCloudBrowserConfig', { config: cfg as any });
     },
   );
 }

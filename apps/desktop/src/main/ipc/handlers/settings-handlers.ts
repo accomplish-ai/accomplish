@@ -4,8 +4,8 @@ export type Language = (typeof SUPPORTED_LANGUAGES)[number];
 // Settings handlers are split into focused sub-modules for maintainability.
 import { app, BrowserWindow, nativeTheme } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
-import { getStorage } from '../../store/storage';
 import { handle } from './utils';
+import { getDaemonClient } from '../../daemon-bootstrap';
 import { registerCloudBrowserHandlers } from './settings-handlers/cloud-browser-handlers';
 import { registerSandboxHandlers } from './settings-handlers/sandbox-handlers';
 import { registerAuthHandlers } from './settings-handlers/auth-handlers';
@@ -14,10 +14,20 @@ import { registerOpenCodeHandlers } from './settings-handlers/opencode-handlers'
 import { registerWhatsAppHandlers } from './whatsapp-handlers';
 
 export function registerSettingsHandlers(): void {
-  const storage = getStorage();
+  // Milestone 3 sub-chunk 3c: every read/write below that used to go through
+  // `getStorage()` is now a daemon RPC. Single-field reads call
+  // `settings.getAll()` and extract the field rather than each having a
+  // dedicated getter route — the renderer reads them once on settings UI
+  // open, not in a hot loop, so the extra-bytes cost is negligible and it
+  // keeps the daemon method map smaller. The BrowserWindow broadcasts at
+  // the bottom of each setter are preserved: they exist so the renderer
+  // patches its local UI state immediately without waiting for the daemon's
+  // `settings.changed` notification to round-trip. When M3 3d-or-later
+  // wires the notification forwarder main-side, these broadcasts collapse.
 
   handle('settings:notifications-enabled', async (_event: IpcMainInvokeEvent) => {
-    return storage.getNotificationsEnabled();
+    const snap = await getDaemonClient().call('settings.getAll');
+    return snap.notificationsEnabled;
   });
 
   handle(
@@ -26,33 +36,37 @@ export function registerSettingsHandlers(): void {
       if (typeof enabled !== 'boolean') {
         throw new Error('Invalid notifications-enabled flag');
       }
-      storage.setNotificationsEnabled(enabled);
+      await getDaemonClient().call('settings.setNotificationsEnabled', { enabled });
     },
   );
 
   handle('settings:debug-mode', async (_event: IpcMainInvokeEvent) => {
-    return storage.getDebugMode();
+    const snap = await getDaemonClient().call('settings.getAll');
+    return snap.app.debugMode;
   });
 
   handle('settings:set-debug-mode', async (_event: IpcMainInvokeEvent, enabled: boolean) => {
     if (typeof enabled !== 'boolean') {
       throw new Error('Invalid debug mode flag');
     }
-    storage.setDebugMode(enabled);
+    await getDaemonClient().call('settings.setDebugMode', { enabled });
     for (const win of BrowserWindow.getAllWindows()) {
       win.webContents.send('settings:debug-mode-changed', { enabled });
     }
   });
 
   handle('settings:theme', async (_event: IpcMainInvokeEvent) => {
-    return storage.getTheme();
+    const snap = await getDaemonClient().call('settings.getAll');
+    return snap.app.theme;
   });
 
   handle('settings:set-theme', async (_event: IpcMainInvokeEvent, theme: string) => {
     if (!['system', 'light', 'dark'].includes(theme)) {
       throw new Error('Invalid theme value');
     }
-    storage.setTheme(theme as 'system' | 'light' | 'dark');
+    await getDaemonClient().call('settings.setTheme', {
+      theme: theme as 'system' | 'light' | 'dark',
+    });
     nativeTheme.themeSource = theme as 'system' | 'light' | 'dark';
 
     const resolved =
@@ -64,14 +78,15 @@ export function registerSettingsHandlers(): void {
   });
 
   handle('settings:language', async (_event: IpcMainInvokeEvent) => {
-    return storage.getLanguage();
+    const snap = await getDaemonClient().call('settings.getAll');
+    return snap.app.language;
   });
 
   handle('settings:set-language', async (_event: IpcMainInvokeEvent, language: string) => {
     if (!SUPPORTED_LANGUAGES.includes(language as Language)) {
       throw new Error('Invalid language value');
     }
-    storage.setLanguage(language as Language);
+    await getDaemonClient().call('settings.setLanguage', { language: language as Language });
     // Broadcast to all renderer windows
     for (const win of BrowserWindow.getAllWindows()) {
       win.webContents.send('settings:language-changed', { language });
@@ -79,13 +94,14 @@ export function registerSettingsHandlers(): void {
   });
 
   handle('settings:app-settings', async (_event: IpcMainInvokeEvent) => {
-    return storage.getAppSettings();
+    const snap = await getDaemonClient().call('settings.getAll');
+    return snap.app;
   });
 
   // ── Daemon ──────────────────────────────────────────────────────────
 
   handle('daemon:get-socket-path', async () => {
-    const { getSocketPath } = await import('@accomplish_ai/agent-core');
+    const { getSocketPath } = await import('@accomplish_ai/agent-core/desktop-main');
     return getSocketPath(app.getPath('userData'));
   });
 
@@ -122,7 +138,7 @@ export function registerSettingsHandlers(): void {
       // The daemon deletes its PID lock on exit. Once the PID file is gone
       // (or its PID is no longer alive), it's safe to spawn a new one.
       try {
-        const { getPidFilePath } = await import('@accomplish_ai/agent-core');
+        const { getPidFilePath } = await import('@accomplish_ai/agent-core/desktop-main');
         const { getDataDir } = await import('../../daemon/daemon-connector');
         const fs = await import('fs');
         const pidPath = getPidFilePath(getDataDir());
@@ -149,7 +165,7 @@ export function registerSettingsHandlers(): void {
 
       // Remove stale socket file so bootstrapDaemon spawns fresh
       try {
-        const { getSocketPath } = await import('@accomplish_ai/agent-core');
+        const { getSocketPath } = await import('@accomplish_ai/agent-core/desktop-main');
         const { getDataDir } = await import('../../daemon/daemon-connector');
         const fs = await import('fs');
         const socketPath = getSocketPath(getDataDir());
@@ -184,7 +200,7 @@ export function registerSettingsHandlers(): void {
     // Wait for the daemon to fully exit before reporting success.
     // Same PID polling approach as restart.
     try {
-      const { getPidFilePath } = await import('@accomplish_ai/agent-core');
+      const { getPidFilePath } = await import('@accomplish_ai/agent-core/desktop-main');
       const { getDataDir } = await import('../../daemon/daemon-connector');
       const fs = await import('fs');
       const pidPath = getPidFilePath(getDataDir());
@@ -223,7 +239,6 @@ export function registerSettingsHandlers(): void {
   // ── Scheduler ────────────────────────────────────────────────────────
 
   handle('scheduler:list', async (_event: IpcMainInvokeEvent, workspaceId?: string) => {
-    const { getDaemonClient } = await import('../../daemon-bootstrap');
     const client = getDaemonClient();
     return client.call('task.listScheduled', { workspaceId });
   });
@@ -231,14 +246,12 @@ export function registerSettingsHandlers(): void {
   handle(
     'scheduler:create',
     async (_event: IpcMainInvokeEvent, cron: string, prompt: string, workspaceId?: string) => {
-      const { getDaemonClient } = await import('../../daemon-bootstrap');
       const client = getDaemonClient();
       return client.call('task.schedule', { cron, prompt, workspaceId });
     },
   );
 
   handle('scheduler:delete', async (_event: IpcMainInvokeEvent, scheduleId: string) => {
-    const { getDaemonClient } = await import('../../daemon-bootstrap');
     const client = getDaemonClient();
     return client.call('task.cancelScheduled', { scheduleId });
   });
@@ -246,7 +259,6 @@ export function registerSettingsHandlers(): void {
   handle(
     'scheduler:set-enabled',
     async (_event: IpcMainInvokeEvent, scheduleId: string, enabled: boolean) => {
-      const { getDaemonClient } = await import('../../daemon-bootstrap');
       const client = getDaemonClient();
       return client.call('task.setScheduleEnabled', { scheduleId, enabled });
     },
@@ -260,14 +272,16 @@ export function registerSettingsHandlers(): void {
   // ── Close Behavior ──────────────────────────────────────────────────
 
   handle('daemon:get-close-behavior', async () => {
-    return storage.getCloseBehavior();
+    return getDaemonClient().call('settings.getCloseBehavior');
   });
 
   handle('daemon:set-close-behavior', async (_event: IpcMainInvokeEvent, behavior: string) => {
     if (behavior !== 'keep-daemon' && behavior !== 'stop-daemon') {
       throw new Error(`Invalid close behavior: ${behavior}`);
     }
-    storage.setCloseBehavior(behavior);
+    await getDaemonClient().call('settings.setCloseBehavior', {
+      behavior: behavior as 'keep-daemon' | 'stop-daemon',
+    });
   });
 
   registerCloudBrowserHandlers(handle);

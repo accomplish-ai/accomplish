@@ -130,7 +130,10 @@ vi.mock('@main/opencode', () => ({
   getOpenCodeCliVersion: vi.fn(() => Promise.resolve('1.0.0')),
 }));
 
-// Mock daemon-bootstrap — task handlers now proxy through DaemonClient
+// Mock daemon-bootstrap — task handlers now proxy through DaemonClient.
+// Milestone 3 sub-chunk 3c extended the routing to settings, providers,
+// favorites, and the legacy-import surface so handlers that moved onto
+// RPC get back realistic data without needing a live daemon.
 const mockDaemonClient = {
   call: vi.fn(async (method: string, params?: unknown) => {
     if (method === 'task.start') {
@@ -173,6 +176,146 @@ const mockDaemonClient = {
     if (method === 'auth.openai.getAccessToken') {
       return null;
     }
+
+    // ---- Milestone 3 sub-chunk 3c: settings + provider surface ----
+    if (method === 'settings.getAll') {
+      return {
+        app: {
+          debugMode: mockDebugMode,
+          onboardingComplete: mockOnboardingComplete,
+          selectedModel: mockSelectedModel,
+          openaiBaseUrl: mockOpenAiBaseUrl,
+        },
+        providers: {
+          activeProviderId: 'anthropic',
+          connectedProviders: {
+            anthropic: {
+              providerId: 'anthropic',
+              connectionStatus: 'connected',
+              selectedModelId: 'claude-3-5-sonnet-20241022',
+              credentials: { type: 'api-key', apiKey: 'test-key' },
+            },
+          },
+          debugMode: false,
+        },
+        huggingFaceLocalConfig: null,
+        notificationsEnabled: true,
+        closeBehavior: 'keep-daemon',
+        sandboxConfig: {
+          mode: 'disabled',
+          allowedPaths: [],
+          networkRestricted: false,
+          allowedHosts: [],
+        },
+        cloudBrowserConfig: null,
+        messagingConfig: null,
+        nimConfig: null,
+      };
+    }
+    if (method === 'settings.setTheme') return undefined;
+    if (method === 'settings.setLanguage') return undefined;
+    if (method === 'settings.setDebugMode') {
+      const p = params as { enabled: boolean };
+      mockDebugMode = p.enabled;
+      return undefined;
+    }
+    if (method === 'settings.setNotificationsEnabled') return undefined;
+    if (method === 'settings.getNotificationsEnabled') return true;
+    if (method === 'settings.setCloseBehavior') return undefined;
+    if (method === 'settings.getCloseBehavior') return 'keep-daemon';
+    if (method === 'settings.setSandboxConfig') return undefined;
+    if (method === 'settings.getSandboxConfig') {
+      return {
+        mode: 'disabled',
+        allowedPaths: [],
+        networkRestricted: false,
+        allowedHosts: [],
+      };
+    }
+    if (method === 'settings.setCloudBrowserConfig') return undefined;
+    if (method === 'settings.getCloudBrowserConfig') return null;
+    if (method === 'settings.setMessagingConfig') return undefined;
+    if (method === 'settings.getMessagingConfig') return null;
+    if (method === 'settings.setOnboardingComplete') {
+      const p = params as { complete: boolean };
+      mockOnboardingComplete = p.complete;
+      return undefined;
+    }
+    if (method === 'settings.getSelectedModel') return mockSelectedModel;
+    if (method === 'settings.setSelectedModel') {
+      const p = params as { model: { provider: string; model: string } };
+      mockSelectedModel = p.model;
+      return undefined;
+    }
+    if (method === 'settings.getOpenAiBaseUrl') return mockOpenAiBaseUrl;
+    if (method === 'settings.setOpenAiBaseUrl') {
+      const p = params as { baseUrl: string };
+      mockOpenAiBaseUrl = p.baseUrl;
+      return undefined;
+    }
+
+    // Provider settings RPCs
+    if (method === 'provider.getSettings') {
+      return {
+        activeProviderId: 'anthropic',
+        connectedProviders: {
+          anthropic: {
+            providerId: 'anthropic',
+            connectionStatus: 'connected',
+            selectedModelId: 'claude-3-5-sonnet-20241022',
+            credentials: { type: 'api-key', apiKey: 'test-key' },
+          },
+        },
+        debugMode: false,
+      };
+    }
+    if (method === 'provider.setActive') return undefined;
+    if (method === 'provider.setConnected') return undefined;
+    if (method === 'provider.removeConnected') return undefined;
+    if (method === 'provider.updateModel') return undefined;
+    if (method === 'provider.setDebugMode') return undefined;
+    if (method === 'provider.getDebugMode') return false;
+    if (method === 'provider.getHuggingFaceLocalConfig') return null;
+    if (method === 'provider.setHuggingFaceLocalConfig') return undefined;
+
+    // Favorites RPCs
+    if (method === 'favorites.list') {
+      return [...mockFavorites];
+    }
+    if (method === 'favorites.add') {
+      const p = params as { taskId: string; prompt: string; summary?: string };
+      const existing = mockFavorites.findIndex((f) => f.taskId === p.taskId);
+      const entry = {
+        taskId: p.taskId,
+        prompt: p.prompt,
+        summary: p.summary,
+        favoritedAt: new Date().toISOString(),
+      };
+      if (existing >= 0) {
+        mockFavorites[existing] = entry;
+      } else {
+        mockFavorites.push(entry);
+      }
+      return undefined;
+    }
+    if (method === 'favorites.remove') {
+      const p = params as { taskId: string };
+      const i = mockFavorites.findIndex((f) => f.taskId === p.taskId);
+      if (i >= 0) {
+        mockFavorites.splice(i, 1);
+      }
+      return undefined;
+    }
+    if (method === 'favorites.isFavorite') {
+      const p = params as { taskId: string };
+      return mockFavorites.some((f) => f.taskId === p.taskId);
+    }
+
+    // Legacy import RPC (daemon-side one-shot from M3 3b)
+    if (method === 'legacy.importElectronStoreIfNeeded') {
+      return { applied: false, reason: 'already-imported' };
+    }
+
     return undefined;
   }),
   ping: vi.fn(async () => ({ status: 'ok' as const, uptime: 1000 })),
@@ -788,9 +931,10 @@ describe('IPC Handlers Integration', () => {
       // Act
       await invokeHandler('settings:set-debug-mode', true);
 
-      // Assert
-      const { setDebugMode } = await import('@accomplish_ai/agent-core');
-      expect(setDebugMode).toHaveBeenCalledWith(true);
+      // Assert — now routed through daemon RPC (M3 3c)
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('settings.setDebugMode', {
+        enabled: true,
+      });
     });
 
     it('settings:set-debug-mode should reject non-boolean values', async () => {
@@ -1132,9 +1276,10 @@ describe('IPC Handlers Integration', () => {
       // Act
       await invokeHandler('onboarding:set-complete', true);
 
-      // Assert
-      const { setOnboardingComplete } = await import('@accomplish_ai/agent-core');
-      expect(setOnboardingComplete).toHaveBeenCalledWith(true);
+      // Assert — now routed through daemon RPC (M3 3c)
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('settings.setOnboardingComplete', {
+        complete: true,
+      });
     });
   });
 
@@ -1223,9 +1368,10 @@ describe('IPC Handlers Integration', () => {
       // Act
       await invokeHandler('model:set', newModel);
 
-      // Assert
-      const { setSelectedModel } = await import('@accomplish_ai/agent-core');
-      expect(setSelectedModel).toHaveBeenCalledWith(newModel);
+      // Assert — now routed through daemon RPC (M3 3c)
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('settings.setSelectedModel', {
+        model: newModel,
+      });
     });
 
     it('model:set should reject invalid model configuration', async () => {
@@ -2170,8 +2316,13 @@ describe('IPC Handlers Integration', () => {
 
       await invokeHandler('favorites:add', taskId);
 
-      const { addFavorite } = await import('@accomplish_ai/agent-core');
-      expect(addFavorite).toHaveBeenCalledWith(taskId, 'Complete me', 'Done');
+      // Now routed through daemon RPC (M3 3c): handler fetches task via
+      // `task.get` then calls `favorites.add` with the full payload.
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('favorites.add', {
+        taskId,
+        prompt: 'Complete me',
+        summary: 'Done',
+      });
     });
 
     it('favorites:add should add an interrupted task to favorites', async () => {
@@ -2187,16 +2338,18 @@ describe('IPC Handlers Integration', () => {
 
       await invokeHandler('favorites:add', taskId);
 
-      const { addFavorite } = await import('@accomplish_ai/agent-core');
-      expect(addFavorite).toHaveBeenCalledWith(taskId, 'Resume later', 'WIP');
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('favorites.add', {
+        taskId,
+        prompt: 'Resume later',
+        summary: 'WIP',
+      });
     });
 
     it('favorites:add should reject when task not found', async () => {
       await expect(invokeHandler('favorites:add', 'task_nonexistent')).rejects.toThrow(
         'Favorite failed: task not found (taskId: task_nonexistent)',
       );
-      const { addFavorite } = await import('@accomplish_ai/agent-core');
-      expect(addFavorite).not.toHaveBeenCalled();
+      expect(mockDaemonClient.call).not.toHaveBeenCalledWith('favorites.add', expect.anything());
     });
 
     it('favorites:add should reject when task status is not completed or interrupted', async () => {
@@ -2212,20 +2365,19 @@ describe('IPC Handlers Integration', () => {
       await expect(invokeHandler('favorites:add', taskId)).rejects.toThrow(
         'Favorite failed: invalid status (taskId: task_running, status: running)',
       );
-      const { addFavorite } = await import('@accomplish_ai/agent-core');
-      expect(addFavorite).not.toHaveBeenCalled();
+      expect(mockDaemonClient.call).not.toHaveBeenCalledWith('favorites.add', expect.anything());
     });
 
     it('favorites:remove should remove task from favorites', async () => {
       await invokeHandler('favorites:remove', 'task_to_unfav');
-      const { removeFavorite } = await import('@accomplish_ai/agent-core');
-      expect(removeFavorite).toHaveBeenCalledWith('task_to_unfav');
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('favorites.remove', {
+        taskId: 'task_to_unfav',
+      });
     });
 
     it('favorites:list should return favorites list', async () => {
       const result = await invokeHandler('favorites:list');
-      const { getFavorites } = await import('@accomplish_ai/agent-core');
-      expect(getFavorites).toHaveBeenCalled();
+      expect(mockDaemonClient.call).toHaveBeenCalledWith('favorites.list');
       expect(Array.isArray(result)).toBe(true);
     });
   });

@@ -5,8 +5,8 @@
  * Manages the local Transformers.js inference server lifecycle and model management.
  */
 import type { IpcMainInvokeEvent } from 'electron';
-import { getStorage } from '../../store/storage';
 import { handle } from './utils';
+import { getDaemonClient } from '../../daemon-bootstrap';
 import type { HuggingFaceLocalConfig } from '@accomplish_ai/agent-core/desktop-main';
 import {
   startHuggingFaceServer,
@@ -23,7 +23,9 @@ import {
 } from '../../providers/huggingface-local/model-manager';
 
 export function registerHuggingFaceHandlers(): void {
-  const storage = getStorage();
+  // Milestone 3 sub-chunk 3c: config get/set now route through the daemon.
+  // The other handlers on this file (start-server, stop-server, etc.)
+  // manage a LOCAL subprocess and stay Electron-side.
 
   handle('huggingface-local:start-server', async (_event: IpcMainInvokeEvent, modelId: string) => {
     if (typeof modelId !== 'string' || !modelId.trim()) {
@@ -77,7 +79,7 @@ export function registerHuggingFaceHandlers(): void {
   });
 
   handle('huggingface-local:get-config', async () => {
-    return storage.getHuggingFaceLocalConfig();
+    return getDaemonClient().call('provider.getHuggingFaceLocalConfig');
   });
 
   const VALID_QUANTIZATIONS = ['q4', 'fp32'];
@@ -105,7 +107,7 @@ export function registerHuggingFaceHandlers(): void {
           throw new Error('Invalid HuggingFace config: unexpected field types');
         }
       }
-      storage.setHuggingFaceLocalConfig(config);
+      await getDaemonClient().call('provider.setHuggingFaceLocalConfig', { config });
     },
   );
 }
