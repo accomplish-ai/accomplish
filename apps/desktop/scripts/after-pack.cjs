@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const NODE_VERSION = '22.22.2';
+const { NODE_VERSION } = require('./node-version.cjs');
 
 /**
  * Map electron-builder arch number to string
