@@ -6,14 +6,16 @@ import {
 import type { AzureFoundryConfig } from '@accomplish_ai/agent-core/desktop-main';
 import type { IpcHandler } from '../../types';
 import { storeApiKey } from '../../../store/secureStorage';
-import { getStorage } from '../../../store/storage';
+import { getDaemonClient } from '../../../daemon-bootstrap';
 import { API_KEY_VALIDATION_TIMEOUT_MS } from '../utils';
 
+// Milestone 5: Azure Foundry config reads/writes now route through the
+// daemon's `settings.*AzureFoundryConfig` RPCs. The validation logic
+// stays here — it's sanity-checking user input at the IPC boundary
+// before we hand it off to persistence.
 export function registerAzureFoundryHandlers(handle: IpcHandler): void {
-  const storage = getStorage();
-
   handle('azure-foundry:get-config', async (_event: IpcMainInvokeEvent) => {
-    return storage.getAzureFoundryConfig();
+    return getDaemonClient().call('settings.getAzureFoundryConfig');
   });
 
   handle(
@@ -40,7 +42,7 @@ export function registerAzureFoundryHandlers(handle: IpcHandler): void {
           throw new Error('Invalid Azure Foundry configuration: Invalid base URL format');
         }
       }
-      storage.setAzureFoundryConfig(config);
+      await getDaemonClient().call('settings.setAzureFoundryConfig', { config });
     },
   );
 
@@ -107,7 +109,7 @@ export function registerAzureFoundryHandlers(handle: IpcHandler): void {
         enabled: true,
         lastValidated: Date.now(),
       };
-      storage.setAzureFoundryConfig(azureConfig);
+      await getDaemonClient().call('settings.setAzureFoundryConfig', { config: azureConfig });
     },
   );
 }

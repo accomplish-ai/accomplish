@@ -2,17 +2,18 @@ import type { IpcMainInvokeEvent } from 'electron';
 import { testOllamaConnection, validateHttpUrl } from '@accomplish_ai/agent-core/desktop-main';
 import type { OllamaConfig } from '@accomplish_ai/agent-core/desktop-main';
 import type { IpcHandler } from '../../types';
-import { getStorage } from '../../../store/storage';
+import { getDaemonClient } from '../../../daemon-bootstrap';
 
+// Milestone 5 of the daemon-only-SQLite migration: Ollama config
+// reads/writes route through `settings.*OllamaConfig`. Validation stays
+// client-side at the IPC boundary.
 export function registerOllamaHandlers(handle: IpcHandler): void {
-  const storage = getStorage();
-
   handle('ollama:test-connection', async (_event: IpcMainInvokeEvent, url: string) => {
     return testOllamaConnection(url);
   });
 
   handle('ollama:get-config', async (_event: IpcMainInvokeEvent) => {
-    return storage.getOllamaConfig();
+    return getDaemonClient().call('settings.getOllamaConfig');
   });
 
   handle('ollama:set-config', async (_event: IpcMainInvokeEvent, config: OllamaConfig | null) => {
@@ -39,6 +40,6 @@ export function registerOllamaHandlers(handle: IpcHandler): void {
         }
       }
     }
-    storage.setOllamaConfig(config);
+    await getDaemonClient().call('settings.setOllamaConfig', { config });
   });
 }

@@ -1,8 +1,31 @@
 import { BrowserWindow } from 'electron';
 import type { Task, TaskMessage } from '@accomplish_ai/agent-core/desktop-main';
 import { createMessageId } from '@accomplish_ai/agent-core/desktop-main';
-import { getStorage } from '../store/storage';
 import { getLogCollector } from '../logging';
+
+/**
+ * Milestone 5 of the daemon-only-SQLite migration
+ * (plan: /Users/yanai/.claude/plans/squishy-exploring-hamster.md).
+ *
+ * The E2E mock path bypasses the daemon entirely — which meant pre-M5 it
+ * wrote directly to the desktop-side `StorageAPI` singleton (now deleted).
+ * Tests verify task state through renderer events rather than DB reads,
+ * so the shim below is a no-op that keeps the existing call shape and
+ * the helper signatures unchanged. If a future test asserts persisted
+ * task state, the shim can swap to an in-memory `Map<string, Task>` or
+ * route to a dedicated `task.saveForMock` RPC without touching callers.
+ */
+interface MockTaskStorage {
+  saveTask(task: Task, workspaceId: string | null): void;
+  addTaskMessage(taskId: string, message: TaskMessage): void;
+  updateTaskStatus(taskId: string, status: string, timestamp: string): void;
+}
+
+const mockTaskStorage: MockTaskStorage = {
+  saveTask: () => {},
+  addTaskMessage: () => {},
+  updateTaskStatus: () => {},
+};
 
 export type MockScenario =
   | 'success'
@@ -82,7 +105,7 @@ export async function executeMockTaskFlow(
     return;
   }
 
-  const storage = getStorage();
+  const storage = mockTaskStorage;
   const sendEvent = (channel: string, data: unknown) => {
     if (!window.isDestroyed()) {
       window.webContents.send(channel, data);
@@ -115,7 +138,7 @@ export async function executeMockTaskFlow(
 async function executeScenario(
   sendEvent: (channel: string, data: unknown) => void,
   sendMessage: (message: TaskMessage) => void,
-  storage: ReturnType<typeof getStorage>,
+  storage: MockTaskStorage,
   taskId: string,
   scenario: MockScenario,
   delayMs: number,
@@ -154,7 +177,7 @@ async function executeScenario(
 async function executeSuccessScenario(
   sendEvent: (channel: string, data: unknown) => void,
   sendMessage: (message: TaskMessage) => void,
-  storage: ReturnType<typeof getStorage>,
+  storage: MockTaskStorage,
   taskId: string,
   delayMs: number,
 ): Promise<void> {
@@ -178,7 +201,7 @@ async function executeSuccessScenario(
 async function executeToolScenario(
   sendEvent: (channel: string, data: unknown) => void,
   sendMessage: (message: TaskMessage) => void,
-  storage: ReturnType<typeof getStorage>,
+  storage: MockTaskStorage,
   taskId: string,
   delayMs: number,
 ): Promise<void> {
@@ -258,7 +281,7 @@ function executeQuestionScenario(
 
 function executeErrorScenario(
   sendEvent: (channel: string, data: unknown) => void,
-  storage: ReturnType<typeof getStorage>,
+  storage: MockTaskStorage,
   taskId: string,
 ): void {
   storage.updateTaskStatus(taskId, 'failed', new Date().toISOString());
@@ -273,7 +296,7 @@ function executeErrorScenario(
 async function executeInterruptedScenario(
   sendEvent: (channel: string, data: unknown) => void,
   sendMessage: (message: TaskMessage) => void,
-  storage: ReturnType<typeof getStorage>,
+  storage: MockTaskStorage,
   taskId: string,
   delayMs: number,
 ): Promise<void> {
@@ -297,7 +320,7 @@ async function executeInterruptedScenario(
 async function executeCodeBlockScenario(
   sendEvent: (channel: string, data: unknown) => void,
   sendMessage: (message: TaskMessage) => void,
-  storage: ReturnType<typeof getStorage>,
+  storage: MockTaskStorage,
   taskId: string,
   delayMs: number,
 ): Promise<void> {

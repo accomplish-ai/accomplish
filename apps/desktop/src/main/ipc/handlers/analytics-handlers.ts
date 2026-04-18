@@ -7,7 +7,7 @@
 
 import type { IpcMainInvokeEvent } from 'electron';
 import { handle } from './utils';
-import { getStorage } from '../../store/storage';
+import { getDaemonClient } from '../../daemon-bootstrap';
 import { isAnalyticsEnabled } from '../../config/build-config';
 import type { TaskErrorCategory } from '../../analytics/types';
 import {
@@ -51,29 +51,30 @@ import {
 } from '../../analytics';
 
 /**
- * Helper to look up the currently selected model + provider from storage.
- * Used by task lifecycle events to automatically include model context.
- * Returns empty object if storage doesn't support model/provider lookups.
+ * Look up the currently selected model + provider via the daemon.
+ * Used by task-lifecycle analytics events to attach model context.
+ *
+ * Milestone 5 of the daemon-only-SQLite migration: pre-M5 this ran a
+ * raw `SELECT ... FROM provider_configs WHERE is_selected = 1` against
+ * main's in-process DB handle. That handle is gone — now we go through
+ * `provider.getSettings`, pull the active provider id, and read its
+ * `selectedModelId`. Returns an empty object on RPC error so analytics
+ * events never block on a slow/broken daemon.
  */
-function getSelectedModelContext(): {
+async function getSelectedModelContext(): Promise<{
   model?: string;
   provider?: string;
-} {
+}> {
   try {
-    const storage = getStorage();
-    // The storage schema may not have dedicated model/provider getters.
-    // Use the raw DB query if available, otherwise return empty.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = (storage as any).db;
-    if (!db) return {};
-    const row = db
-      .prepare?.(
-        `SELECT provider_id, selected_model_id FROM provider_configs WHERE is_selected = 1 LIMIT 1`,
-      )
-      ?.get?.() as { provider_id?: string; selected_model_id?: string } | undefined;
+    const settings = await getDaemonClient().call('provider.getSettings');
+    const activeId = settings.activeProviderId;
+    if (!activeId) {
+      return {};
+    }
+    const active = settings.connectedProviders[activeId];
     return {
-      provider: row?.provider_id ?? undefined,
-      model: row?.selected_model_id ?? undefined,
+      provider: activeId,
+      model: active?.selectedModelId ?? undefined,
     };
   } catch {
     return {};
@@ -112,7 +113,7 @@ export function registerAnalyticsHandlers(): void {
 
   // Engagement
   ha('analytics:submit-task', async () => {
-    const { model, provider } = getSelectedModelContext();
+    const { model, provider } = await getSelectedModelContext();
     trackSubmitTask(model, provider);
   });
 
@@ -156,7 +157,7 @@ export function registerAnalyticsHandlers(): void {
   ha(
     'analytics:task-start',
     async (_event: IpcMainInvokeEvent, taskId: string, sessionId: string, taskType: string) => {
-      const { model, provider } = getSelectedModelContext();
+      const { model, provider } = await getSelectedModelContext();
       trackTaskStart({ taskId, sessionId, taskType }, model, provider);
     },
   );
@@ -172,7 +173,7 @@ export function registerAnalyticsHandlers(): void {
       totalSteps: number,
       hadErrors: boolean,
     ) => {
-      const { model, provider } = getSelectedModelContext();
+      const { model, provider } = await getSelectedModelContext();
       trackTaskComplete(
         { taskId, sessionId, taskType },
         durationMs,
@@ -197,7 +198,7 @@ export function registerAnalyticsHandlers(): void {
       totalSteps: number,
       errorType: string,
     ) => {
-      const { model, provider } = getSelectedModelContext();
+      const { model, provider } = await getSelectedModelContext();
       trackTaskError(
         { taskId, sessionId, taskType },
         durationMs,

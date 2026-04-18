@@ -13,7 +13,6 @@ if (process.platform === 'win32') {
 
 import { getLogCollector, initializeLogCollector } from './logging';
 import { clearSecureStorage } from './store/secureStorage';
-import { resetStorageSingleton } from './store/storage';
 import { startApp } from './app-startup';
 import { shutdownApp } from './app-shutdown';
 import { trackAppCrash } from './analytics/events';
@@ -54,9 +53,14 @@ if (process.env.CLEAN_START === '1') {
   } catch (err) {
     logMain('ERROR', '[Clean Mode] Failed to clear userData', { err: String(err) });
   }
-  clearSecureStorage(); // Clear before reset to avoid singleton re-creation
-  resetStorageSingleton();
-  logMain('INFO', '[Clean Mode] All singletons reset');
+  // Milestone 5: `resetStorageSingleton()` is gone along with the
+  // desktop-side DB handle. `clearSecureStorage()` is now a no-op
+  // (kept for signature compat — see store/secureStorage.ts), and the
+  // daemon hasn't spawned yet, so there's no socket-level handle to
+  // close. The `fs.rmSync` above wipes the on-disk DB / secure-storage
+  // files; the daemon starts fresh on its next boot.
+  clearSecureStorage();
+  logMain('INFO', '[Clean Mode] userData wiped; daemon will reinitialize on spawn');
 }
 
 app.setName('Accomplish');

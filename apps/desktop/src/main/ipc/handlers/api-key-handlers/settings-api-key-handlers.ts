@@ -7,16 +7,17 @@ import {
   getAllApiKeys,
   getBedrockCredentials,
 } from '../../../store/secureStorage';
-import { getStorage } from '../../../store/storage';
+import { getDaemonClient } from '../../../daemon-bootstrap';
 import { handle } from '../utils';
 
 // Cloud-browser providers store their keys in app_settings.cloud_browser_config,
 // not in secure storage. Exclude them from the standard api-key flow.
 const CLOUD_BROWSER_PROVIDERS = new Set(['aws-agentcore', 'browserbase', 'steel']);
 
+// Milestone 5: Azure Foundry config reads/writes for the
+// api-keys settings listing now route through the daemon's
+// `settings.*AzureFoundryConfig` RPCs.
 export function registerSettingsApiKeyHandlers(): void {
-  const storage = getStorage();
-
   handle('settings:api-keys', async (_event: IpcMainInvokeEvent) => {
     const storedKeys = await getAllApiKeys();
     // Pre-fetch bedrock credentials ONCE. `getBedrockCredentials` is async
@@ -92,7 +93,7 @@ export function registerSettingsApiKeyHandlers(): void {
         };
       });
 
-    const azureConfig = storage.getAzureFoundryConfig();
+    const azureConfig = await getDaemonClient().call('settings.getAzureFoundryConfig');
     const hasAzureKey = keys.some((k) => k.provider === 'azure-foundry');
 
     if (azureConfig && azureConfig.authType === 'entra-id' && !hasAzureKey) {
@@ -151,10 +152,13 @@ export function registerSettingsApiKeyHandlers(): void {
     // are not stored in secure storage — routing them to deleteApiKey() would be a no-op
     // and the entry would reappear on next load. Instead, update the backing config.
     if (provider === 'azure-foundry') {
-      const existingConfig = storage.getAzureFoundryConfig();
+      const client = getDaemonClient();
+      const existingConfig = await client.call('settings.getAzureFoundryConfig');
       if (existingConfig) {
         // Disable Entra ID auth by clearing the config entry
-        storage.setAzureFoundryConfig({ ...existingConfig, enabled: false, authType: 'api-key' });
+        await client.call('settings.setAzureFoundryConfig', {
+          config: { ...existingConfig, enabled: false, authType: 'api-key' },
+        });
       }
       return;
     }

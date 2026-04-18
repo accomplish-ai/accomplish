@@ -4,7 +4,7 @@
  */
 
 import http from 'http';
-import { getStorage } from '../../store/storage';
+import { getDaemonClient } from '../../daemon-bootstrap';
 import { getLogCollector } from '../../logging';
 import {
   state,
@@ -80,18 +80,26 @@ async function _startServerImpl(
           'INFO',
           `[HF Server] Listening on http://127.0.0.1:${address.port}`,
         );
-        // Persist the chosen port so clients can reconnect after restart
-        try {
-          const storage = getStorage();
-          const existingConfig = storage.getHuggingFaceLocalConfig();
-          if (existingConfig) {
-            storage.setHuggingFaceLocalConfig({ ...existingConfig, serverPort: address.port });
+        // Persist the chosen port so clients can reconnect after restart.
+        // Milestone 5: HF config round-trips through the daemon's
+        // `provider.*HuggingFaceLocalConfig` RPCs instead of the local
+        // DB. Fire-and-forget — the port write is best-effort; if the
+        // daemon is disconnected we log and continue.
+        void (async () => {
+          try {
+            const client = getDaemonClient();
+            const existingConfig = await client.call('provider.getHuggingFaceLocalConfig');
+            if (existingConfig) {
+              await client.call('provider.setHuggingFaceLocalConfig', {
+                config: { ...existingConfig, serverPort: address.port },
+              });
+            }
+          } catch (err) {
+            getLogCollector().logEnv('WARN', '[HF Server] Failed to persist port to config:', {
+              error: String(err),
+            });
           }
-        } catch (err) {
-          getLogCollector().logEnv('WARN', '[HF Server] Failed to persist port to config:', {
-            error: String(err),
-          });
-        }
+        })();
         resolve({ success: true, port: address.port });
       } else {
         resolve({ success: false, error: 'Failed to get server address' });

@@ -13,7 +13,6 @@ import {
   type TaskConfig,
   type FileAttachmentInfo,
 } from '@accomplish_ai/agent-core/desktop-main';
-import { getStorage } from '../../store/storage';
 import {
   isMockTaskEventsEnabled,
   createMockTask,
@@ -25,15 +24,30 @@ import { handle, assertTrustedWindow } from './utils';
 import { getDaemonClient } from '../../daemon-bootstrap';
 import { sanitizeAttachments } from './attachment-utils';
 
-export function registerTaskHandlers(): void {
-  const storage = getStorage();
+/** Milestone 5 replacement for the local `storage.hasReadyProvider()`.
+ *  Route through `provider.getSettings` and apply the same predicate
+ *  (`connection_status='connected' AND selected_model_id IS NOT NULL`)
+ *  client-side. Returns false on RPC failure so we fall through to the
+ *  "no provider configured" error path instead of starting a task that
+ *  would immediately fail inside the daemon. */
+async function hasReadyProviderViaDaemon(): Promise<boolean> {
+  try {
+    const settings = await getDaemonClient().call('provider.getSettings');
+    return Object.values(settings.connectedProviders).some(
+      (p) => p?.connectionStatus === 'connected' && !!p.selectedModelId,
+    );
+  } catch {
+    return false;
+  }
+}
 
+export function registerTaskHandlers(): void {
   // ─── Task execution (proxied to daemon) ──────────────────────────────────────
 
   handle('task:start', async (event: IpcMainInvokeEvent, config: TaskConfig) => {
     assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
 
-    if (!isMockTaskEventsEnabled() && !storage.hasReadyProvider()) {
+    if (!isMockTaskEventsEnabled() && !(await hasReadyProviderViaDaemon())) {
       throw new Error(
         'No provider is ready. Please connect a provider and select a model in Settings.',
       );
@@ -41,12 +55,13 @@ export function registerTaskHandlers(): void {
 
     const taskId = createTaskId();
 
-    // E2E mock path — bypasses daemon entirely
+    // E2E mock path — bypasses daemon entirely. The mock flow keeps its
+    // own in-memory task state; tests verify renderer events rather than
+    // DB persistence, so no storage write happens here post-M5.
     if (isMockTaskEventsEnabled()) {
       const window = BrowserWindow.fromWebContents(event.sender)!;
       const mockTask = createMockTask(taskId, config.prompt);
       const scenario = detectScenarioFromPrompt(config.prompt);
-      storage.saveTask(mockTask, workspaceManager.getActiveWorkspace());
       void executeMockTaskFlow(window, {
         taskId,
         prompt: config.prompt,
@@ -200,7 +215,7 @@ export function registerTaskHandlers(): void {
         ? sanitizeString(existingTaskId, 'taskId', 128)
         : undefined;
 
-      if (!isMockTaskEventsEnabled() && !storage.hasReadyProvider()) {
+      if (!isMockTaskEventsEnabled() && !(await hasReadyProviderViaDaemon())) {
         throw new Error(
           'No provider is ready. Please connect a provider and select a model in Settings.',
         );

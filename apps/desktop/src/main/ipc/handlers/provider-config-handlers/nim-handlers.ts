@@ -3,26 +3,25 @@ import { testNimConnection, fetchNimModels } from '@accomplish_ai/agent-core/des
 import type { NimConfig } from '@accomplish_ai/agent-core/desktop-main';
 import type { IpcHandler } from '../../types';
 import { getApiKey } from '../../../store/secureStorage';
-import { getStorage } from '../../../store/storage';
+import { getDaemonClient } from '../../../daemon-bootstrap';
 
+// Milestone 5: NIM config reads/writes route through the daemon.
 export function registerNimHandlers(handle: IpcHandler): void {
-  const storage = getStorage();
-
   handle('nim:test-connection', async (_event: IpcMainInvokeEvent, url: string, apiKey: string) => {
     return testNimConnection(url, apiKey);
   });
 
   handle('nim:fetch-models', async (_event: IpcMainInvokeEvent) => {
-    const config = storage.getNimConfig();
+    const config = await getDaemonClient().call('settings.getNimConfig');
     const apiKey = await getApiKey('nim');
     return fetchNimModels({ config, apiKey: apiKey || undefined });
   });
 
   handle('nim:get-config', async (_event: IpcMainInvokeEvent) => {
-    return storage.getNimConfig();
+    return getDaemonClient().call('settings.getNimConfig');
   });
 
   handle('nim:set-config', async (_event: IpcMainInvokeEvent, config: NimConfig | null) => {
-    storage.setNimConfig(config);
+    await getDaemonClient().call('settings.setNimConfig', { config });
   });
 }

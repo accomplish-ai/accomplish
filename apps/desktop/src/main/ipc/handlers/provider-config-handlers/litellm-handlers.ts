@@ -7,11 +7,10 @@ import {
 import type { LiteLLMConfig } from '@accomplish_ai/agent-core/desktop-main';
 import type { IpcHandler } from '../../types';
 import { getApiKey } from '../../../store/secureStorage';
-import { getStorage } from '../../../store/storage';
+import { getDaemonClient } from '../../../daemon-bootstrap';
 
+// Milestone 5: LiteLLM config reads/writes route through the daemon.
 export function registerLiteLLMHandlers(handle: IpcHandler): void {
-  const storage = getStorage();
-
   handle(
     'litellm:test-connection',
     async (_event: IpcMainInvokeEvent, url: string, apiKey?: string) => {
@@ -20,13 +19,13 @@ export function registerLiteLLMHandlers(handle: IpcHandler): void {
   );
 
   handle('litellm:fetch-models', async (_event: IpcMainInvokeEvent) => {
-    const config = storage.getLiteLLMConfig();
+    const config = await getDaemonClient().call('settings.getLiteLLMConfig');
     const apiKey = await getApiKey('litellm');
     return fetchLiteLLMModels({ config, apiKey: apiKey || undefined });
   });
 
   handle('litellm:get-config', async (_event: IpcMainInvokeEvent) => {
-    return storage.getLiteLLMConfig();
+    return getDaemonClient().call('settings.getLiteLLMConfig');
   });
 
   handle('litellm:set-config', async (_event: IpcMainInvokeEvent, config: LiteLLMConfig | null) => {
@@ -53,6 +52,6 @@ export function registerLiteLLMHandlers(handle: IpcHandler): void {
         }
       }
     }
-    storage.setLiteLLMConfig(config);
+    await getDaemonClient().call('settings.setLiteLLMConfig', { config });
   });
 }

@@ -5,12 +5,11 @@
  * top-level bootstrap (single-instance lock, env, window factory).
  */
 
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme } from 'electron';
 import path from 'path';
-import { FutureSchemaError } from '@accomplish_ai/agent-core/desktop-main';
 import type { ProviderId } from '@accomplish_ai/agent-core/desktop-main';
 import { migrateLegacyData } from './store/legacyMigration';
-import { initializeStorage, getStorage, getLegacyElectronStorePaths } from './store/storage';
+import { getLegacyElectronStorePaths } from './store/storage';
 import { getApiKey } from './store/secureStorage';
 import * as workspaceManager from './store/workspaceManager';
 import { getLogCollector } from './logging';
@@ -63,29 +62,18 @@ export async function startApp(
     }
   }
 
-  try {
-    initializeStorage();
-  } catch (err) {
-    if (err instanceof FutureSchemaError) {
-      await dialog.showMessageBox({
-        type: 'error',
-        title: 'Update Required',
-        message: `This data was created by a newer version of Accomplish (schema v${err.storedVersion}).`,
-        detail: `Your app supports up to schema v${err.appVersion}. Please update Accomplish to continue.`,
-        buttons: ['Quit'],
-      });
-      app.quit();
-      return;
-    }
-    throw err;
-  }
-
-  // Milestone 3 sub-chunk 3d: `workspaceManager.initialize()` is now async
-  // and hydrates its cache from the daemon's `workspace.*` RPCs, so it
-  // must run AFTER `bootstrapDaemon()`. Moved to the post-bootstrap block
-  // below (search for `workspaceManager.initialize` there). Nothing that
-  // runs between here and that call reads a workspace, so the reorder is
-  // safe — renderer IPC registers afterwards in `registerIPCHandlers()`.
+  // Milestone 5 of the daemon-only-SQLite migration removed
+  // `initializeStorage()` from main — the daemon is the only process that
+  // opens the DB now. FutureSchemaError used to fire here (`createStorage`
+  // → migrations → schema-version check); post-M5 the equivalent surface
+  // is a daemon-side failure at bootstrap. If daemon bootstrap below
+  // throws, we fall through to degraded-mode GUI with a logged warning,
+  // matching the existing no-daemon code path. A dedicated
+  // update-required modal stays a product decision for a separate PR.
+  //
+  // `workspaceManager.initialize()` also moved to the post-bootstrap
+  // block (M3 3d), so there's nothing left to do between the legacy
+  // file-copy migration above and `bootstrapDaemon()` below.
 
   // HuggingFace auto-start + accomplish-ai cleanup used to run here in the
   // pre-M3 flow, but both read state the legacy electron-store import
@@ -129,11 +117,12 @@ export async function startApp(
     if (!icon.isEmpty()) app.dock.setIcon(icon);
   }
 
-  try {
-    nativeTheme.themeSource = getStorage().getTheme();
-  } catch {
-    // First launch or corrupt DB — nativeTheme stays 'system'
-  }
+  // Milestone 5: theme is now read from the daemon via `settings.getAll`
+  // after bootstrap (see the post-bootstrap block below). The pre-bootstrap
+  // `nativeTheme.themeSource = getStorage().getTheme()` call would try to
+  // open the local DB, which main no longer owns. The brief window between
+  // here and the daemon read uses Electron's default ('system') — the
+  // deferred assignment below updates it within a few ms of socket connect.
 
   // Daemon bootstrap is non-blocking — the GUI must always open even if
   // the daemon fails to start. The status dot and toast will show the user
@@ -216,71 +205,86 @@ export async function startApp(
     }
   }
 
-  // HuggingFace auto-start — MOVED here after the legacy import because the
-  // imported `huggingface_local_config` blob drives what we auto-start.
-  // Pre-M3 this ran in `initializeStorage()` right after the in-process
-  // importer; on first upgrade post-3b the user would have to restart
-  // before HF kicked in.
-  try {
-    const storage = getStorage();
-    const hfConfig = storage.getHuggingFaceLocalConfig();
-    if (hfConfig?.enabled && hfConfig.selectedModelId) {
-      logMain(
-        'INFO',
-        `[Main] Auto-starting HuggingFace server for model: ${hfConfig.selectedModelId}`,
-      );
-      startHuggingFaceServer(hfConfig.selectedModelId)
-        .then((result) => {
-          if (!result.success) {
-            logMain('ERROR', '[Main] Failed to auto-start HuggingFace local server', {
-              error: result.error,
-            });
-          }
-        })
-        .catch((err: unknown) => {
-          logMain('ERROR', '[Main] Failed to auto-start HuggingFace local server (thrown)', {
-            err: String(err),
-          });
-        });
-    }
-  } catch (err) {
-    logMain('ERROR', '[Main] HuggingFace auto-start setup failed', { err: String(err) });
-  }
-
-  // Clean up stale accomplish-ai provider if free mode is no longer available.
-  // Handles the case where a user switches from Free to OSS build.
-  //
-  // MOVED here from pre-bootstrap in sub-chunk 3c. The pre-bootstrap version
-  // ran BEFORE the legacy electron-store import, which on first upgrade meant
-  // the cleanup pass saw an empty state; the subsequent import would then
-  // bring in the stale `accomplish-ai` connected-provider row, and the
-  // post-bootstrap provider-validation loop would skip it (its credential
-  // type is `accomplish-ai`, not `api_key`). OSS users would end up with a
-  // dead accomplish-ai entry in their provider list indefinitely.
-  try {
-    const { isFreeMode } = await import('./config/build-config');
-    if (!isFreeMode()) {
-      const s = getStorage();
-      const provider = s.getConnectedProvider('accomplish-ai');
-      if (provider) {
-        s.removeConnectedProvider('accomplish-ai');
-        if (s.getActiveProviderId() === 'accomplish-ai') {
-          s.setActiveProvider(null);
-        }
-        logMain('INFO', '[Main] Removed stale accomplish-ai provider (free mode not available)');
-      }
-    }
-  } catch {
-    // best-effort cleanup
-  }
-
-  // Re-apply theme if the legacy import actually ran. The pre-bootstrap
-  // `nativeTheme.themeSource` assignment further up used a default (or the
-  // pre-import DB value); after an import we may have a new theme to
-  // surface without making the user restart.
-  if (legacyImportActuallyRan) {
+  // Milestone 5: read theme + HF config from the daemon in a single
+  // `settings.getAll` RPC. Previous M4 reads went through `getStorage()`
+  // locally; the main-side DB singleton is gone as of M5 so everything
+  // is routed here instead. Skipped in E2E mock mode (no daemon).
+  if (process.env.E2E_MOCK_TASK_EVENTS !== '1') {
     try {
-      nativeTheme.themeSource = getStorage().getTheme();
+      const snap = await getDaemonClient().call('settings.getAll');
+
+      // Apply theme. `app.theme` is `ThemePreference` — same shape the
+      // pre-M5 `storage.getTheme()` returned.
+      try {
+        nativeTheme.themeSource = snap.app.theme;
+      } catch {
+        // First launch or unknown value — leave the Electron default
+      }
+
+      // HuggingFace auto-start. Pre-M5 this read `storage.getHuggingFaceLocalConfig()`;
+      // the `SettingsSnapshot.huggingFaceLocalConfig` field carries the
+      // same blob post-M5.
+      const hfConfig = snap.huggingFaceLocalConfig;
+      if (hfConfig?.enabled && hfConfig.selectedModelId) {
+        logMain(
+          'INFO',
+          `[Main] Auto-starting HuggingFace server for model: ${hfConfig.selectedModelId}`,
+        );
+        startHuggingFaceServer(hfConfig.selectedModelId)
+          .then((result) => {
+            if (!result.success) {
+              logMain('ERROR', '[Main] Failed to auto-start HuggingFace local server', {
+                error: result.error,
+              });
+            }
+          })
+          .catch((err: unknown) => {
+            logMain('ERROR', '[Main] Failed to auto-start HuggingFace local server (thrown)', {
+              err: String(err),
+            });
+          });
+      }
+
+      // Clean up stale accomplish-ai provider if free mode is no longer
+      // available (user switched from Free to OSS build). Pre-M5 this
+      // path read/wrote provider settings via `getStorage()`; now it
+      // goes through `provider.*` RPCs. The `snap.providers` blob is
+      // current as of the `settings.getAll` above, so we don't need a
+      // second read.
+      try {
+        const { isFreeMode } = await import('./config/build-config');
+        if (!isFreeMode()) {
+          const connected = snap.providers.connectedProviders['accomplish-ai'];
+          if (connected) {
+            const client = getDaemonClient();
+            await client.call('provider.removeConnected', { providerId: 'accomplish-ai' });
+            if (snap.providers.activeProviderId === 'accomplish-ai') {
+              await client.call('provider.setActive', { providerId: null });
+            }
+            logMain(
+              'INFO',
+              '[Main] Removed stale accomplish-ai provider (free mode not available)',
+            );
+          }
+        }
+      } catch {
+        // best-effort cleanup
+      }
+    } catch (err) {
+      logMain('WARN', '[Main] Post-bootstrap settings snapshot read failed', {
+        err: String(err),
+      });
+    }
+  }
+
+  // Re-apply theme if the legacy import actually ran. The daemon's
+  // `settings.changed` notification would reach the renderer too, but
+  // main's `nativeTheme.themeSource` is separate — we have to refresh
+  // it explicitly here before the first frame renders.
+  if (legacyImportActuallyRan && process.env.E2E_MOCK_TASK_EVENTS !== '1') {
+    try {
+      const snap = await getDaemonClient().call('settings.getAll');
+      nativeTheme.themeSource = snap.app.theme;
     } catch {
       // best-effort — leave whatever was applied earlier
     }
@@ -298,9 +302,9 @@ export async function startApp(
   // just brought in are validated against secure storage in the same pass.
   if (process.env.E2E_MOCK_TASK_EVENTS !== '1') {
     try {
-      const storage = getStorage();
-      const settings = storage.getProviderSettings();
-      for (const [id, provider] of Object.entries(settings.connectedProviders)) {
+      const client = getDaemonClient();
+      const providerSettings = await client.call('provider.getSettings');
+      for (const [id, provider] of Object.entries(providerSettings.connectedProviders)) {
         const providerId = id as ProviderId;
         const credType = provider?.credentials?.type;
         if (!credType || credType === 'api_key') {
@@ -310,7 +314,7 @@ export async function startApp(
               'WARN',
               `[Main] Provider ${providerId} has api_key auth but key not found in secure storage`,
             );
-            storage.removeConnectedProvider(providerId);
+            await client.call('provider.removeConnected', { providerId });
             logMain('INFO', `[Main] Removed provider ${providerId} due to missing API key`);
           }
         }

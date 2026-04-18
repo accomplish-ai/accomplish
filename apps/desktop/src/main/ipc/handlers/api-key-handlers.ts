@@ -19,10 +19,12 @@ export {
   fetchBedrockModels,
   fetchProviderModels,
 } from '@accomplish_ai/agent-core/desktop-main';
-export { getStorage } from '../../store/storage';
 export { storeApiKey } from '../../store/secureStorage';
 export { ALLOWED_API_KEY_PROVIDERS } from '@accomplish_ai/agent-core/desktop-main';
 export { API_KEY_VALIDATION_TIMEOUT_MS } from './utils';
+// Milestone 5: `getStorage` re-export removed — the desktop-side
+// singleton is gone. Callers that used `getStorage()` from here have
+// been repointed onto the daemon's `provider.*` / `settings.*` RPCs.
 
 // Re-export ProviderOptions type for consumers that need it
 export type { ProviderOptions } from './api-key-handlers/api-key-validation-handlers';

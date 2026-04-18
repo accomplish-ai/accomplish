@@ -10,7 +10,6 @@ import { stopAllBrowserPreviewStreams } from './services/browserPreview';
 // the OpenAI OAuth orchestration lives in the daemon now and its lifecycle is
 // tied to the daemon process itself. Slack MCP OAuth remains desktop-side.
 import { slackMcpOAuthFlow } from './opencode/slack-auth';
-import { closeStorage } from './store/storage';
 import * as workspaceManager from './store/workspaceManager';
 import { getLogCollector, shutdownLogCollector } from './logging';
 import { stopHuggingFaceServer } from './providers/huggingface-local';
@@ -134,11 +133,11 @@ export async function shutdownApp(logger: AppLogger): Promise<void> {
   // function as part of Milestone 3 sub-chunk 3a.
   shutdownDaemon();
 
-  try {
-    closeStorage();
-  } catch (error: unknown) {
-    logger?.logEnv('ERROR', `[Main] Error during closeStorage: ${String(error)}`);
-  }
+  // Milestone 5: `closeStorage()` is gone — the desktop-side DB handle
+  // no longer exists. The daemon holds the only real DB handle and
+  // closes it as part of its own shutdown path (triggered either by
+  // `daemon.shutdown` above, or by the daemon surviving to serve
+  // scheduled tasks after Electron exits).
 
   try {
     shutdownLogCollector();

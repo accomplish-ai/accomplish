@@ -1635,18 +1635,20 @@ describe('IPC Handlers Integration', () => {
       await invokeHandler('task:start', { prompt: 'First task' });
       await invokeHandler('task:start', { prompt: 'Second task' });
 
-      // Assert — daemon called twice
-      expect(mockDaemonClient.call).toHaveBeenCalledTimes(2);
-      expect(mockDaemonClient.call).toHaveBeenNthCalledWith(
-        1,
-        'task.start',
-        expect.objectContaining({ prompt: 'First task' }),
+      // Assert — task.start is invoked once per call. Milestone 5 of the
+      // daemon-only-SQLite migration added a pre-check via
+      // `provider.getSettings` to replace the pre-M5
+      // `storage.hasReadyProvider()` predicate, so each `task:start`
+      // now makes 2 RPCs (`provider.getSettings` + `task.start`). The
+      // `task.start` position checks below pin the important assertion
+      // (the prompt round-trips intact) regardless of how many probe
+      // RPCs surround it.
+      const startCalls = mockDaemonClient.call.mock.calls.filter(
+        ([method]) => method === 'task.start',
       );
-      expect(mockDaemonClient.call).toHaveBeenNthCalledWith(
-        2,
-        'task.start',
-        expect.objectContaining({ prompt: 'Second task' }),
-      );
+      expect(startCalls).toHaveLength(2);
+      expect(startCalls[0][1]).toEqual(expect.objectContaining({ prompt: 'First task' }));
+      expect(startCalls[1][1]).toEqual(expect.objectContaining({ prompt: 'Second task' }));
     });
 
     it('task:start should return daemon response directly', async () => {

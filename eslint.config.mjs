@@ -77,14 +77,22 @@ export default tseslint.config(
   {
     files: ['apps/desktop/src/main/**/*.ts', 'apps/desktop/src/preload/**/*.ts'],
     ignores: [
-      'apps/desktop/src/main/store/storage.ts', // removed in Milestone 5
-      // M3 3a: `store/secureStorage.ts` — now a pure RPC façade.
-      // M3 3d: `store/workspaceManager.ts` + `ipc/handlers/workspace-handlers.ts`.
-      // M4: `google-accounts/*` (account-manager + token-manager deleted,
-      //     index.ts re-exports only the OAuth loopback helpers) +
-      //     `skills/SkillsManager.ts` (now a daemon-client wrapper).
-      // Only `store/storage.ts` remains — it's the last main-side DB
-      // consumer and Milestone 5 finishes it off.
+      // Shrinking allowlist is now empty — the end-state invariant is in
+      // force: every Electron-main value import from `@accomplish_ai/agent-core`
+      // is a violation. Type-only imports are still allowed (see
+      // `allowTypeImports: true` on the rule).
+      //
+      // Migration history:
+      //   M1:   new `@accomplish_ai/agent-core/desktop-main` subpath introduced,
+      //         non-DB value imports repointed.
+      //   M3 3a: `store/secureStorage.ts` — pure RPC façade.
+      //   M3 3b: legacy electron-store import moved to daemon.
+      //   M3 3c: settings / provider / favorites / HF / log / bug-report handlers.
+      //   M3 3d: `store/workspaceManager.ts` + workspace/KN handlers.
+      //   M3 3e: connector + auth-entry handlers + `ConnectorAuthStore`.
+      //   M4:   Google accounts + skills ownership → daemon.
+      //   M5:   `store/storage.ts` reduced to path-math helpers;
+      //         `getStorage()` / `createStorage` / `closeStorage` all gone.
     ],
     rules: {
       'no-restricted-imports': [

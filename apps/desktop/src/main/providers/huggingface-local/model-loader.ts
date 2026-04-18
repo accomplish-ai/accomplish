@@ -6,7 +6,7 @@
 import { app } from 'electron';
 import path from 'path';
 import { getLogCollector } from '../../logging';
-import { getStorage } from '../../store/storage';
+import { getDaemonClient } from '../../daemon-bootstrap';
 import {
   state,
   loadModelPromise,
@@ -57,10 +57,19 @@ export async function loadModel(modelId: string): Promise<void> {
       // Stage new model and tokenizer
       const tokenizer = await AutoTokenizer.from_pretrained(modelId);
 
-      // Get config to determine quantization + device preference
-      const config = getStorage().getHuggingFaceLocalConfig();
-      const quantization = config?.quantization ?? null;
-      const devicePreference = config?.devicePreference ?? null;
+      // Get config to determine quantization + device preference.
+      // Milestone 5: config comes from the daemon via `settings.getAll` —
+      // the `huggingFaceLocalConfig` field on the snapshot carries the
+      // same blob the pre-M5 `storage.getHuggingFaceLocalConfig()` returned.
+      let quantization: string | null = null;
+      let devicePreference: string | null = null;
+      try {
+        const snap = await getDaemonClient().call('settings.getAll');
+        quantization = snap.huggingFaceLocalConfig?.quantization ?? null;
+        devicePreference = snap.huggingFaceLocalConfig?.devicePreference ?? null;
+      } catch {
+        // Daemon unreachable — defaults below.
+      }
       // Patch env.backends.onnx.device without clobbering other backend settings
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const envAny = env as any;
