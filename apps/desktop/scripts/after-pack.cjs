@@ -105,7 +105,7 @@ async function copyNodeBinary(context, platform, arch) {
 
   const nodeDirName = getNodeDirName(platform, arch);
 
-  // Source: resources/nodejs/<platform>-<arch>/node-v22.22.2-<platform>-<arch>/
+  // Source: resources/nodejs/<platform>-<arch>/node-v<NODE_VERSION>-<platform>-<arch>/
   const sourceDir = path.join(
     __dirname,
     '..',

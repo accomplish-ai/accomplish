@@ -200,7 +200,7 @@ pnpm -F @accomplish/web test:integration
 
 ## Bundled Node.js
 
-The packaged app ships Node.js v22.22.2. When spawning `npx` / `node` from the main
+The packaged app ships Node.js v24.15.0. When spawning `npx` / `node` from the main
 process, prepend `bundledPaths.binDir` to `PATH` — otherwise the process exits 127 on
 machines without system Node.js.
 

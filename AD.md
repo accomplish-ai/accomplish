@@ -407,7 +407,7 @@ graph LR
 
 | Environment           | Purpose              | Infrastructure                          | Notes                                                 |
 | --------------------- | -------------------- | --------------------------------------- | ----------------------------------------------------- |
-| Production (packaged) | End-user desktop app | Electron 41 + bundled Node.js 22.22.2   | DMG/ZIP (macOS), NSIS (Windows), AppImage/deb (Linux) |
+| Production (packaged) | End-user desktop app | Electron 41 + bundled Node.js 24.15.0   | DMG/ZIP (macOS), NSIS (Windows), AppImage/deb (Linux) |
 | Development           | Local dev            | Vite dev server (:5173) + Electron      | Hot reload on web, manual restart for main process    |
 | CI/Testing            | Automated tests      | GitHub Actions (Ubuntu, macOS, Windows) | Docker for E2E tests                                  |
 
@@ -425,7 +425,7 @@ graph TB
                 WebBuild["Web UI Build<br/>(static HTML/JS/CSS)"]
                 OpenCodeBin["OpenCode CLI<br/>(platform binary)"]
                 MCPTools["MCP Tools<br/>(bundled)"]
-                BundledNode["Node.js 22.22.2<br/>(bundled runtime)"]
+                BundledNode["Node.js 24.15.0<br/>(bundled runtime)"]
             end
         end
 
@@ -473,7 +473,7 @@ graph TB
 compilation. Electron-rebuild runs during install. ASAR packaging selectively unpacks
 this native module to ensure runtime compatibility.
 
-**Bundled Node.js**: The packaged app ships Node.js v22.22.2. When spawning OpenCode CLI,
+**Bundled Node.js**: The packaged app ships Node.js v24.15.0. When spawning OpenCode CLI,
 `bundledPaths.binDir` is prepended to `PATH` (Constitution Principle VII) to ensure the
 bundled runtime is used on machines without system Node.js.
 
@@ -544,7 +544,7 @@ scaling does not apply. Scaling concerns are:
 
 - **Desktop-only**: Must run as packaged Electron app on macOS, Windows, Linux
 - **Local-first**: No cloud backend; all data stored on user's machine
-- **Bundled Node.js**: Packaged app ships Node.js 22.22.2; cannot rely on system Node.js
+- **Bundled Node.js**: Packaged app ships Node.js 24.15.0; cannot rely on system Node.js
 - **Native modules**: `better-sqlite3` requires platform-specific compilation
 - **ESM in agent-core**: `"type": "module"` — all imports require `.js` extensions
 - **Browser bundle safety**: `apps/web` must not import Node.js-only modules from agent-core
@@ -635,7 +635,7 @@ Detailed Architecture Decision Records are maintained in
 ### C. Tech Stack Summary
 
 **Language**: TypeScript 5.7 (strict mode)
-**Runtime**: Node.js 22+ (bundled 22.22.2)
+**Runtime**: Node.js 24+ (bundled 24.15.0)
 **Desktop**: Electron 41 + electron-builder 25
 **Frontend**: React 19, React Router 7, Zustand 5
 **UI**: Radix UI + shadcn/ui, Tailwind CSS, Framer Motion, DM Sans

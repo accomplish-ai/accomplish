@@ -95,7 +95,7 @@ Never skip a step — all 4 must be done together.
 
 ### Bundled Node.js
 
-The packaged app ships Node.js v22.22.2. When spawning `npx`/`node` in the main process,
+The packaged app ships Node.js v24.15.0. When spawning `npx`/`node` in the main process,
 prepend `bundledPaths.binDir` to `PATH` — otherwise processes fail with exit code 127 on
 machines without system Node.js. See [docs/architecture.md](docs/architecture.md#spawning-npxnode-in-main-process).
 

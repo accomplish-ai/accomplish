@@ -30,7 +30,7 @@ on:
         default: false
 
 env:
-  NODE_VERSION: '22.22.2'
+  NODE_VERSION: '24.15.0'
 
 permissions:
   contents: write

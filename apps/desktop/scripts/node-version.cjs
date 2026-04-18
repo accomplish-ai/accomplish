@@ -18,38 +18,38 @@
 
 'use strict';
 
-const NODE_VERSION = '22.22.2';
+const NODE_VERSION = '24.15.0';
 
 const PLATFORMS = [
   {
     name: 'darwin-x64',
     file: `node-v${NODE_VERSION}-darwin-x64.tar.gz`,
     extract: 'tar',
-    sha256: '12a6abb9c2902cf48a21120da13f87fde1ed1b71a13330712949e8db818708ba',
+    sha256: 'ffd5ee293467927f3ee731a553eb88fd1f48cf74eebc2d74a6babe4af228673b',
   },
   {
     name: 'darwin-arm64',
     file: `node-v${NODE_VERSION}-darwin-arm64.tar.gz`,
     extract: 'tar',
-    sha256: 'db4b275b83736df67533529a18cc55de2549a8329ace6c7bcc68f8d22d3c9000',
+    sha256: '372331b969779ab5d15b949884fc6eaf88d5afe87bde8ba881d6400b9100ffc4',
   },
   {
     name: 'linux-x64',
     file: `node-v${NODE_VERSION}-linux-x64.tar.gz`,
     extract: 'tar',
-    sha256: '978978a635eef872fa68beae09f0aad0bbbae6757e444da80b570964a97e62a3',
+    sha256: '44836872d9aec49f1e6b52a9a922872db9a2b02d235a616a5681b6a85fec8d89',
   },
   {
     name: 'linux-arm64',
     file: `node-v${NODE_VERSION}-linux-arm64.tar.gz`,
     extract: 'tar',
-    sha256: 'b2f3a96f31486bfc365192ad65ced14833ad2a3c2e1bcefec4846902f264fa28',
+    sha256: '73afc234d558c24919875f51c2d1ea002a2ada4ea6f83601a383869fefa64eed',
   },
   {
     name: 'win32-x64',
     file: `node-v${NODE_VERSION}-win-x64.zip`,
     extract: 'zip',
-    sha256: '7c93e9d92bf68c07182b471aa187e35ee6cd08ef0f24ab060dfff605fcc1c57c',
+    sha256: 'cc5149eabd53779ce1e7bdc5401643622d0c7e6800ade18928a767e940bb0e62',
   },
 ];
 

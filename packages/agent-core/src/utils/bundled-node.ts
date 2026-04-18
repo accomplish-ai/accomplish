@@ -78,7 +78,7 @@ export function getBundledNodePaths(config: PlatformConfig): BundledNodePathsExt
     if (fs.existsSync(path.join(nodejsBase, nodeBinary))) {
       nodeDir = nodejsBase;
     } else {
-      // Search for versioned subdirectory (e.g. node-v22.22.2-win-x64)
+      // Search for versioned subdirectory (e.g. node-v24.15.0-win-x64)
       try {
         const children = fs.readdirSync(nodejsBase, { withFileTypes: true });
         for (const child of children) {
