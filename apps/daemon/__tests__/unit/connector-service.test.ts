@@ -20,6 +20,9 @@ function makeStorageStub(): StorageAPI {
     storeConnectorTokens: vi.fn(),
     getConnectorTokens: vi.fn(() => null),
     deleteConnectorTokens: vi.fn(),
+    // Built-in connector auth-entry surface (connector-auth:<key> prefix)
+    set: vi.fn(),
+    get: vi.fn(() => null),
   } as unknown as StorageAPI;
 }
 
@@ -73,5 +76,64 @@ describe('ConnectorService', () => {
 
     service.deleteTokens('slack');
     expect(storage.deleteConnectorTokens).toHaveBeenCalledWith('slack');
+  });
+
+  // ── Built-in connector auth-entry surface (review follow-up) ──────────
+  describe('authEntry (connector-auth:<key> prefix)', () => {
+    it('writeAuthEntry JSON-encodes the blob and writes under the prefixed key', () => {
+      const entry = {
+        accessToken: 'tok',
+        clientRegistration: { clientId: 'c' },
+        serverUrl: 'https://mcp.example.com',
+      } as never;
+
+      service.writeAuthEntry('jira', entry);
+
+      expect(storage.set).toHaveBeenCalledWith('connector-auth:jira', JSON.stringify(entry));
+    });
+
+    it('readAuthEntry parses the stored JSON blob', () => {
+      const entry = {
+        accessToken: 'tok',
+        refreshToken: 'ref',
+        expiresAt: 1700000000000,
+        lastOAuthValidatedAt: 1699999999999,
+        clientRegistration: { clientId: 'c' },
+        serverUrl: 'https://mcp.example.com',
+        codeVerifier: 'v',
+        oauthState: 's',
+      };
+      vi.mocked(storage.get).mockReturnValue(JSON.stringify(entry));
+
+      const result = service.readAuthEntry('jira');
+
+      expect(storage.get).toHaveBeenCalledWith('connector-auth:jira');
+      expect(result).toEqual(entry);
+    });
+
+    it('readAuthEntry returns null when the key is unset', () => {
+      vi.mocked(storage.get).mockReturnValue(null);
+      expect(service.readAuthEntry('jira')).toBeNull();
+    });
+
+    it('readAuthEntry returns null for the soft-delete convention (empty string)', () => {
+      // Matches desktop's legacy `deleteEntry`, which writes '' rather than
+      // dropping the key (SecureStorage has no per-key delete). If we broke
+      // this, every existing user's deleted-then-reconnected session would
+      // be resurrected on upgrade.
+      vi.mocked(storage.get).mockReturnValue('');
+      expect(service.readAuthEntry('jira')).toBeNull();
+    });
+
+    it('readAuthEntry returns null on JSON parse error (corrupt write)', () => {
+      vi.mocked(storage.get).mockReturnValue('{ this is not json');
+      expect(service.readAuthEntry('jira')).toBeNull();
+    });
+
+    it('deleteAuthEntry writes the soft-delete sentinel (empty string)', () => {
+      service.deleteAuthEntry('jira');
+      // Byte-compat with existing desktop-written profiles.
+      expect(storage.set).toHaveBeenCalledWith('connector-auth:jira', '');
+    });
   });
 });

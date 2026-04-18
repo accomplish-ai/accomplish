@@ -495,6 +495,7 @@ export type {
   OAuthMetadata,
   OAuthClientRegistration,
   McpConnector,
+  StoredAuthEntry,
 } from './common/types/connector.js';
 
 // MCP OAuth

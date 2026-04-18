@@ -31,7 +31,7 @@ import type {
   LMStudioConfig,
   NimConfig,
 } from './provider.js';
-import type { McpConnector, ConnectorStatus, OAuthTokens } from './connector.js';
+import type { McpConnector, ConnectorStatus, OAuthTokens, StoredAuthEntry } from './connector.js';
 import type { ProviderId, ConnectedProvider, ProviderSettings } from './providerSettings.js';
 import type {
   Workspace,
@@ -596,6 +596,22 @@ export interface DaemonMethodMap {
   };
   'connectors.getTokens': { params: { connectorId: string }; result: OAuthTokens | null };
   'connectors.deleteTokens': { params: { connectorId: string }; result: void };
+
+  // Built-in connector auth entries (`connector-auth:<key>` prefix). Carry
+  // the full StoredAuthEntry blob — tokens, DCR clientRegistration, serverUrl,
+  // pending-auth PKCE state, lastOAuthValidatedAt — so M3 can repoint
+  // `connector-auth-entry.ts` without losing Lightdash/Datadog/Slack/etc.
+  // session state on upgrade. `connectorKey` is the raw provider key
+  // (e.g. `slack`); the daemon applies the `connector-auth:` prefix internally.
+  'connectors.authEntry.read': {
+    params: { connectorKey: string };
+    result: StoredAuthEntry | null;
+  };
+  'connectors.authEntry.write': {
+    params: { connectorKey: string; entry: StoredAuthEntry };
+    result: void;
+  };
+  'connectors.authEntry.delete': { params: { connectorKey: string }; result: void };
 
   // Logs (bug-report support)
   'logs.getTasksForBugReport': { params: undefined; result: Task[] };

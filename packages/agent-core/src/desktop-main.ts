@@ -223,3 +223,9 @@ export type {
   LegacyImportResult,
   LegacyImportPaths,
 } from './common/types/daemon.js';
+
+// M2 scope-completeness follow-up: the built-in connector auth-store blob
+// that M3 repoints `connector-auth-entry.ts` onto. Lives in
+// `common/types/connector.ts` because it's a shared data contract, not a
+// daemon-specific payload.
+export type { StoredAuthEntry } from './common/types/connector.js';

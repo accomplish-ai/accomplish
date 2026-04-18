@@ -103,6 +103,33 @@ export interface ConnectorAuthStoreConfig {
   readonly callback: ConnectorCallbackBinding;
 }
 
+/**
+ * On-disk shape of a built-in connector's OAuth state, stored under the
+ * `connector-auth:<key>` prefix in the secure-storage file. Holds the full
+ * OAuth journey — PKCE verifier + state for in-flight authorizations, DCR
+ * client registration for MCP-DCR flows, serverUrl for connectors that
+ * support custom endpoints, plus the eventual tokens — so a single read
+ * can resume or validate a session.
+ *
+ * Distinct from `OAuthTokens` (stored via `ConnectorStorageAPI.storeConnectorTokens`
+ * under the `connector-tokens:<id>` prefix, used for the custom MCP connector
+ * table). Milestone 2 of the daemon-only-SQLite migration moved this shape
+ * into agent-core so the daemon's `connectors.authEntry.*` RPCs and the
+ * desktop consumers share one definition.
+ */
+export interface StoredAuthEntry {
+  accessToken?: string;
+  refreshToken?: string;
+  /** Unix ms timestamp — stored in ms (unlike mcp-auth.json which stores seconds). */
+  expiresAt?: number;
+  /** Unix ms timestamp of last successful token validation. */
+  lastOAuthValidatedAt?: number;
+  clientRegistration?: OAuthClientRegistration;
+  serverUrl?: string;
+  codeVerifier?: string;
+  oauthState?: string;
+}
+
 interface ConnectorDesktopOAuthBase {
   readonly kind: ConnectorDesktopOAuthKind;
 }

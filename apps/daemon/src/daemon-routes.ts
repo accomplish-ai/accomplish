@@ -992,6 +992,38 @@ export function registerRpcMethods(services: RouteServices): void {
     }),
   );
 
+  // Built-in connector auth-store surface (`connector-auth:<key>` prefix).
+  // Full `StoredAuthEntry` reads/writes for Slack, Jira, Lightdash, Datadog,
+  // monday, Notion, GitHub, Google flows so M3 can repoint
+  // `connector-auth-entry.ts` without regressing DCR / PKCE / serverUrl state.
+  const connectorKeyParam = z.object({ connectorKey: z.string().min(1) });
+  rpc.registerMethod(
+    'connectors.authEntry.read',
+    safeHandler((params) => {
+      const v = validate(connectorKeyParam, params);
+      return Promise.resolve(connectorService.readAuthEntry(v.connectorKey));
+    }),
+  );
+  rpc.registerMethod(
+    'connectors.authEntry.write',
+    safeHandler((params) => {
+      const v = validate(z.object({ connectorKey: z.string().min(1), entry: z.unknown() }), params);
+      connectorService.writeAuthEntry(
+        v.connectorKey,
+        v.entry as Parameters<typeof connectorService.writeAuthEntry>[1],
+      );
+      return Promise.resolve();
+    }),
+  );
+  rpc.registerMethod(
+    'connectors.authEntry.delete',
+    safeHandler((params) => {
+      const v = validate(connectorKeyParam, params);
+      connectorService.deleteAuthEntry(v.connectorKey);
+      return Promise.resolve();
+    }),
+  );
+
   // ── Logs (bug-report support) ───────────────────────────────────────────
   // The desktop bug-report handler reads recent task history to attach to
   // the generated report. Exposing it here avoids having the renderer reach
