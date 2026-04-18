@@ -43,6 +43,38 @@ function log(level: 'INFO' | 'WARN' | 'ERROR', msg: string): void {
 let windowGetter: (() => BrowserWindow | null) | null = null;
 
 /**
+ * Re-hydrate the `workspaceManager` cache and re-subscribe to
+ * `workspace.changed` notifications on the current `DaemonClient`.
+ *
+ * Idempotent no-op when the manager hasn't been initialized yet (the
+ * initial `app-startup.ts` bootstrap handles that path explicitly). Used
+ * by every code path that replaces the underlying client:
+ *   - `bootstrapDaemon()` on explicit `daemon:restart` / `daemon:start`
+ *     (review round 2 finding P2.A).
+ *   - `onReconnect` callback on automatic disconnect recovery (M5
+ *     review finding P2.2).
+ *
+ * Without this, the workspace cache stays attached to the old client's
+ * (now cleared) handler map and goes silently stale after any client
+ * swap — `workspace:list`, active workspace, and task filters drift.
+ */
+function rebindWorkspaceManager(): void {
+  void import('./store/workspaceManager')
+    .then((workspaceManager) => {
+      if (workspaceManager.isInitialized()) {
+        return workspaceManager.initialize();
+      }
+      return undefined;
+    })
+    .catch((err: unknown) => {
+      log(
+        'WARN',
+        `[DaemonBootstrap] workspaceManager rebind after client swap failed: ${String(err)}`,
+      );
+    });
+}
+
+/**
  * Boot the daemon — connect to existing or spawn a new one.
  * Returns the connected DaemonClient.
  */
@@ -67,6 +99,14 @@ export async function bootstrapDaemon(): Promise<DaemonClient> {
   // Set up disconnect detection + reconnection
   await setupTransportReconnection(client);
 
+  // Rebind the workspace-manager subscription on the new client. No-op
+  // for the initial startup (manager not initialized yet — `app-startup`
+  // calls `workspaceManager.initialize()` itself right after this);
+  // matters for explicit `daemon:restart` / `daemon:start` from the
+  // settings UI, where `bootstrapDaemon` creates a new client without
+  // going through the `onReconnect` callback.
+  rebindWorkspaceManager();
+
   // Register handler for when a new client replaces the old one after reconnect
   onReconnect(
     (state) => {
@@ -81,25 +121,9 @@ export async function bootstrapDaemon(): Promise<DaemonClient> {
       // Set up disconnect detection on the new client
       void setupTransportReconnection(newClient);
 
-      // M5 review finding P2.2: the old client's notificationHandlers
-      // map was cleared by its `close()`, so `workspaceManager`'s
-      // `workspace.changed` subscription did not survive. Re-hydrate the
-      // cache + re-subscribe on the new client. Same pattern would apply
-      // to any future module that takes its own long-lived subscription
-      // (none today beyond workspaceManager).
-      void import('./store/workspaceManager')
-        .then((workspaceManager) => {
-          if (workspaceManager.isInitialized()) {
-            return workspaceManager.initialize();
-          }
-          return undefined;
-        })
-        .catch((err: unknown) => {
-          log(
-            'WARN',
-            `[DaemonBootstrap] workspaceManager re-init on reconnect failed: ${String(err)}`,
-          );
-        });
+      // Same invariant as the initial bootstrap path: re-subscribe the
+      // workspace cache to the new client's notification stream.
+      rebindWorkspaceManager();
     },
   );
 

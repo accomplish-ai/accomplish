@@ -8,7 +8,8 @@ const POLL_INTERVAL_MS = 2000;
 const POLL_MAX_ATTEMPTS = 15; // 30 s total
 
 export function GoogleAccountsSection() {
-  const { accounts, loading, fetchAccounts, removeAccount } = useGoogleAccountStore();
+  const { accounts, loading, fetchAccounts, removeAccount, authError, clearAuthError } =
+    useGoogleAccountStore();
   const [labelDialogOpen, setLabelDialogOpen] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [reconnectId, setReconnectId] = useState<string | null>(null);
@@ -28,6 +29,25 @@ export function GoogleAccountsSection() {
       }
     };
   }, [fetchAccounts]);
+
+  // M5 review finding P2.3 (round-2 P2.B): when the daemon's
+  // background OAuth consumer emits `gws:account:auth-error`, abort the
+  // 30s `connecting` poll immediately. Surfacing the message is handled
+  // by the error banner render below; clearing it is the user's
+  // responsibility via the banner's dismiss button.
+  useEffect(() => {
+    if (!authError) {
+      return;
+    }
+    pollCancelRef.current = true;
+    if (pollTimerRef.current !== null) {
+      clearTimeout(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+    setConnecting(false);
+    setPendingAuthState(null);
+    setReconnectId(null);
+  }, [authError]);
 
   const openAuth = async (
     label: string,
@@ -145,6 +165,18 @@ export function GoogleAccountsSection() {
       <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Google Accounts
       </h4>
+
+      {authError && (
+        <div className="mb-3 flex items-start justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+          <div className="flex-1">
+            <p className="font-medium text-destructive">Google authentication failed</p>
+            <p className="mt-1 text-muted-foreground">{authError}</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={clearAuthError}>
+            Dismiss
+          </Button>
+        </div>
+      )}
 
       {(() => {
         if (loading && accounts.length === 0) {

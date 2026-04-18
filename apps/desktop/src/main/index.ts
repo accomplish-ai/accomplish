@@ -60,10 +60,23 @@ if (process.argv.includes('--e2e-mock-tasks') || process.env.E2E_MOCK_TASK_EVENT
  *      daemon's flush cycle), and the next bootstrap observes ghost
  *      state that belongs to a process we've effectively stranded.
  *
- * The fix: read the pid file, SIGTERM the daemon, and poll for exit up
- * to `CLEAN_START_STOP_TIMEOUT_MS`. Best-effort — if the daemon is not
- * running, is from another profile, or ignores the signal, we log and
- * proceed. The subsequent `rmSync` is the hard reset regardless.
+ * Signal escalation (review round 2, finding P1):
+ *   1. SIGTERM gives the daemon a chance to close SQLite cleanly. But
+ *      the daemon's SIGTERM handler drains active tasks for up to
+ *      `DRAIN_TIMEOUT_MS` (30s) + a 10s force-shutdown buffer. Waiting
+ *      that full window would make CLEAN_START feel broken — and the
+ *      user has already explicitly opted to wipe everything, so
+ *      in-flight tasks are throwaway regardless.
+ *   2. After `CLEAN_START_SIGTERM_GRACE_MS`, if the daemon is still
+ *      alive, SIGKILL it. SIGKILL is guaranteed on POSIX; on Windows
+ *      `process.kill(pid, 'SIGKILL')` collapses to TerminateProcess.
+ *      The daemon loses its release-pid-lock path, but that's fine —
+ *      `rmSync` below nukes the pid file anyway.
+ *   3. If even SIGKILL doesn't take (kernel zombie or permissions),
+ *      log and proceed — we've done what we can.
+ *
+ * Best-effort throughout: if the daemon is not running, is from another
+ * profile, or the pid file is corrupt, we log and continue.
  */
 async function stopDetachedDaemonForCleanStart(userDataPath: string): Promise<void> {
   const pidPath = path.join(userDataPath, 'daemon.pid');
@@ -96,34 +109,64 @@ async function stopDetachedDaemonForCleanStart(userDataPath: string): Promise<vo
     return;
   }
 
-  logMain('INFO', `[Clean Mode] Signalling detached daemon (pid ${pid}) to exit before rmSync`);
+  const CLEAN_START_SIGTERM_GRACE_MS = 5000;
+  const CLEAN_START_SIGKILL_GRACE_MS = 3000;
+  const POLL_INTERVAL_MS = 50;
+
+  // Helper: poll `process.kill(pid, 0)` until it throws (pid gone) or
+  // we hit `timeoutMs`. Returns true if the pid exited in time.
+  async function waitForPidExit(pidToWatch: number, timeoutMs: number): Promise<boolean> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      try {
+        process.kill(pidToWatch, 0);
+      } catch {
+        return true;
+      }
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    }
+    return false;
+  }
+
+  logMain(
+    'INFO',
+    `[Clean Mode] SIGTERM to detached daemon (pid ${pid}); waiting up to ${CLEAN_START_SIGTERM_GRACE_MS}ms`,
+  );
   try {
-    // `SIGTERM` lets the daemon close SQLite + release pid/socket. On
-    // Windows `process.kill` with `SIGTERM` collapses to TerminateProcess,
-    // which is ungraceful — acceptable here since CLEAN_START is
-    // explicitly destructive.
     process.kill(pid, 'SIGTERM');
   } catch (err) {
     logMain('WARN', `[Clean Mode] SIGTERM to daemon pid ${pid} failed`, { err: String(err) });
     return;
   }
-
-  const CLEAN_START_STOP_TIMEOUT_MS = 3000;
-  const POLL_INTERVAL_MS = 50;
-  const deadline = Date.now() + CLEAN_START_STOP_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    try {
-      process.kill(pid, 0);
-    } catch {
-      logMain('INFO', `[Clean Mode] Daemon (pid ${pid}) exited; safe to rmSync`);
-      return;
-    }
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+  if (await waitForPidExit(pid, CLEAN_START_SIGTERM_GRACE_MS)) {
+    logMain('INFO', `[Clean Mode] Daemon (pid ${pid}) exited cleanly; safe to rmSync`);
+    return;
   }
 
+  // Grace period elapsed — the daemon is likely inside its drain loop,
+  // which can run for up to DRAIN_TIMEOUT_MS (30s) + buffer. Escalate
+  // to SIGKILL since the user asked to nuke the profile.
   logMain(
     'WARN',
-    `[Clean Mode] Daemon (pid ${pid}) still alive after ${CLEAN_START_STOP_TIMEOUT_MS}ms; proceeding with rmSync anyway`,
+    `[Clean Mode] Daemon (pid ${pid}) did not exit within SIGTERM grace; escalating to SIGKILL`,
+  );
+  try {
+    process.kill(pid, 'SIGKILL');
+  } catch (err) {
+    logMain('WARN', `[Clean Mode] SIGKILL to daemon pid ${pid} failed`, { err: String(err) });
+    return;
+  }
+  if (await waitForPidExit(pid, CLEAN_START_SIGKILL_GRACE_MS)) {
+    logMain('INFO', `[Clean Mode] Daemon (pid ${pid}) killed; safe to rmSync`);
+    return;
+  }
+
+  // Extremely unlikely — SIGKILL bypasses the handler. A failure here
+  // usually means the pid has been reparented or the user lacks
+  // permission (different uid). Proceed with rmSync as a last resort.
+  logMain(
+    'ERROR',
+    `[Clean Mode] Daemon (pid ${pid}) still alive after SIGKILL; proceeding with rmSync anyway`,
   );
 }
 
