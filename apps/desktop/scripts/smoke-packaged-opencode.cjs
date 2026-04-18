@@ -70,10 +70,12 @@ function die(msg, code = 1) {
  *   Windows unpacked: <root>/resources/app.asar.unpacked/node_modules/
  *
  * The platform-specific subdir is chosen by electron-builder from the
- * `optionalDependencies` based on the runner OS/arch; we glob for any
- * `opencode-<platform>-<arch>[-variant]` dir matching the current
- * `process.platform`, preferring the shortest name (so plain
- * `opencode-linux-x64` wins over `-baseline` / `-musl` variants).
+ * `optionalDependencies` list, keyed on BOTH OS and arch. We match by full
+ * `opencode-<platform>-<arch>[-variant]` so a hypothetical artifact that
+ * somehow contains both arm64 and x64 packages can't be smoked against the
+ * wrong binary. Among multiple matching variants (baseline, musl, etc.)
+ * we prefer the shortest name (so plain `opencode-linux-x64` wins over
+ * `opencode-linux-x64-baseline`).
  */
 function resolveBinary(artifactDir) {
   const candidates = [
@@ -88,11 +90,11 @@ function resolveBinary(artifactDir) {
     );
   }
 
-  const platformPrefix =
-    process.platform === 'win32' ? 'opencode-windows-' : `opencode-${process.platform}-`;
+  const platformName = process.platform === 'win32' ? 'windows' : process.platform;
+  const targetPrefix = `opencode-${platformName}-${process.arch}`;
   const entries = fs
     .readdirSync(modulesDir)
-    .filter((name) => name.startsWith(platformPrefix))
+    .filter((name) => name === targetPrefix || name.startsWith(`${targetPrefix}-`))
     .sort((a, b) => a.length - b.length);
 
   if (entries.length === 0) {
@@ -101,7 +103,7 @@ function resolveBinary(artifactDir) {
       .filter((n) => n.startsWith('opencode-'))
       .join(', ');
     die(
-      `No platform-specific OpenCode dir matching "${platformPrefix}" under ${modulesDir}. ` +
+      `No OpenCode dir matching "${targetPrefix}" under ${modulesDir}. ` +
         `Opencode dirs present: ${all || '(none)'}`,
     );
   }
