@@ -52,7 +52,7 @@ export async function performDesktopGithubFlow(
     const token = stdout.trim();
     if (token) {
       // Persist token to SecureStorage so auth status survives restarts.
-      store.setTokens({ accessToken: token, tokenType: 'bearer' }, Date.now());
+      await store.setTokens({ accessToken: token, tokenType: 'bearer' }, Date.now());
       setDesktopConnectorConnected(providerId, true);
       return { ok: true, accessToken: token };
     }
@@ -73,7 +73,7 @@ export async function performDesktopGithubFlow(
     });
     const token = stdout.trim();
     if (token) {
-      store.setTokens({ accessToken: token, tokenType: 'bearer' }, Date.now());
+      await store.setTokens({ accessToken: token, tokenType: 'bearer' }, Date.now());
       setDesktopConnectorConnected(providerId, true);
       return { ok: true, accessToken: token };
     }

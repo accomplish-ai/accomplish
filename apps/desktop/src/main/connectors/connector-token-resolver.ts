@@ -75,13 +75,13 @@ export async function resolveMcpConnectorAccessToken(
     return undefined;
   }
 
-  const accessToken = store.getAccessToken();
+  const accessToken = await store.getAccessToken();
   if (!accessToken) {
     return undefined;
   }
 
   // Try silent token refresh if expired
-  const expiry = store.getTokenExpiry();
+  const expiry = await store.getTokenExpiry();
   if (expiry && Date.now() >= expiry - 5 * 60 * 1000) {
     const refreshed = await tryRefreshToken(store);
     if (refreshed) {
@@ -98,9 +98,11 @@ export async function resolveMcpConnectorAccessToken(
 // ---------------------------------------------------------------------------
 
 async function tryRefreshToken(store: ConnectorAuthStore): Promise<string | undefined> {
-  const serverUrl = store.getServerUrl();
-  const clientReg = store.getClientRegistration();
-  const refreshToken = store.getRefreshToken();
+  const [serverUrl, clientReg, refreshToken] = await Promise.all([
+    store.getServerUrl(),
+    store.getClientRegistration(),
+    store.getRefreshToken(),
+  ]);
 
   if (!serverUrl || !clientReg?.clientId || !refreshToken) {
     return undefined;
@@ -114,7 +116,7 @@ async function tryRefreshToken(store: ConnectorAuthStore): Promise<string | unde
       clientId: clientReg.clientId,
       clientSecret: clientReg.clientSecret,
     });
-    store.setTokens(refreshed, Date.now());
+    await store.setTokens(refreshed, Date.now());
     return refreshed.accessToken;
   } catch {
     return undefined;

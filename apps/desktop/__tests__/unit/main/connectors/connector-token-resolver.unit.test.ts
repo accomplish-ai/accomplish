@@ -150,10 +150,17 @@ const emptyStdout = { stdout: '', stderr: '' };
 describe('connectBuiltInConnector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockStore.getServerUrl.mockReturnValue('https://mcp.example.com/mcp');
-    mockStore.getClientRegistration.mockReturnValue(null);
-    mockStore.getAccessToken.mockReturnValue(null);
-    mockStore.getRefreshToken.mockReturnValue(null);
+    // Milestone 3 sub-chunk 3e: ConnectorAuthStore methods are now async
+    // (daemon RPC). Every getter/setter returns a Promise; update mock
+    // defaults accordingly so `await store.X()` resolves correctly.
+    mockStore.getServerUrl.mockResolvedValue('https://mcp.example.com/mcp');
+    mockStore.getClientRegistration.mockResolvedValue(null);
+    mockStore.getAccessToken.mockResolvedValue(null);
+    mockStore.getRefreshToken.mockResolvedValue(null);
+    mockStore.setTokens.mockResolvedValue(undefined);
+    mockStore.setClientRegistration.mockResolvedValue(undefined);
+    mockStore.setPendingAuth.mockResolvedValue(undefined);
+    mockStore.clearTokens.mockResolvedValue(undefined);
   });
 
   // -------------------------------------------------------------------------
@@ -273,7 +280,7 @@ describe('connectBuiltInConnector', () => {
     });
 
     it('returns no-server-url when serverUrl is absent', async () => {
-      mockStore.getServerUrl.mockReturnValue(undefined);
+      mockStore.getServerUrl.mockResolvedValue(undefined);
       const result = await connectBuiltInConnector('jira' as never);
       expect(result).toEqual({ ok: false, error: 'no-server-url', message: expect.any(String) });
     });
@@ -324,7 +331,7 @@ describe('connectBuiltInConnector', () => {
 
     it('reuses existing clientRegistration instead of re-registering', async () => {
       const existingReg = { clientId: 'existing-id', clientSecret: 'existing-secret' };
-      mockStore.getClientRegistration.mockReturnValue(existingReg);
+      mockStore.getClientRegistration.mockResolvedValue(existingReg);
 
       const metadata = {
         authorizationEndpoint: 'https://jira.example.com/oauth/authorize',
@@ -352,7 +359,7 @@ describe('connectBuiltInConnector', () => {
     });
 
     it('returns no-server-url when serverUrl is absent', async () => {
-      mockStore.getServerUrl.mockReturnValue(undefined);
+      mockStore.getServerUrl.mockResolvedValue(undefined);
       const result = await connectBuiltInConnector('slack' as never);
       expect(result).toEqual({ ok: false, error: 'no-server-url' });
     });

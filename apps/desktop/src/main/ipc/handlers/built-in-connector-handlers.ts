@@ -56,7 +56,9 @@ async function initGitHubState(): Promise<void> {
       const token = stdout.trim();
       if (token) {
         const ghStore = getConnectorAuthStore(OAuthProviderId.GitHub);
-        ghStore?.setTokens({ accessToken: token, tokenType: 'bearer' }, Date.now());
+        if (ghStore) {
+          await ghStore.setTokens({ accessToken: token, tokenType: 'bearer' }, Date.now());
+        }
         setDesktopConnectorConnected(OAuthProviderId.GitHub, true);
         return;
       }
@@ -72,7 +74,7 @@ export function registerBuiltInConnectorHandlers(): void {
   // Lightdash instance URL
   handle('lightdash:get-server-url', async (_event: IpcMainInvokeEvent) => {
     const store = getConnectorAuthStore(OAuthProviderId.Lightdash);
-    return store?.getServerUrl() ?? null;
+    return (await store?.getServerUrl()) ?? null;
   });
 
   handle('lightdash:set-server-url', async (_event: IpcMainInvokeEvent, url: string) => {
@@ -80,13 +82,13 @@ export function registerBuiltInConnectorHandlers(): void {
     if (!store) {
       throw new Error('Lightdash connector not configured');
     }
-    store.setServerUrl(validateServerUrl(url, 'Lightdash'));
+    await store.setServerUrl(validateServerUrl(url, 'Lightdash'));
   });
 
   // Datadog site URL
   handle('datadog:get-server-url', async (_event: IpcMainInvokeEvent) => {
     const store = getConnectorAuthStore(OAuthProviderId.Datadog);
-    return store?.getServerUrl() ?? null;
+    return (await store?.getServerUrl()) ?? null;
   });
 
   handle('datadog:set-server-url', async (_event: IpcMainInvokeEvent, url: string) => {
@@ -94,30 +96,34 @@ export function registerBuiltInConnectorHandlers(): void {
     if (!store) {
       throw new Error('Datadog connector not configured');
     }
-    store.setServerUrl(validateServerUrl(url, 'Datadog'));
+    await store.setServerUrl(validateServerUrl(url, 'Datadog'));
   });
 
-  // Auth status for all built-in connectors
+  // Auth status for all built-in connectors.
+  // `getOAuthStatus()` is now async (RPC over the daemon); fan out with
+  // `Promise.all` so a slow connector doesn't serialize the others.
   handle('connectors:get-built-in-auth-status', async (_event: IpcMainInvokeEvent) => {
     const defs = getConnectorDefinitions();
-    const statuses: ConnectorAuthStatus[] = defs.map((def) => {
-      const store = getConnectorAuthStore(def.id);
-      if (!store) {
-        // GitHub and Google use custom flows — check in-memory state
+    const statuses: ConnectorAuthStatus[] = await Promise.all(
+      defs.map(async (def) => {
+        const store = getConnectorAuthStore(def.id);
+        if (!store) {
+          // GitHub and Google use custom flows — check in-memory state
+          return {
+            providerId: def.id,
+            connected: isDesktopConnectorConnected(def.id),
+            pendingAuthorization: false,
+          };
+        }
+        const status = await store.getOAuthStatus();
         return {
           providerId: def.id,
-          connected: isDesktopConnectorConnected(def.id),
-          pendingAuthorization: false,
+          connected: status.connected,
+          pendingAuthorization: status.pendingAuthorization,
+          lastValidatedAt: status.lastValidatedAt,
         };
-      }
-      const status = store.getOAuthStatus();
-      return {
-        providerId: def.id,
-        connected: status.connected,
-        pendingAuthorization: status.pendingAuthorization,
-        lastValidatedAt: status.lastValidatedAt,
-      };
-    });
+      }),
+    );
     return statuses;
   });
 
@@ -147,7 +153,7 @@ export function registerBuiltInConnectorHandlers(): void {
       }
       const store = getConnectorAuthStore(providerId);
       if (store) {
-        store.clearTokens();
+        await store.clearTokens();
       } else {
         // GitHub / Google — clear in-memory state
         setDesktopConnectorConnected(providerId, false);

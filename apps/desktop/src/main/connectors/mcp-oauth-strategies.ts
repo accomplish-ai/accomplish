@@ -34,7 +34,7 @@ export async function performMcpDcrFlow(
     return { ok: false, error: 'not-configured' };
   }
 
-  const serverUrl = store.getServerUrl();
+  const serverUrl = await store.getServerUrl();
   if (!serverUrl) {
     return { ok: false, error: 'no-server-url', message: 'Server URL not configured' };
   }
@@ -44,14 +44,14 @@ export async function performMcpDcrFlow(
       throw new Error(oauth.discoveryError);
     });
 
-    let clientReg = store.getClientRegistration();
+    let clientReg = await store.getClientRegistration();
     if (!clientReg) {
       clientReg = await registerOAuthClient(metadata, store.callbackUrl, def.displayName).catch(
         () => {
           throw new Error(oauth.registrationError);
         },
       );
-      store.setClientRegistration(clientReg);
+      await store.setClientRegistration(clientReg);
     }
 
     const pkce = generatePkceChallenge();
@@ -76,7 +76,7 @@ export async function performMcpDcrFlow(
 
     let authSucceeded = false;
     try {
-      store.setPendingAuth({ codeVerifier: pkce.codeVerifier, oauthState: state });
+      await store.setPendingAuth({ codeVerifier: pkce.codeVerifier, oauthState: state });
       await shell.openExternal(authUrl);
 
       const { code, state: returnedState } = await callbackServer.waitForCallback().catch(() => {
@@ -98,12 +98,13 @@ export async function performMcpDcrFlow(
         throw new Error(oauth.tokenExchangeError);
       });
 
-      store.setTokens(tokens, Date.now());
+      await store.setTokens(tokens, Date.now());
       authSucceeded = true;
       return { ok: true, accessToken: tokens.accessToken };
     } finally {
       if (!authSucceeded) {
-        store.clearTokens(); // clears codeVerifier/oauthState so pendingAuthorization resets
+        // clears codeVerifier/oauthState so pendingAuthorization resets
+        await store.clearTokens();
       }
       callbackServer.shutdown();
     }
@@ -130,7 +131,7 @@ export async function performMcpFixedClientFlow(
     return { ok: false, error: 'not-configured' };
   }
 
-  const serverUrl = store.getServerUrl();
+  const serverUrl = await store.getServerUrl();
   if (!serverUrl) {
     return { ok: false, error: 'no-server-url' };
   }
@@ -161,7 +162,7 @@ export async function performMcpFixedClientFlow(
 
     let authSucceeded = false;
     try {
-      store.setPendingAuth({ codeVerifier: pkce.codeVerifier, oauthState: state });
+      await store.setPendingAuth({ codeVerifier: pkce.codeVerifier, oauthState: state });
       await shell.openExternal(authUrl);
 
       const { code, state: returnedState } = await callbackServer.waitForCallback().catch(() => {
@@ -182,12 +183,13 @@ export async function performMcpFixedClientFlow(
         throw new Error(oauth.tokenExchangeError);
       });
 
-      store.setTokens(tokens, Date.now());
+      await store.setTokens(tokens, Date.now());
       authSucceeded = true;
       return { ok: true, accessToken: tokens.accessToken };
     } finally {
       if (!authSucceeded) {
-        store.clearTokens(); // clears codeVerifier/oauthState so pendingAuthorization resets
+        // clears codeVerifier/oauthState so pendingAuthorization resets
+        await store.clearTokens();
       }
       callbackServer.shutdown();
     }

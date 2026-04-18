@@ -1,11 +1,23 @@
 /**
  * Connector Auth Store
  *
- * Per-provider OAuth token storage backed by SecureStorage (AES-256-GCM).
- * Replaces the commercial version's mcp-auth.json approach (research.md Decision 2).
- * Each connector gets one instance, keyed by provider ID.
+ * Per-provider OAuth token storage backed by the daemon's encrypted
+ * secure storage (AES-256-GCM). Each connector gets one instance, keyed
+ * by provider ID. Storage key format on the wire: `<providerKey>`
+ * (the daemon applies the `connector-auth:` prefix internally).
  *
- * Storage key format: connector-auth:<providerKey>
+ * Milestone 3 sub-chunk 3e of the daemon-only-SQLite migration
+ * (plan: /Users/yanai/.claude/plans/squishy-exploring-hamster.md).
+ *
+ * Before 3e: every method was synchronous and read/wrote `StoredAuthEntry`
+ * through the local `StorageAPI` wrapper, causing a concurrent-writer
+ * hazard with the daemon's own secure-storage file.
+ *
+ * After 3e: every method is async and goes through
+ * `connectors.authEntry.*` RPCs via `connector-auth-entry.ts`. Every
+ * caller already runs inside an `async` OAuth flow (discover → register →
+ * exchange → persist), so the only downstream change is inserting `await`
+ * at each `store.*` call site.
  */
 
 import type {
@@ -26,8 +38,8 @@ export class ConnectorAuthStore {
     return `http://${host}:${port}${path}`;
   }
 
-  getOAuthStatus(): ConnectorOAuthStatus {
-    const entry = readEntry(this.config);
+  async getOAuthStatus(): Promise<ConnectorOAuthStatus> {
+    const entry = await readEntry(this.config);
     if (!entry) {
       return { connected: false, pendingAuthorization: false };
     }
@@ -48,28 +60,28 @@ export class ConnectorAuthStore {
     };
   }
 
-  getAccessToken(): string | undefined {
-    const entry = readEntry(this.config);
+  async getAccessToken(): Promise<string | undefined> {
+    const entry = await readEntry(this.config);
     return entry?.accessToken?.trim() || undefined;
   }
 
-  getServerUrl(): string | undefined {
+  async getServerUrl(): Promise<string | undefined> {
     if (this.config.serverUrl) {
       return this.config.serverUrl;
     }
     if (!this.config.storesServerUrl) {
       return undefined;
     }
-    const entry = readEntry(this.config);
+    const entry = await readEntry(this.config);
     return entry?.serverUrl?.trim() || undefined;
   }
 
-  setServerUrl(url: string): void {
+  async setServerUrl(url: string): Promise<void> {
     if (!this.config.storesServerUrl) {
       return;
     }
     const normalized = url.trim();
-    const existing = readEntry(this.config) ?? {};
+    const existing = (await readEntry(this.config)) ?? {};
     const previousUrl = existing.serverUrl?.trim();
 
     // If URL changed, reset auth state but keep the new URL
@@ -78,28 +90,28 @@ export class ConnectorAuthStore {
         ? { ...existing, serverUrl: normalized }
         : { serverUrl: normalized };
 
-    writeEntry(this.config, next);
+    await writeEntry(this.config, next);
   }
 
-  getClientRegistration(): OAuthClientRegistration | undefined {
+  async getClientRegistration(): Promise<OAuthClientRegistration | undefined> {
     if (!this.config.usesDcr) {
       return undefined;
     }
-    const entry = readEntry(this.config);
+    const entry = await readEntry(this.config);
     const reg = entry?.clientRegistration;
     return reg?.clientId ? reg : undefined;
   }
 
-  setClientRegistration(reg: OAuthClientRegistration): void {
+  async setClientRegistration(reg: OAuthClientRegistration): Promise<void> {
     if (!this.config.usesDcr) {
       return;
     }
-    const existing = readEntry(this.config) ?? {};
-    writeEntry(this.config, { ...existing, clientRegistration: reg });
+    const existing = (await readEntry(this.config)) ?? {};
+    await writeEntry(this.config, { ...existing, clientRegistration: reg });
   }
 
-  setPendingAuth(params: { codeVerifier: string; oauthState: string }): void {
-    const existing = readEntry(this.config) ?? {};
+  async setPendingAuth(params: { codeVerifier: string; oauthState: string }): Promise<void> {
+    const existing = (await readEntry(this.config)) ?? {};
     const next: StoredAuthEntry = {
       codeVerifier: params.codeVerifier,
       oauthState: params.oauthState,
@@ -108,11 +120,11 @@ export class ConnectorAuthStore {
     if (this.config.usesDcr && existing.clientRegistration) {
       next.clientRegistration = existing.clientRegistration;
     }
-    writeEntry(this.config, next);
+    await writeEntry(this.config, next);
   }
 
-  setTokens(tokens: OAuthTokens, lastValidatedAt?: number): void {
-    const existing = readEntry(this.config) ?? {};
+  async setTokens(tokens: OAuthTokens, lastValidatedAt?: number): Promise<void> {
+    const existing = (await readEntry(this.config)) ?? {};
     const next: StoredAuthEntry = {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
@@ -123,17 +135,17 @@ export class ConnectorAuthStore {
     if (this.config.usesDcr && existing.clientRegistration) {
       next.clientRegistration = existing.clientRegistration;
     }
-    writeEntry(this.config, next);
+    await writeEntry(this.config, next);
   }
 
-  setLastValidatedAt(timestamp: number): void {
-    const existing = readEntry(this.config) ?? {};
-    writeEntry(this.config, { ...existing, lastOAuthValidatedAt: timestamp });
+  async setLastValidatedAt(timestamp: number): Promise<void> {
+    const existing = (await readEntry(this.config)) ?? {};
+    await writeEntry(this.config, { ...existing, lastOAuthValidatedAt: timestamp });
   }
 
   /** Clear tokens but preserve client registration (DCR) and server URL (storesServerUrl) */
-  clearTokens(): void {
-    const existing = readEntry(this.config);
+  async clearTokens(): Promise<void> {
+    const existing = await readEntry(this.config);
     if (!existing) {
       return;
     }
@@ -145,24 +157,24 @@ export class ConnectorAuthStore {
       preserved.serverUrl = existing.serverUrl;
     }
     if (Object.keys(preserved).length === 0) {
-      deleteEntry(this.config);
+      await deleteEntry(this.config);
     } else {
-      writeEntry(this.config, preserved);
+      await writeEntry(this.config, preserved);
     }
   }
 
   /** Nuke the entire entry including DCR registration */
-  clearAuth(): void {
-    deleteEntry(this.config);
+  async clearAuth(): Promise<void> {
+    await deleteEntry(this.config);
   }
 
   /** Get the stored refresh token (needed by token resolver for silent refresh) */
-  getRefreshToken(): string | undefined {
-    return readEntry(this.config)?.refreshToken;
+  async getRefreshToken(): Promise<string | undefined> {
+    return (await readEntry(this.config))?.refreshToken;
   }
 
   /** Returns the stored token expiry timestamp (Unix ms), or undefined if not set. */
-  getTokenExpiry(): number | undefined {
-    return readEntry(this.config)?.expiresAt;
+  async getTokenExpiry(): Promise<number | undefined> {
+    return (await readEntry(this.config))?.expiresAt;
   }
 }

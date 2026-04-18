@@ -1,6 +1,11 @@
 /**
  * Unit tests for ConnectorAuthStore
  *
+ * Milestone 3 sub-chunk 3e of the daemon-only-SQLite migration converted
+ * ConnectorAuthStore's methods to async daemon RPCs. These tests now
+ * assert against the `connectors.authEntry.*` RPC surface on
+ * `getDaemonClient().call(...)` rather than `getStorage()` directly.
+ *
  * Validates:
  * - Tokens stored and read correctly
  * - Optional lastOAuthValidatedAt handled when absent
@@ -13,15 +18,30 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ConnectorAuthStore } from '@main/connectors/connector-auth-store';
 import type { ConnectorAuthStoreConfig } from '@accomplish_ai/agent-core/common';
+import type { StoredAuthEntry } from '@main/connectors/connector-auth-types';
 
-// Mock the storage module
-const mockStorage = {
-  get: vi.fn(),
-  set: vi.fn(),
-};
+// Shared in-memory state for the daemon-mock. Each test resets it in beforeEach.
+let mockEntryStore: Record<string, StoredAuthEntry | null> = {};
+const mockDaemonCall = vi.fn(async (method: string, params?: unknown) => {
+  if (method === 'connectors.authEntry.read') {
+    const p = params as { connectorKey: string };
+    return mockEntryStore[p.connectorKey] ?? null;
+  }
+  if (method === 'connectors.authEntry.write') {
+    const p = params as { connectorKey: string; entry: StoredAuthEntry };
+    mockEntryStore[p.connectorKey] = p.entry;
+    return;
+  }
+  if (method === 'connectors.authEntry.delete') {
+    const p = params as { connectorKey: string };
+    delete mockEntryStore[p.connectorKey];
+    return;
+  }
+  return undefined;
+});
 
-vi.mock('@main/store/storage', () => ({
-  getStorage: () => mockStorage,
+vi.mock('@main/daemon-bootstrap', () => ({
+  getDaemonClient: () => ({ call: mockDaemonCall }),
 }));
 
 function makeConfig(overrides: Partial<ConnectorAuthStoreConfig> = {}): ConnectorAuthStoreConfig {
@@ -42,159 +62,163 @@ function makeStore(overrides: Partial<ConnectorAuthStoreConfig> = {}): Connector
 describe('ConnectorAuthStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockStorage.get.mockReturnValue(undefined);
+    mockEntryStore = {};
   });
 
   describe('getOAuthStatus()', () => {
-    it('returns disconnected when no entry', () => {
+    it('returns disconnected when no entry', async () => {
       const store = makeStore();
-      expect(store.getOAuthStatus()).toEqual({
+      expect(await store.getOAuthStatus()).toEqual({
         connected: false,
         pendingAuthorization: false,
-        lastValidatedAt: undefined,
       });
     });
 
-    it('returns connected when accessToken present', () => {
-      mockStorage.get.mockReturnValue(
-        JSON.stringify({ accessToken: 'tok123', lastOAuthValidatedAt: 1000 }),
-      );
+    it('returns connected when accessToken present', async () => {
+      mockEntryStore['test-provider'] = { accessToken: 'tok123', lastOAuthValidatedAt: 1000 };
       const store = makeStore();
-      const status = store.getOAuthStatus();
+      const status = await store.getOAuthStatus();
       expect(status.connected).toBe(true);
       expect(status.lastValidatedAt).toBe(1000);
     });
 
-    it('returns connected when only refreshToken present', () => {
-      mockStorage.get.mockReturnValue(JSON.stringify({ refreshToken: 'refresh123' }));
+    it('returns connected when only refreshToken present', async () => {
+      mockEntryStore['test-provider'] = { refreshToken: 'refresh123' };
       const store = makeStore();
-      expect(store.getOAuthStatus().connected).toBe(true);
+      expect((await store.getOAuthStatus()).connected).toBe(true);
     });
 
-    it('returns pendingAuthorization when oauthState + codeVerifier present but no token', () => {
-      mockStorage.get.mockReturnValue(
-        JSON.stringify({ oauthState: 'state-abc', codeVerifier: 'verifier-xyz' }),
-      );
+    it('returns pendingAuthorization when oauthState + codeVerifier present but no token', async () => {
+      mockEntryStore['test-provider'] = { oauthState: 'state-abc', codeVerifier: 'verifier-xyz' };
       const store = makeStore();
-      const status = store.getOAuthStatus();
+      const status = await store.getOAuthStatus();
       expect(status.connected).toBe(false);
       expect(status.pendingAuthorization).toBe(true);
     });
 
-    it('handles missing lastOAuthValidatedAt gracefully', () => {
-      mockStorage.get.mockReturnValue(JSON.stringify({ accessToken: 'tok' }));
+    it('handles missing lastOAuthValidatedAt gracefully', async () => {
+      mockEntryStore['test-provider'] = { accessToken: 'tok' };
       const store = makeStore();
-      const status = store.getOAuthStatus();
+      const status = await store.getOAuthStatus();
       expect(status.connected).toBe(true);
       expect(status.lastValidatedAt).toBeUndefined();
     });
   });
 
   describe('setTokens()', () => {
-    it('stores tokens and sets lastOAuthValidatedAt', () => {
-      mockStorage.get.mockReturnValue(null);
+    it('stores tokens and sets lastOAuthValidatedAt', async () => {
       const store = makeStore();
       const ts = Date.now();
-      store.setTokens({ accessToken: 'tok', tokenType: 'bearer', expiresAt: ts + 3600_000 }, ts);
-
-      expect(mockStorage.set).toHaveBeenCalledWith(
-        'connector-auth:test-provider',
-        expect.stringContaining('"accessToken":"tok"'),
+      await store.setTokens(
+        { accessToken: 'tok', tokenType: 'bearer', expiresAt: ts + 3600_000 },
+        ts,
       );
-      const written = JSON.parse(mockStorage.set.mock.calls[0][1]);
-      expect(written.lastOAuthValidatedAt).toBe(ts);
+
+      expect(mockDaemonCall).toHaveBeenCalledWith(
+        'connectors.authEntry.write',
+        expect.objectContaining({
+          connectorKey: 'test-provider',
+          entry: expect.objectContaining({ accessToken: 'tok', lastOAuthValidatedAt: ts }),
+        }),
+      );
     });
 
-    it('sets lastOAuthValidatedAt to Date.now() when not provided', () => {
+    it('sets lastOAuthValidatedAt to Date.now() when not provided', async () => {
       const store = makeStore();
       const before = Date.now();
-      store.setTokens({ accessToken: 'tok', tokenType: 'bearer' });
+      await store.setTokens({ accessToken: 'tok', tokenType: 'bearer' });
       const after = Date.now();
-      const written = JSON.parse(mockStorage.set.mock.calls[0][1]);
-      expect(written.lastOAuthValidatedAt).toBeGreaterThanOrEqual(before);
-      expect(written.lastOAuthValidatedAt).toBeLessThanOrEqual(after);
+      const writtenEntry = mockEntryStore['test-provider']!;
+      expect(writtenEntry.lastOAuthValidatedAt).toBeGreaterThanOrEqual(before);
+      expect(writtenEntry.lastOAuthValidatedAt).toBeLessThanOrEqual(after);
     });
   });
 
   describe('clearTokens()', () => {
-    it('removes tokens but retains clientRegistration when usesDcr', () => {
+    it('removes tokens but retains clientRegistration when usesDcr', async () => {
       const reg = { clientId: 'client-id', clientSecret: 'secret' };
-      mockStorage.get.mockReturnValue(
-        JSON.stringify({ accessToken: 'tok', clientRegistration: reg }),
-      );
+      mockEntryStore['test-provider'] = { accessToken: 'tok', clientRegistration: reg };
       const store = makeStore({ usesDcr: true });
-      store.clearTokens();
-      const written = JSON.parse(mockStorage.set.mock.calls[0][1]);
+      await store.clearTokens();
+      const written = mockEntryStore['test-provider']!;
       expect(written.accessToken).toBeUndefined();
       expect(written.clientRegistration).toEqual(reg);
     });
 
-    it('retains serverUrl when storesServerUrl is true', () => {
-      mockStorage.get.mockReturnValue(
-        JSON.stringify({
-          accessToken: 'tok',
-          serverUrl: 'https://lightdash.example.com/api/v1/mcp',
-        }),
-      );
+    it('retains serverUrl when storesServerUrl is true', async () => {
+      mockEntryStore['test-provider'] = {
+        accessToken: 'tok',
+        serverUrl: 'https://lightdash.example.com/api/v1/mcp',
+      };
       const store = makeStore({ storesServerUrl: true, serverUrl: undefined });
-      store.clearTokens();
-      const written = JSON.parse(mockStorage.set.mock.calls[0][1]);
+      await store.clearTokens();
+      const written = mockEntryStore['test-provider']!;
       expect(written.accessToken).toBeUndefined();
       expect(written.serverUrl).toBe('https://lightdash.example.com/api/v1/mcp');
     });
 
-    it('deletes entry entirely when nothing to preserve', () => {
-      mockStorage.get.mockReturnValue(JSON.stringify({ accessToken: 'tok' }));
+    it('deletes entry entirely when nothing to preserve', async () => {
+      mockEntryStore['test-provider'] = { accessToken: 'tok' };
       const store = makeStore({ usesDcr: false, storesServerUrl: false });
-      store.clearTokens();
-      // deleteEntry writes empty string
-      expect(mockStorage.set).toHaveBeenCalledWith('connector-auth:test-provider', '');
+      await store.clearTokens();
+      expect(mockDaemonCall).toHaveBeenCalledWith('connectors.authEntry.delete', {
+        connectorKey: 'test-provider',
+      });
+      expect(mockEntryStore['test-provider']).toBeUndefined();
     });
 
-    it('does nothing when entry is absent', () => {
-      mockStorage.get.mockReturnValue(null);
+    it('does nothing when entry is absent', async () => {
       const store = makeStore();
-      store.clearTokens();
-      expect(mockStorage.set).not.toHaveBeenCalled();
+      await store.clearTokens();
+      expect(mockDaemonCall).toHaveBeenCalledTimes(1); // read only
+      expect(mockDaemonCall).not.toHaveBeenCalledWith(
+        'connectors.authEntry.write',
+        expect.anything(),
+      );
+      expect(mockDaemonCall).not.toHaveBeenCalledWith(
+        'connectors.authEntry.delete',
+        expect.anything(),
+      );
     });
   });
 
   describe('clearAuth()', () => {
-    it('deletes entire entry including client registration', () => {
-      mockStorage.get.mockReturnValue(
-        JSON.stringify({ accessToken: 'tok', clientRegistration: { clientId: 'x' } }),
-      );
+    it('deletes entire entry including client registration', async () => {
+      mockEntryStore['test-provider'] = {
+        accessToken: 'tok',
+        clientRegistration: { clientId: 'x', clientSecret: 'y' },
+      };
       const store = makeStore();
-      store.clearAuth();
-      expect(mockStorage.set).toHaveBeenCalledWith('connector-auth:test-provider', '');
+      await store.clearAuth();
+      expect(mockDaemonCall).toHaveBeenCalledWith('connectors.authEntry.delete', {
+        connectorKey: 'test-provider',
+      });
     });
   });
 
   describe('getRefreshToken()', () => {
-    it('returns refresh token from stored entry', () => {
-      mockStorage.get.mockReturnValue(JSON.stringify({ refreshToken: 'refresh-tok' }));
+    it('returns refresh token from stored entry', async () => {
+      mockEntryStore['test-provider'] = { refreshToken: 'refresh-tok' };
       const store = makeStore();
-      expect(store.getRefreshToken()).toBe('refresh-tok');
+      expect(await store.getRefreshToken()).toBe('refresh-tok');
     });
 
-    it('returns undefined when no entry', () => {
+    it('returns undefined when no entry', async () => {
       const store = makeStore();
-      expect(store.getRefreshToken()).toBeUndefined();
+      expect(await store.getRefreshToken()).toBeUndefined();
     });
   });
 
   describe('getServerUrl()', () => {
-    it('returns static serverUrl from config when set', () => {
+    it('returns static serverUrl from config when set', async () => {
       const store = makeStore({ serverUrl: 'https://static.example.com/mcp' });
-      expect(store.getServerUrl()).toBe('https://static.example.com/mcp');
+      expect(await store.getServerUrl()).toBe('https://static.example.com/mcp');
     });
 
-    it('reads serverUrl from stored entry when storesServerUrl is true', () => {
-      mockStorage.get.mockReturnValue(
-        JSON.stringify({ serverUrl: 'https://dynamic.example.com/mcp' }),
-      );
+    it('reads serverUrl from stored entry when storesServerUrl is true', async () => {
+      mockEntryStore['test-provider'] = { serverUrl: 'https://dynamic.example.com/mcp' };
       const store = makeStore({ serverUrl: undefined, storesServerUrl: true });
-      expect(store.getServerUrl()).toBe('https://dynamic.example.com/mcp');
+      expect(await store.getServerUrl()).toBe('https://dynamic.example.com/mcp');
     });
   });
 });

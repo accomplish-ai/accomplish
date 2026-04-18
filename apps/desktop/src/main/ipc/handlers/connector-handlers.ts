@@ -14,10 +14,19 @@ import type {
   OAuthMetadata,
   OAuthClientRegistration,
 } from '@accomplish_ai/agent-core/desktop-main';
-import { getStorage } from '../../store/storage';
 import { handle } from './utils';
+import { getDaemonClient } from '../../daemon-bootstrap';
 
-// In-memory store for pending OAuth flows (keyed by state parameter)
+// Milestone 3 sub-chunk 3e: user-added MCP connector CRUD + OAuth lifecycle
+// now go through the daemon's `connectors.*` RPC surface. The OAuth loopback
+// itself stays in main (the daemon has no access to `shell.openExternal`),
+// but every storage-touching step — connector row, tokens, status — is an
+// RPC call.
+
+// In-memory store for pending OAuth flows (keyed by state parameter).
+// Stays in main because it's transient (lives only between start-oauth
+// and complete-oauth) and the flow pairs the callback state with locally
+// generated PKCE values — nothing persistent.
 const OAUTH_FLOW_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 const pendingOAuthFlows = new Map<
@@ -41,10 +50,8 @@ function cleanupExpiredOAuthFlows(): void {
 }
 
 export function registerConnectorHandlers(): void {
-  const storage = getStorage();
-
   handle('connectors:list', async () => {
-    return storage.getAllConnectors();
+    return getDaemonClient().call('connectors.list');
   });
 
   handle('connectors:add', async (_event: IpcMainInvokeEvent, name: string, url: string) => {
@@ -77,25 +84,29 @@ export function registerConnectorHandlers(): void {
       updatedAt: now,
     };
 
-    storage.upsertConnector(connector);
+    await getDaemonClient().call('connectors.upsert', { connector });
     return connector;
   });
 
   handle('connectors:delete', async (_event: IpcMainInvokeEvent, id: string) => {
-    storage.deleteConnectorTokens(id);
-    storage.deleteConnector(id);
+    const client = getDaemonClient();
+    await client.call('connectors.deleteTokens', { connectorId: id });
+    await client.call('connectors.delete', { id });
   });
 
   handle(
     'connectors:set-enabled',
     async (_event: IpcMainInvokeEvent, id: string, enabled: boolean) => {
-      storage.setConnectorEnabled(id, enabled);
+      await getDaemonClient().call('connectors.setEnabled', { id, enabled });
     },
   );
 
   handle('connectors:start-oauth', async (_event: IpcMainInvokeEvent, connectorId: string) => {
-    const connector = storage.getConnectorById(connectorId);
-    if (!connector) throw new Error('Connector not found');
+    const client = getDaemonClient();
+    const connector = await client.call('connectors.getById', { id: connectorId });
+    if (!connector) {
+      throw new Error('Connector not found');
+    }
 
     const metadata = await discoverOAuthMetadata(connector.url);
 
@@ -108,12 +119,14 @@ export function registerConnectorHandlers(): void {
       );
     }
 
-    storage.upsertConnector({
-      ...connector,
-      oauthMetadata: metadata,
-      clientRegistration: clientReg,
-      status: 'connecting',
-      updatedAt: new Date().toISOString(),
+    await client.call('connectors.upsert', {
+      connector: {
+        ...connector,
+        oauthMetadata: metadata,
+        clientRegistration: clientReg,
+        status: 'connecting',
+        updatedAt: new Date().toISOString(),
+      },
     });
 
     const pkce = generatePkceChallenge();
@@ -147,7 +160,9 @@ export function registerConnectorHandlers(): void {
     async (_event: IpcMainInvokeEvent, state: string, code: string) => {
       cleanupExpiredOAuthFlows();
       const flow = pendingOAuthFlows.get(state);
-      if (!flow) throw new Error('No pending OAuth flow for this state');
+      if (!flow) {
+        throw new Error('No pending OAuth flow for this state');
+      }
       pendingOAuthFlows.delete(state);
 
       const tokens = await exchangeCodeForTokens({
@@ -159,24 +174,31 @@ export function registerConnectorHandlers(): void {
         redirectUri: 'accomplish://callback/mcp',
       });
 
-      storage.storeConnectorTokens(flow.connectorId, tokens);
+      const client = getDaemonClient();
+      await client.call('connectors.storeTokens', {
+        connectorId: flow.connectorId,
+        tokens,
+      });
 
-      const connector = storage.getConnectorById(flow.connectorId);
+      const connector = await client.call('connectors.getById', { id: flow.connectorId });
       if (connector) {
-        storage.upsertConnector({
-          ...connector,
-          status: 'connected',
-          lastConnectedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+        await client.call('connectors.upsert', {
+          connector: {
+            ...connector,
+            status: 'connected',
+            lastConnectedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
         });
       }
 
-      return storage.getConnectorById(flow.connectorId);
+      return client.call('connectors.getById', { id: flow.connectorId });
     },
   );
 
   handle('connectors:disconnect', async (_event: IpcMainInvokeEvent, connectorId: string) => {
-    storage.deleteConnectorTokens(connectorId);
-    storage.setConnectorStatus(connectorId, 'disconnected');
+    const client = getDaemonClient();
+    await client.call('connectors.deleteTokens', { connectorId });
+    await client.call('connectors.setStatus', { id: connectorId, status: 'disconnected' });
   });
 }
