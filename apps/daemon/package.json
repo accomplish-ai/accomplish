@@ -5,7 +5,7 @@
   "description": "Accomplish background daemon process",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node -e \"require('fs').writeFileSync('dist/package.json', '{\\\"type\\\":\\\"commonjs\\\"}\\n')\"",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
