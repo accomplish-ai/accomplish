@@ -17,11 +17,7 @@ import { getLogCollector } from './logging';
 import { skillsManager } from './skills';
 import { startHuggingFaceServer } from './providers/huggingface-local';
 import { createTray } from './tray';
-import {
-  bootstrapDaemon,
-  registerNotificationForwarding,
-  getDaemonClient,
-} from './daemon-bootstrap';
+import { bootstrapDaemon, registerNotificationForwarding } from './daemon-bootstrap';
 import { registerIPCHandlers } from './ipc/handlers';
 import { drainProtocolUrlQueue } from './protocol-handlers';
 import { getBuildConfig, getBuildId, isAnalyticsEnabled } from './config/build-config';
@@ -328,14 +324,15 @@ export async function startApp(
           } catch {
             /* connector may not be loaded */
           }
-          // Fire-and-forget: tell daemon to shut down, then quit immediately.
-          // The daemon handles its own drain phase independently.
-          try {
-            const client = getDaemonClient();
-            client.call('daemon.shutdown').catch(() => {});
-          } catch {
-            // Daemon may already be down
-          }
+          // Record intent — `shutdownApp` will send `daemon.shutdown` AFTER
+          // the analytics flush. Pre-M3-3a this call lived here as a
+          // fire-and-forget before `app.quit()`, which raced the flush:
+          // the daemon scheduled its own exit 100ms after replying while
+          // `shutdownApp` spent several seconds tearing down browser/HF
+          // services before reaching `trackAppClose`, producing a silent
+          // flush failure on every stop-daemon quit.
+          const { requestStopDaemonOnQuit } = await import('./app-shutdown');
+          requestStopDaemonOnQuit();
           isQuittingRef.value = true;
           app.quit();
         }
