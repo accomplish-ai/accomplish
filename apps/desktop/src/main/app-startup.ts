@@ -23,7 +23,12 @@ import {
 } from './daemon-bootstrap';
 import { registerIPCHandlers } from './ipc/handlers';
 import { drainProtocolUrlQueue } from './protocol-handlers';
-import { getBuildConfig, getBuildId, isAnalyticsEnabled } from './config/build-config';
+import {
+  getBuildConfig,
+  getBuildId,
+  isAnalyticsEnabled,
+  isAutoUpdaterEnabled,
+} from './config/build-config';
 import { initAnalytics, initDeviceFingerprint } from './analytics/analytics-service';
 import { initMixpanel } from './analytics/mixpanel-service';
 import { trackAppLaunched } from './analytics/events';
@@ -503,6 +508,22 @@ export async function startApp(
 
     // Drain any protocol URLs that arrived before the window was created
     drainProtocolUrlQueue(mainWindow);
+
+    // Auto-updater (Free CI builds only; OSS builds skip this entirely, so
+    // electron-updater is never resolved). Menu is installed only on success —
+    // a failed initUpdater() leaves the default Electron menu in place.
+    if (isAutoUpdaterEnabled()) {
+      try {
+        const { initUpdater, autoCheckForUpdates } = await import('./updater');
+        await initUpdater(mainWindow);
+        const { initMenu } = await import('./menu');
+        initMenu();
+        setTimeout(() => autoCheckForUpdates(), 5000);
+        logMain('INFO', '[Main] Auto-updater initialized');
+      } catch (err) {
+        logMain('WARN', '[Main] Auto-updater init failed', { err: String(err) });
+      }
+    }
   }
 
   app.on('activate', () => {
