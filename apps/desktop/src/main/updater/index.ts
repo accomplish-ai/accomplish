@@ -37,8 +37,17 @@ export { getUpdateState, setOnUpdateDownloaded } from './state';
 let _autoUpdater: AppUpdater | null = null;
 async function lazyAutoUpdater(): Promise<AppUpdater> {
   if (!_autoUpdater) {
-    const mod = await import('electron-updater');
-    _autoUpdater = mod.autoUpdater;
+    const mod = (await import('electron-updater')) as typeof import('electron-updater') & {
+      default?: { autoUpdater?: AppUpdater };
+    };
+    const namedAutoUpdater = Object.prototype.hasOwnProperty.call(mod, 'autoUpdater')
+      ? mod.autoUpdater
+      : undefined;
+    const autoUpdater = namedAutoUpdater ?? mod.default?.autoUpdater;
+    if (!autoUpdater) {
+      throw new Error('electron-updater autoUpdater export unavailable');
+    }
+    _autoUpdater = autoUpdater;
   }
   return _autoUpdater;
 }

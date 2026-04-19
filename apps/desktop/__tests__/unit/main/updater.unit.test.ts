@@ -39,7 +39,9 @@ const mockAutoUpdater = {
   quitAndInstall: vi.fn(),
   on: vi.fn(),
 };
-vi.mock('electron-updater', () => ({ autoUpdater: mockAutoUpdater }));
+// electron-updater is CommonJS. In the ESM main bundle, dynamic import exposes
+// `autoUpdater` under `default`, not as a named export.
+vi.mock('electron-updater', () => ({ default: { autoUpdater: mockAutoUpdater } }));
 
 vi.mock('electron-store', () => {
   class MockStore {
