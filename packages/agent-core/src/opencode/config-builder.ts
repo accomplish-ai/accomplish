@@ -113,9 +113,12 @@ export async function buildProviderConfigs(
     // Filter out accomplish-ai from upfront mapping — it's added via enableToAdd
     // only when the builder successfully starts the proxy. Without this, a failed
     // proxy start would leave accomplish-ai in enabledProviders with no config definition.
+    // Also filter out any provider IDs that have no OpenCode mapping (e.g. auto-model-routing),
+    // which would otherwise produce undefined/null entries in enabledProviders.
     const mappedProviders = connectedIds
       .filter((id) => id !== 'accomplish-ai')
-      .map((id) => PROVIDER_ID_TO_OPENCODE[id]);
+      .map((id) => PROVIDER_ID_TO_OPENCODE[id])
+      .filter((id): id is string => id !== undefined);
     enabledProviders = [...new Set([...baseProviders, ...mappedProviders])];
   } else {
     const ollamaConfig = getOllamaConfig();
