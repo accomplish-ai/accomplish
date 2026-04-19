@@ -29,6 +29,7 @@ const MANAGED_ENV_KEYS = [
   'SENTRY_DSN',
   'ACCOMPLISH_GATEWAY_URL',
   'ACCOMPLISH_BUILD_ID',
+  'ACCOMPLISH_UPDATER_URL',
   'APP_ROOT',
 ] as const;
 
@@ -36,6 +37,7 @@ describe('loadBuildConfig() — build.env and process.env resolution', () => {
   let tempDir: string;
   let buildEnvPath: string;
   let originalEnv: Record<string, string | undefined>;
+  let originalResourcesPath: string | undefined;
 
   beforeEach(() => {
     // Fresh temp dir per test → acts as the APP_ROOT where build.env lives.
@@ -49,6 +51,10 @@ describe('loadBuildConfig() — build.env and process.env resolution', () => {
       delete process.env[key];
     }
     process.env.APP_ROOT = tempDir;
+
+    // Snapshot + clear process.resourcesPath. Only packaged tests set it; keep dev tests clean.
+    originalResourcesPath = (process as { resourcesPath?: string }).resourcesPath;
+    delete (process as { resourcesPath?: string }).resourcesPath;
 
     mockApp.isPackaged = false;
 
@@ -65,6 +71,11 @@ describe('loadBuildConfig() — build.env and process.env resolution', () => {
       } else {
         process.env[key] = saved;
       }
+    }
+    if (originalResourcesPath === undefined) {
+      delete (process as { resourcesPath?: string }).resourcesPath;
+    } else {
+      (process as { resourcesPath?: string }).resourcesPath = originalResourcesPath;
     }
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
@@ -207,6 +218,62 @@ describe('loadBuildConfig() — build.env and process.env resolution', () => {
       await loadFresh();
       const { getBuildId } = await import('@main/config/build-config');
       expect(getBuildId()).toBe('env-build-xyz789');
+    });
+  });
+
+  describe('auto-updater gate (ACCOMPLISH_UPDATER_URL)', () => {
+    it('default (neither source): isAutoUpdaterEnabled() returns false', async () => {
+      const cfg = await loadFresh();
+      expect(cfg.accomplishUpdaterUrl).toBe('');
+      const { isAutoUpdaterEnabled } = await import('@main/config/build-config');
+      expect(isAutoUpdaterEnabled()).toBe(false);
+    });
+
+    it('dev mode + process.env set: isAutoUpdaterEnabled() returns true (dev opt-in)', async () => {
+      process.env.ACCOMPLISH_UPDATER_URL = 'https://d.accomplish.ai';
+      mockApp.isPackaged = false;
+      const cfg = await loadFresh();
+      expect(cfg.accomplishUpdaterUrl).toBe('https://d.accomplish.ai');
+      const { isAutoUpdaterEnabled } = await import('@main/config/build-config');
+      expect(isAutoUpdaterEnabled()).toBe(true);
+    });
+
+    it('packaged mode + only process.env set: isAutoUpdaterEnabled() returns false (security invariant)', async () => {
+      // Packaged OSS binaries must NOT honor a runtime ACCOMPLISH_UPDATER_URL env var —
+      // the updater spawns an installer and a rogue URL would be RCE.
+      process.env.ACCOMPLISH_UPDATER_URL = 'https://evil.example.com';
+      mockApp.isPackaged = true;
+      (process as { resourcesPath?: string }).resourcesPath = tempDir;
+      const cfg = await loadFresh();
+      expect(cfg.accomplishUpdaterUrl).toBe('');
+      const { isAutoUpdaterEnabled } = await import('@main/config/build-config');
+      expect(isAutoUpdaterEnabled()).toBe(false);
+    });
+
+    it('packaged mode + build.env set: isAutoUpdaterEnabled() returns true (Free CI build)', async () => {
+      fs.writeFileSync(buildEnvPath, 'ACCOMPLISH_UPDATER_URL=https://d.accomplish.ai\n');
+      mockApp.isPackaged = true;
+      (process as { resourcesPath?: string }).resourcesPath = tempDir;
+      const cfg = await loadFresh();
+      expect(cfg.accomplishUpdaterUrl).toBe('https://d.accomplish.ai');
+      const { isAutoUpdaterEnabled } = await import('@main/config/build-config');
+      expect(isAutoUpdaterEnabled()).toBe(true);
+    });
+
+    it('both sources set (dev): build.env takes precedence', async () => {
+      fs.writeFileSync(buildEnvPath, 'ACCOMPLISH_UPDATER_URL=https://from-build-env.example.com\n');
+      process.env.ACCOMPLISH_UPDATER_URL = 'https://from-process-env.example.com';
+      mockApp.isPackaged = false;
+      const cfg = await loadFresh();
+      expect(cfg.accomplishUpdaterUrl).toBe('https://from-build-env.example.com');
+    });
+
+    it('empty build.env value (dev): falls back to process.env', async () => {
+      fs.writeFileSync(buildEnvPath, 'ACCOMPLISH_UPDATER_URL=\n');
+      process.env.ACCOMPLISH_UPDATER_URL = 'https://env-wins.example.com';
+      mockApp.isPackaged = false;
+      const cfg = await loadFresh();
+      expect(cfg.accomplishUpdaterUrl).toBe('https://env-wins.example.com');
     });
   });
 });

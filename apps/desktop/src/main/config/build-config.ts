@@ -35,6 +35,7 @@ const buildConfigSchema = z.object({
   sentryDsn: z.string().default(''),
   accomplishGatewayUrl: z.string().default(''),
   buildId: z.string().default(''),
+  accomplishUpdaterUrl: z.string().default(''),
 });
 
 export type BuildConfig = z.infer<typeof buildConfigSchema>;
@@ -97,6 +98,13 @@ export function loadBuildConfig(): BuildConfig {
       process.env.ACCOMPLISH_GATEWAY_URL,
     ),
     buildId: firstNonEmpty(raw.ACCOMPLISH_BUILD_ID, process.env.ACCOMPLISH_BUILD_ID),
+    // The updater spawns an installer at elevated privilege on some platforms. A rogue
+    // URL is a code-execution risk (unlike analytics tokens that only send data). In
+    // packaged builds we require build.env as the source — process.env is dev-only.
+    accomplishUpdaterUrl: firstNonEmpty(
+      raw.ACCOMPLISH_UPDATER_URL,
+      app.isPackaged ? undefined : process.env.ACCOMPLISH_UPDATER_URL,
+    ),
   });
 
   if (!parsed.success) {
@@ -116,7 +124,8 @@ export function loadBuildConfig(): BuildConfig {
     cachedConfig.mixpanelToken ||
     cachedConfig.gaApiSecret ||
     cachedConfig.sentryDsn ||
-    cachedConfig.accomplishGatewayUrl
+    cachedConfig.accomplishGatewayUrl ||
+    cachedConfig.accomplishUpdaterUrl
   ) {
     console.log('[BuildConfig] Loaded build config from process.env (dev / custom fallback)');
   } else {
@@ -140,6 +149,12 @@ export function getBuildConfig(): BuildConfig {
 /** True when the gateway URL is configured — Free tier is available. */
 export function isFreeMode(): boolean {
   return !!getBuildConfig().accomplishGatewayUrl;
+}
+
+/** True when an updater feed URL is configured — auto-updater is available.
+ *  In packaged builds this requires build.env (process.env fallback is dev-only). */
+export function isAutoUpdaterEnabled(): boolean {
+  return !!getBuildConfig().accomplishUpdaterUrl;
 }
 
 /** True when any analytics or error-tracking service is configured. */

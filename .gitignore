@@ -14,6 +14,10 @@ out/
 .env*.local
 build.env
 
+# Auto-updater dev config (written by updater/index.ts when !app.isPackaged,
+# required by electron-updater's forceDevUpdateConfig)
+apps/desktop/dev-app-update.yml
+
 # Vercel
 .vercel/
 
