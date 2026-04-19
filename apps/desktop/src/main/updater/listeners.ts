@@ -16,8 +16,10 @@ import {
   trackUpdateFailed,
   trackUpdateNotAvailable,
 } from '../analytics/events';
-import { showUpdateReadyDialog } from './dialogs';
+import { showUpdateCheckFailedDialog, showUpdateReadyDialog } from './dialogs';
+import { getFeedUrl } from './feed-config';
 import { log } from './logger';
+import { isTrustedUpdateInfo } from './origin';
 import {
   getMainWindow,
   getUserCheckInFlight,
@@ -39,6 +41,20 @@ export function registerAutoUpdaterListeners(
   autoUpdater.on('update-available', (info: UpdateInfo) => {
     const shouldNotifyUpdateAvailable = getUserCheckInFlight();
     setUserCheckInFlight(false);
+    if (!isTrustedUpdateInfo(info, getFeedUrl())) {
+      setUpdateAvailable(null);
+      log('WARN', '[Updater] Rejected update with untrusted download URL', {
+        version: info.version,
+      });
+      trackUpdateFailed(
+        'invalid_manifest',
+        `Native update manifest contains untrusted download URL for version ${info.version}`,
+      );
+      if (shouldNotifyUpdateAvailable) {
+        void showUpdateCheckFailedDialog();
+      }
+      return;
+    }
     setUpdateAvailable(info);
     log('INFO', '[Updater] update-available', { version: info.version });
     trackUpdateAvailable(app.getVersion(), info.version);
@@ -53,6 +69,10 @@ export function registerAutoUpdaterListeners(
         buttons: ['OK'],
       });
     }
+    void autoUpdater.downloadUpdate().catch((error: Error) => {
+      log('ERROR', '[Updater] downloadUpdate failed', { err: error.message });
+      trackUpdateFailed(error.name || 'download_failed', error.message);
+    });
   });
 
   autoUpdater.on('update-not-available', async () => {

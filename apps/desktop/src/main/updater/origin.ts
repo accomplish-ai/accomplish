@@ -49,6 +49,57 @@ export function isSameApex(candidate: string, reference: string): boolean {
   return candidateHost === apex || candidateHost.endsWith('.' + apex);
 }
 
+/** Relative manifest paths are trusted; absolute URLs must pass `isSameApex`. */
+export function isTrustedManifestPath(candidate: string, feedUrl: string): boolean {
+  const value = candidate.trim();
+  if (!value) {
+    return false;
+  }
+  // Protocol-relative URLs (`//evil.example.com/file`) are absolute in browsers
+  // but do not parse without a base URL. Reject instead of treating as relative.
+  if (value.startsWith('//')) {
+    return false;
+  }
+
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return false;
+    }
+    return isSameApex(value, feedUrl);
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Validate every download URL electron-updater exposes in native UpdateInfo
+ * before we allow `downloadUpdate()`.
+ */
+export function isTrustedUpdateInfo(
+  info: {
+    path?: unknown;
+    files?: unknown;
+  },
+  feedUrl: string,
+): boolean {
+  const candidates: string[] = [];
+  if (typeof info.path === 'string') {
+    candidates.push(info.path);
+  }
+  if (Array.isArray(info.files)) {
+    for (const file of info.files) {
+      if (file && typeof file === 'object') {
+        const url = (file as { url?: unknown }).url;
+        if (typeof url === 'string') {
+          candidates.push(url);
+        }
+      }
+    }
+  }
+  return candidates.every((candidate) => isTrustedManifestPath(candidate, feedUrl));
+}
+
 function isIpLiteral(host: string): boolean {
   // IPv6 addresses always contain a colon; IPv4 dotted-quads are all numeric.
   return host.includes(':') || /^\d{1,3}(\.\d{1,3}){3}$/.test(host);

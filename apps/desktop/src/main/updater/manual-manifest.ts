@@ -30,7 +30,7 @@ import {
 } from './dialogs';
 import { getFeedUrl, getManifestName } from './feed-config';
 import { log } from './logger';
-import { isSameApex } from './origin';
+import { isTrustedManifestPath } from './origin';
 import { recordCheckedNow } from './store';
 import { normalizeVersion, parseManifest } from './versioning';
 
@@ -137,7 +137,7 @@ export async function checkForUpdatesManual(
   }
 
   const isAbsolute = info.path.startsWith('http://') || info.path.startsWith('https://');
-  if (isAbsolute && !isSameApex(info.path, feedUrl)) {
+  if (!isTrustedManifestPath(info.path, feedUrl)) {
     // Manifest points at an absolute URL outside the feed's apex domain. Treat
     // as a poisoned manifest — don't hand the URL to the user's browser, AND
     // don't record the daily throttle: the server may fix the manifest soon

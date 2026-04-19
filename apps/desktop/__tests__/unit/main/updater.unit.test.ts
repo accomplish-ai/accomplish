@@ -36,6 +36,7 @@ const mockAutoUpdater = {
   forceDevUpdateConfig: false,
   setFeedURL: vi.fn(),
   checkForUpdates: vi.fn(() => Promise.resolve()),
+  downloadUpdate: vi.fn(() => Promise.resolve([])),
   quitAndInstall: vi.fn(),
   on: vi.fn(),
 };
@@ -108,6 +109,7 @@ describe('updater', () => {
       delete storeData[key];
     }
     mockAutoUpdater.checkForUpdates.mockReturnValue(Promise.resolve());
+    mockAutoUpdater.downloadUpdate.mockReturnValue(Promise.resolve([]));
     const { getBuildConfig } = await import('../../../src/main/config/build-config');
     vi.mocked(getBuildConfig).mockReturnValue({
       ...emptyConfig,
@@ -411,6 +413,43 @@ describe('updater', () => {
         expect(getUpdateState().availableVersion).toBe('1.2.3');
         expect(analytics.trackUpdateAvailable).toHaveBeenCalledWith('0.3.8', '1.2.3');
         expect(analytics.trackUpdateDownloadStart).toHaveBeenCalledWith('1.2.3');
+        expect(mockAutoUpdater.downloadUpdate).toHaveBeenCalled();
+      } finally {
+        restore();
+      }
+    });
+
+    it('update-available handler rejects untrusted native download URLs before download', async () => {
+      const restore = setPlatform('darwin');
+      const analytics = await import('../../../src/main/analytics/events');
+      const { dialog } = await import('electron');
+      try {
+        const { initUpdater, checkForUpdates, getUpdateState } =
+          await import('../../../src/main/updater');
+        await initUpdater(mockWindow);
+        await checkForUpdates(false);
+        const handler = mockAutoUpdater.on.mock.calls.find(
+          (c: unknown[]) => c[0] === 'update-available',
+        )?.[1] as (info: { version: string; files: Array<{ url: string }>; path: string }) => void;
+        handler({
+          version: '99.0.0',
+          files: [{ url: 'https://evil.example.com/fake.zip' }],
+          path: 'https://evil.example.com/fake.zip',
+        });
+        expect(getUpdateState().availableVersion).toBeNull();
+        expect(mockAutoUpdater.downloadUpdate).not.toHaveBeenCalled();
+        expect(analytics.trackUpdateAvailable).not.toHaveBeenCalled();
+        expect(analytics.trackUpdateDownloadStart).not.toHaveBeenCalled();
+        expect(analytics.trackUpdateFailed).toHaveBeenCalledWith(
+          'invalid_manifest',
+          expect.stringContaining('untrusted download URL'),
+        );
+        expect(dialog.showMessageBox).toHaveBeenCalledWith(
+          expect.objectContaining({ title: 'Update Check Failed' }),
+        );
+        expect(dialog.showMessageBox).not.toHaveBeenCalledWith(
+          expect.objectContaining({ title: 'Update Available' }),
+        );
       } finally {
         restore();
       }

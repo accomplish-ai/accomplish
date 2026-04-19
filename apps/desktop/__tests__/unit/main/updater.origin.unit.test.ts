@@ -5,7 +5,11 @@
 
 import { describe, it, expect } from 'vitest';
 
-import { isSameApex } from '../../../src/main/updater/origin';
+import {
+  isSameApex,
+  isTrustedManifestPath,
+  isTrustedUpdateInfo,
+} from '../../../src/main/updater/origin';
 
 describe('isSameApex', () => {
   it('accepts same-apex subdomain (typical accomplish layout)', () => {
@@ -92,5 +96,51 @@ describe('isSameApex', () => {
 
   it('accepts deep subdomain chains', () => {
     expect(isSameApex('https://a.b.c.accomplish.ai/x/a.exe', 'https://d.accomplish.ai')).toBe(true);
+  });
+});
+
+describe('isTrustedManifestPath', () => {
+  it('accepts relative manifest paths', () => {
+    expect(
+      isTrustedManifestPath('downloads/1.0.0/app.zip', 'https://downloads.accomplish.ai'),
+    ).toBe(true);
+  });
+
+  it('rejects protocol-relative URLs', () => {
+    expect(
+      isTrustedManifestPath('//evil.example.com/app.zip', 'https://downloads.accomplish.ai'),
+    ).toBe(false);
+  });
+
+  it('rejects non-http absolute URLs', () => {
+    expect(isTrustedManifestPath('file:///tmp/app.zip', 'https://downloads.accomplish.ai')).toBe(
+      false,
+    );
+  });
+});
+
+describe('isTrustedUpdateInfo', () => {
+  it('accepts native update info with same-apex file URLs', () => {
+    expect(
+      isTrustedUpdateInfo(
+        {
+          files: [{ url: 'https://downloads.accomplish.ai/downloads/1.0.0/app.zip' }],
+          path: 'https://downloads.accomplish.ai/downloads/1.0.0/app.zip',
+        },
+        'https://downloads.accomplish.ai',
+      ),
+    ).toBe(true);
+  });
+
+  it('rejects native update info with cross-apex file URLs', () => {
+    expect(
+      isTrustedUpdateInfo(
+        {
+          files: [{ url: 'https://evil.example.com/app.zip' }],
+          path: 'https://downloads.accomplish.ai/downloads/1.0.0/app.zip',
+        },
+        'https://downloads.accomplish.ai',
+      ),
+    ).toBe(false);
   });
 });

@@ -28,6 +28,7 @@ import { getFeedUrl } from './feed-config';
 import { registerAutoUpdaterListeners } from './listeners';
 import { log } from './logger';
 import { checkForUpdatesManual } from './manual-manifest';
+import { isTrustedUpdateInfo } from './origin';
 import { getDownloadedVersion, setMainWindow, setUserCheckInFlight } from './state';
 import { recordCheckedNow, shouldAutoCheck } from './store';
 
@@ -70,7 +71,9 @@ export async function initUpdater(window: BrowserWindow): Promise<void> {
 
   try {
     const autoUpdater = await lazyAutoUpdater();
-    autoUpdater.autoDownload = true;
+    // Keep downloads under our control so native paths can validate manifest
+    // download URLs before electron-updater follows them.
+    autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
 
     if (!app.isPackaged) {
@@ -118,7 +121,10 @@ export async function checkForUpdates(silent: boolean): Promise<void> {
     setUserCheckInFlight(!silent);
     trackUpdateCheck();
     const autoUpdater = await lazyAutoUpdater();
-    await autoUpdater.checkForUpdates();
+    const result = await autoUpdater.checkForUpdates();
+    if (result?.updateInfo && !isTrustedUpdateInfo(result.updateInfo, getFeedUrl())) {
+      return;
+    }
     recordCheckedNow();
   } catch (err: unknown) {
     setUserCheckInFlight(false);
