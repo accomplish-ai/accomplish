@@ -185,7 +185,6 @@ describe('daemon onBeforeStart — integration against real resolveTaskConfig + 
       'request-connector-auth',
       'complete-task',
       'start-task',
-      'desktop-control',
       'whatsapp',
       'dev-browser-mcp',
       'gmail-mcp',

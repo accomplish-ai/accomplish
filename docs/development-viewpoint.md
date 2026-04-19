@@ -242,7 +242,7 @@ graph TD
   CORE --> INTERNAL["internal/classes/<br/><i>TaskManager · Storage<br/>(implementation details)</i>"]
   CORE --> BROWSER["browser/<br/><i>Playwright server<br/>Element detection</i>"]
 
-  MCP["mcp-tools/<br/><i>start-task · complete-task<br/>dev-browser · dev-browser-mcp<br/>desktop-control · whatsapp<br/>request-connector-auth · …</i>"]
+  MCP["mcp-tools/<br/><i>start-task · complete-task<br/>dev-browser · dev-browser-mcp<br/>whatsapp · request-connector-auth · …</i>"]
   CORE --> MCP
 
   classDef dir fill:#fff3e0,stroke:#fb8c00

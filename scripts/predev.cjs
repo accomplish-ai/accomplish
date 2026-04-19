@@ -7,6 +7,7 @@ const env = { ...process.env };
 try {
   runNodeScript('check-deps.cjs');
   runNodeScript('ensure-agent-core-built.cjs');
+  runNodeScript('check-native-abi.cjs');
   runNodeScript('ensure-daemon-built.cjs');
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);

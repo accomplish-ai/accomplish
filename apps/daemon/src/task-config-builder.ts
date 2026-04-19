@@ -60,9 +60,8 @@ export async function isCliAvailable(opts: TaskConfigBuilderOptions): Promise<bo
 
 /**
  * Read a port number from the given env var, returning `undefined` when the
- * var is unset or not an integer. Used to pick up port assignments that the
- * daemon emits from its own HTTP services (WhatsApp API) into child-process
- * MCP tools.
+ * var is unset or not an integer. Sole remaining caller is the WhatsApp API
+ * port that the daemon emits into the WhatsApp MCP tool child process.
  */
 function getPort(envVar: string): number | undefined {
   const val = process.env[envVar];
@@ -143,8 +142,6 @@ export async function onBeforeStart(
   const apiKeys = await storage.getAllApiKeys();
   await syncApiKeysToOpenCodeAuth(authPath, apiKeys);
 
-  const permissionApiPort = getPort('ACCOMPLISH_PERMISSION_API_PORT');
-  const questionApiPort = getPort('ACCOMPLISH_QUESTION_API_PORT');
   const whatsappApiPort = getPort('ACCOMPLISH_WHATSAPP_API_PORT');
 
   const skills = getEnabledSkills();
@@ -167,8 +164,6 @@ export async function onBeforeStart(
     isPackaged: opts.isPackaged,
     bundledNodeBinPath: getBundledNodeBinPath(opts),
     getApiKey: (provider) => storage.getApiKey(provider),
-    permissionApiPort,
-    questionApiPort,
     whatsappApiPort,
     authToken: process.env.ACCOMPLISH_DAEMON_AUTH_TOKEN,
     skills,

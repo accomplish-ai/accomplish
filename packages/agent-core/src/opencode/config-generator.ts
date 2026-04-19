@@ -145,8 +145,6 @@ export function generateConfig(options: ConfigGeneratorOptions): GeneratedConfig
     skills = [],
     bundledNodeBinPath,
     providerConfigs = [],
-    permissionApiPort = 9226,
-    questionApiPort = 9227,
     whatsappApiPort,
     userDataPath,
     model,
@@ -329,8 +327,6 @@ ${options.knowledgeContext}
   const mcpServers = buildMcpServers({
     mcpToolsPath,
     nodeExe,
-    permissionApiPort,
-    questionApiPort,
     whatsappApiPort,
     browserConfig,
     authToken: options.authToken,

@@ -15,7 +15,7 @@ export const QUESTION_REQUEST_PREFIX = 'questionreq_';
 export interface PermissionRequest {
   id: string;
   taskId: string;
-  type: 'tool' | 'question' | 'file' | 'desktop';
+  type: 'tool' | 'question' | 'file';
   toolName?: string;
   toolInput?: unknown;
   question?: string;
@@ -27,9 +27,6 @@ export interface PermissionRequest {
   filePaths?: string[];
   targetPath?: string;
   contentPreview?: string;
-  desktopAction?: string;
-  targetWindow?: string;
-  coordinates?: { x: number; y: number };
   timeoutMs?: number;
   createdAt: string;
 }

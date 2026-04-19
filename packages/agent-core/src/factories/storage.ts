@@ -90,12 +90,6 @@ import {
   clearAllConnectors,
 } from '../storage/repositories/connectors.js';
 import {
-  getDesktopBlocklist,
-  setDesktopBlocklist,
-  addDesktopBlocklistEntry,
-  removeDesktopBlocklistEntry,
-} from '../storage/repositories/desktopControl.js';
-import {
   getAllScheduledTasks,
   getEnabledScheduledTasks,
   getScheduledTasksByWorkspace,
@@ -228,12 +222,6 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
       }
     },
     deleteConnectorTokens: (connectorId) => secureStorage.delete(`connector-tokens:${connectorId}`),
-
-    // Desktop Control
-    getDesktopBlocklist: () => getDesktopBlocklist(),
-    setDesktopBlocklist: (entries) => setDesktopBlocklist(entries),
-    addDesktopBlocklistEntry: (entry) => addDesktopBlocklistEntry(entry),
-    removeDesktopBlocklistEntry: (appName) => removeDesktopBlocklistEntry(appName),
 
     // Scheduled Tasks
     getAllScheduledTasks: () => getAllScheduledTasks(),

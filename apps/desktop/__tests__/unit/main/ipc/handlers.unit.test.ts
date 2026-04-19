@@ -653,28 +653,6 @@ vi.mock('@main/logging', () => ({
   getLogCollector: vi.fn(() => mockLogCollector),
 }));
 
-// Mock permission API
-const mockPendingPermissions = new Map<string, { resolve: (...args: unknown[]) => unknown }>();
-
-vi.mock('@main/permission-api', () => ({
-  startPermissionApiServer: vi.fn(),
-  startQuestionApiServer: vi.fn(),
-  initPermissionApi: vi.fn(),
-  resolvePermission: vi.fn((requestId: string, allowed: boolean) => {
-    const pending = mockPendingPermissions.get(requestId);
-    if (pending) {
-      pending.resolve(allowed);
-      mockPendingPermissions.delete(requestId);
-      return true;
-    }
-    return false;
-  }),
-  resolveQuestion: vi.fn(() => true),
-  isFilePermissionRequest: vi.fn((requestId: string) => requestId.startsWith('filereq_')),
-  isQuestionRequest: vi.fn((requestId: string) => requestId.startsWith('question_')),
-  QUESTION_API_PORT: 9227,
-}));
-
 // Mock fs module for bug report file writes
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>();
@@ -748,7 +726,6 @@ describe('IPC Handlers Integration', () => {
     mockDebugMode = false;
     mockOnboardingComplete = false;
     mockSelectedModel = null;
-    mockPendingPermissions.clear();
 
     // Reset task manager mocks
     mockTaskManager.startTask.mockReset();

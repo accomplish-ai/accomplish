@@ -192,16 +192,6 @@ vi.mock('@main/store/secureStorage', () => ({
   getBedrockCredentials: vi.fn(() => null),
 }));
 
-vi.mock('@main/permission-api', () => ({
-  startPermissionApiServer: vi.fn(),
-  startQuestionApiServer: vi.fn(),
-  initPermissionApi: vi.fn(),
-  resolvePermission: vi.fn(() => false),
-  resolveQuestion: vi.fn(() => true),
-  isFilePermissionRequest: vi.fn(() => false),
-  isQuestionRequest: vi.fn(() => false),
-}));
-
 vi.mock('@main/ipc/validation', () => ({
   normalizeIpcError: vi.fn((err: Error) => err),
   validate: vi.fn((_schema: unknown, data: unknown) => data),

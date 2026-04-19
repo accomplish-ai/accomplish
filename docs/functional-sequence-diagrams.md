@@ -21,54 +21,75 @@ There is **no WebSocket anywhere** in the system — the SDK event channel is SS
 
 ---
 
-## Overview — the two canonical round-trips
+## Bird's-eye view — one diagram, every process
 
-Before the per-phase diagrams, here are the two flows at the lowest useful granularity: a **task request** (user kicks off work, events stream back to the UI) and a **permission gate** (agent asks to do something risky, user responds). Both round-trips cross every process boundary in the system. The diagrams below compress each to four or five participants. Sections 1, 2, and 3 expand every hop.
-
-### Task request — end to end
+This single diagram shows the whole system in flight — every OS process, every wire between them, and the three paths you need to recognise: **forward** (user → LLM), **response** (LLM → user), and **user reply** (user answers a permission or sends a follow-up). Each box below is a distinct OS process (or external endpoint); participants inside the same box share the same address space. §1, §2, and §3 expand every hop.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant User
-    participant App as Desktop App<br/>(UI + Electron Main)
-    participant Daemon as Daemon<br/>(TaskService + Adapter)
-    participant OC as opencode serve<br/>(per task)
-    participant AI as AI Provider
 
-    User->>App: types prompt and clicks Start
-    App->>Daemon: task.start(cfg)<br/>[JSON-RPC]
-    Daemon->>OC: spawn, session.create, session.prompt<br/>[spawn + HTTP]
-    OC->>AI: chat completion<br/>[HTTPS]
-    AI-->>OC: streaming tokens and tool calls
-    OC-->>Daemon: message.part.updated, todo.updated,<br/>session.idle<br/>[SSE]
-    Daemon-->>App: rpc.notify then webContents.send<br/>[JSON-RPC notify then IPC push]
-    App-->>User: messages, todos, final answer<br/>render live
-    Note over Daemon,OC: On terminal event the daemon keeps<br/>opencode serve warm for 60s, then kills it
+    participant User
+
+    box mistyrose Electron Renderer (sandboxed V8)
+      participant R as React Renderer<br/>(preload + Zustand)
+    end
+
+    box aliceblue Electron Main (Node, full privileges)
+      participant M as Main Dispatcher + Handlers<br/>(IPC Handler + DaemonClient)
+    end
+
+    box honeydew Daemon (standalone Node.js)
+      participant D as Daemon<br/>(TaskService + OpenCodeAdapter +<br/>CompletionEnforcer + RpcServer)
+    end
+
+    box oldlace opencode serve (per task subprocess)
+      participant OC as opencode serve<br/>(session, tools, permission/question gate)
+    end
+
+    box lavender Outbound HTTPS
+      participant GW as LLM Gateway<br/>(Free build only)
+      participant LLM as AI Provider
+    end
+
+    Note over User,LLM: Forward path — user prompt reaches the LLM
+    User->>R: types and clicks Start
+    R->>M: window.accomplish.startTask(cfg)<br/>[IPC invoke]
+    M->>D: client.call('task.start', cfg)<br/>[JSON-RPC over socket]
+    D->>OC: spawn + session.create + session.prompt<br/>[spawn + HTTP]
+    OC->>GW: chat completion, tagged with taskId<br/>[HTTPS, Free build only]
+    GW->>LLM: upstream forward<br/>[HTTPS]
+
+    Note over User,LLM: Response path — tokens, tool events, gate events stream back
+    LLM-->>GW: streaming tokens + tool calls
+    GW-->>OC: streamed completion + X-Accomplish-Usage header
+    OC-->>D: SSE events<br/>(message.part.updated, todo.updated,<br/>permission.asked, question.asked, session.idle)<br/>[SSE]
+    D-->>M: rpc.notify on task.message /<br/>permission.request / todo.update<br/>[JSON-RPC notify]
+    M-->>R: webContents.send<br/>[IPC push]
+    R-->>User: message renders,<br/>or permission/question dialog opens
+
+    Note over User,LLM: User reply path — permission answer OR follow-up prompt
+    User->>R: Allow / Deny / answer<br/>(or a follow-up prompt)
+    R->>M: ipcRenderer.invoke on permission:respond<br/>or task:send-message<br/>[IPC invoke]
+    M->>D: client.call on permission.respond<br/>or task.sendMessage<br/>[JSON-RPC]
+    D->>OC: client.permission.reply / client.question.reply<br/>or session.prompt for the follow-up<br/>[HTTP POST]
+    OC->>GW: (only if another LLM call is needed)<br/>follow-up chat completion<br/>[HTTPS]
+    GW->>LLM: upstream forward<br/>[HTTPS]
 ```
 
-The per-hop breakdown is in §1 (six phases).
+**How to read the boxes:**
 
-### Permission gate — end to end
+| Box                       | What lives here                                                                                            | How it talks outward                                                 |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Electron Renderer         | React UI, Zustand store, preload (`contextBridge`)                                                         | Only through the preload bridge to Main — no network, no `fs`        |
+| Electron Main             | IPC handlers, `DaemonClient`, notification forwarder, OAuth popups, tray                                   | IPC to Renderer; JSON-RPC over socket to Daemon                      |
+| Daemon                    | `TaskService`, `OpenCodeAdapter`, `CompletionEnforcer`, `OpenCodeServerManager`, `DaemonRpcServer`, SQLite | JSON-RPC socket to Main; spawns + HTTP/SSE to `opencode serve`       |
+| `opencode serve` per task | Session, agent loop, built-in tools, MCP tools, native permission/question gate                            | HTTPS outbound to Gateway or provider; HTTP + SSE back to Daemon     |
+| Outbound HTTPS            | Accomplish LLM Gateway (Free only) and the AI provider                                                     | LLM Gateway proxies, tags per-task, and forwards to the actual model |
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant User
-    participant App as Desktop App
-    participant Daemon as Daemon<br/>(Adapter + RPC)
-    participant OC as opencode serve
+> **Note on terminology:** in the PTY era the gate shown inside `opencode serve` was an MCP server Accomplish shipped (`file-permission`, `ask-user-question`). In the SDK era it is native OpenCode functionality emitting `permission.asked` / `question.asked` events over the same SSE channel — no MCP server on that hop.
 
-    OC-->>Daemon: permission.asked or question.asked<br/>[SSE]
-    Daemon-->>App: permission.request notify<br/>[JSON-RPC notify then IPC push]
-    App->>User: dialog opens<br/>(path, tool, or question)
-    User-->>App: Allow, Deny, or answer
-    App->>Daemon: permission.respond(resp)<br/>[IPC invoke then JSON-RPC]
-    Daemon->>OC: permission.reply or question.reply<br/>[HTTP POST]
-    OC->>OC: tool resumes or agent loop continues
-```
-
-The full round-trip — including the `PendingRequest` ID mapping and the non-UI auto-deny branch — is in §2.
+The per-hop breakdowns are in §1 (task start), §2 (permission/question gate), and §3 (LLM Gateway internals).
 
 ---
 
@@ -81,19 +102,25 @@ A single user action ("run this task") walks six distinct layers — UI/preload,
 ```mermaid
 sequenceDiagram
     autonumber
-    participant UI as React UI<br/>(task launcher)
-    participant Pre as Preload<br/>(contextBridge)
-    participant H as IPC Handler<br/>(task-handlers.ts)
-    participant DC as DaemonClient<br/>(Electron main)
-    participant RPC as DaemonRpcServer<br/>(daemon)
-    participant TS as TaskService<br/>(daemon)
+    box mistyrose Electron Renderer process
+      participant UI as React UI<br/>(task launcher)
+      participant Pre as Preload<br/>(contextBridge)
+    end
+    box aliceblue Electron Main process
+      participant H as IPC Handler<br/>(task-handlers.ts)
+      participant DC as DaemonClient
+    end
+    box honeydew Daemon process
+      participant RPC as DaemonRpcServer
+      participant TS as TaskService
+    end
 
     UI->>Pre: window.accomplish.startTask(cfg)
     Pre->>H: ipcRenderer.invoke('task:start', cfg)<br/>[IPC invoke]
     H->>DC: client.call('task.start', cfg)
     DC->>RPC: JSON-RPC request 'task.start'<br/>[JSON-RPC, Unix socket / named pipe]
     RPC->>TS: startTask(params)
-    TS-->>RPC: { taskId, status: 'queued' }
+    TS-->>RPC: taskId and status 'queued'
     RPC-->>DC: JSON-RPC response
     DC-->>H: resolved value
     H-->>Pre: invoke result
@@ -107,12 +134,16 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    participant TS as TaskService
-    participant SM as OpenCodeServerManager
-    participant RT as OpenCodeTaskRuntime
-    participant CFG as ConfigGenerator<br/>+ syncApiKeysToOpenCodeAuth
+    box honeydew Daemon process
+      participant TS as TaskService
+      participant SM as OpenCodeServerManager
+      participant RT as OpenCodeTaskRuntime
+      participant CFG as ConfigGenerator<br/>+ syncApiKeysToOpenCodeAuth
+    end
     participant FS as Local disk
-    participant OC as opencode serve<br/>(child process)
+    box oldlace opencode serve subprocess
+      participant OC as opencode serve<br/>(child process)
+    end
 
     TS->>SM: ensureTaskRuntime(taskId, ctx)
     Note over SM: lazy — returns<br/>cached runtime if<br/>within 60s warm window
@@ -132,10 +163,14 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    participant TS as TaskService
-    participant TM as TaskManager<br/>(agent-core)
-    participant A as OpenCodeAdapter<br/>(agent-core)
-    participant OC as opencode serve
+    box honeydew Daemon process
+      participant TS as TaskService
+      participant TM as TaskManager<br/>(agent-core)
+      participant A as OpenCodeAdapter<br/>(agent-core)
+    end
+    box oldlace opencode serve subprocess
+      participant OC as opencode serve
+    end
 
     TS->>TM: taskManager.startTask(cfg)
     TM->>A: new OpenCodeAdapter + startTask(cfg)
@@ -156,11 +191,17 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    participant A as OpenCodeAdapter
-    participant OC as opencode serve<br/>(HTTP + SSE)
-    participant SESS as Session runtime<br/>(inside opencode)
-    participant TOOLS as Built-in + MCP tools<br/>(Bash, Read, Write, Edit, ...)
-    participant AI as AI Provider API
+    box honeydew Daemon process
+      participant A as OpenCodeAdapter
+    end
+    box oldlace opencode serve subprocess
+      participant OC as opencode serve<br/>(HTTP + SSE)
+      participant SESS as Session runtime<br/>(inside opencode)
+      participant TOOLS as Built-in + MCP tools<br/>(Bash, Read, Write, Edit, ...)
+    end
+    box lavender External
+      participant AI as AI Provider API
+    end
 
     A->>OC: session.prompt(...)
     OC->>SESS: dispatch prompt
@@ -187,13 +228,21 @@ Participants are drawn right-to-left here because the data is flowing _outward_ 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant UI as React UI
-    participant Store as Zustand TaskStore
-    participant NF as Notification<br/>Forwarder (main)
-    participant RPC as DaemonRpcServer
-    participant TCB as TaskCallbacks<br/>(daemon)
-    participant A as OpenCodeAdapter<br/>(+ MessageProcessor)
-    participant OC as opencode serve
+    box mistyrose Electron Renderer process
+      participant UI as React UI
+      participant Store as Zustand TaskStore
+    end
+    box aliceblue Electron Main process
+      participant NF as Notification<br/>Forwarder
+    end
+    box honeydew Daemon process
+      participant RPC as DaemonRpcServer
+      participant TCB as TaskCallbacks
+      participant A as OpenCodeAdapter<br/>(+ MessageProcessor)
+    end
+    box oldlace opencode serve subprocess
+      participant OC as opencode serve
+    end
 
     OC-->>A: SSE message.part.updated<br/>/ todo.updated / etc.<br/>[SSE]
     A->>A: MessageProcessor.toTaskMessage(part)
@@ -211,13 +260,17 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    participant A as OpenCodeAdapter
-    participant TCB as TaskCallbacks
-    participant TS as TaskService
-    participant SM as OpenCodeServerManager
-    participant OC as opencode serve
+    box honeydew Daemon process
+      participant A as OpenCodeAdapter
+      participant TCB as TaskCallbacks
+      participant TS as TaskService
+      participant SM as OpenCodeServerManager
+    end
+    box oldlace opencode serve subprocess
+      participant OC as opencode serve
+    end
 
-    A->>TCB: markComplete('success' | 'error')
+    A->>TCB: markComplete success or error
     TCB->>TS: onTaskTerminal(taskId, status)
     TS->>SM: scheduleTaskRuntimeCleanup(taskId, 60_000)
     Note over SM: runtime stays alive for 60s in case<br/>user sends a follow-up prompt
@@ -240,15 +293,23 @@ Triggered when the agent wants to run a file-mutating tool (`Write`, `Edit`, `Ba
 ```mermaid
 sequenceDiagram
     autonumber
-    participant SESS as Session runtime<br/>(inside opencode serve)
-    participant OC as opencode serve<br/>(HTTP + SSE)
-    participant A as OpenCodeAdapter<br/>(incl. PendingRequest map)
-    participant TCB as TaskCallbacks<br/>(daemon)
-    participant RPC as DaemonRpcServer
-    participant NF as Notification<br/>Forwarder (main)
-    participant UI as Permission / Question<br/>Dialog (React)
-    participant H as IPC Handler<br/>(permission-handlers)
-    participant TS as TaskService
+    box oldlace opencode serve subprocess
+      participant SESS as Session runtime<br/>(inside opencode serve)
+      participant OC as opencode serve<br/>(HTTP + SSE)
+    end
+    box honeydew Daemon process
+      participant A as OpenCodeAdapter<br/>(incl. PendingRequest map)
+      participant TCB as TaskCallbacks
+      participant RPC as DaemonRpcServer
+      participant TS as TaskService
+    end
+    box aliceblue Electron Main process
+      participant NF as Notification<br/>Forwarder
+      participant H as IPC Handler<br/>(permission-handlers)
+    end
+    box mistyrose Electron Renderer process
+      participant UI as Permission / Question<br/>Dialog (React)
+    end
 
     Note over SESS: tool gated OR<br/>ask-user-question fired
     SESS-->>OC: emits permission.asked /<br/>question.asked (with sdkRequestId)
@@ -293,13 +354,21 @@ The private package `@accomplish/llm-gateway-client` is loaded via dynamic `impo
 ```mermaid
 sequenceDiagram
     autonumber
-    participant UI as Settings UI<br/>("Use Accomplish AI")
-    participant Pre as Preload
-    participant H as IPC Handler<br/>(settings-handlers)
-    participant DC as DaemonClient
-    participant RPC as DaemonRpcServer
-    participant RT as AccomplishRuntime<br/>(Free impl, dynamically loaded)
-    participant GW as Accomplish LLM Gateway
+    box mistyrose Electron Renderer process
+      participant UI as Settings UI<br/>("Use Accomplish AI")
+      participant Pre as Preload
+    end
+    box aliceblue Electron Main process
+      participant H as IPC Handler<br/>(settings-handlers)
+      participant DC as DaemonClient
+    end
+    box honeydew Daemon process
+      participant RPC as DaemonRpcServer
+      participant RT as AccomplishRuntime<br/>(Free impl, dynamically loaded)
+    end
+    box lavender Outbound HTTPS
+      participant GW as Accomplish LLM Gateway
+    end
 
     UI->>Pre: window.accomplish.connectAccomplishAi()
     Pre->>H: ipcRenderer.invoke('accomplish-ai:connect')<br/>[IPC invoke]
@@ -327,12 +396,18 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    participant TS as TaskService
-    participant A as OpenCodeAdapter
-    participant RT as AccomplishRuntime
-    participant OC as opencode serve
-    participant GW as Accomplish LLM Gateway
-    participant AI as Upstream AI Provider
+    box honeydew Daemon process
+      participant TS as TaskService
+      participant A as OpenCodeAdapter
+      participant RT as AccomplishRuntime
+    end
+    box oldlace opencode serve subprocess
+      participant OC as opencode serve
+    end
+    box lavender Outbound HTTPS
+      participant GW as Accomplish LLM Gateway
+      participant AI as Upstream AI Provider
+    end
 
     Note over TS,A: Task start (see §1c)
     A->>RT: setProxyTaskId(taskId)
@@ -362,6 +437,45 @@ sequenceDiagram
 
 ---
 
+## 4. Ports & external services
+
+The two tables below enumerate every wire that leaves a process. **Every port we open is bound to `127.0.0.1`** — no service in this document is reachable from the network. The "What it does" column is the short version; hop details live in §1–§3.
+
+### 4.1 Local ports Accomplish opens
+
+| Port     | What it does                                                                                                | Caller → Listener                    | Protocol                               | Status |
+| -------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------ | -------------------------------------- | ------ |
+| **9224** | Dev-browser MCP tool surface — exposes Playwright-driven browser automation to the agent                    | `opencode serve` → Playwright bridge | HTTP                                   | live   |
+| **9225** | Chrome DevTools Protocol for the Playwright-controlled Chromium                                             | Playwright bridge → Chromium         | WebSocket (CDP)                        | live   |
+| **9228** | Azure Foundry transform proxy — rewrites request bodies and rotates Azure AD tokens before upstream forward | `opencode serve` → daemon proxy      | HTTP                                   | live   |
+| **9229** | Moonshot transform proxy — normalises Moonshot's non-standard auth and caching before upstream forward      | `opencode serve` → daemon proxy      | HTTP                                   | live   |
+| **9230** | WhatsApp send API — Bearer-auth endpoint the `whatsapp-send` MCP tool POSTs messages to                     | `opencode serve` → daemon            | HTTP                                   | live   |
+| random   | Per-task `opencode serve` — the SDK v2 REST + SSE endpoint for one task's session, tools, and LLM loop      | daemon → `opencode serve` child      | HTTP + SSE                             | live   |
+| random   | OAuth callback — catches the redirect at the end of an MCP-connector or provider OAuth flow                 | user's browser → Electron Main       | HTTP                                   | live   |
+| socket   | Daemon JSON-RPC — every Electron ↔ Daemon call (task lifecycle, settings, permissions, usage)               | Electron Main ↔ Daemon               | JSON-RPC over Unix socket / named pipe | live   |
+
+### 4.2 External HTTPS endpoints (outbound only)
+
+All calls are outbound HTTPS. Credentials are loaded from `SecureStorage` (AES-256-GCM) at task start.
+
+| Service                      | Host                                                    | What it does for us                                                          | Who calls it                                                   |
+| ---------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Anthropic                    | `api.anthropic.com`                                     | LLM generation + Summarizer task-title generation                            | `opencode serve` / daemon Summarizer                           |
+| OpenAI                       | `api.openai.com`                                        | LLM generation + ChatGPT OAuth flow for Pro/Plus accounts                    | `opencode serve` / Summarizer / `OpenAiOauthManager`           |
+| Google Gemini                | `generativelanguage.googleapis.com`                     | LLM generation + Summarizer                                                  | `opencode serve` / Summarizer                                  |
+| Google Vertex AI             | `*-aiplatform.googleapis.com`                           | Gemini via GCP IAM (for enterprise GCP users)                                | `opencode serve`                                               |
+| Moonshot AI                  | `api.moonshot.ai` (via local `:9229` proxy)             | Kimi LLM models                                                              | local proxy → Moonshot                                         |
+| Azure Foundry / Azure OpenAI | `cognitiveservices.azure.com` (via local `:9228` proxy) | Azure-hosted OpenAI models with Azure AD auth                                | local proxy → Azure                                            |
+| AWS Bedrock                  | `bedrock-runtime.<region>.amazonaws.com`                | Anthropic and others via AWS IAM (for enterprise AWS users)                  | `opencode serve`                                               |
+| ElevenLabs STT               | `api.elevenlabs.io`                                     | Voice-to-text transcription for the task-launcher mic button                 | Daemon `SpeechService`                                         |
+| Accomplish LLM Gateway       | `ACCOMPLISH_GATEWAY_URL` (build-env)                    | **Free build only:** proxies LLM calls so users spend Accomplish credits     | `opencode serve` via proxy env injected by the private runtime |
+| MCP connectors               | user-configured                                         | Remote MCP tool endpoints (Linear, GitHub, etc.) — OAuth 2.0 auto-discovered | `opencode serve` / MCP OAuth client                            |
+| WhatsApp (Baileys)           | WhatsApp servers via Baileys WebSocket                  | Inbound + outbound WhatsApp messages as a task source/sink                   | Daemon `WhatsAppDaemonService`                                 |
+
+> **Why Moonshot and Azure Foundry each need a local proxy:** both providers require request-body or auth transforms `opencode serve` can't do natively (Azure rotates AD tokens via `azure-token-manager`; Moonshot has non-standard cache/auth semantics). The daemon runs a tiny loopback HTTP server per provider that receives calls from `opencode serve`, rewrites them, and forwards the real HTTPS request.
+
+---
+
 ## How to read these alongside the other docs
 
 | If you want…                                                    | Read…                                                   |
@@ -370,5 +484,6 @@ sequenceDiagram
 | The list of every transport / channel                           | [functional-viewpoint.md](functional-viewpoint.md) §4   |
 | Why `opencode serve` is per-task, 60s TTL                       | [functional-viewpoint.md](functional-viewpoint.md) §5   |
 | The message **order** on start / gate / gateway (this document) | §1, §2, §3 above                                        |
+| Every port and external service (this document)                 | §4 above                                                |
 | Completion-enforcer state machine                               | [functional-viewpoint.md](functional-viewpoint.md) §10  |
 | Concurrency invariants / which thread owns what                 | [concurrency-viewpoint.md](concurrency-viewpoint.md)    |

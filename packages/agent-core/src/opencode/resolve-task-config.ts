@@ -38,9 +38,6 @@ export interface ResolveTaskConfigOptions {
   /** Optional Azure Foundry token for Entra ID auth */
   azureFoundryToken?: string;
 
-  /** Permission and question API ports */
-  permissionApiPort?: number;
-  questionApiPort?: number;
   /** Port for the WhatsApp HTTP API. Omit to disable the MCP tool. */
   whatsappApiPort?: number;
 
@@ -124,8 +121,6 @@ export async function resolveTaskConfig(
     bundledNodeBinPath,
     getApiKey,
     azureFoundryToken,
-    permissionApiPort,
-    questionApiPort,
     whatsappApiPort,
     authToken,
     skills,
@@ -223,8 +218,6 @@ export async function resolveTaskConfig(
       skills,
       providerConfigs,
       enabledProviders,
-      permissionApiPort,
-      questionApiPort,
       whatsappApiPort,
       authToken,
       model: modelOverride?.model,

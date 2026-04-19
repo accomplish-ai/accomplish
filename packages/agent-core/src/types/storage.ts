@@ -19,7 +19,6 @@ import type { McpConnector, ConnectorStatus, OAuthTokens } from '../common/types
 import type { SandboxConfig } from '../common/types/sandbox.js';
 import type { CloudBrowserConfig } from '../common/types/cloud-browser.js';
 import type { MessagingConfig } from '../common/types/messaging.js';
-import type { BlocklistEntry } from '../common/types/desktop.js';
 import type { ScheduledTask } from '../common/types/daemon.js';
 
 /** Options for creating a Storage instance */
@@ -316,18 +315,6 @@ export interface DatabaseLifecycleAPI {
   getDatabasePath(): string | null;
 }
 
-/** API for managing the desktop-control sensitive app blocklist */
-export interface DesktopControlStorageAPI {
-  /** Get the user's custom blocklist entries */
-  getDesktopBlocklist(): BlocklistEntry[];
-  /** Set the user's custom blocklist entries */
-  setDesktopBlocklist(entries: BlocklistEntry[]): void;
-  /** Add a single entry to the blocklist (deduplicates by appName) */
-  addDesktopBlocklistEntry(entry: BlocklistEntry): void;
-  /** Remove an entry from the blocklist by appName */
-  removeDesktopBlocklistEntry(appName: string): void;
-}
-
 /** API for cron-based scheduled task persistence */
 export interface SchedulerStorageAPI {
   /** Get all scheduled tasks */
@@ -348,7 +335,7 @@ export interface SchedulerStorageAPI {
   updateScheduledTaskLastRun(id: string, timestamp: string, nextRunAt: string): void;
 }
 
-/** Unified storage API combining task, settings, provider, secure storage, connector, desktop control, scheduler, and database lifecycle operations */
+/** Unified storage API combining task, settings, provider, secure storage, connector, scheduler, and database lifecycle operations */
 export interface StorageAPI
   extends
     TaskStorageAPI,
@@ -356,7 +343,6 @@ export interface StorageAPI
     ProviderSettingsAPI,
     SecureStorageAPI,
     ConnectorStorageAPI,
-    DesktopControlStorageAPI,
     SchedulerStorageAPI,
     DatabaseLifecycleAPI {}
 

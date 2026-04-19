@@ -13,11 +13,10 @@ const TEST_LOCAL_AGENT_CHROME_PROFILE = path.join(
   '.accomplish-test-local-agent-chrome',
 );
 
-// Phase 3 of the OpenCode SDK cutover port deleted the `file-permission`
-// and `ask-user-question` MCP tools (replaced by SDK-native
-// `permission.asked` / `question.asked` events). The PERMISSION_API_PORT
-// and QUESTION_API_PORT constants that fed their `environment` blocks are
-// gone with the MCP entries.
+// The file-permission and ask-user-question MCP shims were replaced by
+// SDK-native permission/question events during the SDK cutover port.
+// These test ports override dev-browser's default 9224/9225 to avoid
+// collision when a live dev-browser is also running on the same machine.
 
 interface McpServerConfig {
   type?: 'local' | 'remote';

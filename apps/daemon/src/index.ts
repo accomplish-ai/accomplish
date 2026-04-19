@@ -276,9 +276,9 @@ async function main(): Promise<void> {
   registerTaskEventForwarding(routeServices);
 
   // Start remaining HTTP / RPC services on well-known ports.
-  // PERMISSION_API_PORT (9226) and QUESTION_API_PORT (9227) are no longer
-  // listened on — their MCP shims (file-permission, ask-user-question) were
-  // replaced by native SDK events in Phase 2.
+  // The two HTTP listeners that ran on pre-cutover permission/question ports
+  // were removed in Phase 3 of the SDK cutover port — their MCP shims
+  // (file-permission, ask-user-question) were replaced by native SDK events.
   // THOUGHT_STREAM_PORT (9228) was removed with the rest of the unused
   // thought-stream reporting pipeline (report-thought / report-checkpoint
   // MCP tools were never registered in the opencode config, so the HTTP

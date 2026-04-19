@@ -3,13 +3,13 @@ import { motion } from 'framer-motion';
 import { springs } from '../../lib/animations';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AlertTriangle, AlertCircle, File, Brain, Monitor } from 'lucide-react';
+import { AlertTriangle, AlertCircle, File, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PermissionRequest } from '@accomplish_ai/agent-core/common';
 import { isDeleteOperation, getDisplayFilePaths } from './permission-utils';
 import { PermissionDialogFile } from './PermissionDialogFile';
 import { PermissionDialogQuestion } from './PermissionDialogQuestion';
-import { PermissionDialogDesktopTool } from './PermissionDialogDesktopTool';
+import { PermissionDialogTool } from './PermissionDialogTool';
 
 interface PermissionDialogProps {
   permissionRequest: PermissionRequest;
@@ -59,9 +59,7 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
                     ? 'bg-amber-500/10'
                     : permissionRequest.type === 'question'
                       ? 'bg-primary/10'
-                      : permissionRequest.type === 'desktop'
-                        ? 'bg-violet-500/10'
-                        : 'bg-warning/10',
+                      : 'bg-warning/10',
               )}
             >
               {isDelete ? (
@@ -70,8 +68,6 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
                 <File className="h-5 w-5 text-amber-600" />
               ) : permissionRequest.type === 'question' ? (
                 <Brain className="h-5 w-5 text-primary" />
-              ) : permissionRequest.type === 'desktop' ? (
-                <Monitor className="h-5 w-5 text-violet-600" />
               ) : (
                 <AlertCircle className="h-5 w-5 text-warning" />
               )}
@@ -85,9 +81,7 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
                   ? 'File Permission Required'
                   : permissionRequest.type === 'question'
                     ? permissionRequest.header || 'Question'
-                    : permissionRequest.type === 'desktop'
-                      ? 'Desktop Action Approval'
-                      : 'Permission Required'}
+                    : 'Permission Required'}
             </h3>
           </div>
 
@@ -105,8 +99,8 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
                 onSubmit={() => handleRespond(true)}
               />
             )}
-            {(permissionRequest.type === 'desktop' || permissionRequest.type === 'tool') && (
-              <PermissionDialogDesktopTool permissionRequest={permissionRequest} />
+            {permissionRequest.type === 'tool' && (
+              <PermissionDialogTool permissionRequest={permissionRequest} />
             )}
           </div>
 

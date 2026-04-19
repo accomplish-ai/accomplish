@@ -37,15 +37,7 @@ other tools will fail until start_task is called.
 
 **Decide: Does this request need planning?**
 
-Set \`needs_planning: true\` if completing the request will require tools beyond start_task and complete_task (e.g., file operations, browser actions, bash commands, desktop automation).
-
-## Desktop Automation Safety
-- ALL desktop.* tools require per-action user approval — the user will see each action before it executes.
-- NEVER automate password managers (1Password, Bitwarden, etc.), banking apps, or system security tools.
-- ALWAYS use desktop.screenshot() to verify screen state before and after actions.
-- ALWAYS use desktop.listWindows() before interacting with a window to confirm it exists.
-- Use desktop.type() only after focusing the target input with desktop.click().
-- **CRITICAL:** Any task that involves desktop.* tools MUST use \`needs_planning: true\` in the start_task call. Desktop automation is inherently destructive — plan your steps before executing.
+Set \`needs_planning: true\` if completing the request will require tools beyond start_task and complete_task (e.g., file operations, browser actions, bash commands).
 
 Set \`needs_planning: false\` for conversational responses that do not require tools.
 In this mode, respond directly and stop (no \`start_task\`, no \`complete_task\`).

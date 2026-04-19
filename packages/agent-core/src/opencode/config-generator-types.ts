@@ -21,8 +21,6 @@ export interface ConfigGeneratorOptions {
   isPackaged: boolean;
   providerConfigs?: ProviderConfig[];
   azureFoundryToken?: string;
-  permissionApiPort?: number;
-  questionApiPort?: number;
   /** Port for the WhatsApp HTTP API (daemon). Omit to disable the MCP tool. */
   whatsappApiPort?: number;
   /** Optional auth token for daemon API endpoints */

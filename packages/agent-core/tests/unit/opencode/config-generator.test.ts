@@ -24,7 +24,6 @@ describe('ConfigGenerator', () => {
     ['request-connector-auth', 'dist/index.mjs'],
     ['complete-task', 'dist/index.mjs'],
     ['start-task', 'dist/index.mjs'],
-    ['desktop-control', 'dist/index.mjs'],
     ['dev-browser-mcp', 'dist/index.mjs'],
   ] as const;
 
@@ -181,11 +180,11 @@ describe('ConfigGenerator', () => {
       // the SDK's permission.asked / question.asked events.
       expect(result.mcpServers['file-permission']).toBeUndefined();
       expect(result.mcpServers['ask-user-question']).toBeUndefined();
+      expect(result.mcpServers['desktop-control']).toBeUndefined();
       expect(result.mcpServers['request-connector-auth']).toBeDefined();
       expect(result.mcpServers['dev-browser-mcp']).toBeDefined();
       expect(result.mcpServers['complete-task']).toBeDefined();
       expect(result.mcpServers['start-task']).toBeDefined();
-      expect(result.mcpServers['desktop-control']).toBeDefined();
     });
 
     it('should include the Slack MCP with OpenCode-compatible OAuth config', () => {
@@ -206,14 +205,6 @@ describe('ConfigGenerator', () => {
       });
       expect(result.config.mcp?.slack).toEqual(result.mcpServers.slack);
     });
-
-    // Phase 3 of the SDK cutover port removed the file-permission and
-    // ask-user-question MCP entries. The `permissionApiPort` /
-    // `questionApiPort` options are retained on the config-generator type
-    // for back-compat but no MCP entry consumes them. Desktop-control's
-    // PERMISSION_API_PORT env injection is also gone — its sandbox path no
-    // longer routes through the daemon HTTP listeners. Tests that asserted
-    // on those fields are removed here.
 
     it('should include skills in system prompt when provided', () => {
       const options: ConfigGeneratorOptions = {
@@ -982,7 +973,6 @@ describe('ConfigGenerator', () => {
       expect(prompt).toContain('file operations');
       expect(prompt).toContain('browser actions');
       expect(prompt).toContain('bash commands');
-      expect(prompt).toContain('desktop automation');
     });
 
     it('should contain needs_planning: false for conversational messages', () => {
