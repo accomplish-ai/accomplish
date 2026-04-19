@@ -155,6 +155,7 @@ Accomplish is an open source AI desktop agent that automates file management, do
 - Moonshot AI (Kimi)
 - Z.AI (GLM)
 - MiniMax
+- Novita AI
 - Venice.ai
 - Amazon Bedrock
 - Azure Foundry
