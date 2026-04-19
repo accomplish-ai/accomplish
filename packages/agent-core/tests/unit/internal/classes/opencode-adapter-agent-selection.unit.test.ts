@@ -24,8 +24,8 @@ import { ACCOMPLISH_AGENT_NAME } from '../../../../src/opencode/config-generator
  * isn't configured to use the accomplish agent.
  *
  * Fix: pass `agent: ACCOMPLISH_AGENT_NAME` on BOTH session.prompt call
- * sites (initial prompt + continuation nudge). Per the SDK type defs
- * (`@opencode-ai/sdk@1.4.9`), `SessionPromptData.body` accepts
+ * sites (initial prompt + continuation nudge). Per the current
+ * `@opencode-ai/sdk` type defs, `SessionPromptData.body` accepts
  * `agent?: string`; `SessionCreateData.body` does not have an agent
  * field so create stays agent-less.
  *

@@ -42,7 +42,7 @@ Any other npm script can be added as a run config the same way — these are jus
 For scripts that need CLI arguments (e.g. `smoke:packaged-opencode`), add them to the **Arguments** field with `--` as the separator:
 
 ```
--- --artifact-dir=release/mac-arm64/Accomplish.app --expected-version=1.4.9
+-- --artifact-dir=release/mac-arm64/Accomplish.app --expected-version=1.14.18
 ```
 
 ## Typical workflow
@@ -86,7 +86,7 @@ Pre-configured with arguments for the darwin-arm64 artifact. Duplicate and tweak
     <scripts>
       <script value="smoke:packaged-opencode" />
     </scripts>
-    <arguments value="-- --artifact-dir=release/mac-arm64/Accomplish.app --expected-version=1.4.9" />
+    <arguments value="-- --artifact-dir=release/mac-arm64/Accomplish.app --expected-version=1.14.18" />
     <node-interpreter value="project" />
     <package-manager value="pnpm" />
     <method v="2" />

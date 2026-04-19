@@ -136,7 +136,7 @@ describe('CLI Resolver', () => {
     itIfWindows('resolves development CLI via opencode-ai launcher realpath in pnpm layout', () => {
       const appRoot = path.join(testDir, 'app');
       const launcherPath = path.join(appRoot, 'node_modules', 'opencode-ai');
-      const launcherStoreRoot = path.join(testDir, '.pnpm', 'opencode-ai@1.2.6', 'node_modules');
+      const launcherStoreRoot = path.join(testDir, '.pnpm', 'opencode-ai@1.14.18', 'node_modules');
       const realLauncherPath = path.join(launcherStoreRoot, 'opencode-ai');
       const cliPath = path.join(launcherStoreRoot, 'opencode-windows-x64', 'bin', 'opencode.exe');
 

@@ -18,7 +18,7 @@
  * Usage:
  *   node scripts/smoke-packaged-opencode.cjs \
  *     --artifact-dir=release/mac-arm64/Accomplish.app \
- *     --expected-version=1.4.9
+ *     --expected-version=1.14.18
  *
  * Optional flags:
  *   --ready-timeout-ms=30000   how long to wait for the ready line
@@ -42,6 +42,12 @@ const READY_LINE_PATTERN = /opencode server listening on\s+(https?:\/\/\S+)/;
 function parseArgs(argv) {
   const out = {};
   for (const arg of argv.slice(2)) {
+    // Tolerate a bare `--` separator forwarded by pnpm — some runners strip
+    // it, others pass it through literally. The WebStorm XML template in
+    // docs/webstorm-run-configurations.md relies on this.
+    if (arg === '--') {
+      continue;
+    }
     const m = arg.match(/^--([^=]+)=(.*)$/);
     if (!m) {
       console.error(`[smoke-packaged-opencode] Unrecognized argument: ${arg}`);

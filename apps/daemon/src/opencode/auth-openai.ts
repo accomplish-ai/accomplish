@@ -174,11 +174,11 @@ export class OpenAiOauthManager {
       `[auth.openai] Provider methods: ${methods.map((m) => `${m.type}:${m.label}`).join(', ')}`,
     );
 
-    // SDK 1.4.9's provider.oauth.authorize signature:
+    // The current SDK's provider.oauth.authorize signature:
     //   (parameters: { providerID, method?, directory?, workspace?, inputs? }, options?)
     //   → { data?: { url?: string } }
     // Commercial 1a320029 was written against an earlier SDK that used
-    // `{ path, body }`; the 1.4.9 shape folds those into flat parameters.
+    // `{ path, body }`; the current SDK shape folds those into flat parameters.
     const methodIndex = pickOauthMethodIndex(methods);
     log.info(`[auth.openai] Calling oauth.authorize with method index ${methodIndex}`);
     const authorize = await runtime.client.provider.oauth.authorize({
