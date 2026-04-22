@@ -29,8 +29,17 @@ cask "accomplish" do
   end
 
   zap trash: [
-    "~/Library/Application Support/ai.accomplish.desktop",
+    # Current userData (APP_DATA_NAME = "Accomplish" -> ~/Library/Application Support/Accomplish).
+    "~/Library/Application Support/Accomplish",
+    "~/Library/Application Support/accomplish",
+    # Legacy directories the migration layer still recognizes
+    # (apps/desktop/src/main/store/legacyMigration.ts).
+    "~/Library/Application Support/Openwork",
+    "~/Library/Application Support/openwork",
+    "~/Library/Application Support/@accomplish/desktop-v2",
     "~/Library/Application Support/Accomplish (formerly Openwork)",
+    # Bundle-id-based Electron state.
+    "~/Library/Logs/ai.accomplish.desktop",
     "~/Library/Logs/Accomplish (formerly Openwork)",
     "~/Library/Preferences/ai.accomplish.desktop.plist",
     "~/Library/Saved Application State/ai.accomplish.desktop.savedState",

@@ -42,12 +42,20 @@ Accomplish is notarized, a dedicated tap is the simpler path.
 
 ## Verification performed
 
-- Tested cask syntax against `brew style --cask`.
+- Checked Ruby syntax with `ruby -c homebrew/accomplish.rb`. (Not run
+  through `brew style --cask` yet because the cask is not in a tap
+  repository; that check will run when the cask is submitted to a tap
+  or to `homebrew-cask`.)
 - SHA256 values computed locally against the current v0.3.8 release assets.
 - `app` stanza string matches the bundle name inside the mounted DMG
   (`Accomplish (formerly Openwork).app`).
 - Bundle identifier `ai.accomplish.desktop` confirmed via
   `/Applications/Accomplish (formerly Openwork).app/Contents/Info.plist`
   and used in the `zap` stanza for a clean uninstall.
+- `zap` paths cross-referenced against the Electron `userData` directory
+  (`APP_DATA_NAME = "Accomplish"` in `apps/desktop/src/main/index.ts`)
+  and the legacy-directory list in
+  `apps/desktop/src/main/store/legacyMigration.ts` so `brew uninstall --zap`
+  does not leave behind user data from the Openwork-era installs.
 
 Closes #820.
