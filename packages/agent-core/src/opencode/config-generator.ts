@@ -80,6 +80,7 @@ const LANGUAGE_DISPLAY_NAMES: Record<string, string> = {
   'zh-CN': '中文',
   ru: 'русский',
   fr: 'français',
+  hi: 'हिन्दी',
 };
 
 /**

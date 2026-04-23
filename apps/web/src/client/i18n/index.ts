@@ -53,8 +53,17 @@ import frHistory from '@locales/fr/history.json';
 import frErrors from '@locales/fr/errors.json';
 import frSidebar from '@locales/fr/sidebar.json';
 
+// Static Hindi locale imports
+import hiCommon from '@locales/hi/common.json';
+import hiHome from '@locales/hi/home.json';
+import hiSettings from '@locales/hi/settings.json';
+import hiExecution from '@locales/hi/execution.json';
+import hiHistory from '@locales/hi/history.json';
+import hiErrors from '@locales/hi/errors.json';
+import hiSidebar from '@locales/hi/sidebar.json';
+
 // Supported languages and namespaces
-export const SUPPORTED_LANGUAGES = ['en', 'zh-CN', 'ru', 'fr'] as const;
+export const SUPPORTED_LANGUAGES = ['en', 'zh-CN', 'ru', 'fr', 'hi'] as const;
 export const NAMESPACES = [
   'common',
   'home',
@@ -90,7 +99,13 @@ function resolveStoredLanguage(): SupportedLanguage {
     return 'en';
   }
   const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-  if (stored === 'en' || stored === 'zh-CN' || stored === 'ru' || stored === 'fr') {
+  if (
+    stored === 'en' ||
+    stored === 'zh-CN' ||
+    stored === 'ru' ||
+    stored === 'fr' ||
+    stored === 'hi'
+  ) {
     return stored;
   }
   // 'auto' or missing — detect from browser
@@ -103,6 +118,9 @@ function resolveStoredLanguage(): SupportedLanguage {
   }
   if (nav.startsWith('fr')) {
     return 'fr';
+  }
+  if (nav.startsWith('hi')) {
+    return 'hi';
   }
   return 'en';
 }
@@ -162,6 +180,15 @@ export async function initI18n(): Promise<void> {
             errors: frErrors as Record<string, unknown>,
             sidebar: frSidebar as Record<string, unknown>,
           },
+          hi: {
+            common: hiCommon as Record<string, unknown>,
+            home: hiHome as Record<string, unknown>,
+            settings: hiSettings as Record<string, unknown>,
+            execution: hiExecution as Record<string, unknown>,
+            history: hiHistory as Record<string, unknown>,
+            errors: hiErrors as Record<string, unknown>,
+            sidebar: hiSidebar as Record<string, unknown>,
+          },
         },
         lng: initialLanguage,
         fallbackLng: 'en',
@@ -206,7 +233,7 @@ export async function initI18n(): Promise<void> {
  * Change language and persist to localStorage and main-process DB (Electron only)
  */
 export async function changeLanguage(
-  language: 'en' | 'zh-CN' | 'ru' | 'fr' | 'auto',
+  language: 'en' | 'zh-CN' | 'ru' | 'fr' | 'hi' | 'auto',
 ): Promise<void> {
   const resolvedLanguage = language === 'auto' ? resolveAutoLanguage() : language;
   localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
@@ -223,7 +250,7 @@ export async function changeLanguage(
 /**
  * Get the current language preference from localStorage
  */
-export function getLanguagePreference(): 'en' | 'zh-CN' | 'ru' | 'fr' | 'auto' {
+export function getLanguagePreference(): 'en' | 'zh-CN' | 'ru' | 'fr' | 'hi' | 'auto' {
   if (typeof localStorage === 'undefined') {
     return 'auto';
   }
@@ -233,6 +260,7 @@ export function getLanguagePreference(): 'en' | 'zh-CN' | 'ru' | 'fr' | 'auto' {
     stored === 'zh-CN' ||
     stored === 'ru' ||
     stored === 'fr' ||
+    stored === 'hi' ||
     stored === 'auto'
   ) {
     return stored;
@@ -250,6 +278,9 @@ function resolveAutoLanguage(): SupportedLanguage {
   }
   if (nav.startsWith('fr')) {
     return 'fr';
+  }
+  if (nav.startsWith('hi')) {
+    return 'hi';
   }
   return 'en';
 }

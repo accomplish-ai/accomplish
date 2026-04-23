@@ -83,7 +83,7 @@ export function setCloseBehavior(behavior: CloseBehavior): void {
   db.prepare('UPDATE app_settings SET close_behavior = ? WHERE id = 1').run(behavior);
 }
 
-export const VALID_LANGUAGES: LanguagePreference[] = ['auto', 'en', 'zh-CN', 'ru', 'fr'];
+export const VALID_LANGUAGES: LanguagePreference[] = ['auto', 'en', 'zh-CN', 'ru', 'fr', 'hi'];
 
 /**
  * Returns the user's persisted UI language preference.

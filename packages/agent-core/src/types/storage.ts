@@ -80,7 +80,7 @@ export interface StoredFavorite {
   favoritedAt: string;
 }
 export type ThemePreference = 'system' | 'light' | 'dark';
-export type LanguagePreference = 'auto' | 'en' | 'zh-CN' | 'ru' | 'fr';
+export type LanguagePreference = 'auto' | 'en' | 'zh-CN' | 'ru' | 'fr' | 'hi';
 
 /** Application settings snapshot */
 export interface AppSettings {

@@ -1,0 +1,89 @@
+{
+  "title": "आप आज क्या करेंगे?",
+  "inputPlaceholder": "कार्य का वर्णन करें, और AI सब कुछ संभाल लेगा",
+  "plusMenu": {
+    "addContent": "सामग्री जोड़ें",
+    "attachFiles": "फ़ाइलें संलग्न करें",
+    "soon": "जल्द आ रहा है",
+    "useSkills": "कौशल का उपयोग करें",
+    "connectors": "कनेक्टर्स",
+    "noConnectors": "कोई कनेक्टर नहीं",
+    "manage": "प्रबंधन",
+    "dropFilesHere": "फ़ाइलें संलग्न करने के लिए यहाँ खींचें",
+    "dropFilesHint": "(अधिकतम {max} फ़ाइलें, प्रत्येक {size}MB तक)",
+    "fileTooLarge": "{name} {limit} की सीमा से अधिक है",
+    "tooManyFiles": "अधिकतम {max} फ़ाइलें",
+    "selectFolder": "फ़ोल्डर चुनें"
+  },
+  "examplePrompts": "उदाहरण प्रश्न",
+  "useCases": {
+    "calendarPrepNotes": {
+      "title": "मीटिंग की तैयारी",
+      "description": "कल की मीटिंग देखें और नोट्स तैयार करें।",
+      "prompt": "मेरे Google कैलेंडर में कल की घटनाएँ देखें और एक नए Google डॉक में नोट्स तैयार करें।"
+    },
+    "inboxPromoCleanup": {
+      "title": "प्रमोशनल ईमेल सफाई",
+      "description": "पिछले 24 घंटे के प्रचार ईमेल हटाएँ।",
+      "prompt": "मेरे Gmail को खोलो और पिछले 24 घंटों के सभी प्रचार ईमेल हटा दो।"
+    },
+    "competitorPricingDeck": {
+      "title": "प्रतिद्वंद्वी मूल्य विश्लेषण",
+      "description": "प्रतिद्वंद्वियों की कीमतों का विश्लेषण करें और स्लाइड तैयार करें।",
+      "prompt": "5 प्रतिस्पर्धी वेबसाइटों [URL दर्ज करें] से कीमतें और फीचर्स इकट्ठा करो, उन्हें CSV में सहेजो, कीमतों के अंतर का विश्लेषण करो और Google Slides में सिफारिशों के साथ एक स्लाइड तैयार करो।"
+    },
+    "notionApiAudit": {
+      "title": "Notion API ऑडिट",
+      "description": "Notion विकी में पुराने API के सभी संदर्भ खोजें।",
+      "prompt": "इस Notion विकी [URL] को देखें और पुराने API के सभी संदर्भ ढूँढें और पेज लिंक बताएं।"
+    },
+    "stagingVsProdVisual": {
+      "title": "Staging और Production तुलना",
+      "description": "Staging और production संस्करण की दृश्य तुलना करें।",
+      "prompt": "मेरी staging साइट [URL] की production साइट [URL] से तुलना करो और सभी दृश्य अंतर के स्क्रीनशॉट लो।"
+    },
+    "prodBrokenLinks": {
+      "title": "टूटी हुई लिंक जाँच",
+      "description": "वेबसाइट में टूटी हुई लिंक खोजें।",
+      "prompt": "इस वेबसाइट [URL] को खोलो, सभी लिंक जांचो और किसी भी 404 त्रुटि की रिपोर्ट करो।"
+    },
+    "portfolioMonitoring": {
+      "title": "पोर्टफोलियो निगरानी",
+      "description": "स्टॉक कीमतों में गिरावट और वृद्धि की सूचना दें।",
+      "prompt": "मेरे स्टॉक पोर्टफोलियो को [ब्रोकर साइट] पर ट्रैक करो और कीमतों में गिरावट या उछाल की सूचना दो।"
+    },
+    "jobApplicationAutomation": {
+      "title": "नौकरी आवेदन स्वचालन",
+      "description": "नौकरियाँ फ़िल्टर करें और आवेदन भेजें।",
+      "prompt": "LinkedIn पर [खोज शब्द] से नौकरियाँ खोजो, उन्हें वेतन के अनुसार क्रमबद्ध करो और मेरे प्रोफ़ाइल का उपयोग करके शीर्ष 5 पर आवेदन करो।"
+    },
+    "eventCalendarBuilder": {
+      "title": "इवेंट कैलेंडर निर्माण",
+      "description": "श्रेष्ठ इवेंट चुनें और कैलेंडर में जोड़ें।",
+      "prompt": "Eventbrite से इवेंट इकट्ठा करो, स्थान के अनुसार फ़िल्टर करो और शीर्ष 5 को मेरे कैलेंडर में जोड़ो।"
+    }
+  },
+  "favorites": {
+    "title": "पसंदीदा",
+    "empty": "पूर्ण या बाधित कार्यों को स्टार करें ताकि वे यहाँ दिखाई दें।",
+    "remove": "पसंदीदा से हटाएँ",
+    "showAll_one": "{{count}} पसंदीदा दिखाएँ",
+    "showAll_few": "सभी {{count}} पसंदीदा दिखाएँ",
+    "showAll_many": "सभी {{count}} पसंदीदा दिखाएँ",
+    "showAll_other": "{{count}} पसंदीदा दिखाएँ",
+    "showAll": "सभी {{count}} पसंदीदा दिखाएँ"
+  },
+  "slashCommand": {
+    "title": "कौशल",
+    "filtering": "“{{query}}” से मेल खाने वाले कौशल",
+    "navigate": "नेविगेट करें",
+    "select": "चुनें",
+    "dismiss": "बंद करें"
+  },
+  "selectFolder": "फ़ोल्डर चुनें",
+  "selectedFolder": {
+    "badge": "📁 {folder}",
+    "clearAriaLabel": "चयनित फ़ोल्डर साफ़ करें",
+    "clearButton": "✕"
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "api": {
+    "timeout": "समय समाप्त हो गया। कृपया इंटरनेट कनेक्शन जांचें।",
+    "timeoutRetry": "समय समाप्त हो गया। कृपया इंटरनेट कनेक्शन जांचें और फिर से प्रयास करें।",
+    "invalidKey": "अमान्य API कुंजी",
+    "noKey": "कृपया API कुंजी दर्ज करें।",
+    "validationFailed": "API कुंजी सत्यापन विफल",
+    "networkError": "नेटवर्क त्रुटि। कृपया कनेक्शन जांचें।",
+    "connectionFailed": "API कुंजी की पुष्टि नहीं हो सकी। कृपया इंटरनेट कनेक्शन जांचें।",
+    "unsupportedProvider": "असमर्थित प्रदाता"
+  },
+  "task": {
+    "notFound": "कार्य नहीं मिला",
+    "startFailed": "कार्य शुरू करने में विफल",
+    "cancelFailed": "कार्य रद्द करने में विफल",
+    "taskFailed": "कार्य पूरा नहीं हुआ",
+    "noActiveTask": "जारी रखने के लिए कोई सक्रिय कार्य नहीं है",
+    "noSession": "जारी रखने के लिए कोई सत्र नहीं है — कृपया नया कार्य शुरू करें",
+    "sendMessageFailed": "संदेश भेजने में विफल"
+  },
+  "adapter": {
+    "cliNotFound": "OpenCode CLI उपलब्ध नहीं है। अंतर्निहित CLI गायब या क्षतिग्रस्त हो सकता है। कृपया ऐप को पुनः इंस्टॉल करें।",
+    "disposed": "एडेप्टर बंद कर दिया गया है और नए कार्य शुरू नहीं कर सकता",
+    "noActiveProcess": "कोई सक्रिय प्रक्रिया नहीं है",
+    "exitWithCode": "OpenCode CLI कोड {{code}} के साथ समाप्त हुआ"
+  },
+  "validation": {
+    "mustBeString": "{{field}} एक स्ट्रिंग होना चाहिए",
+    "required": "{{field}} आवश्यक है",
+    "exceedsLength": "{{field}} अधिकतम लंबाई से अधिक है",
+    "unsupportedProvider": "असमर्थित API कुंजी प्रदाता",
+    "untrustedWindow": "अविश्वसनीय विंडो",
+    "focusedWindowRequired": "IPC अनुरोध सक्रिय विंडो से आना चाहिए"
+  },
+  "provider": {
+    "notReady": "प्रदाता तैयार नहीं है। कृपया प्रदाता को कनेक्ट करें और सेटिंग्स में मॉडल चुनें।",
+    "noModelsEndpoint": "इस प्रदाता के लिए मॉडल एंडपॉइंट कॉन्फ़िगर नहीं है",
+    "noApiKey": "इस प्रदाता के लिए API कुंजी नहीं मिली"
+  },
+  "ollama": {
+    "connectionFailed": "कनेक्शन त्रुटि",
+    "noModels": "कोई मॉडल नहीं मिला",
+    "saveFailed": "सहेजने में विफल",
+    "invalidUrl": "अमान्य URL प्रारूप",
+    "protocolNotAllowed": "केवल http और https URL की अनुमति है",
+    "invalidConfig": "अमान्य Ollama कॉन्फ़िगरेशन",
+    "modelsArray": "अमान्य Ollama कॉन्फ़िगरेशन: models एक array होना चाहिए",
+    "invalidModelFormat": "अमान्य Ollama कॉन्फ़िगरेशन: मॉडल का प्रारूप अमान्य है",
+    "connectionTimeout": "कनेक्शन का समय समाप्त हो गया। सुनिश्चित करें कि Ollama चल रहा है।",
+    "cannotConnect": "Ollama से कनेक्ट नहीं हो सका: {{message}}"
+  },
+  "bedrock": {
+    "invalidCredentials": "अमान्य प्रमाण-पत्र",
+    "saveFailed": "प्रमाण-पत्र सहेजने में विफल",
+    "invalidAuthType": "अमान्य प्रमाणीकरण प्रकार",
+    "invalidAwsCredentials": "अमान्य AWS प्रमाण-पत्र। कृपया Access Key ID और Secret Access Key जांचें।",
+    "accessDenied": "पहुंच अस्वीकृत। सुनिश्चित करें कि आपके AWS प्रमाण-पत्रों में Bedrock की अनुमति है।",
+    "profileNotFound": "AWS प्रोफ़ाइल नहीं मिली। कृपया ~/.aws/credentials फ़ाइल जांचें।",
+    "accessKeyRequired": "Access Key ID और Secret Access Key आवश्यक हैं",
+    "profileNameRequired": "प्रोफ़ाइल नाम आवश्यक है",
+    "apiKeyRequired": "API कुंजी आवश्यक है"
+  },
+  "model": {
+    "invalidConfig": "अमान्य मॉडल कॉन्फ़िगरेशन"
+  },
+  "litellm": {
+    "invalidConfig": "अमान्य LiteLLM कॉन्फ़िगरेशन",
+    "modelsArray": "अमान्य LiteLLM कॉन्फ़िगरेशन: models एक array होना चाहिए",
+    "invalidModelFormat": "अमान्य LiteLLM कॉन्फ़िगरेशन: मॉडल का प्रारूप अमान्य है"
+  },
+  "lmstudio": {
+    "notConfigured": "LM Studio कॉन्फ़िगर नहीं है"
+  },
+  "azureFoundry": {
+    "baseUrlRequired": "अमान्य Azure Foundry कॉन्फ़िगरेशन: baseUrl आवश्यक है",
+    "deploymentRequired": "अमान्य Azure Foundry कॉन्फ़िगरेशन: deploymentName आवश्यक है",
+    "invalidAuthType": "अमान्य Azure Foundry कॉन्फ़िगरेशन: authType api-key या entra-id होना चाहिए",
+    "invalidEnabled": "अमान्य Azure Foundry कॉन्फ़िगरेशन: enabled एक boolean मान होना चाहिए",
+    "invalidBaseUrl": "अमान्य Azure Foundry कॉन्फ़िगरेशन: बेस URL का प्रारूप अमान्य है"
+  },
+  "connector": {
+    "protocolRequired": "कनेक्टर URL में http:// या https:// का उपयोग होना चाहिए",
+    "invalidUrl": "अमान्य कनेक्टर URL: {{url}}"
+  },
+  "settings": {
+    "invalidDebugFlag": "अमान्य डिबग मोड फ़्लैग",
+    "invalidTheme": "अमान्य थीम मान",
+    "invalidBaseUrl": "अमान्य बेस URL"
+  },
+  "i18n": {
+    "unsupportedLanguage": "असमर्थित भाषा"
+  },
+  "url": {
+    "protocolNotAllowed": "केवल http और https URL की अनुमति है"
+  },
+  "permission": {
+    "denied": "पहुंच अस्वीकृत",
+    "required": "अनुमति आवश्यक है"
+  },
+  "generic": {
+    "unknown": "एक अज्ञात त्रुटि हुई",
+    "tryAgain": "कृपया फिर से प्रयास करें"
+  },
+  "app": {
+    "mustRunInDesktop": "इस एप्लिकेशन को Accomplish के डेस्कटॉप ऐप में चलाना आवश्यक है।",
+    "unableToStart": "शुरू करने में असमर्थ",
+    "updateRequired": "अपडेट आवश्यक है",
+    "schemaNewerMessage": "ये डेटा Accomplish के एक नए संस्करण (schema v{{version}}) द्वारा बनाया गया है।",
+    "schemaNewerDetail": "आपका ऐप केवल v{{version}} तक की स्कीमा का समर्थन करता है। कृपया Accomplish को अपडेट करें।"
+  },
+  "auth": {
+    "sessionExpired": "{{provider}} सत्र समाप्त हो गया",
+    "reLoginTo": "{{provider}} में फिर से लॉगिन करें",
+    "connectorAttention": "{{provider}} को ध्यान देने की आवश्यकता है",
+    "openConnectorSettings": "सेटिंग्स खोलें -> कनेक्टर्स -> {{provider}}"
+  },
+  "daemon": {
+    "disconnected": "डेमन डिस्कनेक्ट हो गया",
+    "disconnectedMessage": "बैकग्राउंड डेमन से कनेक्शन टूट गया है। पुनः कनेक्ट किया जा रहा है...",
+    "reconnectFailed": "पुनः कनेक्शन विफल",
+    "reconnectFailedMessage": "डेमन से पुनः कनेक्ट नहीं हो सका। कार्य बाधित हो सकते हैं।",
+    "openSettings": "सेटिंग्स खोलें"
+  },
+  "boundary": {
+    "title": "कुछ गलत हो गया",
+    "unexpectedError": "एक अप्रत्याशित त्रुटि हुई।",
+    "compactMessage": "सामग्री प्रदर्शित करने में त्रुटि।",
+    "errorPrefix": "त्रुटि:",
+    "tryAgain": "फिर से प्रयास करें",
+    "sidebarLoading": "नेविगेशन लोड हो रहा है…"
+  }
+}

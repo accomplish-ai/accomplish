@@ -1,0 +1,19 @@
+{
+  "newTask": "नया कार्य",
+  "searchTasks": "कार्य खोजें (Cmd+K)",
+  "noConversations": "कोई बातचीत नहीं",
+  "settings": "सेटिंग्स",
+  "searchPlaceholder": "कार्य खोजें...",
+  "results": "परिणाम",
+  "lastSevenDays": "पिछले 7 दिन",
+  "noTasksFound": "कोई कार्य नहीं मिला",
+  "navigate": "जाएँ",
+  "select": "चुनें",
+  "close": "बंद करें",
+  "confirmDelete": "क्या आप सुनिश्चित हैं कि आप इस कार्य को हटाना चाहते हैं?",
+  "deleteTask": "कार्य हटाएँ",
+  "favorite": {
+    "add": "पसंदीदा में जोड़ें",
+    "remove": "पसंदीदा से हटाएँ"
+  }
+}

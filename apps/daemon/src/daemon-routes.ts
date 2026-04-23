@@ -474,7 +474,7 @@ export function registerRpcMethods(services: RouteServices): void {
     'settings.setLanguage',
     safeHandler((params) => {
       const v = validate(
-        z.object({ language: z.enum(['auto', 'en', 'zh-CN', 'ru', 'fr']) }),
+        z.object({ language: z.enum(['auto', 'en', 'zh-CN', 'ru', 'fr', 'hi']) }),
         params,
       );
       settingsService.setLanguage(v.language);

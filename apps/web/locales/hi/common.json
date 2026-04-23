@@ -1,0 +1,100 @@
+{
+  "app": {
+    "name": "Accomplish"
+  },
+  "buttons": {
+    "send": "भेजें",
+    "submit": "पुष्टि करें",
+    "stop": "रोकें",
+    "cancel": "रद्द करें",
+    "close": "बंद करें",
+    "save": "सहेजें",
+    "delete": "हटाएँ",
+    "deleteAll": "सभी हटाएँ",
+    "allow": "अनुमति दें",
+    "deny": "अस्वीकार करें",
+    "continue": "जारी रखें",
+    "doneContinue": "पूरा हुआ, जारी रखें",
+    "goHome": "मुख्य पृष्ठ पर जाएँ",
+    "startNewTask": "नया कार्य",
+    "test": "परीक्षण",
+    "testing": "परीक्षण हो रहा है...",
+    "saving": "सहेजा जा रहा है...",
+    "validating": "सत्यापन हो रहा है...",
+    "export": "निर्यात",
+    "exported": "निर्यात किया गया",
+    "clear": "साफ करें",
+    "clearAll": "सब कुछ साफ करें",
+    "yes": "हाँ",
+    "no": "नहीं",
+    "retry": "पुनः प्रयास करें",
+    "saveApiKey": "API कुंजी सहेजें",
+    "copyToClipboard": "क्लिपबोर्ड में कॉपी करें",
+    "dismiss": "छिपाएँ",
+    "messageTooLong": "संदेश बहुत लंबा है",
+    "enterMessage": "संदेश दर्ज करें",
+    "quit": "बाहर निकलें"
+  },
+  "aria": {
+    "scrollToBottom": "नीचे स्क्रॉल करें",
+    "customResponse": "कस्टम उत्तर"
+  },
+  "status": {
+    "running": "चल रहा है",
+    "completed": "पूर्ण",
+    "failed": "विफल",
+    "cancelled": "रद्द किया गया",
+    "queued": "कतार में",
+    "pending": "लंबित",
+    "waiting": "प्रतीक्षा में",
+    "stopped": "रुका हुआ",
+    "interrupted": "बाधित"
+  },
+  "time": {
+    "justNow": "अभी-अभी",
+    "minutesAgo": "{{count}} मिनट पहले",
+    "hoursAgo": "{{count}} घंटे पहले",
+    "daysAgo": "{{count}} दिन पहले",
+    "today": "आज",
+    "yesterday": "कल"
+  },
+  "nav": {
+    "home": "होम",
+    "history": "इतिहास",
+    "settings": "सेटिंग्स"
+  },
+  "labels": {
+    "awsCredentials": "AWS प्रमाण-पत्र",
+    "gcpCredentials": "GCP प्रमाण-पत्र",
+    "localApiKey": "स्थानीय API कुंजी",
+    "azureFoundryEntraId": "Azure Foundry (Entra ID)",
+    "bedrockApiKey": "Bedrock API कुंजी",
+    "awsAccessKeys": "AWS एक्सेस कुंजियाँ",
+    "awsProfile": "AWS प्रोफ़ाइल: {{name}}"
+  },
+  "contextMenu": {
+    "addToDictionary": "शब्दकोश में जोड़ें"
+  },
+  "fileFilters": {
+    "text": "टेक्स्ट फ़ाइलें",
+    "log": "लॉग फ़ाइलें",
+    "skill": "स्किल फ़ाइलें",
+    "all": "सभी फ़ाइलें"
+  },
+  "model": {
+    "selectModel": "मॉडल चुनें",
+    "current": "वर्तमान",
+    "configureModel": "मॉडल कॉन्फ़िगर करें",
+    "changeModel": "मॉडल बदलें"
+  },
+  "messages": "{{count}} संदेश",
+  "favorite": "पसंदीदा",
+  "theme": {
+    "switchToLight": "लाइट थीम पर स्विच करें",
+    "switchToDark": "डार्क थीम पर स्विच करें",
+    "switchToSystem": "सिस्टम थीम पर स्विच करें",
+    "lightMode": "लाइट",
+    "darkMode": "डार्क",
+    "systemMode": "सिस्टम"
+  }
+}
