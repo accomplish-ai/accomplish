@@ -1,8 +1,42 @@
 {
   "title": "Task History",
+  "eyebrow": "Review, reuse, and manage past work",
   "recentTasks": "Recent Tasks",
   "noTasks": "No tasks yet. Start by describing what you want to accomplish.",
+  "noResults": "No tasks match the current filters.",
   "viewAll": "View all {{count}} tasks",
+  "resultsCount": "Showing {{shown}} of {{total}} tasks",
   "confirmClear": "Are you sure you want to clear all task history?",
-  "confirmDelete": "Delete this task?"
+  "confirmDelete": "Delete this task?",
+  "stats": {
+    "total": "Total",
+    "completed": "Completed",
+    "active": "Active",
+    "failed": "Failed"
+  },
+  "filters": {
+    "searchPlaceholder": "Search prompts, summaries, and messages",
+    "searchLabel": "Search task history",
+    "statusLabel": "Filter by status",
+    "sortLabel": "Sort task history",
+    "allStatuses": "All statuses",
+    "newest": "Newest first",
+    "oldest": "Oldest first",
+    "clear": "Reset"
+  },
+  "status": {
+    "completed": "Completed",
+    "running": "Running",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "pending": "Pending",
+    "waiting_permission": "Waiting for permission",
+    "queued": "Queued",
+    "interrupted": "Interrupted"
+  },
+  "actions": {
+    "copyPrompt": "Copy prompt",
+    "copied": "Prompt copied",
+    "rerun": "Use prompt again"
+  }
 }
