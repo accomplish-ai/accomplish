@@ -38,6 +38,10 @@ const mockAccomplish = {
   listTasks: mockListTasks.mockResolvedValue([]),
   onTaskStatusChange: mockOnTaskStatusChange.mockReturnValue(() => {}),
   onTaskUpdate: mockOnTaskUpdate.mockReturnValue(() => {}),
+  onDaemonDisconnected: vi.fn(),
+  onDaemonReconnected: vi.fn(),
+  onDaemonReconnectFailed: vi.fn(),
+  daemonPing: vi.fn().mockResolvedValue({ status: 'ok' }),
   getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
   getOllamaConfig: vi.fn().mockResolvedValue(null),
   isE2EMode: vi.fn().mockResolvedValue(false),
@@ -104,6 +108,11 @@ vi.mock('@/components/layout/SettingsDialog', () => {
     SettingsDialog: MockSettingsDialog,
   };
 });
+
+// Mock daemon dot to avoid module-level daemon IPC subscriptions in this sidebar test
+vi.mock('@/components/DaemonStatusDot', () => ({
+  DaemonStatusDot: () => <div data-testid="daemon-status-dot" />,
+}));
 
 // Mock framer-motion to simplify testing animations
 vi.mock('framer-motion', () => {
