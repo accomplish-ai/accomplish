@@ -1,38 +1,17 @@
 import { useTranslation } from 'react-i18next';
-import Header from '../components/layout/Header';
 import TaskHistory from '../components/history/TaskHistory';
-import { useTaskStore } from '../stores/taskStore';
 
 export default function HistoryPage() {
   const { t } = useTranslation('history');
-  const { t: tCommon } = useTranslation('common');
-  const { tasks, clearHistory } = useTaskStore();
-
-  const handleClearAll = async () => {
-    if (confirm(t('confirmClear'))) {
-      try {
-        await clearHistory();
-      } catch (error) {
-        console.error('Failed to clear task history:', error);
-      }
-    }
-  };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <main className="mx-auto max-w-4xl px-6 py-12">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold text-text">{t('title')}</h1>
-          {tasks.length > 0 && (
-            <button
-              onClick={handleClearAll}
-              className="text-sm text-text-muted hover:text-danger transition-colors"
-            >
-              {tCommon('buttons.clearAll')}
-            </button>
-          )}
+    <div className="h-full overflow-y-auto bg-background">
+      <main className="mx-auto max-w-5xl px-6 py-10">
+        <div className="mb-6">
+          <p className="text-sm text-muted-foreground">{t('eyebrow')}</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-[-0.03em] text-foreground">
+            {t('title')}
+          </h1>
         </div>
         <TaskHistory showTitle={false} />
       </main>
