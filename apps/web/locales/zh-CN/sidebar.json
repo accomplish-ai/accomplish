@@ -1,5 +1,6 @@
 {
   "newTask": "新建任务",
+  "history": "任务历史",
   "searchTasks": "搜索任务 (Cmd+K)",
   "noConversations": "暂无对话",
   "settings": "设置",
