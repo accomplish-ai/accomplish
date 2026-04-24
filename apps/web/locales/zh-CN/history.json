@@ -1,8 +1,42 @@
 {
   "title": "任务历史",
+  "eyebrow": "查看、复用和管理过去的任务",
   "recentTasks": "最近任务",
   "noTasks": "暂无任务。请描述您想完成的事情开始使用。",
+  "noResults": "没有任务符合当前筛选条件。",
   "viewAll": "查看全部 {{count}} 个任务",
+  "resultsCount": "显示 {{shown}} / {{total}} 个任务",
   "confirmClear": "确定要清除所有任务历史吗？",
-  "confirmDelete": "删除此任务？"
+  "confirmDelete": "删除此任务？",
+  "stats": {
+    "total": "总数",
+    "completed": "已完成",
+    "active": "进行中",
+    "failed": "失败"
+  },
+  "filters": {
+    "searchPlaceholder": "搜索提示词、摘要和消息",
+    "searchLabel": "搜索任务历史",
+    "statusLabel": "按状态筛选",
+    "sortLabel": "排序任务历史",
+    "allStatuses": "全部状态",
+    "newest": "最新优先",
+    "oldest": "最早优先",
+    "clear": "重置"
+  },
+  "status": {
+    "completed": "已完成",
+    "running": "运行中",
+    "failed": "失败",
+    "cancelled": "已取消",
+    "pending": "待处理",
+    "waiting_permission": "等待权限",
+    "queued": "已排队",
+    "interrupted": "已中断"
+  },
+  "actions": {
+    "copyPrompt": "复制提示词",
+    "copied": "提示词已复制",
+    "rerun": "再次使用提示词"
+  }
 }
