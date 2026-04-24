@@ -33,6 +33,10 @@ const mockAccomplish = {
   listTasks: mockListTasks.mockResolvedValue([]),
   onTaskStatusChange: mockOnTaskStatusChange.mockReturnValue(() => {}),
   onTaskUpdate: mockOnTaskUpdate.mockReturnValue(() => {}),
+  onDaemonDisconnected: vi.fn(),
+  onDaemonReconnected: vi.fn(),
+  onDaemonReconnectFailed: vi.fn(),
+  daemonPing: vi.fn().mockResolvedValue({ status: 'ok' }),
   getTask: mockGetTask.mockResolvedValue(null),
   getSelectedModel: vi.fn().mockResolvedValue({ provider: 'anthropic', id: 'claude-3-opus' }),
   getOllamaConfig: vi.fn().mockResolvedValue(null),
@@ -62,6 +66,7 @@ const mockAccomplish = {
 // Mock the accomplish module - always return true for isRunningInElectron for most tests
 vi.mock('@/lib/accomplish', () => ({
   getAccomplish: () => mockAccomplish,
+  useAccomplish: () => mockAccomplish,
   isRunningInElectron: () => true,
 }));
 
@@ -183,6 +188,17 @@ vi.mock('@/components/layout/Sidebar', () => ({
   default: () => <div data-testid="sidebar">Sidebar</div>,
 }));
 
+// Mock daemon toast to avoid module-level daemon IPC subscriptions in this route test
+vi.mock('@/components/DaemonConnectionToast', () => ({
+  DaemonConnectionToast: () => null,
+}));
+
+// Mock SettingsDialog to avoid settings subtrees with daemon IPC subscriptions
+vi.mock('@/components/layout/SettingsDialog', () => ({
+  default: () => null,
+  SettingsDialog: () => null,
+}));
+
 // Mock the HomePage
 vi.mock('@/pages/Home', () => ({
   HomePage: () => <div data-testid="home-page">Home Page Content</div>,
@@ -193,10 +209,16 @@ vi.mock('@/pages/Execution', () => ({
   default: () => <div data-testid="execution-page">Execution Page Content</div>,
 }));
 
+// Mock the HistoryPage
+vi.mock('@/pages/History', () => ({
+  default: () => <div data-testid="history-page">History Page Content</div>,
+}));
+
 // Import App after all mocks are set up
 import { App } from '@/App';
 import { HomePage } from '@/pages/Home';
 import ExecutionPage from '@/pages/Execution';
+import HistoryPage from '@/pages/History';
 
 describe('App Integration', () => {
   beforeEach(() => {
@@ -225,6 +247,7 @@ describe('App Integration', () => {
           children: [
             { index: true, Component: HomePage },
             { path: 'execution/:id', Component: ExecutionPage },
+            { path: 'history', Component: HistoryPage },
             { path: '*', element: <Navigate to="/" replace /> },
           ],
         },
@@ -322,20 +345,22 @@ describe('App Integration', () => {
     });
   });
 
+  describe('route rendering - History', () => {
+    it('should render history page at /history route', async () => {
+      // Arrange & Act
+      renderApp('/history');
+
+      // Assert
+      await waitFor(() => {
+        expect(screen.getByTestId('history-page')).toBeInTheDocument();
+      });
+    });
+  });
+
   describe('route rendering - Fallback', () => {
     it('should redirect unknown routes to home', async () => {
       // Arrange & Act
       renderApp('/unknown-route');
-
-      // Assert
-      await waitFor(() => {
-        expect(screen.getByTestId('home-page')).toBeInTheDocument();
-      });
-    });
-
-    it('should redirect /history to home (since it is not defined)', async () => {
-      // Arrange & Act
-      renderApp('/history');
 
       // Assert
       await waitFor(() => {
