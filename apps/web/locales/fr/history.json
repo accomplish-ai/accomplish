@@ -1,8 +1,42 @@
 {
   "title": "Historique des tâches",
+  "eyebrow": "Consultez, réutilisez et gérez les travaux passés",
   "recentTasks": "Tâches récentes",
   "noTasks": "Aucune tâche pour le moment. Commencez par décrire ce que vous souhaitez accomplir.",
+  "noResults": "Aucune tâche ne correspond aux filtres actuels.",
   "viewAll": "Voir les {{count}} tâches",
+  "resultsCount": "{{shown}} tâche(s) affichée(s) sur {{total}}",
   "confirmClear": "Voulez-vous vraiment effacer tout l'historique des tâches ?",
-  "confirmDelete": "Supprimer cette tâche ?"
+  "confirmDelete": "Supprimer cette tâche ?",
+  "stats": {
+    "total": "Total",
+    "completed": "Terminées",
+    "active": "Actives",
+    "failed": "Échouées"
+  },
+  "filters": {
+    "searchPlaceholder": "Rechercher dans les invites, résumés et messages",
+    "searchLabel": "Rechercher dans l'historique des tâches",
+    "statusLabel": "Filtrer par statut",
+    "sortLabel": "Trier l'historique des tâches",
+    "allStatuses": "Tous les statuts",
+    "newest": "Plus récentes d'abord",
+    "oldest": "Plus anciennes d'abord",
+    "clear": "Réinitialiser"
+  },
+  "status": {
+    "completed": "Terminée",
+    "running": "En cours",
+    "failed": "Échouée",
+    "cancelled": "Annulée",
+    "pending": "En attente",
+    "waiting_permission": "En attente d'autorisation",
+    "queued": "En file d'attente",
+    "interrupted": "Interrompue"
+  },
+  "actions": {
+    "copyPrompt": "Copier l'invite",
+    "copied": "Invite copiée",
+    "rerun": "Réutiliser l'invite"
+  }
 }
