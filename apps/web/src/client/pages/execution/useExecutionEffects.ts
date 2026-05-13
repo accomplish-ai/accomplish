@@ -8,17 +8,28 @@ type CoreState = ReturnType<typeof useExecutionCore>;
  * Handles auth/pause cleanup, follow-up focus, and keyboard shortcuts.
  */
 export function useExecutionEffects(s: CoreState, accomplish: CoreState['accomplish']) {
+  const currentTaskId = s.currentTask?.id;
+  const currentTaskStatus = s.currentTask?.status;
+  const currentTaskResult = s.currentTask?.result;
+  const pauseReason =
+    currentTaskResult && 'pauseReason' in currentTaskResult
+      ? currentTaskResult.pauseReason
+      : undefined;
+  const pauseAction =
+    currentTaskResult && 'pauseAction' in currentTaskResult
+      ? currentTaskResult.pauseAction
+      : undefined;
+  const pauseActionType = pauseAction?.type;
+  const pauseActionProviderId =
+    pauseActionType === 'oauth-connect' ? pauseAction.providerId : undefined;
+
   useEffect(() => {
     s.setTaskActionError(null);
     s.setIsTaskActionRunning(false);
-    const result = s.currentTask?.result;
-    const action = result && 'pauseAction' in result ? result.pauseAction : undefined;
     if (
-      s.currentTask?.status === 'completed' &&
-      result &&
-      'pauseReason' in result &&
-      result.pauseReason === 'oauth' &&
-      action?.type === 'oauth-connect'
+      currentTaskStatus === 'completed' &&
+      pauseReason === 'oauth' &&
+      pauseActionType === 'oauth-connect'
     ) {
       let stale = false;
       accomplish
@@ -38,23 +49,12 @@ export function useExecutionEffects(s: CoreState, accomplish: CoreState['accompl
     // eslint-disable-next-line react-hooks/exhaustive-deps -- s.setTaskActionError/setIsTaskActionRunning are stable store actions
   }, [
     accomplish,
-    s.currentTask?.id,
-    s.currentTask?.status,
-    s.currentTask?.result && 'pauseReason' in s.currentTask.result
-      ? s.currentTask.result.pauseReason
-      : undefined,
-    s.currentTask?.result && 'pauseAction' in s.currentTask.result
-      ? s.currentTask.result.pauseAction
-      : undefined,
-    s.currentTask?.result && 'pauseAction' in s.currentTask.result
-      ? s.currentTask.result.pauseAction?.type
-      : undefined,
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- providerId only exists on oauth-connect variant; narrowing inside deps array is intentional
-    s.currentTask?.result &&
-    'pauseAction' in s.currentTask.result &&
-    s.currentTask.result.pauseAction?.type === 'oauth-connect'
-      ? s.currentTask.result.pauseAction?.providerId
-      : undefined,
+    currentTaskId,
+    currentTaskStatus,
+    pauseReason,
+    pauseAction,
+    pauseActionProviderId,
+    pauseActionType,
   ]);
 
   useEffect(() => {
