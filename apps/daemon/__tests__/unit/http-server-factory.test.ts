@@ -141,6 +141,46 @@ describe('createHttpServer', () => {
     }
   });
 
+  it('should return 400 when the request body is not a JSON object', async () => {
+    const routeHandler = vi.fn(
+      async (
+        _data: Record<string, unknown>,
+        _req: http.IncomingMessage,
+        res: http.ServerResponse,
+      ) => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      },
+    );
+    const rateLimiter = new RateLimiter(60_000, 10);
+    const { server, port } = await createHttpServer({
+      authToken: 'secret-token',
+      rateLimiter,
+      routes: [
+        {
+          method: 'POST',
+          path: '/ping',
+          handler: routeHandler,
+        },
+      ],
+      serviceName: 'HttpServerFactoryTest',
+    });
+
+    try {
+      const nullBody = await makeRequest(port, '/ping', 'POST', 'null', 'secret-token');
+      const arrayBody = await makeRequest(port, '/ping', 'POST', '[]', 'secret-token');
+
+      expect(nullBody.statusCode).toBe(400);
+      expect(JSON.parse(nullBody.body).error).toBe('Request body must be a JSON object');
+      expect(arrayBody.statusCode).toBe(400);
+      expect(JSON.parse(arrayBody.body).error).toBe('Request body must be a JSON object');
+      expect(routeHandler).not.toHaveBeenCalled();
+    } finally {
+      rateLimiter.dispose();
+      await closeServer(server);
+    }
+  });
+
   it('should return 204 for OPTIONS requests without auth', async () => {
     const rateLimiter = new RateLimiter(60_000, 10);
     const { server, port } = await createHttpServer({

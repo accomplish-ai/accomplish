@@ -60,13 +60,22 @@ async function readBody(
 }
 
 function parseJsonBody(body: string, res: http.ServerResponse): Record<string, unknown> | null {
+  let data: unknown;
   try {
-    return JSON.parse(body);
+    data = JSON.parse(body);
   } catch {
     res.writeHead(400, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Invalid JSON' }));
     return null;
   }
+
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Request body must be a JSON object' }));
+    return null;
+  }
+
+  return data as Record<string, unknown>;
 }
 
 export function createHttpServer(
