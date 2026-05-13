@@ -74,6 +74,22 @@ export const LANGUAGE_STORAGE_KEY = 'openwork-language';
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
 
+function getStoredLanguagePreference(): string | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setStoredLanguagePreference(language: string): void {
+  try {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  } catch {
+    // localStorage may be unavailable in sandboxed/private contexts.
+  }
+}
+
 function updateDocumentDirection(language: string): void {
   if (typeof document === 'undefined') {
     return;
@@ -86,10 +102,7 @@ function updateDocumentDirection(language: string): void {
  * Returns the concrete language to use (resolves 'auto' via navigator).
  */
 function resolveStoredLanguage(): SupportedLanguage {
-  if (typeof localStorage === 'undefined') {
-    return 'en';
-  }
-  const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  const stored = getStoredLanguagePreference();
   if (stored === 'en' || stored === 'zh-CN' || stored === 'ru' || stored === 'fr') {
     return stored;
   }
@@ -209,7 +222,7 @@ export async function changeLanguage(
   language: 'en' | 'zh-CN' | 'ru' | 'fr' | 'auto',
 ): Promise<void> {
   const resolvedLanguage = language === 'auto' ? resolveAutoLanguage() : language;
-  localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  setStoredLanguagePreference(language);
   await i18n.changeLanguage(resolvedLanguage);
   updateDocumentDirection(resolvedLanguage);
   // Persist to main process so the agent reads the correct language
@@ -224,10 +237,7 @@ export async function changeLanguage(
  * Get the current language preference from localStorage
  */
 export function getLanguagePreference(): 'en' | 'zh-CN' | 'ru' | 'fr' | 'auto' {
-  if (typeof localStorage === 'undefined') {
-    return 'auto';
-  }
-  const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  const stored = getStoredLanguagePreference();
   if (
     stored === 'en' ||
     stored === 'zh-CN' ||
