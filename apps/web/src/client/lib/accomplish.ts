@@ -328,7 +328,10 @@ interface AccomplishAPI {
   ): Promise<void>;
 
   // LM Studio configuration
-  testLMStudioConnection(url: string): Promise<{
+  testLMStudioConnection(
+    url: string,
+    apiKey?: string,
+  ): Promise<{
     success: boolean;
     models?: Array<{ id: string; name: string; toolSupport: ToolSupportStatus }>;
     error?: string;

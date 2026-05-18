@@ -141,6 +141,9 @@
   "lmstudio": {
     "serverUrl": "URL сервера LM Studio",
     "serverHint": "Запустите LM Studio и включите локальный сервер в настройках разработчика",
+    "apiKey": "Bearer токен (необязательно)",
+    "apiKeyPlaceholder": "Введите bearer токен LM Studio",
+    "apiKeyHint": "Нужен только если на сервере LM Studio включена аутентификация",
     "refreshModels": "Обновить список моделей"
   },
   "vertex": {

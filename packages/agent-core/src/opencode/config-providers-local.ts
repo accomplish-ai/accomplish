@@ -69,7 +69,7 @@ export async function buildOllamaConfig(ctx: ProviderBuildContext): Promise<Prov
 }
 
 export async function buildLMStudioConfig(ctx: ProviderBuildContext): Promise<ProviderBuildResult> {
-  const { providerSettings } = ctx;
+  const { providerSettings, getApiKey } = ctx;
   const lmstudioProvider = providerSettings.connectedProviders.lmstudio;
   if (
     lmstudioProvider?.connectionStatus === 'connected' &&
@@ -84,13 +84,17 @@ export async function buildLMStudioConfig(ctx: ProviderBuildContext): Promise<Pr
     log.info(
       `[OpenCode Config Builder] LM Studio configured: ${modelId} (tools: ${supportsTools})`,
     );
+    const lmstudioApiKey = getApiKey('lmstudio');
     return {
       configs: [
         {
           id: 'lmstudio',
           npm: '@ai-sdk/openai-compatible',
           name: 'LM Studio',
-          options: { baseURL: `${lmstudioProvider.credentials.serverUrl}/v1` },
+          options: {
+            baseURL: `${lmstudioProvider.credentials.serverUrl}/v1`,
+            ...(lmstudioApiKey ? { apiKey: lmstudioApiKey } : {}),
+          },
           models: { [modelId]: { name: modelId, tools: supportsTools } },
         },
       ],

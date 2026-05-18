@@ -141,6 +141,9 @@
   "lmstudio": {
     "serverUrl": "LM Studio Server URL",
     "serverHint": "Start LM Studio and enable the local server in Developer settings",
+    "apiKey": "Bearer Token (Optional)",
+    "apiKeyPlaceholder": "Enter LM Studio bearer token",
+    "apiKeyHint": "Required only if your LM Studio server has authentication enabled",
     "refreshModels": "Refresh model list"
   },
   "vertex": {

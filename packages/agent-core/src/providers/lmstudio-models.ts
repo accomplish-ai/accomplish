@@ -41,6 +41,8 @@ export interface LMStudioConnectionResult {
 export interface LMStudioFetchModelsOptions {
   /** The LM Studio server base URL */
   baseUrl: string;
+  /** Optional bearer API key for authenticated LM Studio servers */
+  apiKey?: string;
   /** Request timeout in milliseconds (default: 15000) */
   timeoutMs?: number;
 }
@@ -60,8 +62,18 @@ export function formatModelDisplayName(modelId: string): string {
 export async function fetchAndEnrichModels(
   baseUrl: string,
   timeoutMs: number,
+  apiKey?: string,
 ): Promise<LMStudioConnectionResult> {
-  const response = await fetchWithTimeout(`${baseUrl}/v1/models`, { method: 'GET' }, timeoutMs);
+  const headers: Record<string, string> = {};
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+
+  const response = await fetchWithTimeout(
+    `${baseUrl}/v1/models`,
+    { method: 'GET', headers },
+    timeoutMs,
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -78,7 +90,7 @@ export async function fetchAndEnrichModels(
 
   for (const m of rawModels) {
     const displayName = formatModelDisplayName(m.id);
-    const toolSupport = await testLMStudioModelToolSupport(baseUrl, m.id);
+    const toolSupport = await testLMStudioModelToolSupport(baseUrl, m.id, apiKey);
 
     models.push({
       id: m.id,
@@ -103,10 +115,10 @@ export async function fetchAndEnrichModels(
 export async function fetchLMStudioModels(
   options: LMStudioFetchModelsOptions,
 ): Promise<LMStudioConnectionResult> {
-  const { baseUrl, timeoutMs = LMSTUDIO_REQUEST_TIMEOUT_MS } = options;
+  const { baseUrl, apiKey, timeoutMs = LMSTUDIO_REQUEST_TIMEOUT_MS } = options;
 
   try {
-    return await fetchAndEnrichModels(baseUrl, timeoutMs);
+    return await fetchAndEnrichModels(baseUrl, timeoutMs, apiKey);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch models';
     log.warn(`[LM Studio] Fetch failed: ${message}`);

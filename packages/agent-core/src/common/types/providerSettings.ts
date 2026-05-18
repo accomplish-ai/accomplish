@@ -271,6 +271,8 @@ export interface ZaiCredentials {
 export interface LMStudioCredentials {
   type: 'lmstudio';
   serverUrl: string;
+  hasApiKey?: boolean;
+  keyPrefix?: string;
 }
 
 export interface HuggingFaceLocalCredentials {

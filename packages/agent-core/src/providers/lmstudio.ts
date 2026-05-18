@@ -19,6 +19,8 @@ const log = createConsoleLogger({ prefix: 'LMStudio' });
 export interface LMStudioConnectionOptions {
   /** The LM Studio server URL */
   url: string;
+  /** Optional bearer API key for authenticated LM Studio servers */
+  apiKey?: string;
   /** Request timeout in milliseconds (default: 15000) */
   timeoutMs?: number;
 }
@@ -35,7 +37,7 @@ export interface LMStudioConnectionOptions {
 export async function testLMStudioConnection(
   options: LMStudioConnectionOptions,
 ): Promise<LMStudioConnectionResult> {
-  const { url, timeoutMs = LMSTUDIO_REQUEST_TIMEOUT_MS } = options;
+  const { url, apiKey, timeoutMs = LMSTUDIO_REQUEST_TIMEOUT_MS } = options;
 
   // Sanitize and validate URL
   const sanitizedUrl = sanitizeString(url, 'lmstudioUrl', 256);
@@ -50,7 +52,7 @@ export async function testLMStudioConnection(
   }
 
   try {
-    const result = await fetchAndEnrichModels(sanitizedUrl, timeoutMs);
+    const result = await fetchAndEnrichModels(sanitizedUrl, timeoutMs, apiKey);
 
     if (!result.success) {
       return result;

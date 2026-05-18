@@ -9,19 +9,24 @@ import {
 import type { LMStudioConfig } from '@accomplish_ai/agent-core/desktop-main';
 import type { IpcHandler } from '../../types';
 import { getDaemonClient } from '../../../daemon-bootstrap';
+import { getApiKey } from '../../../store/secureStorage';
 
 // Milestone 5: LM Studio config reads/writes route through the daemon.
 export function registerLMStudioHandlers(handle: IpcHandler): void {
-  handle('lmstudio:test-connection', async (_event: IpcMainInvokeEvent, url: string) => {
-    return testLMStudioConnection({ url });
-  });
+  handle(
+    'lmstudio:test-connection',
+    async (_event: IpcMainInvokeEvent, url: string, apiKey?: string) => {
+      return testLMStudioConnection({ url, apiKey });
+    },
+  );
 
   handle('lmstudio:fetch-models', async (_event: IpcMainInvokeEvent) => {
     const config = await getDaemonClient().call('settings.getLMStudioConfig');
+    const apiKey = await getApiKey('lmstudio');
     if (!config || !config.baseUrl) {
       return { success: false, error: 'No LM Studio configured' };
     }
-    return fetchLMStudioModels({ baseUrl: config.baseUrl });
+    return fetchLMStudioModels({ baseUrl: config.baseUrl, apiKey: apiKey || undefined });
   });
 
   handle('lmstudio:get-config', async (_event: IpcMainInvokeEvent) => {

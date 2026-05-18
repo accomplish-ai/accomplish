@@ -29,6 +29,8 @@ export function LMStudioProviderForm({
   const {
     serverUrl,
     setServerUrl,
+    apiKey,
+    setApiKey,
     connecting,
     refreshing,
     error,
@@ -70,6 +72,20 @@ export function LMStudioProviderForm({
                   className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">{t('lmstudio.serverHint')}</p>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-foreground">
+                  {t('lmstudio.apiKey')}
+                </label>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder={t('lmstudio.apiKeyPlaceholder')}
+                  data-testid="lmstudio-api-key"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">{t('lmstudio.apiKeyHint')}</p>
               </div>
               <FormError error={error} />
               <ConnectButton onClick={handleConnect} connecting={connecting} />

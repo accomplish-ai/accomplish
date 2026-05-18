@@ -141,6 +141,9 @@
   "lmstudio": {
     "serverUrl": "URL du serveur LM Studio",
     "serverHint": "Démarrez LM Studio et activez le serveur local dans les paramètres Développeur",
+    "apiKey": "Jeton Bearer (optionnel)",
+    "apiKeyPlaceholder": "Entrez le jeton bearer LM Studio",
+    "apiKeyHint": "Requis uniquement si l'authentification est activée sur le serveur LM Studio",
     "refreshModels": "Actualiser la liste des modèles"
   },
   "vertex": {

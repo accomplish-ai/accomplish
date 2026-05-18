@@ -23,6 +23,8 @@ interface UseLMStudioProviderConnectOptions {
 export interface UseLMStudioProviderConnectReturn {
   serverUrl: string;
   setServerUrl: (url: string) => void;
+  apiKey: string;
+  setApiKey: (key: string) => void;
   connecting: boolean;
   refreshing: boolean;
   error: string | null;
@@ -38,6 +40,7 @@ export function useLMStudioProviderConnect({
 }: UseLMStudioProviderConnectOptions): UseLMStudioProviderConnectReturn {
   const { t } = useTranslation('settings');
   const [serverUrl, setServerUrl] = useState('http://localhost:1234');
+  const [apiKey, setApiKey] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,12 +59,19 @@ export function useLMStudioProviderConnect({
 
     try {
       const accomplish = getAccomplish();
-      const result = await accomplish.testLMStudioConnection(serverUrl);
+      const trimmedKey = apiKey.trim() || undefined;
+      const result = await accomplish.testLMStudioConnection(serverUrl, trimmedKey);
 
       if (!result.success) {
         setError(result.error || t('status.connectionFailed'));
         setConnecting(false);
         return;
+      }
+
+      if (trimmedKey) {
+        await accomplish.addApiKey('lmstudio', trimmedKey);
+      } else {
+        await accomplish.removeApiKey('lmstudio');
       }
 
       const models = (result.models || []) as LMStudioModel[];
@@ -74,6 +84,8 @@ export function useLMStudioProviderConnect({
         credentials: {
           type: 'lmstudio',
           serverUrl,
+          hasApiKey: !!trimmedKey,
+          keyPrefix: trimmedKey ? trimmedKey.substring(0, 10) + '...' : undefined,
         } as LMStudioCredentials,
         lastConnectedAt: new Date().toISOString(),
         availableModels: models.map((m) => ({
@@ -84,6 +96,7 @@ export function useLMStudioProviderConnect({
       };
 
       onConnect(provider);
+      setApiKey('');
     } catch (err) {
       setError(err instanceof Error ? err.message : t('status.connectionFailed'));
     } finally {
@@ -102,9 +115,7 @@ export function useLMStudioProviderConnect({
 
     try {
       const accomplish = getAccomplish();
-      const currentUrl =
-        (baseProvider.credentials as LMStudioCredentials)?.serverUrl || 'http://localhost:1234';
-      const result = await accomplish.testLMStudioConnection(currentUrl);
+      const result = await accomplish.fetchLMStudioModels();
 
       if (!result.success) {
         setError(result.error || t('status.connectionFailed'));
@@ -160,6 +171,8 @@ export function useLMStudioProviderConnect({
   return {
     serverUrl,
     setServerUrl,
+    apiKey,
+    setApiKey,
     connecting,
     refreshing,
     error,
