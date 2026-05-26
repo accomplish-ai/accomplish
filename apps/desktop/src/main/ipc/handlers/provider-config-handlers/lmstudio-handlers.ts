@@ -13,16 +13,33 @@ import { getStorage } from '../../../store/storage';
 export function registerLMStudioHandlers(handle: IpcHandler): void {
   const storage = getStorage();
 
-  handle('lmstudio:test-connection', async (_event: IpcMainInvokeEvent, url: string) => {
-    return testLMStudioConnection({ url });
-  });
+  handle(
+    'lmstudio:test-connection',
+    async (_event: IpcMainInvokeEvent, url: string, apiKey?: string) => {
+      try {
+        const sanitizedUrl = sanitizeString(url, 'url', 256);
+        const resolvedApiKey =
+          apiKey !== undefined ? apiKey : storage.getApiKey('lmstudio') || undefined;
+        const sanitizedApiKey = resolvedApiKey
+          ? sanitizeString(resolvedApiKey, 'apiKey', 512)
+          : undefined;
+        return await testLMStudioConnection({ url: sanitizedUrl, apiKey: sanitizedApiKey });
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Connection test failed',
+        };
+      }
+    },
+  );
 
   handle('lmstudio:fetch-models', async (_event: IpcMainInvokeEvent) => {
     const config = storage.getLMStudioConfig();
     if (!config || !config.baseUrl) {
       return { success: false, error: 'No LM Studio configured' };
     }
-    return fetchLMStudioModels({ baseUrl: config.baseUrl });
+    const apiKey = storage.getApiKey('lmstudio') || undefined;
+    return fetchLMStudioModels({ baseUrl: config.baseUrl, apiKey });
   });
 
   handle('lmstudio:get-config', async (_event: IpcMainInvokeEvent) => {

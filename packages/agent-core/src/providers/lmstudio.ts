@@ -40,6 +40,8 @@ export interface LMStudioConnectionOptions {
   url: string;
   /** Request timeout in milliseconds (default: 15000) */
   timeoutMs?: number;
+  /** Optional API Key or Bearer Token */
+  apiKey?: string;
 }
 
 /** Options for fetching LM Studio models */
@@ -48,6 +50,8 @@ export interface LMStudioFetchModelsOptions {
   baseUrl: string;
   /** Request timeout in milliseconds (default: 15000) */
   timeoutMs?: number;
+  /** Optional API Key or Bearer Token */
+  apiKey?: string;
 }
 
 /**
@@ -73,7 +77,7 @@ function formatModelDisplayName(modelId: string): string {
 export async function testLMStudioConnection(
   options: LMStudioConnectionOptions,
 ): Promise<LMStudioConnectionResult> {
-  const { url, timeoutMs = LMSTUDIO_REQUEST_TIMEOUT_MS } = options;
+  const { url, apiKey, timeoutMs = LMSTUDIO_REQUEST_TIMEOUT_MS } = options;
 
   // Sanitize and validate URL
   const sanitizedUrl = sanitizeString(url, 'lmstudioUrl', 256);
@@ -88,9 +92,14 @@ export async function testLMStudioConnection(
   }
 
   try {
+    const headers: Record<string, string> = {};
+    if (apiKey && apiKey.trim() !== '') {
+      headers['Authorization'] = `Bearer ${apiKey.trim()}`;
+    }
+
     const response = await fetchWithTimeout(
       `${sanitizedUrl}/v1/models`,
-      { method: 'GET' },
+      { method: 'GET', headers },
       timeoutMs,
     );
 
@@ -116,7 +125,7 @@ export async function testLMStudioConnection(
 
     for (const m of rawModels) {
       const displayName = formatModelDisplayName(m.id);
-      const toolSupport = await testLMStudioModelToolSupport(sanitizedUrl, m.id);
+      const toolSupport = await testLMStudioModelToolSupport(sanitizedUrl, m.id, apiKey);
 
       models.push({
         id: m.id,
@@ -155,10 +164,19 @@ export async function testLMStudioConnection(
 export async function fetchLMStudioModels(
   options: LMStudioFetchModelsOptions,
 ): Promise<LMStudioConnectionResult> {
-  const { baseUrl, timeoutMs = LMSTUDIO_REQUEST_TIMEOUT_MS } = options;
+  const { baseUrl, apiKey, timeoutMs = LMSTUDIO_REQUEST_TIMEOUT_MS } = options;
 
   try {
-    const response = await fetchWithTimeout(`${baseUrl}/v1/models`, { method: 'GET' }, timeoutMs);
+    const headers: Record<string, string> = {};
+    if (apiKey && apiKey.trim() !== '') {
+      headers['Authorization'] = `Bearer ${apiKey.trim()}`;
+    }
+
+    const response = await fetchWithTimeout(
+      `${baseUrl}/v1/models`,
+      { method: 'GET', headers },
+      timeoutMs,
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -175,7 +193,7 @@ export async function fetchLMStudioModels(
 
     for (const m of rawModels) {
       const displayName = formatModelDisplayName(m.id);
-      const toolSupport = await testLMStudioModelToolSupport(baseUrl, m.id);
+      const toolSupport = await testLMStudioModelToolSupport(baseUrl, m.id, apiKey);
 
       models.push({
         id: m.id,
@@ -214,6 +232,10 @@ export function validateLMStudioConfig(config: LMStudioConfig): void {
 
   if (config.lastValidated !== undefined && typeof config.lastValidated !== 'number') {
     throw new Error('Invalid LM Studio configuration');
+  }
+
+  if (config.apiKey !== undefined && typeof config.apiKey !== 'string') {
+    throw new Error('Invalid LM Studio configuration: apiKey must be a string');
   }
 
   if (config.models !== undefined) {

@@ -16,6 +16,8 @@ export interface ToolSupportTestOptions {
   providerName: string;
   /** Request timeout in milliseconds (default: 10000) */
   timeoutMs?: number;
+  /** Optional API Key or Bearer Token */
+  apiKey?: string;
 }
 
 /** Response type from OpenAI-compatible chat completions endpoint */
@@ -41,7 +43,7 @@ interface ChatCompletionResponse {
 export async function testModelToolSupport(
   options: ToolSupportTestOptions,
 ): Promise<ToolSupportStatus> {
-  const { baseUrl, modelId, providerName, timeoutMs = 10000 } = options;
+  const { baseUrl, modelId, providerName, timeoutMs = 10000, apiKey } = options;
 
   const testPayload = {
     model: modelId,
@@ -78,9 +80,14 @@ export async function testModelToolSupport(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (apiKey && apiKey.trim() !== '') {
+      headers['Authorization'] = `Bearer ${apiKey.trim()}`;
+    }
+
     const response = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(testPayload),
       signal: controller.signal,
     });
@@ -191,10 +198,12 @@ export async function testOllamaModelToolSupport(
 export async function testLMStudioModelToolSupport(
   baseUrl: string,
   modelId: string,
+  apiKey?: string,
 ): Promise<ToolSupportStatus> {
   return testModelToolSupport({
     baseUrl,
     modelId,
     providerName: 'LM Studio',
+    apiKey,
   });
 }

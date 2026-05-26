@@ -1,5 +1,6 @@
 {
   "title": "Paramètres",
+  "clearApiKey": "Effacer la clé API",
   "setupTitle": "Configurer Accomplish",
   "model": {
     "title": "Modèle",
@@ -123,7 +124,8 @@
   "lmstudio": {
     "serverUrl": "URL du serveur LM Studio",
     "serverHint": "Démarrez LM Studio et activez le serveur local dans les paramètres Développeur",
-    "refreshModels": "Actualiser la liste des modèles"
+    "refreshModels": "Actualiser la liste des modèles",
+    "bearerToken": "Jeton Bearer / Clé API"
   },
   "vertex": {
     "serviceAccountTab": "Compte de service",

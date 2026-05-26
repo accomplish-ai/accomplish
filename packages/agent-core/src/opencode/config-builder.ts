@@ -508,6 +508,7 @@ export async function buildProviderConfigs(
       name: 'LM Studio',
       options: {
         baseURL: `${lmstudioProvider.credentials.serverUrl}/v1`,
+        apiKey: getApiKey('lmstudio') || undefined,
       },
       models: {
         [modelId]: { name: modelId, tools: supportsTools },
@@ -528,7 +529,10 @@ export async function buildProviderConfigs(
         id: 'lmstudio',
         npm: '@ai-sdk/openai-compatible',
         name: 'LM Studio',
-        options: { baseURL: `${lmstudioConfig.baseUrl}/v1` },
+        options: {
+          baseURL: `${lmstudioConfig.baseUrl}/v1`,
+          apiKey: getApiKey('lmstudio') || undefined,
+        },
         models,
       });
       log.info(`[OpenCode Config Builder] LM Studio (legacy) configured: ${Object.keys(models)}`);

@@ -1,5 +1,6 @@
 {
   "title": "设置",
+  "clearApiKey": "清除 API 密钥",
   "setupTitle": "设置 Accomplish",
   "model": {
     "title": "模型",
@@ -123,7 +124,8 @@
   "lmstudio": {
     "serverUrl": "LM Studio 服务器地址",
     "serverHint": "启动 LM Studio 并在开发者设置中启用本地服务器",
-    "refreshModels": "刷新模型列表"
+    "refreshModels": "刷新模型列表",
+    "bearerToken": "Bearer 令牌 / API 密钥"
   },
   "vertex": {
     "serviceAccountTab": "服务账号",

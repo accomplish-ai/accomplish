@@ -205,6 +205,7 @@ export interface LMStudioModel {
 export interface LMStudioConfig {
   baseUrl: string;
   enabled: boolean;
+  apiKey?: string;
   lastValidated?: number;
   models?: LMStudioModel[];
 }

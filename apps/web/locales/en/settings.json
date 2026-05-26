@@ -1,5 +1,6 @@
 {
   "title": "Settings",
+  "clearApiKey": "Clear API Key",
   "setupTitle": "Set up Accomplish",
   "model": {
     "title": "Model",
@@ -123,7 +124,8 @@
   "lmstudio": {
     "serverUrl": "LM Studio Server URL",
     "serverHint": "Start LM Studio and enable the local server in Developer settings",
-    "refreshModels": "Refresh model list"
+    "refreshModels": "Refresh model list",
+    "bearerToken": "Bearer Token / API Key"
   },
   "vertex": {
     "serviceAccountTab": "Service Account",

@@ -267,6 +267,7 @@ const accomplishAPI = {
   // LM Studio configuration
   testLMStudioConnection: (
     url: string,
+    apiKey?: string,
   ): Promise<{
     success: boolean;
     models?: Array<{
@@ -275,7 +276,7 @@ const accomplishAPI = {
       toolSupport: 'supported' | 'unsupported' | 'unknown';
     }>;
     error?: string;
-  }> => ipcRenderer.invoke('lmstudio:test-connection', url),
+  }> => ipcRenderer.invoke('lmstudio:test-connection', url, apiKey),
 
   fetchLMStudioModels: (): Promise<{
     success: boolean;

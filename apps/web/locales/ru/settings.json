@@ -1,5 +1,6 @@
 {
   "title": "Настройки",
+  "clearApiKey": "Очистить API-ключ",
   "setupTitle": "Настройка Accomplish",
   "model": {
     "title": "Модель",
@@ -123,7 +124,8 @@
   "lmstudio": {
     "serverUrl": "URL сервера LM Studio",
     "serverHint": "Запустите LM Studio и включите локальный сервер в настройках разработчика",
-    "refreshModels": "Обновить список моделей"
+    "refreshModels": "Обновить список моделей",
+    "bearerToken": "Bearer-токен / API-ключ"
   },
   "vertex": {
     "serviceAccountTab": "Сервисный аккаунт",
