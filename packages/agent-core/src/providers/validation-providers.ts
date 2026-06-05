@@ -132,7 +132,7 @@ export async function fetchValidationResponse(
             'anthropic-version': '2023-06-01',
           },
           body: JSON.stringify({
-            model: 'MiniMax-M2.5',
+            model: 'MiniMax-M3',
             max_tokens: 1,
             messages: [{ role: 'user', content: 'test' }],
           }),

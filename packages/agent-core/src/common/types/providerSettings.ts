@@ -388,7 +388,7 @@ export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
   deepseek: 'deepseek/deepseek-chat',
   moonshot: 'moonshot/kimi-k2.5',
   zai: 'zai/glm-4.7-flashx',
-  minimax: 'minimax/MiniMax-M2',
+  minimax: 'minimax/MiniMax-M3',
   bedrock: 'amazon-bedrock/anthropic.claude-opus-4-5-20251101-v1:0',
   nebius: 'nebius/meta-llama/Meta-Llama-3.1-70B-Instruct',
   together: 'together/meta-llama/Llama-3-70b-chat-hf',

@@ -45,11 +45,9 @@ export const MODEL_DISPLAY_NAMES: Record<string, string> = {
   'glm-4.6': 'GLM-4.6',
   'glm-4.5-flash': 'GLM-4.5 Flash',
   // MiniMax
-  'MiniMax-M2': 'MiniMax M2',
-  'MiniMax-M2.1': 'MiniMax M2.1',
-  'MiniMax-M2.1-highspeed': 'MiniMax M2.1 Highspeed',
-  'MiniMax-M2.5': 'MiniMax M2.5',
-  'MiniMax-M2.5-highspeed': 'MiniMax M2.5 Highspeed',
+  'MiniMax-M3': 'MiniMax M3',
+  'MiniMax-M2.7': 'MiniMax M2.7',
+  'MiniMax-M2.7-highspeed': 'MiniMax M2.7 Highspeed',
   // Accomplish AI
   'accomplish-free': 'Accomplish',
 };
