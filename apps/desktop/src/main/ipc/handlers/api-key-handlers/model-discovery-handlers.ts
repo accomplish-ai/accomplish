@@ -46,6 +46,13 @@ export function registerModelDiscoveryHandlers(): void {
         urlOverride = `${options.baseUrl.replace(/\/+$/, '')}/models`;
         endpointConfig = { ...endpointConfig, modelFilter: undefined };
       }
+      // Anthropic with a custom base URL (gateway/proxy): list models from the
+      // gateway's /v1/models instead of api.anthropic.com. Drop the claude-only
+      // filter so non-Anthropic ids served by the gateway aren't hidden.
+      if (providerId === 'anthropic' && typeof options?.baseUrl === 'string' && options.baseUrl) {
+        urlOverride = `${options.baseUrl.replace(/\/+$/, '')}/v1/models`;
+        endpointConfig = { ...endpointConfig, modelFilter: undefined };
+      }
       if (providerId === 'zai' && options?.zaiRegion) {
         const region = options.zaiRegion as ZaiRegion;
         urlOverride = `${ZAI_ENDPOINTS[region]}/models`;

@@ -20,9 +20,13 @@ export async function fetchValidationResponse(
   timeout: number,
 ): Promise<Response | null> {
   switch (provider) {
-    case 'anthropic':
+    case 'anthropic': {
+      // Honor a custom base URL (Anthropic-compatible gateway/proxy) when set,
+      // falling back to the public Anthropic API. Without this, validating a key
+      // for a custom endpoint hits api.anthropic.com and fails as "Invalid API key".
+      const baseUrl = (options.baseUrl || 'https://api.anthropic.com').replace(/\/+$/, '');
       return fetchWithTimeout(
-        'https://api.anthropic.com/v1/messages',
+        `${baseUrl}/v1/messages`,
         {
           method: 'POST',
           headers: {
@@ -38,6 +42,7 @@ export async function fetchValidationResponse(
         },
         timeout,
       );
+    }
 
     case 'openai': {
       const baseUrl = (options.baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '');
