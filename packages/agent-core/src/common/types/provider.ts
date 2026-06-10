@@ -235,6 +235,8 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     name: 'Anthropic',
     requiresApiKey: true,
     apiKeyEnvVar: 'ANTHROPIC_API_KEY',
+    baseUrl: 'https://api.anthropic.com',
+    editableBaseUrl: true,
     defaultModelId: 'anthropic/claude-opus-4-5',
     modelsEndpoint: {
       url: 'https://api.anthropic.com/v1/models',

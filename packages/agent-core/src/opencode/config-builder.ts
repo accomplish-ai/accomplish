@@ -18,6 +18,7 @@ import {
   buildMoonshotConfig,
   buildLiteLLMConfig,
   buildMinimaxConfig,
+  buildAnthropicConfig,
 } from './config-providers-standard.js';
 import {
   buildNimConfig,
@@ -131,6 +132,7 @@ export async function buildProviderConfigs(
     buildMoonshotConfig(ctx),
     buildLiteLLMConfig(ctx),
     buildMinimaxConfig(ctx),
+    buildAnthropicConfig(ctx),
     buildXaiConfig(ctx),
     buildGoogleConfig(ctx),
     buildZaiConfig(ctx),

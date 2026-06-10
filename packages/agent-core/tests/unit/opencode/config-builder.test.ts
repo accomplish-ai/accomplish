@@ -124,4 +124,69 @@ describe('buildProviderConfigs', () => {
       expect(googleConfig).toBeUndefined();
     });
   });
+
+  describe('Anthropic provider (custom base URL)', () => {
+    it('emits an anthropic override with options.baseURL when a custom base URL is set', async () => {
+      const result = await buildProviderConfigs({
+        getApiKey: (p) => (p === 'anthropic' ? 'sk-ant-test' : undefined),
+        providerSettings: {
+          connectedProviders: {
+            anthropic: {
+              providerId: 'anthropic',
+              connectionStatus: 'connected',
+              selectedModelId: 'anthropic/claude-opus-4-5',
+              credentials: { type: 'api_key' },
+              customBaseUrl: 'https://proxy.example.com/v1/',
+            },
+          },
+        } as never,
+      });
+
+      const anthropicConfig = result.providerConfigs.find((p) => p.id === 'anthropic');
+      expect(anthropicConfig).toBeDefined();
+      // Trailing slash is stripped.
+      expect(anthropicConfig?.options?.baseURL).toBe('https://proxy.example.com/v1');
+      expect(anthropicConfig?.options?.apiKey).toBe('sk-ant-test');
+      expect(anthropicConfig?.models?.['claude-opus-4-5']).toBeDefined();
+    });
+
+    it('does not emit an anthropic override when no custom base URL is set (built-in provider is used)', async () => {
+      const result = await buildProviderConfigs({
+        getApiKey: (p) => (p === 'anthropic' ? 'sk-ant-test' : undefined),
+        providerSettings: {
+          connectedProviders: {
+            anthropic: {
+              providerId: 'anthropic',
+              connectionStatus: 'connected',
+              selectedModelId: 'anthropic/claude-opus-4-5',
+              credentials: { type: 'api_key' },
+            },
+          },
+        } as never,
+      });
+
+      const anthropicConfig = result.providerConfigs.find((p) => p.id === 'anthropic');
+      expect(anthropicConfig).toBeUndefined();
+    });
+
+    it('does not emit an anthropic override when the base URL is only whitespace', async () => {
+      const result = await buildProviderConfigs({
+        getApiKey: (p) => (p === 'anthropic' ? 'sk-ant-test' : undefined),
+        providerSettings: {
+          connectedProviders: {
+            anthropic: {
+              providerId: 'anthropic',
+              connectionStatus: 'connected',
+              selectedModelId: 'anthropic/claude-opus-4-5',
+              credentials: { type: 'api_key' },
+              customBaseUrl: '   ',
+            },
+          },
+        } as never,
+      });
+
+      const anthropicConfig = result.providerConfigs.find((p) => p.id === 'anthropic');
+      expect(anthropicConfig).toBeUndefined();
+    });
+  });
 });

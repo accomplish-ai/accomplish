@@ -1,4 +1,4 @@
-/** Standard API-key provider config builders: OpenRouter, Moonshot, LiteLLM, MiniMax. */
+/** Standard API-key provider config builders: OpenRouter, Moonshot, LiteLLM, MiniMax, Anthropic. */
 import { getSelectedModel } from '../storage/repositories/index.js';
 import { ensureMoonshotProxy } from './proxies/index.js';
 import { MINIMAX_DEFAULT_BASE_URL } from '../common/index.js';
@@ -147,5 +147,51 @@ export function buildMinimaxConfig(ctx: ProviderBuildContext): ProviderBuildResu
       },
     ],
     enableToAdd: [],
+  };
+}
+
+/**
+ * Anthropic provider config builder.
+ *
+ * Only emits an override when the user has set a custom base URL for the
+ * Anthropic provider (e.g. pointing at an Anthropic-compatible gateway/proxy).
+ * Without a custom base URL we return nothing, so OpenCode's built-in Anthropic
+ * provider (https://api.anthropic.com) is used unchanged.
+ *
+ * The Anthropic API key is synced to OpenCode's auth.json by the daemon; we also
+ * pass it through in `options` so the override works regardless of auth source.
+ * Mirrors `buildMinimaxConfig`.
+ */
+export function buildAnthropicConfig(ctx: ProviderBuildContext): ProviderBuildResult {
+  const { providerSettings, getApiKey } = ctx;
+  const anthropicProvider = providerSettings.connectedProviders.anthropic;
+  const customBaseUrl = anthropicProvider?.customBaseUrl?.trim();
+  if (
+    anthropicProvider?.connectionStatus !== 'connected' ||
+    !anthropicProvider.selectedModelId ||
+    !customBaseUrl
+  ) {
+    return { configs: [], enableToAdd: [] };
+  }
+  const baseURL = customBaseUrl.replace(/\/+$/, '');
+  const modelId = anthropicProvider.selectedModelId.replace(/^anthropic\//, '');
+  const anthropicApiKey = getApiKey('anthropic');
+  log.info(
+    `[OpenCode Config Builder] Anthropic custom endpoint configured: ${modelId} baseURL: ${baseURL}`,
+  );
+  return {
+    configs: [
+      {
+        id: 'anthropic',
+        npm: '@ai-sdk/anthropic',
+        name: 'Anthropic',
+        options: {
+          baseURL,
+          ...(anthropicApiKey ? { apiKey: anthropicApiKey } : {}),
+        },
+        models: { [modelId]: { name: modelId, tools: true } },
+      },
+    ],
+    enableToAdd: ['anthropic'],
   };
 }
