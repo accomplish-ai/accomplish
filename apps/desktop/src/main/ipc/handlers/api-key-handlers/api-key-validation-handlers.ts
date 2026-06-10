@@ -122,6 +122,11 @@ export function registerApiKeyValidationHandlers(): void {
               openAiBaseUrlFallback = undefined;
             }
           }
+        } else if (typeof options?.baseUrl === 'string' && options.baseUrl.trim()) {
+          // Other providers with an editable base URL (e.g. Anthropic pointed at a
+          // gateway/proxy) must validate against the supplied base URL — otherwise
+          // the key is checked against the provider's public API and rejected.
+          openAiBaseUrlFallback = options.baseUrl.trim();
         }
 
         const result = await validateApiKey(
