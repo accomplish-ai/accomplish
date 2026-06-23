@@ -63,7 +63,7 @@
     "@azure/identity": "^4.13.0",
     "@huggingface/transformers": "^4.0.1",
     "@sentry/electron": "^7.8.0",
-    "@whiskeysockets/baileys": "7.0.0-rc.9",
+    "@whiskeysockets/baileys": "7.0.0-rc12",
     "dotenv": "^17.2.3",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.7.3",
