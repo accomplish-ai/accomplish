@@ -31,12 +31,12 @@ export interface ConfigGeneratorOptions {
   enabledProviders?: string[];
   /** Browser configuration. Defaults to { mode: 'builtin' } */
   browser?: import('./generator-mcp.js').BrowserConfig;
-  /** Connected MCP remote servers with OAuth access tokens */
+  /** Connected MCP remote servers, with an OAuth access token when required */
   connectors?: Array<{
     id: string;
     name: string;
     url: string;
-    accessToken: string;
+    accessToken?: string;
   }>;
   /**
    * Binding, `instruction`-type workspace knowledge notes. Rendered under a

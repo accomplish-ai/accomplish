@@ -4,6 +4,7 @@ import type { IpcMainInvokeEvent } from 'electron';
 import {
   sanitizeString,
   discoverOAuthMetadata,
+  OAuthMetadataDiscoveryError,
   registerOAuthClient,
   generatePkceChallenge,
   buildAuthorizationUrl,
@@ -108,7 +109,31 @@ export function registerConnectorHandlers(): void {
       throw new Error('Connector not found');
     }
 
-    const metadata = await discoverOAuthMetadata(connector.url);
+    let metadata: OAuthMetadata;
+    try {
+      metadata = await discoverOAuthMetadata(connector.url);
+    } catch (err) {
+      if (err instanceof OAuthMetadataDiscoveryError && err.status === 404) {
+        const {
+          oauthMetadata: _oauthMetadata,
+          clientRegistration: _clientRegistration,
+          ...rest
+        } = connector;
+        const now = new Date().toISOString();
+        const connectedConnector: McpConnector = {
+          ...rest,
+          status: 'connected',
+          lastConnectedAt: now,
+          updatedAt: now,
+        };
+
+        await client.call('connectors.deleteTokens', { connectorId });
+        await client.call('connectors.upsert', { connector: connectedConnector });
+        return { connector: connectedConnector };
+      }
+
+      throw err;
+    }
 
     let clientReg = connector.clientRegistration;
     if (!clientReg) {

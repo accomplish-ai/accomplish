@@ -500,6 +500,7 @@ export type {
 
 // MCP OAuth
 export {
+  OAuthMetadataDiscoveryError,
   discoverOAuthMetadata,
   discoverOAuthProtectedResourceMetadata,
   registerOAuthClient,

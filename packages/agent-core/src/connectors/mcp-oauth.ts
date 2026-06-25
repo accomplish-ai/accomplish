@@ -3,7 +3,11 @@ import type { OAuthMetadata, OAuthClientRegistration } from '../common/types/con
 import { fetchWithTimeout } from './oauth-metadata.js';
 
 export type { OAuthProtectedResourceMetadata } from './oauth-metadata.js';
-export { discoverOAuthMetadata, discoverOAuthProtectedResourceMetadata } from './oauth-metadata.js';
+export {
+  OAuthMetadataDiscoveryError,
+  discoverOAuthMetadata,
+  discoverOAuthProtectedResourceMetadata,
+} from './oauth-metadata.js';
 export { exchangeCodeForTokens, refreshAccessToken, isTokenExpired } from './oauth-tokens.js';
 
 /**

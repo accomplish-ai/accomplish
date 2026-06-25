@@ -65,7 +65,7 @@ export interface BuildMcpServersOptions {
     id: string;
     name: string;
     url: string;
-    accessToken: string;
+    accessToken?: string;
   }>;
   /**
    * Path to GWS accounts manifest JSON. When set, gmail-mcp, calendar-mcp,
@@ -231,8 +231,10 @@ export function buildMcpServers(options: BuildMcpServersOptions): Record<string,
       mcpServers[key] = {
         type: 'remote',
         url: connector.url,
-        headers: { Authorization: `Bearer ${connector.accessToken}` },
         enabled: true,
+        ...(connector.accessToken
+          ? { headers: { Authorization: `Bearer ${connector.accessToken}` } }
+          : {}),
       };
     }
   }

@@ -30,6 +30,7 @@ export { installCrashHandlers } from './daemon/crash-handlers.js';
 // MCP OAuth helpers (pure HTTP fetch + PKCE)
 // -----------------------------------------------------------------------------
 export {
+  OAuthMetadataDiscoveryError,
   discoverOAuthMetadata,
   discoverOAuthProtectedResourceMetadata,
   registerOAuthClient,

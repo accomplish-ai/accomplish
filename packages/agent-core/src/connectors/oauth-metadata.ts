@@ -2,6 +2,17 @@ import type { OAuthMetadata } from '../common/types/connector.js';
 
 const OAUTH_FETCH_TIMEOUT_MS = 30_000;
 
+export class OAuthMetadataDiscoveryError extends Error {
+  constructor(
+    readonly metadataUrl: string,
+    readonly status: number,
+    readonly statusText: string,
+  ) {
+    super(`Failed to discover OAuth metadata from ${metadataUrl}: ${status} ${statusText}`);
+    this.name = 'OAuthMetadataDiscoveryError';
+  }
+}
+
 export interface OAuthProtectedResourceMetadata {
   resource: string;
   authorizationServers?: string[];
@@ -36,9 +47,7 @@ export async function discoverOAuthMetadata(serverUrl: string): Promise<OAuthMet
   });
 
   if (!response.ok) {
-    throw new Error(
-      `Failed to discover OAuth metadata from ${url.toString()}: ${response.status} ${response.statusText}`,
-    );
+    throw new OAuthMetadataDiscoveryError(url.toString(), response.status, response.statusText);
   }
 
   const data = (await response.json()) as Record<string, unknown>;

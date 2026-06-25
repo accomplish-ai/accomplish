@@ -343,6 +343,50 @@ describe('daemon onBeforeStart — integration against real resolveTaskConfig + 
     expect(connectorServer.headers?.Authorization).toBe('Bearer slack-access-token');
   });
 
+  it('includes connected MCP connectors that do not require authentication', async () => {
+    const storage = makeStorage({
+      getEnabledConnectors: vi.fn(() => [
+        {
+          id: 'conn-local-1',
+          name: 'local',
+          url: 'http://localhost:3333/mcp',
+          status: 'connected',
+        },
+      ]),
+      getConnectorTokens: vi.fn(() => null),
+      setConnectorStatus: vi.fn(),
+    });
+
+    const { configPath } = await onBeforeStart(
+      storage as never,
+      {
+        userDataPath: tmpUserData,
+        mcpToolsPath: fakeMcpToolsPath,
+        isPackaged: false,
+        resourcesPath: '',
+        appPath: '',
+      },
+      { taskId: 'tsk_no_auth_conn', workspaceId: undefined },
+    );
+
+    const written = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const mcp = (written.mcp ?? written.mcpServers ?? {}) as Record<
+      string,
+      { type?: string; url?: string; headers?: Record<string, string> }
+    >;
+    const userConnectorEntries = Object.entries(mcp).filter(([key]) =>
+      key.startsWith('connector-'),
+    );
+
+    expect(userConnectorEntries).toHaveLength(1);
+    const [connectorKey, connectorServer] = userConnectorEntries[0];
+    expect(connectorKey).toBe('connector-local-conn-l');
+    expect(connectorServer.type).toBe('remote');
+    expect(connectorServer.url).toBe('http://localhost:3333/mcp');
+    expect(connectorServer.headers).toBeUndefined();
+    expect(storage.setConnectorStatus).not.toHaveBeenCalled();
+  });
+
   it('registers gws-mcp + gmail-mcp + calendar-mcp + GWS_ACCOUNTS_MANIFEST env when accounts are connected', async () => {
     const now = Date.now();
     gwsRows = [

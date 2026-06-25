@@ -681,7 +681,9 @@ const accomplishAPI = {
   deleteConnector: (id: string): Promise<void> => ipcRenderer.invoke('connectors:delete', id),
   setConnectorEnabled: (id: string, enabled: boolean): Promise<void> =>
     ipcRenderer.invoke('connectors:set-enabled', id, enabled),
-  startConnectorOAuth: (connectorId: string): Promise<{ state: string; authUrl: string }> =>
+  startConnectorOAuth: (
+    connectorId: string,
+  ): Promise<{ state: string; authUrl: string } | { connector: McpConnector }> =>
     ipcRenderer.invoke('connectors:start-oauth', connectorId),
   completeConnectorOAuth: (state: string, code: string): Promise<McpConnector> =>
     ipcRenderer.invoke('connectors:complete-oauth', state, code),

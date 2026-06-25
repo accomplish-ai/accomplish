@@ -255,9 +255,9 @@ function injectOpenAiStoreFlag(
 async function resolveConnectors(
   storage: StorageAPI,
   log: (level: 'INFO' | 'WARN' | 'ERROR', message: string, data?: Record<string, unknown>) => void,
-): Promise<Array<{ id: string; name: string; url: string; accessToken: string }>> {
+): Promise<Array<{ id: string; name: string; url: string; accessToken?: string }>> {
   const enabledConnectors = storage.getEnabledConnectors();
-  const result: Array<{ id: string; name: string; url: string; accessToken: string }> = [];
+  const result: Array<{ id: string; name: string; url: string; accessToken?: string }> = [];
 
   for (const connector of enabledConnectors) {
     if (connector.status !== 'connected') {
@@ -266,6 +266,15 @@ async function resolveConnectors(
 
     let tokens = storage.getConnectorTokens(connector.id);
     if (!tokens?.accessToken) {
+      if (!connector.oauthMetadata && !connector.clientRegistration) {
+        result.push({
+          id: connector.id,
+          name: connector.name,
+          url: connector.url,
+        });
+        continue;
+      }
+
       log('WARN', `[resolveTaskConfig] Missing access token for ${connector.name}`);
       storage.setConnectorStatus(connector.id, 'error');
       continue;

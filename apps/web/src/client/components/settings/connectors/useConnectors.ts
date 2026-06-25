@@ -105,7 +105,13 @@ export function useConnectors() {
 
     try {
       const accomplish = getAccomplish();
-      return await accomplish.startConnectorOAuth(connectorId);
+      const result = await accomplish.startConnectorOAuth(connectorId);
+      if (result && 'connector' in result) {
+        setConnectors((prev) =>
+          prev.map((c) => (c.id === result.connector.id ? result.connector : c)),
+        );
+      }
+      return result;
     } catch (err) {
       setConnectors((prev) =>
         prev.map((c) => (c.id === connectorId ? { ...c, status: 'error' as const } : c)),

@@ -634,7 +634,9 @@ interface AccomplishAPI {
   addConnector(name: string, url: string): Promise<McpConnector>;
   deleteConnector(id: string): Promise<void>;
   setConnectorEnabled(id: string, enabled: boolean): Promise<void>;
-  startConnectorOAuth(connectorId: string): Promise<{ state: string; authUrl: string }>;
+  startConnectorOAuth(
+    connectorId: string,
+  ): Promise<{ state: string; authUrl: string } | { connector: McpConnector }>;
   completeConnectorOAuth(state: string, code: string): Promise<McpConnector>;
   disconnectConnector(connectorId: string): Promise<void>;
   onMcpAuthCallback?(callback: (url: string) => void): () => void;
