@@ -1,10 +1,12 @@
 {
   "name": "Accomplish Dev Environment",
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
-  "features": {},
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker": {
+      "moby": false
+    }
+  },
   "forwardPorts": [5173],
-  "onCreateCommand": "npm install -g pnpm",
-  "updateContentCommand": "pnpm install",
   "customizations": {
     "vscode": {
       "extensions": [

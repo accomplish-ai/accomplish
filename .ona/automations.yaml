@@ -1,0 +1,31 @@
+services:
+  web-ui:
+    name: Web UI
+    description: Vite development server for the standalone React UI
+    triggeredBy:
+      - manual
+      - postEnvironmentStart
+    commands:
+      start: |
+        ona environment port open 5173 --dont-wait --admission creator_only --name "Web UI" --protocol http || true
+        pnpm -F @accomplish/web dev --host 0.0.0.0
+      ready: curl -sf http://localhost:5173
+
+tasks:
+  install-dependencies:
+    name: Install dependencies
+    description: Install pnpm workspace dependencies
+    triggeredBy:
+      - manual
+      - postDevcontainerStart
+      - prebuild
+    command: pnpm install --frozen-lockfile
+
+  build:
+    name: Build
+    description: Build all workspaces
+    dependsOn:
+      - install-dependencies
+    triggeredBy:
+      - manual
+    command: pnpm build
