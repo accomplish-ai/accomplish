@@ -54,7 +54,7 @@ describe('fetchAndEnrichModels', () => {
     expect(mockedToolSupport).toHaveBeenCalledWith('http://localhost:1234', 'qwen/qwen3-8b');
   });
 
-  it('falls back to the native endpoint when the compatible endpoint is empty', async () => {
+  it('falls back to loaded native instances when the compatible endpoint is empty', async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(response({ data: [] }))
       .mockResolvedValueOnce(
@@ -64,7 +64,13 @@ describe('fetchAndEnrichModels', () => {
               type: 'llm',
               key: 'qwen/qwen3-8b',
               display_name: 'Qwen 3 8B',
-              loaded_instances: [{ id: 'qwen/qwen3-8b' }],
+              loaded_instances: [{ id: 'qwen-custom-instance' }],
+            },
+            {
+              type: 'llm',
+              key: 'mistral/mistral-7b',
+              display_name: 'Mistral 7B',
+              loaded_instances: [],
             },
             {
               type: 'embedding',
@@ -81,7 +87,7 @@ describe('fetchAndEnrichModels', () => {
       success: true,
       models: [
         {
-          id: 'qwen/qwen3-8b',
+          id: 'qwen-custom-instance',
           name: 'Qwen 3 8B',
           toolSupport: 'supported',
         },
@@ -92,7 +98,10 @@ describe('fetchAndEnrichModels', () => {
       'http://localhost:1234/api/v1/models',
       expect.objectContaining({ method: 'GET' }),
     );
-    expect(mockedToolSupport).toHaveBeenCalledTimes(1);
+    expect(mockedToolSupport).toHaveBeenCalledWith(
+      'http://localhost:1234',
+      'qwen-custom-instance',
+    );
   });
 
   it('returns the original endpoint error when both discovery endpoints fail', async () => {

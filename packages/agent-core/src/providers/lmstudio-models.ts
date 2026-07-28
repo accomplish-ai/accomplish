@@ -28,9 +28,10 @@ interface LMStudioOpenAIModelsResponse {
 interface LMStudioNativeModelsResponse {
   models?: Array<{
     type?: string;
-    key?: string;
-    id?: string;
     display_name?: string;
+    loaded_instances?: Array<{
+      id?: string;
+    }>;
   }>;
 }
 
@@ -96,11 +97,12 @@ function parseModelResponse(data: unknown): RawLMStudioModel[] {
       return [];
     }
 
-    const id = model.key || model.id;
-    if (!id) {
-      return [];
-    }
-    return [{ id, displayName: model.display_name }];
+    return (model.loaded_instances || []).flatMap((instance) => {
+      if (typeof instance.id !== 'string' || instance.id.length === 0) {
+        return [];
+      }
+      return [{ id: instance.id, displayName: model.display_name }];
+    });
   });
 }
 
