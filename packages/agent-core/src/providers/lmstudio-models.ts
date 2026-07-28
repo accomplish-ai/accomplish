@@ -12,12 +12,25 @@ const log = createConsoleLogger({ prefix: 'LMStudio' });
 /** Default timeout for LM Studio API requests in milliseconds */
 export const LMSTUDIO_REQUEST_TIMEOUT_MS = 15000;
 
-/** Response type from LM Studio /v1/models endpoint */
-interface LMStudioModelsResponse {
+interface RawLMStudioModel {
+  id: string;
+  displayName?: string;
+}
+
+/** Response type from the OpenAI-compatible LM Studio endpoint. */
+interface LMStudioOpenAIModelsResponse {
   data?: Array<{
-    id: string;
-    object: string;
-    owned_by?: string;
+    id?: string;
+  }>;
+}
+
+/** Response type from LM Studio's native v1 endpoint. */
+interface LMStudioNativeModelsResponse {
+  models?: Array<{
+    type?: string;
+    key?: string;
+    id?: string;
+    display_name?: string;
   }>;
 }
 
@@ -53,32 +66,96 @@ export function formatModelDisplayName(modelId: string): string {
   return modelId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-/**
- * Fetch raw model list from LM Studio /v1/models endpoint and enrich with tool support.
- * Shared by both testLMStudioConnection and fetchLMStudioModels.
- */
-export async function fetchAndEnrichModels(
-  baseUrl: string,
-  timeoutMs: number,
-): Promise<LMStudioConnectionResult> {
-  const response = await fetchWithTimeout(`${baseUrl}/v1/models`, { method: 'GET' }, timeoutMs);
+function normalizeBaseUrl(baseUrl: string): string {
+  return baseUrl.trim().replace(/\/+$/, '').replace(/\/(?:api\/)?v1$/i, '');
+}
+
+function parseModelResponse(data: unknown): RawLMStudioModel[] {
+  if (!data || typeof data !== 'object') {
+    return [];
+  }
+
+  const response = data as LMStudioOpenAIModelsResponse & LMStudioNativeModelsResponse;
+  if (Array.isArray(response.data)) {
+    return response.data.flatMap((model) => {
+      if (typeof model.id !== 'string' || model.id.length === 0) {
+        return [];
+      }
+      return [{ id: model.id }];
+    });
+  }
+
+  if (!Array.isArray(response.models)) {
+    return [];
+  }
+
+  return response.models.flatMap((model) => {
+    // Embedding models cannot be used by the chat provider and should not be
+    // sent through the tool-support probe.
+    if (model.type && model.type !== 'llm') {
+      return [];
+    }
+
+    const id = model.key || model.id;
+    if (!id) {
+      return [];
+    }
+    return [{ id, displayName: model.display_name }];
+  });
+}
+
+interface RawModelFetchResult {
+  success: boolean;
+  models: RawLMStudioModel[];
+  error?: string;
+}
+
+async function fetchRawModels(url: string, timeoutMs: number): Promise<RawModelFetchResult> {
+  const response = await fetchWithTimeout(url, { method: 'GET' }, timeoutMs);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     const errorMessage =
       (errorData as { error?: { message?: string } })?.error?.message ||
       `API returned status ${response.status}`;
-    return { success: false, error: errorMessage };
+    return { success: false, models: [], error: errorMessage };
   }
 
-  const data = (await response.json()) as LMStudioModelsResponse;
-  const rawModels = data.data || [];
+  return { success: true, models: parseModelResponse(await response.json()) };
+}
+
+/**
+ * Fetch raw model list from LM Studio and enrich with tool support.
+ *
+ * LM Studio exposes two model-list APIs. Older and OpenAI-compatible servers
+ * use `/v1/models` with a `data` array, while newer servers also expose the
+ * native `/api/v1/models` endpoint with a `models` array. Keep the compatible
+ * endpoint as the primary path and use the native endpoint when it returns no
+ * usable models so both response formats work without requiring a live server
+ * migration.
+ */
+export async function fetchAndEnrichModels(
+  baseUrl: string,
+  timeoutMs: number,
+): Promise<LMStudioConnectionResult> {
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+  const openAIResult = await fetchRawModels(`${normalizedBaseUrl}/v1/models`, timeoutMs);
+  let rawModels = openAIResult.models;
+
+  if (rawModels.length === 0) {
+    const nativeResult = await fetchRawModels(`${normalizedBaseUrl}/api/v1/models`, timeoutMs);
+    if (nativeResult.models.length > 0) {
+      rawModels = nativeResult.models;
+    } else if (!openAIResult.success && !nativeResult.success) {
+      return { success: false, error: openAIResult.error || nativeResult.error };
+    }
+  }
 
   const models: LMStudioModel[] = [];
 
   for (const m of rawModels) {
-    const displayName = formatModelDisplayName(m.id);
-    const toolSupport = await testLMStudioModelToolSupport(baseUrl, m.id);
+    const displayName = m.displayName || formatModelDisplayName(m.id);
+    const toolSupport = await testLMStudioModelToolSupport(normalizedBaseUrl, m.id);
 
     models.push({
       id: m.id,

@@ -26,8 +26,8 @@ export interface LMStudioConnectionOptions {
 /**
  * Tests connection to an LM Studio server and fetches available models.
  *
- * Makes a GET request to /v1/models to verify connectivity and retrieve
- * the list of loaded models. For each model, tests tool support capability.
+ * Queries LM Studio's model-list APIs to verify connectivity and retrieve
+ * available models. For each model, tests tool support capability.
  *
  * @param options - Connection test options
  * @returns Connection result with models if successful
