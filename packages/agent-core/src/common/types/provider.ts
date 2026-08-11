@@ -10,6 +10,7 @@ export const ZAI_ENDPOINTS: Record<ZaiRegion, string> = {
 export type ProviderType =
   | 'anthropic'
   | 'openai'
+  | 'atlascloud'
   | 'openrouter'
   | 'google'
   | 'xai'
@@ -37,6 +38,7 @@ export type ProviderType =
 export type ApiKeyProvider =
   | 'anthropic'
   | 'openai'
+  | 'atlascloud'
   | 'openrouter'
   | 'google'
   | 'xai'
@@ -69,6 +71,7 @@ export type ApiKeyProvider =
 export const ALLOWED_API_KEY_PROVIDERS: ReadonlySet<string> = new Set<string>([
   'anthropic',
   'openai',
+  'atlascloud',
   'openrouter',
   'google',
   'xai',
@@ -102,6 +105,7 @@ export const ALLOWED_API_KEY_PROVIDERS: ReadonlySet<string> = new Set<string>([
 export const STANDARD_VALIDATION_PROVIDERS: ReadonlySet<string> = new Set<string>([
   'anthropic',
   'openai',
+  'atlascloud',
   'google',
   'xai',
   'deepseek',
@@ -258,6 +262,21 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
       responseFormat: 'openai',
       modelIdPrefix: 'openai/',
       modelFilter: /^gpt-|^o[134]|^chatgpt-/,
+    },
+    models: [],
+  },
+  {
+    id: 'atlascloud',
+    name: 'Atlas Cloud',
+    requiresApiKey: true,
+    apiKeyEnvVar: 'ATLASCLOUD_API_KEY',
+    baseUrl: 'https://api.atlascloud.ai/v1',
+    defaultModelId: 'atlascloud/qwen/qwen3.8-max',
+    modelsEndpoint: {
+      url: 'https://api.atlascloud.ai/v1/models',
+      authStyle: 'bearer',
+      responseFormat: 'openai',
+      modelIdPrefix: 'atlascloud/',
     },
     models: [],
   },

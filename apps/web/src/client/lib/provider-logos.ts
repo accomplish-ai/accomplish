@@ -1,6 +1,7 @@
 import type { ProviderId } from '@accomplish_ai/agent-core/common';
 import anthropicLogo from '/assets/ai-logos/anthropic.svg';
 import openaiLogo from '/assets/ai-logos/openai.svg';
+import atlascloudLogo from '/assets/ai-logos/atlascloud.svg';
 import googleLogo from '/assets/ai-logos/google.svg';
 import xaiLogo from '/assets/ai-logos/xai.svg';
 import deepseekLogo from '/assets/ai-logos/deepseek.svg';
@@ -28,6 +29,7 @@ import accomplishLogo from '/assets/ai-logos/accomplish.svg';
 export const PROVIDER_LOGOS: Record<ProviderId, string> = {
   anthropic: anthropicLogo,
   openai: openaiLogo,
+  atlascloud: atlascloudLogo,
   google: googleLogo,
   xai: xaiLogo,
   deepseek: deepseekLogo,

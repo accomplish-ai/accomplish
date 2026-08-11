@@ -124,4 +124,39 @@ describe('buildProviderConfigs', () => {
       expect(googleConfig).toBeUndefined();
     });
   });
+
+  describe('Atlas Cloud provider', () => {
+    it('preserves slash-delimited model IDs in the OpenAI-compatible config', async () => {
+      const result = await buildProviderConfigs({
+        getApiKey: (provider) =>
+          provider === 'atlascloud' ? 'test-atlascloud-api-key' : undefined,
+        providerSettings: {
+          connectedProviders: {
+            atlascloud: {
+              providerId: 'atlascloud',
+              connectionStatus: 'connected',
+              selectedModelId: 'atlascloud/qwen/qwen3.8-max',
+              credentials: { type: 'api_key', keyPrefix: 'test-atlascloud...' },
+              availableModels: [{ id: 'atlascloud/qwen/qwen3.8-max', name: 'Qwen3.8 Max' }],
+            },
+          },
+        } as never,
+      });
+
+      const atlasConfig = result.providerConfigs.find((provider) => provider.id === 'atlascloud');
+      expect(atlasConfig).toMatchObject({
+        id: 'atlascloud',
+        npm: '@ai-sdk/openai-compatible',
+        name: 'Atlas Cloud',
+        options: {
+          baseURL: 'https://api.atlascloud.ai/v1',
+          apiKey: 'test-atlascloud-api-key',
+        },
+      });
+      expect(atlasConfig?.models?.['qwen/qwen3.8-max']).toEqual({
+        name: 'Qwen3.8 Max',
+        tools: true,
+      });
+    });
+  });
 });

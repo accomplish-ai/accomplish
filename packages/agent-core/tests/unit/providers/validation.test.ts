@@ -100,6 +100,28 @@ describe('API Key Validation', () => {
       });
     });
 
+    describe('Atlas Cloud', () => {
+      it('should validate an Atlas Cloud key against the models endpoint', async () => {
+        vi.mocked(fetch).mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ data: [{ id: 'qwen/qwen3.8-max' }] }),
+        } as Response);
+
+        const result = await validateApiKey('atlascloud', 'atlas-test-key');
+
+        expect(result.valid).toBe(true);
+        expect(fetch).toHaveBeenCalledWith(
+          'https://api.atlascloud.ai/v1/models',
+          expect.objectContaining({
+            method: 'GET',
+            headers: expect.objectContaining({
+              Authorization: 'Bearer atlas-test-key',
+            }),
+          }),
+        );
+      });
+    });
+
     describe('Google', () => {
       it('should validate Google key successfully', async () => {
         vi.mocked(fetch).mockResolvedValueOnce({

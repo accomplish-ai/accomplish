@@ -1,6 +1,7 @@
 export type ProviderId =
   | 'anthropic'
   | 'openai'
+  | 'atlascloud'
   | 'google'
   | 'xai'
   | 'deepseek'
@@ -60,6 +61,14 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     label: 'Service',
     logoKey: 'open-ai',
     helpUrl: 'https://platform.openai.com/api-keys',
+  },
+  atlascloud: {
+    id: 'atlascloud',
+    name: 'Atlas Cloud',
+    category: 'classic',
+    label: 'Service',
+    logoKey: 'atlascloud',
+    helpUrl: 'https://www.atlascloud.ai',
   },
   google: {
     id: 'google',
@@ -383,6 +392,7 @@ export function getActiveProvider(
 export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
   anthropic: 'anthropic/claude-opus-4-5',
   openai: 'openai/gpt-5.2',
+  atlascloud: 'atlascloud/qwen/qwen3.8-max',
   google: 'google/gemini-3-pro-preview',
   xai: 'xai/grok-4',
   deepseek: 'deepseek/deepseek-chat',
@@ -411,6 +421,7 @@ export function getDefaultModelForProvider(providerId: ProviderId): string | nul
 export const PROVIDER_ID_TO_OPENCODE: Record<ProviderId, string> = {
   anthropic: 'anthropic',
   openai: 'openai',
+  atlascloud: 'atlascloud',
   google: 'google',
   xai: 'xai',
   deepseek: 'deepseek',
